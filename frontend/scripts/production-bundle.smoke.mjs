@@ -234,7 +234,7 @@ test(
           assert.deepEqual(
             reads,
             [`/artifacts/${artifact.artifact_id}/preview`],
-            'Only the selected _kfp_preview.json is fetched, never the data/model bundle',
+            'Only the selected preview file is fetched, never the data/model bundle',
           );
           await page.close();
         }

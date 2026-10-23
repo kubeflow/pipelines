@@ -84,6 +84,29 @@ describe('artifact content previews', () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it('fetches sibling previews like in-directory previews', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(dataset));
+    render(view([{ ...artifact, metadata: { _kfp_preview: { version: 2, storage: 'sibling' } } }]));
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(completedRequests(read)).toHaveLength(1);
+  });
+
+  it('renders inline previews from metadata without a network read', () => {
+    const read = vi.spyOn(Apis, 'getArtifactContentPreview');
+    const inline = (content: string): V2Artifact => ({
+      ...artifact,
+      artifact_id: undefined,
+      metadata: { _kfp_preview: { version: 2, storage: 'inline', content } },
+    });
+    const { rerender } = render(view([inline(JSON.stringify(dataset))]));
+    expect(screen.getByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    rerender(view([inline('{"version": 1, "kind": "model"}')]));
+    expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
+    expect(read).not.toHaveBeenCalled();
+  });
+
   it('preserves multi-artifact selection across refreshes and reordering', async () => {
     const second: V2Artifact = { ...artifact, artifact_id: 'dataset-2', name: 'second data' };
     const read = vi

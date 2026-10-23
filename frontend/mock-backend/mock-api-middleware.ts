@@ -88,7 +88,7 @@ const mockV2Artifacts: V2Artifact[] = [
     namespace: 'kubeflow-user-example-com',
     type: ArtifactArtifactType.Model,
     uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-model',
-    metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+    metadata: { _kfp_preview: { version: 2, storage: 'sibling' } },
   },
 ];
 const mockV2Tasks: V2PipelineTask[] = [

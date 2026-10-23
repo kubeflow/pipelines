@@ -171,6 +171,15 @@ describe('artifact preview endpoint', () => {
     );
   });
 
+  it('reads SDK previews from the sibling object beside the directory', async () => {
+    storedArtifact.metadata = { _kfp_preview: { version: 2, storage: 'sibling' } };
+    await previewRequest().expect(200);
+    expect(storage.getObject).toHaveBeenCalledExactlyOnceWith(
+      'bucket',
+      'private-artifacts/team-a/model.kfp-preview.json',
+    );
+  });
+
   it('supports standalone metadata reads without an explicit namespace', async () => {
     await requests(setup(false)).get('/artifacts/artifact-1/preview').expect(200);
     expect(fetch).toHaveBeenCalledOnce();
@@ -283,6 +292,8 @@ describe('artifact preview endpoint', () => {
   it.each([
     undefined,
     { version: 2, path: '_kfp_preview.json' },
+    { version: 2, storage: 'object' },
+    { version: 2, storage: 'inline', content: '{}' },
     { version: 1, path: '../private.json' },
   ])('does not probe files without a supported declaration: %j', async (descriptor) => {
     storedArtifact.metadata = descriptor === undefined ? {} : { _kfp_preview: descriptor };
@@ -298,7 +309,7 @@ describe('artifact preview endpoint', () => {
       Object.assign(new Error('missing'), { code: 'NoSuchKey' }),
     );
     const response = await previewRequest().expect(404);
-    expect(response.text).toContain('_kfp_preview.json is missing');
+    expect(response.text).toContain('The preview file is missing');
     expect(storage.listObjectsV2).not.toHaveBeenCalled();
   });
 

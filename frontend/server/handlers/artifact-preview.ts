@@ -17,8 +17,11 @@ import { Readable } from 'stream';
 import type { UIConfigs } from '../configs.js';
 import type { AuthorizeFn } from '../helpers/auth.js';
 import {
+  ArtifactContentPreviewRequest,
   ArtifactPreviewError,
   ARTIFACT_PREVIEW_RESPONSE_HEADER,
+  getPreviewObjectSuffix,
+  IN_DIRECTORY_PREVIEW_SUFFIX,
   parsePreviewParentUri,
   readArtifactPreviewBytes,
 } from '../helpers/artifact-preview.js';
@@ -190,7 +193,12 @@ export function getArtifactPreviewHandler(
         );
       }
       const parent = parsePreviewParentUri(artifact.uri || '');
-      const contentPreview = { parent, namespace, signal };
+      const authorizationRequest: ArtifactContentPreviewRequest = {
+        parent,
+        namespace,
+        signal,
+        objectSuffix: IN_DIRECTORY_PREVIEW_SUFFIX,
+      };
       let authorized = false;
       await getArtifactsAuthMiddleware(
         authorizeFn,
@@ -198,7 +206,7 @@ export function getArtifactPreviewHandler(
         options.auth.kubeflowUserIdHeader,
         apiServerAddress,
         options.artifacts.proxy.enabled,
-        contentPreview,
+        authorizationRequest,
       )(request, response, () => {
         authorized = true;
       });
@@ -218,20 +226,10 @@ export function getArtifactPreviewHandler(
       if (descriptor === undefined) {
         throw new ArtifactPreviewError(404, 'No preview is enabled for this artifact.');
       }
-      if (
-        !descriptor ||
-        typeof descriptor !== 'object' ||
-        Array.isArray(descriptor) ||
-        !('version' in descriptor) ||
-        descriptor.version !== 1 ||
-        !('path' in descriptor) ||
-        descriptor.path !== '_kfp_preview.json'
-      ) {
-        throw new ArtifactPreviewError(
-          422,
-          'Invalid preview descriptor. Use version 1 and path "_kfp_preview.json".',
-        );
-      }
+      const contentPreview: ArtifactContentPreviewRequest = {
+        ...authorizationRequest,
+        objectSuffix: getPreviewObjectSuffix(descriptor),
+      };
       if (options.artifacts.proxy.enabled) {
         const content = await proxyPreview(options, artifactId, namespace, headers, signal);
         response.type('application/json').send(content);

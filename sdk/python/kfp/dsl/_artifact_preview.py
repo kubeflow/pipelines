@@ -37,6 +37,9 @@ from typing import Any, Callable
 from kfp.dsl.types.artifact_types import Artifact
 
 MAX_BYTES = 64 * 1024
+# Stored beside, not inside, the artifact directory so directory readers such
+# as Polars never encounter a non-data file.
+PREVIEW_SIBLING_SUFFIX = '.kfp-preview.json'
 MAX_ROWS = 10
 MAX_COLUMNS = 20
 MAX_STRING_LENGTH = 256
@@ -1121,22 +1124,29 @@ class ArtifactPreviewSession:
     def _publish(
         directory: Path, artifact: Artifact, preview: dict[str, Any]
     ) -> None:
-        """Write the bounded file atomically before advertising it in artifact
-        metadata."""
+        """Write the bounded sibling object atomically before advertising it in
+        artifact metadata.
+
+        The launcher uploads ``<artifact path>.kfp-preview.json`` to
+        ``<artifact URI>.kfp-preview.json`` only when the descriptor is
+        present.
+        """
         content = _encode(preview)
         if len(content) > MAX_BYTES:
             raise PreviewGenerationError(
                 'Preview exceeds 64 KiB; no preview was published.'
             )
-        destination = directory / '_kfp_preview.json'
+        destination = directory.with_name(
+            directory.name + PREVIEW_SIBLING_SUFFIX
+        )
         if destination.exists() or destination.is_symlink():
             raise PreviewGenerationError(
-                '_kfp_preview.json already exists without a descriptor; it was not overwritten.'
+                f'{destination.name} already exists without a descriptor; it was not overwritten.'
             )
         temporary = None
         try:
             with tempfile.NamedTemporaryFile(
-                dir=directory,
+                dir=destination.parent,
                 prefix='.kfp-preview-',
                 suffix='.tmp',
                 delete=False,
@@ -1145,8 +1155,8 @@ class ArtifactPreviewSession:
                 stream.write(content)
             temporary.replace(destination)
             artifact.metadata['_kfp_preview'] = {
-                'version': 1,
-                'path': '_kfp_preview.json',
+                'version': 2,
+                'storage': 'sibling',
             }
         finally:
             if temporary is not None and temporary.exists():

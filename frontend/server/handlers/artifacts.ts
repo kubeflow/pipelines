@@ -84,6 +84,7 @@ import {
 import {
   ArtifactContentPreviewRequest,
   ArtifactPreviewError,
+  MISSING_PREVIEW_MESSAGE,
   readArtifactPreviewBytes,
 } from '../helpers/artifact-preview.js';
 
@@ -742,7 +743,7 @@ export function getArtifactsHandler({
     }
     const setArtifactFilename = (transformed: boolean) => {
       const keyBaseName = contentPreview
-        ? '_kfp_preview.json'
+        ? contentPreview.objectSuffix.replace(/^[/.]/, '')
         : storageKey.replace(/\/+$/, '').split('/').pop() || 'artifact';
       res.setHeader(
         'Content-Disposition',
@@ -778,7 +779,7 @@ export function getArtifactsHandler({
         return;
       }
     }
-    const objectKey = contentPreview ? `${storageKey}/_kfp_preview.json` : storageKey;
+    const objectKey = contentPreview ? `${storageKey}${contentPreview.objectSuffix}` : storageKey;
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
     if (source !== 'minio' && source !== 's3') {
       setArtifactFilename(false);
@@ -1392,10 +1393,7 @@ function getMinioArtifactHandler(
         res.type('application/json').send(await readArtifactPreviewBytes(stream, signal));
       } catch (error) {
         if (isNoSuchKeyError(error)) {
-          throw new ArtifactPreviewError(
-            404,
-            '_kfp_preview.json is missing. Regenerate the artifact with its preview file.',
-          );
+          throw new ArtifactPreviewError(404, MISSING_PREVIEW_MESSAGE);
         }
         throw error;
       }
@@ -1935,10 +1933,7 @@ function getGCSArtifactHandler(
     } catch (err) {
       if (previewSignal) {
         if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
-          throw new ArtifactPreviewError(
-            404,
-            '_kfp_preview.json is missing. Regenerate the artifact with its preview file.',
-          );
+          throw new ArtifactPreviewError(404, MISSING_PREVIEW_MESSAGE);
         }
         if (
           err &&
@@ -1949,10 +1944,7 @@ function getGCSArtifactHandler(
           'status' in err.response &&
           err.response.status === 404
         ) {
-          throw new ArtifactPreviewError(
-            404,
-            '_kfp_preview.json is missing. Regenerate the artifact with its preview file.',
-          );
+          throw new ArtifactPreviewError(404, MISSING_PREVIEW_MESSAGE);
         }
         throw err;
       }

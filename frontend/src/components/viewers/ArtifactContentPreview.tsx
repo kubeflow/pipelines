@@ -35,6 +35,7 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import {
   ArtifactContentPreview,
+  ArtifactPreviewDescriptor,
   DatasetPreview,
   getArtifactPreviewDescriptor,
   ModelPreview,
@@ -114,13 +115,19 @@ function SelectedArtifactPreview({
 }: PreviewContext & { artifact: V2Artifact }) {
   const kind = getArtifactContentPreviewKind(artifact);
   const effectiveNamespace = artifact.namespace || namespace;
-  let descriptor;
+  let descriptor: ArtifactPreviewDescriptor | undefined;
+  let inlinePreview: ArtifactContentPreview | undefined;
   let descriptorError: string | undefined;
   try {
     descriptor = getArtifactPreviewDescriptor(artifact.metadata);
+    if (descriptor?.version === 2 && descriptor.storage === 'inline' && kind) {
+      // Inline previews are already validated-size metadata; parse them without a server fetch.
+      inlinePreview = parseArtifactContentPreview(descriptor.content, kind);
+    }
   } catch (error) {
     descriptorError = error instanceof Error ? error.message : String(error);
   }
+  const isInline = descriptor?.version === 2 && descriptor.storage === 'inline';
   const { data, error, isFetching, refetch } = useQuery<ArtifactContentPreview, Error>({
     queryKey: queryKeys.artifactContentPreview(
       artifact.artifact_id,
@@ -144,7 +151,7 @@ function SelectedArtifactPreview({
       );
       return parseArtifactContentPreview(content, kind);
     },
-    enabled: !!descriptor && !!kind && !!artifact.artifact_id,
+    enabled: !!descriptor && !isInline && !!kind && !!artifact.artifact_id,
     staleTime: Infinity,
     retry: false,
   });
@@ -163,6 +170,13 @@ function SelectedArtifactPreview({
         mode='info'
         message='No preview is available for this artifact. Check the pipeline and component preview settings, supported formats, component SDK, and logs.'
       />
+    );
+  }
+  if (inlinePreview) {
+    return inlinePreview.kind === 'dataset' ? (
+      <DatasetPreviewTable preview={inlinePreview} />
+    ) : (
+      <ModelPreviewSummary preview={inlinePreview} />
     );
   }
   if (!artifact.artifact_id) {
