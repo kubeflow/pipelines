@@ -20,6 +20,7 @@ import subprocess
 from pathlib import Path
 
 import yaml
+from osv_master_images import merge_published_images, repository_name
 
 
 def extract_images(rendered_manifest: str) -> set[str]:
@@ -67,15 +68,27 @@ def render_overlay(kustomize: Path, overlay: Path) -> str:
     return result.stdout
 
 
+def create_image_map(images: set[str]) -> dict[str, str]:
+    """Maps stable repository categories to the exact images to scan."""
+    image_map = {}
+    for image in sorted(images):
+        repository = repository_name(image)
+        category = hashlib.sha256(repository.encode()).hexdigest()[:16]
+        if category in image_map:
+            raise ValueError(
+                f'Multiple image references share scan identity {repository}: '
+                f'{image_map[category]} and {image}. Align their versions or '
+                'define separate stable scan targets before scanning both.'
+            )
+        image_map[category] = image
+    return image_map
+
+
 def create_matrix(images: set[str]) -> dict[str, list[dict[str, str]]]:
-    """Creates a stable GitHub Actions matrix for the discovered images."""
+    """Keeps versioned references out of GitHub's analysis environment."""
     return {
         'include': [
-            {
-                'image': image,
-                'category': hashlib.sha256(image.encode()).hexdigest()[:16],
-            }
-            for image in sorted(images)
+            {'category': category} for category in create_image_map(images)
         ]
     }
 
@@ -86,7 +99,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument('--kustomize', required=True, type=Path)
     parser.add_argument('--overlay', action='append', required=True, type=Path)
-    return parser.parse_args()
+    parser.add_argument('--published-records', type=Path)
+    parser.add_argument('--source-sha')
+    parser.add_argument('--image-owner')
+    args = parser.parse_args()
+    if any(
+        (args.published_records, args.source_sha, args.image_owner)
+    ) and not all((args.published_records, args.source_sha, args.image_owner)):
+        parser.error(
+            '--published-records, --source-sha and --image-owner must be supplied together'
+        )
+    return args
 
 
 def main() -> None:
@@ -100,7 +123,16 @@ def main() -> None:
             'No container images found in rendered KFP manifests'
         )
 
-    print(json.dumps(create_matrix(images), separators=(',', ':')))
+    if args.published_records:
+        images = merge_published_images(
+            images, args.published_records, args.source_sha, args.image_owner
+        )
+
+    inventory = {
+        'matrix': create_matrix(images),
+        'images': create_image_map(images),
+    }
+    print(json.dumps(inventory, separators=(',', ':')))
 
 
 if __name__ == '__main__':

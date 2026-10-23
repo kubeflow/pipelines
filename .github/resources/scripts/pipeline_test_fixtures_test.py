@@ -49,7 +49,10 @@ class PipelineTestFixturesTest(unittest.TestCase):
         self.assertTrue(projections)
 
         paths = []
-        for source in (ROOT / 'backend/test/v2/integration').glob('*.go'):
+        for source in [
+            *(ROOT / 'backend/test/v2/integration').glob('*.go'),
+            *(ROOT / 'backend/test/v2/api').glob('*migration_test.go'),
+        ]:
             text = source.read_text()
             urls = re.findall(
                 r'GetRepoBranchURLRAW\([^,\n]+,\s*[^,\n]+,\s*"([^"]+)"\)', text

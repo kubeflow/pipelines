@@ -105,6 +105,26 @@ export const queryKeys = {
 
   // --- Viewer configs ---
 
+  artifactContentPreview: (
+    artifactId: string | undefined,
+    uri: string | undefined,
+    kind: string | undefined,
+    namespace: string | undefined,
+    descriptor: string | undefined,
+    sourceFinished: boolean | undefined,
+    refreshGeneration: number,
+  ) =>
+    [
+      'artifact_content_preview',
+      artifactId,
+      uri,
+      kind,
+      namespace,
+      descriptor,
+      sourceFinished,
+      refreshGeneration,
+    ] as const,
+
   runtimeArtifactVisualization: (
     artifactId: string | undefined,
     artifactType: string | undefined,

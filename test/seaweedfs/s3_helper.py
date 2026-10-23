@@ -3,7 +3,8 @@
 
 Exit codes (uniform for all operations):
     0 = ALLOWED / succeeded
-    1 = DENIED (AccessDenied/Forbidden/403) or failed (NoSuchKey/error)
+    1 = DENIED (AccessDenied/Forbidden/403)
+    2 = ERROR: an unexpected S3 response or a failure to run the helper.
 
 The caller (namespace_isolation_test.sh) decides whether "allowed" or "denied"
 is the desired outcome; this script never infers intent from the key/prefix.
@@ -19,8 +20,12 @@ depends on the s3:prefix and s3:delimiter policy conditions:
 import argparse
 import sys
 
-import boto3
-from botocore.exceptions import ClientError
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+except Exception as error:  # A broken interpreter must not look like a denial.
+    print(f'ERROR: cannot import boto3: {error!r}', file=sys.stderr)
+    sys.exit(2)
 
 # HTTP 403 is included because HeadBucket has no response body, so botocore
 # synthesizes the error code from the status line ("403", not "Forbidden").
@@ -44,9 +49,9 @@ def head_bucket(client, bucket):
         return True
     except ClientError as error:
         code = error.response['Error']['Code']
-        print(
-            f'{"DENIED" if code in DENIED else "ERROR"}: head-bucket {bucket} ({code})'
-        )
+        if code not in DENIED:
+            raise
+        print(f'DENIED: head-bucket {bucket} ({code})')
         return False
 
 
@@ -57,9 +62,9 @@ def upload(client, bucket, key, content):
         return True
     except ClientError as error:
         code = error.response['Error']['Code']
-        print(
-            f'{"DENIED" if code in DENIED else "ERROR"}: upload {bucket}/{key} ({code})'
-        )
+        if code not in DENIED:
+            raise
+        print(f'DENIED: upload {bucket}/{key} ({code})')
         return False
 
 
@@ -74,10 +79,9 @@ def download(client, bucket, key):
         return True
     except ClientError as error:
         code = error.response['Error']['Code']
-        denied = code in DENIED or code == 'NoSuchKey'
-        print(
-            f'{"DENIED" if denied else "ERROR"}: download {bucket}/{key} ({code})'
-        )
+        if code not in DENIED:
+            raise
+        print(f'DENIED: download {bucket}/{key} ({code})')
         return False
 
 
@@ -92,9 +96,10 @@ def copy(client, bucket, key, source_bucket, source_key):
         return True
     except ClientError as error:
         code = error.response['Error']['Code']
-        denied = code in DENIED or code == 'NoSuchKey'
+        if code not in DENIED:
+            raise
         print(
-            f'{"DENIED" if denied else "ERROR"}: copy {source_bucket}/{source_key} -> {bucket}/{key} ({code})'
+            f'DENIED: copy {source_bucket}/{source_key} -> {bucket}/{key} ({code})'
         )
         return False
 
@@ -106,9 +111,9 @@ def delete(client, bucket, key):
         return True
     except ClientError as error:
         code = error.response['Error']['Code']
-        print(
-            f'{"DENIED" if code in DENIED else "ERROR"}: delete {bucket}/{key} ({code})'
-        )
+        if code not in DENIED:
+            raise
+        print(f'DENIED: delete {bucket}/{key} ({code})')
         return False
 
 
@@ -135,9 +140,9 @@ def list_prefix(client, bucket, prefix, delimiter):
         return True
     except ClientError as error:
         code = error.response['Error']['Code']
-        print(
-            f'{"DENIED" if code in DENIED else "ERROR"}: list {bucket}/{label} ({code})'
-        )
+        if code not in DENIED:
+            raise
+        print(f'DENIED: list {bucket}/{label} ({code})')
         return False
 
 
@@ -169,6 +174,17 @@ def main():
     parser.add_argument('--content', help='content to upload (upload)')
     args = parser.parse_args()
 
+    try:
+        allowed = run_operation(args)
+    except Exception as error:  # Only an S3 response may count as a denial.
+        print(
+            f'ERROR: {args.operation} could not run: {error!r}', file=sys.stderr
+        )
+        sys.exit(2)
+    sys.exit(0 if allowed else 1)
+
+
+def run_operation(args):
     client = s3_client(args.access_key, args.secret_key, args.endpoint_url)
 
     if args.operation == 'headbucket':
@@ -192,8 +208,7 @@ def main():
         allowed = list_prefix(
             client, args.bucket, list_prefix_arg, args.delimiter
         )
-
-    sys.exit(0 if allowed else 1)
+    return allowed
 
 
 if __name__ == '__main__':

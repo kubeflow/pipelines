@@ -1,0 +1,31 @@
+name: Install checksum-pinned Trivy
+description: Install the image qualification scanner for a native Linux architecture
+inputs:
+  arch:
+    description: Native architecture (amd64 or arm64)
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+      run: |
+        case "$ARCH" in
+          amd64)
+            archive=trivy_0.76.0_Linux-64bit.tar.gz
+            checksum=e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
+            ;;
+          arm64)
+            archive=trivy_0.76.0_Linux-ARM64.tar.gz
+            checksum=aab21e677a7b7071fc79f1711480840754c18a1b9d9cefa7ccd06af63a0e8f4c
+            ;;
+          *) exit 1 ;;
+        esac
+        curl --fail --silent --show-error --location \
+          "https://github.com/aquasecurity/trivy/releases/download/v0.76.0/$archive" \
+          --output "$RUNNER_TEMP/$archive"
+        echo "$checksum  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+        mkdir -p "$RUNNER_TEMP/trivy-bin"
+        tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/trivy-bin" trivy
+        echo "$RUNNER_TEMP/trivy-bin" >> "$GITHUB_PATH"

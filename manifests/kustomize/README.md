@@ -314,12 +314,16 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials. Authenticated
-multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
-operator-configured namespace prefix), including through tenant proxies. Configuring
-an endpoint or proxy does not make an existing custom-root object belong to a
-namespace. See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership)
-for migrating those object paths.
+Allowlisting does not grant bucket access or configure credentials. An exact
+native Artifact API match in the authorized namespace permits a custom root
+without requiring an object move. Known foreign-prefix and unsafe-key checks,
+no-record prefix/strict policy and lookup-error denial remain. This compatibility
+behavior is not complete object authorization: a tenant can register another
+object's URI, and a proxy may still have broad credentials. See
+[artifact ownership](../../frontend/README.md#multi-user-artifact-ownership) and the
+[backend authorization plan](https://github.com/kubeflow/pipelines/issues/14031).
+Keep storage and receiver access isolated; endpoint configuration and metadata
+registration alone do not establish ownership.
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
 providers require namespace-isolated artifact proxies. Set

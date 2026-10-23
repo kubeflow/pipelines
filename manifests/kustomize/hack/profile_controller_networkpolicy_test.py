@@ -21,7 +21,7 @@ import unittest
 class ProfileControllerNetworkPolicyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # yq v3 emits one JSON object per YAML document.
+        # yq emits one JSON object per YAML document.
         remaining = sys.stdin.read().strip()
         cls.resources = []
         decoder = json.JSONDecoder()

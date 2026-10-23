@@ -29,7 +29,7 @@ def CreatePVC(
     size: str,
     pvc_name: Optional[str] = None,
     pvc_name_suffix: Optional[str] = None,
-    storage_class_name: Optional[str] = '',
+    storage_class_name: Optional[str] = None,
     volume_name: Optional[str] = None,
     annotations: Optional[Dict[str, str]] = None,
     data_source: Optional[Dict[str, str]] = None,

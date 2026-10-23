@@ -350,6 +350,9 @@ else:
                 ):
                     self.assertIn('required-files', step['with'])
                     continue
+                if step.get('uses') == './tooling/.github/actions/setup-trivy':
+                    self.assertEqual(step['with']['arch'], '${{ matrix.arch }}')
+                    continue
                 if 'uses' in step:
                     self.assertRegex(step['uses'], r'@[0-9a-f]{40}$')
                     if step['uses'].startswith('actions/checkout@'):

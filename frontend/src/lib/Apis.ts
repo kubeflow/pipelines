@@ -223,6 +223,20 @@ export class Apis {
     return this._fetch(query);
   }
 
+  /** Reads only the registered artifact's bounded, producer-generated preview. */
+  public static getArtifactContentPreview(
+    artifactId: string,
+    namespace?: string,
+    signal?: AbortSignal,
+  ): Promise<string> {
+    return this._fetch(
+      `artifacts/${encodeURIComponent(artifactId)}/preview${buildQuery({ namespace })}`,
+      undefined,
+      undefined,
+      { signal, cache: 'no-store' },
+    );
+  }
+
   /**
    * Builds an url for the readFile API to retrieve a workflow artifact.
    * @param path object describing the artifact (e.g. source, bucket, and key)

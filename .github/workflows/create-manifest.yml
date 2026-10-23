@@ -93,4 +93,4 @@ jobs:
           name: published-index-${{ inputs.app_to_build }}-${{ github.run_attempt }}
           path: /tmp/published-index/${{ inputs.app_to_build }}.json
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 90
