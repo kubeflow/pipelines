@@ -443,9 +443,13 @@ ACTUAL_NODE_VERSION="$(normalize_node_version "$(node -v)")"
 test "${{ACTUAL_NODE_VERSION}}" = "${{REQUIRED_NODE_VERSION}}" || (echo "node version should match ${{REQUIRED_NODE_VERSION}}" && exit 1)
 echo "jq>=1.6"
 which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
-echo "mikefarah/yq>=4.54.1 <5.0"
 which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
-yq --version | grep -E '^yq [(]https://github.com/mikefarah/yq/[)] version v4[.]' || (echo "mikefarah/yq version 4.x should be used" && exit 1)
+# The target checkout, not the release tool, determines the manifest syntax.
+if grep -Eq '^[[:space:]]*yq[[:space:]]+(w|write)[[:space:]]' "$REPO_ROOT/manifests/kustomize/hack/release.sh"; then
+  yq --version | grep -E '^yq version 3[.]' || (echo "Target release scripts require mikefarah/yq version 3.x" && exit 1)
+else
+  yq --version | grep -E '^yq [(]https://github.com/mikefarah/yq/[)] version v4[.]' || (echo "Target release scripts require mikefarah/yq version 4.x" && exit 1)
+fi
 echo "java>=11"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "python>3"
@@ -502,6 +506,12 @@ def kfp_kubernetes_docs_build_command(
     script = f'''
 set -e
 cd "{repo_path}"
+# Legacy release checkouts do not contain backend/api/hack/uv.sh.
+UV=uv
+if ! command -v "$UV" >/dev/null 2>&1; then
+  python3 -m pip install --user --break-system-packages uv==0.13.5
+  UV="$HOME/.local/bin/uv"
+fi
 rm -rf kubernetes_platform/python/build
 rm -rf kubernetes_platform/python/dist
 rm -rf kubernetes_platform/python/kfp_kubernetes.egg-info
@@ -515,9 +525,9 @@ cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
 if [ -f pyproject.toml ]; then
-  "{repo_path}/backend/api/hack/uv.sh" build --package kfp-kubernetes --out-dir dist
+  "$UV" build --package kfp-kubernetes --out-dir dist
 else
-  "{repo_path}/backend/api/hack/uv.sh" build --out-dir dist .
+  "$UV" build --out-dir dist .
 fi
 '''.strip()
     return [
