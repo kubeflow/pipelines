@@ -3,21 +3,21 @@
 """Keep local module manifests available in cached Go download layers."""
 
 import json
-from pathlib import Path
 import shlex
 import subprocess
 import unittest
+from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
 class GoModuleDockerfilesTest(unittest.TestCase):
-
     def test_download_layers_copy_local_module_manifests(self):
         module = json.loads(
-            subprocess.check_output(['go', 'mod', 'edit', '-json'],
-                                    cwd=REPOSITORY_ROOT,
-                                    text=True))
+            subprocess.check_output(
+                ['go', 'mod', 'edit', '-json'], cwd=REPOSITORY_ROOT, text=True
+            )
+        )
         manifests = {
             Path(replacement['New']['Path']) / 'go.mod'
             for replacement in module['Replace']
@@ -27,7 +27,8 @@ class GoModuleDockerfilesTest(unittest.TestCase):
         tracked = subprocess.check_output(
             ['git', 'ls-files', '*Dockerfile*', '*dockerfile*'],
             cwd=REPOSITORY_ROOT,
-            text=True).splitlines()
+            text=True,
+        ).splitlines()
         checked = []
         for name in tracked:
             if not Path(name).name.lower().startswith('dockerfile'):
@@ -48,9 +49,13 @@ class GoModuleDockerfilesTest(unittest.TestCase):
                 with self.subTest(dockerfile=name, manifest=str(manifest)):
                     self.assertTrue(
                         any(
-                            len(copy) == 2 and Path(copy[0]) == manifest and
-                            Path(copy[1]) == manifest for copy in copies),
-                        f'{name} must copy {manifest} before go mod download')
+                            len(copy) == 2
+                            and Path(copy[0]) == manifest
+                            and Path(copy[1]) == manifest
+                            for copy in copies
+                        ),
+                        f'{name} must copy {manifest} before go mod download',
+                    )
         self.assertTrue(checked, 'expected Go download Docker layers')
 
 

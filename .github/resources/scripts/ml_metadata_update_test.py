@@ -1,19 +1,21 @@
 """Verify the retained MLMD updater targets protobuf generation only."""
+
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class MetadataUpdateTest(unittest.TestCase):
-
     def test_updater_calls_generation_and_propagates_failure(self):
         for status in (0, 17):
-            with self.subTest(
-                    status=status), tempfile.TemporaryDirectory() as directory:
+            with (
+                self.subTest(status=status),
+                tempfile.TemporaryDirectory() as directory,
+            ):
                 work = Path(directory)
                 make = work / 'make'
                 make.write_text(
@@ -25,21 +27,24 @@ class MetadataUpdateTest(unittest.TestCase):
                     os.environ,
                     PATH=f'{work}:{os.environ["PATH"]}',
                     OUTPUT=str(output),
-                    MAKE_EXIT=str(status))
-                result = subprocess.run([
-                    'bash',
-                    str(ROOT / 'third_party/ml-metadata/update_version.sh')
-                ],
-                                        cwd=work,
-                                        env=env,
-                                        capture_output=True,
-                                        text=True,
-                                        check=False)
+                    MAKE_EXIT=str(status),
+                )
+                result = subprocess.run(
+                    [
+                        'bash',
+                        str(ROOT / 'third_party/ml-metadata/update_version.sh'),
+                    ],
+                    cwd=work,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
                 self.assertEqual(result.returncode, status, result.stderr)
                 self.assertEqual(
                     output.read_text().splitlines(),
-                    ['-C',
-                     str(ROOT / 'third_party/ml-metadata'), 'update'])
+                    ['-C', str(ROOT / 'third_party/ml-metadata'), 'update'],
+                )
 
 
 if __name__ == '__main__':
