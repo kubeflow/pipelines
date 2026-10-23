@@ -1039,6 +1039,73 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
         self.assertFalse(result['passed'])
         self.assertEqual(result['state'], 'failure')
 
+    def test_legacy_deletion_head_still_requires_legacy_from_base(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        result = verify(
+            workflow_paths=[legacy, replacement],
+            trigger={'branches': ['master'], 'paths': ['.github/**']},
+            files=[{'filename': legacy, 'status': 'removed'}],
+            runs=[good_run(path=replacement)],
+        )
+        self.assertEqual(result['state'], 'pending')
+        self.assertEqual(result['missing'], [legacy])
+        self.assertCountEqual(result['expected'], [legacy, replacement])
+        self.assertEqual(result['disabled'], [])
+
+    def test_legacy_transition_base_requires_both_successful_suites(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for failed in [legacy, replacement, None]:
+            with self.subTest(failed=failed):
+                result = verify(
+                    workflow_paths=[legacy, replacement],
+                    trigger={'branches': ['master'], 'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=[
+                        good_run(
+                            id=index + 1,
+                            path=path,
+                            conclusion='failure'
+                            if path == failed
+                            else 'success',
+                        )
+                        for index, path in enumerate([legacy, replacement])
+                    ],
+                )
+                self.assertEqual(result['passed'], failed is None)
+                self.assertCountEqual(result['expected'], [legacy, replacement])
+
+    def test_retired_base_still_requires_successful_replacement(self):
+        # Model the final trusted base, not an exemption supplied by a PR head.
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for conclusion in [None, 'failure', 'success']:
+            with self.subTest(conclusion=conclusion):
+                runs = [good_run(path=legacy)]
+                if conclusion is not None:
+                    runs.append(
+                        good_run(
+                            id=101, path=replacement, conclusion=conclusion
+                        )
+                    )
+                result = verify(
+                    workflow_paths=[replacement],
+                    trigger={'branches': ['master'], 'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=runs,
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertEqual(result['passed'], conclusion == 'success')
+                self.assertEqual(
+                    result['missing'],
+                    [replacement] if conclusion is None else [],
+                )
+
     def test_real_inventory_uses_current_frontend_coverage(self):
         result = node("""
 const {inventory} = gate.loadLocalInventory(process.cwd());

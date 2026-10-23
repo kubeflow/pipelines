@@ -366,6 +366,17 @@ jobs:
           image_tag: latest
           image_registry: kind-registry:5000
 
+      - name: Prepare custom schedule service account
+        id: schedule-account
+        if: ${{ steps.deploy.outcome == 'success' && github.event_name != 'workflow_dispatch' && matrix.cache_enabled == 'true' && matrix.test_shard == 'B' }}
+        shell: bash
+        env:
+          USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
+          SYSTEM_NAMESPACE: ${{ env.NAMESPACE }}
+        run: >-
+          python3 .github/resources/scripts/prepare_schedule_service_account.py
+          --namespace "$USER_NAMESPACE" --system-namespace "$SYSTEM_NAMESPACE"
+
       - name: Configure Input Variables
         shell: bash
         id: configure
@@ -406,7 +417,9 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         env:
           LOCAL_API_SERVER: "true"
+          KFP_SCHEDULE_TEST_SERVICE_ACCOUNT: ${{ steps.schedule-account.outcome == 'success' && 'kfp-schedule-test' || '' }}
         with:
+          required_service_account_specs: ${{ steps.schedule-account.outcome == 'success' }}
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}

@@ -166,6 +166,28 @@ projects. CI uses a temporary directory and separately validates the built SDK w
 Modern release preparation builds from metadata; older source checkouts retain their
 legacy exports. See [Dependency updates](dependabot.md) for usage.
 
+## Legacy v2 retirement qualification
+
+Keep the legacy workflow enabled until the assertion ledger's qualification and
+merge-policy requirements are satisfied. Successful API jobs retain raw Ginkgo
+JSON and JUnit reports plus source/run provenance; successful legacy jobs retain
+their Go test output and provenance. Missing required success reports fail the
+job. These artifacts are qualification evidence, not just failure diagnostics.
+
+The cache-enabled multi-user shard B provisions an isolated custom scheduling
+service account and requires both pinned and follow-latest authorization
+scenarios to pass. Its explicit manifest verifier rejects missing or skipped
+cases. Fixture grants must remain scoped to that account and namespace; do not
+disable service-account authorization to make qualification pass.
+
+Record old/new comparisons using the same tested source revision, all four
+legacy deployment configurations, raw reports, and run-attempt metadata in
+#14950. Verify the custom-account lane separately. Successful checks without the
+retained reports are insufficient. Prepare the trusted-base policy transition
+using the [retirement transition runbook](legacy-ci-retirement.md) before deleting
+the legacy workflow; keep the existing workflow required until
+that reviewed transition is activated after qualification.
+
 ## Common CI failures
 
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.

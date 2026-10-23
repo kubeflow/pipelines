@@ -145,6 +145,28 @@ class BaseWorkflowsTest(unittest.TestCase):
         )
         self.assertFalse(result['passed'])
 
+    def test_legacy_cannot_reuse_upgrade_pause_to_opt_out(self):
+        legacy = 'legacy-v2-api-integration-tests.yml'
+        result = exercise(
+            {
+                legacy: workflow(
+                    jobs={
+                        'test': {'if': GUARD, 'runs-on': 'ubuntu-latest'},
+                    }
+                ),
+                'api-server-tests.yml': workflow(),
+            },
+            skipped=[legacy],
+        )
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['disabled'], [])
+        self.assertIn('.github/workflows/' + legacy, result['expected'])
+        self.assertIn('completed/skipped', result['reasons'][0])
+        self.assertEqual(
+            result['requests'][0]['variables']['expression'],
+            'b' * 40 + ':.github/workflows',
+        )
+
     def test_missing_release_only_lane_blocks(self):
         result = exercise(
             {

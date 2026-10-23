@@ -137,7 +137,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "b9edad320d9e44a8714fb1d387c893a57d4c8bc7ec1454c5b2c9e2333446c530",
+      "header_sha256": "23d1f47d7a2f2292f33e7dfa9b50eef11b7d15983f88eb957abf26d571a8fa56",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -162,6 +162,7 @@
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
           ".github/resources/legacy-v2-migration-specs.json",
+          ".github/resources/legacy-v2-service-account-specs.json",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",

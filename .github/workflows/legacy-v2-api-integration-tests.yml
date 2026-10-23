@@ -206,6 +206,46 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::error title=Legacy V2 suite exceeded its ${BUDGET} test budget::The sharded go test group was killed by -timeout (${BUDGET}), discarding its results. See the job summary for timing and cluster-state guidance."
 
+      - name: Validate successful legacy report
+        id: legacy-report-evidence
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' }}
+        shell: bash
+        env:
+          REPORT_DIRECTORY: ${{ runner.temp }}
+          SOURCE_SHA: ${{ github.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          JOB_NAME: ${{ github.job }}
+          MATRIX_JSON: ${{ toJSON(matrix) }}
+        run: |
+          if [ ! -s "$REPORT_DIRECTORY/go-test-output.log" ]; then
+            echo "::error::Successful legacy tests did not produce a nonempty go-test-output.log; qualification evidence is incomplete."
+            exit 1
+          fi
+          python3 - <<'PYREPORT'
+          import json
+          import os
+          from pathlib import Path
+          report = {key.lower(): os.environ[key] for key in (
+              "SOURCE_SHA", "HEAD_SHA", "RUN_ID", "RUN_ATTEMPT", "JOB_NAME"
+          )}
+          report["source_sha_kind"] = "tested checkout (pull request merge commit on pull_request events)"
+          report["matrix"] = json.loads(os.environ["MATRIX_JSON"])
+          Path(os.environ["REPORT_DIRECTORY"], "legacy-provenance.json").write_text(json.dumps(report, indent=2) + "\n")
+          PYREPORT
+
+      - name: Retain successful legacy report
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && steps.legacy-report-evidence.outcome == 'success' }}
+        uses: ./.github/actions/upload-artifact-with-retry
+        with:
+          name: legacy-reports-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}-tls-${{ matrix.pod_to_pod_tls_enabled }}-db-${{ matrix.db_type }}-${{ matrix.test_group }}
+          path: |
+            ${{ runner.temp }}/go-test-output.log
+            ${{ runner.temp }}/legacy-provenance.json
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
