@@ -198,7 +198,19 @@ just like this example in [sync.py](https://github.com/kubeflow/pipelines/blob/b
 the entry is identical to the environment variable instruction in Standalone Kubeflow Pipelines
 deployment.
 
-### HTTP artifact migration for 2.18
+<a id="http-artifact-migration-for-218"></a>
+<a id="http-artifact-migration-for-2-18"></a>
+<a id="http-artifact-configuration-on-master"></a>
+
+### HTTP artifact serving configuration
+
+With namespace artifact proxying enabled, HTTP(S) reads use the namespace receiver
+and its HTTP configuration and credentials. Direct mode uses the shared UI.
+Configure the process that actually serves the request; a proxy-mode upgrade does
+not require moving namespace HTTP credentials into the shared UI. The
+[backend artifact API plan](https://github.com/kubeflow/pipelines/issues/14031)
+will replace frontend-owned policy. The compatibility behavior described here is
+not complete object authorization or completed 3.0 migration support.
 
 For a standalone deployment with an existing artifact URI such as
 `https://files.example:9443/reports/result.json`, configure a fully qualified
@@ -240,7 +252,9 @@ logical bucket `dataset` and key `result.json`, still fetches
 Keep that form if you intentionally use gateway bucket/path mapping. Adding a
 scheme selects the original-URI behavior above; it is not a cosmetic change to a
 gateway setting. Neither form permits fetching an arbitrary request-selected
-host with an unset base.
+host with an unset base. Gateway redirects still pass the destination allowlist;
+configured HTTP authentication is stripped on an origin change. An allowed
+redirect destination does not independently establish tenant ownership.
 
 Both forms validate the configured path before URL normalization. Use a base
 without raw or percent-encoded `.`/`..` path segments, backslashes, invalid
@@ -249,13 +263,19 @@ Correct these values in the installation configuration; they are rejected with
 HTTP 400 on artifact requests, without preventing server startup.
 
 The base is read at process startup. After applying the ConfigMap, restart
-`ml-pipeline-ui`. Authenticated multi-user HTTP requests are fetched by the shared
-UI even when namespace artifact proxies are enabled. Configure any HTTP
-authentication on the shared UI as well. Both the configured base boundary and
-the namespace ownership policy apply: artifact keys and redirects must stay under
-`private-artifacts/<namespace>/` (or the configured namespace prefix). For example,
-use `https://files.example:9443/private-artifacts/` as the base for namespace-scoped
-URIs; the `/reports/` example above applies to standalone deployments.
+`ml-pipeline-ui` when it serves HTTP directly. With namespace proxies enabled,
+configure HTTP authentication on each serving namespace receiver. The stock
+profile controller propagates `HTTP_BASE_URL` but does not provision
+`HTTP_AUTHORIZATION_KEY` or `HTTP_AUTHORIZATION_DEFAULT_VALUE`. Supply those
+credentials through an operator-owned template or controller customization that
+preserves them during reconciliation; editing a generated Deployment alone is
+not durable. Reconcile the serving deployment as described below. A native Artifact API match can permit a
+custom root such as `/reports/`; it does not require rewriting keys or redirect
+targets to include a namespace prefix. Known foreign-prefix and unsafe-key checks
+remain. The exact metadata match is a compatibility decision, not proof of object
+ownership: importer-created records and broad serving credentials can still expose
+another tenant's objects. The secure backend replacement is required before this
+policy can be described as full artifact remediation.
 
 The installation also propagates the base to profile proxies for their direct
 HTTP serving configuration. Restart `kubeflow-pipelines-profile-controller` and
@@ -265,9 +285,10 @@ change an annotation on each affected Namespace, as shown in the
 [profile-proxy rollout example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
 Confirm each generated `ml-pipeline-ui-artifact` pod template contains the expected
 `HTTP_BASE_URL` before checking its rollout status, which could otherwise report
-the previous rollout's completion. This propagation does not change the shared
-UI's authenticated HTTP serving path. Preserve the setting in your installation
-manifests for later upgrades.
+the previous rollout's completion. Updated receivers enforce the configured
+HTTP destination and credential restrictions; older receivers retain their own
+behavior until replacement. Preserve the setting and namespace-local credentials
+in your installation manifests for later upgrades.
 
 When upgrading from manifests that did not emit `HTTP_BASE_URL` into profile
 proxy pods, the first reconciliation adds the entry even when its value is empty.
