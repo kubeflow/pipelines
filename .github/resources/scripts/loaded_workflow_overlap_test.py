@@ -23,6 +23,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW_JOBS = {
+    '.github/workflows/legacy-native-transfer.yml': ('destination',),
     '.github/workflows/api-server-tests.yml': (
         'api-test-standalone',
         'api-test-k8s-native',
