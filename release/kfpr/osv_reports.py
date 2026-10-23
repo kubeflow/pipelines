@@ -26,6 +26,16 @@ def _name(name, ecosystem):
     return re.sub(r'[-_.]+', '-', name).lower() if ecosystem == 'PyPI' else name
 
 
+def _ecosystem(ecosystem):
+    # OSV normalizes Ubuntu's optional LTS suffix. Keep both the exact release
+    # and Pro channel: fixes in another release/support channel are not ours.
+    # https://github.com/google/osv.dev/blob/master/go/internal/models/ubuntu_package_mapping.go
+    match = re.fullmatch(
+        r'(Ubuntu:(?:Pro:)?[0-9]{2}\.[0-9]{2})(?::LTS)?', ecosystem
+    )
+    return match.group(1) if match else ecosystem
+
+
 def _packages(report, allow_unresolved=False):
     report = _object(report, 'report')
     if report.get('experimental_generic_findings'):
@@ -96,7 +106,7 @@ def _fixed_versions(vulnerability, name, ecosystem):
         affected_ecosystem = _text(
             package.get('ecosystem'), 'affected ecosystem'
         )
-        if affected_ecosystem != ecosystem or _name(
+        if _ecosystem(affected_ecosystem) != _ecosystem(ecosystem) or _name(
             affected_name, ecosystem
         ) != _name(name, ecosystem):
             continue

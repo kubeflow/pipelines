@@ -77,6 +77,36 @@ class ReportsTest(unittest.TestCase):
                 self.assertEqual(finding['fixed_versions'], ['2.0'])
                 self.assertEqual(finding['aliases'], ['CVE-2026-1234'])
 
+    def test_ubuntu_lts_alias_retains_release_and_support_channel(self):
+        data = report('util-linux', 'Ubuntu:22.04')
+        affected = data['results'][0]['packages'][0]['vulnerabilities'][0][
+            'affected'
+        ]
+        affected[0]['package']['ecosystem'] = 'Ubuntu:22.04:LTS'
+        for ecosystem in (
+            'Ubuntu:20.04:LTS',
+            'Ubuntu:Pro:22.04:LTS',
+            'Ubuntu',
+            'Debian:22.04',
+        ):
+            unrelated = copy.deepcopy(affected[0])
+            unrelated['package']['ecosystem'] = ecosystem
+            unrelated['ranges'][0]['events'][1]['fixed'] = '99.0'
+            affected.append(unrelated)
+        self.assertEqual(
+            osv_reports.findings(data)[0]['fixed_versions'], ['2.0']
+        )
+        del affected[0]
+        with self.assertRaises(ValueError):
+            osv_reports.findings(data)
+        data = report('util-linux', 'Ubuntu:Pro:22.04')
+        data['results'][0]['packages'][0]['vulnerabilities'][0]['affected'][0][
+            'package'
+        ]['ecosystem'] = 'Ubuntu:Pro:22.04:LTS'
+        self.assertEqual(
+            osv_reports.findings(data)[0]['fixed_versions'], ['2.0']
+        )
+
     def test_last_affected_limit_and_versions_are_not_fixes(self):
         for event in ({'last_affected': '2.0'}, {'limit': '2.0'}):
             data = report()
