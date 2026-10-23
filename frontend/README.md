@@ -182,8 +182,8 @@ This section describes the current **master / 3.0** implementation. The 2.18 rel
 instead defers stronger ownership enforcement and retains the previous ownership behavior;
 that change has merged into `release-2.18` through
 [#15044](https://github.com/kubeflow/pipelines/pull/15044). Its
-[upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703) is still
-pending. Do not apply master's mandatory-prefix or shared-UI HTTP instructions below to
+[upgrade guidance](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/upgrade-2.18.md)
+is also available on `release-2.18`. Do not apply master's mandatory-prefix or shared-UI HTTP instructions below to
 that 2.18 upgrade.
 
 With `ENABLE_AUTHZ=true`, artifact previews and downloads require an object key under

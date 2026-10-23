@@ -143,8 +143,8 @@ shared-UI HTTP serving path and mandatory namespace-prefix checks. The 2.18
 release decision is different: [#15044](https://github.com/kubeflow/pipelines/pull/15044)
 has merged into `release-2.18`, restoring the previous ownership behavior and
 namespace HTTP receiver routing. The accompanying
-[2.18 upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703)
-is still pending. Do not move namespace HTTP credentials into the shared UI solely
+[2.18 upgrade guidance](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/upgrade-2.18.md)
+is also available on `release-2.18`. Do not move namespace HTTP credentials into the shared UI solely
 to follow these master instructions during a 2.18 upgrade.
 
 The [3.0 artifact API migration](https://github.com/kubeflow/pipelines/issues/14031)
