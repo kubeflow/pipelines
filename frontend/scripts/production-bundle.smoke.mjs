@@ -75,7 +75,7 @@ test(
         uri: `s3://bucket/private-artifacts/kubeflow/${kind}`,
         namespace: 'kubeflow',
         created_at: '2026-01-01T00:00:00Z',
-        metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+        metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
       }));
       const pipelineSpec = {
         pipelineInfo: { name: 'artifact-previews' },
@@ -234,7 +234,7 @@ test(
           assert.deepEqual(
             reads,
             [`/artifacts/${artifact.artifact_id}/preview`],
-            'Only the selected preview.json is fetched, never the data/model bundle',
+            'Only the selected _kfp_preview.json is fetched, never the data/model bundle',
           );
           await page.close();
         }

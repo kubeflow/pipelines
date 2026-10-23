@@ -238,7 +238,7 @@ describe('mock backend routes', () => {
 
       expect(modelResponse.body).toMatchObject({
         artifact_id: 'mock-model-1',
-        metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+        metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
         name: 'mock-model',
         namespace: 'kubeflow-user-example-com',
         type: 'Model',

@@ -40,14 +40,14 @@ describe('artifact preview contract', () => {
     expect(getArtifactPreviewDescriptor(undefined)).toBeUndefined();
     expect(getArtifactPreviewDescriptor({ framework: 'xgboost' })).toBeUndefined();
     expect(
-      getArtifactPreviewDescriptor({ _kfp_preview: { version: 1, path: 'preview.json' } }),
-    ).toEqual({ version: 1, path: 'preview.json' });
+      getArtifactPreviewDescriptor({ _kfp_preview: { version: 1, path: '_kfp_preview.json' } }),
+    ).toEqual({ version: 1, path: '_kfp_preview.json' });
     for (const descriptor of [
       null,
       true,
       {},
-      { version: 2, path: 'preview.json' },
-      { version: 1, path: '../preview.json' },
+      { version: 2, path: '_kfp_preview.json' },
+      { version: 1, path: '../_kfp_preview.json' },
     ]) {
       expect(() => getArtifactPreviewDescriptor({ _kfp_preview: descriptor })).toThrow();
     }

@@ -91,6 +91,17 @@ def produce(
     ]
 
 
+def test_preview_sidecar_keeps_pyarrow_directory_reads_working(
+    tmp_path: Path,
+) -> None:
+    """Directory consumers must not parse the preview sidecar as Parquet."""
+    dataset, _ = produce(tmp_path)
+    assert (Path(dataset.path) / '_kfp_preview.json').exists()
+    table = pq.read_table(dataset.path)
+    assert table.num_rows == 32
+    assert table.num_columns == 25
+
+
 @pytest.mark.parametrize('include_rows', [True, False])
 def test_parquet_preview_matches_the_actual_file(
     tmp_path: Path,
@@ -100,15 +111,15 @@ def test_parquet_preview_matches_the_actual_file(
     for artifact in (dataset, model):
         assert artifact.metadata['_kfp_preview'] == {
             'version': 1,
-            'path': 'preview.json',
+            'path': '_kfp_preview.json',
         }
         assert (
-            Path(artifact.path) / 'preview.json'
+            Path(artifact.path) / '_kfp_preview.json'
         ).stat().st_size <= 64 * 1024
         assert not list(Path(artifact.path).glob('.kfp-preview-*.tmp'))
 
     preview = json.loads(
-        (Path(dataset.path) / 'preview.json').read_text(encoding='utf-8')
+        (Path(dataset.path) / '_kfp_preview.json').read_text(encoding='utf-8')
     )
     parquet = pq.ParquetFile(Path(dataset.path) / 'data.parquet')
     assert preview['kind'] == 'dataset'
@@ -144,7 +155,7 @@ def test_model_summary_and_predictions_survive_native_io(
 ) -> None:
     dataset, model = produce(tmp_path)
     preview = json.loads(
-        (Path(model.path) / 'preview.json').read_text(encoding='utf-8')
+        (Path(model.path) / '_kfp_preview.json').read_text(encoding='utf-8')
     )
     loaded = xgb.XGBClassifier()
     loaded.load_model(Path(model.path) / 'model.ubj')
@@ -237,7 +248,7 @@ def test_disabling_previews_preserves_dataset_and_model_outputs(
     sample.assert_not_called()
     for artifact in (dataset, model):
         assert '_kfp_preview' not in artifact.metadata
-        assert not (Path(artifact.path) / 'preview.json').exists()
+        assert not (Path(artifact.path) / '_kfp_preview.json').exists()
     assert pq.read_table(Path(dataset.path) / 'data.parquet').equals(
         pq.read_table(Path(enabled_dataset.path) / 'data.parquet')
     )
@@ -429,7 +440,7 @@ def test_unresolvable_time_zone_skips_only_the_affected_row_preview(
     ]
     if include_rows:
         assert '_kfp_preview' not in zoned.metadata
-        assert not (Path(zoned.path) / 'preview.json').exists()
+        assert not (Path(zoned.path) / '_kfp_preview.json').exists()
         assert "Automatic preview unavailable for output 'zoned'" in caplog.text
     else:
         assert load_preview(zoned)['columns'] == [
@@ -474,7 +485,7 @@ def test_native_booster_preview_without_model_reload_or_tree_dump(
             booster.save_model(tmp_path / 'model.ubj')
             session.generate()
     assert xgb.Booster.save_model is original
-    preview = json.loads((tmp_path / 'preview.json').read_text())
+    preview = json.loads((tmp_path / '_kfp_preview.json').read_text())
     assert preview['estimator_class'] == 'xgboost.Booster'
     assert (
         preview['hyperparameters']['training']['objective'] == 'binary:logistic'
@@ -535,9 +546,9 @@ def load_preview(artifact: dsl.Artifact) -> dict:
     """Require the descriptor, encoded budget, and completed publication."""
     assert artifact.metadata['_kfp_preview'] == {
         'version': 1,
-        'path': 'preview.json',
+        'path': '_kfp_preview.json',
     }
-    path = Path(artifact.path) / 'preview.json'
+    path = Path(artifact.path) / '_kfp_preview.json'
     assert path.stat().st_size <= _artifact_preview.MAX_BYTES
     assert not list(path.parent.glob('.kfp-preview-*.tmp'))
     return json.loads(path.read_text())
@@ -843,7 +854,7 @@ def test_preview_policy_controls_model_previews(
     )
     assert torch.save is original
     assert ('_kfp_preview' in artifact.metadata) is enabled
-    assert (Path(artifact.path) / 'preview.json').exists() is enabled
+    assert (Path(artifact.path) / '_kfp_preview.json').exists() is enabled
     assert any(Path(artifact.path).iterdir())
 
 

@@ -103,7 +103,7 @@ async function proxyPreview(
     const status = [401, 403, 404, 413, 422, 504].includes(response.status) ? response.status : 502;
     throw new ArtifactPreviewError(
       status,
-      'The namespace artifact service could not return this preview. Check access and preview.json, and ensure the existing service supports artifact previews.',
+      'The namespace artifact service could not return this preview. Check access and _kfp_preview.json, and ensure the existing service supports artifact previews.',
     );
   }
   return readArtifactPreviewBytes(Readable.fromWeb(response.body), signal);
@@ -148,7 +148,7 @@ export function getArtifactPreviewHandler(
     response.set({
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Disposition': 'attachment; filename="preview.json"',
+      'Content-Disposition': 'attachment; filename="_kfp_preview.json"',
       [ARTIFACT_PREVIEW_RESPONSE_HEADER]: '1',
     });
     const disconnected = new AbortController();
@@ -225,11 +225,11 @@ export function getArtifactPreviewHandler(
         !('version' in descriptor) ||
         descriptor.version !== 1 ||
         !('path' in descriptor) ||
-        descriptor.path !== 'preview.json'
+        descriptor.path !== '_kfp_preview.json'
       ) {
         throw new ArtifactPreviewError(
           422,
-          'Invalid preview descriptor. Use version 1 and path "preview.json".',
+          'Invalid preview descriptor. Use version 1 and path "_kfp_preview.json".',
         );
       }
       if (options.artifacts.proxy.enabled) {

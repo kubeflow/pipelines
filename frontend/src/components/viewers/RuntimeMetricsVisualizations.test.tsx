@@ -606,7 +606,7 @@ describe('RuntimeMetricsVisualizations', () => {
       name: 'mlpipeline-ui-metadata',
       type: ArtifactArtifactType.Dataset,
       uri: 's3://bucket/dataset',
-      metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+      metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
     };
     const view = (active: boolean, selectedArtifact = artifact) => (
       <CommonTestWrapper>
@@ -620,7 +620,10 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
     expect(legacyRead).not.toHaveBeenCalled();
     rerender(
-      view(true, { ...artifact, metadata: { _kfp_preview: { version: 2, path: 'preview.json' } } }),
+      view(true, {
+        ...artifact,
+        metadata: { _kfp_preview: { version: 2, path: '_kfp_preview.json' } },
+      }),
     );
     expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
     expect(legacyRead).not.toHaveBeenCalled();

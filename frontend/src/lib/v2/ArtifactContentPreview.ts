@@ -27,7 +27,7 @@ export type ModelPreviewValue =
 
 export interface ArtifactPreviewDescriptor {
   version: 1;
-  path: 'preview.json';
+  path: '_kfp_preview.json';
 }
 
 export interface DatasetPreview {
@@ -61,7 +61,9 @@ export interface ModelPreview {
 export type ArtifactContentPreview = DatasetPreview | ModelPreview;
 
 function invalid(message: string): never {
-  throw new Error(`${message} Regenerate preview.json using the documented v1 preview format.`);
+  throw new Error(
+    `${message} Regenerate _kfp_preview.json using the documented v1 preview format.`,
+  );
 }
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -127,10 +129,10 @@ export function getArtifactPreviewDescriptor(
     return undefined;
   }
   const descriptor = record(metadata[ARTIFACT_PREVIEW_METADATA_KEY], 'Preview descriptor');
-  if (descriptor.version !== 1 || descriptor.path !== 'preview.json') {
-    return invalid('The preview descriptor must specify version 1 and path "preview.json".');
+  if (descriptor.version !== 1 || descriptor.path !== '_kfp_preview.json') {
+    return invalid('The preview descriptor must specify version 1 and path "_kfp_preview.json".');
   }
-  return { version: 1, path: 'preview.json' };
+  return { version: 1, path: '_kfp_preview.json' };
 }
 
 function datasetPreview(value: Record<string, unknown>): DatasetPreview {

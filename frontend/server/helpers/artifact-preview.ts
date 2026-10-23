@@ -71,7 +71,7 @@ export function parsePreviewParentUri(uri: string): ArtifactCoordinates<Launcher
     !isLauncherArtifactSource(coordinates.source) ||
     !key ||
     key.includes('*') ||
-    key.length + '/preview.json'.length > 1024
+    key.length + '/_kfp_preview.json'.length > 1024
   ) {
     throw new ArtifactPreviewError(
       422,
@@ -106,7 +106,7 @@ export async function readArtifactPreviewBytes(
       if (size > MAX_ARTIFACT_PREVIEW_BYTES) {
         throw new ArtifactPreviewError(
           413,
-          'Preview exceeds 64 KiB. Regenerate a smaller preview.json.',
+          'Preview exceeds 64 KiB. Regenerate a smaller _kfp_preview.json.',
         );
       }
     }
@@ -117,7 +117,7 @@ export async function readArtifactPreviewBytes(
     } catch {
       throw new ArtifactPreviewError(
         422,
-        'Preview is not valid UTF-8. Regenerate preview.json as UTF-8 JSON.',
+        'Preview is not valid UTF-8. Regenerate _kfp_preview.json as UTF-8 JSON.',
       );
     }
     return result;

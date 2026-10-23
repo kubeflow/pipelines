@@ -742,7 +742,7 @@ export function getArtifactsHandler({
     }
     const setArtifactFilename = (transformed: boolean) => {
       const keyBaseName = contentPreview
-        ? 'preview.json'
+        ? '_kfp_preview.json'
         : storageKey.replace(/\/+$/, '').split('/').pop() || 'artifact';
       res.setHeader(
         'Content-Disposition',
@@ -778,7 +778,7 @@ export function getArtifactsHandler({
         return;
       }
     }
-    const objectKey = contentPreview ? `${storageKey}/preview.json` : storageKey;
+    const objectKey = contentPreview ? `${storageKey}/_kfp_preview.json` : storageKey;
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
     if (source !== 'minio' && source !== 's3') {
       setArtifactFilename(false);
@@ -1394,7 +1394,7 @@ function getMinioArtifactHandler(
         if (isNoSuchKeyError(error)) {
           throw new ArtifactPreviewError(
             404,
-            'preview.json is missing. Regenerate the artifact with its preview file.',
+            '_kfp_preview.json is missing. Regenerate the artifact with its preview file.',
           );
         }
         throw error;
@@ -1937,7 +1937,7 @@ function getGCSArtifactHandler(
         if (err && typeof err === 'object' && 'status' in err && err.status === 404) {
           throw new ArtifactPreviewError(
             404,
-            'preview.json is missing. Regenerate the artifact with its preview file.',
+            '_kfp_preview.json is missing. Regenerate the artifact with its preview file.',
           );
         }
         if (
@@ -1951,7 +1951,7 @@ function getGCSArtifactHandler(
         ) {
           throw new ArtifactPreviewError(
             404,
-            'preview.json is missing. Regenerate the artifact with its preview file.',
+            '_kfp_preview.json is missing. Regenerate the artifact with its preview file.',
           );
         }
         throw err;
