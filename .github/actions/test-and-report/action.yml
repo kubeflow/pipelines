@@ -46,6 +46,14 @@ inputs:
   test_label:
     required: true
     description: "Ginkgo label-filter expression, for example Regression, Smoke, or ApiServerTests && PipelineRun"
+  driver_retry_test_image:
+    required: false
+    default: ''
+    description: "Build and load this driver recovery fault-test image; leave empty for other tests"
+  driver_retry_kind_cluster:
+    required: false
+    default: 'kfp'
+    description: "Kind cluster to load the driver recovery fault-test image into"
   use_legacy_api_prefix:
     required: false
     default: 'false'
@@ -162,6 +170,22 @@ runs:
     - name: Download Go modules
       shell: bash
       run: bash .github/resources/scripts/download-go-modules.sh
+
+    # Restore caches before any Go build can populate their module directories.
+    - name: Build driver recovery test image
+      if: ${{ inputs.driver_retry_test_image != '' }}
+      shell: bash
+      env:
+        DRIVER_RETRY_TEST_IMAGE: ${{ inputs.driver_retry_test_image }}
+        DRIVER_RETRY_KIND_CLUSTER: ${{ inputs.driver_retry_kind_cluster }}
+      run: |
+        set -euo pipefail
+        context_dir=$(mktemp -d)
+        trap 'rm -rf "$context_dir"' EXIT
+        CGO_ENABLED=0 GOOS=linux go build -o "$context_dir/driver-retry-test" ./backend/test/driverretry/faultdriver
+        docker build -f backend/test/driverretry/Dockerfile -t "$DRIVER_RETRY_TEST_IMAGE" "$context_dir"
+        kind --name "$DRIVER_RETRY_KIND_CLUSTER" load docker-image "$DRIVER_RETRY_TEST_IMAGE"
+        echo "KFP_DRIVER_RETRY_TEST_IMAGE=$DRIVER_RETRY_TEST_IMAGE" >> "$GITHUB_ENV"
 
     - name: Configure API Access
       id: configure-api

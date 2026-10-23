@@ -115,3 +115,11 @@ func (mysqlDialect) FinalizeSelect(builder sq.SelectBuilder) (string, []interfac
 func (mysqlDialect) SelectForUpdate(query string) string {
 	return query + " FOR UPDATE"
 }
+
+func (mysqlDialect) SelectForShare(query string) string {
+	return query + " LOCK IN SHARE MODE"
+}
+
+func (mysqlDialect) JSONExtractText(column string, path ...string) string {
+	return "JSON_UNQUOTE(JSON_EXTRACT(" + column + ", '" + escapeSQLString(jsonObjectPath(path)) + "'))"
+}

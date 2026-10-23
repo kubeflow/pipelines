@@ -229,6 +229,40 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 self.assertEqual(self.events('go'), [])
                 self.assertEqual(self.events('sleep'), [])
 
+    def test_fault_driver_build_runs_after_cache_restore_and_download(self):
+        action = yaml.safe_load(ACTION.read_text(encoding='utf-8'))
+        steps = action['runs']['steps']
+        names = [step.get('name') for step in steps]
+        build_index = names.index('Build driver recovery test image')
+        self.assertLess(
+            names.index('Restore Go build and module caches'), build_index)
+        self.assertLess(names.index('Download Go modules'), build_index)
+        self.assertLess(build_index, names.index('Run Tests'))
+        build = steps[build_index]
+        self.assertEqual(action['inputs']['driver_retry_test_image']['default'],
+                         '')
+        self.assertEqual(build['if'],
+                         "${{ inputs.driver_retry_test_image != '' }}")
+        workflow = yaml.safe_load(
+            (ROOT /
+             '.github/workflows/e2e-test.yml').read_text(encoding='utf-8'))
+        callers = [
+            step for job in workflow['jobs'].values()
+            for step in job.get('steps', [])
+        ]
+        self.assertFalse(
+            any('driverretry/faultdriver' in step.get('run', '')
+                for step in callers))
+        fault_callers = [
+            step for step in callers
+            if 'driver_retry_test_image' in step.get('with', {})
+        ]
+        self.assertEqual(len(fault_callers), 1)
+        self.assertIn("steps.configure.outputs.TEST_LABEL == 'E2EDriverRetry'",
+                      fault_callers[0]['with']['driver_retry_test_image'])
+        self.assertEqual(fault_callers[0]['with']['driver_retry_kind_cluster'],
+                         '${{ env.CLUSTER_NAME }}')
+
     def test_callers_download_before_setup_and_keep_tests_outside_retries(self):
         workflow = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))
         action = yaml.safe_load(ACTION.read_text(encoding='utf-8'))

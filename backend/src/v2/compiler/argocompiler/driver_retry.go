@@ -1,0 +1,168 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package argocompiler
+
+import (
+	"fmt"
+	"strings"
+
+	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+)
+
+const paramDriverRetryStatus = "driver-retry-status"
+
+func validateDriverRetryPolicy(policy *pipelinespec.PipelineTaskSpec_RetryPolicy) error {
+	if policy == nil {
+		return nil
+	}
+	if policy.GetMaxRetryCount() < 0 {
+		return fmt.Errorf("retry max count must be non-negative, got %d", policy.GetMaxRetryCount())
+	}
+	if _, supported := pipelinespec.PipelineTaskSpec_RetryPolicy_Policy_name[int32(policy.GetPolicy())]; !supported {
+		return fmt.Errorf("unsupported retry policy %d; use Always, OnFailure, OnError, or OnTransientError", policy.GetPolicy())
+	}
+	return nil
+}
+
+// addTaskRetryDriverTemplate keeps driver and executor retry budgets separate.
+// Only tasks with an explicit or inherited policy use the retrying variant.
+func (c *workflowCompiler) addTaskRetryDriverTemplate(baseName string, task *pipelinespec.PipelineTaskSpec) (string, error) {
+	if task.GetRetryPolicy() == nil {
+		return baseName, nil
+	}
+	policy := protoRetryPolicyToArgo(task.GetRetryPolicy().GetPolicy())
+	if policy == "" {
+		// A driver reports API errors as Failed nodes. OnError alone
+		// would retry infrastructure errors but omit these recoverable failures.
+		policy = string(wfapi.RetryPolicyAlways)
+	}
+	name := "retry-" + baseName + "-" + strings.ToLower(policy)
+	if _, exists := c.templates[name]; exists {
+		return name, nil
+	}
+
+	template := c.templates[baseName].DeepCopy()
+	template.Name = name
+	template.Inputs.Parameters = append(template.Inputs.Parameters, []wfapi.Parameter{
+		{Name: util.DriverRetryEnabledParameter, Default: wfapi.AnyStringPtr("true")},
+		{Name: util.DriverRetryAttemptParameter, Default: wfapi.AnyStringPtr("{{retries}}")},
+		{Name: paramRetryMaxCount, Default: wfapi.AnyStringPtr("0")},
+		{Name: paramRetryBackOffDuration, Default: wfapi.AnyStringPtr("0")},
+		{Name: paramRetryBackOffFactor, Default: wfapi.AnyStringPtr("2")},
+		{Name: paramRetryBackOffMaxDuration, Default: wfapi.AnyStringPtr("3600")},
+	}...)
+	template.RetryStrategy = c.getTaskRetryStrategyFromInput(
+		inputParameter(paramRetryMaxCount),
+		inputParameter(paramRetryBackOffDuration),
+		inputParameter(paramRetryBackOffFactor),
+		inputParameter(paramRetryBackOffMaxDuration),
+		policy,
+	)
+	if err := updateDriverPluginArgs(template, map[string]any{
+		"driver_retry_enabled":    inputValue(util.DriverRetryEnabledParameter),
+		"driver_retry_attempt":    inputValue(util.DriverRetryAttemptParameter),
+		"driver_retry_max_count":  inputValue(paramRetryMaxCount),
+		"driver_retry_generation": "{{workflow.annotations." + util.AnnotationKeyRetryGeneration + "}}",
+	}); err != nil {
+		return "", err
+	}
+	if template.Metadata.Annotations == nil {
+		template.Metadata.Annotations = map[string]string{}
+	}
+	template.Metadata.Annotations[util.AnnotationKeyRuntimeRole] = string(util.ExecutionRuntimeRoleDriver)
+	template.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry] = "true"
+	template.Metadata.Annotations[systemTemplateNameAnnotationKey] = name
+
+	c.templates[name] = template
+	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
+	return name, nil
+}
+
+func (c *workflowCompiler) getDriverRetryParametersWithValues(task *pipelinespec.PipelineTaskSpec) []wfapi.Parameter {
+	parameters := c.getTaskRetryParametersWithValues(task)
+	// Unlike durations, the proto's scalar factor cannot distinguish omitted
+	// from zero. Match the SDK and the documented default in either case.
+	if task.GetRetryPolicy().GetBackoffFactor() == 0 {
+		for i := range parameters {
+			if parameters[i].Name == paramRetryBackOffFactor {
+				parameters[i].Value = wfapi.AnyStringPtr("2")
+			}
+		}
+	}
+	return parameters
+}
+
+// configureDriverRetryFinalizer registers the task that closes an exhausted
+// driver before its enclosing DAG can finish. Successful drivers omit this task.
+func (c *workflowCompiler) configureDriverRetryFinalizer(task *wfapi.DAGTask) error {
+	base := c.templates[task.Template]
+	if base.Metadata.Annotations[util.AnnotationKeyTaskDriverRetry] != "true" {
+		return nil
+	}
+	name := "finalize-" + task.Template
+	if _, exists := c.templates[name]; !exists {
+		tmpl := base.DeepCopy()
+		tmpl.Name = name
+		tmpl.Metadata.Annotations[systemTemplateNameAnnotationKey] = name
+		tmpl.Metadata.Annotations[util.AnnotationKeyDriverRetryFinalizer] = "true"
+		tmpl.RetryStrategy = nil
+		tmpl.Outputs = wfapi.Outputs{}
+		// The finalizer is outside the driver retry node, so its attempt is not
+		// the driver attempt. Preserve deployment retries for transient API errors.
+		// The API finalizes the current private owner under the generation fence.
+		for i := range tmpl.Inputs.Parameters {
+			if tmpl.Inputs.Parameters[i].Name == util.DriverRetryAttemptParameter {
+				tmpl.Inputs.Parameters[i].Default = wfapi.AnyStringPtr("0")
+			}
+		}
+		tmpl.Inputs.Parameters = append(tmpl.Inputs.Parameters, wfapi.Parameter{Name: paramDriverRetryStatus})
+		if err := updateDriverPluginArgs(tmpl, map[string]any{
+			"driver_retry_finalize": true, "driver_retry_status": inputValue(paramDriverRetryStatus),
+		}); err != nil {
+			return err
+		}
+		c.templates[name] = tmpl
+		c.wf.Spec.Templates = append(c.wf.Spec.Templates, *tmpl)
+	}
+	return nil
+}
+
+// driverTasks keeps finalization in the DAG dependency graph. An exit hook on a
+// retry node becomes that node's last child in Argo; with deployment retries on
+// the hook, downstream omitted tasks can become unreachable to DAG assessment.
+// Waiting for the sibling finalizer also prevents fail-fast from completing the
+// enclosing DAG before the stopped native task has been finalized.
+func (c *workflowCompiler) driverTasks(driver, execution *wfapi.DAGTask) []wfapi.DAGTask {
+	name := "finalize-" + driver.Template
+	if _, exists := c.templates[name]; !exists {
+		return []wfapi.DAGTask{*driver, *execution}
+	}
+	arguments := driver.Arguments.DeepCopy()
+	arguments.Parameters = append(arguments.Parameters, wfapi.Parameter{
+		Name: paramDriverRetryStatus, Value: wfapi.AnyStringPtr("{{tasks." + driver.Name + ".status}}"),
+	})
+	finalizer := wfapi.DAGTask{
+		Name: driver.Name + "-finalizer", Template: name, Arguments: *arguments,
+		Depends: driver.Name + ".Failed || " + driver.Name + ".Errored",
+	}
+	// Argo waits for every named dependency to become fulfilled before it
+	// evaluates this expression, even when driver.Succeeded is already false.
+	// Keep the failed driver as a direct dependency so its failure still reaches
+	// the omitted execution node and is not masked by a successful finalizer.
+	execution.Depends = driver.Name + ".Succeeded && (" + finalizer.Name + ".Succeeded || " + finalizer.Name + ".Omitted)"
+	return []wfapi.DAGTask{*driver, finalizer, *execution}
+}

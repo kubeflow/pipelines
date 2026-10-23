@@ -43,6 +43,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -453,6 +454,25 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApisUseLatest() {
 	assert.Equal(
 		t, helloWorldPipelineVersion.PipelineVersionID, helloWorldRun.PipelineVersionReference.PipelineVersionID,
 	)
+
+	// The selected source must also be available to the root driver, including
+	// when the persistence agent records the run before its creating request.
+	var completed *run_model.V2Run
+	require.Eventually(t, func() bool {
+		observed, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: helloWorldRun.RunID})
+		if err != nil || observed.State == nil {
+			return false
+		}
+		completed = observed
+		switch *observed.State {
+		case run_model.V2RuntimeStateSUCCEEDED, run_model.V2RuntimeStateFAILED,
+			run_model.V2RuntimeStateCANCELED, run_model.V2RuntimeStateSKIPPED:
+			return true
+		default:
+			return false
+		}
+	}, 5*time.Minute, 5*time.Second, "the latest-version scheduled run must finish")
+	require.Equal(t, run_model.V2RuntimeStateSUCCEEDED, *completed.State)
 }
 
 func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
