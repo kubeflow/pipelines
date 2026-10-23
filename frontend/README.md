@@ -180,8 +180,9 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 
 This section describes the current **master / 3.0** implementation. The 2.18 release
 instead defers stronger ownership enforcement and retains the previous ownership behavior;
-that change is in [#15044](https://github.com/kubeflow/pipelines/pull/15044), with its
-[upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703). Both PRs are
+that change has merged into `release-2.18` through
+[#15044](https://github.com/kubeflow/pipelines/pull/15044). Its
+[upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703) is still
 pending. Do not apply master's mandatory-prefix or shared-UI HTTP instructions below to
 that 2.18 upgrade.
 
@@ -221,7 +222,7 @@ Standalone mode and namespace-proxied volume artifacts are unchanged.
   namespace path policy. It does not enable arbitrary custom roots.
 
 These values are not audit/enforce switches. Master/3.0 has no artifact audit exception and
-does not read `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE`. That unreleased setting is being removed
+does not read `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE`. That unreleased setting was removed
 from 2.18 by [#15044](https://github.com/kubeflow/pipelines/pull/15044); it is not a supported
 2.18 migration option. The configurable `ARTIFACT_NAMESPACE_KEY_PREFIX` changes the expected
 prefix, not the ownership requirement.

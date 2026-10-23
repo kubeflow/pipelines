@@ -141,10 +141,11 @@ deployment.
 This section describes the current master implementation for 3.0, including its
 shared-UI HTTP serving path and mandatory namespace-prefix checks. The 2.18
 release decision is different: [#15044](https://github.com/kubeflow/pipelines/pull/15044)
-restores the previous ownership behavior and namespace HTTP receiver routing,
-with [2.18 upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703).
-Those changes are pending; do not move namespace HTTP credentials into the shared
-UI solely to follow these master instructions during a 2.18 upgrade.
+has merged into `release-2.18`, restoring the previous ownership behavior and
+namespace HTTP receiver routing. The accompanying
+[2.18 upgrade guidance in #14703](https://github.com/kubeflow/pipelines/pull/14703)
+is still pending. Do not move namespace HTTP credentials into the shared UI solely
+to follow these master instructions during a 2.18 upgrade.
 
 The [3.0 artifact API migration](https://github.com/kubeflow/pipelines/issues/14031)
 must establish its boundary from the actual 2.18 installation. It must not assume
