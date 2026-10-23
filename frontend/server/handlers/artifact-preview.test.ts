@@ -206,15 +206,72 @@ describe('artifact preview endpoint', () => {
     expect(storage.getObject).not.toHaveBeenCalled();
   });
 
-  it('denies a different stored namespace and imported cross-namespace roots', async () => {
+  it('denies a different stored namespace', async () => {
     storedArtifact.namespace = 'team-b';
     await previewRequest().expect(403);
-    storedArtifact.namespace = 'team-a';
-    storedArtifact.uri = 's3://bucket/private-artifacts/team-b/model';
-    await previewRequest().expect(403);
-    storedArtifact.uri = 's3://bucket/custom-root/model';
-    await previewRequest().expect(403);
     expect(storage.getObject).not.toHaveBeenCalled();
+    expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
+  });
+
+  describe.each([false, true])('foreign namespace previews with proxy=%s', (proxy) => {
+    it.each([
+      's3://bucket/private-artifacts/team-b/model',
+      'minio://bucket/private-artifacts/team-b/model',
+      'gs://bucket/private-artifacts/team-b/model',
+      's3://bucket/%70rivate-artifacts/team-b/model',
+      'minio://bucket/private%2Dartifacts/team-b/model',
+      'gs://bucket/private-artifacts/team%2Db/model',
+      's3://bucket/private-artifacts/team-b',
+    ])('denies imported parent %s before storage or proxy access', async (uri) => {
+      storedArtifact.uri = uri;
+      await previewRequest(true, proxy).expect(403);
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(storage.getObject).not.toHaveBeenCalled();
+      expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
+    });
+  });
+
+  it.each(['s3', 'minio', 'gs'])('reads a registered custom-root preview on %s', async (scheme) => {
+    storedArtifact.uri = `${scheme}://bucket/custom-root/model`;
+    const response = await previewRequest().expect(200);
+    expect(response.body.hyperparameters).toEqual({ max_depth: 3 });
+    expect(authorize).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    if (scheme === 'gs') {
+      expect(gcs.downloadGCSObjectStream).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bucket: 'bucket',
+          objectName: 'custom-root/model/preview.json',
+        }),
+      );
+    } else {
+      expect(storage.getObject).toHaveBeenCalledExactlyOnceWith(
+        'bucket',
+        'custom-root/model/preview.json',
+      );
+    }
+    expect(gcs.listGCSObjectNames).not.toHaveBeenCalled();
+    expect(storage.listObjectsV2).not.toHaveBeenCalled();
+  });
+
+  it('denies a custom-root preview without a matching ownership record', async () => {
+    storedArtifact.uri = 's3://bucket/custom-root/model';
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify(storedArtifact)))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ artifacts: [] })));
+    await previewRequest().expect(403);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
+  });
+
+  it('denies a custom-root preview when ownership lookup is unavailable', async () => {
+    storedArtifact.uri = 's3://bucket/custom-root/model';
+    ownershipLookupAvailable = false;
+    await previewRequest().expect(403);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
   });
 
   it('fails closed when strict ownership lookup is unavailable', async () => {
