@@ -346,7 +346,7 @@ describe('RunList', () => {
       next_page_token: 'old-token',
     });
     const props = generateProps();
-    props.storageState = V2beta1RunStorageState.ARCHIVED;
+    props.storageState = V2RunStorageState.ARCHIVED;
     await renderRunList(props);
     await waitForRunListLoad();
     const initialQuery = listRunsSpy.mock.calls.at(-1)!;
