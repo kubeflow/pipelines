@@ -16,8 +16,8 @@ import contextlib
 import copy
 import io
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 import readiness
 import schedule_policy
@@ -39,34 +39,47 @@ def evidence():
             dict(
                 recurring_run_id='id',
                 experiment_id='exp',
-                service_account='custom')
+                service_account='custom',
+            )
         ],
-        experiments=[dict(experiment_id='exp', namespace='team-a')])
+        experiments=[dict(experiment_id='exp', namespace='team-a')],
+    )
 
 
 def schedule():
     return dict(
         kind='ScheduledWorkflow',
         metadata=dict(name='nightly', namespace='team-a', uid='id'),
-        spec=dict(enabled=False, serviceAccount='untrusted-cr-account'))
+        spec=dict(enabled=False, serviceAccount='untrusted-cr-account'),
+    )
 
 
 class SchedulePolicyTest(unittest.TestCase):
-
     def test_cli_policy_example(self):
         examples = Path(__file__).parent / 'examples'
         with contextlib.redirect_stdout(io.StringIO()) as output:
-            code = readiness.main([
-                '--inventory',
-                str(examples / 'schedules.json'), '--schedule-policy',
-                str(examples / 'target-policy.json'), '--include-schedules',
-                '--system-namespace', 'kubeflow', '--namespace', 'team-a',
-                '--source-version', '2.17.2', '--format', 'json'
-            ])
+            code = readiness.main(
+                [
+                    '--inventory',
+                    str(examples / 'schedules.json'),
+                    '--schedule-policy',
+                    str(examples / 'target-policy.json'),
+                    '--include-schedules',
+                    '--system-namespace',
+                    'kubeflow',
+                    '--namespace',
+                    'team-a',
+                    '--source-version',
+                    '2.17.2',
+                    '--format',
+                    'json',
+                ]
+            )
         self.assertEqual(code, 2)
         result = json.loads(output.getvalue())
         self.assertTrue(
-            any(f['status'] == 'policy_rejection' for f in result['findings']))
+            any(f['status'] == 'policy_rejection' for f in result['findings'])
+        )
         self.assertIn('a' * 40, readiness.markdown(result))
         self.assertNotIn('example-controller', output.getvalue())
 
@@ -81,20 +94,24 @@ class SchedulePolicyTest(unittest.TestCase):
         bundle['recurring_runs'][0]['service_account'] = None
         bundle['recurring_runs'][0]['_readiness_v2_default'] = True
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'unknown')
+            schedule_policy.assess(schedule(), bundle)[0], 'unknown'
+        )
         bundle['compiled_pipeline_spec_patch'] = {'serviceAccountName': 'other'}
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'unknown')
+            schedule_policy.assess(schedule(), bundle)[0], 'unknown'
+        )
         bundle['compiled_pipeline_spec_patch'] = {}
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected')
+            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected'
+        )
 
     def test_default_exemption(self):
         bundle = evidence()
         bundle['recurring_runs'][0]['service_account'] = 'pipeline-runner'
         bundle['allowed_service_accounts'] = []
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected')
+            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected'
+        )
 
     def test_empty_and_wildcard_allowlists_reject_custom(self):
         for allow in ([], ['*']):
@@ -103,13 +120,16 @@ class SchedulePolicyTest(unittest.TestCase):
             bundle['rbac_complete'] = False
             self.assertEqual(
                 schedule_policy.assess(schedule(), bundle)[0],
-                'policy_rejection')
+                'policy_rejection',
+            )
         bundle['mode'] = 'audit'
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'unknown')
+            schedule_policy.assess(schedule(), bundle)[0], 'unknown'
+        )
         bundle['rbac_complete'] = True
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'operational_impact')
+            schedule_policy.assess(schedule(), bundle)[0], 'operational_impact'
+        )
 
     def test_incomplete_rbac_and_identity_are_unknown(self):
         mutations = [
@@ -117,9 +137,11 @@ class SchedulePolicyTest(unittest.TestCase):
             lambda b: b.update(rbac_only=False),
             lambda b: b.update(recurring_runs=[]),
             lambda b: b['recurring_runs'].append(
-                copy.deepcopy(b['recurring_runs'][0])),
+                copy.deepcopy(b['recurring_runs'][0])
+            ),
             lambda b: b['experiments'].append(
-                copy.deepcopy(b['experiments'][0])),
+                copy.deepcopy(b['experiments'][0])
+            ),
             lambda b: b['experiments'][0].update(namespace='other'),
             lambda b: b['recurring_runs'][0].update(service_account=''),
             lambda b: b['recurring_runs'][0].update(namespace='other'),
@@ -128,7 +150,8 @@ class SchedulePolicyTest(unittest.TestCase):
             bundle = evidence()
             mutate(bundle)
             self.assertEqual(
-                schedule_policy.assess(schedule(), bundle)[0], 'unknown')
+                schedule_policy.assess(schedule(), bundle)[0], 'unknown'
+            )
         obj = schedule()
         obj['metadata']['uid'] = 'different'
         self.assertEqual(schedule_policy.assess(obj, evidence())[0], 'unknown')
@@ -146,51 +169,65 @@ class SchedulePolicyTest(unittest.TestCase):
                     dict(
                         apiGroups=[''],
                         resources=['serviceaccounts'],
-                        verbs=['use'])
-                ]),
+                        verbs=['use'],
+                    )
+                ],
+            ),
             dict(
                 kind='ClusterRoleBinding',
                 metadata=dict(name='use'),
                 roleRef=dict(
                     apiGroup='rbac.authorization.k8s.io',
                     kind='ClusterRole',
-                    name='use'),
+                    name='use',
+                ),
                 subjects=[
                     dict(
                         kind='Group',
                         apiGroup='rbac.authorization.k8s.io',
-                        name='system:authenticated')
-                ])
+                        name='system:authenticated',
+                    )
+                ],
+            ),
         ]
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'policy_rejection')
+            schedule_policy.assess(schedule(), bundle)[0], 'policy_rejection'
+        )
         bundle['rbac'][1]['subjects'] = [
             dict(
                 kind='User',
                 apiGroup='rbac.authorization.k8s.io',
-                name=bundle['controller_user'])
+                name=bundle['controller_user'],
+            )
         ]
         self.assertEqual(
-            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected')
+            schedule_policy.assess(schedule(), bundle)[0], 'no_issue_detected'
+        )
 
     def test_contract_and_report_remain_incomplete(self):
         bundle = evidence()
         schedule_policy.validate(bundle)
-        result = readiness.analyze({'items': [schedule()]},
-                                   'kubeflow', ['team-a'],
-                                   'ui',
-                                   'cache',
-                                   '2.17.2',
-                                   include_schedules=True,
-                                   policy=bundle)
+        result = readiness.analyze(
+            {'items': [schedule()]},
+            'kubeflow',
+            ['team-a'],
+            'ui',
+            'cache',
+            '2.17.2',
+            include_schedules=True,
+            policy=bundle,
+        )
         self.assertEqual(result['assessment'], 'incomplete')
         self.assertEqual(result['target']['schedule_policy_revision'], 'a' * 40)
         self.assertTrue(
-            any(f['status'] == 'policy_rejection' for f in result['findings']))
-        for key, value in [('policy_contract', 'unknown'),
-                           ('target_revision', 'master'),
-                           ('multi_user', 'false'),
-                           ('allowed_service_accounts', '*')]:
+            any(f['status'] == 'policy_rejection' for f in result['findings'])
+        )
+        for key, value in [
+            ('policy_contract', 'unknown'),
+            ('target_revision', 'master'),
+            ('multi_user', 'false'),
+            ('allowed_service_accounts', '*'),
+        ]:
             broken = dict(bundle, **{key: value})
             with self.assertRaises((ValueError, TypeError)):
                 schedule_policy.validate(broken)

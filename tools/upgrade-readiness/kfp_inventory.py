@@ -41,9 +41,14 @@ def v2_template(spec):
     if not isinstance(spec, dict):
         return False
     info = field(spec, 'pipeline_info', 'pipelineInfo')
-    return (isinstance(info, dict) and isinstance(info.get('name'), str) and
-            bool(info['name']) and isinstance(spec.get('root'), dict) and
-            'apiVersion' not in spec and 'kind' not in spec)
+    return (
+        isinstance(info, dict)
+        and isinstance(info.get('name'), str)
+        and bool(info['name'])
+        and isinstance(spec.get('root'), dict)
+        and 'apiVersion' not in spec
+        and 'kind' not in spec
+    )
 
 
 def collect(client, namespaces, record_budget=MAX_RECORDS):
@@ -54,7 +59,8 @@ def collect(client, namespaces, record_budget=MAX_RECORDS):
 
     def fail(namespace, resource, reason):
         failures.append(
-            dict(namespace=namespace, resource=resource, reason=reason))
+            dict(namespace=namespace, resource=resource, reason=reason)
+        )
 
     for namespace in namespaces:
         token, seen = '', set()
@@ -62,7 +68,8 @@ def collect(client, namespaces, record_budget=MAX_RECORDS):
             for page in range(MAX_PAGES):
                 response = client.get(
                     '/apis/v2beta1/recurringruns',
-                    dict(namespace=namespace, page_size=100, page_token=token))
+                    dict(namespace=namespace, page_size=100, page_token=token),
+                )
                 records = field(response, 'recurring_runs', 'recurringRuns')
                 if records is None:
                     records = []
@@ -77,11 +84,11 @@ def collect(client, namespaces, record_budget=MAX_RECORDS):
                         raise CollectionError('recurring_run_error')
                     job = {
                         snake: field(raw, snake, camel)
-                        for snake, camel in (('recurring_run_id',
-                                              'recurringRunId'),
-                                             ('experiment_id', 'experimentId'),
-                                             ('service_account',
-                                              'serviceAccount'))
+                        for snake, camel in (
+                            ('recurring_run_id', 'recurringRunId'),
+                            ('experiment_id', 'experimentId'),
+                            ('service_account', 'serviceAccount'),
+                        )
                     }
                     identifier(job['recurring_run_id'])
                     job['namespace'] = raw.get('namespace')
@@ -92,53 +99,85 @@ def collect(client, namespaces, record_budget=MAX_RECORDS):
                         exp_id = job['experiment_id']
                         exp_path = identifier(exp_id)
                         if exp_id not in experiments:
-                            exp = client.get('/apis/v2beta1/experiments/' +
-                                             exp_path)
-                            if field(exp, 'experiment_id',
-                                     'experimentId') != exp_id or exp.get(
-                                         'namespace') != namespace:
+                            exp = client.get(
+                                '/apis/v2beta1/experiments/' + exp_path
+                            )
+                            if (
+                                field(exp, 'experiment_id', 'experimentId')
+                                != exp_id
+                                or exp.get('namespace') != namespace
+                            ):
                                 raise CollectionError(
-                                    'experiment_scope_mismatch')
+                                    'experiment_scope_mismatch'
+                                )
                             if len(jobs) + len(experiments) >= record_budget:
                                 raise CollectionError('record_limit')
                             experiments[exp_id] = dict(
-                                experiment_id=exp_id, namespace=namespace)
+                                experiment_id=exp_id, namespace=namespace
+                            )
                         elif experiments[exp_id]['namespace'] != namespace:
                             raise CollectionError('experiment_scope_mismatch')
                         if job['service_account'] in (None, ''):
                             spec = field(raw, 'pipeline_spec', 'pipelineSpec')
-                            ref = field(raw, 'pipeline_version_reference',
-                                        'pipelineVersionReference')
+                            ref = field(
+                                raw,
+                                'pipeline_version_reference',
+                                'pipelineVersionReference',
+                            )
                             if ref is not None:
                                 if not isinstance(ref, dict):
                                     raise CollectionError(
-                                        'invalid_pipeline_reference')
-                                pipeline_id = field(ref, 'pipeline_id',
-                                                    'pipelineId')
-                                version_id = field(ref, 'pipeline_version_id',
-                                                   'pipelineVersionId')
+                                        'invalid_pipeline_reference'
+                                    )
+                                pipeline_id = field(
+                                    ref, 'pipeline_id', 'pipelineId'
+                                )
+                                version_id = field(
+                                    ref,
+                                    'pipeline_version_id',
+                                    'pipelineVersionId',
+                                )
                                 if not version_id:
                                     raise CollectionError(
-                                        'moving_latest_version_unresolved')
-                                key = (identifier(pipeline_id),
-                                       identifier(version_id))
+                                        'moving_latest_version_unresolved'
+                                    )
+                                key = (
+                                    identifier(pipeline_id),
+                                    identifier(version_id),
+                                )
                                 if key not in versions:
                                     version = client.get(
-                                        '/apis/v2beta1/pipelines/' + key[0] +
-                                        '/versions/' + key[1])
+                                        '/apis/v2beta1/pipelines/'
+                                        + key[0]
+                                        + '/versions/'
+                                        + key[1]
+                                    )
                                     if version.get('error'):
                                         raise CollectionError(
-                                            'pipeline_version_error')
-                                    if field(
+                                            'pipeline_version_error'
+                                        )
+                                    if (
+                                        field(
                                             version, 'pipeline_id', 'pipelineId'
-                                    ) != pipeline_id or field(
-                                            version, 'pipeline_version_id',
-                                            'pipelineVersionId') != version_id:
+                                        )
+                                        != pipeline_id
+                                        or field(
+                                            version,
+                                            'pipeline_version_id',
+                                            'pipelineVersionId',
+                                        )
+                                        != version_id
+                                    ):
                                         raise CollectionError(
-                                            'pipeline_version_mismatch')
+                                            'pipeline_version_mismatch'
+                                        )
                                     versions[key] = v2_template(
-                                        field(version, 'pipeline_spec',
-                                              'pipelineSpec'))
+                                        field(
+                                            version,
+                                            'pipeline_spec',
+                                            'pipelineSpec',
+                                        )
+                                    )
                                 is_v2 = versions[key]
                             else:
                                 is_v2 = v2_template(spec)
@@ -146,13 +185,17 @@ def collect(client, namespaces, record_budget=MAX_RECORDS):
                                 job['_readiness_v2_default'] = True
                             else:
                                 raise CollectionError(
-                                    'template_identity_unresolved')
+                                    'template_identity_unresolved'
+                                )
                     except CollectionError as error:
-                        fail(namespace,
-                             'RecurringRun/' + job['recurring_run_id'],
-                             error.reason)
-                token = field(response, 'next_page_token',
-                              'nextPageToken') or ''
+                        fail(
+                            namespace,
+                            'RecurringRun/' + job['recurring_run_id'],
+                            error.reason,
+                        )
+                token = (
+                    field(response, 'next_page_token', 'nextPageToken') or ''
+                )
                 if not isinstance(token, str) or len(token) > 16384:
                     raise CollectionError('invalid_page_token')
                 if not token:
@@ -165,12 +208,15 @@ def collect(client, namespaces, record_budget=MAX_RECORDS):
                 raise CollectionError('page_limit')
         except CollectionError as error:
             fail(namespace, 'KFP recurring runs', error.reason)
-    return dict(
-        recurring_runs=jobs,
-        experiments=list(experiments.values())), failures, dict(
+    return (
+        dict(recurring_runs=jobs, experiments=list(experiments.values())),
+        failures,
+        dict(
             requested_namespaces=namespaces,
             list_completed_namespaces=completed,
             recurring_run_records=len(jobs),
             experiment_records=len(experiments),
             failed_checks=len(failures),
-            snapshot_consistency='not_atomic')
+            snapshot_consistency='not_atomic',
+        ),
+    )

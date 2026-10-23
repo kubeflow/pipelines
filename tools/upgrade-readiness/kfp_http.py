@@ -13,7 +13,6 @@
 # limitations under the License.
 """Bounded, authenticated, read-only transport for KFP readiness collection."""
 
-from functools import partial
 import http.client
 import io
 import ipaddress
@@ -24,6 +23,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from functools import partial
 
 TIMEOUT_SECONDS = 20
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
@@ -41,7 +41,6 @@ class CollectionError(ValueError):
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
-
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         fp.close()
         raise CollectionError('redirect_refused')
@@ -77,13 +76,13 @@ class _DeadlineReader(io.RawIOBase):
 
 
 class _DeadlineResponse(http.client.HTTPResponse):
-
     def __init__(self, sock, *args, deadline, **kwargs):
         super().__init__(sock, *args, **kwargs)
         # No bytes have been read yet. Retain the makefile stream's socket
         # ownership when urllib closes its connection after reading headers.
         self.fp = io.BufferedReader(
-            _DeadlineReader(self.fp.detach(), sock, deadline))
+            _DeadlineReader(self.fp.detach(), sock, deadline)
+        )
 
 
 def _deadline_connection(connection_type, deadline, *args, **kwargs):
@@ -93,29 +92,38 @@ def _deadline_connection(connection_type, deadline, *args, **kwargs):
 
 
 class _DeadlineHTTPHandler(urllib.request.HTTPHandler):
-
     def http_open(self, request):
         return self.do_open(
-            partial(_deadline_connection, http.client.HTTPConnection,
-                    request.readiness_deadline), request)
+            partial(
+                _deadline_connection,
+                http.client.HTTPConnection,
+                request.readiness_deadline,
+            ),
+            request,
+        )
 
 
 class _DeadlineHTTPSHandler(urllib.request.HTTPSHandler):
-
     def https_open(self, request):
         return self.do_open(
-            partial(_deadline_connection, http.client.HTTPSConnection,
-                    request.readiness_deadline),
+            partial(
+                _deadline_connection,
+                http.client.HTTPSConnection,
+                request.readiness_deadline,
+            ),
             request,
-            context=self._context)
+            context=self._context,
+        )
 
 
 def _safe_path(path):
     decoded = urllib.parse.unquote(path)
-    return (not any(ord(c) < 33 or ord(c) > 126 for c in path) and
-            not any(c in decoded for c in ('\\', '?', '#')) and
-            not any(ord(c) < 32 or ord(c) == 127 for c in decoded) and
-            not any(part in ('.', '..') for part in decoded.split('/')))
+    return (
+        not any(ord(c) < 33 or ord(c) > 126 for c in path)
+        and not any(c in decoded for c in ('\\', '?', '#'))
+        and not any(ord(c) < 32 or ord(c) == 127 for c in decoded)
+        and not any(part in ('.', '..') for part in decoded.split('/'))
+    )
 
 
 class Client:
@@ -123,14 +131,22 @@ class Client:
 
     def __init__(self, endpoint, token_file=None, ca_file=None):
         try:
-            if (not isinstance(endpoint, str) or not endpoint or
-                    any(ord(c) < 33 or ord(c) > 126 for c in endpoint)):
+            if (
+                not isinstance(endpoint, str)
+                or not endpoint
+                or any(ord(c) < 33 or ord(c) > 126 for c in endpoint)
+            ):
                 raise ValueError()
             parsed = urllib.parse.urlsplit(endpoint)
-            if (parsed.scheme not in ('https', 'http') or not parsed.hostname or
-                    parsed.username is not None or
-                    parsed.password is not None or '?' in endpoint or
-                    '#' in endpoint or not _safe_path(parsed.path)):
+            if (
+                parsed.scheme not in ('https', 'http')
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or '?' in endpoint
+                or '#' in endpoint
+                or not _safe_path(parsed.path)
+            ):
                 raise ValueError()
             # Force validation of malformed or out-of-range ports.
             if parsed.port is not None and parsed.port == 0:
@@ -148,7 +164,8 @@ class Client:
                     raw = stream.read(MAX_TOKEN_BYTES + 1)
                 token = raw.decode('ascii').strip()
                 if len(raw) > MAX_TOKEN_BYTES or not re.fullmatch(
-                        r'[A-Za-z0-9._~+/-]+=*', token):
+                    r'[A-Za-z0-9._~+/-]+=*', token
+                ):
                     raise ValueError()
                 self._token = token
             except (OSError, ValueError):
@@ -156,8 +173,11 @@ class Client:
         try:
             context = ssl.create_default_context(cafile=ca_file)
             self._opener = urllib.request.build_opener(
-                urllib.request.ProxyHandler({}), _NoRedirect(),
-                _DeadlineHTTPHandler(), _DeadlineHTTPSHandler(context=context))
+                urllib.request.ProxyHandler({}),
+                _NoRedirect(),
+                _DeadlineHTTPHandler(),
+                _DeadlineHTTPSHandler(context=context),
+            )
         except (OSError, ValueError, ssl.SSLError):
             raise CollectionError('invalid_ca_file') from None
         self._requests = 0
@@ -165,9 +185,13 @@ class Client:
 
     def get(self, path, params=None):
         """Read one API object, returning only sanitized errors on failure."""
-        if (not isinstance(path, str) or
-                not path.startswith('/apis/v2beta1/') or not _safe_path(path) or
-                '?' in path or '#' in path):
+        if (
+            not isinstance(path, str)
+            or not path.startswith('/apis/v2beta1/')
+            or not _safe_path(path)
+            or '?' in path
+            or '#' in path
+        ):
             raise CollectionError('invalid_api_path')
         if self._requests >= MAX_REQUESTS:
             raise CollectionError('request_budget_exceeded')
@@ -189,7 +213,8 @@ class Client:
         size = 0
         try:
             with self._opener.open(
-                    request, timeout=TIMEOUT_SECONDS) as response:
+                request, timeout=TIMEOUT_SECONDS
+            ) as response:
                 if response.status != 200:
                     raise CollectionError('unexpected_http_status')
                 read = getattr(response, 'read1', response.read)
@@ -197,8 +222,9 @@ class Client:
                     remaining_time = deadline - time.monotonic()
                     if remaining_time <= 0:
                         raise CollectionError('request_timeout')
-                    remaining = min(MAX_RESPONSE_BYTES - size,
-                                    MAX_TOTAL_BYTES - self._bytes)
+                    remaining = min(
+                        MAX_RESPONSE_BYTES - size, MAX_TOTAL_BYTES - self._bytes
+                    )
                     chunk = read(min(65536, remaining + 1))
                     if time.monotonic() >= deadline:
                         raise CollectionError('request_timeout')

@@ -15,9 +15,9 @@
 checkout."""
 
 import argparse
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 SOURCE_REVISION = '2511cdbd74cd531c6633f2e094d235082a32917d'
 PACKAGE = Path('backend/src/apiserver/readinessobservation')
@@ -30,7 +30,8 @@ def git(source, *arguments):
         cwd=source,
         text=True,
         stderr=subprocess.PIPE,
-        timeout=30).strip()
+        timeout=30,
+    ).strip()
 
 
 def apply(source, *, check_only=True):
@@ -69,18 +70,24 @@ def main():
     parser.add_argument(
         '--apply',
         action='store_true',
-        help='Apply after validation; otherwise only check.')
+        help='Apply after validation; otherwise only check.',
+    )
     args = parser.parse_args()
     try:
         apply(args.source, check_only=not args.apply)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
-        reason = str(error) if isinstance(
-            error,
-            ValueError) else 'source validation or patch application failed'
+        reason = (
+            str(error)
+            if isinstance(error, ValueError)
+            else 'source validation or patch application failed'
+        )
         parser.exit(1, 'Observer adapter failed: ' + reason + '\n')
-    print(('Applied' if args.apply else 'Validated') +
-          ' source observation adapter for ' + SOURCE_REVISION +
-          '; observation remains disabled until explicitly configured.')
+    print(
+        ('Applied' if args.apply else 'Validated')
+        + ' source observation adapter for '
+        + SOURCE_REVISION
+        + '; observation remains disabled until explicitly configured.'
+    )
 
 
 if __name__ == '__main__':

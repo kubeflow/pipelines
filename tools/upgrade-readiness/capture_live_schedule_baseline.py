@@ -15,17 +15,12 @@
 schedules."""
 
 import argparse
-from datetime import datetime
-from datetime import timezone
 import json
+from datetime import datetime, timezone
 
-from kfp_http import Client
-from kfp_http import CollectionError
-from live_schedule_check import list_events
-from live_schedule_check import list_runs
-from live_schedule_check import validate
-from readiness import kubectl_get
-from readiness import read_json
+from kfp_http import Client, CollectionError
+from live_schedule_check import list_events, list_runs, validate
+from readiness import kubectl_get, read_json
 
 
 def capture(client, context, namespace, definitions, report):
@@ -39,17 +34,23 @@ def capture(client, context, namespace, definitions, report):
         cases.append(case)
     result = dict(namespace=namespace, observation_start=start, cases=cases)
     validate(result, report, namespace)
-    data, error = kubectl_get(context, namespace,
-                              'scheduledworkflows.kubeflow.org')
-    if error or not isinstance(data, dict) or not isinstance(
-            data.get('items'), list):
+    data, error = kubectl_get(
+        context, namespace, 'scheduledworkflows.kubeflow.org'
+    )
+    if (
+        error
+        or not isinstance(data, dict)
+        or not isinstance(data.get('items'), list)
+    ):
         raise CollectionError('schedule_collection_failed')
     for case in cases:
         matches = [
-            s for s in data['items'] if isinstance(s, dict) and
-            s.get('metadata', {}).get('uid') == case['schedule_uid'] and
-            s.get('metadata', {}).get('name') == case['schedule_name'] and
-            s.get('metadata', {}).get('namespace') == namespace
+            s
+            for s in data['items']
+            if isinstance(s, dict)
+            and s.get('metadata', {}).get('uid') == case['schedule_uid']
+            and s.get('metadata', {}).get('name') == case['schedule_name']
+            and s.get('metadata', {}).get('namespace') == namespace
         ]
         if len(matches) != 1:
             raise CollectionError('schedule_identity_mismatch')
@@ -65,8 +66,12 @@ def capture(client, context, namespace, definitions, report):
                 continue
             uid = event.get('metadata', {}).get('uid')
             count = event.get('count', 1)
-            if not isinstance(
-                    uid, str) or not uid or type(count) is not int or count < 0:
+            if (
+                not isinstance(uid, str)
+                or not uid
+                or type(count) is not int
+                or count < 0
+            ):
                 raise CollectionError('invalid_event_baseline')
             case['baseline_event_counts'][uid] = count
     validate(result, report, namespace)
@@ -75,21 +80,32 @@ def capture(client, context, namespace, definitions, report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('context', 'namespace', 'kfp-endpoint', 'kfp-token-file',
-                 'cases', 'prediction-report'):
+    for name in (
+        'context',
+        'namespace',
+        'kfp-endpoint',
+        'kfp-token-file',
+        'cases',
+        'prediction-report',
+    ):
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--kfp-ca-file')
     args = parser.parse_args()
     try:
-        client = Client(args.kfp_endpoint, args.kfp_token_file,
-                        args.kfp_ca_file)
-        result = capture(client, args.context, args.namespace,
-                         read_json(args.cases),
-                         read_json(args.prediction_report))
+        client = Client(
+            args.kfp_endpoint, args.kfp_token_file, args.kfp_ca_file
+        )
+        result = capture(
+            client,
+            args.context,
+            args.namespace,
+            read_json(args.cases),
+            read_json(args.prediction_report),
+        )
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         parser.exit(
             1,
-            'Unable to capture complete schedule baselines; check scope, evidence and collection access.\n'
+            'Unable to capture complete schedule baselines; check scope, evidence and collection access.\n',
         )
     print(json.dumps(result, indent=2, sort_keys=True))
 

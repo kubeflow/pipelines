@@ -19,21 +19,28 @@ required only by explicit expectations or --require-run-success.
 """
 
 import argparse
-from datetime import datetime
-from datetime import timezone
 import json
 import re
 import time
+from datetime import datetime, timezone
 
-from kfp_http import Client
-from kfp_http import CollectionError
-from kfp_inventory import field
-from kfp_inventory import identifier
+from kfp_http import Client, CollectionError
+from kfp_inventory import field, identifier
 from readiness import kubectl_get
 
 RUN_STATES = frozenset(
-    ('RUNTIME_STATE_UNSPECIFIED', 'PENDING', 'RUNNING', 'SUCCEEDED', 'SKIPPED',
-     'FAILED', 'CANCELING', 'CANCELED', 'PAUSED'))
+    (
+        'RUNTIME_STATE_UNSPECIFIED',
+        'PENDING',
+        'RUNNING',
+        'SUCCEEDED',
+        'SKIPPED',
+        'FAILED',
+        'CANCELING',
+        'CANCELED',
+        'PAUSED',
+    )
+)
 FAILED_STATES = frozenset(('FAILED', 'CANCELED', 'SKIPPED'))
 POSITIVE_OUTCOMES = ('run_created', 'run_succeeded')
 
@@ -48,9 +55,11 @@ def timestamp(value):
 
 
 def validate(bundle, report, namespace):
-    if not isinstance(namespace,
-                      str) or len(namespace) > 63 or not re.fullmatch(
-                          r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', namespace):
+    if (
+        not isinstance(namespace, str)
+        or len(namespace) > 63
+        or not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', namespace)
+    ):
         raise ValueError('invalid_namespace')
     if bundle.get('namespace') != namespace:
         raise ValueError('namespace_mismatch')
@@ -62,10 +71,15 @@ def validate(bundle, report, namespace):
         raise ValueError('invalid_cases')
     seen = set()
     for case in cases:
-        for key in ('schedule_uid', 'schedule_name', 'service_account',
-                    'scenario'):
+        for key in (
+            'schedule_uid',
+            'schedule_name',
+            'service_account',
+            'scenario',
+        ):
             if not isinstance(case.get(key), str) or not re.fullmatch(
-                    r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,252}', case[key]):
+                r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,252}', case[key]
+            ):
                 raise ValueError('invalid_case_identifier')
         if case['schedule_uid'] in seen:
             raise ValueError('duplicate_schedule')
@@ -73,31 +87,46 @@ def validate(bundle, report, namespace):
         if case.get('expected_outcome') not in (*POSITIVE_OUTCOMES, 'blocked'):
             raise ValueError('invalid_outcome')
         allowed = (
-            'policy_rejection',) if case['expected_outcome'] == 'blocked' else (
-                'no_issue_detected', 'operational_impact')
+            ('policy_rejection',)
+            if case['expected_outcome'] == 'blocked'
+            else ('no_issue_detected', 'operational_impact')
+        )
         if case.get('expected_prediction') not in allowed:
             raise ValueError('incompatible_prediction')
         baseline = case.get('baseline_run_ids')
         counts = case.get('baseline_event_counts')
-        if not isinstance(baseline, list) or len(baseline) > 10000 or not all(
-                isinstance(i, str) and i for i in baseline):
+        if (
+            not isinstance(baseline, list)
+            or len(baseline) > 10000
+            or not all(isinstance(i, str) and i for i in baseline)
+        ):
             raise ValueError('invalid_run_baseline')
-        if not isinstance(counts, dict) or len(counts) > 10000 or not all(
+        if (
+            not isinstance(counts, dict)
+            or len(counts) > 10000
+            or not all(
                 isinstance(k, str) and k and type(v) is int and v >= 0
-                for k, v in counts.items()):
+                for k, v in counts.items()
+            )
+        ):
             raise ValueError('invalid_event_baseline')
         matches = [
-            f for f in report.get('findings', [])
-            if f.get('rule') == 'schedule.targetMainAccount' and
-            f.get('resource') == 'ScheduledWorkflow/' + namespace + '/' +
-            case['schedule_name']
+            f
+            for f in report.get('findings', [])
+            if f.get('rule') == 'schedule.targetMainAccount'
+            and f.get('resource')
+            == 'ScheduledWorkflow/' + namespace + '/' + case['schedule_name']
         ]
-        if len(matches) != 1 or matches[0].get(
-                'status') != case['expected_prediction']:
+        if (
+            len(matches) != 1
+            or matches[0].get('status') != case['expected_prediction']
+        ):
             raise ValueError('prediction_mismatch')
     if any(c['expected_outcome'] == 'blocked' for c in cases) and not any(
-            c['expected_outcome'] in POSITIVE_OUTCOMES and
-            c['expected_prediction'] == 'no_issue_detected' for c in cases):
+        c['expected_outcome'] in POSITIVE_OUTCOMES
+        and c['expected_prediction'] == 'no_issue_detected'
+        for c in cases
+    ):
         raise ValueError('positive_control_required')
     return cases, start
 
@@ -121,13 +150,19 @@ def list_runs(client, namespace, schedule_uid):
                 namespace=namespace,
                 page_size=100,
                 page_token=token,
-                filter=json.dumps({
-                    'predicates': [{
-                        'key': 'recurring_run_id',
-                        'operation': 'EQUALS',
-                        'string_value': schedule_uid
-                    }]
-                })))
+                filter=json.dumps(
+                    {
+                        'predicates': [
+                            {
+                                'key': 'recurring_run_id',
+                                'operation': 'EQUALS',
+                                'string_value': schedule_uid,
+                            }
+                        ]
+                    }
+                ),
+            ),
+        )
         if not isinstance(response, dict) or response.get('error'):
             raise CollectionError('invalid_run_response')
         records = response.get('runs', [])
@@ -140,11 +175,14 @@ def list_runs(client, namespace, schedule_uid):
                 raise CollectionError('run_schedule_mismatch')
             experiment_id = field(run, 'experiment_id', 'experimentId')
             if experiment_id not in experiments:
-                experiment = client.get('/apis/v2beta1/experiments/' +
-                                        identifier(experiment_id))
-                if field(experiment, 'experiment_id',
-                         'experimentId') != experiment_id or experiment.get(
-                             'namespace') != namespace:
+                experiment = client.get(
+                    '/apis/v2beta1/experiments/' + identifier(experiment_id)
+                )
+                if (
+                    field(experiment, 'experiment_id', 'experimentId')
+                    != experiment_id
+                    or experiment.get('namespace') != namespace
+                ):
                     raise CollectionError('run_namespace_mismatch')
                 experiments.add(experiment_id)
             uid = field(run, 'run_id', 'runId')
@@ -165,10 +203,12 @@ def list_events(context, namespace):
     if error:
         raise CollectionError(error)
     if not isinstance(events, dict) or not isinstance(
-            events.get('items'), list):
+        events.get('items'), list
+    ):
         raise CollectionError('invalid_events')
     if len(events['items']) > 10000 or not all(
-            isinstance(e, dict) for e in events['items']):
+        isinstance(e, dict) for e in events['items']
+    ):
         raise CollectionError('invalid_events')
     return events['items']
 
@@ -185,11 +225,15 @@ def run_evidence(client, namespace, case, start):
     fresh = []
     for run in list_runs(client, namespace, case['schedule_uid']):
         uid = field(run, 'run_id', 'runId')
-        if uid in case['baseline_run_ids'] or timestamp(
-                field(run, 'created_at', 'createdAt')) < start:
+        if (
+            uid in case['baseline_run_ids']
+            or timestamp(field(run, 'created_at', 'createdAt')) < start
+        ):
             continue
-        if field(run, 'service_account',
-                 'serviceAccount') != case['service_account']:
+        if (
+            field(run, 'service_account', 'serviceAccount')
+            != case['service_account']
+        ):
             raise CollectionError('run_account_mismatch')
         if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,252}', uid):
             raise CollectionError('invalid_run_id')
@@ -197,8 +241,11 @@ def run_evidence(client, namespace, case, start):
         fresh.append(
             dict(
                 run_id=uid,
-                state=state if isinstance(state, str) and state in RUN_STATES
-                else 'UNKNOWN'))
+                state=state
+                if isinstance(state, str) and state in RUN_STATES
+                else 'UNKNOWN',
+            )
+        )
     return fresh
 
 
@@ -207,46 +254,64 @@ def denied(events, namespace, case, start):
     denial."""
     for event in events:
         ref = event.get('involvedObject', {})
-        if (ref.get('uid') != case['schedule_uid'] or
-                ref.get('name') != case['schedule_name'] or
-                ref.get('namespace') != namespace or
-                ref.get('kind') != 'ScheduledWorkflow'):
+        if (
+            ref.get('uid') != case['schedule_uid']
+            or ref.get('name') != case['schedule_name']
+            or ref.get('namespace') != namespace
+            or ref.get('kind') != 'ScheduledWorkflow'
+        ):
             continue
-        if (event.get('reason') != 'Failed' or event.get('type') != 'Warning' or
-                event.get('source', {}).get('component')
-                != 'scheduled-workflow-controller'):
+        if (
+            event.get('reason') != 'Failed'
+            or event.get('type') != 'Warning'
+            or event.get('source', {}).get('component')
+            != 'scheduled-workflow-controller'
+        ):
             continue
         uid = event.get('metadata', {}).get('uid')
         count = event.get('count', 1)
-        if not isinstance(uid, str) or type(
-                count) is not int or count <= case['baseline_event_counts'].get(
-                    uid, 0):
+        if (
+            not isinstance(uid, str)
+            or type(count) is not int
+            or count <= case['baseline_event_counts'].get(uid, 0)
+        ):
             continue
-        observed = event.get('series', {}).get('lastObservedTime') or event.get(
-            'lastTimestamp') or event.get('eventTime')
+        observed = (
+            event.get('series', {}).get('lastObservedTime')
+            or event.get('lastTimestamp')
+            or event.get('eventTime')
+        )
         if timestamp(observed) < start:
             continue
         message = event.get('message', '')
-        required = ('code = PermissionDenied',
-                    'service account authorization error', 'Verb:use,',
-                    'Group:,', 'Resource:serviceaccounts,', 'Subresource:,',
-                    'Namespace:' + namespace + ',',
-                    'Name:' + case['service_account'] + ',')
+        required = (
+            'code = PermissionDenied',
+            'service account authorization error',
+            'Verb:use,',
+            'Group:,',
+            'Resource:serviceaccounts,',
+            'Subresource:,',
+            'Namespace:' + namespace + ',',
+            'Name:' + case['service_account'] + ',',
+        )
         if isinstance(message, str) and all(
-                part in message for part in required):
+            part in message for part in required
+        ):
             return True
     return False
 
 
-def observe(client,
-            context,
-            namespace,
-            cases,
-            start,
-            timeout,
-            get=list_events,
-            clock=time.monotonic,
-            sleep=time.sleep):
+def observe(
+    client,
+    context,
+    namespace,
+    cases,
+    start,
+    timeout,
+    get=list_events,
+    clock=time.monotonic,
+    sleep=time.sleep,
+):
     deadline = clock() + timeout
     observed = {c['schedule_uid']: {'runs': {}, 'denial': False} for c in cases}
     while True:
@@ -254,15 +319,18 @@ def observe(client,
         events = get(context, namespace)
         for case in cases:
             state = observed[case['schedule_uid']]
-            state['runs'].update({
-                record['run_id']: record['state']
-                for record in run_evidence(client, namespace, case, start)
-            })
+            state['runs'].update(
+                {
+                    record['run_id']: record['state']
+                    for record in run_evidence(client, namespace, case, start)
+                }
+            )
             state['denial'] |= denied(events, namespace, case, start)
             if case['expected_outcome'] == 'blocked' and state['runs']:
                 return result(cases, observed, 'failed')
             if case['expected_outcome'] == 'run_succeeded' and any(
-                    value in FAILED_STATES for value in state['runs'].values()):
+                value in FAILED_STATES for value in state['runs'].values()
+            ):
                 return result(cases, observed, 'failed')
         # Finish with evidence collected after the entire observation window,
         # including when an earlier collection crosses the deadline.
@@ -270,12 +338,14 @@ def observe(client,
             break
         sleep(min(10, max(0, deadline - clock())))
     require_success = any(
-        c['expected_outcome'] == 'run_succeeded' for c in cases)
+        c['expected_outcome'] == 'run_succeeded' for c in cases
+    )
     control = any(
         positive_complete(c, observed[c['schedule_uid']], require_success)
         for c in cases
-        if c['expected_outcome'] in POSITIVE_OUTCOMES and
-        c['expected_prediction'] == 'no_issue_detected')
+        if c['expected_outcome'] in POSITIVE_OUTCOMES
+        and c['expected_prediction'] == 'no_issue_detected'
+    )
     for case in cases:
         state = observed[case['schedule_uid']]
         if case['expected_outcome'] == 'blocked':
@@ -311,7 +381,9 @@ def result(cases, observed, outcome):
                     dict(run_id=uid, state=value)
                     for uid, value in sorted(state['runs'].items())
                 ],
-                denial_observed=state['denial']))
+                denial_observed=state['denial'],
+            )
+        )
     return dict(outcome=outcome, scope=scope, cases=reports)
 
 
@@ -328,43 +400,63 @@ def load(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for arg in ('context', 'namespace', 'kfp-endpoint', 'kfp-token-file',
-                'expectations', 'prediction-report', 'not-before'):
+    for arg in (
+        'context',
+        'namespace',
+        'kfp-endpoint',
+        'kfp-token-file',
+        'expectations',
+        'prediction-report',
+        'not-before',
+    ):
         parser.add_argument('--' + arg, required=True)
     parser.add_argument('--kfp-ca-file')
     parser.add_argument('--timeout-seconds', type=int, default=60)
     parser.add_argument(
         '--require-run-success',
         action='store_true',
-        help='Require SUCCEEDED for every positive case; reject failed, canceled or skipped runs.'
+        help='Require SUCCEEDED for every positive case; reject failed, canceled or skipped runs.',
     )
     args = parser.parse_args()
     try:
         if not 30 <= args.timeout_seconds <= 600:
             raise ValueError('invalid_timeout')
         cases, start = validate(
-            load(args.expectations), load(args.prediction_report),
-            args.namespace)
+            load(args.expectations),
+            load(args.prediction_report),
+            args.namespace,
+        )
         if args.require_run_success:
             cases = [
                 dict(case, expected_outcome='run_succeeded')
-                if case['expected_outcome'] == 'run_created' else case
+                if case['expected_outcome'] == 'run_created'
+                else case
                 for case in cases
             ]
         start = activation_start(start, args.not_before)
-        client = Client(args.kfp_endpoint, args.kfp_token_file,
-                        args.kfp_ca_file)
-        report = observe(client, args.context, args.namespace, cases, start,
-                         args.timeout_seconds)
+        client = Client(
+            args.kfp_endpoint, args.kfp_token_file, args.kfp_ca_file
+        )
+        report = observe(
+            client,
+            args.context,
+            args.namespace,
+            cases,
+            start,
+            args.timeout_seconds,
+        )
         report['observation_start'] = start.isoformat()
         print(json.dumps(report, sort_keys=True))
         return 0 if report['outcome'] == 'passed' else 1
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         print(
-            json.dumps({
-                'outcome': 'inconclusive',
-                'reason': 'invalid_or_incomplete_evidence'
-            }))
+            json.dumps(
+                {
+                    'outcome': 'inconclusive',
+                    'reason': 'invalid_or_incomplete_evidence',
+                }
+            )
+        )
         return 1
 
 

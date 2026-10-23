@@ -13,13 +13,12 @@
 # limitations under the License.
 """Controlled-fixture RBAC merging preserves retained namespace grants."""
 
-from contextlib import redirect_stderr
-from contextlib import redirect_stdout
 import io
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
 import build_live_policy as builder
@@ -36,8 +35,10 @@ def role(name='use', namespace='team'):
                 apiGroups=[''],
                 resources=['serviceaccounts'],
                 verbs=['use'],
-                resourceNames=['readiness-granted'])
-        ])
+                resourceNames=['readiness-granted'],
+            )
+        ],
+    )
 
 
 def binding():
@@ -45,21 +46,27 @@ def binding():
         kind='RoleBinding',
         metadata=dict(name='use', namespace='team'),
         roleRef=dict(
-            apiGroup='rbac.authorization.k8s.io', kind='Role', name='use'),
+            apiGroup='rbac.authorization.k8s.io', kind='Role', name='use'
+        ),
         subjects=[
             dict(
                 kind='ServiceAccount',
                 name='ml-pipeline-scheduledworkflow',
-                namespace='kubeflow')
-        ])
+                namespace='kubeflow',
+            )
+        ],
+    )
 
 
 class BuilderTests(unittest.TestCase):
-
     def build(self, source, candidate, **kwargs):
         return builder.build_policy(
-            dict(items=source), dict(items=candidate), 'a' * 40, 'enforce',
-            **kwargs)
+            dict(items=source),
+            dict(items=candidate),
+            'a' * 40,
+            'enforce',
+            **kwargs,
+        )
 
     def test_candidate_replaces_matching_role_and_retains_tenant_binding(self):
         source = [role(), binding(), role('other')]
@@ -71,19 +78,28 @@ class BuilderTests(unittest.TestCase):
         self.assertEqual(
             evaluate_use(
                 policy['rbac'],
-                policy['controller_user'], [],
+                policy['controller_user'],
+                [],
                 'team',
                 'new-account',
-                complete=True), 'allowed')
+                complete=True,
+            ),
+            'allowed',
+        )
         self.assertEqual(
             evaluate_use(
                 policy['rbac'],
-                policy['controller_user'], [],
+                policy['controller_user'],
+                [],
                 'team',
                 'readiness-granted',
-                complete=True), 'denied')
-        self.assertEqual(source[0]['rules'][0]['resourceNames'],
-                         ['readiness-granted'])
+                complete=True,
+            ),
+            'denied',
+        )
+        self.assertEqual(
+            source[0]['rules'][0]['resourceNames'], ['readiness-granted']
+        )
 
     def test_candidate_namespaced_objects_default_to_fixture_namespace(self):
         candidate = role()
@@ -91,11 +107,15 @@ class BuilderTests(unittest.TestCase):
         policy = self.build([role()], [candidate])
         self.assertEqual(
             [obj['metadata']['namespace'] for obj in policy['rbac']],
-            ['team', 'kubeflow'])
+            ['team', 'kubeflow'],
+        )
         self.assertNotIn('namespace', candidate['metadata'])
         self.assertEqual(
-            self.build([], [candidate], candidate_namespace='custom')['rbac'][0]
-            ['metadata']['namespace'], 'custom')
+            self.build([], [candidate], candidate_namespace='custom')['rbac'][
+                0
+            ]['metadata']['namespace'],
+            'custom',
+        )
 
     def test_source_requires_namespace(self):
         source = role()
@@ -104,8 +124,10 @@ class BuilderTests(unittest.TestCase):
             self.build([source], [])
 
     def test_rejects_duplicates_within_either_snapshot(self):
-        for source, candidate in [([role(), role()], []), ([], [role(),
-                                                                role()])]:
+        for source, candidate in [
+            ([role(), role()], []),
+            ([], [role(), role()]),
+        ]:
             with self.subTest(source=source):
                 with self.assertRaises(ValueError):
                     self.build(source, candidate)
@@ -116,15 +138,17 @@ class BuilderTests(unittest.TestCase):
 
     def test_rejects_malformed_object_identity(self):
         for obj in [
-                None, {},
-                dict(kind='Secret', metadata=dict(name='secret')),
-                dict(kind='Role'),
-                dict(kind='Role', metadata={}),
-                role(namespace=''),
-                role(namespace=7),
-                dict(
-                    kind='ClusterRole',
-                    metadata=dict(name='cluster', namespace='team'))
+            None,
+            {},
+            dict(kind='Secret', metadata=dict(name='secret')),
+            dict(kind='Role'),
+            dict(kind='Role', metadata={}),
+            role(namespace=''),
+            role(namespace=7),
+            dict(
+                kind='ClusterRole',
+                metadata=dict(name='cluster', namespace='team'),
+            ),
         ]:
             with self.subTest(obj=obj):
                 with self.assertRaises(ValueError):
@@ -140,14 +164,19 @@ class BuilderTests(unittest.TestCase):
         cluster_binding['roleRef']['kind'] = 'ClusterRole'
         self.assertEqual(
             len(
-                self.build([role(), binding()],
-                           [cluster, cluster_binding])['rbac']), 4)
+                self.build([role(), binding()], [cluster, cluster_binding])[
+                    'rbac'
+                ]
+            ),
+            4,
+        )
 
     def test_rejects_invalid_settings_or_snapshot_shape(self):
         for revision, mode in [('short', 'enforce'), ('a' * 40, 'legacy')]:
             with self.assertRaises(ValueError):
                 builder.build_policy(
-                    dict(items=[]), dict(items=[]), revision, mode)
+                    dict(items=[]), dict(items=[]), revision, mode
+                )
         for snapshot in [[], {}, dict(items={})]:
             with self.assertRaises(ValueError):
                 builder.snapshot_objects(snapshot)
@@ -165,12 +194,23 @@ class BuilderTests(unittest.TestCase):
             snapshot = Path(directory) / 'snapshot.json'
             snapshot.write_text(json.dumps(dict(items=[role(), binding()])))
             output = io.StringIO()
-            with patch('sys.argv', [
-                    'build_live_policy.py', '--source-rbac',
-                    str(snapshot), '--candidate-rbac',
-                    str(snapshot), '--target-revision', 'a' * 40, '--mode',
-                    'enforce'
-            ]), redirect_stdout(output):
+            with (
+                patch(
+                    'sys.argv',
+                    [
+                        'build_live_policy.py',
+                        '--source-rbac',
+                        str(snapshot),
+                        '--candidate-rbac',
+                        str(snapshot),
+                        '--target-revision',
+                        'a' * 40,
+                        '--mode',
+                        'enforce',
+                    ],
+                ),
+                redirect_stdout(output),
+            ):
                 self.assertEqual(builder.main(), 0)
             policy = json.loads(output.getvalue())
             self.assertEqual(len(schedule_policy.validate(policy)['rbac']), 2)
@@ -180,19 +220,32 @@ class BuilderTests(unittest.TestCase):
             snapshot = Path(directory) / 'snapshot.json'
             snapshot.write_text('private malformed JSON')
             output, errors = io.StringIO(), io.StringIO()
-            with patch('sys.argv', [
-                    'build_live_policy.py', '--source-rbac',
-                    str(snapshot), '--candidate-rbac',
-                    str(snapshot), '--target-revision', 'a' * 40, '--mode',
-                    'enforce'
-            ]), redirect_stdout(output), redirect_stderr(errors):
+            with (
+                patch(
+                    'sys.argv',
+                    [
+                        'build_live_policy.py',
+                        '--source-rbac',
+                        str(snapshot),
+                        '--candidate-rbac',
+                        str(snapshot),
+                        '--target-revision',
+                        'a' * 40,
+                        '--mode',
+                        'enforce',
+                    ],
+                ),
+                redirect_stdout(output),
+                redirect_stderr(errors),
+            ):
                 self.assertEqual(builder.main(), 1)
             self.assertEqual(output.getvalue(), '')
             self.assertNotIn('private', errors.getvalue())
 
     def test_audit_mode_and_fixture_contract(self):
         policy = builder.build_policy(
-            dict(items=[]), dict(items=[]), 'b' * 40, 'audit')
+            dict(items=[]), dict(items=[]), 'b' * 40, 'audit'
+        )
         self.assertEqual(policy['mode'], 'audit')
         self.assertTrue(policy['rbac_complete'])
         self.assertTrue(policy['rbac_only'])

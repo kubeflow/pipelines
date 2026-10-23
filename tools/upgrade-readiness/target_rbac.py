@@ -53,8 +53,13 @@ def _subject_match(subject, user, groups, binding_namespace):
 def _rule_match(rule, verb, api_group, resource, resource_name):
     if not isinstance(rule, dict):
         return None
-    for field in ('verbs', 'apiGroups', 'resources', 'resourceNames',
-                  'nonResourceURLs'):
+    for field in (
+        'verbs',
+        'apiGroups',
+        'resources',
+        'resourceNames',
+        'nonResourceURLs',
+    ):
         if field in rule and not _strings(rule[field]):
             return None
     if not rule.get('verbs'):
@@ -66,29 +71,44 @@ def _rule_match(rule, verb, api_group, resource, resource_name):
     resources = (resource, '*')
     if '/' in resource:
         resources += ('*/' + resource.split('/', 1)[1],)
-    return (any(v in rule['verbs'] for v in (verb, '*')) and
-            any(g in rule['apiGroups'] for g in (api_group, '*')) and
-            any(r in rule['resources'] for r in resources) and
-            (not rule.get('resourceNames') or
-             resource_name in rule['resourceNames']))
+    return (
+        any(v in rule['verbs'] for v in (verb, '*'))
+        and any(g in rule['apiGroups'] for g in (api_group, '*'))
+        and any(r in rule['resources'] for r in resources)
+        and (
+            not rule.get('resourceNames')
+            or resource_name in rule['resourceNames']
+        )
+    )
 
 
 def evaluate_use(items, user, groups, namespace, account, complete=False):
     if not isinstance(account, str) or not account:
         return 'unknown'
-    return evaluate_access(items, user, groups, namespace, 'use', '',
-                           'serviceaccounts', account, complete)
+    return evaluate_access(
+        items,
+        user,
+        groups,
+        namespace,
+        'use',
+        '',
+        'serviceaccounts',
+        account,
+        complete,
+    )
 
 
-def evaluate_access(items,
-                    user,
-                    groups,
-                    namespace,
-                    verb,
-                    api_group,
-                    resource,
-                    resource_name='',
-                    complete=False):
+def evaluate_access(
+    items,
+    user,
+    groups,
+    namespace,
+    verb,
+    api_group,
+    resource,
+    resource_name='',
+    complete=False,
+):
     """Return allowed, denied, or unknown for the supplied target RBAC
     evidence.
 
@@ -97,11 +117,16 @@ def evaluate_access(items,
     included and RBAC is the only authorizer. A partial snapshot can prove a
     grant, but cannot prove a denial. Wildcards in resourceNames are literal.
     """
-    if (not isinstance(items, list) or not _strings(groups) or not all(
-            isinstance(v, str) and v for v in (user, namespace, verb, resource))
-            or not isinstance(api_group, str) or
-            not isinstance(resource_name, str) or
-            not isinstance(complete, bool)):
+    if (
+        not isinstance(items, list)
+        or not _strings(groups)
+        or not all(
+            isinstance(v, str) and v for v in (user, namespace, verb, resource)
+        )
+        or not isinstance(api_group, str)
+        or not isinstance(resource_name, str)
+        or not isinstance(complete, bool)
+    ):
         return 'unknown'
     roles = {}
     for item in items:
@@ -109,8 +134,9 @@ def evaluate_access(items,
             continue
         kind = item.get('kind')
         metadata = item.get('metadata')
-        if kind not in ('Role',
-                        'ClusterRole') or not isinstance(metadata, dict):
+        if kind not in ('Role', 'ClusterRole') or not isinstance(
+            metadata, dict
+        ):
             continue
         name = metadata.get('name')
         scope = metadata.get('namespace') if kind == 'Role' else ''
@@ -128,9 +154,11 @@ def evaluate_access(items,
         metadata = item.get('metadata')
         scope = ''
         if kind == 'RoleBinding':
-            if not isinstance(metadata, dict) or not isinstance(
-                    metadata.get('namespace'),
-                    str) or not metadata['namespace']:
+            if (
+                not isinstance(metadata, dict)
+                or not isinstance(metadata.get('namespace'), str)
+                or not metadata['namespace']
+            ):
                 uncertain = True
                 continue
             scope = metadata['namespace']
@@ -145,10 +173,14 @@ def evaluate_access(items,
             uncertain = uncertain or None in matches
             continue
         ref = item.get('roleRef')
-        if (not isinstance(ref, dict) or ref.get('apiGroup') != _RBAC_GROUP or
-                ref.get('kind') not in ('Role', 'ClusterRole') or
-                not isinstance(ref.get('name'), str) or not ref['name'] or
-            (kind == 'ClusterRoleBinding' and ref['kind'] != 'ClusterRole')):
+        if (
+            not isinstance(ref, dict)
+            or ref.get('apiGroup') != _RBAC_GROUP
+            or ref.get('kind') not in ('Role', 'ClusterRole')
+            or not isinstance(ref.get('name'), str)
+            or not ref['name']
+            or (kind == 'ClusterRoleBinding' and ref['kind'] != 'ClusterRole')
+        ):
             uncertain = True
             continue
         role_scope = scope if ref['kind'] == 'Role' else ''
