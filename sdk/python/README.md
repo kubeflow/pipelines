@@ -65,11 +65,15 @@ kfp visualize pipeline.py --format both -w
 # Choose another output stem: report.html and report.md.
 kfp visualize pipeline.py --format both -o report -w
 
-# Opt in to a live browser viewer as well as file exports.
+# Serve a live preview and automatically open it in the default browser.
 kfp visualize pipeline.py --format both -w -s
 
-# Serve a snapshot without watching for edits.
+# Serve and open a snapshot without watching for edits.
 kfp visualize pipeline.py -s
+
+# Serve without launching a browser (useful on remote/headless machines).
+kfp visualize pipeline.py -w -s --no-open
+# Short form: kfp visualize pipeline.py -w -s -n
 ```
 
 `--format` accepts `html`, `both`, or `markdown`, defaulting to HTML. When
@@ -111,9 +115,14 @@ last successful exports and print the error; the live HTML viewer also displays
 it and recovers on the next valid change. Third-party HTML/Markdown viewers
 control their own reload behavior.
 
-`--serve` / `-s` serves an HTML preview with any export format. By itself it
-serves a snapshot; combine it with `--watch` / `-w` for live updates. Open the
-printed URL in a browser. The server binds only to
+`--serve` / `-s` serves an HTML preview with any export format and opens the
+preview once in the default browser after the server starts. By itself it serves
+a snapshot; combine it with `--watch` / `-w` for live updates. Pass `--no-open` /
+`-n` to keep serving without launching a browser. The URL is always printed, and
+if automatic launch fails, serving continues with a warning so you can open it
+manually. Plain exports and watch-only commands never launch a browser.
+
+The server binds only to
 `127.0.0.1` on an automatically selected port and serves only the viewer and its
 graph data, not the workspace. Keep it private: the graph includes component
 specifications. A separately opened `.html` file is an offline snapshot, not a

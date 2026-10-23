@@ -54,8 +54,11 @@ uv run pytest sdk/python/kfp/cli/visualize_test.py
 `kfp visualize pipeline.py -w` updates the HTML artifact without a server.
 `--format both -w` updates both HTML and Mermaid Markdown from one compilation.
 Add `-s` / `--serve` to opt into the loopback HTML viewer; use `-w -s` for live
-updates, or `-s` alone to serve a snapshot. Serving is available with any export
-format. HTML is the default; `html`, `both`, and `markdown` are supported.
+updates, or `-s` alone to serve a snapshot. Serving opens the default browser
+once; pass `--no-open` / `-n` to suppress the launch while keeping the server and
+printed URL. The browser smoke test uses `-n` and drives its own headless browser.
+Serving is available with any export format. HTML is the default; `html`, `both`,
+and `markdown` are supported.
 
 ## Data and updates
 

@@ -20,6 +20,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import webbrowser
 from contextlib import contextmanager, nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -262,8 +263,14 @@ def _watch(
     '-s',
     '--serve',
     is_flag=True,
-    help='Serve an HTML preview on a loopback URL. Add --watch for live '
-    'updates. Available with any export format.',
+    help='Serve an HTML preview and open it in a browser. Add --watch for '
+    'live updates. Available with any export format.',
+)
+@click.option(
+    '-n',
+    '--no-open',
+    is_flag=True,
+    help='Do not open a browser when serving; the preview URL is still printed.',
 )
 def visualize(
     source: Path,
@@ -272,6 +279,7 @@ def visualize(
     function: str | None,
     watch: bool,
     serve: bool,
+    no_open: bool,
 ) -> None:
     """Visualize a local .py, .yaml, .yml, or .json pipeline.
 
@@ -324,6 +332,17 @@ def visualize(
                 if url:
                     label = 'Live viewer' if watch else 'Viewer'
                     click.echo(f'{label}: {url}')
+                    if not no_open:
+                        try:
+                            opened = webbrowser.open_new(url)
+                        except (webbrowser.Error, OSError):
+                            opened = False
+                        if not opened:
+                            click.echo(
+                                'Could not open a browser automatically. '
+                                'Open the URL above manually.',
+                                err=True,
+                            )
                     click.echo('Press Ctrl+C to stop serving.')
                 if watch:
                     _watch(source, function, output, format_, state, previous)
