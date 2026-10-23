@@ -137,11 +137,12 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "4d3413123fe010c66777ed34a883cc9b22d1a43257671741ef2590a0c77e421d",
+      "header_sha256": "e4fb7a43a1a5473f74033cab4ae8d2bed36110b89f577d8d4459deb1dea75c03",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
           "**/go.mod",
+          "backend/api/hack/uv.sh",
           "**/package.json",
           "**/requirements*.txt",
           "**/setup.py",
@@ -201,6 +202,12 @@
           "api/Makefile",
           "backend/src/v2/Makefile",
           "release/kfpr/core.py",
+          "release/kfpr/branch_scan*.py",
+          "release/kfpr/ci_images_runner*.py",
+          "release/kfpr/qualification.py",
+          "release/kfpr/security.py",
+          ".github/workflows/release-branch-image-scanning.yml",
+          ".github/workflows/release-qualification.yml",
           "test_data/sdk_compiled_pipelines/valid/**",
           "backend/test/end2end/pipeline_e2e_test.go",
           "backend/test/v2/resources/env-var.yaml",
@@ -324,7 +331,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "593f38af09ca8065fdd48c3eba6004cd4724b5d672d36a5fcd856b70e90661fd",
+      "header_sha256": "ac2044ec016791a88b3e81f57b870619ee01d500d577addc737095a4fbb7a1fe",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -345,6 +352,7 @@
           "go.sum",
           "backend/**",
           "frontend/server/handlers/artifacts.ts",
+          "test/seaweedfs/**",
           "proxy/**",
           "manifests/kustomize/**",
           "test/artifact-proxy/**",
@@ -545,11 +553,14 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "11c6ddce6b7ab467eb789df790d1b9a1134e9d3514ad417e2a9466c019ddf83a",
+      "header_sha256": "1a43485f3a272e19b9b41b14baa47a3593af0f2a5d54f7fd6a4c09564bdea85e",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
+          "backend/api/tools/**",
+          "go.mod",
+          ".github/actions/setup-go/**",
           "!**/*.md",
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"
@@ -584,7 +595,7 @@
     {
       "path": ".github/workflows/osv-scanner.yml",
       "name": "OSV-Scanner Vulnerability Scan",
-      "header_sha256": "1f4a31bf78499730b30cbc64047d44eead6a0e34390719c0439a5d777b6b6206",
+      "header_sha256": "81c9eb7e0e9bfbd12347d48f7377a913c525c0e13f76123e10641ba2393b2fdd",
       "pull_request": null
     },
     {
@@ -654,6 +665,12 @@
           ".readthedocs.yml"
         ]
       }
+    },
+    {
+      "path": ".github/workflows/release-branch-image-scanning.yml",
+      "name": "Release Branch Image Scanning",
+      "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
+      "pull_request": null
     },
     {
       "path": ".github/workflows/release-promote-latest.yml",

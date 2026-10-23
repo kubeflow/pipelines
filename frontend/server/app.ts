@@ -26,8 +26,10 @@ import {
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
+  getArtifactsRateLimiter,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getArtifactPreviewHandler } from './handlers/artifact-preview.js';
 import { getAuthorizeFn } from './helpers/auth.js';
 import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
@@ -179,6 +181,11 @@ function createUIServer(options: UIConfigs) {
 
   /** Authorize function - created early so it can be used by artifact handlers */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+  const artifactsRateLimiter = getArtifactsRateLimiter({
+    authEnabled: options.auth.enabled,
+    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    disabled: options.artifacts.rateLimitDisabled,
+  });
 
   /**
    * Artifact Authorization Middleware
@@ -194,6 +201,12 @@ function createUIServer(options: UIConfigs) {
     options.artifacts.proxy.enabled,
   );
 
+  app.get(
+    ['/artifacts/:artifactId/preview', `${basePath}/artifacts/:artifactId/preview`],
+    artifactsRateLimiter,
+    getArtifactPreviewHandler(options, apiServerAddress, authorizeFn),
+  );
+
   /** Artifact */
   // Authorization middleware runs once on the catch-all /artifacts/* route,
   // protecting all artifact endpoints. When proxy is disabled, the proxy
@@ -203,6 +216,7 @@ function createUIServer(options: UIConfigs) {
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -212,6 +226,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,

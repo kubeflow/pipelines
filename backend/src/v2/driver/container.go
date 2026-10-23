@@ -240,7 +240,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 
 	// Handle Kubernetes-specific tasks such as pvc-creation or pvc-deletion
 	if isKubernetesPlatformOp {
-		return execution, kubernetesPlatformOps(ctx, clientManager, execution, taskToCreate, &opts)
+		return execution, kubernetesPlatformOps(ctx, clientManager, execution, taskToCreate, &opts, defaultInjectedParams(inputs))
 	}
 
 	// Determine the pipeline root and provision outputs before generating the
@@ -614,6 +614,21 @@ func cloneCachedOutputsForTask(
 		}
 	}
 	return clonedOutputs, nil
+}
+
+// defaultInjectedParams returns the keys of parameters that the parameter
+// resolver filled from a component's input default rather than a task input.
+func defaultInjectedParams(inputs *resolver.InputMetadata) map[string]bool {
+	keys := make(map[string]bool)
+	if inputs == nil {
+		return keys
+	}
+	for _, p := range inputs.Parameters {
+		if p.ParameterIO.GetType() == apiV2.IOType_COMPONENT_DEFAULT_INPUT {
+			keys[p.Key] = true
+		}
+	}
+	return keys
 }
 
 func pipelineTaskInputsToExecutorInputs(inputMetadata *resolver.InputMetadata) (*pipelinespec.ExecutorInput, error) {

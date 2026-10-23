@@ -254,8 +254,7 @@ class ScriptContractTests(unittest.TestCase):
         script = SCRIPT.read_text()
         self.assertIn('test -s sdk/python/kfp/server_api/api_client.py', script)
         self.assertIn(
-            'python3 -m pip wheel --no-deps ./sdk/python '
-            '--wheel-dir /tmp/kfp-smoke-dist',
+            'uv build --wheel ./sdk/python --out-dir /tmp/kfp-smoke-dist',
             script,
         )
         self.assertIn("compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl'", script)

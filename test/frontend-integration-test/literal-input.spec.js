@@ -13,6 +13,7 @@
 // limitations under the License.
 
 const assert = require('assert');
+const path = require('path');
 const URL = require('url').URL;
 const {
   buildTableRowSelector,
@@ -172,8 +173,7 @@ describe('literal input parameter integration', () => {
     await waitForHashPrefix('#/pipeline_versions/new', { timeout: uiTimeout });
 
     await $('#localPackageBtn').click();
-    const remoteFilePath = await browser.uploadFile('./literal-input.yaml');
-    await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+    await $('#dropZone input[type="file"]').setFiles(path.resolve('./literal-input.yaml'));
     await $('#newPipelineName').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);

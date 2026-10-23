@@ -5,7 +5,7 @@
   "private": true,
   "packageManager": "npm@11.17.0",
   "engines": {
-    "node": "24.15.0"
+    "node": "24.22.1"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -29,7 +29,7 @@
     "react-ace": "^15.0.0",
     "react-dom": "^19.3.1",
     "react-dropzone": "^20.1.4",
-    "react-router": "^8.4.0",
+    "react-router": "^8.5.0",
     "react-textarea-autosize": "^8.5.9",
     "react-virtualized": "^9.22.6",
     "recharts": "^3.10.1",
@@ -160,7 +160,8 @@
     },
     "nth-check": "2.0.1",
     "terser": "5.14.2",
-    "micromatch": ">=4.0.8"
+    "micromatch": ">=4.0.8",
+    "postcss-selector-parser": "^7.1.7"
   },
   "homepage": "./",
   "browserslist": {

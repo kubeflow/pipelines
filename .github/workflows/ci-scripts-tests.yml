@@ -11,6 +11,7 @@ on:
     paths:
       - '.github/dependabot.yml'
       - '**/go.mod'
+      - 'backend/api/hack/uv.sh'
       - '**/package.json'
       - '**/requirements*.txt'
       - '**/setup.py'
@@ -73,6 +74,12 @@ on:
       - 'api/Makefile'
       - 'backend/src/v2/Makefile'
       - 'release/kfpr/core.py'
+      - 'release/kfpr/branch_scan*.py'
+      - 'release/kfpr/ci_images_runner*.py'
+      - 'release/kfpr/qualification.py'
+      - 'release/kfpr/security.py'
+      - '.github/workflows/release-branch-image-scanning.yml'
+      - '.github/workflows/release-qualification.yml'
       - 'test_data/sdk_compiled_pipelines/valid/**'
       - 'backend/test/end2end/pipeline_e2e_test.go'
       - 'backend/test/v2/resources/env-var.yaml'
@@ -139,6 +146,10 @@ jobs:
       - name: Run Python resource script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run release image scanning and qualification tests
+        env:
+          PYTHONPATH: release
+        run: python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test
       - name: Run repo-local workflow script unit tests
         working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

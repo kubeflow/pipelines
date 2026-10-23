@@ -80,27 +80,9 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r tooling/.github/scripts/requirements.txt
       - name: Install checksum-pinned Trivy
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: |
-          case "$ARCH" in
-            amd64)
-              archive=trivy_0.76.0_Linux-64bit.tar.gz
-              checksum=e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
-              ;;
-            arm64)
-              archive=trivy_0.76.0_Linux-ARM64.tar.gz
-              checksum=aab21e677a7b7071fc79f1711480840754c18a1b9d9cefa7ccd06af63a0e8f4c
-              ;;
-            *) exit 1 ;;
-          esac
-          curl --fail --silent --show-error --location \
-            "https://github.com/aquasecurity/trivy/releases/download/v0.76.0/$archive" \
-            --output "$RUNNER_TEMP/$archive"
-          echo "$checksum  $RUNNER_TEMP/$archive" | sha256sum --check --strict
-          mkdir -p "$RUNNER_TEMP/trivy-bin"
-          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/trivy-bin" trivy
-          echo "$RUNNER_TEMP/trivy-bin" >> "$GITHUB_PATH"
+        uses: ./tooling/.github/actions/setup-trivy
+        with:
+          arch: ${{ matrix.arch }}
       - name: Build and scan exact release image
         env:
           IMAGE_NAME: ${{ matrix.name }}
