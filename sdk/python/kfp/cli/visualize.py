@@ -309,9 +309,9 @@ def visualize(
 ) -> None:
     """Visualize a local .py, .yaml, .yml, or .json pipeline.
 
-    HTML exports are offline, interactive React Flow diagrams. Markdown exports
-    contain Mermaid diagrams. Neither requires a cluster. Python compilation
-    executes module-level code: only visualize trusted Python sources.
+    Export offline HTML or Mermaid diagrams without a cluster.
+
+    Python inputs execute code. Only visualize trusted sources.
     """
     source = source.resolve()
     if source.suffix.lower() not in ('.py', '.yaml', '.yml', '.json'):
