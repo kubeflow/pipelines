@@ -241,33 +241,30 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         self,
     ):
         action = yaml.safe_load(
-            (ROOT / '.github/actions/setup-trivy/action.yml').read_text()
+            (ROOT / '.github/actions/setup-osv-scanner/action.yml').read_text()
         )
         script = action['runs']['steps'][0]['run']
-        self.assertIn('trivy_0.76.0_Linux-64bit.tar.gz', script)
-        self.assertIn('trivy_0.76.0_Linux-ARM64.tar.gz', script)
-        self.assertIn(
-            'e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7',
-            script,
-        )
-        self.assertIn(
-            'aab21e677a7b7071fc79f1711480840754c18a1b9d9cefa7ccd06af63a0e8f4c',
-            script,
-        )
+        self.assertIn('osv-scanner/releases/download/v2.5.0/', script)
+        for checksum in (
+            'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c',
+            'fe152e1a546af223e6c557cc3111a8bb3e5dc02fcbf7dbe95d26567c0f0041f2',
+        ):
+            self.assertIn(checksum, script)
         self.assertIn('sha256sum --check --strict', script)
         qualification = (
             ROOT / '.github/workflows/release-qualification.yml'
         ).read_text()
         self.assertIn(
-            'uses: ./tooling/.github/actions/setup-trivy', qualification
+            'uses: ./tooling/.github/actions/setup-osv-scanner', qualification
         )
+        self.assertNotIn('setup-trivy', qualification)
 
     def test_ci_runs_new_helper_and_workflow_tests(self):
         workflow = (ROOT / '.github/workflows/ci-scripts-tests.yml').read_text()
         self.assertIn(
             "'.github/workflows/release-branch-image-scanning.yml'", workflow
         )
-        self.assertIn("'release/kfpr/branch_scan*.py'", workflow)
+        self.assertIn("'release/kfpr/**'", workflow)
         self.assertIn(
             'python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test',
             workflow,

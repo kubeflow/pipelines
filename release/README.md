@@ -75,51 +75,39 @@ and merge SHAs cannot change silently; selecting a new release commit requires
 fresh qualification for that commit.
 `merge-version-pr` waits for CI and a maintainer merge; kfpr does not merge the PR.
 It records the tested PR head and merged commit. The next checkpoint,
-`qualify-release`, rebuilds that exact commit in an isolated checkout and:
+`qualify-release`, dispatches the read-only `release-qualification.yml` workflow
+on upstream `master` for that exact commit. All builds, installed-wheel smoke
+tests and vulnerability scans run in CI:
 
-- Installs the release wheels in fresh environments for every Python minor
-  advertised by the SDK, checks dependency consistency and distribution versions,
-  and compiles a pipeline using Kubernetes configuration.
-- Dispatches `release-qualification.yml` on upstream `master` to build and scan
-  every image/platform combination from the merged release source's matrix,
-  respecting its exclusions. AMD64 and ARM64 use native GitHub-hosted runners.
-  The workflow has read-only permissions and does not publish images or tags.
-- Downloads raw Trivy image reports and a complete manifest, checking the run,
-  source commit, workflow commit, inventory, immutable image IDs and report hashes.
-  Comprehensive image detection includes embedded modules in OS-packaged binaries.
-- Runs Trivy on source dependencies and pip-audit against the dependencies
-  installed in each Python environment.
+- Source dependencies are scanned with checksum-pinned OSV Scanner 2.5.0 before
+  wheel generation. The report must cover the root Go module and frontend lockfile.
+- The SDK job builds release wheels once, installs them in fresh environments for
+  every Python minor advertised by the selected source commit, checks distribution
+  versions and dependency consistency, and compiles a pipeline using Kubernetes
+  configuration. OSV scans the exact installed distribution inventory from each
+  environment, including local release packages; missing package coverage fails.
+- Native AMD64 and ARM64 jobs build every image/platform combination from that
+  source commit's release matrix, including its exclusions. Each image is exported
+  to a Docker archive whose config digest must match the immutable built image ID.
+  OSV scans that archive directly without registry fallback.
+- Every scan retains complete JSON package and vulnerability data. Empty scanner
+  configuration and explicit all-package/all-vulnerability flags prevent ignore
+  settings from hiding findings. SARIF alone is insufficient for qualification
+  because it does not supply the full package-specific fix information.
 
-The default `--image-qualification ci` requires the workflow to be merged on upstream `master` and
-an authenticated `gh` session authorized to dispatch it. There is no local image
-build fallback after a CI failure. Failed lanes retain diagnostic artifacts; incomplete evidence
-blocks publication. Rerunning a CI attempt invalidates evidence from its earlier
-attempt, so run `qualify-release` again to obtain fresh evidence.
+Qualification requires the workflow merged on upstream `master` and an
+authenticated `gh` session authorized to dispatch it. There is no local
+qualification mode or local Python-interpreter override. Local Trivy, pip-audit,
+Docker and per-minor Python installations are not required for qualification.
+SDK-only releases skip image builds; backend-only releases skip installed-wheel
+tests. Source scanning always runs. The workflow does not publish images or tags.
 
-For explicit local validation, select `--image-qualification local`. This mode
-builds and scans the same complete matrix sequentially. Each lane uses a unique
-image tag and a private Docker Buildx builder; after scanning, both are removed,
-including that builder's cache. Raw reports and image IDs remain in the evidence.
-Shared builders, unrelated images, containers and volumes are not pruned. Docker
-must support each release platform and have enough space for one image build.
-The selected mode is saved in the checkpoint and bound to qualification evidence;
-changing modes requires requalification. Both modes require zero fixable image
-findings and the same complete image inventory.
-
-Install Trivy, pip-audit and each supported Python interpreter before
-qualification. SDK artifact generation also needs Docker. Source and wheel
-checks run locally and require network access to package indexes, container
-registries and advisory databases.
-By default kfpr finds `python3.X` on PATH. To map installed executables explicitly:
-
-```bash
-kfpr run qualify-release --state-file release-state.json --done \
-  --qualification-pythons /path/to/python3.9,/path/to/python3.10,/path/to/python3.11,/path/to/python3.12,/path/to/python3.13
-```
-
-The override must still cover every advertised Python minor. The same option is
-available on the full `run` command. SDK-only releases skip image builds;
-backend-only releases skip installed-wheel tests. Source scanning always runs.
+The client downloads the complete attempt-bound artifact and checks its source
+and workflow commits, request and run identities, selected scope, full image and
+Python inventories, raw reports and retained wheel checksums. It also rechecks the
+live workflow run before accepting evidence. Failed lanes retain diagnostics;
+incomplete evidence blocks publication. Rerunning a workflow attempt invalidates
+its earlier evidence, so run `qualify-release` again to obtain fresh evidence.
 
 The default security policy is zero scanner-reported fixable vulnerabilities,
 across all severities. Findings without a published fix remain in the report. Missing tools,
@@ -150,8 +138,8 @@ Failed requalification invalidates prior evidence. Generated sources must match
 the merged commit or qualification stops for a new reviewed version update.
 
 Tag creation, image/package publication and GitHub release creation each recheck
-live PR CI and qualification evidence, plus the image workflow run when CI mode
-is selected, including when invoked individually. Tags point to
+live PR CI, qualification evidence and the qualification workflow run, including
+when invoked individually. Tags point to
 the qualified merge commit. A stale unpublished local tag can be corrected;
 published tags are never replaced. Workflow dispatch and completion checks are
 bound to the same source commit. Patch image releases leave the global `latest`

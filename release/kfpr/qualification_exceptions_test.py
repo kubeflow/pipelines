@@ -57,6 +57,9 @@ class QualificationExceptionsTest(unittest.TestCase):
         patcher = mock.patch('kfpr.steps.validate_release_pr', return_value=SHA)
         patcher.start()
         self.addCleanup(patcher.stop)
+        ci = mock.patch('kfpr.ci_qualification_client.verify_run')
+        ci.start()
+        self.addCleanup(ci.stop)
 
     def write_document(self):
         self.path.write_text(json.dumps(self.document))
@@ -87,6 +90,7 @@ class QualificationExceptionsTest(unittest.TestCase):
         policy = 'zero-fixable' if legacy else 'approved-exceptions'
         security = {
             'passed': True,
+            'scanner': q.SCANNER,
             'errors': [],
             'scans': scans,
             'policy': policy,
@@ -160,7 +164,7 @@ class QualificationExceptionsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             q._identity(self.context, SHA)
 
-    def test_legacy_schema_one_evidence_has_no_new_identity_fields(self):
+    def test_strict_policy_identity_has_no_exception_fields(self):
         self.context.state.answers.clear()
         report = self.evidence(legacy=True)
         self.assertNotIn('exceptions', report)
@@ -176,12 +180,18 @@ class QualificationExceptionsTest(unittest.TestCase):
             ),
             mock.patch.object(q, '_run'),
             mock.patch.object(q.subprocess, 'check_output', return_value=''),
-            mock.patch.object(
-                q, 'qualify_security', return_value=self.security()
+            mock.patch(
+                'kfpr.ci_qualification_client.qualify_ci',
+                return_value={
+                    'images': [],
+                    'wheels': None,
+                    'security': self.security(),
+                    'run': {'id': 123},
+                },
             ) as scan,
         ):
             q.qualify_release(self.context)
-        self.assertEqual(scan.call_args.kwargs['exceptions'], self.document)
+        self.assertIs(scan.call_args.args[0], self.context)
         report = json.loads(
             Path(self.context.state.answers['qualification_path']).read_text()
         )

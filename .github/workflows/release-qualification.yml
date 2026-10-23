@@ -1,6 +1,6 @@
 # Success means complete build/scan evidence. kfpr centrally evaluates the
 # selected security policy before accepting qualification or publication.
-name: Release Image Qualification
+name: Release Qualification
 run-name: KFP image qualification ${{ inputs.version }} ${{ inputs.source_sha }} ${{ inputs.request_id }}
 on:
   workflow_dispatch:
@@ -17,9 +17,21 @@ on:
         description: Unique qualification request (32 lowercase hex characters)
         type: string
         required: true
+      include_sdk:
+        description: Build and smoke SDK wheels on every supported Python minor
+        type: boolean
+        required: true
+        default: true
+      include_backend:
+        description: Build and scan every native backend image
+        type: boolean
+        required: true
+        default: true
 permissions: {}
 
 env:
+  INCLUDE_SDK: ${{ inputs.include_sdk }}
+  INCLUDE_BACKEND: ${{ inputs.include_backend }}
   SOURCE_SHA: ${{ inputs.source_sha }}
   VERSION: ${{ inputs.version }}
   REQUEST_ID: ${{ inputs.request_id }}
@@ -33,6 +45,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      python-versions: ${{ steps.matrix.outputs.python-versions }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,15 +64,16 @@ jobs:
       - run: python -m pip install -r tooling/.github/scripts/requirements.txt
       - id: matrix
         run: |
-          matrix=$(python -m kfpr.ci_images_runner matrix --source source)
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          python -m kfpr.ci_qualification_runner inventory --source source
 
   images:
     permissions:
       contents: read
     needs: inventory
+    if: ${{ inputs.include_backend }}
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix: ${{ fromJson(needs.inventory.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -79,8 +93,8 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r tooling/.github/scripts/requirements.txt
-      - name: Install checksum-pinned Trivy
-        uses: ./tooling/.github/actions/setup-trivy
+      - name: Install checksum-pinned OSV-Scanner
+        uses: ./tooling/.github/actions/setup-osv-scanner
         with:
           arch: ${{ matrix.arch }}
       - name: Build and scan exact release image
@@ -89,7 +103,7 @@ jobs:
           IMAGE_PLATFORM: ${{ matrix.platform }}
         run: |
           python -m kfpr.ci_images_runner lane --source source \
-            --name "$IMAGE_NAME" --platform "$IMAGE_PLATFORM" --output evidence
+            --name "$IMAGE_NAME" --platform "$IMAGE_PLATFORM" --output evidence --scanner osv-json
       - name: Preserve lane evidence, including failures
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -99,10 +113,56 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  security:
+    permissions:
+      contents: read
+    needs: inventory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kubeflow/pipelines
+          ref: ${{ inputs.source_sha }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install ./tooling/release
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        if: ${{ inputs.include_sdk }}
+        with:
+          python-version: |
+            ${{ needs.inventory.outputs.python-versions }}
+            3.13
+      - uses: ./tooling/.github/actions/setup-osv-scanner
+        with:
+          arch: amd64
+      - name: Scan source and qualify every supported SDK environment
+        shell: bash
+        run: |
+          scope=()
+          if [[ "$INCLUDE_SDK" == true ]]; then scope+=(--include-sdk); fi
+          python -m kfpr.ci_security_runner --source source --output security "${scope[@]}"
+      - name: Preserve source and SDK evidence, including failures
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kfpr-security-${{ inputs.request_id }}-${{ github.run_attempt }}
+          path: security/
+          if-no-files-found: warn
+          retention-days: 30
+
   aggregate:
     permissions:
       contents: read
-    needs: [inventory, images]
+    needs: [inventory, images, security]
     if: ${{ always() && needs.inventory.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
@@ -122,6 +182,7 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install -r tooling/.github/scripts/requirements.txt
       - name: Enumerate required lane evidence from source inventory
+        if: ${{ inputs.include_backend }}
         id: expected-lanes
         env:
           IMAGE_MATRIX: ${{ needs.inventory.outputs.matrix }}
@@ -143,14 +204,20 @@ jobs:
               print('EOF', file=output)
           PYTHON
       - uses: ./tooling/.github/actions/download-artifact-with-retry
+        if: ${{ inputs.include_backend }}
         with:
           pattern: kfpr-lane-${{ inputs.request_id }}-${{ github.run_attempt }}-*
           path: lanes
           required-files: ${{ steps.expected-lanes.outputs.required-files }}
-      - name: Verify complete image inventory and raw evidence
+      - uses: ./tooling/.github/actions/download-artifact-with-retry
+        with:
+          name: kfpr-security-${{ inputs.request_id }}-${{ github.run_attempt }}
+          path: security
+          required-files: security.json
+      - name: Verify complete source, SDK, and image evidence
         run: |
-          python -m kfpr.ci_images_runner aggregate --source source \
-            --lanes lanes --output qualified
+          python -m kfpr.ci_qualification_runner aggregate --source source \
+            --lanes lanes --security security --output qualified
       - name: Upload verified manifest and complete raw scans
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

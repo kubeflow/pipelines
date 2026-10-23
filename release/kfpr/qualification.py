@@ -6,21 +6,17 @@ import re
 import subprocess
 import sys
 import tempfile
-from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
 
 from .core import REPO, ReleaseContext
+from .osv_image_scan import SCANNER
 from .packages import clean_legacy_distributions, validate_legacy_wheels
-from .security import evaluate_policy, qualify_security
+from .security import evaluate_policy
 from .security_exceptions import exception_digest, load_exceptions
-from .smoke import (
-    default_interpreters,
-    qualify_wheels,
-    supported_python_versions,
-)
+from .smoke import supported_python_versions
 
 MAX_AGE = timedelta(hours=24)
 
@@ -45,13 +41,20 @@ def _identity(
     context: ReleaseContext, sha: str, exceptions: dict | None = None
 ) -> dict:
     mode = context.state.answers.get('image_qualification', 'ci')
-    if mode not in ('ci', 'local'):
-        raise ValueError('Choose ci or local image qualification')
+    if mode != 'ci':
+        raise ValueError(
+            'Qualification scans require CI; select --image-qualification ci'
+        )
+    if context.state.answers.get('qualification_pythons'):
+        raise ValueError(
+            'CI selects Python versions from source; clear qualification_pythons'
+        )
     if exceptions is None:
         exceptions = _configured_exceptions(context)
     identity = {
         'image_qualification': mode,
-        'schema': 1,
+        'schema': 2,
+        'security_scanner': SCANNER,
         'release_sha': sha,
         'version': context.metadata.tag,
         'include_backend': context.include_backend,
@@ -155,8 +158,8 @@ def _matrix_records(workflow: dict) -> list[dict]:
 
 
 def qualify_release(context: ReleaseContext) -> None:
-    """Rebuild, install, compile and scan the exact merged source in
-    isolation."""
+    """Dispatch CI qualification of exact merged source and verify its
+    evidence."""
     if context.runner.dry_run:
         print(
             '[dry-run] would qualify merged source: Python matrix, source dependencies and release images; no publication'
@@ -193,61 +196,18 @@ def qualify_release(context: ReleaseContext) -> None:
     ):
         raise ValueError('Merged source VERSION does not match the release')
     report = _identity(context, sha, exceptions)
-    environments = []
-    if context.include_sdk:
-        build_wheels(root, context.metadata.tag)
-        configured = context.state.answers.get('qualification_pythons', '')
-        interpreters = (
-            configured.split(',') if configured else default_interpreters(root)
-        )
-        report['wheels'] = qualify_wheels(
-            root, context.metadata.tag, interpreters, output / 'wheels'
-        )
-        environments = [
-            Path(path) for path in report['wheels']['python_environments']
-        ]
-    report['images'] = []
-    image_reports = []
-    if context.include_backend and report['image_qualification'] == 'ci':
-        from .ci_images_client import qualify_images
+    from .ci_qualification_client import qualify_ci
 
-        context.state.answers['release_sha'] = sha
-        result = qualify_images(
-            context, image_matrix(root), output / 'image-ci'
-        )
-        report['images'] = result['images']
-        report['image_ci'] = result['run']
-        image_reports = [
-            (item['image_id'], Path(item['path'])) for item in result['reports']
-        ]
-
-    def local_image_ids():
-        if context.include_backend and report['image_qualification'] == 'local':
-            from .local_images import build_images
-
-            with closing(
-                build_images(
-                    root, sha, context.metadata.tag, image_matrix(root)
-                )
-            ) as images:
-                for record in images:
-                    report['images'].append(record)
-                    (output / 'images.json').write_text(
-                        json.dumps(report['images'], indent=2) + '\n'
-                    )
-                    yield record['image_id']
-
-    with closing(local_image_ids()) as images:
-        report['security'] = qualify_security(
-            root,
-            output / 'security',
-            environments,
-            images,
-            image_reports=image_reports,
-            release_version=context.metadata.tag,
-            policy=report['security_policy'],
-            exceptions=exceptions,
-        )
+    context.state.answers['release_sha'] = sha
+    expected_images = image_matrix(root) if context.include_backend else []
+    _, expected_minors = release_coverage(context, sha)
+    result = qualify_ci(
+        context, expected_images, expected_minors, output / 'ci'
+    )
+    report['images'] = result['images']
+    report['wheels'] = result['wheels']
+    report['security'] = result['security']
+    report['security_ci'] = result['run']
     # Generation may create ignored files, but never change the approved source.
     if subprocess.check_output(
         ['git', 'diff', '--name-only', 'HEAD'], cwd=root, text=True
@@ -358,6 +318,7 @@ def require_qualification(context: ReleaseContext) -> None:
         or security.get('errors') != []
         or security.get('policy') != policy
         or security.get('release_version') != context.metadata.tag
+        or security.get('scanner') != SCANNER
     ):
         raise ValueError(
             'Security qualification did not pass with the selected policy; rerun qualify-release'
@@ -430,10 +391,9 @@ def require_qualification(context: ReleaseContext) -> None:
             raise ValueError(
                 'Python scan coverage is incomplete; rerun qualify-release'
             )
-    if context.include_backend and report['image_qualification'] == 'ci':
-        from .ci_images_client import verify_run
+    from .ci_qualification_client import verify_run
 
-        verify_run(context, report.get('image_ci', {}))
+    verify_run(context, report.get('security_ci', {}))
     age = datetime.now(timezone.utc) - datetime.fromisoformat(
         report['qualified_at']
     )
