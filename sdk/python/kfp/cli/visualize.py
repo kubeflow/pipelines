@@ -149,6 +149,35 @@ def _live_server(state: dict[str, Any], *, live: bool = True):
         thread.join()
 
 
+@contextmanager
+def _launch_browser(url: str):
+    """Launch without blocking watch updates or waiting for browser exit."""
+    stopped = threading.Event()
+    opener = webbrowser.open_new
+
+    def launch():
+        if stopped.is_set():
+            return
+        try:
+            opened = opener(url)
+        except (webbrowser.Error, OSError):
+            opened = False
+        if not opened and not stopped.is_set():
+            click.echo(
+                'Could not open a browser automatically. '
+                'Open the URL above manually.',
+                err=True,
+            )
+
+    try:
+        threading.Thread(
+            target=launch, name='kfp-preview-browser', daemon=True
+        ).start()
+        yield
+    finally:
+        stopped.set()
+
+
 def _export(
     source: Path,
     function: str | None,
@@ -332,22 +361,18 @@ def visualize(
                 if url:
                     label = 'Live viewer' if watch else 'Viewer'
                     click.echo(f'{label}: {url}')
-                    if not no_open:
-                        try:
-                            opened = webbrowser.open_new(url)
-                        except (webbrowser.Error, OSError):
-                            opened = False
-                        if not opened:
-                            click.echo(
-                                'Could not open a browser automatically. '
-                                'Open the URL above manually.',
-                                err=True,
-                            )
                     click.echo('Press Ctrl+C to stop serving.')
-                if watch:
-                    _watch(source, function, output, format_, state, previous)
-                else:
-                    while True:
-                        time.sleep(1)
+                with (
+                    _launch_browser(url)
+                    if url and not no_open
+                    else nullcontext()
+                ):
+                    if watch:
+                        _watch(
+                            source, function, output, format_, state, previous
+                        )
+                    else:
+                        while True:
+                            time.sleep(1)
         except KeyboardInterrupt:
             click.echo('\nStopped watching.' if watch else '\nStopped serving.')

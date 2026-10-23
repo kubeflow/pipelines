@@ -16,6 +16,8 @@ import json
 import os
 import py_compile
 import subprocess
+import sys
+import threading
 import urllib.error
 import urllib.request
 import webbrowser
@@ -34,8 +36,28 @@ from kfp.cli import cli, visualization, visualize
 def browser_launcher(monkeypatch):
     # Tests must never launch a real desktop browser.
     launcher = Mock(return_value=True)
-    monkeypatch.setattr(webbrowser, 'open_new', launcher)
-    return launcher
+    launcher.started = threading.Event()
+    launcher.threads = []
+
+    def tracked_open(url):
+        launcher.threads.append(threading.current_thread())
+        launcher.started.set()
+        return launcher(url)
+
+    monkeypatch.setattr(webbrowser, 'open_new', tracked_open)
+    yield launcher
+    for thread in launcher.threads:
+        if thread is not threading.current_thread():
+            thread.join(timeout=5)
+            assert not thread.is_alive(), 'Test must release its browser opener'
+
+
+def _finish_browser_launch(launcher):
+    assert launcher.started.wait(timeout=5)
+    for thread in launcher.threads:
+        if thread is not threading.current_thread():
+            thread.join(timeout=5)
+            assert not thread.is_alive()
 
 
 @pytest.fixture
@@ -694,10 +716,17 @@ def test_serve_is_independent_of_watching(
         yield 'http://127.0.0.1:1234/test/'
 
     def stop(_seconds):
+        if not no_open:
+            _finish_browser_launch(browser_launcher)
         raise KeyboardInterrupt
 
+    def watch_source(*args):
+        if not no_open:
+            _finish_browser_launch(browser_launcher)
+        watched.append(args)
+
     monkeypatch.setattr(visualize, '_live_server', server)
-    monkeypatch.setattr(visualize, '_watch', lambda *args: watched.append(args))
+    monkeypatch.setattr(visualize, '_watch', watch_source)
     monkeypatch.setattr(visualize.time, 'sleep', stop)
     result = CliRunner().invoke(
         cli.cli,
@@ -721,6 +750,100 @@ def test_serve_is_independent_of_watching(
         browser_launcher.assert_called_once_with('http://127.0.0.1:1234/test/')
 
 
+def test_blocked_browser_does_not_block_watch_or_shutdown(
+    source, spec, monkeypatch, browser_launcher, capsys
+):
+    release = threading.Event()
+    closed = threading.Event()
+    observed = []
+    ticks = 0
+
+    def blocked_open(_url):
+        assert release.wait(timeout=10)
+        return False
+
+    @contextmanager
+    def server(state, *, live):
+        observed.append(state)
+        try:
+            yield 'http://127.0.0.1:1234/test/'
+        finally:
+            closed.set()
+
+    def tick(_seconds):
+        nonlocal ticks
+        assert browser_launcher.started.wait(timeout=3)
+        assert not release.is_set(), (
+            'Watch must run while the browser opener is blocked'
+        )
+        if ticks == 0:
+            spec['pipelineInfo']['name'] = 'updated'
+            source.write_text(yaml.safe_dump(spec))
+        elif ticks == 2:
+            assert (
+                observed[0]['current']['spec']['pipelineInfo']['name']
+                == 'updated'
+            )
+            assert '# updated' in source.with_suffix('.md').read_text()
+            assert (
+                '"name": "updated"' in source.with_suffix('.html').read_text()
+            )
+            raise KeyboardInterrupt
+        ticks += 1
+
+    browser_launcher.side_effect = blocked_open
+    monkeypatch.setattr(visualize, '_live_server', server)
+    monkeypatch.setattr(visualize.time, 'sleep', tick)
+    # Bound the old synchronous implementation as well, so the regression fails
+    # instead of hanging indefinitely. The fixed implementation never needs it.
+    fallback = threading.Timer(5, release.set)
+    fallback.daemon = True
+    fallback.start()
+    try:
+        result = CliRunner().invoke(
+            visualize.visualize, [str(source), '--format', 'both', '-w', '-s']
+        )
+        assert result.exit_code == 0, (result.output, result.exception)
+        assert closed.is_set()
+        assert not release.is_set(), (
+            'Shutdown must not wait for the browser to exit'
+        )
+        assert browser_launcher.threads[0].daemon
+    finally:
+        fallback.cancel()
+        release.set()
+        _finish_browser_launch(browser_launcher)
+    assert 'Could not open a browser' not in capsys.readouterr().err
+
+
+def test_cli_exits_while_browser_opener_is_blocked(source):
+    script = """import sys
+import threading
+from kfp.cli import visualize
+
+started = threading.Event()
+def opener(url):
+    started.set()
+    threading.Event().wait()
+
+def watch(*args):
+    assert started.wait(timeout=3)
+    raise KeyboardInterrupt
+
+visualize.webbrowser.open_new = opener
+visualize._watch = watch
+visualize.visualize(args=sys.argv[1:], standalone_mode=False)
+"""
+    result = subprocess.run(
+        [sys.executable, '-c', script, str(source), '-w', '-s'],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert 'Stopped watching.' in result.stdout
+
+
 def test_browser_opens_only_after_server_is_ready(
     source, monkeypatch, browser_launcher
 ):
@@ -733,6 +856,7 @@ def test_browser_opens_only_after_server_is_ready(
         return True
 
     def stop(_seconds):
+        _finish_browser_launch(browser_launcher)
         raise KeyboardInterrupt
 
     browser_launcher.side_effect = open_browser
@@ -757,6 +881,7 @@ def test_browser_launch_failure_keeps_serving(
         yield 'http://127.0.0.1:1234/test/'
 
     def stop(_seconds):
+        _finish_browser_launch(browser_launcher)
         raise KeyboardInterrupt
 
     browser_launcher.return_value = False

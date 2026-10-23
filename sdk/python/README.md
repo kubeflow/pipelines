@@ -116,8 +116,10 @@ it and recovers on the next valid change. Third-party HTML/Markdown viewers
 control their own reload behavior.
 
 `--serve` / `-s` serves an HTML preview with any export format and opens the
-preview once in the default browser after the server starts. By itself it serves
-a snapshot; combine it with `--watch` / `-w` for live updates. Pass `--no-open` /
+preview once in the default browser after the server starts. The launch attempt
+runs in the background, so a browser command that waits for its window to close
+does not block updates. Stopping the CLI does not wait for or close the browser.
+By itself it serves a snapshot; combine it with `--watch` / `-w` for live updates. Pass `--no-open` /
 `-n` to keep serving without launching a browser. The URL is always printed, and
 if automatic launch fails, serving continues with a warning so you can open it
 manually. Plain exports and watch-only commands never launch a browser.
