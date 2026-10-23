@@ -136,11 +136,12 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bb5c4e5ed6236b9864602b12420ebe0187960c59f1b4499940dbcc11a0c93309",
+      "header_sha256": "c31f89450398901d806093d4081dae870cad7a2515f340f25376c2899d019ae4",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
           "**/go.mod",
+          "backend/api/hack/uv.sh",
           "**/package.json",
           "**/requirements*.txt",
           "**/setup.py",
@@ -544,11 +545,14 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "11c6ddce6b7ab467eb789df790d1b9a1134e9d3514ad417e2a9466c019ddf83a",
+      "header_sha256": "1a43485f3a272e19b9b41b14baa47a3593af0f2a5d54f7fd6a4c09564bdea85e",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
+          "backend/api/tools/**",
+          "go.mod",
+          ".github/actions/setup-go/**",
           "!**/*.md",
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"

@@ -44,7 +44,7 @@ class DriverPluginTest(unittest.TestCase):
             )
             sidecar = json.loads(
                 subprocess.check_output(
-                    ['yq', 'r', '-j', '-'],
+                    ['yq', 'eval', '-o=json', '.', '-'],
                     input=config['data']['sidecar.container'],
                     text=True,
                 )
@@ -141,14 +141,14 @@ class DriverPluginTest(unittest.TestCase):
                 )
                 defaults = json.loads(
                     subprocess.check_output(
-                        ['yq', 'r', '-j', '-'],
+                        ['yq', 'eval', '-o=json', '.', '-'],
                         input=config['data']['workflowDefaults'],
                         text=True,
                     )
                 )
                 patch = json.loads(
                     subprocess.check_output(
-                        ['yq', 'r', '-j', '-'],
+                        ['yq', 'eval', '-o=json', '.', '-'],
                         input=defaults['spec']['podSpecPatch'],
                         text=True,
                     )
@@ -168,7 +168,7 @@ class DriverPluginTest(unittest.TestCase):
         self.assertIn('enabled: false', config['data']['initlessPod'])
         executor = json.loads(
             subprocess.check_output(
-                ['yq', 'r', '-j', '-'],
+                ['yq', 'eval', '-o=json', '.', '-'],
                 input=config['data']['executor'],
                 text=True,
             )
@@ -233,7 +233,7 @@ class DriverPluginTest(unittest.TestCase):
         config = resource(resources, 'ConfigMap', 'ml-pipeline-driver-agent')
         sidecar = json.loads(
             subprocess.check_output(
-                ['yq', 'r', '-j', '-'],
+                ['yq', 'eval', '-o=json', '.', '-'],
                 input=config['data']['sidecar.container'],
                 text=True,
             )
