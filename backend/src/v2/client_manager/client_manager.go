@@ -3,6 +3,8 @@ package client_manager
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
@@ -32,6 +34,9 @@ type Options struct {
 	MLPipelineServerPort    string
 	// APIClientConfig overrides env-based connection settings for a single request.
 	APIClientConfig *apiclient.Config
+	// DriverRetryGeneration binds a plugin invocation to its immutable run generation.
+	// Nil uses the pod driver environment; an explicit zero overrides it.
+	DriverRetryGeneration *int64
 	// K8sClient reuses the bootstrap client when the caller needs it before KFP authentication.
 	K8sClient kubernetes.Interface
 }
@@ -58,6 +63,18 @@ func (cm *ClientManager) KFPAPIClient() kfpapi.API {
 func (cm *ClientManager) init(opts *Options) error {
 	var tlsCfg *tls.Config
 	var err error
+	generation := int64(0)
+	if opts.DriverRetryGeneration != nil {
+		generation = *opts.DriverRetryGeneration
+	} else if value := os.Getenv(util.DriverRetryGenerationEnv); value != "" {
+		generation, err = strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid immutable driver retry generation %q: provide a nonnegative integer", value)
+		}
+	}
+	if generation < 0 {
+		return fmt.Errorf("invalid immutable driver retry generation %d: provide a nonnegative integer", generation)
+	}
 	if opts.MLPipelineTLSEnabled {
 		tlsCfg, err = util.GetTLSConfig(opts.CaCertPath)
 		if err != nil {
@@ -86,7 +103,7 @@ func (cm *ClientManager) init(opts *Options) error {
 	if apiErr != nil {
 		return fmt.Errorf("failed to init KFP API client: %w", apiErr)
 	}
-	var kfpAPI = kfpapi.New(kfpAPIClient)
+	var kfpAPI = kfpapi.NewWithRetryGeneration(kfpAPIClient, generation)
 	cm.kfpAPIClient = kfpAPI
 	cm.apiClient = kfpAPIClient
 	return nil

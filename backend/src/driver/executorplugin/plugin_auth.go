@@ -165,6 +165,10 @@ func executorPluginIdentity(namespacePath string) (namespace, podName string, er
 }
 
 func (f clientFactory) newDriverClientManager(ctx context.Context, args driverapi.DriverPluginArgs, caCertPath string) (*invocationClients, error) {
+	retry, err := parseDriverRetry(args)
+	if err != nil {
+		return nil, err
+	}
 	agent, err := f.agent(ctx)
 	if err != nil {
 		return nil, err
@@ -177,10 +181,11 @@ func (f clientFactory) newDriverClientManager(ctx context.Context, args driverap
 		return nil, err
 	}
 	manager, err := f.manager(&client_manager.Options{
-		MLPipelineTLSEnabled: args.MlPipelineTLSEnabled,
-		CaCertPath:           caCertPath,
-		APIClientConfig:      apiConfig,
-		K8sClient:            agent.kube,
+		MLPipelineTLSEnabled:  args.MlPipelineTLSEnabled,
+		CaCertPath:            caCertPath,
+		APIClientConfig:       apiConfig,
+		K8sClient:             agent.kube,
+		DriverRetryGeneration: &retry.generation,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize driver API client; check the KFP endpoint and TLS settings: %w", err)
