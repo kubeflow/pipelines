@@ -550,13 +550,17 @@ func resolveTaskFinalStatus(opts common.Options,
 	if opts.IterationIndex >= 0 {
 		producerTaskUniqueName = getTaskNameWithIterationIndex(producerTaskUniqueName, int64(opts.IterationIndex))
 	}
-	producer, ok := tasks[producerTaskUniqueName]
+	producer := tasks[producerTaskUniqueName]
 
 	if len(opts.Task.DependentTasks) == 0 {
 		return nil, fmt.Errorf("task %v has no dependent tasks", opts.Task.TaskInfo.GetName())
 	}
-	if !ok {
-		return nil, fmt.Errorf("producer task, %v, not in tasks", producer.GetName())
+	producer, err = taskStatusAtExit(opts, producerTaskAmbiguousName, producer)
+	if err != nil {
+		return nil, err
+	}
+	if producer == nil {
+		return nil, fmt.Errorf("producer task, %v, not in tasks", producerTaskAmbiguousName)
 	}
 
 	finalStatus := pipelinespec.PipelineTaskFinalStatus{

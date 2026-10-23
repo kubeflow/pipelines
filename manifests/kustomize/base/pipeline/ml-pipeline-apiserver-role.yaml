@@ -58,12 +58,6 @@ rules:
   verbs:
   - create
 - apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
   - mlflow.kubeflow.org
   resources:
   - experiments

@@ -62,6 +62,8 @@ var runColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"DriverRetryTasksPresent",
+	"DriverRetryFinalizedGeneration",
 	"ImportedFrom",
 	"ImportDigest",
 }
@@ -103,6 +105,8 @@ var runListColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"DriverRetryTasksPresent",
+	"DriverRetryFinalizedGeneration",
 	"ImportedFrom",
 	"ImportDigest",
 }
@@ -196,7 +200,8 @@ type RunStoreInterface interface {
 	// generation still match the values loaded by the caller. Before a V2 run's
 	// first report, when that manifest is empty, its pipeline runtime manifest is
 	// also checked as an incarnation fence. Returns false without mutating the
-	// row when another writer changed any guarded value.
+	// row when another writer changed any guarded value. An unsuccessful terminal
+	// report also finalizes unfinished tasks participating in driver retries.
 	UpdateRunIfRuntimeManifestsUnchanged(
 		run *model.Run,
 		expectedWorkflowRuntimeManifest model.LargeText,
@@ -487,7 +492,7 @@ func (s *RunStore) hydrateTasksForRuns(runs []*model.Run) error {
 	// Select only needed columns from tasks; scan and attach in Go.
 	q := s.dbDialect.QuoteIdentifier
 	sqlQuery, args, err := s.dbDialect.QueryBuilder().
-		Select(dialect.QuoteAll(q, taskColumns)...).
+		Select(taskColumnsWithoutRecovery(q)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("RunUUID"): ids}).
 		OrderBy(q("RunUUID")+" ASC", q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
@@ -648,6 +653,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
 
+		var driverRetryTasksPresent bool
+		var driverRetryFinalizedGeneration *int64
+
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
 			&uuid,
@@ -682,6 +690,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryGeneration,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
+			&driverRetryTasksPresent,
+			&driverRetryFinalizedGeneration,
 			&importedFrom,
 			&importDigest,
 			&resourceReferencesInString,
@@ -737,19 +747,21 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			ImportedFrom:   importedFrom.String,
 			ImportDigest:   importDigest.String,
 			RunDetails: model.RunDetails{
-				CreatedAtInSec:          createdAtInSec.Int64,
-				ScheduledAtInSec:        scheduledAtInSec.Int64,
-				FinishedAtInSec:         finishedAtInSec.Int64,
-				Conditions:              conditions,
-				State:                   model.RuntimeState(state.String),
-				PipelineRuntimeManifest: model.LargeText(pipelineRuntimeManifest),
-				WorkflowRuntimeManifest: model.LargeText(workflowRuntimeManifest),
-				PipelineContextId:       pipelineContextID.Int64,
-				PipelineRunContextId:    pipelineRunContextID.Int64,
-				RetryGeneration:         retryGeneration.Int64,
-				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
-				ArchivedAtInSec:         archivedAtInSec.Int64,
-				StateHistory:            stateHistoryNew,
+				CreatedAtInSec:                 createdAtInSec.Int64,
+				ScheduledAtInSec:               scheduledAtInSec.Int64,
+				FinishedAtInSec:                finishedAtInSec.Int64,
+				Conditions:                     conditions,
+				State:                          model.RuntimeState(state.String),
+				PipelineRuntimeManifest:        model.LargeText(pipelineRuntimeManifest),
+				WorkflowRuntimeManifest:        model.LargeText(workflowRuntimeManifest),
+				PipelineContextId:              pipelineContextID.Int64,
+				PipelineRunContextId:           pipelineRunContextID.Int64,
+				RetryGeneration:                retryGeneration.Int64,
+				RetryClaimedAtInSec:            retryClaimedAtInSec.Int64,
+				ArchivedAtInSec:                archivedAtInSec.Int64,
+				DriverRetryTasksPresent:        driverRetryTasksPresent,
+				DriverRetryFinalizedGeneration: driverRetryFinalizedGeneration,
+				StateHistory:                   stateHistoryNew,
 			},
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
@@ -909,9 +921,10 @@ func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
 	expectedPipelineRuntimeManifest model.LargeText,
 ) (bool, error) {
 	return s.updateRun(run, &runRuntimeManifestPrecondition{
-		workflow:        expectedWorkflowRuntimeManifest,
-		pipeline:        expectedPipelineRuntimeManifest,
-		retryGeneration: run.RetryGeneration,
+		workflow:              expectedWorkflowRuntimeManifest,
+		pipeline:              expectedPipelineRuntimeManifest,
+		retryGeneration:       run.RetryGeneration,
+		finalizeDriverRetries: true,
 	})
 }
 
@@ -1012,11 +1025,12 @@ func effectiveStatePredicate(q dialect.QuoteFunction, states ...model.RuntimeSta
 }
 
 type runRuntimeManifestPrecondition struct {
-	workflow        model.LargeText
-	pipeline        model.LargeText
-	retryGeneration int64
-	namespace       *string
-	state           *model.RuntimeState
+	workflow              model.LargeText
+	pipeline              model.LargeText
+	retryGeneration       int64
+	namespace             *string
+	state                 *model.RuntimeState
+	finalizeDriverRetries bool
 }
 
 func lockRunForRuntimeManifestWrite(
@@ -1195,6 +1209,11 @@ func (s *RunStore) updateRun(
 		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
+	if expectedRuntimeManifests != nil && expectedRuntimeManifests.finalizeDriverRetries {
+		if err := finalizeDriverRetryTasks(tx, s.dbDialect, run); err != nil {
+			return false, util.NewInternalServerError(err, "Failed to finalize driver retry tasks for run %s", run.UUID)
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}

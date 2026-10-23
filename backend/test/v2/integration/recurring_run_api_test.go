@@ -43,6 +43,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -453,6 +454,49 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApisUseLatest() {
 	assert.Equal(
 		t, helloWorldPipelineVersion.PipelineVersionID, helloWorldRun.PipelineVersionReference.PipelineVersionID,
 	)
+
+	// The selected source must also be available to the root driver, including
+	// when the persistence agent records the run before its creating request.
+	var completed *run_model.V2Run
+	defer func() {
+		if !t.Failed() {
+			return
+		}
+		// Capture the failing execution before suite cleanup deletes its pods.
+		dir, err := os.MkdirTemp("", "tmp-recurring-run-diagnostics-")
+		if err != nil {
+			t.Logf("Cannot create recurring-run diagnostics: %v", err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), cacheDiagnosticBudget)
+		defer cancel()
+		namespace := s.resourceNamespace
+		if namespace == "" {
+			namespace = s.namespace
+		}
+		d := cacheDiagnostics{ctx: ctx, dir: dir, namespace: namespace, command: cacheDiagnosticCommand}
+		d.write("test.txt", []byte(t.Name()))
+		full := string(run_model.V2GetRunRequestViewModeFULL)
+		d.collect([]string{helloWorldRun.RunID}, func(id string, timeout time.Duration) (*run_model.V2Run, error) {
+			return s.runClient.Get(run_params.NewRunServiceGetRunParamsWithTimeout(timeout).WithRunID(id).WithView(&full))
+		})
+		t.Logf("Recurring-run failure diagnostics: %s", dir)
+	}()
+	require.Eventually(t, func() bool {
+		observed, err := s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: helloWorldRun.RunID})
+		if err != nil || observed.State == nil {
+			return false
+		}
+		completed = observed
+		switch *observed.State {
+		case run_model.V2RuntimeStateSUCCEEDED, run_model.V2RuntimeStateFAILED,
+			run_model.V2RuntimeStateCANCELED, run_model.V2RuntimeStateSKIPPED:
+			return true
+		default:
+			return false
+		}
+	}, 5*time.Minute, 5*time.Second, "the latest-version scheduled run must finish")
+	require.Equal(t, run_model.V2RuntimeStateSUCCEEDED, *completed.State)
 }
 
 func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {

@@ -71,6 +71,9 @@ type containerDriverOutputs struct {
 }
 
 type containerDriverInputs struct {
+	exitTaskName     string
+	exitTaskStatus   string
+	task             *pipelinespec.PipelineTaskSpec
 	taskName         string // preserve the original task name for input resolving
 	parentDagID      string
 	iterationIndex   string // optional, when this is an iteration task
@@ -136,6 +139,10 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 	if err != nil {
 		return nil, nil, err
 	}
+	template, err = c.addTaskRetryDriverTemplate(template, inputs.task)
+	if err != nil {
+		return nil, nil, err
+	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
 		Template: template,
@@ -146,6 +153,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 			},
 		},
 	}
+	dagTask.Arguments.Parameters = append(dagTask.Arguments.Parameters, c.getDriverRetryParametersWithValues(inputs.task)...)
 	if inputs.iterationIndex != "" {
 		dagTask.Arguments.Parameters = append(
 			dagTask.Arguments.Parameters,
@@ -157,6 +165,12 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 			dagTask.Arguments.Parameters,
 			wfapi.Parameter{Name: paramKubernetesConfig, Value: wfapi.AnyStringPtr(inputs.kubernetesConfig)},
 		)
+	}
+	if err := c.configureExitDriver(dagTask, inputs.exitTaskName, inputs.exitTaskStatus); err != nil {
+		return nil, nil, err
+	}
+	if err := c.configureDriverRetryFinalizer(dagTask); err != nil {
+		return nil, nil, err
 	}
 	outputs := &containerDriverOutputs{
 		podSpecPatch: taskOutputParameter(name, paramPodSpecPatch),
