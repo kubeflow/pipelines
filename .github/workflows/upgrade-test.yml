@@ -186,7 +186,9 @@ jobs:
       CLUSTER_NAME: kfp-readiness
     steps:
       - name: Checkout candidate
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: ./.github/actions/setup-python-pip-cache
@@ -224,7 +226,7 @@ jobs:
 
       - name: Upload sanitized readiness evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: readiness-schedules-${{ github.run_id }}
           path: ${{ runner.temp }}/readiness-schedules/reports/*.json
