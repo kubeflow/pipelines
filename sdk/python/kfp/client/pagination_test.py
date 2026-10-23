@@ -16,12 +16,11 @@ import json
 import unittest
 from unittest import mock
 
-from kfp.client import is_pagination_restart_required
 import kfp.server_api
+from kfp.client import is_pagination_restart_required
 
 
 class PaginationRestartTest(unittest.TestCase):
-
     def error(self, **changes):
         detail = {
             '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
@@ -42,31 +41,38 @@ class PaginationRestartTest(unittest.TestCase):
                 self.assertEqual(error.body, body)
 
     def test_requires_exact_identity(self):
-        for change in ({
-                '@type': 'google.rpc.ErrorInfo'
-        }, {
-                'reason': 'OTHER_ERROR'
-        }, {
-                'domain': 'other.org'
-        }):
+        for change in (
+            {'@type': 'google.rpc.ErrorInfo'},
+            {'reason': 'OTHER_ERROR'},
+            {'domain': 'other.org'},
+        ):
             with self.subTest(change=change):
                 self.assertFalse(
-                    is_pagination_restart_required(self.error(**change)))
+                    is_pagination_restart_required(self.error(**change))
+                )
 
     def test_unrelated_details_do_not_hide_matching_error(self):
         error = self.error()
         body = json.loads(error.body)
         body['details'].insert(
-            0, {'@type': 'type.googleapis.com/google.rpc.Status'})
+            0, {'@type': 'type.googleapis.com/google.rpc.Status'}
+        )
         error.body = json.dumps(body)
         self.assertTrue(is_pagination_restart_required(error))
 
     def test_rejects_unstructured_and_malformed_responses(self):
         error = self.error()
-        for body in (None, b'\xff', '', '<html>Bad Request</html>', 'null',
-                     '[]', '{"code": 9, "details": {}}',
-                     '{"code": 9, "details": [null, 9, "bad"]}',
-                     '{"code": 9, "message": "PAGINATION_RESTART_REQUIRED"}'):
+        for body in (
+            None,
+            b'\xff',
+            '',
+            '<html>Bad Request</html>',
+            'null',
+            '[]',
+            '{"code": 9, "details": {}}',
+            '{"code": 9, "details": [null, 9, "bad"]}',
+            '{"code": 9, "message": "PAGINATION_RESTART_REQUIRED"}',
+        ):
             with self.subTest(body=body):
                 error.body = body
                 self.assertFalse(is_pagination_restart_required(error))
@@ -82,7 +88,9 @@ class PaginationRestartTest(unittest.TestCase):
         self.assertFalse(is_pagination_restart_required(error))
         self.assertFalse(
             is_pagination_restart_required(
-                ValueError('PAGINATION_RESTART_REQUIRED')))
+                ValueError('PAGINATION_RESTART_REQUIRED')
+            )
+        )
 
     def test_generated_http_response_preserves_error_details(self):
         response = mock.Mock(status=400, reason='Bad Request')
