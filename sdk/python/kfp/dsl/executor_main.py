@@ -17,9 +17,8 @@ import logging
 import os
 import sys
 
+from kfp.dsl import constants, kfp_config, utils
 from kfp.dsl import executor as component_executor
-from kfp.dsl import kfp_config
-from kfp.dsl import utils
 
 
 def _setup_logging():
@@ -49,6 +48,19 @@ def executor_main():
         type=str,
         help='JSON-serialized ExecutorInput from the orchestrator. '
         'This should contain inputs and placeholders for outputs.')
+
+    parser.add_argument(
+        constants.DISABLE_ARTIFACT_PREVIEWS_FLAG,
+        dest='artifact_previews',
+        action='store_false',
+        help='Disable automatic artifact previews. Component and pipeline '
+        'opt-outs both compile to this flag.',
+    )
+    parser.add_argument(
+        constants.ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG,
+        action='store_true',
+        help='Omit dataset row values when automatic previews are enabled.',
+    )
 
     args, _ = parser.parse_known_args()
 
@@ -96,7 +108,11 @@ def executor_main():
     logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 
     executor = component_executor.Executor(
-        executor_input=executor_input, function_to_execute=function_to_execute)
+        executor_input=executor_input,
+        function_to_execute=function_to_execute,
+        artifact_previews=args.artifact_previews,
+        artifact_preview_rows=not args.artifact_preview_schema_only,
+    )
 
     output_file = executor.execute()
     if output_file is None:

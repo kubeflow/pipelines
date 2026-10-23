@@ -168,6 +168,32 @@ describe('/artifacts/get namespaced proxy', () => {
     expect(response.headers['x-tenant-header']).toBeUndefined();
   });
 
+  it('preserves rate-limit status and retry guidance from the namespaced artifact service', async () => {
+    await setUpNamespacedArtifactService({
+      namespace: 'ns2',
+      responseHeaders: { 'Retry-After': '17', RateLimit: '"300-in-1min"; r=0; t=17' },
+      requestHandler: (_req, res) => res.status(429).send('receiver quota exceeded'),
+    });
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+
+    const response = await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          ...commonParams,
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(429);
+
+    expect(response.headers['retry-after']).toBe('17');
+    // The shared server reports its own budget, not the receiver's.
+    expect(response.headers['ratelimit']).toContain('r=299');
+    expect(response.headers['content-disposition']).toBe('attachment');
+  });
+
   it('preserves a safe proxy download filename while forcing attachment', async () => {
     await setUpNamespacedArtifactService({
       namespace: 'ns2',

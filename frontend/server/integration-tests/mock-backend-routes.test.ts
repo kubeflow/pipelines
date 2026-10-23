@@ -184,10 +184,111 @@ describe('mock backend routes', () => {
         .get('/apis/v2beta1/runs/47a3d09c-7db4-4788-ac55-3f8d908574aa')
         .expect(200);
 
-      expect(response.body).toMatchObject({
-        run_id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
-        state: 'RUNTIME_STATE_UNSPECIFIED',
+      expect(response.body.tasks).toHaveLength(4);
+      expect(response.body.tasks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ task_id: 'mock-task-root', type: 'ROOT' }),
+          expect.objectContaining({
+            outputs: expect.objectContaining({ artifacts: expect.any(Array) }),
+            task_id: 'mock-task-producer',
+            type: 'RUNTIME',
+          }),
+          expect.objectContaining({
+            inputs: expect.objectContaining({ artifacts: expect.any(Array) }),
+            pods: expect.arrayContaining([
+              expect.objectContaining({ type: 'DRIVER' }),
+              expect.objectContaining({ type: 'EXECUTOR' }),
+            ]),
+            state: 'SUCCEEDED',
+            task_id: 'mock-task-consumer',
+          }),
+          expect.objectContaining({
+            outputs: {
+              artifacts: [
+                expect.objectContaining({
+                  artifact_key: 'model',
+                  artifacts: [
+                    expect.objectContaining({ artifact_id: 'mock-model-1', type: 'Model' }),
+                  ],
+                }),
+              ],
+            },
+            task_id: 'mock-task-trainer',
+            type: 'RUNTIME',
+          }),
+        ]),
+      );
+    });
+
+    it('lists and fetches a native artifact by id', async () => {
+      const listResponse = await request.get('/apis/v2/artifacts').expect(200);
+
+      expect(listResponse.body).toMatchObject({
+        total_size: 2,
+        artifacts: [
+          {
+            artifact_id: 'mock-artifact-1',
+            name: 'mock-dataset',
+            namespace: 'kubeflow-user-example-com',
+            type: 'Dataset',
+          },
+          {
+            artifact_id: 'mock-model-1',
+            name: 'mock-model',
+            namespace: 'kubeflow-user-example-com',
+            type: 'Model',
+          },
+        ],
       });
+
+      const artifactResponse = await request.get('/apis/v2/artifacts/mock-artifact-1').expect(200);
+
+      expect(artifactResponse.body).toMatchObject({
+        artifact_id: 'mock-artifact-1',
+        created_at: '2026-01-01T00:00:00.000Z',
+        description: 'Representative native artifact for local frontend development.',
+        name: 'mock-dataset',
+        namespace: 'kubeflow-user-example-com',
+        type: 'Dataset',
+      });
+
+      const modelResponse = await request.get('/apis/v2/artifacts/mock-model-1').expect(200);
+
+      expect(modelResponse.body).toMatchObject({
+        artifact_id: 'mock-model-1',
+        metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+        name: 'mock-model',
+        namespace: 'kubeflow-user-example-com',
+        type: 'Model',
+      });
+    });
+
+    it('returns 404 for an unknown native artifact', async () => {
+      await request
+        .get('/apis/v2/artifacts/does-not-exist')
+        .expect(404, 'No artifact was found with ID: does-not-exist');
+    });
+
+    it('serves representative native artifact-task relationships', async () => {
+      const response = await request.get('/apis/v2/artifact_tasks').expect(200);
+
+      expect(response.body.artifact_tasks).toEqual([
+        expect.objectContaining({
+          artifact_id: 'mock-model-1',
+          task_id: 'mock-task-trainer',
+          type: 'OUTPUT',
+        }),
+        expect.objectContaining({
+          artifact_id: 'mock-artifact-1',
+          task_id: 'mock-task-producer',
+          type: 'OUTPUT',
+        }),
+        expect.objectContaining({
+          artifact_id: 'mock-artifact-1',
+          task_id: 'mock-task-consumer',
+          type: 'TASK_OUTPUT_INPUT',
+        }),
+      ]);
     });
 
     it('lists v2 recurring runs filtered by experiment id', async () => {

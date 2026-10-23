@@ -169,6 +169,19 @@ describe('Apis', () => {
     );
   });
 
+  it('reads a structured preview by artifact ID with cancellation and no browser cache', async () => {
+    const spy = fetchSpy('{"version":1,"kind":"model"}');
+    const signal = new AbortController().signal;
+    expect(await Apis.getArtifactContentPreview('artifact-1', 'team-a', signal)).toContain(
+      '"model"',
+    );
+    expect(spy).toHaveBeenCalledWith('artifacts/artifact-1/preview?namespace=team-a', {
+      signal,
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
+  });
+
   it('buildReadFileUrl for download carries providerInfo', () => {
     expect(
       Apis.buildReadFileUrl({

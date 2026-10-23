@@ -115,9 +115,7 @@ updates:
       - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
       - "/proxy"
       - "/release"
-      - "/sdk/python"
-      - "/test/kfp-kubernetes-native-migration-tests"
-      - "/tools/upgrade-readiness"
+      - "/samples/core/artifact_previews"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

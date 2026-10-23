@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import inspect
 import json
 import os
@@ -18,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
 from kfp import dsl
-from kfp.dsl import task_final_status
+from kfp.dsl import _artifact_preview, task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
@@ -31,8 +32,12 @@ class Executor:
     def __init__(
         self,
         executor_input: Dict,
-        function_to_execute: Union[Callable,
-                                   'python_component.PythonComponent'],
+        function_to_execute: Union[
+            Callable, 'python_component.PythonComponent'
+        ],
+        *,
+        artifact_previews: bool = True,
+        artifact_preview_rows: bool = True,
     ):
 
         if hasattr(function_to_execute, 'python_func'):
@@ -54,6 +59,13 @@ class Executor:
 
         self.return_annotation = inspect.signature(self.func).return_annotation
         self.excutor_output = {}
+        self._artifact_previews = (
+            _artifact_preview.ArtifactPreviewSession(
+                self.output_artifacts, artifact_preview_rows
+            )
+            if artifact_previews
+            else None
+        )
 
     def assign_input_and_output_artifacts(self) -> None:
         for name, artifacts in self.executor_input.get('inputs',
@@ -365,6 +377,8 @@ class Executor:
             write_file = cluster_spec['task']['type'] in CHIEF_NODE_LABELS
 
         if write_file:
+            if self._artifact_previews is not None:
+                self._artifact_previews.generate()
             makedirs_recursively(self.executor_output_path)
             with open(self.executor_output_path, 'w') as f:
                 f.write(json.dumps(self.excutor_output))
@@ -480,8 +494,9 @@ class Executor:
             elif isinstance(v, type_annotations.InputPath):
                 func_kwargs[k] = self.get_input_artifact_path(k)
 
-        result = self.func(**func_kwargs)
-        return self.write_executor_output(result)
+        with self._artifact_previews or contextlib.nullcontext():
+            result = self.func(**func_kwargs)
+            return self.write_executor_output(result)
 
 
 def create_artifact_instance(

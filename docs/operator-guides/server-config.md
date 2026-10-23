@@ -7,37 +7,40 @@ customizations are available for more advanced usage.
 When deploying Kubeflow Pipelines servers, you can pass various environment variables
 to customize the behavior of servers.
 
-## Run retention and index preparation
+## Automatic artifact preview generation
 
-Retention is disabled unless `RUNS_RETENTION_TIME` (archive) or
-`ARCHIVED_RUNS_RETENTION_TIME` (delete) is configured. When enabled, the API server
-prepares the required database indexes in the background before collection;
-API startup does not wait for these builds. If retention was already configured
-but paused because indexes were missing, upgrading can now start preparation and
-subsequent archival/deletion automatically. Use prepare-only across all replicas
-to review that backlog before allowing catch-up.
+Automatic artifact preview generation is **enabled by default** for supported
+Python-component Dataset and Model outputs. It is controlled by pipeline authors,
+not by deployment configuration. Use
+`@dsl.pipeline(pipeline_config=dsl.PipelineConfig(artifact_previews=False))`
+to disable generation throughout a pipeline, or
+`@dsl.component(artifact_previews=False)` for a particular component. A pipeline
+opt-out also applies to nested pipelines and exit handlers and cannot be
+overridden by enabling previews on a component.
 
-| Setting | Default | Behavior |
-| --- | --- | --- |
-| `RUNS_GC_INDEX_BUILD_TIMEOUT` | `12h` | Positive Go duration for each sequential online build attempt; metadata-lock waits stay bounded at five seconds. Server cleanup may continue after cancellation. |
-| `RUNS_GC_INDEX_PREPARE_ONLY` | `false` | When true, prepare indexes but never archive/delete runs. Works with retention disabled so indexes can be prepared ahead of activation. |
-| `RUNS_GC_INTERVAL` | `6h` | Collection interval; a new leader, completed build or recovery waits a full interval before catch-up. |
-| `RUNS_GC_BATCH_SIZE` | `100` | Maximum rows per existing collection batch; catch-up may drain many batches. |
+These settings are compiled into the pipeline. Recompile and use the updated
+pipeline definition when changing them. No preview-specific ConfigMap, mounted
+configuration file, profile reconciliation, or API-server/driver setting is
+required. Because generation is on by default, set pipeline or component
+opt-outs before upgrading sensitive workloads to a supporting SDK.
 
-Use prepare-only consistently across all API replicas and installations sharing
-the database. It cannot pause an old leader before its configuration is updated.
-For first adoption, leave retention disabled, prepare the indexes, then enable
-the desired windows and clear prepare-only when ready for catch-up. Invalid
-prepare-only/timeout values fail configuration validation.
+Dataset previews can contain up to ten rows and twenty columns. Review row
+samples and model configuration for sensitive data; pipeline authors can keep
+only dataset schema with `@dsl.component(artifact_preview_rows=False)`.
+Disabling generation does not remove or hide previously generated, cached,
+imported, or manually written previews, and does not change ordinary artifact
+production, downloads, or access controls.
 
-Build failures pause GC, not API availability, and retry with bounded backoff.
-Interrupted PostgreSQL builds with the exact managed index definition recover
-automatically using concurrent drop/rebuild. Active DDL defers recovery; conflicting
-definitions require inspection. Coordinate manual changes to managed indexes by
-stopping preparation across all replicas first.
-Online DDL can still consume substantial resources and briefly delay writes at
-metadata locks. Review the [preparation and recovery procedure](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#run-garbage-collection-database-migration)
-for capacity planning, PostgreSQL invalid-index recovery and staged activation.
+The profile controller also propagates `pipeline-install-config`'s
+`USERID_HEADER` into namespace artifact servers as `KUBEFLOW_USERID_HEADER`.
+This preserves the shared UI's authenticated identity for preview metadata
+lookups. If the installation key is absent, both services retain their common
+server default. Reload the shared UI's configuration and restart the profile
+controller, then wait for its artifact-server Deployment rollouts after changing
+that installation setting.
+
+See [Dataset and Model previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews)
+for supported formats, pipeline/component privacy settings, and the file contract.
 
 ## API Server workflow service-account checks
 
@@ -137,6 +140,36 @@ authoritative source establishes V2 provenance.
 When deploying frontend server called `ml-pipeline-ui`, you can pass various environment
 variables to customize the server behavior for your namespace. Some examples are shown
 in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/pipeline/ml-pipeline-ui-deployment.yaml#L32-L50).
+
+### Artifact request limits
+
+Each UI server instance permits 300 artifact requests per minute per user in
+authenticated deployments, using the same trusted upstream identity header as
+authorization. Standalone and unauthenticated requests share a budget by client
+IP instead; caller-supplied identity and forwarding headers do not override it.
+The ingress must continue to strip untrusted identity headers before supplying
+the authenticated user.
+
+Previews and downloads share this budget across namespaces and base-path aliases.
+Requests beyond the limit receive HTTP 429 with a `Retry-After` delay before any
+artifact lookup, authorization call, or storage read. The budget is local to each
+server process, not a distributed deployment-wide quota.
+
+When the `pipeline-install-config` key `ARTIFACTS_PROXY_ENABLED` is `true`, the
+shared UI applies each user's budget once, before forwarding a request to the
+namespace's `ml-pipeline-ui-artifact` server. The profile controller sets
+`ARTIFACTS_RATE_LIMIT_DISABLED=true` on those generated servers. They run with
+authorization disabled and see every forwarded request as coming from the shared
+UI, so a second limit would combine all of a namespace's users into one budget.
+If a namespace server returns HTTP 429, the shared UI preserves that status and
+its delay-seconds `Retry-After` value for previews and downloads.
+
+`ARTIFACTS_RATE_LIMIT_DISABLED` accepts `true` or `1`; any other value keeps the
+limit. Generated namespace servers rely on the shared UI for this limit, as they
+do for authorization. Do not set the variable on the shared UI or in standalone
+deployments, which have no upstream limit. After upgrading, the profile
+controller adds the variable to each existing generated Deployment at its next
+reconciliation, which rolls that Deployment once.
 
 ### Artifact storage endpoint allowlist
 

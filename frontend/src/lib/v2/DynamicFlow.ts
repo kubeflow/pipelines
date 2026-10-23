@@ -153,24 +153,89 @@ function buildParallelForDag(rootDagExecution: Execution): PipelineFlowElement[]
   return buildGraphLayout(flowGraph);
 }
 
-function addIterationNodes(rootDagExecution: Execution, flowGraph: PipelineFlowElement[]) {
-  const taskName = rootDagExecution.getCustomPropertiesMap().get(TASK_NAME_KEY);
-  const iterationCount = rootDagExecution.getCustomPropertiesMap().get(ITERATION_COUNT_KEY);
-  if (taskName === undefined || !taskName.getStringValue()) {
-    console.warn("Task name for the parallelFor Execution doesn't exist.");
-    return;
-  }
-  if (iterationCount === undefined || !iterationCount.getIntValue()) {
-    console.warn("Iteration Count for the parallelFor Execution doesn't exist.");
-    return;
+function getArtifactRuntimeInfo(
+  element: Node<FlowElementDataBase>,
+  runtimeContext: RuntimeLayerContext,
+  taskIndex: TaskIndex,
+): NodeRuntimeInfo {
+  const artifactData = element.data as ArtifactFlowElementData;
+  const [taskName, artifactKey] = getKeysFromArtifactNodeKey(element.id);
+
+  if (!taskName) {
+    const artifactGroup = findArtifactGroup(runtimeContext.task?.inputs?.artifacts, artifactKey);
+    return artifactGroup ? { task: runtimeContext.task, artifactGroup } : {};
   }
 
-  const taskNameStr = taskName.getStringValue();
-  const iterationCountInt = iterationCount.getIntValue();
-  for (let index = 0; index < iterationCountInt; index++) {
-    const iterationNodeName = `${taskNameStr}.${index}`;
-    // One iteration is a sub-DAG instance.
-    const node: Node<FlowElementDataBase> = {
+  const task = getTasksUnderContext(runtimeContext, taskIndex).find(
+    (candidate) => candidate.name === taskName,
+  );
+  if (!task) {
+    return {};
+  }
+
+  let artifactGroup = findArtifactGroup(task.outputs?.artifacts, artifactKey);
+  if (!artifactGroup && artifactData.producerSubtask && artifactData.outputArtifactKey) {
+    const producerTask = getTasksUnderContext({ task }, taskIndex).find(
+      (candidate) => candidate.name === artifactData.producerSubtask,
+    );
+    artifactGroup = findArtifactGroup(
+      producerTask?.outputs?.artifacts,
+      artifactData.outputArtifactKey,
+    );
+    return artifactGroup ? { task: producerTask, artifactGroup } : { task };
+  }
+  return artifactGroup ? { task, artifactGroup } : { task };
+}
+
+/** Native task hydration can return a separate group for each collected list member. */
+function findArtifactGroup(
+  groups: InputOutputsIOArtifact[] | undefined,
+  artifactKey: string,
+): InputOutputsIOArtifact | undefined {
+  const matches = groups?.filter((group) => group.artifact_key === artifactKey);
+  if (!matches?.length) {
+    return undefined;
+  }
+  return matches.length === 1
+    ? matches[0]
+    : { ...matches[0], artifacts: matches.flatMap((group) => group.artifacts || []) };
+}
+
+function getTasksUnderContext(
+  runtimeContext: RuntimeLayerContext,
+  taskIndex: TaskIndex,
+): V2PipelineTask[] {
+  const children = taskIndex.childrenByParentId.get(runtimeContext.task?.task_id || '') || [];
+  if (runtimeContext.iterationIndex === undefined) {
+    return children;
+  }
+  return getIterationTasks(taskIndex, runtimeContext.task?.task_id, runtimeContext.iterationIndex);
+}
+
+function getParallelForIterationCount(loopTask: V2PipelineTask): number | undefined {
+  const value = loopTask.type_attributes?.iteration_count;
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 ? count : undefined;
+}
+
+function buildParallelForDag(
+  context: RuntimeFlowContext,
+  expectedTaskCount?: number,
+): PipelineFlowElement[] | undefined {
+  const { taskIndex, runIsTerminal, runCompletedSuccessfully } = context;
+  const loopTask = context.runtimeLayerContext.task;
+  if (!loopTask) return undefined;
+  const flowGraph: PipelineFlowElement[] = [];
+  const iterationCount = getParallelForIterationCount(loopTask);
+  if (iterationCount === undefined) {
+    return undefined;
+  }
+  for (let index = 0; index < iterationCount; index++) {
+    const iterationNodeName = formatRuntimeIterationLayer(loopTask.name || '', index);
+    const node: Node<SubDagTaskData> = {
       id: getTaskNodeKey(iterationNodeName),
       data: { label: iterationNodeName, taskType: TaskType.DAG },
       position: { x: 100, y: 200 },

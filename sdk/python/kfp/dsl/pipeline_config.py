@@ -122,6 +122,11 @@ class PipelineConfig:
             workflow is allowed to run before it is forcibly terminated.
             Maps to Argo's ``activeDeadlineSeconds``.  When ``None`` (the
             default) no deadline is applied.
+        artifact_previews: Whether supported Python components automatically
+            preview their Dataset and Model outputs. Defaults to ``True``.
+            Set to ``False`` to disable generation throughout this pipeline,
+            including nested pipelines and exit handlers. Component opt-outs
+            remain effective when the pipeline enables previews.
     """
 
     def __init__(
@@ -131,7 +136,11 @@ class PipelineConfig:
         ttl_seconds_after_success: Optional[int] = None,
         ttl_seconds_after_failure: Optional[int] = None,
         active_deadline_seconds: Optional[int] = None,
+        artifact_previews: bool = True,
     ):
+        if not isinstance(artifact_previews, bool):
+            raise TypeError('artifact_previews must be a bool.')
+        self.artifact_previews = artifact_previews
         self.workspace = workspace
         for name, value in [
             ('ttl_seconds_after_finished', ttl_seconds_after_finished),

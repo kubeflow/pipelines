@@ -26,6 +26,8 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { testBestPractices } from 'src/TestUtils';
 import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
+import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import datasetPreview from '../../mock-backend/data/v2/artifact-previews/dataset.json';
 
 vi.mock('src/mlmd/LineageView', () => ({
   LineageView: () => <div data-testid='lineage-view'>LineageView Mock</div>,
@@ -127,43 +129,60 @@ describe('ArtifactDetails', () => {
     );
   });
 
-  function mockSuccessfulLoad(artifact?: Artifact) {
-    const a = artifact || buildArtifact();
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([a]));
-    getArtifactTypesByIDSpy.mockResolvedValue(
-      buildGetArtifactTypesByIDResponse([buildArtifactType()]),
-    );
-  }
-
-  it('shows CircularProgress spinner while artifact is loading', () => {
-    getArtifactsByIDSpy.mockReturnValue(new Promise(() => {}));
-
-    renderWithRouter(generateProps());
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
-  it('renders Overview tab with ResourceInfo after artifact loads', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
+  it('keeps dataset samples collapsed until explicitly opened and refreshes them on demand', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      ...artifact,
+      metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
     });
-    expect(screen.getByText('Lineage Explorer')).toBeInTheDocument();
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const { pageRef } = renderPageWithRef();
+    const show = await screen.findByRole('button', { name: 'Show artifact visualization' });
+    expect(read).not.toHaveBeenCalled();
+    fireEvent.click(show);
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(read.mock.calls.filter(([, , signal]) => !signal?.aborted)).toEqual([
+      [TEST_ARTIFACT_ID, 'kubeflow', expect.objectContaining({ aborted: false })],
+    ]);
+    const attempts = read.mock.calls.length;
+    await act(async () => pageRef.current!.refresh());
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(attempts + 1));
+    expect(screen.getByRole('button', { name: 'Hide artifact visualization' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Hide artifact visualization' }));
+    await act(async () => pageRef.current!.refresh());
+    expect(read).toHaveBeenCalledTimes(attempts + 1);
   });
 
-  it('updates toolbar title with artifact name after load', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pageTitle: expect.stringContaining('test-artifact'),
-        }),
+  it('reconciles a delayed relationship when the browser clock is ahead of the server', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        created_at: new Date(Date.now() - 2 * 60_000),
+        name: 'legacy-output',
+        uri: 's3://reports/metadata.json',
+        namespace: 'kubeflow',
+      });
+      let outputChecks = 0;
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+        async (_taskIds, _runIds, _artifactIds, type) => {
+          if (type !== V2IOType.OUTPUT || ++outputChecks === 1) {
+            return { artifact_tasks: [] };
+          }
+          return {
+            artifact_tasks: [
+              {
+                artifact_id: TEST_ARTIFACT_ID,
+                key: 'mlpipeline_ui_metadata',
+                type: V2IOType.OUTPUT,
+              },
+            ],
+          };
+        },
       );
     });
   });

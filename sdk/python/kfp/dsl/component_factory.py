@@ -30,14 +30,17 @@ import warnings
 import docstring_parser
 import kfp
 from kfp import dsl
-from kfp.dsl import container_component_artifact_channel
-from kfp.dsl import container_component_class
-from kfp.dsl import graph_component
-from kfp.dsl import pipeline_config
-from kfp.dsl import placeholders
-from kfp.dsl import python_component
-from kfp.dsl import structures
-from kfp.dsl import task_final_status
+from kfp.dsl import (
+    constants,
+    container_component_artifact_channel,
+    container_component_class,
+    graph_component,
+    pipeline_config,
+    placeholders,
+    python_component,
+    structures,
+    task_final_status,
+)
 from kfp.dsl.component_task_config import TaskConfigPassthrough
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
@@ -818,6 +821,8 @@ def create_component_from_func(
     additional_funcs: Optional[List[Callable]] = None,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
     _helper_source_template: Optional[str] = None,
+    artifact_previews: bool = True,
+    artifact_preview_rows: bool = True,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -825,6 +830,12 @@ def create_component_from_func(
     decorator for the canonical documentation for this function.
     """
 
+    if not isinstance(artifact_previews, bool) or not isinstance(
+        artifact_preview_rows, bool
+    ):
+        raise TypeError(
+            'artifact_previews and artifact_preview_rows must be booleans.'
+        )
     packages_to_install_command = _get_packages_to_install_command(
         install_kfp_package=install_kfp_package,
         target_image=target_image,
@@ -859,6 +870,11 @@ def create_component_from_func(
             embedded_artifact_path=embedded_artifact_path,
             _helper_source_template=_helper_source_template,
         )
+
+    if not artifact_previews:
+        args.append(constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
+    elif not artifact_preview_rows:
+        args.append(constants.ARTIFACT_PREVIEW_SCHEMA_ONLY_FLAG)
 
     component_spec = extract_component_interface(func)
     # Attach task_config_passthroughs to the ComponentSpec structure if provided.

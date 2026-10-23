@@ -389,24 +389,19 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
         onSwitch={(tab) => setSelectedTab(tab)}
       />
       <div className={padding(20)}>
-        {/* Artifact Info tab */}
-        {selectedTab === 0 && (
-          <ArtifactInfo
-            execution={execution}
-            artifactTypes={data}
-            linkedArtifact={linkedArtifact}
-            namespace={namespace}
-          ></ArtifactInfo>
-        )}
-
-        {/* Visualization tab */}
-        {selectedTab === 1 && execution && (
-          <MetricsVisualizations
-            linkedArtifacts={linkedArtifact ? [linkedArtifact] : []}
-            artifactTypes={data ? data : []}
-            execution={execution}
-            namespace={namespace}
-          />
+        <div hidden={selectedTab !== 0}>
+          <ArtifactInfo task={task} artifactGroup={artifactGroup} namespace={namespace} />
+        </div>
+        {(selectedTab === 1 || hasOpenedVisualization) && (
+          <div hidden={selectedTab !== 1}>
+            <RuntimeMetricsVisualizations
+              artifacts={artifacts}
+              active={selectedTab === 1}
+              artifactKey={artifactGroup.artifact_key}
+              namespace={namespace}
+              sourceFinished={sourceFinished || isTaskFinished(task.state)}
+            />
+          </div>
         )}
       </div>
     </div>

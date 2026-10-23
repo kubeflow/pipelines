@@ -198,6 +198,13 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Additional object-store origins allowed for secret-backed provider configs. */
     ALLOWED_ARTIFACT_ENDPOINTS = '',
+    /** Exact GCS universe domains the shared UI server may contact. */
+    ALLOWED_GCS_UNIVERSE_DOMAINS = 'googleapis.com',
+    /**
+     * Skips the artifact request limiter. The profile controller sets this only on namespace
+     * artifact servers, which receive requests the shared UI server already limited per user.
+     */
+    ARTIFACTS_RATE_LIMIT_DISABLED = 'false',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
     HTTP_AUTHORIZATION_KEY = '',
     /** http/https fetch with this authorization header value by default when absent in client request at above key */
@@ -336,13 +343,10 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
       allowedEndpoints: parseAllowedArtifactEndpoints(ALLOWED_ARTIFACT_ENDPOINTS),
-    },
-    metadata: {
-      envoyService: {
-        host: METADATA_ENVOY_SERVICE_SERVICE_HOST,
-        port: METADATA_ENVOY_SERVICE_SERVICE_PORT,
-        schema: METADATA_ENVOY_SERVICE_SERVICE_SCHEME,
-      },
+      allowedGcsUniverseDomains: ALLOWED_GCS_UNIVERSE_DOMAINS.split(',')
+        .map((domain) => domain.trim().toLowerCase())
+        .filter(Boolean),
+      rateLimitDisabled: asBool(ARTIFACTS_RATE_LIMIT_DISABLED),
     },
     pipeline: {
       host: ML_PIPELINE_SERVICE_HOST,
@@ -491,6 +495,8 @@ export interface UIConfigs {
     streamLogsFromServerApi: boolean;
     allowedDomain: string;
     allowedEndpoints: string[];
+    allowedGcsUniverseDomains: string[];
+    rateLimitDisabled: boolean;
   };
   pod: {
     logContainerName: string;
