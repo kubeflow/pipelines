@@ -250,13 +250,13 @@ describe('artifact preview endpoint', () => {
       expect(gcs.downloadGCSObjectStream).toHaveBeenCalledWith(
         expect.objectContaining({
           bucket: 'bucket',
-          objectName: 'custom-root/model/preview.json',
+          objectName: 'custom-root/model/_kfp_preview.json',
         }),
       );
     } else {
       expect(storage.getObject).toHaveBeenCalledExactlyOnceWith(
         'bucket',
-        'custom-root/model/preview.json',
+        'custom-root/model/_kfp_preview.json',
       );
     }
     expect(gcs.listGCSObjectNames).not.toHaveBeenCalled();

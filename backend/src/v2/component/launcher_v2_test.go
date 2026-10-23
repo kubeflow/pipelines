@@ -1600,6 +1600,7 @@ func TestUploadOutputArtifacts_UploadsSiblingPreview(t *testing.T) {
 	sibling := map[string]interface{}{"version": 2, "storage": "sibling"}
 	tests := []struct {
 		name              string
+		artifactURI       string
 		descriptor        map[string]interface{}
 		writePreview      bool
 		uploadErrors      []error
@@ -1611,6 +1612,14 @@ func TestUploadOutputArtifacts_UploadsSiblingPreview(t *testing.T) {
 			descriptor:        sibling,
 			writePreview:      true,
 			wantUploads:       []string{uri, uri + ".kfp-preview.json"},
+			wantDescriptorSet: true,
+		},
+		{
+			name:              "normalizes a trailing slash before adding the sibling suffix",
+			artifactURI:       uri + "/",
+			descriptor:        sibling,
+			writePreview:      true,
+			wantUploads:       []string{uri + "/", uri + ".kfp-preview.json"},
 			wantDescriptorSet: true,
 		},
 		{
@@ -1635,6 +1644,10 @@ func TestUploadOutputArtifacts_UploadsSiblingPreview(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			artifactURI := test.artifactURI
+			if artifactURI == "" {
+				artifactURI = uri
+			}
 			localPath, err := LocalPathForURI(uri)
 			require.NoError(t, err)
 			fileSystem := NewMockFileSystem()
@@ -1649,7 +1662,7 @@ func TestUploadOutputArtifacts_UploadsSiblingPreview(t *testing.T) {
 						Artifacts: map[string]*pipelinespec.ArtifactList{
 							"dataset": {Artifacts: []*pipelinespec.RuntimeArtifact{{
 								Name: "dataset",
-								Uri:  uri,
+								Uri:  artifactURI,
 								Type: &pipelinespec.ArtifactTypeSchema{
 									Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
 								},
@@ -1674,7 +1687,7 @@ func TestUploadOutputArtifacts_UploadsSiblingPreview(t *testing.T) {
 
 			err = launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
 				Artifacts: map[string]*pipelinespec.ArtifactList{
-					"dataset": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: uri, Metadata: metadata}}},
+					"dataset": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: artifactURI, Metadata: metadata}}},
 				},
 			})
 			require.NoError(t, err)
