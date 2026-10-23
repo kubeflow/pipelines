@@ -129,8 +129,9 @@ selects `approved-exceptions` and binds the file contents to qualification.
 Publication checks those contents and expiry again. All findings remain in the
 report; scanner errors and incomplete coverage always block. Selecting
 `--security-policy zero-fixable` clears the exception selection and requires fresh
-qualification. The historical `2.17.3-approved-exceptions-v1` policy remains
-available only to verify its original release evidence.
+qualification. The historical `2.17.3-approved-exceptions-v1` policy retains its
+original release-specific exception set. Every policy requires fresh OSV CI
+evidence; historical Trivy/local receipts cannot authorize publication.
 
 Wheel environments remove bootstrap-only pip/setuptools after installation and
 dependency checks, before exercising SDK imports and pipeline compilation.
