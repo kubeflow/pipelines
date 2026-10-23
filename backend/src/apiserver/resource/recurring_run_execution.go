@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,9 +32,7 @@ const recurringRunPipelineVersionAnnotation = "pipelines.kubeflow.org/recurring-
 func (r *ResourceManager) createRunExecution(ctx context.Context, run *model.Run, execution util.ExecutionSpec) (util.ExecutionSpec, bool, error) {
 	if run.RecurringRunId != "" {
 		execution.SetExecutionName("run-" + util.NewDeterministicUUID(run.UUID))
-		if !common.IsMultiUserMode() && run.PipelineVersionId != "" {
-			// Single-user schedules have no API-owned tick claim. Retain the
-			// selected version if reporting wins the subsequent SQL insert.
+		if run.PipelineVersionId != "" {
 			execution.SetAnnotations(recurringRunPipelineVersionAnnotation, run.PipelineVersionId)
 		}
 	}
@@ -84,27 +81,4 @@ func sameRecurringRunExecution(run *model.Run, requested, existing util.Executio
 		}
 	}
 	return false
-}
-
-// reportedRecurringRunPipelineSpec is called only with the identity-validated
-// live Workflow, never the caller-supplied report. Multi-user scheduling restores
-// provenance from its database claim atomically with the run insert instead.
-func (r *ResourceManager) reportedRecurringRunPipelineSpec(job *model.Job, execution util.ExecutionSpec) (model.PipelineSpec, error) {
-	spec := job.PipelineSpec
-	if common.IsMultiUserMode() || spec.PipelineVersionId != "" || spec.PipelineId == "" {
-		return spec, nil
-	}
-	versionID := execution.ExecutionObjectMeta().Annotations[recurringRunPipelineVersionAnnotation]
-	if versionID == "" {
-		return spec, nil
-	}
-	version, err := r.pipelineStore.GetPipelineVersion(versionID)
-	if err != nil {
-		return spec, util.Wrap(err, "Failed to recover the scheduled run pipeline version")
-	}
-	if version.PipelineId != spec.PipelineId {
-		return spec, util.NewInvalidInputError("Reported scheduled run pipeline version does not belong to its recurring run pipeline")
-	}
-	spec.PipelineVersionId = versionID
-	return spec, nil
 }

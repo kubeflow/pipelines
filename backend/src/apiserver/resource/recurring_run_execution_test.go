@@ -449,6 +449,8 @@ func TestSingleUserFollowLatestReportBeforeCreatorRetainsVersion(t *testing.T) {
 			reportedRunID = execution.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
 			// A newer default must not change the version already selected for
 			// this Workflow, and report metadata is not authoritative.
+			store.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil))
+			manager.pipelineStore = store.PipelineStore()
 			newer, err := manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "newer", "", "", v2SpecHelloWorld, "", "ns1"))
 			require.NoError(t, err)
 			require.NotEqual(t, version.UUID, newer.UUID)
@@ -459,9 +461,10 @@ func TestSingleUserFollowLatestReportBeforeCreatorRetainsVersion(t *testing.T) {
 			reported, err := store.RunStore().GetRun(reportedRunID, true)
 			require.NoError(t, err)
 			require.Equal(t, version.UUID, reported.PipelineVersionId)
+			require.Equal(t, version.PipelineSpec, reported.PipelineSpecManifest)
 		},
 	}}
-	run := &model.Run{DisplayName: "first-tick", RecurringRunId: job.UUID}
+	run := &model.Run{DisplayName: "first-tick", RecurringRunId: job.UUID, Namespace: job.Namespace, ExperimentId: experiment.UUID, PipelineSpec: job.PipelineSpec}
 	require.NoError(t, manager.PrepareRecurringRun(ctx, run))
 	created, err := manager.CreateRun(ctx, run)
 	require.NoError(t, err)
@@ -471,39 +474,4 @@ func TestSingleUserFollowLatestReportBeforeCreatorRetainsVersion(t *testing.T) {
 	retainedJob, err := manager.GetJob(job.UUID)
 	require.NoError(t, err)
 	require.Empty(t, retainedJob.PipelineVersionId, "recovering a run must not pin its schedule")
-}
-
-func TestReportedRecurringRunPipelineSpecTrustBoundary(t *testing.T) {
-	store, manager, pipeline, version := initWithPipeline(t)
-	defer store.Close()
-	previous := viper.Get(common.MultiUserMode)
-	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
-	for _, test := range []struct {
-		name        string
-		multiUser   bool
-		parentID    string
-		annotation  string
-		wantVersion string
-		wantError   bool
-	}{
-		{name: "selected version", parentID: pipeline.UUID, annotation: version.UUID, wantVersion: version.UUID},
-		{name: "wrong parent rejected", parentID: "another-pipeline", annotation: version.UUID, wantError: true},
-		{name: "multi-user uses database claim", multiUser: true, parentID: pipeline.UUID, annotation: "untrusted-version"},
-		{name: "legacy workflow without annotation", parentID: pipeline.UUID},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			viper.Set(common.MultiUserMode, test.multiUser)
-			job := &model.Job{PipelineSpec: model.PipelineSpec{PipelineId: test.parentID}}
-			execution := util.NewWorkflow(testWorkflow.DeepCopy())
-			execution.SetAnnotations(recurringRunPipelineVersionAnnotation, test.annotation)
-			spec, err := manager.reportedRecurringRunPipelineSpec(job, execution)
-			if test.wantError {
-				require.ErrorContains(t, err, "does not belong")
-				return
-			}
-			require.NoError(t, err)
-			require.Equal(t, test.wantVersion, spec.PipelineVersionId)
-			require.Empty(t, job.PipelineVersionId)
-		})
-	}
 }

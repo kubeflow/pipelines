@@ -2412,7 +2412,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
-		pipelineSpec, err := r.reportedRecurringRunPipelineSpec(recurringJob, execSpec)
+		pipelineSpec, err := r.recurringRunReportPipelineSpec(recurringJob, execSpec, runId)
 		if err != nil {
 			return nil, err
 		}
