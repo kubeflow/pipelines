@@ -1407,8 +1407,12 @@ function validateDriverLogGroups(
       if (observedIds.has(id)) errors.push(`${label} contains duplicate system-log artifact IDs`);
       observedIds.add(id);
     }
-    if (typeof record.uri !== 'string' || !/^[^\s?#]+\/driver-logs$/.test(record.uri)) {
-      errors.push(`${label} driver-log URI must end exactly in driver-logs`);
+    // Uploader uses task/prefix/driver-logs for containers and
+    // driver/<UUID>-logs for DAGs without an output prefix.
+    const reservedLogPath =
+      /^[^\s?#]+\/(?:driver-logs|driver\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-logs)$/;
+    if (typeof record.uri !== 'string' || !reservedLogPath.test(record.uri)) {
+      errors.push(`${label} driver-log URI must match a reserved driver-log path`);
     } else {
       if (declaredUris.has(record.uri))
         errors.push(`${label}.uri collides with a declared semantic artifact`);

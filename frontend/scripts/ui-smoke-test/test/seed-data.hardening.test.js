@@ -1848,6 +1848,29 @@ test('fills each missing deterministic resource type instead of skipping on part
     manifest.semantic.bindings.runs['run.training-1'].artifacts['artifact.scalar-metrics'];
   assert.deepEqual(metricBinding.artifactIds, ['metric-accuracy', 'metric-loss']);
   assert.deepEqual(Object.keys(metricBinding.members), ['metric.accuracy', 'metric.loss']);
+
+  const rejectedPath = `${manifestPath}.rejected`;
+  const rejectedSemantic = structuredClone(manifest.semantic);
+  rejectedSemantic.validation = { valid: false, errors: ['unexpected artifact binding'] };
+  const rejected = await seedData({
+    pipelines: 1,
+    experiments: 1,
+    runs: 1,
+    recurringRuns: 1,
+    request,
+    manifestPath: rejectedPath,
+    waitForRunsFn: async () => true,
+    waitForSemanticBindingsFn: async () => {
+      const error = new Error('unexpected artifact binding');
+      error.code = 'MISSING_FIXTURE';
+      error.semantic = rejectedSemantic;
+      throw error;
+    },
+  });
+  assert.equal(rejected.success, false);
+  assert.equal(fs.existsSync(rejectedPath), false);
+  const diagnostic = JSON.parse(fs.readFileSync(`${rejectedPath}.failed.json`, 'utf8'));
+  assert.deepEqual(diagnostic.semantic, rejectedSemantic);
 });
 
 test('propagates partial creation failures and does not write a manifest', async (t) => {
@@ -2236,6 +2259,8 @@ test('attributes semantic discovery timeouts to missing fixtures or API incompat
     ),
     (error) =>
       error.code === 'MISSING_FIXTURE' &&
+      error.semantic.validation.valid === false &&
+      error.semantic.validation.errors.length > 0 &&
       /expected 1 task\.write-metrics instance/.test(error.message),
   );
 

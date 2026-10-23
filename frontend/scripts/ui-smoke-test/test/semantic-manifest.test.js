@@ -1781,7 +1781,9 @@ test('native task driver logs are optional system outputs with strict artifact i
               artifactId: `driver-${taskKey}-${index}`,
               name: 'driver-logs',
               type: 'Artifact',
-              uri: `s3://ui-smoke/${taskKey}/${index}/driver-logs`,
+              uri: ['task.nested-dag', 'task.parallel-loop'].includes(taskKey)
+                ? `s3://ui-smoke/${taskKey}/${index}/driver/6f0ad7be-0cb6-4a8e-a8ef-524e56c01ce4-logs`
+                : `s3://ui-smoke/${taskKey}/${index}/driver-logs`,
             },
           ],
         });
@@ -1809,7 +1811,14 @@ test('native task driver logs are optional system outputs with strict artifact i
       (group) => {
         group.artifacts[0].uri += '?download=true';
       },
-      /URI must end exactly in driver-logs/,
+      /URI must match a reserved driver-log path/,
+    ],
+    [
+      'unreserved DAG path',
+      (group) => {
+        group.artifacts[0].uri = 's3://ui-smoke/driver/not-a-log-id-logs';
+      },
+      /URI must match a reserved driver-log path/,
     ],
     [
       'extra record',

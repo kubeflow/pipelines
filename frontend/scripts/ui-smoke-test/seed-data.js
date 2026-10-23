@@ -1703,6 +1703,7 @@ async function waitForSemanticBindings(selections, request = apiRequest, options
       : `Timed out querying semantic fixture bindings: ${lastApiError?.message || 'no run details were returned'}`,
   );
   error.code = lastSemantic ? 'MISSING_FIXTURE' : 'API_INCOMPATIBILITY';
+  error.semantic = lastSemantic;
   throw error;
 }
 
@@ -2061,6 +2062,13 @@ async function seedData(options = {}) {
       timeout: options.semanticTimeout,
     });
   } catch (error) {
+    // Keep rejected bindings for replay without publishing them as a valid seed.
+    if (error.semantic) {
+      writeSeedManifest(
+        buildSeedManifest(resources, { apiBase, semantic: error.semantic }),
+        `${manifestPath}.failed.json`,
+      );
+    }
     return {
       success: false,
       error: `Semantic binding discovery failed: ${error.message}`,
