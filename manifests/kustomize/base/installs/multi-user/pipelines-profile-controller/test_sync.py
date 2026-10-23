@@ -348,6 +348,11 @@ def test_artifact_proxy_receives_allowed_endpoints(sync_server):
         'value': 'https://objects.example.com:9443',
     } in container_env
 
+    assert {
+        'name': 'ARTIFACTS_RATE_LIMIT_DISABLED',
+        'value': 'true',
+    } in container_env
+
 
 def test_create_iam_client_uses_endpoint(monkeypatch):
     called = {}

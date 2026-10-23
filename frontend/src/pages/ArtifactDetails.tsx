@@ -28,7 +28,8 @@ import {
   GetArtifactsByIDRequest,
   GetArtifactTypesByIDRequest,
 } from 'src/third_party/mlmd';
-import { CircularProgress } from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
+import { useContext, useState } from 'react';
 import { Route, Switch } from 'react-router-dom';
 import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -45,6 +46,11 @@ import {
 } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
+import {
+  ArtifactContentPreview,
+  hasArtifactContentPreview,
+} from 'src/components/viewers/ArtifactContentPreview';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -141,6 +147,10 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
                   typeName={this.properTypeName}
                   resource={this.state.artifact}
                 />
+                <ArtifactDetailsContentPreview
+                  artifact={this.state.artifact}
+                  artifactTypeName={this.fullTypeName}
+                />
               </div>
             </>
           </Route>
@@ -235,6 +245,39 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
         logger.error(`Unknown selected tab ${selectedTab}.`);
     }
   };
+}
+
+/** Loads a declared Dataset or Model preview only after the user asks for it. */
+function ArtifactDetailsContentPreview({
+  artifact,
+  artifactTypeName,
+}: {
+  artifact: Artifact;
+  artifactTypeName: string;
+}) {
+  const namespace = useContext(NamespaceContext);
+  const [open, setOpen] = useState(false);
+  if (!hasArtifactContentPreview(artifact, artifactTypeName)) {
+    return null;
+  }
+  return (
+    <div className={padding(20, 'tb')}>
+      <Button size='small' aria-expanded={open} onClick={() => setOpen(!open)}>
+        {open ? 'Hide artifact visualization' : 'Show artifact visualization'}
+      </Button>
+      {open && (
+        <ArtifactContentPreview
+          artifact={artifact}
+          artifactTypeName={artifactTypeName}
+          namespace={namespace}
+          providerInfo={artifact
+            .getCustomPropertiesMap()
+            .get('store_session_info')
+            ?.getStringValue()}
+        />
+      )}
+    </div>
+  );
 }
 
 // This guarantees that each artifact renders a different <ArtifactDetails /> instance.

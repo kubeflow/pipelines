@@ -39,6 +39,33 @@ Online DDL can still consume substantial resources and briefly delay writes at
 metadata locks. Review the [preparation and recovery procedure](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#run-garbage-collection-database-migration)
 for capacity planning, PostgreSQL invalid-index recovery and staged activation.
 
+## Automatic artifact preview generation
+
+Automatic artifact preview generation is **enabled by default** for supported
+Python-component Dataset and Model outputs. It is controlled by pipeline authors,
+not by deployment configuration. Use
+`@dsl.pipeline(pipeline_config=dsl.PipelineConfig(artifact_previews=False))`
+to disable generation throughout a pipeline, or
+`@dsl.component(artifact_previews=False)` for a particular component. A pipeline
+opt-out also applies to nested pipelines and exit handlers and cannot be
+overridden by enabling previews on a component.
+
+These settings are compiled into the pipeline. Recompile and use the updated
+pipeline definition when changing them. No preview-specific ConfigMap, mounted
+configuration file, profile reconciliation, or API-server/driver setting is
+required. Because generation is on by default, set pipeline or component
+opt-outs before upgrading sensitive workloads to a supporting SDK.
+
+Dataset previews can contain up to ten rows and twenty columns. Review row
+samples and model configuration for sensitive data; pipeline authors can keep
+only dataset schema with `@dsl.component(artifact_preview_rows=False)`.
+Disabling generation does not remove or hide previously generated, cached,
+imported, or manually written previews, and does not change ordinary artifact
+production, downloads, or access controls.
+
+See [Dataset and Model previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews)
+for supported formats, pipeline/component privacy settings, and the file contract.
+
 ## API Server workflow service-account checks
 
 By default, the API server enforces the service-account policy for all identities
@@ -137,6 +164,36 @@ authoritative source establishes V2 provenance.
 When deploying frontend server called `ml-pipeline-ui`, you can pass various environment
 variables to customize the server behavior for your namespace. Some examples are shown
 in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/blob/b630d5c8ae7559be0011e67f01e3aec1946ef765/manifests/kustomize/base/pipeline/ml-pipeline-ui-deployment.yaml#L32-L50).
+
+### Artifact request limits
+
+Each UI server instance permits 300 artifact requests per minute per user in
+authenticated deployments, using the same trusted upstream identity header as
+authorization. Standalone and unauthenticated requests share a budget by client
+IP instead; caller-supplied identity and forwarding headers do not override it.
+The ingress must continue to strip untrusted identity headers before supplying
+the authenticated user.
+
+Previews and downloads share this budget across namespaces and base-path aliases.
+Requests beyond the limit receive HTTP 429 with a `Retry-After` delay before any
+artifact lookup, authorization call, or storage read. The budget is local to each
+server process, not a distributed deployment-wide quota.
+
+When the `pipeline-install-config` key `ARTIFACTS_PROXY_ENABLED` is `true`, the
+shared UI applies each user's budget once, before forwarding a request to the
+namespace's `ml-pipeline-ui-artifact` server. The profile controller sets
+`ARTIFACTS_RATE_LIMIT_DISABLED=true` on those generated servers. They run with
+authorization disabled and see every forwarded request as coming from the shared
+UI, so a second limit would combine all of a namespace's users into one budget.
+If a namespace server returns HTTP 429, the shared UI preserves that status and
+its delay-seconds `Retry-After` value for previews and downloads.
+
+`ARTIFACTS_RATE_LIMIT_DISABLED` accepts `true` or `1`; any other value keeps the
+limit. Generated namespace servers rely on the shared UI for this limit, as they
+do for authorization. Do not set the variable on the shared UI or in standalone
+deployments, which have no upstream limit. After upgrading, the profile
+controller adds the variable to each existing generated Deployment at its next
+reconciliation, which rolls that Deployment once.
 
 ### Artifact storage endpoint allowlist
 

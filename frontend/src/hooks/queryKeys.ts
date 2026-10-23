@@ -96,6 +96,24 @@ export const queryKeys = {
 
   // --- Viewer configs ---
 
+  artifactContentPreview: (
+    artifactId: number | undefined,
+    uri: string | undefined,
+    kind: string | undefined,
+    namespace: string | undefined,
+    providerInfo: string | undefined,
+    descriptor: string | undefined,
+  ) =>
+    [
+      'artifact_content_preview',
+      artifactId,
+      uri,
+      kind,
+      namespace,
+      providerInfo,
+      descriptor,
+    ] as const,
+
   viewConfig: (artifactId: number | undefined, executionState: number, namespace?: string) =>
     ['viewconfig', { artifact: artifactId, state: executionState, namespace }] as const,
 

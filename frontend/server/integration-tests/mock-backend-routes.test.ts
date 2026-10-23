@@ -560,6 +560,23 @@ describe('mock backend routes', () => {
       expect(response.body).toContain('0.0,0.00265957446809,0.999972701073');
     });
 
+    it('serves dataset and model previews beneath their parent artifact keys', async () => {
+      const dataset = await request
+        .get('/artifacts/preview?source=minio&bucket=mlpipeline&key=run%2Fmock-dataset')
+        .expect(200);
+      expect(dataset.headers['cache-control']).toBe('no-store');
+      expect(dataset.body).toMatchObject({ version: 1, kind: 'dataset' });
+
+      const model = await request
+        .get('/artifacts/preview?source=minio&bucket=mlpipeline&key=run%2Fmock-model%2F')
+        .expect(200);
+      expect(model.body).toMatchObject({ version: 1, kind: 'model' });
+
+      await request
+        .get('/artifacts/preview?source=minio&bucket=mlpipeline&key=run%2Fother')
+        .expect(404);
+    });
+
     it('returns a dummy artifact payload for unknown keys', async () => {
       const response = await asText(request.get('/artifacts/get?key=unknown-file')).expect(200);
       expect(response.body).toBe('dummy file for key: unknown-file');

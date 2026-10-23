@@ -153,6 +153,35 @@ describe('Apis', () => {
     });
   });
 
+  it('getArtifactContentPreview reads only the preview route without caching', async () => {
+    const spy = fetchSpy('{"version":1}');
+    const controller = new AbortController();
+    expect(
+      await Apis.getArtifactContentPreview({
+        path: { source: StorageService.MINIO, key: 'run/dataset', bucket: 'mlpipeline' },
+        namespace: 'team-a',
+        providerInfo: '{"Provider":"minio"}',
+        signal: controller.signal,
+      }),
+    ).toEqual('{"version":1}');
+    expect(spy).toHaveBeenCalledWith(
+      'artifacts/preview?source=minio&namespace=team-a&providerInfo=%7B%22Provider%22%3A%22minio%22%7D&bucket=mlpipeline&key=run%2Fdataset',
+      { credentials: 'same-origin', signal: controller.signal, cache: 'no-store' },
+    );
+  });
+
+  it('getArtifactContentPreview requests sibling preview storage when declared', async () => {
+    const spy = fetchSpy('{"version":1}');
+    await Apis.getArtifactContentPreview({
+      path: { source: StorageService.MINIO, key: 'run/dataset', bucket: 'mlpipeline' },
+      storage: 'sibling',
+    });
+    expect(spy).toHaveBeenCalledWith(
+      'artifacts/preview?source=minio&bucket=mlpipeline&key=run%2Fdataset&storage=sibling',
+      expect.objectContaining({ cache: 'no-store' }),
+    );
+  });
+
   it('buildReadFileUrl', () => {
     expect(
       Apis.buildReadFileUrl({

@@ -830,6 +830,8 @@ func uploadOutputArtifacts(
 					} else {
 						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
 					}
+				} else {
+					uploadArtifactPreviewSibling(ctx, opts.bucket, name, localDir, blobKey, outputArtifact.GetMetadata())
 				}
 			}
 
@@ -850,6 +852,59 @@ func uploadOutputArtifacts(
 		}
 	}
 	return outputArtifacts, nil
+}
+
+const (
+	artifactPreviewMetadataKey   = "_kfp_preview"
+	artifactPreviewSiblingSuffix = ".kfp-preview.json"
+	artifactPreviewMaxBytes      = 64 * 1024
+)
+
+// isSiblingArtifactPreview reports whether metadata advertises an SDK preview
+// stored beside, rather than inside, the artifact directory.
+func isSiblingArtifactPreview(metadata *structpb.Struct) bool {
+	fields := metadata.GetFields()[artifactPreviewMetadataKey].GetStructValue().GetFields()
+	return fields["version"].GetNumberValue() == 2 && fields["storage"].GetStringValue() == "sibling"
+}
+
+// uploadArtifactPreviewSibling uploads <localDir>.kfp-preview.json to
+// <blobKey>.kfp-preview.json. Trailing slashes are removed first, matching the
+// SDK's local path and the UI server's object key. Keeping the preview outside
+// the artifact directory means directory readers such as Polars never see a
+// non-data file.
+// Previews are optional: any failure drops the descriptor so the UI reports no
+// preview instead of a broken one, and the task still succeeds.
+func uploadArtifactPreviewSibling(
+	ctx context.Context,
+	bucket *blob.Bucket,
+	name, localDir, blobKey string,
+	metadata *structpb.Struct,
+) {
+	if !isSiblingArtifactPreview(metadata) {
+		return
+	}
+	localDir = strings.TrimRight(localDir, "/")
+	blobKey = strings.TrimRight(blobKey, "/")
+	previewPath := localDir + artifactPreviewSiblingSuffix
+	var err error
+	info, statErr := os.Lstat(previewPath)
+	switch {
+	case statErr != nil:
+		err = statErr
+	case !info.Mode().IsRegular():
+		err = fmt.Errorf("%q is not a regular file", previewPath)
+	case info.Size() > artifactPreviewMaxBytes:
+		err = fmt.Errorf("%q exceeds 64 KiB", previewPath)
+	default:
+		if uploadErr := objectstore.UploadBlob(ctx, bucket, previewPath, blobKey+artifactPreviewSiblingSuffix); uploadErr != nil {
+			// Object store errors can carry credential details, so log only that the upload failed.
+			err = errors.New("the object store upload failed")
+		}
+	}
+	if err != nil {
+		glog.Warningf("Skipping the optional preview for output artifact %q; the artifact is unchanged: %v", name, err)
+		delete(metadata.Fields, artifactPreviewMetadataKey)
+	}
 }
 
 func uploadOutputArtifactsWithRetry(

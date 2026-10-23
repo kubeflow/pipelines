@@ -50,6 +50,10 @@ import DetailsTable from 'src/components/DetailsTable';
 import LogViewer from 'src/components/LogViewer';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
 import { MetricsVisualizations } from 'src/components/viewers/MetricsVisualizations';
+import {
+  ArtifactContentPreview,
+  getArtifactContentPreviewKind,
+} from 'src/components/viewers/ArtifactContentPreview';
 import { ArtifactTitle } from 'src/components/tabs/ArtifactTitle';
 import RuntimeInputOutputTab, {
   getArtifactParamList,
@@ -379,6 +383,8 @@ interface ArtifactNodeDetailProps {
 }
 function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNodeDetailProps) {
   const { data } = useArtifactTypes();
+  const artifactTypeName =
+    data && linkedArtifact ? getArtifactTypeName(data, [linkedArtifact])[0] : undefined;
 
   const [selectedTab, setSelectedTab] = useState(0);
   return (
@@ -400,7 +406,15 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
         )}
 
         {/* Visualization tab */}
-        {selectedTab === 1 && execution && (
+        {selectedTab === 1 && linkedArtifact && getArtifactContentPreviewKind(artifactTypeName) && (
+          <ArtifactContentPreview
+            artifact={linkedArtifact.artifact}
+            artifactTypeName={artifactTypeName}
+            namespace={namespace}
+            providerInfo={getStoreSessionInfoFromArtifact(linkedArtifact)}
+          />
+        )}
+        {selectedTab === 1 && execution && !getArtifactContentPreviewKind(artifactTypeName) && (
           <MetricsVisualizations
             linkedArtifacts={linkedArtifact ? [linkedArtifact] : []}
             artifactTypes={data ? data : []}

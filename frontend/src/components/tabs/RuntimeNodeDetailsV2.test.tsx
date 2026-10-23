@@ -21,7 +21,9 @@ import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
-import { Execution, Value } from 'src/third_party/mlmd';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { Artifact, ArtifactType, Event, Execution, Value } from 'src/third_party/mlmd';
+import dataset from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 import TestUtils from 'src/TestUtils';
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { dump, loadAll } from 'js-yaml';
@@ -200,5 +202,69 @@ describe('RuntimeNodeDetailsV2', () => {
 
     screen.getByText('/data');
     screen.getByText('createpvc');
+  });
+
+  describe('artifact visualization', () => {
+    function renderArtifactNode(typeName: string) {
+      const artifactType = new ArtifactType();
+      artifactType.setId(7);
+      artifactType.setName(typeName);
+      vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([artifactType]);
+      const artifact = new Artifact();
+      artifact.setId(9);
+      artifact.setTypeId(7);
+      artifact.setUri('minio://mlpipeline/run/producer/dataset');
+      artifact
+        .getCustomPropertiesMap()
+        .set(
+          '_kfp_preview',
+          new Value().setStructValue(
+            Struct.fromJavaScript({ struct: { version: 1, path: '_kfp_preview.json' } }),
+          ),
+        );
+      render(
+        <CommonTestWrapper>
+          <RuntimeNodeDetailsV2
+            layers={['root']}
+            runId={TEST_RUN_ID}
+            element={{
+              data: { label: 'dataset' },
+              id: 'artifact.producer.dataset',
+              position: { x: 100, y: 100 },
+              type: 'ARTIFACT',
+            }}
+            elementMlmdInfo={{
+              execution: TEST_EXECUTION,
+              linkedArtifact: { artifact, event: new Event() },
+            }}
+            namespace={TEST_NAMESPACE}
+          />
+        </CommonTestWrapper>,
+      );
+    }
+
+    it('previews a Dataset artifact instead of the empty metrics message', async () => {
+      const read = vi
+        .spyOn(Apis, 'getArtifactContentPreview')
+        .mockResolvedValue(JSON.stringify(dataset));
+      renderArtifactNode('system.Dataset');
+      fireEvent.click(await screen.findByText('Visualization'));
+      await screen.findByRole('table', { name: 'Dataset sample' });
+      expect(read).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { source: 'minio', bucket: 'mlpipeline', key: 'run/producer/dataset' },
+          namespace: TEST_NAMESPACE,
+        }),
+      );
+      expect(screen.queryByText(/There is no metrics artifact/)).toBeNull();
+    });
+
+    it('keeps metrics visualizations for other artifact types', async () => {
+      const read = vi.spyOn(Apis, 'getArtifactContentPreview');
+      renderArtifactNode('system.Artifact');
+      fireEvent.click(await screen.findByText('Visualization'));
+      await screen.findByText(/There is no metrics artifact/);
+      expect(read).not.toHaveBeenCalled();
+    });
   });
 });

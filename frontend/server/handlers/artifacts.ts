@@ -38,6 +38,7 @@ import { Readable } from 'stream';
 import { pipeline as pipelinePromise } from 'stream/promises';
 import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response, NextFunction } from 'express';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
@@ -54,6 +55,7 @@ import {
   buildArtifactUri,
 } from '../helpers/mlmd-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import { ArtifactPreviewObjectOpener, sendArtifactContentPreview } from './artifact-preview.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
@@ -148,6 +150,7 @@ const SAFE_ARTIFACT_PROXY_RESPONSE_HEADERS = new Set([
   'content-range',
   'etag',
   'last-modified',
+  'retry-after',
 ]);
 
 function hardenArtifactProxyResponse(proxyResponse: IncomingMessage): void {
@@ -176,6 +179,47 @@ export function sendArtifactError(response: Response, status: number, message: s
   }
   hardenArtifactResponse(response);
   response.status(status).type('text/plain').send(message);
+}
+
+export const TOO_MANY_ARTIFACT_REQUESTS_MESSAGE =
+  'Too many artifact requests. Retry after the delay indicated by the Retry-After header.';
+
+export interface ArtifactsRateLimiterOptions {
+  authEnabled: boolean;
+  kubeflowUserIdHeader: string;
+  /** Counts nothing because an upstream KFP UI server has already limited each user's requests. */
+  disabled?: boolean;
+}
+
+/** Shares one request budget across artifact previews, downloads, and route aliases. */
+export function getArtifactsRateLimiter({
+  authEnabled,
+  kubeflowUserIdHeader,
+  disabled = false,
+}: ArtifactsRateLimiterOptions): Handler {
+  return rateLimit({
+    windowMs: 60_000,
+    limit: 300,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    // Skip instead of omitting the middleware, so every artifact route keeps one visible limiter.
+    // A namespace artifact server sees only the shared UI server's IP, which would otherwise give
+    // every proxied user one shared budget.
+    skip: () => disabled,
+    keyGenerator: (request) => {
+      // Use the same trusted upstream identity as authorization, not a shared ingress IP.
+      const header = request.headers[kubeflowUserIdHeader.toLowerCase()];
+      const identity = Array.isArray(header) ? header[0] : header;
+      if (authEnabled && identity) {
+        return `user:${identity}`;
+      }
+      return `ip:${ipKeyGenerator(request.ip || request.socket.remoteAddress || 'unknown')}`;
+    },
+    handler: (_request, response) => {
+      response.setHeader('Cache-Control', 'no-store');
+      sendArtifactError(response, 429, TOO_MANY_ARTIFACT_REQUESTS_MESSAGE);
+    },
+  });
 }
 
 export function pipePreviewResponse(
@@ -407,12 +451,14 @@ export function getArtifactsAuthMiddleware(
  * @param tryExtract whether preview responses may extract content from *.tar.gz files.
  * Download routes pass false so S3 and MinIO archives are returned byte-for-byte
  * with an attachment filename; preview routes may extract the first tar entry.
+ * @param contentPreview read only the bounded preview file of the requested parent artifact.
  */
 export function getArtifactsHandler({
   artifactsConfigs,
   useParameter,
   tryExtract,
   options,
+  contentPreview = false,
 }: {
   artifactsConfigs: {
     aws: AWSConfigs;
@@ -425,6 +471,7 @@ export function getArtifactsHandler({
   tryExtract: boolean;
   useParameter: boolean;
   options: UIConfigs;
+  contentPreview?: boolean;
 }): Handler {
   const { aws, http, minio, allowedDomain, allowedEndpoints, allowOfficialAwsEndpoints } =
     artifactsConfigs;
@@ -627,6 +674,45 @@ export function getArtifactsHandler({
           return;
         }
       }
+    }
+
+    if (contentPreview) {
+      const openPreviewObject: ArtifactPreviewObjectOpener = async (objectKey, signal) => {
+        if (source === 'gcs') {
+          const credentials = await waitForArtifactOperation(
+            getGCSCredentials(effectiveProviderInfo, namespace),
+            signal,
+          );
+          const gcsClient = await waitForArtifactOperation(getGCSClient(credentials), signal);
+          return waitForArtifactOperation(
+            downloadGCSObjectStream({
+              bucket,
+              objectName: objectKey,
+              credentials,
+              client: gcsClient,
+              signal,
+            }),
+            signal,
+            (lateStream) => lateStream.destroy(),
+          );
+        }
+        const storeClient = await waitForArtifactOperation(
+          createMinioClient(
+            source === 'minio' ? minio : aws,
+            source,
+            effectiveProviderInfo,
+            namespace,
+          ),
+          signal,
+        );
+        return waitForArtifactOperation(
+          storeClient.getObject(bucket, objectKey),
+          signal,
+          (lateStream) => lateStream.destroy(),
+        );
+      };
+      await sendArtifactContentPreview(req, res, source, key, openPreviewObject);
+      return;
     }
 
     let client: MinioClient;
@@ -1429,6 +1515,24 @@ async function parseGCSProviderInfo(
   } catch (err) {
     throw new Error('Failed to parse GCS Provider config. Error: ' + err, { cause: err });
   }
+}
+
+/** Resolves explicit GCS secret credentials, or undefined for the server's own identity. */
+async function getGCSCredentials(
+  providerInfoString?: string,
+  namespace?: string,
+): Promise<CredentialBody | undefined> {
+  if (!providerInfoString) {
+    return undefined;
+  }
+  const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
+  if (!providerInfo || providerInfo.Params.fromEnv !== 'false') {
+    return undefined;
+  }
+  if (!namespace) {
+    throw new Error('Failed to parse provider info. Reason: No namespace provided');
+  }
+  return parseGCSProviderInfo(providerInfo, namespace);
 }
 
 async function readGCSObject(

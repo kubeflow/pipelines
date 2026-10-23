@@ -71,6 +71,8 @@ import {
 } from './fixed-data';
 import helloWorldRuntime from './data/v1/runtime/integration-test-runtime';
 import registerTensorboardProxy from './tensorboard-proxy';
+import datasetPreview from './data/v2/artifact-previews/dataset.json';
+import modelPreview from './data/v2/artifact-previews/model.json';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -1220,6 +1222,20 @@ export default (app: express.Application) => {
       return;
     }
     mockCreatePipeline(res, pipelineName, req.body);
+  });
+
+  app.get('/artifacts/preview', (req, res) => {
+    const key = typeof req.query.key === 'string' ? req.query.key.replace(/\/$/, '') : '';
+    const preview = key.endsWith('dataset')
+      ? datasetPreview
+      : key.endsWith('model')
+        ? modelPreview
+        : undefined;
+    if (!preview) {
+      res.status(404).send('The preview file is missing.');
+      return;
+    }
+    res.set('Cache-Control', 'no-store').json(preview);
   });
 
   app.get('/artifacts/get', (req, res) => {

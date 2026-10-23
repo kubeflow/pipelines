@@ -328,6 +328,32 @@ export class Apis {
   }
 
   /**
+   * Reads only the bounded, producer-generated preview for a registered artifact. `sibling`
+   * storage reads the preview beside the artifact directory instead of inside it.
+   */
+  public static getArtifactContentPreview({
+    path,
+    namespace,
+    providerInfo,
+    storage,
+    signal,
+  }: {
+    path: StoragePath;
+    namespace?: string;
+    providerInfo?: string;
+    storage?: 'sibling';
+    signal?: AbortSignal;
+  }): Promise<string> {
+    const { source, bucket, key } = path;
+    return this._fetch(
+      `artifacts/preview${buildQuery({ source, namespace, providerInfo, bucket, key, storage })}`,
+      undefined,
+      undefined,
+      { signal, cache: 'no-store' },
+    );
+  }
+
+  /**
    * Builds an url for the readFile API to retrieve a workflow artifact.
    * @param path object describing the artifact (e.g. source, bucket, and key)
    * @param namespace the experiment namespace

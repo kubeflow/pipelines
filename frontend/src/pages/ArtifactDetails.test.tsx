@@ -19,6 +19,8 @@ import { createMemoryHistory } from 'history';
 import { MemoryRouter, Route, Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, Mock } from 'vitest';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
+import { Apis } from 'src/lib/Apis';
 import { Api } from 'src/mlmd/library';
 import { Artifact, ArtifactType, GetArtifactsByIDResponse, Value } from 'src/third_party/mlmd';
 import { GetArtifactTypesByIDResponse } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
@@ -26,6 +28,7 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { testBestPractices } from 'src/TestUtils';
 import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
+import dataset from '../../mock-backend/data/v2/artifact-previews/dataset.json';
 
 vi.mock('src/mlmd/LineageView', () => ({
   LineageView: () => <div data-testid='lineage-view'>LineageView Mock</div>,
@@ -391,5 +394,61 @@ describe('ArtifactDetails', () => {
     fireEvent.click(screen.getByText('Overview'));
 
     expect(historyPushSpy).toHaveBeenCalledWith(expect.stringMatching(/\/artifacts\/42$/));
+  });
+
+  describe('artifact content preview', () => {
+    function mockPreviewableLoad(typeName: string, declaresPreview = true) {
+      const artifact = buildArtifact();
+      artifact.setUri('minio://mlpipeline/run/producer/dataset');
+      if (declaresPreview) {
+        artifact
+          .getCustomPropertiesMap()
+          .set(
+            '_kfp_preview',
+            new Value().setStructValue(
+              Struct.fromJavaScript({ struct: { version: 1, path: '_kfp_preview.json' } }),
+            ),
+          );
+      }
+      const artifactType = buildArtifactType();
+      artifactType.setName(typeName);
+      getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([artifact]));
+      getArtifactTypesByIDSpy.mockResolvedValue(buildGetArtifactTypesByIDResponse([artifactType]));
+    }
+
+    it('loads a declared Dataset preview only after the user opens it', async () => {
+      const read = vi
+        .spyOn(Apis, 'getArtifactContentPreview')
+        .mockResolvedValue(JSON.stringify(dataset));
+      mockPreviewableLoad('system.Dataset');
+      renderWithRouter(generateProps());
+      const toggle = await screen.findByRole('button', { name: 'Show artifact visualization' });
+      expect(read).not.toHaveBeenCalled();
+      fireEvent.click(toggle);
+      await screen.findByRole('table', { name: 'Dataset sample' });
+      expect(read).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { source: 'minio', bucket: 'mlpipeline', key: 'run/producer/dataset' },
+        }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Hide artifact visualization' }));
+      expect(screen.queryByRole('table', { name: 'Dataset sample' })).toBeNull();
+    });
+
+    it('hides the toggle when the artifact cannot be previewed', async () => {
+      mockPreviewableLoad('system.Dataset', false);
+      renderWithRouter(generateProps());
+      await screen.findByText('Overview');
+      await waitFor(() => expect(getArtifactTypesByIDSpy).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: /artifact visualization/ })).toBeNull();
+    });
+
+    it('does not offer previews for non-Dataset and non-Model artifacts', async () => {
+      mockPreviewableLoad('system.Metrics');
+      renderWithRouter(generateProps());
+      await screen.findByText('Overview');
+      await waitFor(() => expect(getArtifactTypesByIDSpy).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: /artifact visualization/ })).toBeNull();
+    });
   });
 });

@@ -14,6 +14,7 @@
 package component
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -885,6 +886,50 @@ func Test_retrieve_artifact_path(t *testing.T) {
 			path, err := retrieveArtifactPath(test.artifact)
 			assert.Nil(t, err)
 			assert.Equal(t, path, test.expectedPath)
+		})
+	}
+}
+
+func Test_uploadArtifactPreviewSibling(t *testing.T) {
+	sibling := map[string]interface{}{"version": 2, "storage": "sibling"}
+	tests := []struct {
+		name              string
+		descriptor        map[string]interface{}
+		localDirSuffix    string
+		blobKeySuffix     string
+		previewSize       int
+		wantUploaded      bool
+		wantDescriptorSet bool
+	}{
+		{name: "uploads the preview beside the artifact", descriptor: sibling, previewSize: 13, wantUploaded: true, wantDescriptorSet: true},
+		{name: "normalizes trailing slashes on the local path and object key", descriptor: sibling, localDirSuffix: "/", blobKeySuffix: "/", previewSize: 13, wantUploaded: true, wantDescriptorSet: true},
+		{name: "normalizes a trailing slash on only the object key", descriptor: sibling, blobKeySuffix: "/", previewSize: 13, wantUploaded: true, wantDescriptorSet: true},
+		{name: "drops the descriptor when the preview file is missing", descriptor: sibling, previewSize: -1},
+		{name: "drops the descriptor when the preview is too large", descriptor: sibling, previewSize: 64*1024 + 1},
+		{name: "leaves in-directory v1 previews to the artifact upload", descriptor: map[string]interface{}{"version": 1, "path": "_kfp_preview.json"}, previewSize: 13, wantDescriptorSet: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			bucket, err := blob.OpenBucket(ctx, "mem://test-bucket")
+			require.NoError(t, err)
+			defer bucket.Close()
+			localDir := filepath.Join(t.TempDir(), "dataset")
+			require.NoError(t, os.MkdirAll(localDir, 0o755))
+			if test.previewSize >= 0 {
+				require.NoError(t, os.WriteFile(localDir+".kfp-preview.json", bytes.Repeat([]byte("x"), test.previewSize), 0o644))
+			}
+			metadata, err := structpb.NewStruct(map[string]interface{}{"_kfp_preview": test.descriptor, "rows": 3})
+			require.NoError(t, err)
+
+			uploadArtifactPreviewSibling(ctx, bucket, "dataset", localDir+test.localDirSuffix, "pipeline-root/dataset"+test.blobKeySuffix, metadata)
+
+			uploaded, err := bucket.Exists(ctx, "pipeline-root/dataset.kfp-preview.json")
+			require.NoError(t, err)
+			assert.Equal(t, test.wantUploaded, uploaded)
+			_, hasDescriptor := metadata.Fields["_kfp_preview"]
+			assert.Equal(t, test.wantDescriptorSet, hasDescriptor)
+			assert.Equal(t, float64(3), metadata.Fields["rows"].GetNumberValue())
 		})
 	}
 }

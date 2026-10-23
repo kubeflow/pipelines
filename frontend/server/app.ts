@@ -26,6 +26,7 @@ import {
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
+  getArtifactsRateLimiter,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
 import { getAuthorizeFn } from './helpers/auth.js';
@@ -183,6 +184,12 @@ function createUIServer(options: UIConfigs) {
     options.auth.kubeflowUserIdHeader,
     envoyServiceAddress,
   );
+  // One shared limiter keeps aliases and base-path routes in the same request budget.
+  const artifactsRateLimiter = getArtifactsRateLimiter({
+    authEnabled: options.auth.enabled,
+    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    disabled: options.artifacts.rateLimitDisabled,
+  });
 
   /** Artifact */
   // Authorization middleware runs once on the catch-all /artifacts/* route,
@@ -193,6 +200,7 @@ function createUIServer(options: UIConfigs) {
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -202,6 +210,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -209,6 +218,20 @@ function createUIServer(options: UIConfigs) {
       namespacedServiceGetter: getArtifactServiceGetter(options.artifacts.proxy),
     }),
   );
+
+  // /artifacts/preview reads only the bounded preview file of the authorized parent artifact.
+  for (const previewPath of ['/artifacts/preview', `${basePath}/artifacts/preview`]) {
+    app.get(
+      previewPath,
+      getArtifactsHandler({
+        artifactsConfigs: options.artifacts,
+        useParameter: false,
+        tryExtract: false,
+        options: options,
+        contentPreview: true,
+      }),
+    );
+  }
 
   // /artifacts/get endpoint tries to extract the artifact to return pure text content
   app.get(

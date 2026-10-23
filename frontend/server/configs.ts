@@ -198,6 +198,11 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Additional object-store origins allowed for secret-backed provider configs. */
     ALLOWED_ARTIFACT_ENDPOINTS = '',
+    /**
+     * Skips the artifact request limiter. The profile controller sets this only on namespace
+     * artifact servers, which receive requests the shared UI server already limited per user.
+     */
+    ARTIFACTS_RATE_LIMIT_DISABLED = 'false',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
     HTTP_AUTHORIZATION_KEY = '',
     /** http/https fetch with this authorization header value by default when absent in client request at above key */
@@ -336,6 +341,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
       allowedEndpoints: parseAllowedArtifactEndpoints(ALLOWED_ARTIFACT_ENDPOINTS),
+      rateLimitDisabled: asBool(ARTIFACTS_RATE_LIMIT_DISABLED),
     },
     metadata: {
       envoyService: {
@@ -491,6 +497,7 @@ export interface UIConfigs {
     streamLogsFromServerApi: boolean;
     allowedDomain: string;
     allowedEndpoints: string[];
+    rateLimitDisabled: boolean;
   };
   pod: {
     logContainerName: string;
