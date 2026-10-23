@@ -26,14 +26,11 @@ export type ModelPreviewValue =
   PreviewScalar | ModelPreviewValue[] | { [key: string]: ModelPreviewValue };
 
 /**
- * Where a preview is stored: v1 inside the artifact directory (manual producers), v2 sibling
- * beside it (SDK default, keeps directory readers such as Polars working), or v2 inline in
- * metadata (2.18 SDK, which cannot upload a sibling object).
+ * Where a preview is stored: v1 inside the artifact directory (manual producers), or v2 sibling
+ * beside it (SDK default, keeps directory readers such as Polars working).
  */
 export type ArtifactPreviewDescriptor =
-  | { version: 1; path: '_kfp_preview.json' }
-  | { version: 2; storage: 'sibling' }
-  | { version: 2; storage: 'inline'; content: string };
+  { version: 1; path: '_kfp_preview.json' } | { version: 2; storage: 'sibling' };
 
 export interface DatasetPreview {
   version: 1;
@@ -138,15 +135,8 @@ export function getArtifactPreviewDescriptor(
   if (descriptor.version === 2 && descriptor.storage === 'sibling') {
     return { version: 2, storage: 'sibling' };
   }
-  if (
-    descriptor.version === 2 &&
-    descriptor.storage === 'inline' &&
-    typeof descriptor.content === 'string'
-  ) {
-    return { version: 2, storage: 'inline', content: descriptor.content };
-  }
   return invalid(
-    'The preview descriptor must specify version 1 with path "_kfp_preview.json", or version 2 with storage "sibling" or "inline" content.',
+    'The preview descriptor must specify version 1 with path "_kfp_preview.json", or version 2 with storage "sibling".',
   );
 }
 

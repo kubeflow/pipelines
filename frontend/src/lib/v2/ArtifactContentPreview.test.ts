@@ -45,19 +45,13 @@ describe('artifact preview contract', () => {
     expect(
       getArtifactPreviewDescriptor({ _kfp_preview: { version: 2, storage: 'sibling', extra: 1 } }),
     ).toEqual({ version: 2, storage: 'sibling' });
-    expect(
-      getArtifactPreviewDescriptor({
-        _kfp_preview: { version: 2, storage: 'inline', content: '{}' },
-      }),
-    ).toEqual({ version: 2, storage: 'inline', content: '{}' });
     for (const descriptor of [
       null,
       true,
       {},
       { version: 2, path: '_kfp_preview.json' },
       { version: 2, storage: 'object' },
-      { version: 2, storage: 'inline' },
-      { version: 2, storage: 'inline', content: { rows: [] } },
+      { version: 2, storage: 'inline', content: '{}' },
       { version: 1, path: '../_kfp_preview.json' },
     ]) {
       expect(() => getArtifactPreviewDescriptor({ _kfp_preview: descriptor })).toThrow();

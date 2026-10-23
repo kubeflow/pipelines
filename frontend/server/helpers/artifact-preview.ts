@@ -48,10 +48,7 @@ export interface ArtifactContentPreviewRequest {
   objectSuffix: ArtifactPreviewObjectSuffix;
 }
 
-/**
- * Maps a trusted `_kfp_preview` metadata descriptor to its storage location.
- * Inline previews are rendered by the browser from metadata and never fetched.
- */
+/** Maps a trusted `_kfp_preview` metadata descriptor to its storage location. */
 export function getPreviewObjectSuffix(descriptor: unknown): ArtifactPreviewObjectSuffix {
   if (descriptor && typeof descriptor === 'object' && !Array.isArray(descriptor)) {
     const fields = descriptor as Record<string, unknown>;
@@ -61,16 +58,10 @@ export function getPreviewObjectSuffix(descriptor: unknown): ArtifactPreviewObje
     if (fields.version === 2 && fields.storage === 'sibling') {
       return SIBLING_PREVIEW_SUFFIX;
     }
-    if (fields.version === 2 && fields.storage === 'inline') {
-      throw new ArtifactPreviewError(
-        422,
-        'Inline previews are stored in artifact metadata and have no preview file.',
-      );
-    }
   }
   throw new ArtifactPreviewError(
     422,
-    'Invalid preview descriptor. Use version 1 with path "_kfp_preview.json", or version 2 with storage "sibling" or "inline".',
+    'Invalid preview descriptor. Use version 1 with path "_kfp_preview.json", or version 2 with storage "sibling".',
   );
 }
 

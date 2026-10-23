@@ -523,15 +523,10 @@ any non-Parquet file in the directory. Have Polars consumers read the data file
 or a `*.parquet` glob. The automatic SDK previews avoid this by using sibling
 storage.
 
-The UI also accepts two version 2 descriptors, which manual producers should not
-need:
-
-* `{'version': 2, 'storage': 'sibling'}`: the preview is the object at
-  `<artifact-uri>.kfp-preview.json`. The SDK writes
-  `<artifact-path>.kfp-preview.json` locally and the launcher uploads it.
-* `{'version': 2, 'storage': 'inline', 'content': '<preview JSON string>'}`:
-  the preview JSON (at most 64 KiB) is stored in the metadata itself. KFP 2.18
-  SDKs publish this form, so their previews keep rendering after an upgrade.
+The UI also accepts the version 2 descriptor
+`{'version': 2, 'storage': 'sibling'}`, which manual producers should not need:
+the preview is the object at `<artifact-uri>.kfp-preview.json`. The SDK writes
+`<artifact-path>.kfp-preview.json` locally and the launcher uploads it.
 
 Before setting the metadata, serialize with `json.dumps(..., allow_nan=False)`,
 verify the encoded content fits **64 KiB**, and atomically rename a temporary
