@@ -20,17 +20,15 @@ printed or saved.
 """
 
 import argparse
-from datetime import datetime
-from datetime import timezone
 import json
 import re
 import selectors
 import subprocess
 import time
+from datetime import datetime, timezone
 
 from kfp_http import CollectionError
-from live_schedule_check import load
-from live_schedule_check import timestamp
+from live_schedule_check import load, timestamp
 from readiness import kill_process_group
 
 CONTEXT = 'kind-kfp-readiness'
@@ -42,24 +40,29 @@ SCOPE = 'isolated_namespace_account_activation_window'
 SCENARIOS = {
     'default': 'pipeline-runner',
     'scoped': 'readiness-granted',
-    'denied': ACCOUNT
+    'denied': ACCOUNT,
 }
-MESSAGE = ('security_audit control=service_account mode=audit '
-           'operation=authorize_service_account reason=account_denied '
-           'namespace="' + NAMESPACE + '" service_account="' + ACCOUNT + '" '
-           'disposition=allow_policy_violation')
-LINE = re.compile(r'^(\S+)\s+W\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+\s+\d+\s+'
-                  r'resource_manager\.go:\d+\]\s+' + re.escape(MESSAGE) +
-                  r'\s*$')
+MESSAGE = (
+    'security_audit control=service_account mode=audit '
+    'operation=authorize_service_account reason=account_denied '
+    'namespace="' + NAMESPACE + '" service_account="' + ACCOUNT + '" '
+    'disposition=allow_policy_violation'
+)
+LINE = re.compile(
+    r'^(\S+)\s+W\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+\s+\d+\s+'
+    r'resource_manager\.go:\d+\]\s+' + re.escape(MESSAGE) + r'\s*$'
+)
 
 
 def validate_completion(report, start):
-    if (report.get('scope') != 'fixture_run_completion' or
-            report.get('mode') != 'audit' or
-            report.get('outcome') != 'passed' or
-            report.get('all_expected_runs_succeeded') is not True or
-            report.get('namespace') != NAMESPACE or
-            timestamp(report.get('observation_start')) != start):
+    if (
+        report.get('scope') != 'fixture_run_completion'
+        or report.get('mode') != 'audit'
+        or report.get('outcome') != 'passed'
+        or report.get('all_expected_runs_succeeded') is not True
+        or report.get('namespace') != NAMESPACE
+        or timestamp(report.get('observation_start')) != start
+    ):
         raise ValueError('successful_audit_fixture_required')
     cases = report.get('cases')
     if not isinstance(cases, list) or len(cases) != len(SCENARIOS):
@@ -67,15 +70,23 @@ def validate_completion(report, start):
     seen = set()
     for case in cases:
         scenario = case.get('scenario')
-        if scenario not in SCENARIOS or scenario in seen or case.get(
-                'service_account') != SCENARIOS[scenario]:
+        if (
+            scenario not in SCENARIOS
+            or scenario in seen
+            or case.get('service_account') != SCENARIOS[scenario]
+        ):
             raise ValueError('audit_fixture_identity_mismatch')
         seen.add(scenario)
         records = case.get('runs')
-        if not isinstance(records, list) or not records or len(
-                records) > 10000 or not all(
-                    isinstance(run, dict) and run.get('state') == 'SUCCEEDED'
-                    for run in records):
+        if (
+            not isinstance(records, list)
+            or not records
+            or len(records) > 10000
+            or not all(
+                isinstance(run, dict) and run.get('state') == 'SUCCEEDED'
+                for run in records
+            )
+        ):
             raise ValueError('successful_audit_fixture_required')
 
 
@@ -83,19 +94,29 @@ def collect_logs(context, start):
     if context != CONTEXT:
         raise ValueError('isolated_test_context_required')
     command = [
-        'kubectl', '--context', CONTEXT, '--request-timeout=20s', '--namespace',
-        'kubeflow', 'logs', '--selector=app=ml-pipeline',
-        '--container=ml-pipeline-api-server', '--timestamps=true', '--tail=-1',
-        '--ignore-errors=false', '--since-time=' + start.isoformat(),
-        '--limit-bytes=' + str(MAX_BYTES + 1)
+        'kubectl',
+        '--context',
+        CONTEXT,
+        '--request-timeout=20s',
+        '--namespace',
+        'kubeflow',
+        'logs',
+        '--selector=app=ml-pipeline',
+        '--container=ml-pipeline-api-server',
+        '--timestamps=true',
+        '--tail=-1',
+        '--ignore-errors=false',
+        '--since-time=' + start.isoformat(),
+        '--limit-bytes=' + str(MAX_BYTES + 1),
     ]
     chunks = bytearray()
     try:
         with subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True) as process:
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        ) as process:
             with selectors.DefaultSelector() as selector:
                 selector.register(process.stdout, selectors.EVENT_READ)
                 deadline = time.monotonic() + TIMEOUT
@@ -105,7 +126,8 @@ def collect_logs(context, start):
                         kill_process_group(process)
                         raise CollectionError('audit_collection_timed_out')
                     chunk = process.stdout.read1(
-                        min(65536, MAX_BYTES + 1 - len(chunks)))
+                        min(65536, MAX_BYTES + 1 - len(chunks))
+                    )
                     if not chunk:
                         break
                     chunks.extend(chunk)
@@ -114,11 +136,13 @@ def collect_logs(context, start):
                         raise CollectionError('audit_collection_exceeded_limit')
                 try:
                     code = process.wait(
-                        timeout=max(0.01, deadline - time.monotonic()))
+                        timeout=max(0.01, deadline - time.monotonic())
+                    )
                 except subprocess.TimeoutExpired:
                     kill_process_group(process)
                     raise CollectionError(
-                        'audit_collection_timed_out') from None
+                        'audit_collection_timed_out'
+                    ) from None
                 if code:
                     raise CollectionError('audit_collection_failed')
     except OSError:
@@ -142,7 +166,8 @@ def count_records(logs, start):
                     count += 1
             except ValueError:
                 raise CollectionError(
-                    'audit_record_invalid_timestamp') from None
+                    'audit_record_invalid_timestamp'
+                ) from None
     return count
 
 
@@ -156,7 +181,8 @@ def main(argv=None):
         outcome='inconclusive',
         scope=SCOPE,
         namespace=NAMESPACE,
-        service_account=ACCOUNT)
+        service_account=ACCOUNT,
+    )
     try:
         start = timestamp(args.not_before)
         age = (datetime.now(timezone.utc) - start).total_seconds()
@@ -167,7 +193,8 @@ def main(argv=None):
         report.update(
             outcome='passed' if count else 'inconclusive',
             matching_records=count,
-            observation_start=start.isoformat())
+            observation_start=start.isoformat(),
+        )
         if not count:
             report['reason'] = 'matching_audit_record_not_observed'
     except (OSError, ValueError, TypeError, KeyError, AttributeError):

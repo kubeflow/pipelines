@@ -20,82 +20,91 @@ import capture_live_schedule_baseline as capture
 
 def inputs():
     definitions = {
-        'cases': [{
-            'schedule_uid': 'uid',
-            'schedule_name': 'nightly',
-            'service_account': 'runner',
-            'scenario': 'default',
-            'expected_prediction': 'no_issue_detected',
-            'expected_outcome': 'run_created'
-        }]
+        'cases': [
+            {
+                'schedule_uid': 'uid',
+                'schedule_name': 'nightly',
+                'service_account': 'runner',
+                'scenario': 'default',
+                'expected_prediction': 'no_issue_detected',
+                'expected_outcome': 'run_created',
+            }
+        ]
     }
     report = {
-        'findings': [{
-            'rule': 'schedule.targetMainAccount',
-            'resource': 'ScheduledWorkflow/team/nightly',
-            'status': 'no_issue_detected'
-        }]
+        'findings': [
+            {
+                'rule': 'schedule.targetMainAccount',
+                'resource': 'ScheduledWorkflow/team/nightly',
+                'status': 'no_issue_detected',
+            }
+        ]
     }
     return definitions, report
 
 
 class BaselineTest(unittest.TestCase):
-
     def test_capture_keeps_only_baseline_identifiers(self):
         definitions, report = inputs()
         schedules = {
-            'items': [{
-                'metadata': {
-                    'uid': 'uid',
-                    'name': 'nightly',
-                    'namespace': 'team'
+            'items': [
+                {
+                    'metadata': {
+                        'uid': 'uid',
+                        'name': 'nightly',
+                        'namespace': 'team',
+                    }
                 }
-            }]
+            ]
         }
-        events = [{
-            'metadata': {
-                'uid': 'event'
-            },
-            'involvedObject': {
-                'uid': 'uid'
-            },
-            'count': 2,
-            'message': 'private message'
-        }]
-        with mock.patch.object(
-                capture, 'kubectl_get',
-                return_value=(schedules, None)), mock.patch.object(
-                    capture, 'list_events',
-                    return_value=events), mock.patch.object(
-                        capture,
-                        'list_runs',
-                        return_value=[{
-                            'run_id': 'run',
-                            'parameters': 'private inputs'
-                        }]):
-            result = capture.capture(mock.Mock(), 'context', 'team',
-                                     definitions, report)
+        events = [
+            {
+                'metadata': {'uid': 'event'},
+                'involvedObject': {'uid': 'uid'},
+                'count': 2,
+                'message': 'private message',
+            }
+        ]
+        with (
+            mock.patch.object(
+                capture, 'kubectl_get', return_value=(schedules, None)
+            ),
+            mock.patch.object(capture, 'list_events', return_value=events),
+            mock.patch.object(
+                capture,
+                'list_runs',
+                return_value=[
+                    {'run_id': 'run', 'parameters': 'private inputs'}
+                ],
+            ),
+        ):
+            result = capture.capture(
+                mock.Mock(), 'context', 'team', definitions, report
+            )
         self.assertEqual(result['cases'][0]['baseline_run_ids'], ['run'])
-        self.assertEqual(result['cases'][0]['baseline_event_counts'],
-                         {'event': 2})
+        self.assertEqual(
+            result['cases'][0]['baseline_event_counts'], {'event': 2}
+        )
         self.assertNotIn('private', json.dumps(result))
         self.assertNotIn('baseline_run_ids', definitions['cases'][0])
 
     def test_identity_and_prediction_mismatch_fail(self):
         definitions, report = inputs()
         with mock.patch.object(
-                capture, 'kubectl_get', return_value=({
-                    'items': []
-                }, None)):
-            with self.assertRaisesRegex(ValueError,
-                                        'schedule_identity_mismatch'):
-                capture.capture(mock.Mock(), 'context', 'team', definitions,
-                                report)
+            capture, 'kubectl_get', return_value=({'items': []}, None)
+        ):
+            with self.assertRaisesRegex(
+                ValueError, 'schedule_identity_mismatch'
+            ):
+                capture.capture(
+                    mock.Mock(), 'context', 'team', definitions, report
+                )
         report['findings'][0]['status'] = 'unknown'
         with mock.patch.object(capture, 'kubectl_get') as get:
             with self.assertRaises(ValueError):
-                capture.capture(mock.Mock(), 'context', 'team', definitions,
-                                report)
+                capture.capture(
+                    mock.Mock(), 'context', 'team', definitions, report
+                )
             get.assert_not_called()
 
 

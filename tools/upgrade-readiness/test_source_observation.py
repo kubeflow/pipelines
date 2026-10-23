@@ -13,10 +13,9 @@
 # limitations under the License.
 
 import copy
-from datetime import datetime
-from datetime import timezone
 import json
 import unittest
+from datetime import datetime, timezone
 
 import source_observation as observer
 
@@ -37,20 +36,22 @@ def evidence():
         supported_operations=list(observer.OPERATIONS),
         unobserved_operations=list(observer.OPERATIONS),
         unsupported_checks=list(observer.UNSUPPORTED),
-        records=[])
+        records=[],
+    )
 
 
 class SourceObservationTest(unittest.TestCase):
-
     def assess(self, data):
         return observer.assess(
-            data, '2.17.2', now=datetime(2026, 10, 5, 11, tzinfo=timezone.utc))
+            data, '2.17.2', now=datetime(2026, 10, 5, 11, tzinfo=timezone.utc)
+        )
 
     def test_quiet_complete_interval_never_passes(self):
         findings, summary = self.assess(evidence())
         self.assertTrue(all(row['status'] == 'unknown' for row in findings))
-        self.assertEqual(summary['unobserved_operations'],
-                         list(observer.OPERATIONS))
+        self.assertEqual(
+            summary['unobserved_operations'], list(observer.OPERATIONS)
+        )
         self.assertEqual(summary['checkpoint_age_seconds'], 3540)
         self.assertIn('frontend_operations', summary['unsupported_checks'])
 
@@ -60,13 +61,15 @@ class SourceObservationTest(unittest.TestCase):
             dict(
                 operation='upload_pipeline',
                 observed_at='2026-10-05T10:00:10Z',
-                namespace_omitted=True),
+                namespace_omitted=True,
+            ),
             dict(
                 operation='authorization',
                 observed_at='2026-10-05T10:00:11Z',
                 caller='private-user@example.test',
                 namespace='private-namespace',
-                result='allowed')
+                result='allowed',
+            ),
         ]
         for operation in ('upload_pipeline', 'authorization'):
             data['operations'][operation] = 1
@@ -77,8 +80,10 @@ class SourceObservationTest(unittest.TestCase):
         self.assertEqual(summary['authenticated_callers_observed'], 1)
         self.assertEqual(summary['omitted_namespace_uploads_retained'], 1)
         self.assertTrue(
-            any(row['rule'] == 'observation.uploadNamespace'
-                for row in findings))
+            any(
+                row['rule'] == 'observation.uploadNamespace' for row in findings
+            )
+        )
         for secret in ('private-user', 'private-namespace'):
             self.assertNotIn(secret, json.dumps([findings, summary]))
 
@@ -99,7 +104,8 @@ class SourceObservationTest(unittest.TestCase):
         data = evidence()
         data.update(
             checkpoint_at='2026-10-05T10:30:00Z',
-            ended_at='2026-10-05T10:30:00Z')
+            ended_at='2026-10-05T10:30:00Z',
+        )
         data['operations']['create_run'] = 1
         data['unobserved_operations'].remove('create_run')
         data['records'] = [
@@ -115,19 +121,29 @@ class SourceObservationTest(unittest.TestCase):
             lambda d: d.update(checkpoint_at='2026-10-06T10:02:00Z'),
             lambda d: d.update(started_at='2026-10-05T10:00:00'),
             lambda d: d['health'].update(dropped_limit=-1),
-            lambda d: d['operations'].update(upload_pipeline=True), lambda d: d[
-                'unsupported_checks'].remove('target_policy_evaluation'),
+            lambda d: d['operations'].update(upload_pipeline=True),
+            lambda d: d['unsupported_checks'].remove(
+                'target_policy_evaluation'
+            ),
             lambda d: d.update(unobserved_operations=[]),
-            lambda d: d.update(records=[
-                dict(
-                    operation='upload_pipeline',
-                    observed_at='2026-10-05T10:00:10Z')
-            ]), lambda d: d.update(records=[
-                dict(
-                    operation='authorization',
-                    observed_at='2026-10-05T10:00:10Z',
-                    token='never')
-            ]), lambda d: d.update(records=[{}] * 513)
+            lambda d: d.update(
+                records=[
+                    dict(
+                        operation='upload_pipeline',
+                        observed_at='2026-10-05T10:00:10Z',
+                    )
+                ]
+            ),
+            lambda d: d.update(
+                records=[
+                    dict(
+                        operation='authorization',
+                        observed_at='2026-10-05T10:00:10Z',
+                        token='never',
+                    )
+                ]
+            ),
+            lambda d: d.update(records=[{}] * 513),
         ]
         for mutation in mutations:
             data = evidence()

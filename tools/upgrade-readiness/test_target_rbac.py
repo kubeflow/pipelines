@@ -20,44 +20,37 @@ from target_rbac import evaluate_use
 GROUP = 'rbac.authorization.k8s.io'
 USER = 'system:serviceaccount:system:controller'
 GROUPS = [
-    'system:serviceaccounts', 'system:serviceaccounts:system',
-    'system:authenticated'
+    'system:serviceaccounts',
+    'system:serviceaccounts:system',
+    'system:authenticated',
 ]
 
 
 def evidence():
     return [
         {
-            'kind':
-                'Role',
-            'metadata': {
-                'name': 'submit',
-                'namespace': 'team'
-            },
-            'rules': [{
-                'apiGroups': [''],
-                'resources': ['serviceaccounts'],
-                'verbs': ['use'],
-                'resourceNames': ['runner']
-            }]
+            'kind': 'Role',
+            'metadata': {'name': 'submit', 'namespace': 'team'},
+            'rules': [
+                {
+                    'apiGroups': [''],
+                    'resources': ['serviceaccounts'],
+                    'verbs': ['use'],
+                    'resourceNames': ['runner'],
+                }
+            ],
         },
         {
-            'kind':
-                'RoleBinding',
-            'metadata': {
-                'name': 'submit',
-                'namespace': 'team'
-            },
-            'roleRef': {
-                'apiGroup': GROUP,
-                'kind': 'Role',
-                'name': 'submit'
-            },
-            'subjects': [{
-                'kind': 'ServiceAccount',
-                'name': 'controller',
-                'namespace': 'system'
-            }]
+            'kind': 'RoleBinding',
+            'metadata': {'name': 'submit', 'namespace': 'team'},
+            'roleRef': {'apiGroup': GROUP, 'kind': 'Role', 'name': 'submit'},
+            'subjects': [
+                {
+                    'kind': 'ServiceAccount',
+                    'name': 'controller',
+                    'namespace': 'system',
+                }
+            ],
         },
     ]
 
@@ -68,13 +61,13 @@ def check(items, complete=True, **kwargs):
         groups=GROUPS,
         namespace='team',
         account='runner',
-        complete=complete)
+        complete=complete,
+    )
     args.update(kwargs)
     return evaluate_use(items, **args)
 
 
 class TargetRbacTest(unittest.TestCase):
-
     def test_named_grant_and_partial_denial(self):
         self.assertEqual(check(evidence(), complete=False), 'allowed')
         self.assertEqual(check(evidence(), account='other'), 'denied')
@@ -97,8 +90,11 @@ class TargetRbacTest(unittest.TestCase):
         self.assertEqual(check(items), 'denied')
 
     def test_api_group_and_verb_must_match(self):
-        for field, value in [('apiGroups', ['pipelines.kubeflow.org']),
-                             ('verbs', ['get']), ('resources', ['pods'])]:
+        for field, value in [
+            ('apiGroups', ['pipelines.kubeflow.org']),
+            ('verbs', ['get']),
+            ('resources', ['pods']),
+        ]:
             items = evidence()
             items[0]['rules'][0][field] = value
             self.assertEqual(check(items), 'denied')
@@ -117,7 +113,8 @@ class TargetRbacTest(unittest.TestCase):
         self.assertEqual(check(items), 'denied')
         self.assertEqual(
             check(items, user='system:serviceaccount:team:controller'),
-            'allowed')
+            'allowed',
+        )
         items[1]['metadata']['namespace'] = 'another'
         self.assertEqual(check(items), 'denied')
 
@@ -168,17 +165,13 @@ class TargetRbacTest(unittest.TestCase):
             self.assertEqual(check(items), 'unknown')
 
     def test_malformed_subject_or_reference(self):
-        for subject in (None, {}, {
-                'kind': 'Group',
-                'name': GROUPS[0]
-        }, {
-                'kind': 'ServiceAccount',
-                'name': 'controller',
-                'namespace': 1
-        }, {
-                'kind': 'Other',
-                'name': USER
-        }):
+        for subject in (
+            None,
+            {},
+            {'kind': 'Group', 'name': GROUPS[0]},
+            {'kind': 'ServiceAccount', 'name': 'controller', 'namespace': 1},
+            {'kind': 'Other', 'name': USER},
+        ):
             items = evidence()
             items[1]['subjects'] = [subject]
             self.assertEqual(check(items), 'unknown')
@@ -210,17 +203,13 @@ class TargetRbacTest(unittest.TestCase):
         self.assertEqual(check(items), 'denied')
 
     def test_identity_input_shape(self):
-        for changes in ({
-                'groups': '*'
-        }, {
-                'user': ''
-        }, {
-                'namespace': None
-        }, {
-                'account': 4
-        }, {
-                'complete': 'true'
-        }):
+        for changes in (
+            {'groups': '*'},
+            {'user': ''},
+            {'namespace': None},
+            {'account': 4},
+            {'complete': 'true'},
+        ):
             self.assertEqual(check(evidence(), **changes), 'unknown')
 
 

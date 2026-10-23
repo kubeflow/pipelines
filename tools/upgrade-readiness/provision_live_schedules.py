@@ -14,18 +14,17 @@
 """MUTATING helper for disposable kind upgrade CI; never a readiness scan."""
 
 import argparse
-from datetime import datetime
-from datetime import timezone
 import http.client
 import ipaddress
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import time
 import urllib.parse
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
 
 from readiness import kubectl_get
 
@@ -68,18 +67,24 @@ class FixtureClient:
     def __init__(self, endpoint, token_file):
         try:
             parsed = urllib.parse.urlsplit(endpoint)
-            if (parsed.scheme != 'http' or parsed.username is not None or
-                    parsed.password is not None or
-                    parsed.path not in ('', '/') or parsed.query or
-                    parsed.fragment or not parsed.port or
-                    not ipaddress.ip_address(parsed.hostname).is_loopback):
+            if (
+                parsed.scheme != 'http'
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.path not in ('', '/')
+                or parsed.query
+                or parsed.fragment
+                or not parsed.port
+                or not ipaddress.ip_address(parsed.hostname).is_loopback
+            ):
                 raise ValueError()
             self.host, self.port = parsed.hostname, parsed.port
             with open(token_file, 'rb') as stream:
                 raw = stream.read(16385)
             token = raw.decode('ascii').strip()
-            if len(raw) > 16384 or not re.fullmatch(r'[A-Za-z0-9._~+/-]+=*',
-                                                    token):
+            if len(raw) > 16384 or not re.fullmatch(
+                r'[A-Za-z0-9._~+/-]+=*', token
+            ):
                 raise ValueError()
             self.token = token
         except (OSError, ValueError, TypeError):
@@ -87,14 +92,16 @@ class FixtureClient:
 
     def post(self, path, body):
         if not re.fullmatch(
-                r'/apis/v2beta1/(experiments|recurringruns)(/[a-zA-Z0-9_.-]+:(enable|disable))?',
-                path):
+            r'/apis/v2beta1/(experiments|recurringruns)(/[a-zA-Z0-9_.-]+:(enable|disable))?',
+            path,
+        ):
             raise FixtureError('invalid_fixture_api_path')
         payload = json.dumps(body).encode('utf-8')
         if len(payload) > MAX_BYTES:
             raise FixtureError('request_limit_exceeded')
         connection = http.client.HTTPConnection(
-            self.host, self.port, timeout=20)
+            self.host, self.port, timeout=20
+        )
         try:
             deadline = time.monotonic() + 20
             connection.request(
@@ -104,8 +111,9 @@ class FixtureClient:
                 headers={
                     'Authorization': 'Bearer ' + self.token,
                     'Content-Type': 'application/json',
-                    'Accept-Encoding': 'identity'
-                })
+                    'Accept-Encoding': 'identity',
+                },
+            )
             response = connection.getresponse()
             if response.status < 200 or response.status >= 300:
                 raise FixtureError('fixture_api_request_rejected')
@@ -137,20 +145,27 @@ class FixtureClient:
 
 def kubectl_create(context, objects):
     try:
-        result = subprocess.run([
-            'kubectl', '--context', context, '--request-timeout=20s', 'create',
-            '-f', '-', '-o', 'name'
-        ],
-                                input=json.dumps({
-                                    'apiVersion': 'v1',
-                                    'kind': 'List',
-                                    'items': objects
-                                }),
-                                text=True,
-                                stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL,
-                                timeout=30,
-                                check=False)
+        result = subprocess.run(
+            [
+                'kubectl',
+                '--context',
+                context,
+                '--request-timeout=20s',
+                'create',
+                '-f',
+                '-',
+                '-o',
+                'name',
+            ],
+            input=json.dumps(
+                {'apiVersion': 'v1', 'kind': 'List', 'items': objects}
+            ),
+            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+            check=False,
+        )
         if result.returncode:
             raise FixtureError('fixture_kubernetes_create_failed')
     except (OSError, subprocess.TimeoutExpired):
@@ -158,13 +173,17 @@ def kubectl_create(context, objects):
 
 
 def resource(kind, name, **fields):
-    group = 'rbac.authorization.k8s.io/v1' if kind in ('Role',
-                                                       'RoleBinding') else 'v1'
+    group = (
+        'rbac.authorization.k8s.io/v1'
+        if kind in ('Role', 'RoleBinding')
+        else 'v1'
+    )
     return dict(
         apiVersion=group,
         kind=kind,
         metadata=dict(name=name, namespace=NAMESPACE),
-        **fields)
+        **fields,
+    )
 
 
 def binding(name, role, names, namespace=NAMESPACE):
@@ -172,22 +191,28 @@ def binding(name, role, names, namespace=NAMESPACE):
         'RoleBinding',
         name,
         roleRef=dict(
-            apiGroup='rbac.authorization.k8s.io', kind='Role', name=role),
+            apiGroup='rbac.authorization.k8s.io', kind='Role', name=role
+        ),
         subjects=[
             dict(kind='ServiceAccount', name=n, namespace=namespace)
             for n in names
-        ])
+        ],
+    )
 
 
 def fixture_rbac(runner_rules):
     objects = [resource('ServiceAccount', name) for name in (OWNER,) + ACCOUNTS]
     objects += [
         resource('Role', 'pipeline-runner', rules=runner_rules),
-        binding('fixture-runners', 'pipeline-runner', ACCOUNTS)
+        binding('fixture-runners', 'pipeline-runner', ACCOUNTS),
     ]
     api_resources = [
-        'experiments', 'jobs', 'recurringruns', 'runs', 'pipelines',
-        'pipelines/versions'
+        'experiments',
+        'jobs',
+        'recurringruns',
+        'runs',
+        'pipelines',
+        'pipelines/versions',
     ]
     objects += [
         resource(
@@ -198,14 +223,22 @@ def fixture_rbac(runner_rules):
                     apiGroups=['pipelines.kubeflow.org'],
                     resources=api_resources,
                     verbs=[
-                        'create', 'get', 'list', 'update', 'enable', 'disable'
-                    ]),
+                        'create',
+                        'get',
+                        'list',
+                        'update',
+                        'enable',
+                        'disable',
+                    ],
+                ),
                 dict(
                     apiGroups=[''],
                     resources=['serviceaccounts'],
                     resourceNames=list(ACCOUNTS[1:]),
-                    verbs=['use'])
-            ]),
+                    verbs=['use'],
+                ),
+            ],
+        ),
         binding('fixture-owner', 'fixture-owner', [OWNER]),
         resource(
             'Role',
@@ -214,30 +247,44 @@ def fixture_rbac(runner_rules):
                 dict(
                     apiGroups=['pipelines.kubeflow.org'],
                     resources=['runs', 'pipelines', 'pipelines/versions'],
-                    verbs=['create', 'get', 'list']),
+                    verbs=['create', 'get', 'list'],
+                ),
                 dict(
                     apiGroups=[''],
                     resources=['serviceaccounts'],
                     resourceNames=['readiness-granted'],
-                    verbs=['use'])
-            ]),
-        binding('fixture-controller', 'fixture-controller',
-                ['ml-pipeline-scheduledworkflow'], 'kubeflow')
+                    verbs=['use'],
+                ),
+            ],
+        ),
+        binding(
+            'fixture-controller',
+            'fixture-controller',
+            ['ml-pipeline-scheduledworkflow'],
+            'kubeflow',
+        ),
     ]
     return objects
 
 
 def source_role(context, name):
     role, error = kubectl_get(context, 'kubeflow', 'role/' + name)
-    if error or not isinstance(role, dict) or not isinstance(
-            role.get('rules'), list) or not role['rules']:
+    if (
+        error
+        or not isinstance(role, dict)
+        or not isinstance(role.get('rules'), list)
+        or not role['rules']
+    ):
         raise FixtureError('fixture_source_role_unavailable')
     # A copied infrastructure role must not invalidate the denied-account case.
     for rule in role['rules']:
-        if (any(g in ('', '*') for g in rule.get('apiGroups', [])) and any(
-                r in ('serviceaccounts', '*')
-                for r in rule.get('resources', [])) and
-                any(v in ('use', '*') for v in rule.get('verbs', []))):
+        if (
+            any(g in ('', '*') for g in rule.get('apiGroups', []))
+            and any(
+                r in ('serviceaccounts', '*') for r in rule.get('resources', [])
+            )
+            and any(v in ('use', '*') for v in rule.get('verbs', []))
+        ):
             raise FixtureError('fixture_source_role_grants_account_use')
     return role['rules']
 
@@ -246,24 +293,27 @@ def fixture_runtime_config(context):
     """Copy only disposable installation configuration needed by Argo
     runners."""
     objects = []
-    for kind, name in (('Secret', 'mlpipeline-minio-artifact'),
-                       ('ConfigMap', 'kfp-launcher')):
-        value, error = kubectl_get(context, 'kubeflow',
-                                   kind.lower() + '/' + name)
+    for kind, name in (
+        ('Secret', 'mlpipeline-minio-artifact'),
+        ('ConfigMap', 'kfp-launcher'),
+    ):
+        value, error = kubectl_get(
+            context, 'kubeflow', kind.lower() + '/' + name
+        )
         if error or not isinstance(value, dict):
             raise FixtureError('fixture_runtime_config_unavailable')
         data = value.get('data', {})
         if not isinstance(data, dict) or not all(
-                isinstance(k, str) and isinstance(v, str)
-                for k, v in data.items()):
+            isinstance(k, str) and isinstance(v, str) for k, v in data.items()
+        ):
             raise FixtureError('invalid_fixture_runtime_config')
         if len(json.dumps(data).encode('utf-8')) > MAX_BYTES:
             raise FixtureError('fixture_runtime_config_limit')
         if kind == 'Secret':
-            if value.get(
-                    'type',
-                    'Opaque') != 'Opaque' or not {'accesskey', 'secretkey'
-                                                 } <= set(data):
+            if value.get('type', 'Opaque') != 'Opaque' or not {
+                'accesskey',
+                'secretkey',
+            } <= set(data):
                 raise FixtureError('invalid_fixture_artifact_secret')
             objects.append(resource(kind, name, data=data, type='Opaque'))
         else:
@@ -275,40 +325,49 @@ def infrastructure_rbac(context):
     """Copy installed namespace roles; grant API authentication reviews
     separately."""
     objects = []
-    for role, account in (('ml-pipeline', 'ml-pipeline'),
-                          ('ml-pipeline-scheduledworkflow-role',
-                           'ml-pipeline-scheduledworkflow'),
-                          ('ml-pipeline-persistenceagent-role',
-                           'ml-pipeline-persistenceagent')):
+    for role, account in (
+        ('ml-pipeline', 'ml-pipeline'),
+        ('ml-pipeline-scheduledworkflow-role', 'ml-pipeline-scheduledworkflow'),
+        ('ml-pipeline-persistenceagent-role', 'ml-pipeline-persistenceagent'),
+    ):
         name = 'fixture-' + account + '-infrastructure'
         objects += [
             resource('Role', name, rules=source_role(context, role)),
-            binding(name, name, [account], 'kubeflow')
+            binding(name, name, [account], 'kubeflow'),
         ]
-    deployment, error = kubectl_get(context, 'kubeflow',
-                                    'deployment/workflow-controller')
+    deployment, error = kubectl_get(
+        context, 'kubeflow', 'deployment/workflow-controller'
+    )
     if error or not isinstance(deployment, dict):
         raise FixtureError('fixture_argo_deployment_unavailable')
     account = api_identifier(
-        deployment.get('spec', {}).get('template',
-                                       {}).get('spec',
-                                               {}).get('serviceAccountName'))
+        deployment.get('spec', {})
+        .get('template', {})
+        .get('spec', {})
+        .get('serviceAccountName')
+    )
     bindings, error = kubectl_get(context, 'kubeflow', 'rolebindings')
-    if error or not isinstance(bindings, dict) or not isinstance(
-            bindings.get('items'), list):
+    if (
+        error
+        or not isinstance(bindings, dict)
+        or not isinstance(bindings.get('items'), list)
+    ):
         raise FixtureError('fixture_argo_roles_unavailable')
     roles = set()
     for item in bindings['items']:
         subjects = item.get('subjects', [])
         if not any(
-                subject.get('kind') == 'ServiceAccount' and
-                subject.get('name') == account and
-                subject.get('namespace', 'kubeflow') == 'kubeflow'
-                for subject in subjects):
+            subject.get('kind') == 'ServiceAccount'
+            and subject.get('name') == account
+            and subject.get('namespace', 'kubeflow') == 'kubeflow'
+            for subject in subjects
+        ):
             continue
         reference = item.get('roleRef', {})
-        if reference.get('kind') != 'Role' or reference.get(
-                'apiGroup') != 'rbac.authorization.k8s.io':
+        if (
+            reference.get('kind') != 'Role'
+            or reference.get('apiGroup') != 'rbac.authorization.k8s.io'
+        ):
             raise FixtureError('fixture_requires_namespaced_argo_roles')
         roles.add(api_identifier(reference.get('name')))
     if not roles or len(roles) > 10:
@@ -317,7 +376,7 @@ def infrastructure_rbac(context):
         name = 'fixture-argo-infrastructure-' + str(index)
         objects += [
             resource('Role', name, rules=source_role(context, role)),
-            binding(name, name, [account], 'kubeflow')
+            binding(name, name, [account], 'kubeflow'),
         ]
     # TokenReview and SubjectAccessReview are cluster-scoped even when the
     # installation's ordinary execution permissions are namespaced.
@@ -331,12 +390,15 @@ def infrastructure_rbac(context):
                 dict(
                     apiGroups=['authentication.k8s.io'],
                     resources=['tokenreviews'],
-                    verbs=['create']),
+                    verbs=['create'],
+                ),
                 dict(
                     apiGroups=['authorization.k8s.io'],
                     resources=['subjectaccessreviews'],
-                    verbs=['create'])
-            ]),
+                    verbs=['create'],
+                ),
+            ],
+        ),
         dict(
             apiVersion='rbac.authorization.k8s.io/v1',
             kind='ClusterRoleBinding',
@@ -344,22 +406,27 @@ def infrastructure_rbac(context):
             roleRef=dict(
                 apiGroup='rbac.authorization.k8s.io',
                 kind='ClusterRole',
-                name=name),
+                name=name,
+            ),
             subjects=[
                 dict(
                     kind='ServiceAccount',
                     name='ml-pipeline',
-                    namespace='kubeflow')
-            ])
+                    namespace='kubeflow',
+                )
+            ],
+        ),
     ]
     return objects
 
 
 def verify_state(context, state):
     marker = state.get('owner_marker', '')
-    if state.get('context') != CONTEXT or state.get(
-            'namespace') != NAMESPACE or not re.fullmatch(
-                r'[a-f0-9]{32}', marker):
+    if (
+        state.get('context') != CONTEXT
+        or state.get('namespace') != NAMESPACE
+        or not re.fullmatch(r'[a-f0-9]{32}', marker)
+    ):
         raise FixtureError('invalid_fixture_state')
     obj, error = kubectl_get(context, None, 'namespace/' + NAMESPACE)
     if error or obj.get('metadata', {}).get('labels', {}).get(LABEL) != marker:
@@ -378,16 +445,22 @@ def provision_rbac(context, state_dir):
         context=CONTEXT,
         namespace=NAMESPACE,
         owner_marker=uuid.uuid4().hex,
-        schedules=[])
+        schedules=[],
+    )
     extra_roles = infrastructure_rbac(context) + fixture_runtime_config(context)
     write_object(path, state)
-    kubectl_create(context, [
-        dict(
-            apiVersion='v1',
-            kind='Namespace',
-            metadata=dict(
-                name=NAMESPACE, labels={LABEL: state['owner_marker']}))
-    ])
+    kubectl_create(
+        context,
+        [
+            dict(
+                apiVersion='v1',
+                kind='Namespace',
+                metadata=dict(
+                    name=NAMESPACE, labels={LABEL: state['owner_marker']}
+                ),
+            )
+        ],
+    )
     verify_state(context, state)
     kubectl_create(context, fixture_rbac(role['rules']) + extra_roles)
     state['rbac_ready'] = True
@@ -396,19 +469,22 @@ def provision_rbac(context, state_dir):
 
 def api_identifier(value):
     if not isinstance(value, str) or not re.fullmatch(
-            r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,252}', value):
+        r'[a-zA-Z0-9][a-zA-Z0-9_.-]{0,252}', value
+    ):
         raise FixtureError('invalid_api_identifier')
     return value
 
 
 def schedule_identity(context, recurring_id):
     for _ in range(10):
-        data, error = kubectl_get(context, NAMESPACE,
-                                  'scheduledworkflows.kubeflow.org')
+        data, error = kubectl_get(
+            context, NAMESPACE, 'scheduledworkflows.kubeflow.org'
+        )
         if error or not isinstance(data.get('items'), list):
             raise FixtureError('fixture_schedule_collection_failed')
         matches = [
-            s for s in data['items']
+            s
+            for s in data['items']
             if s.get('metadata', {}).get('uid') == recurring_id
         ]
         if len(matches) == 1:
@@ -427,21 +503,31 @@ def schedule_identity(context, recurring_id):
 def prepare(context, state_dir, state, client, pipeline_spec):
     if not state.get('rbac_ready'):
         raise FixtureError('fixture_rbac_not_ready')
-    if state.get('prepared') or state.get('schedules') or state.get(
-            'experiment_id'):
+    if (
+        state.get('prepared')
+        or state.get('schedules')
+        or state.get('experiment_id')
+    ):
         raise FixtureError(
-            'fixture_already_or_partially_prepared_use_fresh_cluster')
+            'fixture_already_or_partially_prepared_use_fresh_cluster'
+        )
     # Require compiled V2 IR; the CI supplies a reviewed trivial workload.
-    if not pipeline_spec.get('pipelineInfo') or not pipeline_spec.get(
-            'root') or not pipeline_spec.get('deploymentSpec'):
+    if (
+        not pipeline_spec.get('pipelineInfo')
+        or not pipeline_spec.get('root')
+        or not pipeline_spec.get('deploymentSpec')
+    ):
         raise FixtureError('compiled_v2_pipeline_required')
     experiment = client.post(
         '/apis/v2beta1/experiments',
         dict(
             display_name='readiness-' + state['owner_marker'],
-            namespace=NAMESPACE))
+            namespace=NAMESPACE,
+        ),
+    )
     state['experiment_id'] = api_identifier(
-        experiment.get('experiment_id', experiment.get('experimentId')))
+        experiment.get('experiment_id', experiment.get('experimentId'))
+    )
     write_object(state_dir / 'state.json', state)
     for scenario, account in zip(('default', 'scoped', 'denied'), ACCOUNTS):
         payload = dict(
@@ -451,14 +537,17 @@ def prepare(context, state_dir, state, client, pipeline_spec):
             max_concurrency='1',
             mode='DISABLE',
             no_catchup=True,
-            trigger=dict(periodic_schedule=dict(interval_second='30')))
+            trigger=dict(periodic_schedule=dict(interval_second='30')),
+        )
         if scenario != 'default':
             payload['service_account'] = account
         response = client.post('/apis/v2beta1/recurringruns', payload)
         uid = api_identifier(
-            response.get('recurring_run_id', response.get('recurringRunId')))
+            response.get('recurring_run_id', response.get('recurringRunId'))
+        )
         record = dict(
-            scenario=scenario, schedule_uid=uid, service_account=account)
+            scenario=scenario, schedule_uid=uid, service_account=account
+        )
         state['schedules'].append(record)
         # Preserve IDs immediately so disable remains possible after partial failure.
         write_object(state_dir / 'state.json', state)
@@ -474,9 +563,13 @@ def prepare(context, state_dir, state, client, pipeline_spec):
                 record,
                 expected_outcome='blocked' if denied else 'run_created',
                 expected_prediction='policy_rejection'
-                if denied else 'no_issue_detected'))
-    write_object(state_dir / 'cases.json',
-                 dict(namespace=NAMESPACE, cases=cases))
+                if denied
+                else 'no_issue_detected',
+            )
+        )
+    write_object(
+        state_dir / 'cases.json', dict(namespace=NAMESPACE, cases=cases)
+    )
 
 
 def set_enabled(state_dir, state, client, enabled):
@@ -491,8 +584,11 @@ def set_enabled(state_dir, state, client, enabled):
     for uid in ids:
         try:
             client.post(
-                '/apis/v2beta1/recurringruns/' + uid +
-                (':enable' if enabled else ':disable'), {})
+                '/apis/v2beta1/recurringruns/'
+                + uid
+                + (':enable' if enabled else ':disable'),
+                {},
+            )
         except FixtureError:
             failures = True
             if enabled:
@@ -503,7 +599,8 @@ def set_enabled(state_dir, state, client, enabled):
             for uid in ids:
                 try:
                     client.post(
-                        '/apis/v2beta1/recurringruns/' + uid + ':disable', {})
+                        '/apis/v2beta1/recurringruns/' + uid + ':disable', {}
+                    )
                 except FixtureError:
                     pass
         raise FixtureError('fixture_activation_change_failed')
@@ -511,7 +608,8 @@ def set_enabled(state_dir, state, client, enabled):
     if enabled:
         state['activation_start'] = start
         (state_dir / 'activation-start.txt').write_text(
-            start + '\n', encoding='utf-8')
+            start + '\n', encoding='utf-8'
+        )
     write_object(state_dir / 'state.json', state)
 
 
@@ -522,7 +620,8 @@ def main():
     parser.add_argument(
         '--phase',
         required=True,
-        choices=('rbac', 'prepare', 'enable', 'disable'))
+        choices=('rbac', 'prepare', 'enable', 'disable'),
+    )
     parser.add_argument('--state-dir', required=True)
     parser.add_argument('--endpoint')
     parser.add_argument('--token-file')
@@ -540,14 +639,19 @@ def main():
             verify_state(args.context, state)
             client = FixtureClient(args.endpoint, args.token_file)
             if args.phase == 'prepare':
-                prepare(args.context, state_dir, state, client,
-                        read_object(args.pipeline_spec))
+                prepare(
+                    args.context,
+                    state_dir,
+                    state,
+                    client,
+                    read_object(args.pipeline_spec),
+                )
             else:
                 set_enabled(state_dir, state, client, args.phase == 'enable')
     except (OSError, ValueError, TypeError, KeyError, AttributeError):
         parser.exit(
             1,
-            'Fixture operation failed; inspect the isolated cluster and fixture state before retrying.\n'
+            'Fixture operation failed; inspect the isolated cluster and fixture state before retrying.\n',
         )
 
 

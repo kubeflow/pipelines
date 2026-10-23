@@ -29,22 +29,29 @@ def unique(records, field, value):
 
 
 def validate(bundle):
-    if not isinstance(bundle,
-                      dict) or bundle.get('policy_contract') != CONTRACT:
+    if (
+        not isinstance(bundle, dict)
+        or bundle.get('policy_contract') != CONTRACT
+    ):
         raise ValueError('Unsupported schedule policy contract.')
     if not re.fullmatch(r'[0-9a-f]{40}', bundle.get('target_revision', '')):
         raise ValueError('Supply a full target revision.')
     for name in ('recurring_runs', 'experiments', 'rbac'):
         if not isinstance(bundle.get(name), list):
             raise ValueError('Policy evidence requires lists.')
-    if sum(
+    if (
+        sum(
             len(bundle[name])
-            for name in ('recurring_runs', 'experiments', 'rbac')) > 10000:
+            for name in ('recurring_runs', 'experiments', 'rbac')
+        )
+        > 10000
+    ):
         raise ValueError('Target evidence exceeds 10000 records; reduce scope.')
     for name in ('multi_user', 'rbac_complete', 'rbac_only'):
         if not isinstance(bundle.get(name), bool):
             raise ValueError(
-                'Policy evidence requires explicit boolean settings.')
+                'Policy evidence requires explicit boolean settings.'
+            )
     if bundle.get('mode') not in ('enforce', 'audit'):
         raise ValueError('Invalid service-account mode.')
     for name in ('default_service_account', 'controller_user'):
@@ -52,7 +59,8 @@ def validate(bundle):
             raise ValueError('Missing target identity settings.')
     allow = bundle.get('allowed_service_accounts')
     if not isinstance(allow, list) or not all(
-            isinstance(a, str) for a in allow):
+        isinstance(a, str) for a in allow
+    ):
         raise ValueError('Invalid account allowlist.')
     return bundle
 
@@ -60,40 +68,49 @@ def validate(bundle):
 def assess(schedule, bundle):
     """Never equate one account check with successful schedule execution."""
     unknown = (
-        'unknown', 'Target main-account authorization could not be resolved.',
-        'Collect the persisted recurring run and experiment, resolve its pipeline identity, and verify the target settings.'
+        'unknown',
+        'Target main-account authorization could not be resolved.',
+        'Collect the persisted recurring run and experiment, resolve its pipeline identity, and verify the target settings.',
     )
     if not bundle['multi_user']:
         return (
             'unknown',
             'Single-user policy is outside this multi-user prediction contract.',
-            'Verify single-user execution separately.')
+            'Verify single-user execution separately.',
+        )
     metadata = schedule['metadata']
-    job = unique(bundle['recurring_runs'], 'recurring_run_id',
-                 metadata.get('uid'))
+    job = unique(
+        bundle['recurring_runs'], 'recurring_run_id', metadata.get('uid')
+    )
     if job is None:
         return unknown
     # The API record is authoritative; do not trust the editable CR identity.
-    experiment = unique(bundle['experiments'], 'experiment_id',
-                        job.get('experiment_id'))
+    experiment = unique(
+        bundle['experiments'], 'experiment_id', job.get('experiment_id')
+    )
     if experiment is None:
         return unknown
     namespace = experiment.get('namespace')
-    if not isinstance(
-            namespace,
-            str) or not namespace or namespace != metadata['namespace']:
+    if (
+        not isinstance(namespace, str)
+        or not namespace
+        or namespace != metadata['namespace']
+    ):
         return unknown
     if job.get('namespace') not in (None, '', namespace):
         return unknown
     account = job.get('service_account')
     account_source = 'Persisted recurring-run account '
-    if account in (None, ''
-                  ) and job.get('_readiness_v2_default') is True and bundle.get(
-                      'compiled_pipeline_spec_patch') == {}:
+    if (
+        account in (None, '')
+        and job.get('_readiness_v2_default') is True
+        and bundle.get('compiled_pipeline_spec_patch') == {}
+    ):
         account = bundle['default_service_account']
         account_source = 'V2-shaped template default account (target compiler patch asserted empty) '
     if not isinstance(account, str) or not re.fullmatch(
-            r'[a-z0-9]([-a-z0-9.]*[a-z0-9])?', account):
+        r'[a-z0-9]([-a-z0-9.]*[a-z0-9])?', account
+    ):
         # An empty request can acquire an identity from the pipeline/compiler.
         return unknown
     spec = schedule.get('spec', {})
@@ -101,14 +118,18 @@ def assess(schedule, bundle):
     if isinstance(workflow, dict) and workflow.get('spec') is not None:
         return unknown
     evidence = (
-        account_source + namespace + '/' + account +
-        '; prediction conditional on supplied target revision/settings and controller identity. '
+        account_source
+        + namespace
+        + '/'
+        + account
+        + '; prediction conditional on supplied target revision/settings and controller identity. '
     )
     if account == bundle['default_service_account']:
         return (
-            'no_issue_detected', evidence +
-            'Configured default account is exempt from this use check.',
-            'Verify resolved compiled/plugin identities and other schedule checks separately.'
+            'no_issue_detected',
+            evidence
+            + 'Configured default account is exempt from this use check.',
+            'Verify resolved compiled/plugin identities and other schedule checks separately.',
         )
     allowed = bundle['allowed_service_accounts']
     listed = account in [name.strip() for name in allowed]
@@ -119,30 +140,39 @@ def assess(schedule, bundle):
         # KFP IsAuthorized submits User without Groups for this policy contract.
         decision = evaluate_use(
             bundle['rbac'],
-            bundle['controller_user'], [],
+            bundle['controller_user'],
+            [],
             namespace,
             account,
-            complete=bundle['rbac_complete'] and bundle['rbac_only'])
+            complete=bundle['rbac_complete'] and bundle['rbac_only'],
+        )
         if not listed and decision == 'allowed':
             decision = 'denied'
-        reason = 'Target RBAC/allowlist ' + decision + ' for core serviceaccounts/use on the named account (user only, no groups).'
+        reason = (
+            'Target RBAC/allowlist '
+            + decision
+            + ' for core serviceaccounts/use on the named account (user only, no groups).'
+        )
     if decision == 'denied':
         if bundle['mode'] == 'audit':
             return (
                 'operational_impact',
                 evidence + reason + ' Audit mode records the policy denial.',
-                'Correct the allowlist or grant only the named account before switching to enforce; authorization infrastructure failures can still block.'
+                'Correct the allowlist or grant only the named account before switching to enforce; authorization infrastructure failures can still block.',
             )
         return (
-            'policy_rejection', evidence + reason,
-            'Correct the target allowlist or add a narrowly scoped named-account use grant to the controller; rerun the assessment.'
+            'policy_rejection',
+            evidence + reason,
+            'Correct the target allowlist or add a narrowly scoped named-account use grant to the controller; rerun the assessment.',
         )
     if decision == 'allowed':
         return (
-            'no_issue_detected', evidence + reason,
-            'This covers the main account check only; validate workflow identities, run creation, pipeline access and schedule execution separately.'
+            'no_issue_detected',
+            evidence + reason,
+            'This covers the main account check only; validate workflow identities, run creation, pipeline access and schedule execution separately.',
         )
     return (
-        'unknown', evidence + reason,
-        'Supply complete target RBAC-only evidence or verify the exact authorization request against the target authorizer; current-cluster permissions are not target evidence.'
+        'unknown',
+        evidence + reason,
+        'Supply complete target RBAC-only evidence or verify the exact authorization request against the target authorizer; current-cluster permissions are not target evidence.',
     )

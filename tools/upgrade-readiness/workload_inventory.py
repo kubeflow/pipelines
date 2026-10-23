@@ -21,8 +21,7 @@ serialization or CLI.
 from datetime import datetime
 
 from kfp_http import CollectionError
-from kfp_inventory import field
-from kfp_inventory import identifier
+from kfp_inventory import field, identifier
 
 MAX_RECORDS = 10000
 MAX_PAGES = 100
@@ -30,8 +29,11 @@ API = '/apis/v2beta1/'
 RESOURCES = {
     'experiments': ('experiment_id', 'experimentId', 'experiments'),
     'pipelines': ('pipeline_id', 'pipelineId', 'pipelines'),
-    'pipeline_versions':
-        ('pipeline_version_id', 'pipelineVersionId', 'pipelineVersions'),
+    'pipeline_versions': (
+        'pipeline_version_id',
+        'pipelineVersionId',
+        'pipelineVersions',
+    ),
     'runs': ('run_id', 'runId', 'runs'),
     'recurring_runs': ('recurring_run_id', 'recurringRunId', 'recurringRuns'),
 }
@@ -74,17 +76,18 @@ def _created_at(raw):
 
 
 class _Collector:
-
-    def __init__(self, client, namespaces, include_shared,
-                 source_single_user_namespace):
+    def __init__(
+        self, client, namespaces, include_shared, source_single_user_namespace
+    ):
         self.client = client
         self.namespaces = list(dict.fromkeys(namespaces))
         for namespace in self.namespaces:
             identifier(namespace)
             if namespace == '-':
                 raise CollectionError('invalid_namespace')
-        if (source_single_user_namespace is not None and
-                self.namespaces != [source_single_user_namespace]):
+        if source_single_user_namespace is not None and self.namespaces != [
+            source_single_user_namespace
+        ]:
             raise CollectionError('invalid_single_user_namespace')
         self.single_user_namespace = source_single_user_namespace
         self.include_shared = include_shared
@@ -101,7 +104,8 @@ class _Collector:
 
     def fail(self, namespace, resource, reason, traversal=None):
         self.failures.append(
-            dict(namespace=namespace, resource=resource, reason=reason))
+            dict(namespace=namespace, resource=resource, reason=reason)
+        )
         if traversal is not None:
             traversal['failed_checks'] += 1
 
@@ -109,8 +113,11 @@ class _Collector:
         actual = raw.get('namespace')
         if inherited and actual in (None, ''):
             evidence = 'parent_resource'
-        elif self.single_user_namespace == namespace and actual in (None, '',
-                                                                    '-'):
+        elif self.single_user_namespace == namespace and actual in (
+            None,
+            '',
+            '-',
+        ):
             evidence = 'operator_asserted_single_user'
         elif namespace in ('', '-') and actual in (None, '', '-'):
             evidence = 'shared_pipeline'
@@ -128,9 +135,9 @@ class _Collector:
         if previous is not None:
             if previous['namespace'] != raw['namespace']:
                 raise CollectionError('record_scope_changed')
-            if (resource == 'pipeline_versions' and
-                    field(previous, 'pipeline_id', 'pipelineId') != field(
-                        raw, 'pipeline_id', 'pipelineId')):
+            if resource == 'pipeline_versions' and field(
+                previous, 'pipeline_id', 'pipelineId'
+            ) != field(raw, 'pipeline_id', 'pipelineId'):
                 raise CollectionError('pipeline_version_mismatch')
             return previous
         if sum(map(len, self.inventory.values())) >= MAX_RECORDS:
@@ -150,7 +157,8 @@ class _Collector:
             listed_records=0,
             unique_listed_records=0,
             records=0,
-            failed_checks=0)
+            failed_checks=0,
+        )
         if parent_id is not None:
             traversal['parent_id'] = parent_id
         self.resources[key] = traversal
@@ -159,7 +167,8 @@ class _Collector:
         try:
             for _ in range(MAX_PAGES):
                 response = self.client.get(
-                    path, dict(params, page_size=100, page_token=token))
+                    path, dict(params, page_size=100, page_token=token)
+                )
                 response = _record(response)
                 traversal['pages'] += 1
                 records = field(response, resource, RESOURCES[resource][2])
@@ -169,13 +178,16 @@ class _Collector:
                     raise CollectionError('invalid_resource_list')
                 size = field(response, 'total_size', 'totalSize')
                 if size is not None:
-                    if isinstance(
-                            size,
-                            bool) or not isinstance(size, int) or size < 0:
+                    if (
+                        isinstance(size, bool)
+                        or not isinstance(size, int)
+                        or size < 0
+                    ):
                         raise CollectionError('invalid_total_size')
                     if total_size is not None and size != total_size:
-                        self.fail(namespace, resource, 'list_size_changed',
-                                  traversal)
+                        self.fail(
+                            namespace, resource, 'list_size_changed', traversal
+                        )
                     total_size = size
                 page_ids = set()
                 for raw in records:
@@ -196,18 +208,24 @@ class _Collector:
                                     raw,
                                     namespace,
                                     inherited=resource
-                                    not in ('experiments', 'pipelines'))
-                                if (resource == 'pipeline_versions' and
-                                        field(raw, 'pipeline_id', 'pipelineId')
-                                        != field(accepted, 'pipeline_id',
-                                                 'pipelineId')):
+                                    not in ('experiments', 'pipelines'),
+                                )
+                                if resource == 'pipeline_versions' and field(
+                                    raw, 'pipeline_id', 'pipelineId'
+                                ) != field(
+                                    accepted, 'pipeline_id', 'pipelineId'
+                                ):
                                     raise CollectionError(
-                                        'pipeline_version_mismatch')
-                                if (resource in ('runs', 'recurring_runs') and
-                                        field(raw, 'experiment_id',
-                                              'experimentId') != field(
-                                                  accepted, 'experiment_id',
-                                                  'experimentId')):
+                                        'pipeline_version_mismatch'
+                                    )
+                                if resource in (
+                                    'runs',
+                                    'recurring_runs',
+                                ) and field(
+                                    raw, 'experiment_id', 'experimentId'
+                                ) != field(
+                                    accepted, 'experiment_id', 'experimentId'
+                                ):
                                     raise CollectionError('experiment_mismatch')
                     except CollectionError as error:
                         if error.reason == 'record_limit':
@@ -246,7 +264,8 @@ class _Collector:
                 raise CollectionError('namespace_mismatch')
             return previous
         raw = _record(
-            self.client.get(API + resource + '/' + identifier(record_id)))
+            self.client.get(API + resource + '/' + identifier(record_id))
+        )
         if _id(raw, resource) != record_id:
             raise CollectionError('referenced_id_mismatch')
         return self.store(resource, self.scope(raw, namespace))
@@ -257,7 +276,8 @@ class _Collector:
         if previous is not None:
             return previous
         raw = _record(
-            self.client.get(API + 'pipelines/' + identifier(pipeline_id)))
+            self.client.get(API + 'pipelines/' + identifier(pipeline_id))
+        )
         if _id(raw, 'pipelines') != pipeline_id:
             raise CollectionError('referenced_id_mismatch')
         namespace = raw.get('namespace')
@@ -281,13 +301,14 @@ class _Collector:
         if _id(full, resource) != record_id:
             raise CollectionError('referenced_id_mismatch')
         if resource == 'pipeline_versions':
-            if field(full, 'pipeline_id',
-                     'pipelineId') != field(raw, 'pipeline_id', 'pipelineId'):
+            if field(full, 'pipeline_id', 'pipelineId') != field(
+                raw, 'pipeline_id', 'pipelineId'
+            ):
                 raise CollectionError('pipeline_version_mismatch')
         else:
-            if field(full, 'experiment_id',
-                     'experimentId') != field(raw, 'experiment_id',
-                                              'experimentId'):
+            if field(full, 'experiment_id', 'experimentId') != field(
+                raw, 'experiment_id', 'experimentId'
+            ):
                 raise CollectionError('experiment_mismatch')
         self.scope(full, raw['namespace'], inherited=True)
         # Keep one coherent response: field aliases from two responses may
@@ -306,10 +327,14 @@ class _Collector:
         def accept(raw):
             if field(raw, 'pipeline_id', 'pipelineId') != pipeline_id:
                 raise CollectionError('pipeline_version_mismatch')
-            raw = self.store('pipeline_versions',
-                             self.scope(raw, namespace, inherited=True))
-            self.hydrate('pipeline_versions', raw,
-                         path + '/' + identifier(_id(raw, 'pipeline_versions')))
+            raw = self.store(
+                'pipeline_versions', self.scope(raw, namespace, inherited=True)
+            )
+            self.hydrate(
+                'pipeline_versions',
+                raw,
+                path + '/' + identifier(_id(raw, 'pipeline_versions')),
+            )
             if not isinstance(_spec(raw), dict) or not _spec(raw):
                 raise CollectionError('pipeline_spec_unavailable')
 
@@ -319,18 +344,28 @@ class _Collector:
             path,
             dict(sort_by='created_at desc'),
             accept,
-            parent_id=pipeline_id)
+            parent_id=pipeline_id,
+        )
         self.version_lists[pipeline_id] = traversal
         return traversal
 
     def resolve(self, raw):
-        reference = field(raw, 'pipeline_version_reference',
-                          'pipelineVersionReference')
+        reference = field(
+            raw, 'pipeline_version_reference', 'pipelineVersionReference'
+        )
         legacy_version = field(raw, 'pipeline_version_id', 'pipelineVersionId')
         if legacy_version not in (None, ''):
             identifier(legacy_version)
-        if sum((reference is not None, legacy_version
-                not in (None, ''), _spec(raw) is not None)) > 1:
+        if (
+            sum(
+                (
+                    reference is not None,
+                    legacy_version not in (None, ''),
+                    _spec(raw) is not None,
+                )
+            )
+            > 1
+        ):
             raise CollectionError('conflicting_pipeline_source')
         if reference is None and not legacy_version:
             if not isinstance(_spec(raw), dict) or not _spec(raw):
@@ -353,8 +388,9 @@ class _Collector:
             pipeline_id = field(reference, 'pipeline_id', 'pipelineId')
             identifier(pipeline_id)
             annotation['pipeline_id'] = pipeline_id
-            version_id = field(reference, 'pipeline_version_id',
-                               'pipelineVersionId')
+            version_id = field(
+                reference, 'pipeline_version_id', 'pipelineVersionId'
+            )
             if version_id not in (None, ''):
                 identifier(version_id)
             pipeline = self.pipeline(pipeline_id)
@@ -362,11 +398,15 @@ class _Collector:
             if not version_id:
                 annotation['kind'] = 'moving_latest'
                 candidates = [
-                    v for v in self.inventory['pipeline_versions'].values()
+                    v
+                    for v in self.inventory['pipeline_versions'].values()
                     if field(v, 'pipeline_id', 'pipelineId') == pipeline_id
                 ]
-                if not traversal['list_complete'] or traversal[
-                        'failed_checks'] or not candidates:
+                if (
+                    not traversal['list_complete']
+                    or traversal['failed_checks']
+                    or not candidates
+                ):
                     raise CollectionError('moving_latest_version_unresolved')
                 # The source's latest query sorts by creation time only. A tie
                 # has no stable winner, even if a list response has an order.
@@ -374,13 +414,19 @@ class _Collector:
                 newest = max(timestamps)
                 if timestamps.count(newest) != 1:
                     raise CollectionError('moving_latest_version_ambiguous')
-                version_id = _id(candidates[timestamps.index(newest)],
-                                 'pipeline_versions')
+                version_id = _id(
+                    candidates[timestamps.index(newest)], 'pipeline_versions'
+                )
             identifier(version_id)
             version = self.inventory['pipeline_versions'].get(version_id)
             if version is None:
-                path = API + 'pipelines/' + identifier(
-                    pipeline_id) + '/versions/' + identifier(version_id)
+                path = (
+                    API
+                    + 'pipelines/'
+                    + identifier(pipeline_id)
+                    + '/versions/'
+                    + identifier(version_id)
+                )
                 version = _record(self.client.get(path))
                 if _id(version, 'pipeline_versions') != version_id:
                     raise CollectionError('referenced_id_mismatch')
@@ -388,7 +434,8 @@ class _Collector:
                     raise CollectionError('pipeline_version_mismatch')
                 version = self.store(
                     'pipeline_versions',
-                    self.scope(version, pipeline['namespace'], inherited=True))
+                    self.scope(version, pipeline['namespace'], inherited=True),
+                )
         if field(version, 'pipeline_id', 'pipelineId') != pipeline_id:
             raise CollectionError('pipeline_version_mismatch')
         if not isinstance(_spec(version), dict) or not _spec(version):
@@ -396,7 +443,8 @@ class _Collector:
         annotation.update(
             pipeline_id=pipeline_id,
             pipeline_version_id=version_id,
-            resolution='observed')
+            resolution='observed',
+        )
         raw['_readiness_pipeline_spec'] = _spec(version)
 
     def recurring_parent(self, raw):
@@ -407,18 +455,21 @@ class _Collector:
         parent = self.inventory['recurring_runs'].get(recurring_id)
         if parent is None:
             parent = _record(
-                self.client.get(API + 'recurringruns/' +
-                                identifier(recurring_id)))
+                self.client.get(
+                    API + 'recurringruns/' + identifier(recurring_id)
+                )
+            )
             if _id(parent, 'recurring_runs') != recurring_id:
                 raise CollectionError('referenced_id_mismatch')
             experiment_id = field(parent, 'experiment_id', 'experimentId')
             self.parent('experiments', experiment_id, raw['namespace'])
             parent = self.store(
                 'recurring_runs',
-                self.scope(parent, raw['namespace'], inherited=True))
-        if (parent['namespace'] != raw['namespace'] or
-                field(parent, 'experiment_id', 'experimentId') != field(
-                    raw, 'experiment_id', 'experimentId')):
+                self.scope(parent, raw['namespace'], inherited=True),
+            )
+        if parent['namespace'] != raw['namespace'] or field(
+            parent, 'experiment_id', 'experimentId'
+        ) != field(raw, 'experiment_id', 'experimentId'):
             raise CollectionError('recurring_run_scope_mismatch')
 
     def workloads(self, resource, namespace):
@@ -427,18 +478,26 @@ class _Collector:
         def accept(raw):
             experiment_id = field(raw, 'experiment_id', 'experimentId')
             self.parent('experiments', experiment_id, namespace)
-            raw = self.store(resource,
-                             self.scope(raw, namespace, inherited=True))
+            raw = self.store(
+                resource, self.scope(raw, namespace, inherited=True)
+            )
             try:
                 self.hydrate(
-                    resource, raw,
-                    API + endpoint + '/' + identifier(_id(raw, resource)))
+                    resource,
+                    raw,
+                    API + endpoint + '/' + identifier(_id(raw, resource)),
+                )
             except CollectionError as error:
                 self.annotate_failure(raw, error.reason)
                 raise
 
-        self.pages(resource, namespace, API + endpoint,
-                   dict(namespace=namespace), accept)
+        self.pages(
+            resource,
+            namespace,
+            API + endpoint,
+            dict(namespace=namespace),
+            accept,
+        )
 
     def collect(self):
         for namespace in self.namespaces:
@@ -448,8 +507,10 @@ class _Collector:
                     namespace,
                     API + resource,
                     dict(namespace=namespace),
-                    lambda raw, resource=resource, namespace=namespace: self.
-                    store(resource, self.scope(raw, namespace)))
+                    lambda raw, resource=resource, namespace=namespace: (
+                        self.store(resource, self.scope(raw, namespace))
+                    ),
+                )
         if self.include_shared and self.single_user_namespace is None:
             for namespace in ('', '-'):
                 self.pages(
@@ -458,7 +519,9 @@ class _Collector:
                     API + 'pipelines',
                     dict(namespace=namespace),
                     lambda raw, namespace=namespace: self.store(
-                        'pipelines', self.scope(raw, namespace)))
+                        'pipelines', self.scope(raw, namespace)
+                    ),
+                )
         for pipeline in list(self.inventory['pipelines'].values()):
             self.versions(pipeline)
         for namespace in self.namespaces:
@@ -473,17 +536,22 @@ class _Collector:
                 except CollectionError as error:
                     self.annotate_failure(raw, error.reason)
                     self.fail(
-                        raw['namespace'], resource + '/' + record_id,
+                        raw['namespace'],
+                        resource + '/' + record_id,
                         error.reason,
-                        self.resources[(resource, raw['namespace'], None)])
+                        self.resources[(resource, raw['namespace'], None)],
+                    )
         for traversal in self.resources.values():
             records = self.inventory[traversal['resource']].values()
             traversal['records'] = sum(
-                record['namespace'] == traversal['namespace'] and
-                ('parent_id' not in traversal or
-                 field(record, 'pipeline_id',
-                       'pipelineId') == traversal['parent_id'])
-                for record in records)
+                record['namespace'] == traversal['namespace']
+                and (
+                    'parent_id' not in traversal
+                    or field(record, 'pipeline_id', 'pipelineId')
+                    == traversal['parent_id']
+                )
+                for record in records
+            )
         inventory = {
             key: list(records.values())
             for key, records in self.inventory.items()
@@ -498,15 +566,15 @@ class _Collector:
             },
             failed_checks=len(self.failures),
             snapshot_consistency='not_atomic',
-            complete=not self.failures and
-            all(item['list_complete'] for item in self.resources.values()))
+            complete=not self.failures
+            and all(item['list_complete'] for item in self.resources.values()),
+        )
         return inventory, self.failures, coverage
 
 
-def collect(client,
-            namespaces,
-            include_shared=False,
-            source_single_user_namespace=None):
+def collect(
+    client, namespaces, include_shared=False, source_single_user_namespace=None
+):
     """Collect scoped records without following package, artifact, or log URLs.
 
     Shared collection is limited to pipelines and their versions. Empty
@@ -514,20 +582,22 @@ def collect(client,
     explicit single-user assertion; that assertion is retained in
     coverage and records.
     """
-    return _Collector(client, namespaces, include_shared,
-                      source_single_user_namespace).collect()
+    return _Collector(
+        client, namespaces, include_shared, source_single_user_namespace
+    ).collect()
 
 
 class _OfflineClient:
-
     def get(self, path, params=None):
         raise CollectionError('offline_reference_missing')
 
 
-def validate(inventory,
-             namespaces,
-             include_shared=False,
-             source_single_user_namespace=None):
+def validate(
+    inventory,
+    namespaces,
+    include_shared=False,
+    source_single_user_namespace=None,
+):
     """Validate offline workload evidence and recompute collection annotations.
 
     This validates the supplied snapshot, not its completeness or
@@ -535,16 +605,22 @@ def validate(inventory,
     cannot be resolved from an offline list whose sorting and traversal
     were not observed by the collector.
     """
-    collector = _Collector(_OfflineClient(), namespaces, include_shared,
-                           source_single_user_namespace)
+    collector = _Collector(
+        _OfflineClient(),
+        namespaces,
+        include_shared,
+        source_single_user_namespace,
+    )
     if not isinstance(inventory, dict):
         raise CollectionError('invalid_workload_inventory')
     for resource in RESOURCES:
         records = inventory.get(resource, [])
         if not isinstance(records, list):
             raise CollectionError('invalid_resource_list')
-    if sum(len(inventory.get(resource, []))
-           for resource in RESOURCES) > MAX_RECORDS:
+    if (
+        sum(len(inventory.get(resource, [])) for resource in RESOURCES)
+        > MAX_RECORDS
+    ):
         raise CollectionError('record_limit')
 
     def namespace(raw, shared=False):
@@ -573,8 +649,9 @@ def validate(inventory,
                 identifier(parent_id)
                 parent = collector.inventory['experiments'].get(parent_id)
             if resource in ('experiments', 'pipelines'):
-                collector.scope(raw,
-                                namespace(raw, shared=resource == 'pipelines'))
+                collector.scope(
+                    raw, namespace(raw, shared=resource == 'pipelines')
+                )
             elif parent is not None:
                 collector.scope(raw, parent['namespace'], inherited=True)
             else:
@@ -585,7 +662,8 @@ def validate(inventory,
         if resource == 'pipelines':
             for pipeline_id in collector.inventory['pipelines']:
                 collector.version_lists[pipeline_id] = dict(
-                    list_complete=False, failed_checks=0)
+                    list_complete=False, failed_checks=0
+                )
 
     for resource in ('runs', 'recurring_runs'):
         for raw in collector.inventory[resource].values():
