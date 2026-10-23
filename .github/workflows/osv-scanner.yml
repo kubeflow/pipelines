@@ -8,12 +8,24 @@ on:
     # Every Friday at 19:39
     - cron: '39 19 * * 5'
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Build and Push for master']
+    branches: [master]
+    types: [completed]
+
+# Keep older scans from uploading after a newer publication's scan. Selection
+# always resolves the newest successful producer, even for late events. Source-only
+# pushes and failed producer notifications must not evict a pending image scan.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && 'source' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success' && 'ignored' || 'images' }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   scan-source:
+    if: github.event_name != 'workflow_run'
     name: Scan repository dependencies
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -70,16 +82,60 @@ jobs:
           sarif_file: osv-results-deduplicated.sarif
           category: kubeflow-pipelines-osv-scanner
 
+  resolve-images:
+    name: Resolve successful master publication
+    if: >-
+      github.event_name != 'push' &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run-id: ${{ steps.producer.outputs.run-id }}
+      run-attempt: ${{ steps.producer.outputs.run-attempt }}
+      sha: ${{ steps.producer.outputs.sha }}
+    steps:
+      - name: Checkout scanner tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Install workflow script dependencies
+        run: python3 -m pip install -r .github/scripts/requirements.txt
+      - name: Select latest successful producer
+        id: producer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 .github/resources/scripts/osv_master_images.py \
+            --repository "${REPOSITORY}" --event-name "${GITHUB_EVENT_NAME}" \
+            --event-path "${GITHUB_EVENT_PATH}" --github-output "${GITHUB_OUTPUT}"
+
   discover-images:
-    name: Discover deployed images
+    needs: resolve-images
+    name: Discover published master and third-party images
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     outputs:
       matrix: ${{ steps.images.outputs.matrix }}
+      images: ${{ steps.images.outputs.images }}
+      sha: ${{ needs.resolve-images.outputs.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
       - name: Set up Python
@@ -104,17 +160,46 @@ jobs:
           tar -xzf "${RUNNER_TEMP}/${kustomize_archive}" -C "${RUNNER_TEMP}"
           chmod +x "${RUNNER_TEMP}/kustomize"
 
+      - name: List required published image records
+        id: image-records
+        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output published-image-files
+
+      - name: Download exact producer publication
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.resolve-images.outputs.run-id }}
+          pattern: published-index-*-${{ needs.resolve-images.outputs.run-attempt }}
+          path: published-indexes
+          merge-multiple: 'true'
+          required-files: ${{ steps.image-records.outputs.required-files }}
+
+      - name: Download producer manifests as data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ needs.resolve-images.outputs.sha }}
+        run: |
+          python3 .github/resources/scripts/osv_manifest_source.py \
+            --repository "${REPOSITORY}" --sha "${SOURCE_SHA}" --destination producer
+
       - name: Render manifests and collect images
         id: images
+        env:
+          SOURCE_SHA: ${{ needs.resolve-images.outputs.sha }}
+          IMAGE_OWNER: ${{ github.repository_owner }}
         run: |
-          image_matrix=$(python3 .github/resources/scripts/osv_manifest_images.py \
+          image_inventory=$(python3 .github/resources/scripts/osv_manifest_images.py \
             --kustomize "${RUNNER_TEMP}/kustomize" \
-            --overlay manifests/kustomize/env/platform-agnostic \
-            --overlay manifests/kustomize/env/platform-agnostic-multi-user)
-          echo "matrix=${image_matrix}" >> "${GITHUB_OUTPUT}"
+            --overlay producer/manifests/kustomize/env/platform-agnostic \
+            --overlay producer/manifests/kustomize/env/platform-agnostic-multi-user \
+            --published-records published-indexes \
+            --source-sha "${SOURCE_SHA}" --image-owner "${IMAGE_OWNER}")
+          echo "matrix=$(jq -c .matrix <<< "${image_inventory}")" >> "${GITHUB_OUTPUT}"
+          echo "images=$(jq -c .images <<< "${image_inventory}")" >> "${GITHUB_OUTPUT}"
 
   scan-images:
-    name: Scan image (${{ matrix.image }})
+    name: Scan image (${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }})
     needs: discover-images
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -124,11 +209,14 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 4
+      # Matrix values also identify code-scanning configurations. Keep versions
+      # in the separate image map so upgrades update the existing configuration.
       matrix: ${{ fromJSON(needs.discover-images.outputs.matrix) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
 
       - name: Install OSV-Scanner
@@ -145,7 +233,7 @@ jobs:
 
       - name: Scan deployed container image
         env:
-          IMAGE: ${{ matrix.image }}
+          IMAGE: ${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}
         run: |
           bash .github/resources/scripts/docker-pull-with-retry.sh "${IMAGE}"
 
@@ -167,9 +255,20 @@ jobs:
             --input osv-image-results.sarif \
             --output osv-image-results-deduplicated.sarif
 
+      - name: Checkout producer source for scan attribution
+        if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ needs.discover-images.outputs.sha }}
+          path: producer
+          persist-credentials: false
+
       - name: Upload image results to GitHub Security
         if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
         uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
           sarif_file: osv-image-results-deduplicated.sarif
+          sha: ${{ needs.discover-images.outputs.sha }}
+          ref: refs/heads/master
+          checkout_path: producer
           category: kubeflow-pipelines-osv-image-${{ matrix.category }}

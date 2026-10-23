@@ -587,7 +587,7 @@
     {
       "path": ".github/workflows/osv-scanner.yml",
       "name": "OSV-Scanner Vulnerability Scan",
-      "header_sha256": "1f4a31bf78499730b30cbc64047d44eead6a0e34390719c0439a5d777b6b6206",
+      "header_sha256": "81c9eb7e0e9bfbd12347d48f7377a913c525c0e13f76123e10641ba2393b2fdd",
       "pull_request": null
     },
     {
