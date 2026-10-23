@@ -203,3 +203,36 @@ test("pipeline uploads attach browser-visible files without the removed upload A
     assert.deepEqual(uploaded, [path.resolve(filename)]);
   }
 });
+
+test("experiment list readiness uses a unique selector with multiple rows", async () => {
+  const { default: vm } = await import("node:vm");
+  const cases = new Map();
+  const selector =
+    '[data-testid="experiment-name-link"][data-experiment-name="helloworld-experiment-123"]';
+  const nativeRequire = createRequire(import.meta.url);
+  const context = {
+    require: (name) => (name === "./test-helpers" ? {} : nativeRequire(name)),
+    describe: (_, fn) => fn(),
+    it: (name, fn) => cases.set(name, fn),
+    before: () => {},
+    after: () => {},
+    Date: { now: () => 123 },
+    $: (query) => {
+      assert.equal(
+        query,
+        selector,
+        "single-element commands must identify the created experiment",
+      );
+      return { waitForDisplayed: async () => {}, isExisting: async () => true };
+    },
+    $$: async () => [{}, {}],
+    process,
+    console,
+    URL,
+  };
+  vm.runInNewContext(
+    await readFile(new URL("./helloworld.spec.js", import.meta.url), "utf8"),
+    context,
+  );
+  await cases.get("displays both experiments in the list")();
+});

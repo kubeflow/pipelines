@@ -305,10 +305,10 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays both experiments in the list', async () => {
-    await $('[data-testid="experiment-name-link"]').waitForDisplayed({ timeout: uiTimeout });
-    const rows = (await $$('[data-testid="experiment-name-link"]')).length;
     const experimentLinkSelector =
       `[data-testid="experiment-name-link"][data-experiment-name="${experimentName}"]`;
+    await $(experimentLinkSelector).waitForDisplayed({ timeout: uiTimeout });
+    const rows = (await $$('[data-testid="experiment-name-link"]')).length;
     assert(rows >= 2, `expected at least two experiments, got: ${rows}`);
     assert(
       await $(experimentLinkSelector).isExisting(),
