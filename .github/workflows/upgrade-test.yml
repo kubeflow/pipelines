@@ -10,7 +10,9 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches: [master, release-2.18]
+
+  workflow_dispatch: {}
 
   pull_request:
     paths:
@@ -24,6 +26,7 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'backend/api/v2/**'
+      - 'tools/upgrade-readiness/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -75,10 +78,18 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Get last release tag
+      - name: Select source release
         shell: bash
         id: get-tag
+        env:
+          RELEASE_218: ${{ github.base_ref == 'release-2.18' || github.ref == 'refs/heads/release-2.18' }}
         run: |
+          if [[ "$RELEASE_218" == "true" ]]; then
+            echo "Using pinned 2.18 upgrade source: 2.17.2"
+            echo "lastRelease=2.17.2" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           lastRelease=""
           for attempt in 1 2 3; do
             lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
@@ -115,6 +126,7 @@ jobs:
           kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${{ steps.get-tag.outputs.lastRelease }}
           kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${{ steps.get-tag.outputs.lastRelease }}
           source "./.github/resources/scripts/helper-functions.sh"
+          EXIT_CODE=0
           wait_for_pods || EXIT_CODE=$?
           if [[ $EXIT_CODE -ne 0 ]]; then
             echo "Deploy unsuccessful. Not all pods running."
@@ -142,7 +154,7 @@ jobs:
 
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.prepare-upgrade.outcome == 'success' }}
+        if: ${{ success() && steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
           image_path: images_${{ github.run_id }}
@@ -160,3 +172,67 @@ jobs:
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Upgrade Verification"
+
+
+  readiness-schedules:
+    # TODO(#14029): Enable only through a reviewed release-branch policy change.
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CLUSTER_NAME: kfp-readiness
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: '3.11'
+          cache-scope: readiness-schedules
+          cache-dependency-hash: ${{ hashFiles('.github/workflows/upgrade-test.yml') }}
+
+      - name: Install fixture manifest reader
+        run: python3 -m pip install 'PyYAML==6.0.3'
+
+      - name: Require integrated scheduling policy
+        run: bash .github/resources/scripts/readiness-schedules.sh preflight
+
+      - name: Create isolated readiness cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: 'v1.36.1'
+          cluster_name: kfp-readiness
+
+      - name: Populate 2.17.2 and capture target predictions
+        run: bash .github/resources/scripts/readiness-schedules.sh source
+
+      - name: Deploy same-run candidate images
+        uses: ./.github/actions/deploy
+        with:
+          cluster_name: kfp-readiness
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
+          forward_port: 'false'
+
+      - name: Compare live enforce and audit schedule outcomes
+        run: bash .github/resources/scripts/readiness-schedules.sh target
+
+      - name: Upload sanitized readiness evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: readiness-schedules-${{ github.run_id }}
+          path: ${{ runner.temp }}/readiness-schedules/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove isolated readiness cluster
+        if: ${{ always() }}
+        run: kind delete cluster --name kfp-readiness
