@@ -459,13 +459,15 @@ function createConfiguredS3Store(
       )
     : sharedS3Transport;
   const anonymous = !credentialProvider && !(config.accessKey && config.secretKey);
+  let resolvedRegion = config.region || 'us-east-1';
   const client = new S3Client({
     endpoint:
       !config.endpointAuthority && config.endPoint === 's3.amazonaws.com' && !config.port
         ? undefined
         : origin,
-    region: config.region || 'us-east-1',
-    followRegionRedirects: true,
+    region: resolvedRegion,
+    // Region corrections must share the same budget as transport and service retries.
+    followRegionRedirects: false,
     forcePathStyle: config.pathStyle ?? !isAwsS3Endpoint(config.endPoint),
     maxAttempts: 1,
     requestChecksumCalculation: 'WHEN_REQUIRED',
@@ -488,6 +490,7 @@ function createConfiguredS3Store(
           const result = await transport.handle(request, options);
           if (attempt) {
             attempt.transportStatus = result.response.statusCode;
+            attempt.bucketRegion = result.response.headers['x-amz-bucket-region'];
             if (result.response.body instanceof Readable) {
               result.response.body.once('error', () => {
                 attempt.transportFailure = true;
@@ -550,15 +553,32 @@ function createConfiguredS3Store(
             },
           };
     return retryS3Operation(async () => {
+      const requestedRegion = resolvedRegion;
       try {
         return await operation();
       } catch (error) {
         if (error instanceof Error) {
           const failure = error as Error & {
             code?: string;
-            $metadata?: { httpStatusCode?: number };
+            Region?: string;
           };
           if (!failure.code) failure.code = failure.name;
+          const attempt = retryContext.attemptStorage.getStore();
+          const region = attempt?.bucketRegion || failure.Region;
+          if (
+            attempt &&
+            ((attempt.transportStatus === 301 && failure.code === 'PermanentRedirect') ||
+              (attempt.transportStatus === 400 &&
+                failure.code === 'AuthorizationHeaderMalformed')) &&
+            typeof region === 'string' &&
+            /^[a-z0-9][a-z0-9-]{0,62}$/.test(region) &&
+            region !== requestedRegion
+          ) {
+            // Cache only the signing region on this bucket-bound client. Never follow Location.
+            resolvedRegion = region;
+            client.config.region = async () => resolvedRegion;
+            attempt.regionCorrection = true;
+          }
         }
         throw error;
       }
@@ -711,6 +731,8 @@ interface S3RetryContext {
 interface S3AttemptContext {
   transportFailure: boolean;
   transportStatus?: number;
+  bucketRegion?: string;
+  regionCorrection?: boolean;
 }
 
 function createS3RetryContext(maxAttempts: number, signal?: AbortSignal): S3RetryContext {
@@ -811,11 +833,16 @@ async function retryS3Operation<T>(
       if (
         operationAttempt >= retryContext.maxAttempts ||
         retryContext.remainingRetryAttempts <= 0 ||
-        !isRetryableS3Error(error, attemptContext.transportStatus, attemptContext.transportFailure)
+        (!attemptContext.regionCorrection &&
+          !isRetryableS3Error(
+            error,
+            attemptContext.transportStatus,
+            attemptContext.transportFailure,
+          ))
       ) {
         throw error;
       }
-      await delay(operationAttempt, retryContext.signal);
+      if (!attemptContext.regionCorrection) await delay(operationAttempt, retryContext.signal);
       operationAttempt += 1;
     }
   }

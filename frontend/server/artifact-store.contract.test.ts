@@ -19,6 +19,7 @@ import {
   CreateBucketCommand,
   DeleteBucketCommand,
   DeleteObjectsCommand,
+  GetObjectCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -246,6 +247,151 @@ describe('S3 artifact store wire contract', () => {
     expect(requests[1].headers.authorization).toContain('/contract-region/s3/aws4_request');
   });
 
+  it.each(['header', 'XML'] as const)(
+    'corrects MinIO AuthorizationHeaderMalformed using the %s region hint',
+    async (hint) => {
+      const requests: IncomingMessage[] = [];
+      const port = await wireServer((req, res) => {
+        requests.push(req);
+        if (!req.headers.authorization?.includes('/eu-west-1/s3/aws4_request')) {
+          if (hint === 'header') res.setHeader('x-amz-bucket-region', 'eu-west-1');
+          res.writeHead(400, { 'content-type': 'application/xml' });
+          res.end(
+            `<Error><Code>AuthorizationHeaderMalformed</Code><Message>wrong region</Message>${hint === 'XML' ? '<Region>eu-west-1</Region>' : ''}</Error>`,
+          );
+        } else res.end('regional artifact');
+      });
+      const store = await createS3ArtifactStore(
+        {
+          endPoint: '127.0.0.1',
+          port,
+          useSSL: false,
+          accessKey: credentials.accessKeyId,
+          secretKey: credentials.secretAccessKey,
+        },
+        'minio',
+        'bucket',
+      );
+      expect(await streamToString(await store.openRead('artifact'))).toBe('regional artifact');
+      expect(requests).toHaveLength(2);
+      expect(requests[0].headers.authorization).toContain('/us-east-1/s3/aws4_request');
+      expect(requests[1].headers.authorization).toContain('/eu-west-1/s3/aws4_request');
+    },
+  );
+
+  it('caches the corrected bucket region across reads and listing pages', async () => {
+    const requests: IncomingMessage[] = [];
+    const port = await wireServer((req, res) => {
+      requests.push(req);
+      if (!req.headers.authorization?.includes('/eu-west-1/s3/aws4_request')) {
+        res.setHeader('x-amz-bucket-region', 'eu-west-1');
+        errorResponse(res, 301, 'PermanentRedirect');
+        return;
+      }
+      const url = new URL(req.url!, 'http://fixture');
+      if (url.searchParams.has('list-type')) {
+        const second = url.searchParams.has('continuation-token');
+        res.setHeader('content-type', 'application/xml');
+        res.end(
+          `<ListBucketResult><IsTruncated>${!second}</IsTruncated>${second ? '' : '<NextContinuationToken>next</NextContinuationToken>'}<Contents><Key>${second ? 'second' : 'first'}</Key><Size>1</Size></Contents></ListBucketResult>`,
+        );
+      } else res.end('artifact');
+    });
+    const store = await createS3ArtifactStore(
+      {
+        endPoint: '127.0.0.1',
+        port,
+        useSSL: false,
+        accessKey: credentials.accessKeyId,
+        secretKey: credentials.secretAccessKey,
+      },
+      's3',
+      'bucket',
+    );
+    for (let i = 0; i < 3; i++)
+      expect(await streamToString(await store.openRead(`artifact-${i}`))).toBe('artifact');
+    const objects = [];
+    for await (const object of store.list('', { pageSize: 1 })) objects.push(object);
+    expect(objects).toEqual([
+      { key: 'first', size: 1 },
+      { key: 'second', size: 1 },
+    ]);
+    expect(requests).toHaveLength(6);
+    expect(
+      requests
+        .slice(1)
+        .every((req) => req.headers.authorization?.includes('/eu-west-1/s3/aws4_request')),
+    ).toBe(true);
+  });
+
+  it('corrects concurrent reads that started before the bucket region was cached', async () => {
+    const requests: IncomingMessage[] = [];
+    const pending: ServerResponse[] = [];
+    const port = await wireServer((req, res) => {
+      requests.push(req);
+      if (!req.headers.authorization?.includes('/eu-west-1/s3/aws4_request')) {
+        pending.push(res);
+        if (pending.length === 2) {
+          for (const response of pending) {
+            response.setHeader('x-amz-bucket-region', 'eu-west-1');
+            errorResponse(response, 400, 'AuthorizationHeaderMalformed');
+          }
+        }
+      } else res.end('artifact');
+    });
+    const store = await createS3ArtifactStore(
+      {
+        endPoint: '127.0.0.1',
+        port,
+        useSSL: false,
+        accessKey: credentials.accessKeyId,
+        secretKey: credentials.secretAccessKey,
+      },
+      'minio',
+      'bucket',
+    );
+    const results = await Promise.allSettled(
+      ['first', 'second'].map((key) => store.openRead(key).then(streamToString)),
+    );
+    expect(results).toEqual([
+      { status: 'fulfilled', value: 'artifact' },
+      { status: 'fulfilled', value: 'artifact' },
+    ]);
+    expect(requests).toHaveLength(4);
+  });
+
+  it.each(['read', 'list'] as const)(
+    'counts region corrections and service retries in the %s request budget',
+    async (operation) => {
+      const requests: IncomingMessage[] = [];
+      const port = await wireServer((req, res) => {
+        requests.push(req);
+        if (!req.headers.authorization?.includes('/eu-west-1/s3/aws4_request')) {
+          res.setHeader('x-amz-bucket-region', 'eu-west-1');
+          errorResponse(res, 301, 'PermanentRedirect');
+        } else errorResponse(res, 503, 'SlowDown');
+      });
+      const store = await createS3ArtifactStore(
+        {
+          endPoint: '127.0.0.1',
+          port,
+          useSSL: false,
+          accessKey: credentials.accessKeyId,
+          secretKey: credentials.secretAccessKey,
+          maxAttempts: 3,
+        },
+        's3',
+        'bucket',
+      );
+      const request =
+        operation === 'read'
+          ? store.openRead('artifact')
+          : store.list('')[Symbol.asyncIterator]().next();
+      await expect(request).rejects.toMatchObject({ code: 'SlowDown' });
+      expect(requests).toHaveLength(3);
+    },
+  );
+
   it('does not sign anonymous requests', async () => {
     let authorization: string | undefined;
     let token: string | string[] | undefined;
@@ -412,6 +558,27 @@ for (const [service, variable] of [
             ),
           );
         }
+        if (service === 'MinIO') {
+          // Fail if fixture configuration stops enforcing its nondefault region.
+          const wrongRegion = new S3Client({
+            endpoint: endpoint.origin,
+            region: 'us-east-1',
+            forcePathStyle: true,
+            followRegionRedirects: false,
+            maxAttempts: 1,
+            credentials,
+          });
+          try {
+            await expect(
+              wrongRegion.send(new GetObjectCommand({ Bucket: bucket, Key: special })),
+            ).rejects.toMatchObject({
+              name: 'AuthorizationHeaderMalformed',
+              $metadata: { httpStatusCode: 400 },
+            });
+          } finally {
+            wrongRegion.destroy();
+          }
+        }
         const config = {
           endPoint: endpoint.hostname,
           port: Number(endpoint.port),
@@ -420,7 +587,7 @@ for (const [service, variable] of [
           pathStyle: true,
           accessKey: credentials.accessKeyId,
           secretKey: credentials.secretAccessKey,
-          maxAttempts: 1,
+          maxAttempts: 3,
         };
         const store = await createS3ArtifactStore(config, 's3', bucket);
         expect(await streamToString(await store.openRead(special))).toBe('encoded artifact 雪');
