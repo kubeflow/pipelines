@@ -16,17 +16,49 @@ import json
 import os
 import py_compile
 import subprocess
+import sys
+import threading
 import urllib.error
 import urllib.request
+import webbrowser
 from contextlib import contextmanager
 from html.parser import HTMLParser
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 import yaml
 from click.testing import CliRunner
 
 from kfp.cli import cli, visualization, visualize
+
+
+@pytest.fixture(autouse=True)
+def browser_launcher(monkeypatch):
+    # Tests must never launch a real desktop browser.
+    launcher = Mock(return_value=True)
+    launcher.started = threading.Event()
+    launcher.threads = []
+
+    def tracked_open(url):
+        launcher.threads.append(threading.current_thread())
+        launcher.started.set()
+        return launcher(url)
+
+    monkeypatch.setattr(webbrowser, 'open_new', tracked_open)
+    yield launcher
+    for thread in launcher.threads:
+        if thread is not threading.current_thread():
+            thread.join(timeout=5)
+            assert not thread.is_alive(), 'Test must release its browser opener'
+
+
+def _finish_browser_launch(launcher):
+    assert launcher.started.wait(timeout=5)
+    for thread in launcher.threads:
+        if thread is not threading.current_thread():
+            thread.join(timeout=5)
+            assert not thread.is_alive()
 
 
 @pytest.fixture
@@ -600,7 +632,9 @@ def test_labels_cannot_escape_exports(spec):
 @pytest.mark.parametrize(
     'format_,suffix', [('html', '.html'), ('markdown', '.md')]
 )
-def test_export_command_without_cluster(source, format_, suffix, monkeypatch):
+def test_export_command_without_cluster(
+    source, format_, suffix, monkeypatch, browser_launcher
+):
 
     def no_client(*args, **kwargs):
         pytest.fail('Visualization must not create a cluster client')
@@ -611,6 +645,7 @@ def test_export_command_without_cluster(source, format_, suffix, monkeypatch):
     )
     assert result.exit_code == 0, result.output
     assert source.with_suffix(suffix).exists()
+    browser_launcher.assert_not_called()
 
 
 def test_html_exports_full_spec_for_shared_kfp_renderer(source, spec):
@@ -647,7 +682,9 @@ def test_watch_flag_aliases(source, monkeypatch, flag):
 
 
 @pytest.mark.parametrize('format_', ['html', 'both', 'markdown'])
-def test_watch_exports_without_serving(source, monkeypatch, format_):
+def test_watch_exports_without_serving(
+    source, monkeypatch, format_, browser_launcher
+):
     calls = []
     monkeypatch.setattr(visualize, '_watch', lambda *args: calls.append(args))
 
@@ -661,6 +698,7 @@ def test_watch_exports_without_serving(source, monkeypatch, format_):
     assert result.exit_code == 0, (result.output, result.exception)
     assert len(calls) == 1
     assert 'viewer:' not in result.output.lower()
+    browser_launcher.assert_not_called()
     for suffix in (
         ['.html', '.md']
         if format_ == 'both'
@@ -672,8 +710,9 @@ def test_watch_exports_without_serving(source, monkeypatch, format_):
 @pytest.mark.parametrize('flag', ['-s', '--serve'])
 @pytest.mark.parametrize('watch', [False, True])
 @pytest.mark.parametrize('format_', ['html', 'both', 'markdown'])
+@pytest.mark.parametrize('no_open', [None, '-n', '--no-open'])
 def test_serve_is_independent_of_watching(
-    source, monkeypatch, flag, watch, format_
+    source, monkeypatch, flag, watch, format_, no_open, browser_launcher
 ):
     served = []
     watched = []
@@ -684,23 +723,190 @@ def test_serve_is_independent_of_watching(
         yield 'http://127.0.0.1:1234/test/'
 
     def stop(_seconds):
+        if not no_open:
+            _finish_browser_launch(browser_launcher)
         raise KeyboardInterrupt
 
+    def watch_source(*args):
+        if not no_open:
+            _finish_browser_launch(browser_launcher)
+        watched.append(args)
+
     monkeypatch.setattr(visualize, '_live_server', server)
-    monkeypatch.setattr(visualize, '_watch', lambda *args: watched.append(args))
+    monkeypatch.setattr(visualize, '_watch', watch_source)
     monkeypatch.setattr(visualize.time, 'sleep', stop)
     result = CliRunner().invoke(
-        visualize.visualize,
-        [str(source), flag, '--format', format_, *(['-w'] if watch else [])],
+        cli.cli,
+        [
+            'visualize',
+            str(source),
+            flag,
+            '--format',
+            format_,
+            *(['-w'] if watch else []),
+            *([no_open] if no_open else []),
+        ],
     )
     assert result.exit_code == 0, (result.output, result.exception)
     assert served == [watch]
     assert len(watched) == int(watch)
     assert 'http://127.0.0.1:1234/test/' in result.output
+    if no_open:
+        browser_launcher.assert_not_called()
+    else:
+        browser_launcher.assert_called_once_with('http://127.0.0.1:1234/test/')
+
+
+def test_blocked_browser_does_not_block_watch_or_shutdown(
+    source, spec, monkeypatch, browser_launcher, capsys
+):
+    release = threading.Event()
+    closed = threading.Event()
+    observed = []
+    ticks = 0
+
+    def blocked_open(_url):
+        assert release.wait(timeout=10)
+        return False
+
+    @contextmanager
+    def server(state, *, live):
+        observed.append(state)
+        try:
+            yield 'http://127.0.0.1:1234/test/'
+        finally:
+            closed.set()
+
+    def tick(_seconds):
+        nonlocal ticks
+        assert browser_launcher.started.wait(timeout=3)
+        assert not release.is_set(), (
+            'Watch must run while the browser opener is blocked'
+        )
+        if ticks == 0:
+            spec['pipelineInfo']['name'] = 'updated'
+            source.write_text(yaml.safe_dump(spec))
+        elif ticks == 2:
+            assert (
+                observed[0]['current']['spec']['pipelineInfo']['name']
+                == 'updated'
+            )
+            assert '# updated' in source.with_suffix('.md').read_text()
+            assert (
+                '"name": "updated"' in source.with_suffix('.html').read_text()
+            )
+            raise KeyboardInterrupt
+        ticks += 1
+
+    browser_launcher.side_effect = blocked_open
+    monkeypatch.setattr(visualize, '_live_server', server)
+    monkeypatch.setattr(visualize.time, 'sleep', tick)
+    # Bound the old synchronous implementation as well, so the regression fails
+    # instead of hanging indefinitely. The fixed implementation never needs it.
+    fallback = threading.Timer(5, release.set)
+    fallback.daemon = True
+    fallback.start()
+    try:
+        result = CliRunner().invoke(
+            visualize.visualize, [str(source), '--format', 'both', '-w', '-s']
+        )
+        assert result.exit_code == 0, (result.output, result.exception)
+        assert closed.is_set()
+        assert not release.is_set(), (
+            'Shutdown must not wait for the browser to exit'
+        )
+        assert browser_launcher.threads[0].daemon
+    finally:
+        fallback.cancel()
+        release.set()
+        _finish_browser_launch(browser_launcher)
+    assert 'Could not open a browser' not in capsys.readouterr().err
+
+
+def test_cli_exits_while_browser_opener_is_blocked(source):
+    script = """import sys
+import threading
+from kfp.cli import visualize
+
+started = threading.Event()
+def opener(url):
+    started.set()
+    threading.Event().wait()
+
+def watch(*args):
+    assert started.wait(timeout=3)
+    raise KeyboardInterrupt
+
+visualize.webbrowser.open_new = opener
+visualize._watch = watch
+visualize.visualize(args=sys.argv[1:], standalone_mode=False)
+"""
+    result = subprocess.run(
+        [sys.executable, '-c', script, str(source), '-w', '-s'],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert 'Stopped watching.' in result.stdout
+
+
+def test_browser_opens_only_after_server_is_ready(
+    source, monkeypatch, browser_launcher
+):
+    responses = []
+
+    def open_browser(url):
+        with urllib.request.urlopen(url, timeout=5) as response:
+            assert b'"live": false' in response.read()
+            responses.append(response.status)
+        return True
+
+    def stop(_seconds):
+        _finish_browser_launch(browser_launcher)
+        raise KeyboardInterrupt
+
+    browser_launcher.side_effect = open_browser
+    monkeypatch.setattr(visualize.time, 'sleep', stop)
+    result = CliRunner().invoke(visualize.visualize, [str(source), '--serve'])
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert responses == [200]
+    browser_launcher.assert_called_once()
+    assert browser_launcher.call_args.args[0] in result.output
+
+
+@pytest.mark.parametrize(
+    'failure',
+    [False, webbrowser.Error('No browser'), OSError('Cannot launch')],
+    ids=['unavailable', 'browser-error', 'os-error'],
+)
+def test_browser_launch_failure_keeps_serving(
+    source, monkeypatch, browser_launcher, failure
+):
+    @contextmanager
+    def server(state, *, live):
+        yield 'http://127.0.0.1:1234/test/'
+
+    def stop(_seconds):
+        _finish_browser_launch(browser_launcher)
+        raise KeyboardInterrupt
+
+    browser_launcher.return_value = False
+    if isinstance(failure, Exception):
+        browser_launcher.side_effect = failure
+    monkeypatch.setattr(visualize, '_live_server', server)
+    monkeypatch.setattr(visualize.time, 'sleep', stop)
+    result = CliRunner().invoke(visualize.visualize, [str(source), '--serve'])
+    assert result.exit_code == 0, (result.output, result.exception)
+    assert 'Could not open a browser' in result.output
+    assert 'http://127.0.0.1:1234/test/' in result.output
+    assert 'Stopped serving.' in result.output
 
 
 @pytest.mark.parametrize('name', [None, 'report', 'report.html', 'report.md'])
-def test_both_formats_share_one_compilation(source, spec, monkeypatch, name):
+def test_both_formats_share_one_compilation(
+    source, spec, monkeypatch, name, browser_launcher
+):
     calls = []
 
     def load(path, function):
@@ -722,6 +928,7 @@ def test_both_formats_share_one_compilation(source, spec, monkeypatch, name):
     assert len(calls) == 1
     assert '<!doctype html>' in output.with_suffix('.html').read_text()
     assert '```mermaid' in output.with_suffix('.md').read_text()
+    browser_launcher.assert_not_called()
 
 
 @pytest.mark.parametrize('renderer', ['render_html', 'render_markdown'])

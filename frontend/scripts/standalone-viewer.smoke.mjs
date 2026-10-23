@@ -78,6 +78,7 @@ def pipeline():
           'both',
           '-w',
           '-s',
+          '-n',
         ],
         { cwd: repo },
       );
