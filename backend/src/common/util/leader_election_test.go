@@ -23,7 +23,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
@@ -39,25 +38,6 @@ var testTimings = leaderElectionTimings{
 	leaseDuration: time.Second,
 	renewDeadline: 500 * time.Millisecond,
 	retryPeriod:   100 * time.Millisecond,
-}
-
-// newLeaseClient returns a fake clientset whose access reviews deny the
-// given verbs on leases and allow everything else.
-func newLeaseClient(deniedVerbs ...string) *fake.Clientset {
-	client := fake.NewClientset()
-	client.PrependReactor("create", "selfsubjectaccessreviews", func(action k8stesting.Action) (bool, runtime.Object, error) {
-		review := action.(k8stesting.CreateAction).GetObject().(*authorizationv1.SelfSubjectAccessReview)
-		allowed := true
-		for _, verb := range deniedVerbs {
-			if review.Spec.ResourceAttributes.Verb == verb {
-				allowed = false
-			}
-		}
-		review = review.DeepCopy()
-		review.Status.Allowed = allowed
-		return true, review, nil
-	})
-	return client
 }
 
 // candidate runs one replica's election in the background and records its
@@ -119,37 +99,14 @@ func TestRunWithLeaderElection_InvalidConfig(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := runWithLeaderElection(context.Background(), newLeaseClient(), test.config, testTimings)
+			err := runWithLeaderElection(context.Background(), fake.NewClientset(), test.config, testTimings)
 			assert.Error(t, err)
 		})
 	}
 }
 
-func TestRunWithLeaderElection_MissingLeaseRBAC(t *testing.T) {
-	client := newLeaseClient("create", "update")
-	err := runWithLeaderElection(context.Background(), client, LeaderElectionConfig{
-		LeaseName: testLeaseName,
-		Namespace: testNamespace,
-		Identity:  "a",
-		Run:       func(context.Context) { t.Fatal("Run must not be called") },
-		OnLost:    func() {},
-	}, testTimings)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "create, update")
-	assert.Contains(t, err.Error(), testLeaseName)
-}
-
-func TestRunWithLeaderElection_AccessReviewUnavailable(t *testing.T) {
-	client := fake.NewClientset()
-	client.PrependReactor("create", "selfsubjectaccessreviews", func(k8stesting.Action) (bool, runtime.Object, error) {
-		return true, nil, errors.New("access reviews are disabled")
-	})
-	a := startCandidate(t, client, "a")
-	assert.Eventually(t, a.running.Load, 5*time.Second, 10*time.Millisecond, "the election should continue without the permission check")
-}
-
 func TestRunWithLeaderElection_StandbyTakesOverAfterLeaderStops(t *testing.T) {
-	client := newLeaseClient()
+	client := fake.NewClientset()
 	a := startCandidate(t, client, "a")
 	require.Eventually(t, a.running.Load, 5*time.Second, 10*time.Millisecond)
 
@@ -179,7 +136,7 @@ func TestRunWithLeaderElection_StandbyTakesOverAfterLeaderStops(t *testing.T) {
 }
 
 func TestRunWithLeaderElection_OnLostWhenRenewalFails(t *testing.T) {
-	client := newLeaseClient()
+	client := fake.NewClientset()
 	// Reactors can't be added while the fake clientset is in use, so the
 	// failing reactor is installed up front and enabled later.
 	var failRenewals atomic.Bool

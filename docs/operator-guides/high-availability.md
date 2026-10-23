@@ -136,7 +136,7 @@ takes over once the Lease expires, 15 seconds after the last renewal. A replica 
 Lease exits, and Kubernetes restarts it as a standby.
 
 The base manifests already grant the Lease permissions and set the `POD_NAMESPACE`
-and `POD_NAME` environment variables that leader election uses.
+environment variable that leader election uses.
 
 Leader election makes overlap unlikely but doesn't prevent it: a replica that pauses,
 then resumes after another replica took over, can still send a request it had in

@@ -18,12 +18,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection"
@@ -93,9 +91,6 @@ func runWithLeaderElection(
 	if config.Run == nil || config.OnLost == nil {
 		return fmt.Errorf("leader election for lease %q requires Run and OnLost callbacks", config.LeaseName)
 	}
-	if err := checkLeasePermissions(ctx, client, config.Namespace, config.LeaseName); err != nil {
-		return err
-	}
 
 	// client-go calls OnStartedLeading in a goroutine and doesn't wait for it,
 	// so track it to return only after config.Run has returned. stopped keeps
@@ -159,49 +154,5 @@ func runWithLeaderElection(
 	stopped = true
 	mu.Unlock()
 	running.Wait()
-	return nil
-}
-
-// checkLeasePermissions fails fast when the Lease RBAC rules are missing.
-// Without this check, client-go retries forever and the replica stays a
-// standby that only logs errors.
-func checkLeasePermissions(ctx context.Context, client kubernetes.Interface, namespace, leaseName string) error {
-	checks := []struct {
-		verb string
-		name string
-	}{
-		// RBAC can't restrict create by resource name.
-		{verb: "create"},
-		{verb: "get", name: leaseName},
-		{verb: "update", name: leaseName},
-	}
-	var missing []string
-	for _, check := range checks {
-		review := &authorizationv1.SelfSubjectAccessReview{
-			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-				ResourceAttributes: &authorizationv1.ResourceAttributes{
-					Namespace: namespace,
-					Verb:      check.verb,
-					Group:     "coordination.k8s.io",
-					Resource:  "leases",
-					Name:      check.name,
-				},
-			},
-		}
-		response, err := client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, review, metav1.CreateOptions{})
-		if err != nil {
-			// Some clusters don't allow access reviews. Lease errors are
-			// still logged by client-go.
-			glog.Warningf("Leader election: could not check permissions for lease %s/%s, continuing: %v", namespace, leaseName, err)
-			return nil
-		}
-		if !response.Status.Allowed {
-			missing = append(missing, check.verb)
-		}
-	}
-	if len(missing) > 0 {
-		return fmt.Errorf("leader election: the service account can't %s leases.coordination.k8s.io %q in namespace %q; add the Lease rules to its Role",
-			strings.Join(missing, ", "), leaseName, namespace)
-	}
 	return nil
 }
