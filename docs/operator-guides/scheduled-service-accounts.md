@@ -140,24 +140,32 @@ This assumes legacy writers will not be reintroduced after handoff. Downgrading
 to legacy writers requires a separate coordinated rollback plan, not a live
 rolling downgrade.
 
-During that automatic handoff, the upgraded API rejects schedule creation and
-enable/disable requests with retryable `Unavailable` **before any mutation**.
-Clients retry after handoff completes; those requests are not accepted or queued
-as durable intent during the wait. This prevents old API reporters from undoing a
-new enabled-state change or executing a newly created schedule outside the new
-protocol. Run operations, reads, reporting, and deletion remain available. Existing
-legacy schedules retain the old behavior until the handoff; the new controller
-waits. This scheduling-write pause is automatic and requires no operator cutover.
+During that automatic handoff, the upgraded API waits up to 30 seconds before
+schedule creation, enable/disable, or non-dry-run transfer preparation. The limit
+includes time waiting behind another request and is shortened by the client's
+request deadline or cancellation. Concurrent requests share one polling check;
+a successful handoff lets their mutations proceed without a client retry.
+Requests are not queued as durable intent. Run operations, reads, reporting,
+deletion, and API readiness remain available. Existing legacy schedules retain
+the old behavior until handoff; the new controller waits. This scheduling-write
+pause is automatic and requires no operator cutover.
 
-A handoff rejection means the requested operation was **not applied**. In
-particular, a rejected disable request leaves the schedule enabled; do not report
-it as paused. Retry the same operation with bounded exponential backoff after
-the rollout completes, then read the schedule back to confirm its enabled state.
-If the retry budget expires, surface the failure and inspect the managed rollout
-and API/controller logs instead of assuming the request was queued. This advice
-applies to the explicit handoff rejection; a generic connection timeout does not
-prove a create request was rejected before mutation. Check for an existing
-created schedule before resubmitting an ambiguously completed create request.
+If handoff takes longer than the wait limit, the API returns retryable
+`Unavailable` **before the schedule mutation**. For create and enable/disable,
+a handoff rejection means the requested operation was **not applied**. Transfer
+errors only guarantee that the current schedule was not staged: earlier import
+staging can already exist. Resume the same archive after resolving the error. In particular, a rejected disable request leaves
+the schedule enabled; do not report it as paused. Retry with bounded exponential
+backoff after the rollout completes, then read the schedule back to confirm its
+enabled state. If the retry budget expires, inspect the managed rollout and
+API/controller logs instead of assuming the request was queued. Definite
+configuration errors, such as missing Kubernetes permissions, fail immediately
+with `FailedPrecondition` and require correcting the configuration.
+
+This guarantee applies to an explicit handoff rejection. A generic connection
+timeout does not prove a create request was rejected before mutation: the handoff
+may already have completed. Check for an existing created schedule before
+resubmitting an ambiguously completed create request.
 
 Adoption accepts existing **database-stored schedule definitions as the upgrade
 baseline**, initializes their API-owned progress, and restores corresponding CRs

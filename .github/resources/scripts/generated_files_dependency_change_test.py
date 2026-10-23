@@ -80,8 +80,8 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
                           'backend/api/tools/go.mod').read_text(
                               encoding='utf-8')
         self.assertIn(
-            'tool github.com/go-swagger/go-swagger/cmd/swagger',
-            tools_manifest.splitlines(),
+            'github.com/go-swagger/go-swagger/cmd/swagger',
+            [line.strip() for line in tools_manifest.splitlines()],
         )
 
         dockerfile = (REPOSITORY_ROOT /
