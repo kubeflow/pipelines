@@ -23,8 +23,10 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Set up pinned npm
@@ -49,14 +51,14 @@ jobs:
         run: |
           npm run build
           tar -czf qualification-bundle.tar.gz -C build .
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: qualification-production-bundle
           path: frontend/qualification-bundle.tar.gz
           if-no-files-found: error
           overwrite: true
           retention-days: 7
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: qualification-version-manifest
           path: frontend/scripts/qualified-browsers.json
@@ -81,8 +83,10 @@ jobs:
       KFP_BROWSER_REPORT_DIR: browser-results/vendor-${{ matrix.id }}
       KFP_BROWSER_FLOOR_OUTPUT: browser-results/vendor-${{ matrix.id }}/native
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Set up pinned npm
@@ -164,7 +168,7 @@ jobs:
             arch: arch(), image: process.env.ImageOS, imageVersion: process.env.ImageVersion,
           }, null, 2) + '\n');
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: qualification-${{ matrix.id }}
@@ -215,8 +219,10 @@ jobs:
       DEVELOPER_DIR: ${{ matrix.developer-directory }}
       APPLE_ANNUAL: ${{ matrix.annual }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Set up pinned npm
@@ -254,7 +260,7 @@ jobs:
             imageVersion: process.env.ImageVersion,
           }, null, 2) + '\n');
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: qualification-apple-${{ matrix.mode }}-${{ matrix.annual }}
@@ -283,10 +289,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
 
     - name: Set up Node.js
-      uses: actions/setup-node@v7
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
       with:
         node-version-file: frontend/.nvmrc
 
@@ -350,7 +358,7 @@ jobs:
 
     - name: Upload browser evidence
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         name: frontend-browser-${{ matrix.os }}-${{ matrix.browser }}
         path: frontend/browser-results

@@ -24,9 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Check out immutable legacy frontend source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: kubeflow/pipelines
           ref: 02cbc725ac9ddcd950f4400d8355dd78bfcd6c57
@@ -41,7 +43,7 @@ jobs:
           test "$(git -C legacy rev-parse HEAD)" = 02cbc725ac9ddcd950f4400d8355dd78bfcd6c57
           echo "node=$(tr -d 'v\n' < legacy/frontend/.nvmrc)" >> "$GITHUB_OUTPUT"
       - name: Build complete legacy frontend image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: legacy
           file: legacy/frontend/Dockerfile
@@ -52,7 +54,7 @@ jobs:
             COMMIT_HASH=02cbc725ac9ddcd950f4400d8355dd78bfcd6c57
           tags: kfp-frontend-legacy:qualification
           outputs: type=docker,dest=${{ runner.temp }}/legacy-frontend.tar
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: legacy-frontend
           path: ${{ runner.temp }}/legacy-frontend.tar
@@ -75,15 +77,17 @@ jobs:
       KFP_DEPLOYMENT_MODE: ${{ matrix.mode }}
       KFP_DEPLOYMENT_BASE_URL: http://127.0.0.1:3000
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Prepare evidence directory
         run: |
           echo "KFP_DEPLOYMENT_REPORT_DIR=$RUNNER_TEMP/deployment-report" >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/deployment-report"
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Configure bounded Ubuntu browser dependencies
@@ -181,7 +185,7 @@ jobs:
           kubectl get pods -A -o wide > "$KFP_DEPLOYMENT_REPORT_DIR/diagnostics/pods.txt" 2>&1 || true
           kubectl get events -A --sort-by=.metadata.creationTimestamp > "$KFP_DEPLOYMENT_REPORT_DIR/diagnostics/events.txt" 2>&1 || true
           # Do not upload Secrets, browser storage, auth-provider logs or HAR files.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: frontend-deployment-${{ matrix.mode }}

@@ -86,18 +86,20 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     self.assertIn('image_registry: kind-registry:5000', job)
 
     def test_frontend_rollback_waits_for_images_after_cluster_creation(self):
-        workflow = (ROOT /
-                    '.github/workflows/frontend-deployment-qualification.yml'
-                   ).read_text(encoding='utf-8')
+        workflow = (
+            ROOT / '.github/workflows/frontend-deployment-qualification.yml'
+        ).read_text(encoding='utf-8')
         rehearsal = _job_block(workflow, 'rehearsal')
         self.assertNotRegex(rehearsal, r'(?m)^    needs:')
         cluster = rehearsal.index('uses: ./.github/actions/create-cluster')
         deploy = rehearsal.index('uses: ./.github/actions/deploy')
         candidate = rehearsal.index(
-            'Retain candidate image archive after the shared image barrier')
+            'Retain candidate image archive after the shared image barrier'
+        )
         legacy = rehearsal.index('Wait for the immutable legacy image artifact')
         register = rehearsal.index(
-            'Register immutable frontend images and asset manifests')
+            'Register immutable frontend images and asset manifests'
+        )
         self.assertLess(cluster, deploy)
         self.assertLess(deploy, candidate)
         self.assertLess(candidate, legacy)

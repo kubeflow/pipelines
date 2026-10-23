@@ -34,10 +34,11 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           ref: ${{ matrix.ref || github.sha }}
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Set up source-pinned npm
@@ -68,7 +69,7 @@ jobs:
           NODE
       - name: Archive complete performance build
         run: tar -czf performance-build.tar.gz -C performance-build .
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: performance-build-${{ matrix.variant }}
           path: frontend/performance-build.tar.gz
@@ -90,8 +91,10 @@ jobs:
       KFP_PERFORMANCE_BUILDS: ${{ github.workspace }}/performance-builds
       KFP_PERFORMANCE_OUTPUT: ${{ github.workspace }}/frontend/performance-results
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
       - name: Set up pinned npm
@@ -155,7 +158,7 @@ jobs:
               `Performance measurement: ${report.status}\n\nAcceptance: ${report.acceptance}\n\nBudget comparisons pass: ${report.proposedBudgetsPass ?? 'not evaluated'}\n\nSee retained raw samples and Chromium traces. First editor-open gates: display median at most 4 s; initialized worker median at most 5 s.\n`);
           } catch { await appendFile(process.env.GITHUB_STEP_SUMMARY, 'No complete performance report; inspect setup logs.\n'); }
           NODE
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: frontend-performance-evidence
