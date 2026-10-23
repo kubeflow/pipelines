@@ -57,13 +57,13 @@ import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
 import {
-  validateArtifactKeyPrefix,
+  namespaceFromArtifactStorageKey,
+  validateArtifactKeySafety,
   validateArtifactNamespace,
 } from '../helpers/artifact-validator.js';
 import {
   ArtifactCoordinates,
   buildArtifactCoordinateUri,
-  isCanonicalArtifactUriKey,
   normalizeArtifactStorageCoordinates,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
@@ -377,8 +377,8 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
  * artifact proxy.
  * See: https://github.com/kubeflow/pipelines/pull/12860
  *
- * Security: This addresses the vulnerability where the namespace parameter
- * could be manipulated to access artifacts from other namespaces.
+ * Authorizes access to the claimed namespace and checks artifact metadata/path consistency.
+ * Metadata matches alone do not establish permission to read bytes with shared credentials.
  * See https://github.com/kubeflow/pipelines/issues/9889
  *
  * @param authorizeFn The authorization function to validate permissions
@@ -521,6 +521,21 @@ export function getArtifactsAuthMiddleware(
         applyArtifactPathPolicy(coordinates.key, ARTIFACT_PATH_POLICIES.volume) === undefined
       ) {
         sendArtifactError(response, 400, 'Invalid volume artifact bucket or path');
+        return;
+      }
+    }
+
+    if (requiresArtifactOwnershipValidation(coordinates.source)) {
+      const artifactUri = buildArtifactCoordinateUri(coordinates);
+      if (!validateArtifactKeySafety(artifactUri).valid) {
+        sendArtifactError(response, 403, 'Artifact path is unsafe. Use a normalized object key.');
+        return;
+      }
+      // Metadata keeps its exact URI spelling; ownership must also match the bytes served.
+      const storageKey = normalizeArtifactStorageCoordinates(coordinates).key;
+      const storageNamespace = namespaceFromArtifactStorageKey(storageKey);
+      if (storageNamespace !== undefined && storageNamespace !== namespace) {
+        sendArtifactError(response, 403, 'Artifact does not belong to the requested namespace');
         return;
       }
     }
@@ -948,12 +963,7 @@ export function getArtifactsHandler({
           coordinates.uriKey ?? key,
           coordinates.uriKey ? 'uri' : 'storage',
         );
-        // Absolute URIs already contain the namespace key; gateway URLs prepend a base/bucket.
-        const httpArtifactRoot =
-          absoluteHttpBase && httpUrl
-            ? new URL('/', httpUrl).toString()
-            : getHttpUrl(source, httpBaseUrl, bucket, '');
-        if (!httpUrl || !httpArtifactRoot) {
+        if (!httpUrl) {
           sendArtifactError(
             res,
             400,
@@ -968,7 +978,6 @@ export function getArtifactsHandler({
           httpUrl,
           http.auth,
           peek,
-          options.auth.enabled ? { namespace, rootUrl: httpArtifactRoot } : undefined,
           absoluteHttpBase ? new URL(http.baseUrl.trim()) : undefined,
         )(req, res);
         break;
@@ -1270,7 +1279,6 @@ function getHttpArtifactsHandler(
     defaultValue: string;
   } = { key: '', defaultValue: '' },
   peek: number = 0,
-  redirectScope?: { namespace: string; rootUrl: string },
   approvedBase?: URL,
 ) {
   return async (req: Request, res: Response) => {
@@ -1308,20 +1316,7 @@ function getHttpArtifactsHandler(
         return;
       }
       const targetUrl = new URL(allowedUrl);
-      if (
-        hop > 0 &&
-        redirectScope &&
-        targetUrl.origin === credentialOrigin &&
-        !isHttpArtifactRedirectInNamespace(targetUrl, redirectScope)
-      ) {
-        sendArtifactError(res, 403, 'Redirected artifact is outside the requested namespace');
-        return;
-      }
       if (targetUrl.origin !== credentialOrigin) {
-        if (redirectScope) {
-          sendArtifactError(res, 403, 'Cross-origin HTTP artifact redirects are not allowed');
-          return;
-        }
         requestHeaders = {};
       }
       response = await fetch(allowedUrl, { headers: requestHeaders, redirect: 'manual' });
@@ -1363,28 +1358,6 @@ function getHttpArtifactsHandler(
       sendArtifactError(res, 500, `Unable to retrieve artifact: ${err}`),
     );
   };
-}
-
-function isHttpArtifactRedirectInNamespace(
-  targetUrl: URL,
-  { namespace, rootUrl }: { namespace: string; rootUrl: string },
-): boolean {
-  // The fetched URL includes HTTP_BASE_URL's path and the bucket before the artifact key.
-  const rootPath = new URL(rootUrl).pathname.replace(/\/+$/, '');
-  if (!targetUrl.pathname.startsWith(`${rootPath}/`)) {
-    return false;
-  }
-  const uriKey = targetUrl.pathname.slice(rootPath.length + 1);
-  if (!isCanonicalArtifactUriKey(uriKey, targetUrl.protocol.slice(0, -1))) {
-    return false;
-  }
-  if (
-    applyArtifactPathPolicy(decodeURIComponent(uriKey), ARTIFACT_PATH_POLICIES.http) === undefined
-  ) {
-    return false;
-  }
-  return validateArtifactKeyPrefix(`${targetUrl.protocol}//${targetUrl.host}/${uriKey}`, namespace)
-    .valid;
 }
 
 function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string | undefined {
@@ -2133,15 +2106,6 @@ export function getArtifactsProxyHandler({
   });
   return async (req, res, next) => {
     hardenArtifactResponse(res);
-    const authorizedArtifactUri = res.locals.authorizedArtifactUri;
-    if (
-      typeof authorizedArtifactUri === 'string' &&
-      (authorizedArtifactUri.startsWith('http://') || authorizedArtifactUri.startsWith('https://'))
-    ) {
-      // Serve through the shared handler, which pins the authorized URI and checks every redirect.
-      // A tenant service may still run older redirect handling code.
-      return next();
-    }
     const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
       sendArtifactError(res, 400, 'Invalid namespace');
