@@ -23,7 +23,6 @@ ACCOUNTS = {'ml-pipeline', 'ml-pipeline-scheduledworkflow'}
 
 
 class ScheduleWriterRBACTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         remaining = sys.stdin.read().strip()
@@ -36,11 +35,13 @@ class ScheduleWriterRBACTest(unittest.TestCase):
 
     def test_handoff_is_scoped_to_multi_user(self):
         roles = [
-            r for r in self.resources
+            r
+            for r in self.resources
             if r.get('kind') == 'Role' and r['metadata']['name'] == NAME
         ]
         bindings = [
-            r for r in self.resources
+            r
+            for r in self.resources
             if r.get('kind') == 'RoleBinding' and r['metadata']['name'] == NAME
         ]
         self.assertEqual(len(roles), int(MULTI_USER))
@@ -48,53 +49,69 @@ class ScheduleWriterRBACTest(unittest.TestCase):
         if not MULTI_USER:
             # Catch moving the same privilege into a differently named role.
             for binding in self.resources:
-                if binding.get('kind') not in ('RoleBinding',
-                                               'ClusterRoleBinding'):
+                if binding.get('kind') not in (
+                    'RoleBinding',
+                    'ClusterRoleBinding',
+                ):
                     continue
                 if not any(
-                        s.get('kind') == 'ServiceAccount' and
-                        s.get('name') in ACCOUNTS
-                        for s in binding.get('subjects', [])):
+                    s.get('kind') == 'ServiceAccount'
+                    and s.get('name') in ACCOUNTS
+                    for s in binding.get('subjects', [])
+                ):
                     continue
                 for role in self.resources:
-                    if role.get('kind') != binding['roleRef']['kind'] or role[
-                            'metadata']['name'] != binding['roleRef']['name']:
+                    if (
+                        role.get('kind') != binding['roleRef']['kind']
+                        or role['metadata']['name']
+                        != binding['roleRef']['name']
+                    ):
                         continue
                     for rule in role.get('rules', []):
                         self.assertFalse(
-                            '' in rule.get('apiGroups', []) and
-                            'pods' in rule.get('resources', []) and
-                            'patch' in rule.get('verbs', []),
-                            role['metadata']['name'])
+                            '' in rule.get('apiGroups', [])
+                            and 'pods' in rule.get('resources', [])
+                            and 'patch' in rule.get('verbs', []),
+                            role['metadata']['name'],
+                        )
             return
         role, binding = roles[0], bindings[0]
         namespace = role['metadata']['namespace']
         self.assertEqual(binding['metadata']['namespace'], namespace)
-        self.assertEqual(binding['roleRef'], {
-            'apiGroup': 'rbac.authorization.k8s.io',
-            'kind': 'Role',
-            'name': NAME
-        })
         self.assertEqual(
-            sorted(binding['subjects'], key=lambda s: s['name']), [{
-                'kind': 'ServiceAccount',
-                'name': name,
-                'namespace': namespace
-            } for name in sorted(ACCOUNTS)])
-        self.assertEqual(role['rules'], [
+            binding['roleRef'],
             {
-                'apiGroups': [''],
-                'resources': ['pods'],
-                'verbs': ['get', 'list', 'patch']
+                'apiGroup': 'rbac.authorization.k8s.io',
+                'kind': 'Role',
+                'name': NAME,
             },
-            {
-                'apiGroups': ['apps'],
-                'resources': ['deployments'],
-                'resourceNames':
-                    ['ml-pipeline', 'ml-pipeline-scheduledworkflow'],
-                'verbs': ['get']
-            },
-        ])
+        )
+        self.assertEqual(
+            sorted(binding['subjects'], key=lambda s: s['name']),
+            [
+                {'kind': 'ServiceAccount', 'name': name, 'namespace': namespace}
+                for name in sorted(ACCOUNTS)
+            ],
+        )
+        self.assertEqual(
+            role['rules'],
+            [
+                {
+                    'apiGroups': [''],
+                    'resources': ['pods'],
+                    'verbs': ['get', 'list', 'patch'],
+                },
+                {
+                    'apiGroups': ['apps'],
+                    'resources': ['deployments'],
+                    'resourceNames': [
+                        'ml-pipeline',
+                        'ml-pipeline-scheduledworkflow',
+                    ],
+                    'verbs': ['get'],
+                },
+            ],
+        )
 
 
 if __name__ == '__main__':
