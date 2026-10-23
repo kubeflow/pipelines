@@ -128,10 +128,8 @@ html_theme_options = {
         },
     ],
     # Use the theme's system fallback stack without build-time Google Fonts fetches.
-    'font':
-        False,
-    'version_dropdown':
-        True,
+    'font': False,
+    'version_dropdown': True,
     'version_info': [
         {
             'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.2/',

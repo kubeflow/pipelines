@@ -544,73 +544,110 @@ class TestClient(parameterized.TestCase):
             None: 'shared-id',
             '': 'shared-id',
             'team-a': 'a-id',
-            'team-b': 'b-id'
+            'team-b': 'b-id',
         }
-        with patch.object(self.client._pipelines_api, 'pipeline_service_list_pipelines') as lookup, \
-             patch.object(self.client._upload_api, 'upload_pipeline_version') as upload, \
-             patch.object(auth, 'is_ipython', return_value=False):
+        with (
+            patch.object(
+                self.client._pipelines_api, 'pipeline_service_list_pipelines'
+            ) as lookup,
+            patch.object(
+                self.client._upload_api, 'upload_pipeline_version'
+            ) as upload,
+            patch.object(auth, 'is_ipython', return_value=False),
+        ):
             lookup.side_effect = lambda **kwargs: Mock(
-                pipelines=[Mock(pipeline_id=ids[kwargs['namespace']])])
+                pipelines=[Mock(pipeline_id=ids[kwargs['namespace']])]
+            )
             self.client.upload_pipeline_version(
                 'pipeline.yaml',
                 'v2',
                 pipeline_name='training',
-                namespace=namespace)
+                namespace=namespace,
+            )
             lookup.assert_called_once()
             self.assertEqual(lookup.call_args.kwargs['namespace'], namespace)
             upload.assert_called_once_with(
-                'pipeline.yaml', name='v2', pipelineid=ids[namespace])
+                'pipeline.yaml', name='v2', pipelineid=ids[namespace]
+            )
 
     @parameterized.parameters(None, 'team-a')
     def test_upload_version_missing_parent_fails_before_upload(self, namespace):
-        with patch.object(self.client._pipelines_api, 'pipeline_service_list_pipelines') as lookup, \
-             patch.object(self.client._upload_api, 'upload_pipeline_version') as upload:
+        with (
+            patch.object(
+                self.client._pipelines_api, 'pipeline_service_list_pipelines'
+            ) as lookup,
+            patch.object(
+                self.client._upload_api, 'upload_pipeline_version'
+            ) as upload,
+        ):
             lookup.return_value = Mock(pipelines=[])
             options = {'namespace': namespace} if namespace is not None else {}
             with self.assertRaisesRegex(ValueError, 'was not found') as error:
                 self.client.upload_pipeline_version(
-                    'pipeline.yaml', 'v2', pipeline_name='training', **options)
-            self.assertIn('namespace explicitly or use pipeline_id',
-                          str(error.exception))
-            self.assertIn('team-a' if namespace else 'shared pipelines',
-                          str(error.exception))
+                    'pipeline.yaml', 'v2', pipeline_name='training', **options
+                )
+            self.assertIn(
+                'namespace explicitly or use pipeline_id', str(error.exception)
+            )
+            self.assertIn(
+                'team-a' if namespace else 'shared pipelines',
+                str(error.exception),
+            )
             lookup.assert_called_once()
             upload.assert_not_called()
 
     def test_upload_version_propagates_lookup_permission_error(self):
         denied = kfp.server_api.ApiException(status=403)
-        with patch.object(self.client._pipelines_api, 'pipeline_service_list_pipelines', side_effect=denied) as lookup, \
-             patch.object(self.client._upload_api, 'upload_pipeline_version') as upload:
+        with (
+            patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_list_pipelines',
+                side_effect=denied,
+            ) as lookup,
+            patch.object(
+                self.client._upload_api, 'upload_pipeline_version'
+            ) as upload,
+        ):
             with self.assertRaises(kfp.server_api.ApiException) as error:
                 self.client.upload_pipeline_version(
                     'pipeline.yaml',
                     'v2',
                     pipeline_name='training',
-                    namespace='team-a')
+                    namespace='team-a',
+                )
             self.assertIs(error.exception, denied)
             lookup.assert_called_once()
             upload.assert_not_called()
 
     def test_upload_version_id_does_not_lookup_or_inherit_namespace(self):
-        with patch.object(self.client, 'get_pipeline_id') as lookup, \
-             patch.object(self.client._upload_api, 'upload_pipeline_version') as upload, \
-             patch.object(auth, 'is_ipython', return_value=False):
+        with (
+            patch.object(self.client, 'get_pipeline_id') as lookup,
+            patch.object(
+                self.client._upload_api, 'upload_pipeline_version'
+            ) as upload,
+            patch.object(auth, 'is_ipython', return_value=False),
+        ):
             self.client.upload_pipeline_version(
-                'pipeline.yaml', 'v2', pipeline_id='a-id')
+                'pipeline.yaml', 'v2', pipeline_id='a-id'
+            )
             lookup.assert_not_called()
             upload.assert_called_once_with(
-                'pipeline.yaml', name='v2', pipelineid='a-id')
+                'pipeline.yaml', name='v2', pipelineid='a-id'
+            )
 
     def test_upload_version_rejects_namespace_with_id(self):
-        with patch.object(self.client._upload_api,
-                          'upload_pipeline_version') as upload:
+        with patch.object(
+            self.client._upload_api, 'upload_pipeline_version'
+        ) as upload:
             with self.assertRaisesRegex(
-                    ValueError, 'namespace is only used with pipeline_name'):
+                ValueError, 'namespace is only used with pipeline_name'
+            ):
                 self.client.upload_pipeline_version(
                     'pipeline.yaml',
                     'v2',
                     pipeline_id='a-id',
-                    namespace='team-a')
+                    namespace='team-a',
+                )
             upload.assert_not_called()
 
     @patch('kfp.Client.get_user_namespace', return_value='ns2')
@@ -954,7 +991,8 @@ class TestClient(parameterized.TestCase):
                 pipeline_version_name='v1.0',
                 pipeline_name='test-pipeline',
                 description='A test pipeline version',
-                namespace=namespace)
+                namespace=namespace,
+            )
 
             mock_compile.assert_called_once_with(
                 pipeline_func=pipeline_test_upload_without_name,
@@ -967,7 +1005,8 @@ class TestClient(parameterized.TestCase):
                 pipeline_id=None,
                 pipeline_name='test-pipeline',
                 description='A test pipeline version',
-                namespace=namespace)
+                namespace=namespace,
+            )
 
             self.assertEqual(result, expected_result)
 

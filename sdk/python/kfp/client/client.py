@@ -1737,17 +1737,24 @@ class Client:
 
         if pipeline_name:
             pipeline_id = self.get_pipeline_id(
-                pipeline_name, namespace=namespace)
+                pipeline_name, namespace=namespace
+            )
             if pipeline_id is None:
-                scope = f'namespace {namespace!r}' if namespace else 'shared pipelines'
+                scope = (
+                    f'namespace {namespace!r}'
+                    if namespace
+                    else 'shared pipelines'
+                )
                 raise ValueError(
                     f'Pipeline {pipeline_name!r} was not found in {scope}. '
                     'For a private pipeline, pass namespace explicitly or use '
-                    'pipeline_id. The client default namespace is not used.')
+                    'pipeline_id. The client default namespace is not used.'
+                )
         elif namespace is not None:
             raise ValueError(
                 'namespace is only used with pipeline_name; pipeline_id already '
-                'identifies the parent pipeline and its namespace.')
+                'identifies the parent pipeline and its namespace.'
+            )
         kwargs = dict(
             name=pipeline_version_name,
             pipelineid=pipeline_id,
