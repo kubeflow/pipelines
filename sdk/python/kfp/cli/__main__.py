@@ -32,7 +32,8 @@ def main():
                 'the listing from page one with the same filters and sort order. '
                 'Discard earlier output from this listing; reconcile any '
                 'actions already taken before restarting to avoid duplicates.',
-                err=True)
+                err=True,
+            )
         else:
             click.echo(str(e), err=True)
         sys.exit(1)

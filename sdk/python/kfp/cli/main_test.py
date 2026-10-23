@@ -18,16 +18,16 @@ import json
 import unittest
 from unittest import mock
 
-from kfp.cli import __main__
 import kfp.server_api
+from kfp.cli import __main__
 
 
 class MainPaginationErrorTest(unittest.TestCase):
-
     def invoke(self, error):
         stderr = io.StringIO()
         with mock.patch.object(
-                __main__.cli, 'cli', side_effect=error) as invoke:
+            __main__.cli, 'cli', side_effect=error
+        ) as invoke:
             with contextlib.redirect_stderr(stderr):
                 with self.assertRaises(SystemExit) as exit_error:
                     __main__.main()
@@ -37,15 +37,18 @@ class MainPaginationErrorTest(unittest.TestCase):
 
     def test_restart_error_is_actionable_without_retry(self):
         error = kfp.server_api.ApiException(status=400)
-        error.body = json.dumps({
-            'code':
-                9,
-            'details': [{
-                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
-                'reason': 'PAGINATION_RESTART_REQUIRED',
-                'domain': 'kubeflow.org',
-            }],
-        })
+        error.body = json.dumps(
+            {
+                'code': 9,
+                'details': [
+                    {
+                        '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                        'reason': 'PAGINATION_RESTART_REQUIRED',
+                        'domain': 'kubeflow.org',
+                    }
+                ],
+            }
+        )
         output = self.invoke(error)
         self.assertIn('Remove --page-token', output)
         self.assertIn('Discard earlier output', output)
@@ -63,26 +66,33 @@ class MainPaginationErrorTest(unittest.TestCase):
 
     def test_list_command_invokes_client_once_and_exits_nonzero(self):
         error = kfp.server_api.ApiException(status=400)
-        error.body = json.dumps({
-            'code':
-                9,
-            'details': [{
-                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
-                'reason': 'PAGINATION_RESTART_REQUIRED',
-                'domain': 'kubeflow.org',
-            }],
-        })
+        error.body = json.dumps(
+            {
+                'code': 9,
+                'details': [
+                    {
+                        '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                        'reason': 'PAGINATION_RESTART_REQUIRED',
+                        'domain': 'kubeflow.org',
+                    }
+                ],
+            }
+        )
         stderr = io.StringIO()
         with mock.patch.object(__main__.cli.client, 'Client') as client_class:
             client_class.return_value.list_runs.side_effect = error
-            with mock.patch('sys.argv',
-                            ['kfp', 'run', 'list', '--page-token', 'old']):
+            with mock.patch(
+                'sys.argv', ['kfp', 'run', 'list', '--page-token', 'old']
+            ):
                 with contextlib.redirect_stderr(stderr):
                     with self.assertRaises(SystemExit) as exit_error:
                         __main__.main()
             self.assertEqual(exit_error.exception.code, 1)
             client_class.return_value.list_runs.assert_called_once()
             self.assertEqual(
-                client_class.return_value.list_runs.call_args
-                .kwargs['page_token'], 'old')
+                client_class.return_value.list_runs.call_args.kwargs[
+                    'page_token'
+                ],
+                'old',
+            )
         self.assertIn('Remove --page-token', stderr.getvalue())

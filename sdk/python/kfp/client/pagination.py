@@ -38,8 +38,10 @@ def is_pagination_restart_required(error: Exception) -> bool:
         ``True`` only for a structured ``PAGINATION_RESTART_REQUIRED`` error.
         Malformed responses and unrelated failures return ``False``.
     """
-    if not isinstance(error,
-                      kfp.server_api.ApiException) or error.status != 400:
+    if (
+        not isinstance(error, kfp.server_api.ApiException)
+        or error.status != 400
+    ):
         return False
     if not isinstance(error.body, (str, bytes)):
         return False
@@ -53,7 +55,9 @@ def is_pagination_restart_required(error: Exception) -> bool:
     if not isinstance(details, list):
         return False
     return any(
-        isinstance(detail, dict) and detail.get('@type') ==
-        'type.googleapis.com/google.rpc.ErrorInfo' and detail.get('reason') ==
-        'PAGINATION_RESTART_REQUIRED' and detail.get('domain') == 'kubeflow.org'
-        for detail in details)
+        isinstance(detail, dict)
+        and detail.get('@type') == 'type.googleapis.com/google.rpc.ErrorInfo'
+        and detail.get('reason') == 'PAGINATION_RESTART_REQUIRED'
+        and detail.get('domain') == 'kubeflow.org'
+        for detail in details
+    )
