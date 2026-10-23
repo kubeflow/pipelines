@@ -1775,15 +1775,31 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 	return nil, nil
 }
 
+// waitForScheduleWriters must finish before any schedule mutation.
+func (r *ResourceManager) waitForScheduleWriters(ctx context.Context) error {
+	if !common.IsMultiUserMode() || r.options.ScheduleWritersReady == nil {
+		return nil
+	}
+	err := r.options.ScheduleWritersReady(ctx)
+	if ctx.Err() != nil {
+		return util.NewScheduleHandoffContextError(ctx.Err())
+	}
+	if err != nil {
+		glog.Warningf("Recurring run request is waiting for schedule writer handoff: %v", err)
+		if util.IsScheduleWriterConfigurationError(err) {
+			return util.NewFailedPreconditionError(err, "Recurring run request was not applied because schedule writer configuration is invalid; ask the administrator to verify writer identities and apply the complete multi-user manifests and RBAC before retrying")
+		}
+		return util.NewScheduleHandoffInProgressError()
+	}
+	return nil
+}
+
 // Creates a recurring run.
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
-	if common.IsMultiUserMode() && r.options.ScheduleWritersReady != nil {
-		if err := r.options.ScheduleWritersReady(ctx); err != nil {
-			glog.Warningf("Recurring run creation is waiting for schedule writer handoff: %v", err)
-			return nil, util.NewScheduleHandoffInProgressError()
-		}
+	if err := r.waitForScheduleWriters(ctx); err != nil {
+		return nil, err
 	}
 	scheduledWorkflow, _, _, err := r.prepareJobWorkflow(ctx, job)
 	if err != nil {
@@ -1971,11 +1987,8 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		return util.Wrapf(err, "Failed to change recurring run's mode to enable:%v. Check if recurring run %v exists", enable, jobId)
 	}
 	if common.IsMultiUserMode() {
-		if r.options.ScheduleWritersReady != nil {
-			if err := r.options.ScheduleWritersReady(ctx); err != nil {
-				glog.Warningf("Recurring run mode change is waiting for schedule writer handoff: %v", err)
-				return util.NewScheduleHandoffInProgressError()
-			}
+		if err := r.waitForScheduleWriters(ctx); err != nil {
+			return err
 		}
 		return r.changeAdoptableJobMode(ctx, job, enable)
 	}

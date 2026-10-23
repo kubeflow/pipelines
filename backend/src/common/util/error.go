@@ -15,6 +15,7 @@
 package util
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-openapi/runtime"
@@ -203,6 +204,28 @@ func NewScheduleHandoffInProgressError() *UserError {
 	err := newUserError(errors.New(message), message, codes.Unavailable)
 	err.errorInfo = &errdetails.ErrorInfo{Reason: "SCHEDULE_HANDOFF_IN_PROGRESS", Domain: "kubeflow.org"}
 	return err
+}
+
+// NewScheduleHandoffContextError preserves cancellation before a schedule mutation.
+func NewScheduleHandoffContextError(err error) *UserError {
+	code := codes.Canceled
+	message := "Recurring run request was canceled while waiting for schedule writer handoff and was not applied; verify the rollout before submitting another request."
+	if errors.Is(err, context.DeadlineExceeded) {
+		code = codes.DeadlineExceeded
+		message = "Recurring run request deadline expired while waiting for schedule writer handoff and was not applied; verify the rollout and request deadline before retrying."
+	}
+	return newUserError(errors.Wrap(err, message), message, code)
+}
+
+// NewScheduleTransferHandoffError scopes the wait failure to schedule staging.
+// Catalog entries or earlier schedules may already have been staged by import.
+func NewScheduleTransferHandoffError(err error) *UserError {
+	code := ToGRPCStatus(err).Code()
+	message := "This schedule was not staged because schedule writer handoff did not complete; earlier import staging may exist. Verify the rollout and resume the same archive."
+	if code == codes.FailedPrecondition {
+		message = "This schedule was not staged because schedule writer configuration is invalid; earlier import staging may exist. Verify writer identities and managed-writer RBAC, then resume the same archive."
+	}
+	return newUserError(errors.New(message), message, code)
 }
 
 func NewInvalidInputError(messageFormat string, a ...interface{}) *UserError {

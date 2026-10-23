@@ -127,4 +127,10 @@ write_object(state / 'reports/adoption-complete.json', dict(
     large_history=read_object(state / 'reports/adoption-large-history.json')['history'],
     schedule_uids=[case['schedule_uid'] for case in fixture['schedules']]))
 PY
+  # After history checks, exercise single HTTP requests against a replacement API
+  # while a controlled retiring controller Pod keeps the handoff incomplete.
+  stop_forward
+  mint_token
+  python3 "$helpers/live_handoff_wait.py" --state "$state"
+
 fi
