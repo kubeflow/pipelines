@@ -20,6 +20,7 @@ import subprocess
 from pathlib import Path
 
 import yaml
+from osv_master_images import merge_published_images, repository_name
 
 
 def extract_images(rendered_manifest: str) -> set[str]:
@@ -71,10 +72,7 @@ def create_image_map(images: set[str]) -> dict[str, str]:
     """Maps stable repository categories to the exact images to scan."""
     image_map = {}
     for image in sorted(images):
-        repository = image.split('@', 1)[0]
-        # Only the final path component can contain a tag; preserve registry ports.
-        if ':' in repository.rsplit('/', 1)[-1]:
-            repository = repository.rsplit(':', 1)[0]
+        repository = repository_name(image)
         category = hashlib.sha256(repository.encode()).hexdigest()[:16]
         if category in image_map:
             raise ValueError(
@@ -101,7 +99,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument('--kustomize', required=True, type=Path)
     parser.add_argument('--overlay', action='append', required=True, type=Path)
-    return parser.parse_args()
+    parser.add_argument('--published-records', type=Path)
+    parser.add_argument('--source-sha')
+    parser.add_argument('--image-owner')
+    args = parser.parse_args()
+    if any(
+        (args.published_records, args.source_sha, args.image_owner)
+    ) and not all((args.published_records, args.source_sha, args.image_owner)):
+        parser.error(
+            '--published-records, --source-sha and --image-owner must be supplied together'
+        )
+    return args
 
 
 def main() -> None:
@@ -113,6 +121,11 @@ def main() -> None:
     if not images:
         raise RuntimeError(
             'No container images found in rendered KFP manifests'
+        )
+
+    if args.published_records:
+        images = merge_published_images(
+            images, args.published_records, args.source_sha, args.image_owner
         )
 
     inventory = {

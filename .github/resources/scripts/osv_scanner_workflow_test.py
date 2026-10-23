@@ -77,10 +77,11 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         )
         self.assertIn('osv_manifest_images.py', self.workflow)
         self.assertIn(
-            '--overlay manifests/kustomize/env/platform-agnostic', self.workflow
+            '--overlay producer/manifests/kustomize/env/platform-agnostic',
+            self.workflow,
         )
         self.assertIn(
-            '--overlay manifests/kustomize/env/platform-agnostic-multi-user',
+            '--overlay producer/manifests/kustomize/env/platform-agnostic-multi-user',
             self.workflow,
         )
         self.assertIn('./osv-scanner scan image "${IMAGE}"', self.workflow)
@@ -106,6 +107,69 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             scan_step['env']['IMAGE'],
             '${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}',
         )
+
+    def test_images_follow_successful_master_publication_and_keep_source_pushes(
+        self,
+    ):
+        workflow = yaml.safe_load(self.workflow)
+        triggers = workflow.get('on', workflow.get(True))
+        self.assertEqual(
+            triggers['workflow_run']['workflows'], ['Build and Push for master']
+        )
+        self.assertEqual(triggers['workflow_run']['types'], ['completed'])
+        self.assertFalse(workflow['concurrency']['cancel-in-progress'])
+        group = workflow['concurrency']['group']
+        self.assertIn("github.event_name == 'push' && 'source'", group)
+        self.assertIn("conclusion != 'success' && 'ignored'", group)
+        self.assertIn(
+            "github.event_name != 'workflow_run'",
+            workflow['jobs']['scan-source']['if'],
+        )
+        resolver = workflow['jobs']['resolve-images']
+        self.assertIn("github.event_name != 'push'", resolver['if'])
+        self.assertEqual(
+            resolver['permissions'], {'contents': 'read', 'actions': 'read'}
+        )
+        discovery = workflow['jobs']['discover-images']
+        self.assertEqual(discovery['needs'], 'resolve-images')
+        self.assertIn('--published-records published-indexes', self.workflow)
+        self.assertIn('--source-sha "${SOURCE_SHA}"', self.workflow)
+        self.assertIn(
+            '--overlay producer/manifests/kustomize/env/platform-agnostic',
+            self.workflow,
+        )
+        download = next(
+            step
+            for step in discovery['steps']
+            if step.get('uses', '').endswith('/download-artifact-with-retry')
+        )
+        self.assertEqual(
+            download['with']['run-id'],
+            '${{ needs.resolve-images.outputs.run-id }}',
+        )
+        self.assertEqual(
+            download['with']['pattern'],
+            'published-index-*-${{ needs.resolve-images.outputs.run-attempt }}',
+        )
+        upload = workflow['jobs']['scan-images']['steps'][-1]['with']
+        self.assertEqual(
+            upload['sha'], '${{ needs.discover-images.outputs.sha }}'
+        )
+        self.assertEqual(upload['ref'], 'refs/heads/master')
+        self.assertEqual(upload['checkout_path'], 'producer')
+        publisher = yaml.safe_load(
+            (ROOT / '.github/workflows/create-manifest.yml').read_text()
+        )
+        record_uploads = [
+            step
+            for job in publisher['jobs'].values()
+            for step in job.get('steps', [])
+            if step.get('with', {})
+            .get('name', '')
+            .startswith('published-index-')
+        ]
+        self.assertEqual(len(record_uploads), 1)
+        self.assertEqual(record_uploads[0]['with']['retention-days'], 90)
 
     def test_discovery_installs_yaml_dependency_before_rendering(self):
         workflow = yaml.safe_load(self.workflow)

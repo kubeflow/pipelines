@@ -204,7 +204,7 @@ spec:
         self, args_mock, render_mock
     ):
         args_mock.return_value = mock.Mock(
-            kustomize='kustomize', overlay=['a', 'b']
+            kustomize='kustomize', overlay=['a', 'b'], published_records=None
         )
         render_mock.return_value = 'kind: Pod\nspec:\n  containers:\n  - image: registry.example/task:1\n'
         with mock.patch('sys.stdout', new_callable=io.StringIO) as output:
