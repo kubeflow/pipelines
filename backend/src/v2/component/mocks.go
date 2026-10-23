@@ -170,7 +170,7 @@ type MockCommandExecutor struct {
 	// Control behavior
 	RunError error
 	// Optional: custom function to execute instead
-	RunFunc func(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) error
+	RunFunc func(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer, extraFiles []*os.File) error
 }
 
 type CommandCall struct {
@@ -184,7 +184,7 @@ func NewMockCommandExecutor() *MockCommandExecutor {
 	return &MockCommandExecutor{}
 }
 
-func (m *MockCommandExecutor) Run(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+func (m *MockCommandExecutor) Run(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer, extraFiles []*os.File) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -195,7 +195,7 @@ func (m *MockCommandExecutor) Run(ctx context.Context, cmd string, args []string
 
 	// If custom function is provided, use it
 	if m.RunFunc != nil {
-		err := m.RunFunc(ctx, cmd, args, stdin, stdout, stderr)
+		err := m.RunFunc(ctx, cmd, args, stdin, stdout, stderr, extraFiles)
 		m.RunCalls = append(m.RunCalls, call)
 		return err
 	}

@@ -50,8 +50,9 @@ type FileSystem interface {
 // CommandExecutor provides an interface for executing system commands.
 // This abstraction allows for easy mocking in tests.
 type CommandExecutor interface {
-	// Run executes a command with the given arguments and I/O streams
-	Run(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) error
+	// Run executes a command with the given arguments and I/O streams. extraFiles
+	// correlate to exec.Cmd.extraFiles;
+	Run(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer, extraFiles []*os.File) error
 }
 
 // ObjectStoreClientInterface provides an interface for object store operations.
@@ -109,11 +110,12 @@ func (f *OSFileSystem) Stat(name string) (fs.FileInfo, error) {
 // RealCommandExecutor is the production implementation of CommandExecutor
 type RealCommandExecutor struct{}
 
-func (e *RealCommandExecutor) Run(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+func (e *RealCommandExecutor) Run(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer, extraFiles []*os.File) error {
 	command := exec.Command(cmd, args...)
 	command.Stdin = stdin
 	command.Stdout = stdout
 	command.Stderr = stderr
+	command.ExtraFiles = extraFiles
 	return command.Run()
 }
 

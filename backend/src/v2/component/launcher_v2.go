@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -850,9 +851,30 @@ func (l *LauncherV2) execute(
 
 	defer glog.Flush()
 
+	// pipe for stage reporting from child process. Passed to exec.Cmd as ExtraFiles
+	stageReadEnd, stageWriteEnd, pipeErr := os.Pipe()
+	if pipeErr != nil {
+		return nil, fmt.Errorf("failed to create task-stage reporting pipe: %w", pipeErr)
+	}
+	var stageReaderWG sync.WaitGroup
+	defer stageReadEnd.Close()
+	closeWriteEnd := sync.OnceFunc(func() { stageWriteEnd.Close() })
+	defer closeWriteEnd() // safety net for panics or early returns
+	stageReaderWG.Add(1)
+	go func() {
+		defer stageReaderWG.Done()
+		l.readTaskStages(ctx, stageReadEnd)
+	}()
+
 	// Execute end user code using the command executor interface.
-	if err := l.cmdExecutor.Run(ctx, cmd, args, os.Stdin, writer, writer); err != nil {
-		return nil, err
+	runErr := l.cmdExecutor.Run(ctx, cmd, args, os.Stdin, writer, writer, []*os.File{stageWriteEnd})
+
+	// Close write-end so the reader goroutine receives EOF and can finish.
+	closeWriteEnd()
+	stageReaderWG.Wait()
+
+	if runErr != nil {
+		return nil, runErr
 	}
 
 	return l.getExecutorOutputFile(l.executorInput.GetOutputs().GetOutputFile())

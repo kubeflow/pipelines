@@ -723,7 +723,7 @@ func TestLauncherV2_CommandExecution(t *testing.T) {
 	mockCmd := NewMockCommandExecutor()
 
 	// Setup custom behavior to write to stdout
-	mockCmd.RunFunc = func(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+	mockCmd.RunFunc = func(ctx context.Context, cmd string, args []string, stdin io.Reader, stdout, stderr io.Writer, extraFiles []*os.File) error {
 		// Simulate successful execution
 		stdout.Write([]byte("Training completed successfully\n"))
 		stdout.Write([]byte("Accuracy: 0.95\n"))
@@ -733,7 +733,7 @@ func TestLauncherV2_CommandExecution(t *testing.T) {
 	// Execute command
 	ctx := context.Background()
 	var stdout, stderr bytes.Buffer
-	err := mockCmd.Run(ctx, "python", []string{"train.py"}, nil, &stdout, &stderr)
+	err := mockCmd.Run(ctx, "python", []string{"train.py"}, nil, &stdout, &stderr, nil)
 
 	// Verify
 	require.NoError(t, err)
