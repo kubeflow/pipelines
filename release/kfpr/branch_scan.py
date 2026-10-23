@@ -79,7 +79,8 @@ def required_lanes(matrix: dict, request_id: str, attempt: int) -> list[str]:
 
 
 def convert_scans(source: Path, directory: Path, release: dict) -> None:
-    """Convert only complete verified evidence; preserve immutable raw scans."""
+    """Convert only complete verified evidence; preserve immutable raw
+    scans."""
     manifest = json.loads((directory / 'manifest.json').read_text())
     if any(manifest.get(key) != value for key, value in release.items()):
         raise ValueError('Scan manifest does not match this workflow attempt')
@@ -145,7 +146,8 @@ def convert_scans(source: Path, directory: Path, release: dict) -> None:
 
 
 def convert_report(report: dict, destination: Path) -> None:
-    """Convert a presentation copy with repository/env ignore policy disabled."""
+    """Convert a presentation copy with repository/env ignore policy
+    disabled."""
     environment = {
         key: value
         for key, value in os.environ.items()

@@ -41,6 +41,8 @@ CALLERS = {
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
     ('.github/workflows/release-qualification.yml', 'aggregate'),
+    ('.github/workflows/release-branch-image-scanning.yml', 'aggregate'),
+    ('.github/workflows/release-branch-image-scanning.yml', 'upload'),
 }
 
 
