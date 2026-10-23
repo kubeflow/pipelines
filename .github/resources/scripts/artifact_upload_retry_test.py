@@ -51,7 +51,7 @@ class ArtifactUploadRetryTest(unittest.TestCase):
 
         self.assertEqual(
             action.count('uses: ./.github/actions/upload-artifact-with-retry'),
-            4,
+            3,
         )
         self.assertNotIn('uses: actions/upload-artifact@', action)
 

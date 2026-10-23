@@ -1,6 +1,6 @@
 # CI and Workflows
 
-Legacy v2 integration migration is tracked in #14950. Keep the legacy workflow until assertion parity and repeated cluster runs are recorded in `backend/test/v2/api/legacy-migration.md`. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. Webhook tests still use the integration package.
+Legacy v2 integration migration is tracked in #14950. Existing assertion parity and CI evidence are recorded in `backend/test/v2/api/legacy-migration.md`; retire the legacy workflow after the trusted publisher replacement is deployed. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. Webhook tests still use the integration package.
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
@@ -166,27 +166,16 @@ projects. CI uses a temporary directory and separately validates the built SDK w
 Modern release preparation builds from metadata; older source checkouts retain their
 legacy exports. See [Dependency updates](dependabot.md) for usage.
 
-## Legacy v2 retirement qualification
+## Legacy v2 retirement
 
-Keep the legacy workflow enabled until the assertion ledger's qualification and
-merge-policy requirements are satisfied. Successful API jobs retain raw Ginkgo
-JSON and JUnit reports plus source/run provenance; successful legacy jobs retain
-their Go test output and provenance. Missing required success reports fail the
-job. These artifacts are qualification evidence, not just failure diagnostics.
+Use existing CI logs and reports to verify the assertion ledger in
+`backend/test/v2/api/legacy-migration.md`; record results and failures in #14950.
+There is no additional artifact-retention or repeated-comparison prerequisite.
 
 The cache-enabled multi-user shard B provisions an isolated custom scheduling
 service account and requires both pinned and follow-latest authorization
-scenarios to pass. Its explicit manifest verifier rejects missing or skipped
-cases. Fixture grants must remain scoped to that account and namespace; do not
-disable service-account authorization to make qualification pass.
-
-Record old/new comparisons using the same tested source revision, all four
-legacy deployment configurations, raw reports, and run-attempt metadata in
-#14950. Verify the custom-account lane separately. Successful checks without the
-retained reports are insufficient. Prepare the trusted-base policy transition
-using the [retirement transition runbook](legacy-ci-retirement.md) before deleting
-the legacy workflow; keep the existing workflow required until
-that reviewed transition is activated after qualification.
+scenarios to pass. Its manifest verifier rejects missing or skipped cases.
+Keep fixture grants scoped to that account and namespace and authorization enabled.
 
 ## Common CI failures
 

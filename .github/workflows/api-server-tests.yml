@@ -38,6 +38,7 @@ on:
       - '**/pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
