@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import os
 import ssl
+import warnings
 
 from kfp.kubeflow_client.backends.kubernetes import constants
 
@@ -167,3 +168,35 @@ def resolve_namespace(configured_namespace: str | None) -> str:
         constants.DEFAULT_NAMESPACE,
     )
     return constants.DEFAULT_NAMESPACE
+
+
+def get_component_namespace(
+    component_env_var: str, default: str = 'kubeflow'
+) -> str:
+    """Get the namespace for a specific Kubeflow component control plane.
+
+    Checks the component-specific environment variable first. If not found, falls back
+    to the deprecated KUBEFLOW_SYSTEM_NAMESPACE environment variable with a warning.
+    If neither is set, returns the provided default namespace.
+
+    Args:
+        component_env_var: The component-specific environment variable name.
+        default: Default namespace if neither environment variable is set.
+
+    Returns:
+        The resolved Kubernetes namespace name.
+    """
+    if os.getenv(component_env_var):
+        return os.environ[component_env_var]
+
+    if os.getenv(constants.KUBEFLOW_SYSTEM_NAMESPACE_ENV_VAR):
+        warnings.warn(
+            f'{constants.KUBEFLOW_SYSTEM_NAMESPACE_ENV_VAR} is deprecated and will be removed '
+            f'in a future release. Please set {component_env_var} for component-scoped configuration. '
+            f'Both environment variables are honored during the transition period.',
+            UserWarning,
+            stacklevel=2,
+        )
+        return os.environ[constants.KUBEFLOW_SYSTEM_NAMESPACE_ENV_VAR]
+
+    return default

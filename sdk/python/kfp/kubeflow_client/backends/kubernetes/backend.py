@@ -122,12 +122,22 @@ class KubernetesBackend:
         """Refresh the API token using the configured refresh hook."""
         auth.refresh_credentials(self._api_config)
 
-    def verify_backend(self) -> None:
-        """Verify that the KFP API server is reachable.
+    def _get_core_v1_api(self):
+        """Return a Kubernetes CoreV1Api client, or None if unavailable."""
+        try:
+            import kubernetes as k8s
 
-        Logs a warning on failure but never raises, matching the
-        TrainerClient.verify_backend() pattern.
-        """
+            try:
+                k8s.config.load_incluster_config()
+            except (k8s.config.ConfigException, FileNotFoundError):
+                k8s.config.load_kube_config()
+            return k8s.client.CoreV1Api()
+        except Exception as e:
+            logger.debug('Kubernetes client could not be initialized: %s', e)
+            return None
+
+    def verify_backend(self) -> None:
+        """Verify that the KFP API server is reachable and check control plane version."""
         try:
             self._healthz_api.healthz_service_get_healthz()
         except Exception as e:
@@ -136,6 +146,32 @@ class KubernetesBackend:
                 'Requests will fail until the server becomes available.',
                 self._api_config.host,
                 e,
+            )
+
+        system_namespace = utils.get_component_namespace(
+            backend_constants.KUBEFLOW_PIPELINES_NAMESPACE_ENV_VAR,
+            default=backend_constants.DEFAULT_CONTROL_PLANE_NAMESPACE,
+        )
+
+        core_api = self._get_core_v1_api()
+        if core_api is None:
+            return
+
+        try:
+            core_api.read_namespaced_config_map(
+                name=backend_constants.CONTROL_PLANE_CONFIG_MAP_NAME,
+                namespace=system_namespace,
+            )
+        except Exception as e:
+            logger.warning(
+                'Kubeflow Pipelines control-plane version info is not available: '
+                'unable to read ConfigMap %r in namespace %r: %s. '
+                'If your Pipelines control-plane is installed in a different namespace, '
+                'set the %s environment variable accordingly.',
+                backend_constants.CONTROL_PLANE_CONFIG_MAP_NAME,
+                system_namespace,
+                e,
+                backend_constants.KUBEFLOW_PIPELINES_NAMESPACE_ENV_VAR,
             )
 
     # ------------------------------------------------------------------

@@ -22,3 +22,11 @@ KFP_SA_TOKEN_PATH = '/var/run/secrets/kubeflow/pipelines/token'
 K8S_SA_TOKEN_PATH = '/var/run/secrets/kubernetes.io/serviceaccount/token'
 TOKEN_PATH_ENV = 'KF_PIPELINES_SA_TOKEN_PATH'
 ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
+
+# Environment variables for Kubeflow component control plane namespaces.
+KUBEFLOW_SYSTEM_NAMESPACE_ENV_VAR = 'KUBEFLOW_SYSTEM_NAMESPACE'
+KUBEFLOW_PIPELINES_NAMESPACE_ENV_VAR = 'KUBEFLOW_PIPELINES_NAMESPACE'
+
+# Control plane defaults and ConfigMap identifiers
+DEFAULT_CONTROL_PLANE_NAMESPACE = 'kubeflow-system'
+CONTROL_PLANE_CONFIG_MAP_NAME = 'kubeflow-pipelines-public'

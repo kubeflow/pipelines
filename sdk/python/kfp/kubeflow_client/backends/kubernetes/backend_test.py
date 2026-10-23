@@ -29,6 +29,9 @@ import pytest
 import kfp.server_api
 from kfp.kubeflow_client import constants
 from kfp.kubeflow_client.backends.kubernetes import auth, utils
+from kfp.kubeflow_client.backends.kubernetes import (
+    constants as backend_constants,
+)
 from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
 from kfp.kubeflow_client.backends.kubernetes.types import (
     KubernetesBackendConfig,
@@ -2689,3 +2692,164 @@ def test__resolve_experiment_id(backend, test_case):
                 test_case.expected_error, match=test_case.expected_error_match
             ):
                 backend._resolve_experiment_id(experiment)
+
+
+# ------------------------------------------------------------------
+# Control plane verification tests
+# ------------------------------------------------------------------
+
+
+def _build_core_api_mock(
+    config_map_data: dict | None = None,
+    error: Exception | None = None,
+):
+    """Helper to construct a CoreV1Api mock for version checks."""
+    core_api = Mock()
+    if error is not None:
+        core_api.read_namespaced_config_map.side_effect = error
+    else:
+        core_api.read_namespaced_config_map.return_value = Mock(
+            data=config_map_data
+        )
+    return core_api
+
+
+def _run_verify_backend_with_core_api(
+    core_api: Mock | None,
+) -> tuple[list[str], int]:
+    """Helper to run verify_backend and capture warning logs."""
+    logger_name = _BACKEND_MODULE
+    logger_obj = logging.getLogger(logger_name)
+
+    class _ListHandler(logging.Handler):
+        def __init__(self) -> None:
+            super().__init__()
+            self.records: list[logging.LogRecord] = []
+
+        def emit(self, record: logging.LogRecord) -> None:
+            self.records.append(record)
+
+    handler = _ListHandler()
+    logger_obj.addHandler(handler)
+    previous_level = logger_obj.level
+    logger_obj.setLevel(logging.WARNING)
+
+    try:
+        with (
+            patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'),
+            patch(
+                f'{_BACKEND_MODULE}.KubernetesBackend._get_core_v1_api',
+                return_value=core_api,
+            ),
+            patch('kfp.server_api.HealthzServiceApi'),
+        ):
+            backend_inst = KubernetesBackend(
+                KubernetesBackendConfig(
+                    base_url='http://localhost:8888', namespace='test-ns'
+                )
+            )
+    finally:
+        logger_obj.removeHandler(handler)
+        logger_obj.setLevel(previous_level)
+
+    messages = [record.getMessage() for record in handler.records]
+    call_count = (
+        core_api.read_namespaced_config_map.call_count
+        if core_api is not None
+        else 0
+    )
+    return messages, call_count
+
+
+@pytest.mark.parametrize(
+    'test_case',
+    [
+        TestCase(
+            name='version metadata present with default namespace',
+            expected_status=SUCCESS,
+            config={
+                'core_api': _build_core_api_mock({'version': '2.0.0'}),
+                'expect_warning': False,
+                'expected_namespace': backend_constants.DEFAULT_CONTROL_PLANE_NAMESPACE,
+            },
+        ),
+        TestCase(
+            name='version metadata present with custom component namespace',
+            expected_status=SUCCESS,
+            config={
+                'core_api': _build_core_api_mock({'version': '2.0.0'}),
+                'expect_warning': False,
+                'env': {
+                    backend_constants.KUBEFLOW_PIPELINES_NAMESPACE_ENV_VAR: 'custom-pipelines-ns'
+                },
+                'expected_namespace': 'custom-pipelines-ns',
+            },
+        ),
+        TestCase(
+            name='fallback to deprecated KUBEFLOW_SYSTEM_NAMESPACE',
+            expected_status=SUCCESS,
+            config={
+                'core_api': _build_core_api_mock({'version': '2.0.0'}),
+                'expect_warning': False,
+                'env': {
+                    backend_constants.KUBEFLOW_SYSTEM_NAMESPACE_ENV_VAR: 'deprecated-system-ns'
+                },
+                'expected_namespace': 'deprecated-system-ns',
+            },
+        ),
+        TestCase(
+            name='ConfigMap read error logs warning',
+            expected_status=SUCCESS,
+            config={
+                'core_api': _build_core_api_mock(
+                    None, Exception('ConfigMap not found')
+                ),
+                'expect_warning': True,
+                'must_contain': [
+                    'Kubeflow Pipelines control-plane version info is not available',
+                    backend_constants.CONTROL_PLANE_CONFIG_MAP_NAME,
+                    'ConfigMap not found',
+                    backend_constants.KUBEFLOW_PIPELINES_NAMESPACE_ENV_VAR,
+                ],
+            },
+        ),
+    ],
+    ids=lambda tc: tc.name,
+)
+def test_verify_backend_control_plane(monkeypatch, test_case):
+    """Test KubernetesBackend.verify_backend control plane check across scenarios."""
+    core_api = test_case.config['core_api']
+    expect_warning = test_case.config.get('expect_warning', False)
+    must_contain = test_case.config.get('must_contain', [])
+    expected_namespace = test_case.config.get(
+        'expected_namespace', backend_constants.DEFAULT_CONTROL_PLANE_NAMESPACE
+    )
+
+    # Clean environment variables before test execution
+    monkeypatch.delenv(
+        backend_constants.KUBEFLOW_PIPELINES_NAMESPACE_ENV_VAR, raising=False
+    )
+    monkeypatch.delenv(
+        backend_constants.KUBEFLOW_SYSTEM_NAMESPACE_ENV_VAR, raising=False
+    )
+
+    for k, v in test_case.config.get('env', {}).items():
+        monkeypatch.setenv(k, v)
+
+    warnings_list, _ = _run_verify_backend_with_core_api(core_api)
+    combined = '\n'.join(warnings_list)
+
+    core_api.read_namespaced_config_map.assert_called_once_with(
+        name=backend_constants.CONTROL_PLANE_CONFIG_MAP_NAME,
+        namespace=expected_namespace,
+    )
+
+    if expect_warning:
+        assert warnings_list, 'Expected warning logs but found none'
+        for text in must_contain:
+            assert text in combined
+    else:
+        assert (
+            'Kubeflow Pipelines control-plane version info is not available'
+            not in combined
+        )
