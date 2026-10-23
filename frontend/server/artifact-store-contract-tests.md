@@ -50,15 +50,15 @@ MINIO_BINARY=/tmp/kfp-contract-minio bash frontend/scripts/test-artifact-store-c
 The runner pins SeaweedFS `4.48`, matching the deployment manifest. The real-service
 checks read keys containing Unicode, spaces, plus signs and literal percent
 escapes; list 1,004 objects across the S3 page boundary; check sizes and missing
-objects; cancel reads; and read public objects without signing. MinIO uses a nondefault
-`contract-region` signing region while the adapter starts with no region configured. Both services must
+objects; cancel reads; and read public objects without signing. MinIO uses a mixed-case nondefault
+`RegionOne` signing region while the adapter starts with no region configured. Both services must
 run for this command to pass; neither service test is skipped. A deliberately wrong-region
 SDK read must fail with `400 AuthorizationHeaderMalformed`, verifying the MinIO
 region setting before testing adapter recovery. Region correction consumes an attempt,
 so the adapter uses a three-attempt budget.
 
 For services already running with the fixture credentials (and MinIO configured
-with `MINIO_SITE_REGION=contract-region`), run directly:
+with `MINIO_SITE_REGION=RegionOne`), run directly:
 
 ```bash
 cd frontend/server

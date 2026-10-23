@@ -247,17 +247,21 @@ describe('S3 artifact store wire contract', () => {
     expect(requests[1].headers.authorization).toContain('/contract-region/s3/aws4_request');
   });
 
-  it.each(['header', 'XML'] as const)(
-    'corrects MinIO AuthorizationHeaderMalformed using the %s region hint',
-    async (hint) => {
+  it.each(
+    ['eu-west-1', 'RegionOne', 'Region_One', `Region${'x'.repeat(64)}`].flatMap((region) =>
+      ['header', 'XML'].map((hint) => ({ region, hint })),
+    ),
+  )(
+    'corrects MinIO AuthorizationHeaderMalformed using the $hint hint for $region',
+    async ({ region, hint }) => {
       const requests: IncomingMessage[] = [];
       const port = await wireServer((req, res) => {
         requests.push(req);
-        if (!req.headers.authorization?.includes('/eu-west-1/s3/aws4_request')) {
-          if (hint === 'header') res.setHeader('x-amz-bucket-region', 'eu-west-1');
+        if (!req.headers.authorization?.includes(`/${region}/s3/aws4_request`)) {
+          if (hint === 'header') res.setHeader('x-amz-bucket-region', region);
           res.writeHead(400, { 'content-type': 'application/xml' });
           res.end(
-            `<Error><Code>AuthorizationHeaderMalformed</Code><Message>wrong region</Message>${hint === 'XML' ? '<Region>eu-west-1</Region>' : ''}</Error>`,
+            `<Error><Code>AuthorizationHeaderMalformed</Code><Message>wrong region</Message>${hint === 'XML' ? `<Region>${region}</Region>` : ''}</Error>`,
           );
         } else res.end('regional artifact');
       });
@@ -275,7 +279,7 @@ describe('S3 artifact store wire contract', () => {
       expect(await streamToString(await store.openRead('artifact'))).toBe('regional artifact');
       expect(requests).toHaveLength(2);
       expect(requests[0].headers.authorization).toContain('/us-east-1/s3/aws4_request');
-      expect(requests[1].headers.authorization).toContain('/eu-west-1/s3/aws4_request');
+      expect(requests[1].headers.authorization).toContain(`/${region}/s3/aws4_request`);
     },
   );
 
@@ -534,7 +538,7 @@ for (const [service, variable] of [
       const bucket = `kfp-contract-${randomUUID()}`;
       const fixture = new S3Client({
         endpoint: endpoint.origin,
-        region: service === 'MinIO' ? 'contract-region' : 'us-east-1',
+        region: service === 'MinIO' ? 'RegionOne' : 'us-east-1',
         forcePathStyle: true,
         credentials,
       });

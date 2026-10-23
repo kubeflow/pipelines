@@ -30,7 +30,7 @@ seaweed_container="$(docker run -d --rm -p 127.0.0.1::8333 --entrypoint sh \
   -c 'printf "%s" '\''{"identities":[{"name":"contract","credentials":[{"accessKey":"kfp-contract","secretKey":"kfp-contract-secret"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'\'' > /tmp/s3.json; exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/tmp/s3.json -volume.max=100')"
 seaweed_address="$(docker port "$seaweed_container" 8333/tcp)"
 minio_port="$(node -e 'const s=require("node:net").createServer(); s.listen(0,"127.0.0.1",()=>{process.stdout.write(String(s.address().port));s.close()})')"
-MINIO_ROOT_USER=kfp-contract MINIO_ROOT_PASSWORD=kfp-contract-secret MINIO_BROWSER=off MINIO_SITE_REGION=contract-region \
+MINIO_ROOT_USER=kfp-contract MINIO_ROOT_PASSWORD=kfp-contract-secret MINIO_BROWSER=off MINIO_SITE_REGION=RegionOne \
   "$MINIO_BINARY" server --address "127.0.0.1:$minio_port" "$test_dir/data" >"$test_dir/minio.log" 2>&1 &
 minio_pid=$!
 export KFP_SEAWEEDFS_ENDPOINT="http://$seaweed_address"

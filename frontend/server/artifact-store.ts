@@ -571,7 +571,8 @@ function createConfiguredS3Store(
               (attempt.transportStatus === 400 &&
                 failure.code === 'AuthorizationHeaderMalformed')) &&
             typeof region === 'string' &&
-            /^[a-z0-9][a-z0-9-]{0,62}$/.test(region) &&
+            // Custom S3 regions may contain uppercase letters and underscores without a length cap.
+            /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(region) &&
             region !== requestedRegion
           ) {
             // Cache only the signing region on this bucket-bound client. Never follow Location.
