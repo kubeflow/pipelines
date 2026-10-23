@@ -13,17 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
-from frontend_qualification_reliability import collect
-from frontend_qualification_reliability import report
+from frontend_qualification_reliability import collect, report
 
 
 class ReliabilityTest(unittest.TestCase):
-
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -35,7 +33,8 @@ class ReliabilityTest(unittest.TestCase):
             head_sha='abc',
             html_url='https://github.com/run/12',
             run_attempt=1,
-            conclusion='cancelled')
+            conclusion='cancelled',
+        )
 
     def write(self, attempt, conclusion, **overrides):
         job = dict(
@@ -44,16 +43,17 @@ class ReliabilityTest(unittest.TestCase):
             head_sha='abc',
             name='Safari (iPad)',
             conclusion=conclusion,
-            html_url=f'https://github.com/job/{attempt}')
+            html_url=f'https://github.com/job/{attempt}',
+        )
         job.update(overrides)
         (self.directory / f'12-attempt-{attempt}.json').write_text(
-            json.dumps([{
-                'jobs': [job]
-            }]))
+            json.dumps([{'jobs': [job]}])
+        )
 
     def result(self):
         (self.directory / 'runs.json').write_text(
-            json.dumps({'workflow_runs': [self.run]}))
+            json.dumps({'workflow_runs': [self.run]})
+        )
         return report(self.directory, [self.workflow])
 
     def test_failure_inside_cancelled_run_counts(self):
@@ -77,7 +77,8 @@ class ReliabilityTest(unittest.TestCase):
         self.assertEqual(result['lanes'][0]['success'], 0)
         self.assertEqual(result['lanes'][0]['same_sha_recoveries'], 1)
         self.assertEqual(
-            result['evidence'][0]['successful_reruns'][0]['attempt'], 2)
+            result['evidence'][0]['successful_reruns'][0]['attempt'], 2
+        )
 
     def test_only_latest_attempt_is_unknown(self):
         self.run['run_attempt'] = 2
@@ -133,7 +134,6 @@ class ReliabilityTest(unittest.TestCase):
 
 
 class CollectionTest(unittest.TestCase):
-
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -146,7 +146,8 @@ class CollectionTest(unittest.TestCase):
             head_sha='abc',
             run_attempt=2,
             conclusion='success',
-            html_url='https://github.com/run/12')
+            html_url='https://github.com/run/12',
+        )
 
     def api(self, endpoint, fields=None):
         if endpoint.endswith('/runs'):
@@ -163,13 +164,20 @@ class CollectionTest(unittest.TestCase):
                         head_sha='abc',
                         name='Safari',
                         conclusion='failure' if attempt == 1 else 'success',
-                        html_url=f'https://github.com/job/{attempt}')
-                ])
+                        html_url=f'https://github.com/job/{attempt}',
+                    )
+                ],
+            )
         return dict(self.run)
 
     def collect(self):
-        return collect(self.directory, [self.workflow], 'kubeflow/pipelines',
-                       '2026-10-01', '2026-10-08')
+        return collect(
+            self.directory,
+            [self.workflow],
+            'kubeflow/pipelines',
+            '2026-10-01',
+            '2026-10-08',
+        )
 
     @mock.patch('frontend_qualification_reliability.api_json')
     def test_collects_every_attempt_and_preserves_first_failure(self, api):
@@ -178,8 +186,10 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(result['lanes'][0]['failure'], 1)
         self.assertEqual(result['lanes'][0]['same_sha_recoveries'], 1)
         self.assertTrue(
-            json.loads(
-                (self.directory / 'collection.json').read_text())['complete'])
+            json.loads((self.directory / 'collection.json').read_text())[
+                'complete'
+            ]
+        )
 
     @mock.patch('frontend_qualification_reliability.api_json')
     def test_paginated_jobs_remain_complete(self, api):
@@ -190,7 +200,8 @@ class CollectionTest(unittest.TestCase):
                 response['total_count'] = 2
                 if fields['page'] == 2:
                     response['jobs'][0].update(
-                        id=100 + response['jobs'][0]['id'], name='Firefox')
+                        id=100 + response['jobs'][0]['id'], name='Firefox'
+                    )
             return response
 
         api.side_effect = paginated
@@ -217,8 +228,10 @@ class CollectionTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'limit exceeded'):
             self.collect()
         self.assertFalse(
-            json.loads(
-                (self.directory / 'collection.json').read_text())['complete'])
+            json.loads((self.directory / 'collection.json').read_text())[
+                'complete'
+            ]
+        )
 
     @mock.patch('frontend_qualification_reliability.api_json')
     def test_active_runs_are_not_certified(self, api):
@@ -258,8 +271,10 @@ class CollectionTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'identity mismatch'):
             self.collect()
         self.assertFalse(
-            json.loads(
-                (self.directory / 'collection.json').read_text())['complete'])
+            json.loads((self.directory / 'collection.json').read_text())[
+                'complete'
+            ]
+        )
 
 
 if __name__ == '__main__':
