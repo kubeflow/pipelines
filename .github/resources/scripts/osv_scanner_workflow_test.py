@@ -91,6 +91,22 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         )
         self.assertIn('      fail-fast: false', self.workflow)
 
+    def test_image_versions_are_not_part_of_the_analysis_environment(self):
+        workflow = yaml.safe_load(self.workflow)
+        discovery = workflow['jobs']['discover-images']
+        scan = workflow['jobs']['scan-images']
+        self.assertIn('images', discovery['outputs'])
+        self.assertNotIn('matrix.image', self.workflow)
+        scan_step = next(
+            step
+            for step in scan['steps']
+            if step['name'] == 'Scan deployed container image'
+        )
+        self.assertEqual(
+            scan_step['env']['IMAGE'],
+            '${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}',
+        )
+
     def test_discovery_installs_yaml_dependency_before_rendering(self):
         workflow = yaml.safe_load(self.workflow)
         steps = workflow['jobs']['discover-images']['steps']

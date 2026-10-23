@@ -13,12 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
+import json
 import unittest
 from pathlib import Path
 from unittest import mock
 
 import yaml
-from osv_manifest_images import create_matrix, extract_images, render_overlay
+from osv_manifest_images import (
+    create_image_map,
+    create_matrix,
+    extract_images,
+    main,
+    render_overlay,
+)
 
 
 class OsvManifestImagesTest(unittest.TestCase):
@@ -136,23 +144,78 @@ spec:
 """
         self.assertEqual(extract_images(manifest), {'registry.example/task:1'})
 
-    def test_create_matrix_is_sorted_and_has_stable_categories(self):
-        matrix = create_matrix({'registry.example/b:2', 'registry.example/a:1'})
+    def test_matrix_identity_survives_image_upgrades(self):
+        old = create_matrix({'registry.example/task:1'})
+        for image in (
+            'registry.example/task',
+            'registry.example/task:2',
+            'registry.example/task@sha256:abc',
+            'registry.example/task:2@sha256:def',
+        ):
+            with self.subTest(image=image):
+                self.assertEqual(old, create_matrix({image}))
+        self.assertEqual(set(old['include'][0]), {'category'})
 
+    def test_matrix_preserves_repository_and_registry_port_identity(self):
+        images = {
+            'registry.example:5000/task:1',
+            'registry.example:5001/task:1',
+            'registry.example:5000/other:1',
+        }
+        matrix = create_matrix(images)
+        self.assertEqual(len(matrix['include']), 3)
+        self.assertEqual(len({row['category'] for row in matrix['include']}), 3)
         self.assertEqual(
-            matrix,
-            {
-                'include': [
-                    {
-                        'image': 'registry.example/a:1',
-                        'category': '2bd75a0be1a9bf75',
-                    },
-                    {
-                        'image': 'registry.example/b:2',
-                        'category': '3080c2e5bf31546b',
-                    },
-                ]
-            },
+            create_matrix({'registry.example:5000/task:1'}),
+            create_matrix({'registry.example:5000/task:2'}),
+        )
+
+    def test_multiple_versions_of_one_repository_fail_closed(self):
+        for other_image in (
+            'registry.example/task:2',
+            'registry.example/task@sha256:abc',
+            'registry.example/task:1@sha256:def',
+        ):
+            with self.subTest(other_image=other_image):
+                with self.assertRaisesRegex(
+                    ValueError, 'Multiple image references'
+                ):
+                    create_matrix({'registry.example/task:1', other_image})
+
+    def test_image_map_preserves_exact_references_and_sorted_order(self):
+        images = {
+            'registry.example/b@sha256:abc',
+            'registry.example/a:1@sha256:def',
+        }
+        image_map = create_image_map(images)
+        self.assertEqual(list(image_map.values()), sorted(images))
+        self.assertEqual(
+            create_matrix(images)['include'],
+            [{'category': category} for category in image_map],
+        )
+        self.assertEqual(len(create_matrix({'alpine:1'})['include']), 1)
+        self.assertEqual(
+            create_matrix({'alpine:1'}), create_matrix({'alpine:2'})
+        )
+
+    @mock.patch('osv_manifest_images.render_overlay')
+    @mock.patch('osv_manifest_images.parse_args')
+    def test_main_emits_matrix_and_matching_image_map(
+        self, args_mock, render_mock
+    ):
+        args_mock.return_value = mock.Mock(
+            kustomize='kustomize', overlay=['a', 'b']
+        )
+        render_mock.return_value = 'kind: Pod\nspec:\n  containers:\n  - image: registry.example/task:1\n'
+        with mock.patch('sys.stdout', new_callable=io.StringIO) as output:
+            main()
+        inventory = json.loads(output.getvalue())
+        category = inventory['matrix']['include'][0]['category']
+        self.assertEqual(
+            inventory['images'], {category: 'registry.example/task:1'}
+        )
+        self.assertEqual(
+            inventory['matrix'], {'include': [{'category': category}]}
         )
 
     @mock.patch('osv_manifest_images.subprocess.run')

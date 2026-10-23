@@ -76,6 +76,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       matrix: ${{ steps.images.outputs.matrix }}
+      images: ${{ steps.images.outputs.images }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -107,14 +108,15 @@ jobs:
       - name: Render manifests and collect images
         id: images
         run: |
-          image_matrix=$(python3 .github/resources/scripts/osv_manifest_images.py \
+          image_inventory=$(python3 .github/resources/scripts/osv_manifest_images.py \
             --kustomize "${RUNNER_TEMP}/kustomize" \
             --overlay manifests/kustomize/env/platform-agnostic \
             --overlay manifests/kustomize/env/platform-agnostic-multi-user)
-          echo "matrix=${image_matrix}" >> "${GITHUB_OUTPUT}"
+          echo "matrix=$(jq -c .matrix <<< "${image_inventory}")" >> "${GITHUB_OUTPUT}"
+          echo "images=$(jq -c .images <<< "${image_inventory}")" >> "${GITHUB_OUTPUT}"
 
   scan-images:
-    name: Scan image (${{ matrix.image }})
+    name: Scan image (${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }})
     needs: discover-images
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -124,6 +126,8 @@ jobs:
     strategy:
       fail-fast: false
       max-parallel: 4
+      # Matrix values also identify code-scanning configurations. Keep versions
+      # in the separate image map so upgrades update the existing configuration.
       matrix: ${{ fromJSON(needs.discover-images.outputs.matrix) }}
     steps:
       - name: Checkout code
@@ -145,7 +149,7 @@ jobs:
 
       - name: Scan deployed container image
         env:
-          IMAGE: ${{ matrix.image }}
+          IMAGE: ${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}
         run: |
           bash .github/resources/scripts/docker-pull-with-retry.sh "${IMAGE}"
 

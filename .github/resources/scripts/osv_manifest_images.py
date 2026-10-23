@@ -67,15 +67,30 @@ def render_overlay(kustomize: Path, overlay: Path) -> str:
     return result.stdout
 
 
+def create_image_map(images: set[str]) -> dict[str, str]:
+    """Maps stable repository categories to the exact images to scan."""
+    image_map = {}
+    for image in sorted(images):
+        repository = image.split('@', 1)[0]
+        # Only the final path component can contain a tag; preserve registry ports.
+        if ':' in repository.rsplit('/', 1)[-1]:
+            repository = repository.rsplit(':', 1)[0]
+        category = hashlib.sha256(repository.encode()).hexdigest()[:16]
+        if category in image_map:
+            raise ValueError(
+                f'Multiple image references share scan identity {repository}: '
+                f'{image_map[category]} and {image}. Align their versions or '
+                'define separate stable scan targets before scanning both.'
+            )
+        image_map[category] = image
+    return image_map
+
+
 def create_matrix(images: set[str]) -> dict[str, list[dict[str, str]]]:
-    """Creates a stable GitHub Actions matrix for the discovered images."""
+    """Keeps versioned references out of GitHub's analysis environment."""
     return {
         'include': [
-            {
-                'image': image,
-                'category': hashlib.sha256(image.encode()).hexdigest()[:16],
-            }
-            for image in sorted(images)
+            {'category': category} for category in create_image_map(images)
         ]
     }
 
@@ -100,7 +115,11 @@ def main() -> None:
             'No container images found in rendered KFP manifests'
         )
 
-    print(json.dumps(create_matrix(images), separators=(',', ':')))
+    inventory = {
+        'matrix': create_matrix(images),
+        'images': create_image_map(images),
+    }
+    print(json.dumps(inventory, separators=(',', ':')))
 
 
 if __name__ == '__main__':
