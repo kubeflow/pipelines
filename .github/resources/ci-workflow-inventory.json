@@ -120,7 +120,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "6df897d5f41127f359c4e63d5011b3a8b3506f0edf99664729bf83003ae715f6",
+      "header_sha256": "0393d261c291ca462fc0afcc03b8ec16bd8d2b1e4cce3976625c2055911d923c",
       "pull_request": null
     },
     {
@@ -138,7 +138,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "23d1f47d7a2f2292f33e7dfa9b50eef11b7d15983f88eb957abf26d571a8fa56",
+      "header_sha256": "f37cdbc4f943ff80f2e53f333fe4af452fc6808aa5dbad10eb9f240b5ba1e42a",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -212,7 +212,6 @@
           "backend/test/v2/resources/env-var.yaml",
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
@@ -563,31 +562,6 @@
           "!**/*.md",
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"
-        ]
-      }
-    },
-    {
-      "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
-      "name": "KFP API Integration V2 (Legacy)",
-      "header_sha256": "df0d9f1098b9e404e8e66229d84acafc1605f27757adc35176b63998d9ea99fc",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          "api/**",
-          "go.mod",
-          "go.sum",
-          "backend/**",
-          "manifests/kustomize/**",
-          "test/**",
-          "!**/*.md",
-          "!**/OWNERS"
         ]
       }
     },

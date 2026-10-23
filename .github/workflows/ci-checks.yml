@@ -29,7 +29,6 @@ on:
       - 'KFP Webhook Integration'
       - 'KFP Manifests'
       - 'KFP Kubernetes Native Migration Tests'
-      - 'KFP API Integration V2 (Legacy)'
       - 'pre-commit'
       - 'KFP Backend Tests'
       - 'Python Syntax'
