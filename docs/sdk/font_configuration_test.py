@@ -15,11 +15,11 @@
 # limitations under the License.
 
 import ast
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,12 +29,19 @@ def font_option(filename):
     options = next(
         node.value
         for node in tree.body
-        if isinstance(node, ast.Assign) and any(
+        if isinstance(node, ast.Assign)
+        and any(
             isinstance(target, ast.Name) and target.id == 'html_theme_options'
-            for target in node.targets))
+            for target in node.targets
+        )
+    )
     return ast.literal_eval(
-        next(value for key, value in zip(options.keys, options.values)
-             if ast.literal_eval(key) == 'font'))
+        next(
+            value
+            for key, value in zip(options.keys, options.values)
+            if ast.literal_eval(key) == 'font'
+        )
+    )
 
 
 BUILD_WITHOUT_NETWORK = r"""
@@ -66,14 +73,15 @@ sys.exit(app.statuscode)
 
 
 class SDKFontConfigurationTest(unittest.TestCase):
-
     def test_actual_font_options_build_without_network(self):
         for config in [
-                ROOT / 'docs/sdk/conf.py',
-                ROOT / 'kubernetes_platform/python/docs/conf.py'
+            ROOT / 'docs/sdk/conf.py',
+            ROOT / 'kubernetes_platform/python/docs/conf.py',
         ]:
-            with self.subTest(config=str(
-                    config)), tempfile.TemporaryDirectory() as directory:
+            with (
+                self.subTest(config=str(config)),
+                tempfile.TemporaryDirectory() as directory,
+            ):
                 source = Path(directory)
                 source.joinpath('conf.py').write_text(
                     "project = 'Font regression'\n"
@@ -82,16 +90,18 @@ class SDKFontConfigurationTest(unittest.TestCase):
                     f"html_theme_options = {{'font': {font_option(config)!r}}}\n"
                 )
                 source.joinpath('index.rst').write_text(
-                    'Font regression\n===============\n\nText and ``code``.\n')
+                    'Font regression\n===============\n\nText and ``code``.\n'
+                )
                 result = subprocess.run(
-                    [sys.executable, '-c', BUILD_WITHOUT_NETWORK,
-                     str(source)],
+                    [sys.executable, '-c', BUILD_WITHOUT_NETWORK, str(source)],
                     capture_output=True,
                     text=True,
                     timeout=60,
-                    check=False)
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
+                    check=False,
+                )
+                self.assertEqual(
+                    result.returncode, 0, result.stdout + result.stderr
+                )
                 self.assertTrue(source.joinpath('_html/index.html').is_file())
 
 
