@@ -452,7 +452,7 @@ func TestSingleUserFollowLatestReportBeforeCreatorRetainsVersion(t *testing.T) {
 			newer, err := manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "newer", "", "", v2SpecHelloWorld, "", "ns1"))
 			require.NoError(t, err)
 			require.NotEqual(t, version.UUID, newer.UUID)
-			report := util.NewWorkflow(execution.(*util.Workflow).Workflow.DeepCopy())
+			report := util.NewWorkflow(execution.(*util.Workflow).DeepCopy())
 			report.SetAnnotations(recurringRunPipelineVersionAnnotation, "untrusted-report-version")
 			_, err = manager.ReportWorkflowResource(ctx, report)
 			require.NoError(t, err)
