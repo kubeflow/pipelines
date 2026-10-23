@@ -22,12 +22,12 @@ its original data.
 
 import argparse
 import os
-from pathlib import Path
 import socket
 import subprocess
 import tempfile
 import time
 import uuid
+from pathlib import Path
 
 
 def main():
@@ -49,9 +49,19 @@ def main():
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0))
             port = str(listener.getsockname()[1])
-        docker('run', '-d', '--name', name, '-p', f'127.0.0.1:{port}:3306',
-               '-e', 'MYSQL_ROOT_PASSWORD=' + password, args.image,
-               '--performance-schema=ON', '--innodb-buffer-pool-size=134217728')
+        docker(
+            'run',
+            '-d',
+            '--name',
+            name,
+            '-p',
+            f'127.0.0.1:{port}:3306',
+            '-e',
+            'MYSQL_ROOT_PASSWORD=' + password,
+            args.image,
+            '--performance-schema=ON',
+            '--innodb-buffer-pool-size=134217728',
+        )
         created = True
         port = docker(
             'inspect',
@@ -59,24 +69,43 @@ def main():
             '{{(index (index .NetworkSettings.Ports "3306/tcp") 0).HostPort}}',
             name,
             capture_output=True,
-            text=True).stdout.strip()
+            text=True,
+        ).stdout.strip()
         deadline = time.monotonic() + 120
         while True:
-            ready = subprocess.run([
-                'docker', 'exec', '-e', 'MYSQL_PWD=' + password, name, 'mysql',
-                '--protocol=TCP', '-h127.0.0.1', '-uroot', '-e', 'SELECT 1'
-            ],
-                                   stdout=subprocess.DEVNULL,
-                                   stderr=subprocess.DEVNULL)
+            ready = subprocess.run(
+                [
+                    'docker',
+                    'exec',
+                    '-e',
+                    'MYSQL_PWD=' + password,
+                    name,
+                    'mysql',
+                    '--protocol=TCP',
+                    '-h127.0.0.1',
+                    '-uroot',
+                    '-e',
+                    'SELECT 1',
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             if ready.returncode == 0:
                 break
             if time.monotonic() >= deadline:
                 raise RuntimeError('Disposable MySQL did not become ready')
             time.sleep(1)
         docker(
-            'exec', '-e', 'MYSQL_PWD=' + password, name, 'mysql',
-            '--protocol=TCP', '-h127.0.0.1', '-uroot', '-e',
-            "UPDATE performance_schema.setup_instruments SET ENABLED='YES', TIMED='YES' WHERE NAME LIKE 'stage/innodb/alter%'; UPDATE performance_schema.setup_consumers SET ENABLED='YES' WHERE NAME LIKE 'events_stages%'; SELECT VERSION();"
+            'exec',
+            '-e',
+            'MYSQL_PWD=' + password,
+            name,
+            'mysql',
+            '--protocol=TCP',
+            '-h127.0.0.1',
+            '-uroot',
+            '-e',
+            "UPDATE performance_schema.setup_instruments SET ENABLED='YES', TIMED='YES' WHERE NAME LIKE 'stage/innodb/alter%'; UPDATE performance_schema.setup_consumers SET ENABLED='YES' WHERE NAME LIKE 'events_stages%'; SELECT VERSION();",
         )
         env = os.environ.copy()
         env['KFP_RECURRING_MYSQL_TEST_DSN'] = (
@@ -84,33 +113,43 @@ def main():
         )
         env['KFP_RETENTION_MYSQL_INTERRUPTION_TEST'] = 'true'
         command = [
-            'go', 'test', './backend/src/apiserver/client_manager', '-count=1',
-            '-v', '-timeout=10m', '-run'
+            'go',
+            'test',
+            './backend/src/apiserver/client_manager',
+            '-count=1',
+            '-v',
+            '-timeout=10m',
+            '-run',
         ]
         subprocess.run(
             command + ['^TestRetentionIndexesMySQLInterruptedBuild$'],
             cwd=repo,
             env=env,
-            check=True)
+            check=True,
+        )
         with tempfile.TemporaryDirectory(prefix='kfp-retention-crash-') as tmp:
             marker = Path(tmp) / 'ready'
             env['KFP_RETENTION_MYSQL_CRASH_READY_FILE'] = str(marker)
             process = subprocess.Popen(
                 command + ['^TestRetentionIndexesMySQLCrashRecovery$'],
                 cwd=repo,
-                env=env)
+                env=env,
+            )
             deadline = time.monotonic() + 300
             while not marker.exists():
                 if process.poll() is not None:
                     raise RuntimeError(
-                        'Crash test exited before active-build signal')
+                        'Crash test exited before active-build signal'
+                    )
                 if time.monotonic() >= deadline:
                     raise RuntimeError(
-                        'Timed out waiting for active index build')
+                        'Timed out waiting for active index build'
+                    )
                 time.sleep(0.01)
             print(
                 'Crashing disposable MySQL after measured build progress',
-                flush=True)
+                flush=True,
+            )
             docker('kill', '--signal=KILL', name)
             docker('start', name)
             restarted_port = docker(
@@ -119,10 +158,12 @@ def main():
                 '{{(index (index .NetworkSettings.Ports "3306/tcp") 0).HostPort}}',
                 name,
                 capture_output=True,
-                text=True).stdout.strip()
+                text=True,
+            ).stdout.strip()
             if restarted_port != port:
                 raise RuntimeError(
-                    'Disposable database endpoint changed on restart')
+                    'Disposable database endpoint changed on restart'
+                )
             if process.wait(timeout=300) != 0:
                 raise RuntimeError('Crash recovery test failed')
     finally:
@@ -134,8 +175,9 @@ def main():
                 process.kill()
                 process.wait()
         if created:
-            subprocess.run(['docker', 'logs', '--tail', '35', name],
-                           check=False)
+            subprocess.run(
+                ['docker', 'logs', '--tail', '35', name], check=False
+            )
             subprocess.run(['docker', 'rm', '-fv', name], check=False)
 
 
