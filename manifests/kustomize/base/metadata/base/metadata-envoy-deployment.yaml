@@ -28,6 +28,23 @@ spec:
           containerPort: 9090
         - name: envoy-admin
           containerPort: 9901
+        # Readiness: Envoy's /ready returns 200 only while it is LIVE (503 while
+        # initializing or draining). Liveness: /server_info returns 200 in every
+        # state, including draining, and stops answering if Envoy is frozen.
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: envoy-admin
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            path: /server_info
+            port: envoy-admin
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          timeoutSeconds: 2
         securityContext:
           allowPrivilegeEscalation: false
           seccompProfile:
