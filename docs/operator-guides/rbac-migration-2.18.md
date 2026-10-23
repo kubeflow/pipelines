@@ -155,8 +155,6 @@ apiVersion: authorization.k8s.io/v1
 kind: SubjectAccessReview
 spec:
   user: user@example.com
-  groups:
-  - system:authenticated
   resourceAttributes:
     group: pipelines.kubeflow.org
     version: v1beta1
@@ -165,8 +163,12 @@ spec:
     namespace: team-a
 ```
 
-Save this as `kfp-access-review.yaml`, replace the user and groups with the effective
-identity used by the KFP request, and submit the non-persisted authorization probe:
+KFP supplies the user and resource attributes, not groups, in this review. Do not
+add `system:authenticated` or other groups: they can make the probe succeed when
+KFP's request would be denied.
+
+Save this as `kfp-access-review.yaml`, replace the user with the effective identity
+used by the KFP request, and submit the non-persisted authorization probe:
 
 ```bash
 kubectl create -f kfp-access-review.yaml -o yaml

@@ -79,8 +79,10 @@ and [HTTP configuration](docs/operator-guides/server-config.md#http-artifact-mig
   and adopt trusted database definitions and retained progress, including disabled
   schedules. No blanket recreation, history cleanup, manual replica drain or
   sequencing is required. During handoff, schedule create/enable/disable requests
-  can return retryable `Unavailable` before mutation. Updated UI/Python SDK retry
-  only its explicit handoff marker within a bounded budget; confirm the final state.
+  wait up to 30 seconds, subject to client deadlines and cancellation. If the wait
+  expires, they return retryable `Unavailable` before the schedule mutation.
+  Updated UI/Python SDK retry only its explicit handoff marker within a bounded
+  budget; confirm the final state.
   Inconsistent records, CR-only multi-user schedules and custom/shared-database
   writers require the [documented assessment](docs/operator-guides/upgrade-2.18.md#multi-user-scheduling-during-the-upgrade).
 - **Execution policy and custom roles:** review custom service accounts, additional

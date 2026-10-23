@@ -114,14 +114,23 @@ assessment and coordination; metadata discovery cannot prove they are absent.
 A controller readiness probe tied to its post-handoff listener can deadlock rollout.
 Do not copy handoff annotations into templates or fabricate adoption receipts.
 
-Report temporary schedule-write rejection as user impact: create/enable/disable may
-return explicit pre-mutation `Unavailable`; a rejected disable leaves the schedule
-enabled. Inspect actual clients' versions and handling. Updated UI/Python SDK retry only
-HTTP 503/code 14 with `google.rpc.ErrorInfo` reason `SCHEDULE_HANDOFF_IN_PROGRESS`
-and domain `kubeflow.org`: five attempts with 1, 2, 4 and 8 second delays. Older
-clients do not acquire this behavior from a server upgrade. An explicit rejection can be retried
-with bounded backoff and read-back; a generic timeout on create is ambiguous and
-must not be blindly replayed. Ordinary reads and run operations are separate.
+Report bounded scheduling-write delay as user impact: the API waits up to 30
+seconds for writer handoff before create/enable/disable and non-preview transfer
+preparation. The limit includes queue time and respects client deadlines and
+cancellation. A handoff that completes within the limit needs no client retry.
+If the wait expires, create/enable/disable return explicit pre-mutation
+`Unavailable`; a rejected disable leaves the schedule enabled. Transfer errors
+only cover the current schedule staging step, since earlier import staging can
+already exist.
+
+Inspect actual clients' deadlines and retry handling. Updated UI/Python SDK retry
+only HTTP 503/code 14 with `google.rpc.ErrorInfo` reason
+`SCHEDULE_HANDOFF_IN_PROGRESS` and domain `kubeflow.org`: five attempts with 1, 2,
+4 and 8 second delays. Older clients benefit from server-side waiting but do not
+acquire the SDK retry behavior from a server upgrade. An explicit rejection can
+be retried with bounded backoff and read-back; a generic timeout on create is
+ambiguous and must not be blindly replayed. Ordinary reads, run operations, and
+API readiness are independent of this scheduling-write wait.
 
 For inconsistent per-record state, preserve evidence and use the documented recovery
 procedure. Never propose counter resets, ownership edits or history deletion to force

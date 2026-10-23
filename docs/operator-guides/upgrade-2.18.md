@@ -23,7 +23,7 @@ optional review procedure, not an additional upgrade prerequisite.
 | Area | Automatic behavior | What to expect |
 | --- | --- | --- |
 | Database schema and reference backfill | Each new API process completes startup database initialization before serving requests; a transactional marker prevents repeating the completed reference backfill. | Large-table DDL or updates can delay startup and block writes. Automatic does not mean background or lock-free. See [database migration paths](#database-migration-paths). |
-| Legacy multi-user schedules | The API adopts eligible database-stored definitions and retained progress, preserving enabled/disabled state. The controller handles the writer handoff automatically. | Schedule creation and enable/disable requests can temporarily return retryable `Unavailable`. Individual records with inconsistent state need investigation. See [schedule adoption](#standard-managed-installations-automatic-schedule-adoption). |
+| Legacy multi-user schedules | The API adopts eligible database-stored definitions and retained progress, preserving enabled/disabled state. The controller handles the writer handoff automatically. | Schedule creation and enable/disable requests wait up to 30 seconds for handoff; if that wait expires, they return retryable `Unavailable` before the schedule mutation. Individual records with inconsistent state need investigation. See [schedule adoption](#standard-managed-installations-automatic-schedule-adoption). |
 | API, controller, and RBAC | The release configuration routes multi-user scheduled executions through the API under the controller's identity. | If you use custom execution accounts or custom roles, check their scoped permissions. Standard deployment wiring is supplied by the release. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
 | UI signing key | The initializer creates or reuses a persistent signing key; Kubernetes starts the UI when it is available. | First adoption briefly interrupts the UI and invalidates old TensorBoard URLs; reopen TensorBoard after the rollout. Existing valid keys are preserved. See [UI signing-key behavior](#prepare-the-ui-signing-key). |
 
@@ -35,7 +35,7 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 | Path | When it runs | Operator impact |
 | --- | --- | --- |
 | 2.18 schema changes and reference backfill | Synchronously during API startup, before that process serves requests | Automatic, but may delay readiness or block database writes. Back up and assess representative upgrade duration and database capacity. |
-| 2.18 recurring-run adoption | In the background after API startup and managed writer handoff | No separate migration Job or blanket schedule recreation. Schedule mutations may be temporarily rejected; inconsistent records require investigation. |
+| 2.18 recurring-run adoption | In the background after API startup and managed writer handoff | No separate migration Job or blanket schedule recreation. Schedule mutations wait up to 30 seconds for handoff before returning a retryable error; inconsistent records require investigation. |
 | Optional run-retention indexes | Background preparation when retention or prepare-only is enabled | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; conflicting definitions still need diagnosis. Disabled retention with prepare-only off does no preparation. |
 | 3.0 MLMD-to-native history/execution migration | Separate, not performed by the 2.18 startup path | Replacement-history import and schedule prerequisites do not establish a supported in-place upgrade or active-workload continuity. |
 
@@ -351,27 +351,36 @@ background while the API continues serving ordinary requests. KFP handles the
 writer handoff automatically; you do not need to order API and controller
 updates yourself or recreate eligible schedules.
 
-While the managed writer handoff is pending, the upgraded API returns retryable
-`Unavailable` for schedule creation and enable/disable requests before changing
-the schedule's SQL or Kubernetes state. A create request may already have created
-its default experiment before reaching this schedule guard. Retry them after the rollout; they are not queued as
-accepted intent during the wait. Run operations, reads, reporting, and deletion
-remain available. Existing legacy schedules retain old behavior until handoff,
-while the new controller waits. This is an automatic scheduling-write pause, not
-an operator-managed outage.
+While the managed writer handoff is pending, the upgraded API waits up to 30
+seconds before schedule creation, enable/disable, or non-preview transfer
+preparation. The limit includes time behind another request and is shortened by
+the client's deadline or cancellation. Concurrent requests share readiness checks.
+When handoff completes within the limit, the same request proceeds without a
+client retry. Requests are not queued as durable intent. Run operations, reads,
+reporting, deletion, and API readiness remain available. Existing legacy schedules
+retain old behavior until handoff, while the new controller waits.
 
-The server identifies this pre-mutation rejection with gRPC `Unavailable` (code
-14), HTTP 503, and `google.rpc.ErrorInfo` reason `SCHEDULE_HANDOFF_IN_PROGRESS`
-in domain `kubeflow.org`. The updated UI and Python SDK retry only this complete
-condition, up to five attempts with 1, 2, 4 and 8 second delays. They stop on other
-errors and surface exhaustion; older installed clients still need explicit retry.
-Updating server images does not upgrade the SDK installed in users' environments.
+If the server wait expires, create and enable/disable requests receive gRPC
+`Unavailable` (code 14), HTTP 503, and `google.rpc.ErrorInfo` reason
+`SCHEDULE_HANDOFF_IN_PROGRESS` in domain `kubeflow.org`, before changing the
+schedule's SQL or Kubernetes state. A create request may already have created its
+default experiment before reaching this schedule guard. Transfer errors only
+promise that the current schedule was not staged; earlier import staging may
+already exist. Resolve the handoff failure and resume the same archive.
 
-An explicit handoff rejection means the operation was not applied: a rejected
-**disable leaves the schedule enabled**. Retry with bounded exponential backoff,
-then read the schedule back to confirm its state. Surface an exhausted retry
-budget and investigate the rollout. A generic connection timeout is ambiguous;
-check whether a create succeeded before resubmitting it.
+The updated UI and Python SDK retry only the complete typed handoff condition,
+up to five attempts with 1, 2, 4 and 8 second delays. These retries are a fallback
+when server-side waiting is exhausted. They stop on other errors and surface
+exhaustion. Older clients also benefit from server-side waiting, but may need
+explicit retries after an exhausted wait. Updating server images does not upgrade
+the SDK installed in users' environments. Definite writer configuration errors
+fail immediately and require correcting identities or permissions.
+
+An explicit handoff rejection means the schedule mutation was not applied: a
+rejected **disable leaves the schedule enabled**. Retry with bounded exponential
+backoff, then read the schedule back to confirm its state. Surface an exhausted
+retry budget and investigate the rollout. A generic connection timeout is
+ambiguous; check whether a create succeeded before resubmitting it.
 
 The upgraded controller automatically waits for the managed API/controller
 Deployments to finish rolling out and for incompatible or terminating writer Pods
