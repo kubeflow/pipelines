@@ -1082,15 +1082,16 @@ func (r *ResourceManager) GetRunWithHydration(runID string, hydrateTasks bool) (
 }
 
 // GetRunWithHydrationContext fetches a run with optional task hydration using the provided context.
-// When hydrateTasks is true (as requested by runtime pods and exit handlers), live workflow synchronization
-// is performed. If synchronization fails, it fails closed and returns an error to prevent returning
-// stale, unverified task state.
+// Ordinary hydrated reads remain strictly read-only from database storage.
+// Live workflow synchronization is an explicit server-owned operation triggered only when authoritative
+// final status is required (e.g. exit-handler input resolution via common.IsAuthoritativeFinalStatusRequired(ctx)).
+// If synchronization fails, it fails closed and returns an error to prevent returning stale, unverified task state.
 func (r *ResourceManager) GetRunWithHydrationContext(ctx context.Context, runID string, hydrateTasks bool) (*model.Run, error) {
 	run, err := r.runStore.GetRun(runID, hydrateTasks)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to fetch run %v", runID)
 	}
-	if hydrateTasks && run != nil && run.K8SName != "" {
+	if common.IsAuthoritativeFinalStatusRequired(ctx) && run != nil && run.K8SName != "" {
 		performed, err := r.synchronizeRunFromLiveWorkflow(ctx, run)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to synchronize run %v from live workflow", runID)
@@ -2631,7 +2632,7 @@ func (r *ResourceManager) reportWorkflowResource(
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
 	}
-	if _, err := r.reconcileStrandedTasks(ctx, run, execSpec, execSpec.ExecutionStatus().IsInFinalState()); err != nil {
+	if _, _, err := r.reconcileStrandedTasks(ctx, run, execSpec, execSpec.ExecutionStatus().IsInFinalState()); err != nil {
 		return nil, util.Wrapf(err, "Failed to reconcile stranded tasks for run %s", run.UUID)
 	}
 	tasks := run.Tasks

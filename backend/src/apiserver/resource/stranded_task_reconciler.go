@@ -62,16 +62,22 @@ func (r *ResourceManager) synchronizeRunFromLiveWorkflow(ctx context.Context, ru
 		if apierrors.IsNotFound(err) {
 			// Check if an independently authoritative, persisted completion record exists
 			if verifiedPersistedWorkflow, ok := parseVerifiedPersistedWorkflow(run); ok {
-				updated, recErr := r.reconcileStrandedTasks(ctx, run, verifiedPersistedWorkflow, true)
+				persistedGen := reportedRetryGeneration(verifiedPersistedWorkflow.ExecutionObjectMeta())
+				if run.RetryGeneration > 0 && persistedGen < run.RetryGeneration {
+					return false, nil
+				}
+				updated, taskRejected, recErr := r.reconcileStrandedTasks(ctx, run, verifiedPersistedWorkflow, true)
 				if recErr != nil {
 					return false, fmt.Errorf("persisted workflow reconciliation error for run %s: %w", run.UUID, recErr)
 				}
-				if verifiedPersistedWorkflow.ExecutionStatus() != nil &&
+				if !taskRejected && persistedGen >= run.RetryGeneration && verifiedPersistedWorkflow.ExecutionStatus() != nil &&
 					(verifiedPersistedWorkflow.ExecutionStatus().Condition() == "Failed" || verifiedPersistedWorkflow.ExecutionStatus().Condition() == "Error") {
 					if run.State.ToV2() != model.RuntimeStateFailed {
 						run.State = model.RuntimeStateFailed
 						run.Conditions = string(model.RuntimeStateFailed)
-						_ = r.runStore.UpdateRun(run)
+						if _, err := r.runStore.UpdateRunIfRuntimeManifestsUnchanged(run, run.WorkflowRuntimeManifest, run.PipelineRuntimeManifest); err != nil {
+							return false, fmt.Errorf("persisted workflow failed to update run %s: %w", run.UUID, err)
+						}
 					}
 				}
 				return updated, nil
@@ -107,42 +113,62 @@ func (r *ResourceManager) synchronizeRunFromLiveWorkflow(ctx context.Context, ru
 	if liveWorkflow == nil {
 		return false, fmt.Errorf("live workflow %s returned nil in namespace %s", run.K8SName, namespace)
 	}
+
+	// Validate workflow identity and attempt before any writes
+	storedIdentity, idErr := r.storedWorkflowIdentityForRun(run)
+	if idErr == nil {
+		if !storedWorkflowMatchesIdentity(storedIdentity, liveWorkflow) &&
+			!retryWorkflowMatchesActiveClaim(run, storedIdentity, liveWorkflow) {
+			return false, util.NewInvalidInputError(
+				"live workflow identity does not match stored workflow for run %s", run.UUID)
+		}
+	}
+
+	reportedGen := reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta())
+	// Retry fencing: do not let observations from older retry generations reconcile retried runs/tasks
+	if run.RetryGeneration > 0 && reportedGen < run.RetryGeneration {
+		return false, nil
+	}
+
 	isFinalState := liveWorkflow.ExecutionStatus() != nil && liveWorkflow.ExecutionStatus().IsInFinalState()
-	updated, err := r.reconcileStrandedTasks(ctx, run, liveWorkflow, isFinalState)
+	updated, taskRejected, err := r.reconcileStrandedTasks(ctx, run, liveWorkflow, isFinalState)
 	if err != nil {
 		return false, fmt.Errorf("live workflow reconciliation error for run %s: %w", run.UUID, err)
 	}
-	if isFinalState && liveWorkflow.ExecutionStatus() != nil &&
+	if !taskRejected && reportedGen >= run.RetryGeneration && isFinalState && liveWorkflow.ExecutionStatus() != nil &&
 		(liveWorkflow.ExecutionStatus().Condition() == "Failed" || liveWorkflow.ExecutionStatus().Condition() == "Error") {
 		if run.State.ToV2() != model.RuntimeStateFailed {
 			run.State = model.RuntimeStateFailed
 			run.Conditions = string(model.RuntimeStateFailed)
-			_ = r.runStore.UpdateRun(run)
+			if _, err := r.runStore.UpdateRunIfRuntimeManifestsUnchanged(run, run.WorkflowRuntimeManifest, run.PipelineRuntimeManifest); err != nil {
+				return false, fmt.Errorf("live workflow failed to update run %s: %w", run.UUID, err)
+			}
 		}
 	}
 	return updated, nil
 }
 
-func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model.Run, execSpec util.ExecutionSpec, isFinalState bool) (bool, error) {
+func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model.Run, execSpec util.ExecutionSpec, isFinalState bool) (bool, bool, error) {
 	if run == nil || execSpec == nil || execSpec.ExecutionStatus() == nil {
-		return false, nil
+		return false, false, nil
 	}
 
 	reportedGeneration := reportedRetryGeneration(execSpec.ExecutionObjectMeta())
 
 	// Retry fencing: do not let reports from older retry generations reconcile retried tasks
 	if run.RetryGeneration > 0 && reportedGeneration < run.RetryGeneration {
-		return false, nil
+		return false, true, nil
 	}
 
 	nodeStatuses := execSpec.ExecutionStatus().NodeStatuses()
 	if len(nodeStatuses) == 0 {
-		return r.aggregateDAGTaskStatuses(run.UUID, reportedGeneration, isFinalState)
+		updated, err := r.aggregateDAGTaskStatuses(run.UUID, reportedGeneration, isFinalState)
+		return updated, false, err
 	}
 
 	tasks, err := fetchAllTasksForRun(r, run.UUID)
 	if err != nil {
-		return false, fmt.Errorf("failed to list tasks for run %s during stranded task reconciliation: %w", run.UUID, err)
+		return false, false, fmt.Errorf("failed to list tasks for run %s during stranded task reconciliation: %w", run.UUID, err)
 	}
 
 	nodesByPodName := make(map[string]util.NodeStatus, len(nodeStatuses))
@@ -160,6 +186,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 
 	nowSec := r.time.Now().Unix()
 	anyUpdated := false
+	anyRejected := false
 
 	reconcileTask := func(task *model.Task, node util.NodeStatus, extraPodName string) error {
 		applyNodeStatusToTask(task, node, nowSec)
@@ -172,6 +199,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 		if _, err := r.taskStore.UpdateTaskWithRetryFence(task, reportedGeneration); err != nil {
 			if util.IsUserErrorCodeMatch(err, codes.Aborted) {
 				glog.Infof("Skipping task update for %s due to stale retry generation: %v", task.UUID, err)
+				anyRejected = true
 				return nil
 			}
 			return fmt.Errorf("failed to atomically reconcile stranded task %s: %w", task.UUID, err)
@@ -231,7 +259,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 			if node, found := findNodeForPodName(latest, nodesByPodName, nodesByNodeID, nodesByDisplayName); found && shouldReconcileTaskFromNode(task.State, node.State, isFinalState) {
 				glog.Infof("Reconciling task %s from executor node %s (%s, previous state %s)", task.UUID, latest, node.State, apiv2beta1.PipelineTask_TaskState(task.State).String())
 				if err := reconcileTask(task, node, ""); err != nil {
-					return false, err
+					return false, anyRejected, err
 				}
 			}
 			continue
@@ -248,7 +276,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 				if shouldReconcileTaskFromNode(task.State, driverNode.State, isFinalState) {
 					glog.Infof("Reconciling task %s from failed driver node %s", task.UUID, latest)
 					if err := reconcileTask(task, driverNode, ""); err != nil {
-						return false, err
+						return false, anyRejected, err
 					}
 				}
 			} else if driverNode.State == "Succeeded" {
@@ -262,7 +290,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 						}
 						glog.Infof("Reconciling task %s: driver succeeded, discovered executor node %s (%s)", task.UUID, podName, en.State)
 						if err := reconcileTask(task, en, podName); err != nil {
-							return false, err
+							return false, anyRejected, err
 						}
 						foundTerminalExecutor = true
 						break
@@ -277,7 +305,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 					}
 					glog.Infof("Reconciling stranded task %s: driver succeeded but no executor ran in terminal workflow; failing closed", task.UUID)
 					if err := reconcileTask(task, failNode, ""); err != nil {
-						return false, err
+						return false, anyRejected, err
 					}
 				}
 			}
@@ -302,7 +330,7 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 				}
 				glog.Infof("Reconciling task %s by name match to node %s (%s)", task.UUID, podName, match.State)
 				if err := reconcileTask(task, match, podName); err != nil {
-					return false, err
+					return false, anyRejected, err
 				}
 			}
 		}
@@ -312,9 +340,9 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 	// leaf reconciliation occurred on a prior report, DAG parent states still converge.
 	dagUpdated, err := r.aggregateDAGTaskStatuses(run.UUID, reportedGeneration, isFinalState)
 	if err != nil {
-		return false, err
+		return false, anyRejected, err
 	}
-	return anyUpdated || dagUpdated, nil
+	return anyUpdated || dagUpdated, anyRejected, nil
 }
 
 // aggregateDAGTaskStatuses traverses the DAG tree from bottom to top, updating parent task states.

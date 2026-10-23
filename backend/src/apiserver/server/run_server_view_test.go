@@ -760,9 +760,10 @@ func TestExitHandlerCompletionGuarantee_RunServer_LiveSynchronizationAndAggregat
 	_, err = clients.ExecClient().Execution(run.Namespace).Update(context.Background(), workflow, metav1.UpdateOptions{})
 	require.NoError(t, err)
 
-	// Now simulate the exit handler starting: it calls RunServer.GetRun with FULL view
+	// Now simulate the exit handler starting: it calls RunServer.GetRun with authoritative requirement and FULL view
+	authCtx := common.WithAuthoritativeRequirement(ctx)
 	fullView := apiv2beta1.GetRunRequest_FULL
-	response, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	response, err := server.GetRun(authCtx, &apiv2beta1.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
@@ -836,19 +837,30 @@ func TestExitHandlerCompletionGuarantee_FailsClosedWhenSynchronizationFails(t *t
 	// Ensure the workflow does NOT exist in the fake cluster (live cluster lookup fails with NotFound)
 	_ = clients.ExecClient().Execution(run.Namespace).Delete(context.Background(), run.K8SName, metav1.DeleteOptions{})
 
-	// 1. Exit-handler path calls GetRun with FULL view
+	// 1. Exit-handler path calls GetRun with authoritative requirement and FULL view
 	// Since run is non-terminal in DB and live workflow synchronization fails (NotFound in k8s),
 	// it MUST fail closed and return an error. It must NOT return stale RUNNING tasks.
+	authCtx := common.WithAuthoritativeRequirement(ctx)
 	fullView := apiv2beta1.GetRunRequest_FULL
-	respFull, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	respFull, err := server.GetRun(authCtx, &apiv2beta1.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
-	require.Error(t, err, "GetRun(FULL) must fail closed when live synchronization fails")
+	require.Error(t, err, "GetRun(FULL) with authoritative requirement must fail closed when live synchronization fails")
 	assert.Nil(t, respFull)
 	assert.Contains(t, err.Error(), "Failed to synchronize run")
 
-	// 2. Ordinary read calls GetRun with DEFAULT view (no task hydration)
+	// 2. Ordinary read calls GetRun with FULL view without authoritative requirement
+	// Ordinary hydrated reads remain read-only from database storage and succeed normally
+	respOrdinaryFull, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+		RunId: run.UUID,
+		View:  &fullView,
+	})
+	require.NoError(t, err, "Ordinary GetRun(FULL) must succeed without error from database")
+	require.NotNil(t, respOrdinaryFull)
+	assert.Equal(t, run.UUID, respOrdinaryFull.RunId)
+
+	// 3. Ordinary read calls GetRun with DEFAULT view (no task hydration)
 	// Normal API behavior is preserved and succeeds without error
 	defaultView := apiv2beta1.GetRunRequest_DEFAULT
 	respDefault, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
@@ -989,7 +1001,7 @@ func TestExitHandler_PersistenceOrderingRace_CannotSucceedPrematurely(t *testing
 	require.NoError(t, err)
 
 	// Exit handler calls GetRun(FULL) again with terminal state now available
-	authoritativeResp, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	authoritativeResp, err := server.GetRun(common.WithAuthoritativeRequirement(ctx), &apiv2beta1.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
@@ -1547,7 +1559,7 @@ func TestExitHandler_StalePersistedParentSucceeded_ReconcilesToFailedWhenChildFa
 
 	// The exit handler fetches the run authoritatively via GetRun(view=FULL)
 	fullView := apiv2beta1.GetRunRequest_FULL
-	authoritativeResp, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	authoritativeResp, err := server.GetRun(common.WithAuthoritativeRequirement(ctx), &apiv2beta1.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
@@ -1693,9 +1705,9 @@ func TestExitHandler_StalePersistedParentSucceeded_ReconcilesToFailedWhenAllTask
 	_, err = clients.ExecClient().Execution(run.Namespace).Update(ctx, workflow, metav1.UpdateOptions{})
 	require.NoError(t, err)
 
-	// Fetch run via GetRun(view=FULL)
+	// Fetch run via GetRun(view=FULL) with authoritative requirement
 	fullView := apiv2beta1.GetRunRequest_FULL
-	authoritativeResp, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	authoritativeResp, err := server.GetRun(common.WithAuthoritativeRequirement(ctx), &apiv2beta1.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})
@@ -1851,7 +1863,7 @@ func TestExitHandler_StalePersistedChildSucceeded_ReconcilesToFailedWhenLiveArgo
 	require.NoError(t, err)
 
 	fullView := apiv2beta1.GetRunRequest_FULL
-	authoritativeResp, err := server.GetRun(ctx, &apiv2beta1.GetRunRequest{
+	authoritativeResp, err := server.GetRun(common.WithAuthoritativeRequirement(ctx), &apiv2beta1.GetRunRequest{
 		RunId: run.UUID,
 		View:  &fullView,
 	})

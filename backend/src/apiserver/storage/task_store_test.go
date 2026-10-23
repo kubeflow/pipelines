@@ -2009,6 +2009,31 @@ func TestUpdateTaskWithRetryFence_RetryGapProtection(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
 	assert.Contains(t, userErr.Error(), "waiting for retry pod to register")
+
+	// Establishing the new attempt in RUNNING state with active pod succeeds and clears the gap.
+	activePods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-2",
+		Uid:  "uid-2",
+		Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+	registered, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:  activePods,
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), registered.State)
+
+	// Subsequent terminal update (e.g. CACHED or SUCCEEDED) carrying the active pod identity is now accepted.
+	cached, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:          task.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_CACHED),
+		FinishedInSec: 100,
+		Pods:          activePods,
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_CACHED), cached.State)
 }
 
 func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {

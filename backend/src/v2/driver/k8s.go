@@ -1093,12 +1093,31 @@ func createPVCTask(
 				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
 			}
 		} else {
-			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
+			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
 			})
 			if createErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to create task: %w", createErr))
+			} else if createdTask != nil {
+				// On retry, CreateTask returns the existing reset RUNNING row unchanged.
+				// Establish the current driver attempt in RUNNING state first before finalizing to FAILED.
+				if len(createdTask.GetPods()) == 0 {
+					runningAttempt := &apiV2.PipelineTask{
+						Pods:  taskToCreate.GetPods(),
+						State: apiV2.PipelineTask_RUNNING,
+					}
+					if regTask, regErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, runningAttempt); regErr == nil {
+						createdTask = regTask
+					}
+				}
+				if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2.UpdateTaskRequest{
+					TaskId: createdTask.GetTaskId(),
+					Task:   taskToCreate,
+					RunId:  taskToCreate.GetRunId(),
+				}); updateErr != nil {
+					err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
+				}
 			}
 		}
 		// Do not need to propagate statuses, this will be handled in the defer for Container().
@@ -1371,12 +1390,31 @@ func deletePVCTask(
 				err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
 			}
 		} else {
-			_, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
+			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 				Task:  taskToCreate,
 				RunId: taskToCreate.GetRunId(),
 			})
 			if createErr != nil {
 				err = errors.Join(err, fmt.Errorf("failed to create task: %w", createErr))
+			} else if createdTask != nil {
+				// On retry, CreateTask returns the existing reset RUNNING row unchanged.
+				// Establish the current driver attempt in RUNNING state first before finalizing to FAILED.
+				if len(createdTask.GetPods()) == 0 {
+					runningAttempt := &apiV2.PipelineTask{
+						Pods:  taskToCreate.GetPods(),
+						State: apiV2.PipelineTask_RUNNING,
+					}
+					if regTask, regErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, runningAttempt); regErr == nil {
+						createdTask = regTask
+					}
+				}
+				if _, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2.UpdateTaskRequest{
+					TaskId: createdTask.GetTaskId(),
+					Task:   taskToCreate,
+					RunId:  taskToCreate.GetRunId(),
+				}); updateErr != nil {
+					err = errors.Join(err, fmt.Errorf("failed to update task: %w", updateErr))
+				}
 			}
 		}
 		// Do not need to propagate statuses, this will be handled in the defer for Container().

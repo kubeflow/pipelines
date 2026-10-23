@@ -9860,8 +9860,8 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 		},
 	})
 	syncWorkflowReportWithFakeCluster(t, store, workflow)
-
-	hydratedRun, err := manager.GetRun(run.UUID)
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	hydratedRun, err := manager.GetRunWithHydrationContext(authCtx, run.UUID, true)
 	require.NoError(t, err)
 	require.NotNil(t, hydratedRun)
 
@@ -9888,4 +9888,161 @@ func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
 	dbDag, err := manager.GetTask(dagTask.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), dbDag.State)
+}
+
+func TestGetRunWithHydration_OrdinaryRead_PreservesRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	// Simulate that the run was claimed for retry: RetryGeneration = 2, State = PENDING
+	_, err := store.DB().Exec("UPDATE run_details SET RetryGeneration = 2, State = 'PENDING', Conditions = 'PENDING' WHERE UUID = ?", run.UUID)
+	require.NoError(t, err)
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "worker-driver", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "worker",
+		ScopePath:   "root.worker",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-worker-retry",
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	// Live workflow in the cluster is from older generation 1 and in Failed state
+	oldWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+				util.AnnotationKeyRetryGeneration:       "1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-driver": {
+					ID:          "worker-driver",
+					Name:        "worker-driver",
+					DisplayName: "worker",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "OOM killed",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, oldWorkflow)
+
+	// 1. Ordinary hydrated read (common.IsAuthoritativeFinalStatusRequired is false):
+	// Must remain strictly read-only from DB and must NOT trigger live workflow synchronization.
+	ordinaryRead, err := manager.GetRunWithHydrationContext(context.Background(), run.UUID, true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, ordinaryRead.State.ToV2(), "ordinary read must not undo retry claim")
+
+	dbRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, dbRun.State.ToV2(), "run in database must remain PENDING")
+
+	dbTask, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTask.State, "task in database must remain RUNNING")
+
+	// 2. Authoritative read (e.g. exit handler input resolution):
+	// Must inspect reported retry generation against run.RetryGeneration (1 < 2)
+	// and reject the older generation observation without marking the run FAILED.
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	authRead, err := manager.GetRunWithHydrationContext(authCtx, run.UUID, true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, authRead.State.ToV2(), "authoritative read must reject older retry generation")
+
+	dbRunAfterAuth, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, dbRunAfterAuth.State.ToV2(), "run in database must not be marked FAILED by older generation")
+
+	dbTaskAfterAuth, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTaskAfterAuth.State, "task must remain RUNNING")
+}
+
+func TestSynchronizeRunFromLiveWorkflow_TaskLevelRejectionPreventsRunLevelFailure(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "worker-driver", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "worker",
+		ScopePath:   "root.worker",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-worker-fenced",
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	// In-memory run observation believes RetryGeneration is 1
+	run.RetryGeneration = 1
+	run.State = model.RuntimeStateRunning
+	run.Conditions = string(model.RuntimeStateRunning)
+
+	// Concurrently in the database, a retry claim already advanced to RetryGeneration = 2
+	_, err = store.DB().Exec("UPDATE run_details SET RetryGeneration = 2, State = 'PENDING', Conditions = 'PENDING' WHERE UUID = ?", run.UUID)
+	require.NoError(t, err)
+
+	// Live workflow reports generation 1 and is in Failed state
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+				util.AnnotationKeyRetryGeneration:       "1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-driver": {
+					ID:          "worker-driver",
+					Name:        "worker-driver",
+					DisplayName: "worker",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Failed node",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	performed, err := manager.synchronizeRunFromLiveWorkflow(authCtx, run)
+	require.NoError(t, err)
+	assert.False(t, performed, "synchronization must not perform update when tasks are rejected")
+
+	dbRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, dbRun.State.ToV2(), "run in database must not be marked FAILED")
+	assert.Equal(t, int64(2), dbRun.RetryGeneration)
+
+	dbTask, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTask.State, "task in database must remain RUNNING")
 }
