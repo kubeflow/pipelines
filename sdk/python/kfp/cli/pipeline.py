@@ -101,7 +101,8 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
 @click.option(
     '--pipeline-namespace',
     help='Namespace to search with --pipeline-name. Omit for shared pipelines; '
-    'the global --namespace is not used for this lookup.')
+    'the global --namespace is not used for this lookup.',
+)
 @click.option(
     '-d',
     '--description',
@@ -110,13 +111,15 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
     ),
 )
 @click.pass_context
-def create_version(ctx: click.Context,
-                   package_file: str,
-                   pipeline_version: str,
-                   pipeline_id: Optional[str] = None,
-                   pipeline_name: Optional[str] = None,
-                   description: Optional[str] = None,
-                   pipeline_namespace: Optional[str] = None):
+def create_version(
+    ctx: click.Context,
+    package_file: str,
+    pipeline_version: str,
+    pipeline_id: Optional[str] = None,
+    pipeline_name: Optional[str] = None,
+    description: Optional[str] = None,
+    pipeline_namespace: Optional[str] = None,
+):
     """Upload a version of a pipeline."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -125,18 +128,24 @@ def create_version(ctx: click.Context,
     if pipeline_namespace is not None and not pipeline_name:
         raise click.UsageError(
             '--pipeline-namespace requires --pipeline-name; --pipeline-id '
-            'already identifies the parent pipeline.')
+            'already identifies the parent pipeline.'
+        )
     if pipeline_name is not None:
         pipeline_id = client_obj.get_pipeline_id(
-            name=pipeline_name, namespace=pipeline_namespace)
+            name=pipeline_name, namespace=pipeline_namespace
+        )
         if pipeline_id is None:
-            scope = (f'namespace {pipeline_namespace!r}'
-                     if pipeline_namespace else 'shared pipelines')
+            scope = (
+                f'namespace {pipeline_namespace!r}'
+                if pipeline_namespace
+                else 'shared pipelines'
+            )
             raise click.ClickException(
                 f'Pipeline {pipeline_name!r} was not found in {scope}. '
                 'For a private pipeline, pass --pipeline-namespace explicitly '
                 'or use --pipeline-id. The global --namespace is not used for '
-                'this lookup.')
+                'this lookup.'
+            )
     version = client_obj.upload_pipeline_version(
         pipeline_package_path=package_file,
         pipeline_version_name=pipeline_version,

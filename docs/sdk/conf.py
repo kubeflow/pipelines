@@ -136,12 +136,9 @@ html_theme_options = {
         },
     ],
     # Use the theme's system fallback stack without build-time Google Fonts fetches.
-    'font':
-        False,
-    'version_dropdown':
-        True,
-    'version_json':
-        'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
+    'font': False,
+    'version_dropdown': True,
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.

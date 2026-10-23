@@ -108,7 +108,7 @@ def list(
 @click.option(
     '--pipeline-namespace',
     help='Namespace to search with --pipeline-name. Omit for shared pipelines; '
-    'the global --namespace still selects the experiment namespace, not this lookup.'
+    'the global --namespace still selects the experiment namespace, not this lookup.',
 )
 @click.option(
     '-w',
@@ -131,10 +131,19 @@ def list(
 )
 @click.argument('args', nargs=-1)
 @click.pass_context
-def create(ctx: click.Context, experiment_name: str, run_name: str,
-           package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
-           timeout: int, version: str, args: List[str],
-           pipeline_namespace: str):
+def create(
+    ctx: click.Context,
+    experiment_name: str,
+    run_name: str,
+    package_file: str,
+    pipeline_id: str,
+    pipeline_name: str,
+    watch: bool,
+    timeout: int,
+    version: str,
+    args: List[str],
+    pipeline_namespace: str,
+):
     """Submit a pipeline run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -147,15 +156,20 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
         )
     if not pipeline_id and pipeline_name:
         pipeline_id = client_obj.get_pipeline_id(
-            name=pipeline_name, namespace=pipeline_namespace)
+            name=pipeline_name, namespace=pipeline_namespace
+        )
         if pipeline_id is None:
-            scope = (f'namespace {pipeline_namespace!r}'
-                     if pipeline_namespace else 'shared pipelines')
+            scope = (
+                f'namespace {pipeline_namespace!r}'
+                if pipeline_namespace
+                else 'shared pipelines'
+            )
             raise click.ClickException(
                 f'Pipeline {pipeline_name!r} was not found in {scope}. '
                 'For a private pipeline, pass --pipeline-namespace explicitly '
                 'or use --pipeline-id. The global --namespace is not used for '
-                'this lookup.')
+                'this lookup.'
+            )
 
     if not package_file and not pipeline_id and not version:
         click.echo(
