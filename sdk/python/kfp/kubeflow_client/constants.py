@@ -37,9 +37,11 @@ RUN_PAUSED = 'paused'
 
 RUN_COMPLETE = RUN_SUCCEEDED
 
-TERMINAL_STATES = frozenset({
-    RUN_SUCCEEDED,
-    RUN_FAILED,
-    RUN_SKIPPED,
-    RUN_CANCELED,
-})
+TERMINAL_STATES = frozenset(
+    {
+        RUN_SUCCEEDED,
+        RUN_FAILED,
+        RUN_SKIPPED,
+        RUN_CANCELED,
+    }
+)

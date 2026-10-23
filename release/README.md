@@ -46,6 +46,120 @@ docs. Split-package releases also create or reuse
 For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
 expands `droctothorpe` to `https://github.com/droctothorpe/pipelines.git`.
 
+## Preparing generated release artifacts
+
+`update-version-tags` supports ordinary clones and linked Git worktrees. For
+worktrees, it mounts Git metadata read-only into the release container so
+changelog generation can resolve the previous release.
+
+Backend preparation regenerates the API versions present on the release branch,
+pipeline-spec/cache-key Go bindings, and Kubernetes extension Go bindings. For
+legacy split-package SDK releases, it generates Python bindings before building
+all four wheels (`kfp-pipeline-spec`, `kfp-server-api`, `kfp`, and
+`kfp-kubernetes`). Before committing, it checks wheel versions and required Python
+modules to catch successful builds with missing generated sources.
+
+Legacy dependency resolution reuses the existing `requirements.txt` pins with
+`pip-compile --output-file`; it does not truncate the lockfile before resolving.
+Review the resulting lockfile diff, including environment markers, on each
+supported Python version. If changelog filtering produces an empty release
+section, kfpr includes commit subjects from the release range for review.
+
+## Qualification and publication gates
+
+Preparation creates the version PR without creating or pushing release tags.
+The explicitly recorded `version_pr_url` may identify a follow-up fixes PR on a
+differently named branch. It must still belong to `kubeflow/pipelines`, be merged
+into the intended release branch, and have successful CI. Existing recorded head
+and merge SHAs cannot change silently; selecting a new release commit requires
+fresh qualification for that commit.
+`merge-version-pr` waits for CI and a maintainer merge; kfpr does not merge the PR.
+It records the tested PR head and merged commit. The next checkpoint,
+`qualify-release`, rebuilds that exact commit in an isolated checkout and:
+
+- Installs the release wheels in fresh environments for every Python minor
+  advertised by the SDK, checks dependency consistency and distribution versions,
+  and compiles a pipeline using Kubernetes configuration.
+- Dispatches `release-qualification.yml` on upstream `master` to build and scan
+  every image/platform combination from the merged release source's matrix,
+  respecting its exclusions. AMD64 and ARM64 use native GitHub-hosted runners.
+  The workflow has read-only permissions and does not publish images or tags.
+- Downloads raw Trivy image reports and a complete manifest, checking the run,
+  source commit, workflow commit, inventory, immutable image IDs and report hashes.
+  Comprehensive image detection includes embedded modules in OS-packaged binaries.
+- Runs Trivy on source dependencies and pip-audit against the dependencies
+  installed in each Python environment.
+
+The default `--image-qualification ci` requires the workflow to be merged on upstream `master` and
+an authenticated `gh` session authorized to dispatch it. There is no local image
+build fallback after a CI failure. Failed lanes retain diagnostic artifacts; incomplete evidence
+blocks publication. Rerunning a CI attempt invalidates evidence from its earlier
+attempt, so run `qualify-release` again to obtain fresh evidence.
+
+For explicit local validation, select `--image-qualification local`. This mode
+builds and scans the same complete matrix sequentially. Each lane uses a unique
+image tag and a private Docker Buildx builder; after scanning, both are removed,
+including that builder's cache. Raw reports and image IDs remain in the evidence.
+Shared builders, unrelated images, containers and volumes are not pruned. Docker
+must support each release platform and have enough space for one image build.
+The selected mode is saved in the checkpoint and bound to qualification evidence;
+changing modes requires requalification. Both modes require zero fixable image
+findings and the same complete image inventory.
+
+Install Trivy, pip-audit and each supported Python interpreter before
+qualification. SDK artifact generation also needs Docker. Source and wheel
+checks run locally and require network access to package indexes, container
+registries and advisory databases.
+By default kfpr finds `python3.X` on PATH. To map installed executables explicitly:
+
+```bash
+kfpr run qualify-release --state-file release-state.json --done \
+  --qualification-pythons /path/to/python3.9,/path/to/python3.10,/path/to/python3.11,/path/to/python3.12,/path/to/python3.13
+```
+
+The override must still cover every advertised Python minor. The same option is
+available on the full `run` command. SDK-only releases skip image builds;
+backend-only releases skip installed-wheel tests. Source scanning always runs.
+
+The default security policy is zero scanner-reported fixable vulnerabilities,
+across all severities. Findings without a published fix remain in the report. Missing tools,
+scanner errors, incomplete dependency coverage and unrecognized reports block
+publication. A scanner-reported fix requiring a newer Python still blocks; kfpr
+does not silently waive an advisory or change supported Python versions.
+
+For explicitly accepted findings, select `--security-exceptions /path/to/exceptions.json`.
+The [exception file](SECURITY_POLICY.md) identifies each exact artifact, advisory,
+package and installed version, with a justification and UTC expiry date. This
+selects `approved-exceptions` and binds the file contents to qualification.
+Publication checks those contents and expiry again. All findings remain in the
+report; scanner errors and incomplete coverage always block. Selecting
+`--security-policy zero-fixable` clears the exception selection and requires fresh
+qualification. The historical `2.17.3-approved-exceptions-v1` policy remains
+available only to verify its original release evidence.
+
+Wheel environments remove bootstrap-only pip/setuptools after installation and
+dependency checks, before exercising SDK imports and pipeline compilation.
+Packages reachable through declared runtime dependencies are retained. Final
+dependency freezes and removed installer names are saved for audit.
+
+Qualification prints a persistent evidence directory with raw scanner reports,
+wheel hashes, dependency freezes, compiled pipelines and logs. The checkpoint
+records the summary path and SHA256, release version, merged SHA and selected
+scope. Evidence expires after 24 hours; rerun `qualify-release` to refresh it.
+Failed requalification invalidates prior evidence. Generated sources must match
+the merged commit or qualification stops for a new reviewed version update.
+
+Tag creation, image/package publication and GitHub release creation each recheck
+live PR CI and qualification evidence, plus the image workflow run when CI mode
+is selected, including when invoked individually. Tags point to
+the qualified merge commit. A stale unpublished local tag can be corrected;
+published tags are never replaced. Workflow dispatch and completion checks are
+bound to the same source commit. Patch image releases leave the global `latest`
+tag unchanged. `--dry-run` describes gates without generating
+evidence or publishing. The image publication workflow may rebuild from that
+source; qualification is not a claim that published image digests are
+identical. Keep the workflow's post-publication validation checkpoint.
+
 ## Individual steps
 
 List the selected flow:
@@ -77,7 +191,9 @@ kfpr run update-version-tags \
   --done
 ```
 
-Single-step commands do not update the checkpoint unless `--done` is passed.
+Single-step commands mark completion only with `--done`. Version PR identity and
+qualification evidence are saved immediately so publication guards also work when
+running individual steps.
 `update-version-tags` cuts `<version>-update-version-tags` from the release branch
 before committing version changes. When SDK release steps are enabled, this same PR also updates
 SDK package metadata, docs versions, and `sdk/RELEASE.md`.
@@ -92,8 +208,8 @@ to generate portable, frozen dependency-only artifacts; install the SDK wheel
 separately. CI validates lock consistency, frozen installation, artifact resolution,
 and a clean wheel install. See [dependency maintenance](../docs/agents/dependabot.md).
 
-Maintenance releases continue to dispatch the publishing workflow from their
-release branch. The current `publish-packages.yml` also accepts pre-uv tags:
+Publication dispatches the workflow from the immutable release tag, with source
+pinned to the qualified merged commit. The current `publish-packages.yml` also accepts pre-uv tags:
 tool setup is independent of the selected checkout, and package builds use that
 tag's Makefiles or a setuptools-compatible source-path build. Use `dry_run=true`
 to build and validate distributions without uploading them to PyPI.
@@ -199,7 +315,8 @@ without dispatching a new workflow run.
 
 `confirm-rtd` prompts for a Read the Docs API token, keeps it only in process memory, and uses it
 to activate release versions, trigger builds, wait for successful builds, and update project
-defaults. If the API call fails, `kfpr` asks whether to fall back to the manual checklist.
+defaults for major and minor releases. Patch releases build and activate their documentation
+without changing project defaults; the manual fallback preserves defaults too. If the API call fails, `kfpr` asks whether to fall back to the manual checklist.
 
 ## Commands
 
@@ -234,3 +351,38 @@ run watch-publish-images
 For the KFP 3.0 release, the `confirm-website-and-slack` checkpoint also requires the Kubeflow
 website installation and upgrade documentation to announce that Argo Workflows 3.x is unsupported,
 and requires the GitHub release notes to identify that removal as a breaking change.
+
+Image `latest` and the backend GitHub latest designation follow numeric SemVer,
+not release type. Before each publication, kfpr reads every page of published
+upstream releases and promotes the target only when no newer stable backend
+release exists. Drafts, prereleases and `sdk-*` tags do not affect the comparison.
+Thus 2.17.3 can become latest after 2.17.2, but cannot replace stable 2.18.0 or 3.0.0.
+Malformed or unavailable discovery stops publication; dry runs perform no query.
+SDK GitHub releases always use `--latest=false` to preserve the shared backend designation.
+
+Maintenance patches still leave master version files, changelog and Read the Docs
+defaults unchanged. The final website checklist preserves its existing latest-version
+pointer; these separate maintenance safeguards are not part of latest selection.
+
+SDK publication checks PyPI before each upload. Split SDK releases publish missing
+packages in dependency order: pipeline spec, server API, KFP, then Kubernetes.
+Each package must become available before its dependents are dispatched. Unified
+SDK releases publish only KFP. After a workflow failure, resume `publish-sdks`;
+versions already available on PyPI are skipped rather than uploaded again.
+
+### Promote an already published release
+
+```sh
+kfpr promote-latest --version 2.17.3 --dry-run
+kfpr promote-latest --version 2.17.3
+```
+
+This recovery command dispatches `release-promote-latest.yml` in the upstream
+repository and waits for its result. Merge the workflow upstream before using it.
+CI uses its own package-write credentials; maintainers need workflow-dispatch
+access, not local registry credentials. The workflow validates the stable release
+and its full source-defined image/platform inventory, copies each existing image
+index by digest to `latest`, and verifies the result and unchanged versioned tag.
+It never rebuilds images or uploads SDK packages. Evidence includes previous and
+promoted digests, including partial progress if a registry operation fails.
+Only releases without a newer published stable backend release may be promoted.

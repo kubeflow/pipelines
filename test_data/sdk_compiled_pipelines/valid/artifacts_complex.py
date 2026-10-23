@@ -1,10 +1,7 @@
 from typing import List, NamedTuple
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Dataset, Input, Output
 
 
 @dsl.component
@@ -54,16 +51,18 @@ def add_two_lists_of_datasets(
     sum2_task = add(in_datasets=in_datasets2)
     return add_two_ints(
         in_dataset1=sum1_task.outputs['out_dataset'],
-        in_dataset2=sum2_task.outputs['out_dataset']).outputs['out_dataset']
+        in_dataset2=sum2_task.outputs['out_dataset'],
+    ).outputs['out_dataset']
 
 
 @dsl.pipeline
-def math_pipeline(
-    threshold: int = 2
-) -> NamedTuple('Outputs', [
-    ('sum', Dataset),
-    ('datasets', List[Dataset]),
-]):
+def math_pipeline(threshold: int = 2) -> NamedTuple(
+    'Outputs',
+    [
+        ('sum', Dataset),
+        ('datasets', List[Dataset]),
+    ],
+):
     with dsl.ParallelFor([1, 2, 3]) as x:
         double_task1 = double(num=x)
         with dsl.ParallelFor([1, 2, 3]) as y:
@@ -73,16 +72,21 @@ def math_pipeline(
         in_datasets1=dsl.Collected(double_task1.outputs['out_dataset']),
         in_datasets2=dsl.Collected(double_task2.outputs['out_dataset']),
     )
-    Outputs = NamedTuple('Outputs', [
-        ('sum', Dataset),
-        ('datasets', List[Dataset]),
-    ])
+    Outputs = NamedTuple(
+        'Outputs',
+        [
+            ('sum', Dataset),
+            ('datasets', List[Dataset]),
+        ],
+    )
     return Outputs(
         sum=sum_task.output,
-        datasets=dsl.Collected(double_task1.outputs['out_dataset']))
+        datasets=dsl.Collected(double_task1.outputs['out_dataset']),
+    )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=math_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

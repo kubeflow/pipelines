@@ -24,5 +24,7 @@ def dict_input(struct: Dict):
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pipeline_func=dict_input, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=dict_input, package_path=__file__.replace('.py', '.yaml')
+    )

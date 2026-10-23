@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Two step pipeline with URI placeholders."""
+
 from kfp import dsl
 
 
@@ -24,8 +25,11 @@ def write_to_gcs(msg: str, artifact: dsl.Output[dsl.Artifact]):
     return dsl.ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh', '-c', 'set -e -x\necho "$0" | gsutil cp - "$1"\n', msg,
-            artifact.uri
+            'sh',
+            '-c',
+            'set -e -x\necho "$0" | gsutil cp - "$1"\n',
+            msg,
+            artifact.uri,
         ],
     )
 

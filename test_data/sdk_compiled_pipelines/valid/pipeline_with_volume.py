@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Pipeline with volume creation, mount and deletion in v2 engine pipeline."""
-from kfp import dsl
-from kfp import kubernetes
+
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -57,12 +57,16 @@ def pipeline_with_volume():
         mount_path='/data',
     )
 
-    delete_pvc1 = kubernetes.DeletePVC(
-        pvc_name=pvc1.outputs['name']).after(task2)
+    delete_pvc1 = kubernetes.DeletePVC(pvc_name=pvc1.outputs['name']).after(
+        task2
+    )
+
 
 if __name__ == '__main__':
     # execute only if run as a script
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_volume,
-        package_path='pipeline_with_volume.json')
+        package_path='pipeline_with_volume.json',
+    )

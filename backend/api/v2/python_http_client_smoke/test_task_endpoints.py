@@ -28,7 +28,8 @@ import sys
 import unittest
 
 _CLIENT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../../sdk/python"))
+    os.path.join(os.path.dirname(__file__), '../../../../sdk/python')
+)
 if _CLIENT_ROOT not in sys.path:
     sys.path.insert(0, _CLIENT_ROOT)
 
@@ -72,17 +73,19 @@ class RecordingApiClient(object):
 
         rendered_path = resource_path
         for key, value in (path_params or {}).items():
-            rendered_path = rendered_path.replace("{%s}" % key, str(value))
-        self.calls.append({
-            "method": method,
-            "path": rendered_path,
-            "body": body,
-            "query_params": list(query_params or []),
-            "headers": dict(header_params or {}),
-            "response_type": response_type,
-            "auth_settings": list(auth_settings or []),
-        })
-        return {"ok": True}
+            rendered_path = rendered_path.replace('{%s}' % key, str(value))
+        self.calls.append(
+            {
+                'method': method,
+                'path': rendered_path,
+                'body': body,
+                'query_params': list(query_params or []),
+                'headers': dict(header_params or {}),
+                'response_type': response_type,
+                'auth_settings': list(auth_settings or []),
+            }
+        )
+        return {'ok': True}
 
 
 class TestGeneratedTaskEndpoints(unittest.TestCase):
@@ -92,39 +95,38 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
         client = RecordingApiClient()
         api = ArtifactServiceApi(api_client=client)
 
-        create_body = {"artifact_id": "artifact-1", "task_id": "task-1"}
+        create_body = {'artifact_id': 'artifact-1', 'task_id': 'task-1'}
         api.create_artifact_task(create_body)
         api.list_artifact_tasks(
-            task_ids=["task-1"], run_ids=["run-1"], page_size=10)
+            task_ids=['task-1'], run_ids=['run-1'], page_size=10
+        )
 
         self.assertEqual(
             [
                 {
-                    "method": "POST",
-                    "path": "/apis/v2beta1/artifact_tasks",
-                    "body": create_body,
-                    "query_params": [],
-                    "headers": {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
+                    'method': 'POST',
+                    'path': '/apis/v2beta1/artifact_tasks',
+                    'body': create_body,
+                    'query_params': [],
+                    'headers': {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
                     },
-                    "response_type": "V2ArtifactTask",
-                    "auth_settings": ["Bearer"],
+                    'response_type': 'V2ArtifactTask',
+                    'auth_settings': ['Bearer'],
                 },
                 {
-                    "method": "GET",
-                    "path": "/apis/v2beta1/artifact_tasks",
-                    "body": None,
-                    "query_params": [
-                        ("task_ids", ["task-1"]),
-                        ("run_ids", ["run-1"]),
-                        ("page_size", 10),
+                    'method': 'GET',
+                    'path': '/apis/v2beta1/artifact_tasks',
+                    'body': None,
+                    'query_params': [
+                        ('task_ids', ['task-1']),
+                        ('run_ids', ['run-1']),
+                        ('page_size', 10),
                     ],
-                    "headers": {
-                        "Accept": "application/json"
-                    },
-                    "response_type": "V2ListArtifactTasksResponse",
-                    "auth_settings": ["Bearer"],
+                    'headers': {'Accept': 'application/json'},
+                    'response_type': 'V2ListArtifactTasksResponse',
+                    'auth_settings': ['Bearer'],
                 },
             ],
             client.calls,
@@ -134,65 +136,61 @@ class TestGeneratedTaskEndpoints(unittest.TestCase):
         client = RecordingApiClient()
         api = RunServiceApi(api_client=client)
 
-        create_body = {"task_id": "task-1"}
-        batch_body = {"tasks": []}
-        api.create_task("run-1", create_body)
-        api.get_task("run-1", "task-1")
-        api.list_tasks("run-1", page_size=10)
-        api.batch_update_tasks("run-1", batch_body)
+        create_body = {'task_id': 'task-1'}
+        batch_body = {'tasks': []}
+        api.create_task('run-1', create_body)
+        api.get_task('run-1', 'task-1')
+        api.list_tasks('run-1', page_size=10)
+        api.batch_update_tasks('run-1', batch_body)
 
         self.assertEqual(
             [
                 {
-                    "method": "POST",
-                    "path": "/apis/v2beta1/runs/run-1/tasks",
-                    "body": create_body,
-                    "query_params": [],
-                    "headers": {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
+                    'method': 'POST',
+                    'path': '/apis/v2beta1/runs/run-1/tasks',
+                    'body': create_body,
+                    'query_params': [],
+                    'headers': {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
                     },
-                    "response_type": "V2PipelineTask",
-                    "auth_settings": ["Bearer"],
+                    'response_type': 'V2PipelineTask',
+                    'auth_settings': ['Bearer'],
                 },
                 {
-                    "method": "GET",
-                    "path": "/apis/v2beta1/runs/run-1/tasks/task-1",
-                    "body": None,
-                    "query_params": [],
-                    "headers": {
-                        "Accept": "application/json"
-                    },
-                    "response_type": "V2PipelineTask",
-                    "auth_settings": ["Bearer"],
+                    'method': 'GET',
+                    'path': '/apis/v2beta1/runs/run-1/tasks/task-1',
+                    'body': None,
+                    'query_params': [],
+                    'headers': {'Accept': 'application/json'},
+                    'response_type': 'V2PipelineTask',
+                    'auth_settings': ['Bearer'],
                 },
                 {
-                    "method": "GET",
-                    "path": "/apis/v2beta1/runs/run-1/tasks",
-                    "body": None,
-                    "query_params": [("page_size", 10)],
-                    "headers": {
-                        "Accept": "application/json"
-                    },
-                    "response_type": "V2ListTasksResponse",
-                    "auth_settings": ["Bearer"],
+                    'method': 'GET',
+                    'path': '/apis/v2beta1/runs/run-1/tasks',
+                    'body': None,
+                    'query_params': [('page_size', 10)],
+                    'headers': {'Accept': 'application/json'},
+                    'response_type': 'V2ListTasksResponse',
+                    'auth_settings': ['Bearer'],
                 },
                 {
-                    "method": "POST",
-                    "path": "/apis/v2beta1/runs/run-1/tasks:batchUpdate",
-                    "body": batch_body,
-                    "query_params": [],
-                    "headers": {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
+                    'method': 'POST',
+                    'path': '/apis/v2beta1/runs/run-1/tasks:batchUpdate',
+                    'body': batch_body,
+                    'query_params': [],
+                    'headers': {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
                     },
-                    "response_type": "V2UpdateTasksBulkResponse",
-                    "auth_settings": ["Bearer"],
+                    'response_type': 'V2UpdateTasksBulkResponse',
+                    'auth_settings': ['Bearer'],
                 },
             ],
             client.calls,
         )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

@@ -129,7 +129,7 @@ type ProtobufAny struct {
 	// used with implementation specific semantics.
 	AtType string `json:"@type,omitempty"`
 
-	// protobuf any
+	// protobuf any additional properties
 	ProtobufAny map[string]any `json:"-"`
 }
 

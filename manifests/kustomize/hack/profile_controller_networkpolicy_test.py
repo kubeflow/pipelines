@@ -19,7 +19,6 @@ import unittest
 
 
 class ProfileControllerNetworkPolicyTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         # yq v3 emits one JSON object per YAML document.
@@ -33,9 +32,10 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
 
     def resource(self, kind, name):
         matches = [
-            resource for resource in self.resources
-            if resource.get('kind') == kind and
-            resource.get('metadata', {}).get('name') == name
+            resource
+            for resource in self.resources
+            if resource.get('kind') == kind
+            and resource.get('metadata', {}).get('name') == name
         ]
         self.assertEqual(len(matches), 1, f'Expected one {kind}/{name}')
         return matches[0]
@@ -50,32 +50,36 @@ class ProfileControllerNetworkPolicyTest(unittest.TestCase):
         self.assertEqual(controller['metadata']['namespace'], namespace)
         self.assertEqual(metacontroller['metadata']['namespace'], namespace)
         self.assertEqual(
-            controller['spec']['template']['metadata']['labels']['app'], name)
+            controller['spec']['template']['metadata']['labels']['app'], name
+        )
         self.assertEqual(
             metacontroller['spec']['template']['metadata']['labels']['app'],
-            'metacontroller')
+            'metacontroller',
+        )
 
         def selector(app):
             return {
-                'matchExpressions': [{
-                    'key': 'app',
-                    'operator': 'In',
-                    'values': [app],
-                }]
+                'matchExpressions': [
+                    {
+                        'key': 'app',
+                        'operator': 'In',
+                        'values': [app],
+                    }
+                ]
             }
 
         # Exact selectors catch additional labels injected by transformers.
         self.assertEqual(policy['spec']['podSelector'], selector(name))
         self.assertEqual(policy['spec']['policyTypes'], ['Ingress'])
-        self.assertEqual(policy['spec']['ingress'], [{
-            'from': [{
-                'podSelector': selector('metacontroller')
-            }],
-            'ports': [{
-                'port': 8080,
-                'protocol': 'TCP'
-            }],
-        }])
+        self.assertEqual(
+            policy['spec']['ingress'],
+            [
+                {
+                    'from': [{'podSelector': selector('metacontroller')}],
+                    'ports': [{'port': 8080, 'protocol': 'TCP'}],
+                }
+            ],
+        )
 
 
 if __name__ == '__main__':

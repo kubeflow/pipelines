@@ -1,33 +1,39 @@
 """Typer CLI for Kubeflow Pipelines release automation."""
 
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
 import typer
 
-from .core import collect_context
-from .core import CommandRunner
-from .core import doctor_errors
-from .core import emphasize_prompt
-from .core import normalize_fork_remote
-from .core import ReleaseContext
-from .core import ReleaseMetadata
-from .core import ReleaseState
-from .core import STATE_FILE
-from .core import validate_answers
-from .core import validate_state
-from .core import watch_latest_workflow_run
-from .steps import build_steps
-from .steps import manual_checklist
-from .steps import run_steps
-from .steps import Step
-from .steps import STEP_HANDLERS
+from .core import (
+    STATE_FILE,
+    CommandRunner,
+    ReleaseContext,
+    ReleaseMetadata,
+    ReleaseState,
+    collect_context,
+    doctor_errors,
+    emphasize_prompt,
+    normalize_fork_remote,
+    validate_answers,
+    validate_state,
+    watch_latest_workflow_run,
+)
+from .steps import STEP_HANDLERS, Step, build_steps, manual_checklist, run_steps
 
 HELP_OPTION_NAMES = ['-h', '--help']
 
+
+class ImageQualification(str, Enum):
+    ci = 'ci'
+    local = 'local'
+
+
 app = typer.Typer(
     help='Kubeflow Pipelines release automation.',
-    context_settings={'help_option_names': HELP_OPTION_NAMES})
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
 run_app = typer.Typer(
     help='Run the full release flow or one release step.',
     context_settings={'help_option_names': HELP_OPTION_NAMES},
@@ -59,23 +65,73 @@ def _context(
     previous_release: Optional[str] = None,
     save_state: bool = True,
     require_previous_release: bool = True,
+    qualification_pythons: Optional[str] = None,
+    security_policy: Optional[str] = None,
+    security_exceptions: Optional[Path] = None,
+    image_qualification: Optional[str] = None,
 ) -> ReleaseContext:
     state = _load_state(state_file)
     _set_answer(state, 'release_type', release_type)
     _set_answer(state, 'version', version)
     _set_answer(
-        state, 'fork_remote',
-        normalize_fork_remote(fork_remote) if fork_remote is not None else None)
+        state,
+        'fork_remote',
+        normalize_fork_remote(fork_remote) if fork_remote is not None else None,
+    )
     _set_answer(state, 'patch_prs', patch_prs)
     _set_answer(state, 'include_backend', include_backend)
     _set_answer(state, 'include_sdk', include_sdk)
     if skip_local_review:
         state.answers['skip_local_review'] = True
     _set_answer(state, 'previous_release', previous_release)
+    _set_answer(state, 'qualification_pythons', qualification_pythons)
+    if security_policy not in (
+        None,
+        'zero-fixable',
+        'approved-exceptions',
+        '2.17.3-approved-exceptions-v1',
+    ):
+        raise typer.BadParameter(
+            'Unknown security policy', param_hint='--security-policy'
+        )
+    if security_exceptions is not None:
+        if security_policy not in (None, 'approved-exceptions'):
+            raise typer.BadParameter(
+                'Exception files require approved-exceptions policy',
+                param_hint='--security-exceptions',
+            )
+        from .security_exceptions import load_exceptions
+
+        try:
+            load_exceptions(security_exceptions)
+        except (ValueError, OSError) as error:
+            raise typer.BadParameter(
+                str(error), param_hint='--security-exceptions'
+            ) from error
+        state.answers['security_exceptions'] = str(
+            security_exceptions.resolve()
+        )
+        security_policy = 'approved-exceptions'
+    elif security_policy in ('zero-fixable', '2.17.3-approved-exceptions-v1'):
+        state.answers.pop('security_exceptions', None)
+    _set_answer(state, 'security_policy', security_policy)
+    if state.answers.get(
+        'security_policy'
+    ) == 'approved-exceptions' and not state.answers.get('security_exceptions'):
+        raise typer.BadParameter(
+            'Provide an exception file', param_hint='--security-exceptions'
+        )
+    _set_answer(state, 'image_qualification', image_qualification)
+    state.answers.setdefault('image_qualification', 'ci')
+    if state.answers['image_qualification'] not in ('ci', 'local'):
+        raise typer.BadParameter(
+            'Choose ci or local', param_hint='--image-qualification'
+        )
 
     if 'release_type' in state.answers and 'version' in state.answers:
         ReleaseMetadata.from_version(
-            str(state.answers['release_type']), str(state.answers['version']))
+            str(state.answers['release_type']), str(state.answers['version'])
+        )
 
     args = type(
         'Args',
@@ -95,21 +151,25 @@ def _all_steps() -> list[Step]:
     by_id: dict[str, Step] = {}
     for release_type in ('major', 'minor', 'patch'):
         for step in build_steps(
-                release_type, include_backend=True, include_sdk=True):
+            release_type, include_backend=True, include_sdk=True
+        ):
             by_id.setdefault(step.step_id, step)
     return list(by_id.values())
 
 
 def _state_steps(
-    state: ReleaseState
+    state: ReleaseState,
 ) -> tuple[list[Step], ReleaseMetadata | None, list[str]]:
     metadata, errors = validate_answers(state.answers)
     if metadata is None:
         return [], None, errors
     include_backend = bool(state.answers.get('include_backend', True))
     include_sdk = bool(state.answers.get('include_sdk', True))
-    return build_steps(metadata.release_type, include_backend,
-                       include_sdk), metadata, validate_state(state)
+    return (
+        build_steps(metadata.release_type, include_backend, include_sdk),
+        metadata,
+        validate_state(state),
+    )
 
 
 def _print_state_status(state: ReleaseState) -> None:
@@ -147,7 +207,7 @@ def _print_state_status(state: ReleaseState) -> None:
 
 
 def _steps_diagram() -> str:
-    return '''preflight
+    return """preflight
   |
   +-- patch --> prepare-patch-branch -> cherry-pick-prs -> merge-cherry-pick-pr
   |
@@ -162,26 +222,32 @@ update-version-tags -> merge-version-pr
                       -> confirm-rtd -> create-sdk-release
   |
 
-create-backend-release -> sync-master -> confirm-website-and-slack'''
+create-backend-release -> sync-master -> confirm-website-and-slack"""
 
 
 @run_app.callback(invoke_without_command=True)
 def run(
     ctx: typer.Context,
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
     dry_run: bool = typer.Option(
-        False, help='Print commands without executing.'),
+        False, help='Print commands without executing.'
+    ),
     force: bool = typer.Option(
-        False, help='Resume an existing checkpoint without prompting.'),
+        False, help='Resume an existing checkpoint without prompting.'
+    ),
     release_type: Optional[str] = typer.Option(
-        None, help='major, minor, or patch.'),
+        None, help='major, minor, or patch.'
+    ),
     version: Optional[str] = typer.Option(None, help='Release version.'),
     fork_remote: Optional[str] = typer.Option(None, help='Fork remote.'),
     release_source_branch: Optional[str] = typer.Option(
-        None, help='Branch to cut the release branch from.'),
+        None, help='Branch to cut the release branch from.'
+    ),
     patch_prs: Optional[str] = typer.Option(
-        None, help='Comma-separated patch PRs.'),
+        None, help='Comma-separated patch PRs.'
+    ),
     include_backend: Optional[bool] = typer.Option(
         None,
         '--include-backend/--no-include-backend',
@@ -195,11 +261,29 @@ def run(
     skip_local_review: bool = typer.Option(
         False,
         '--skip-local-review',
-        help='Skip local review prompts before git commit.'),
+        help='Skip local review prompts before git commit.',
+    ),
     previous_release: Optional[str] = typer.Option(
         None,
         '--previous-release',
-        help='Previous release tag for changelog generation.'),
+        help='Previous release tag for changelog generation.',
+    ),
+    qualification_pythons: Optional[str] = typer.Option(
+        None,
+        help='Comma-separated Python executables covering every supported SDK minor version.',
+    ),
+    security_policy: Optional[str] = typer.Option(
+        None,
+        help='Security policy: zero-fixable (default), approved-exceptions, or historical 2.17.3-approved-exceptions-v1.',
+    ),
+    security_exceptions: Optional[Path] = typer.Option(
+        None,
+        help='JSON exception file with exact findings, justifications and expiries; selects approved-exceptions.',
+    ),
+    image_qualification: Optional[ImageQualification] = typer.Option(
+        None,
+        help='Image qualification: upstream CI by default, or explicit local builds with disposable builders.',
+    ),
 ) -> None:
     """Run the full checkpointed release flow."""
     if ctx.invoked_subcommand is not None:
@@ -207,7 +291,8 @@ def run(
     if state_file.exists() and not force:
         _print_state_status(_load_state(state_file))
         if not typer.confirm(
-                emphasize_prompt('Continue from this checkpoint?')):
+            emphasize_prompt('Continue from this checkpoint?')
+        ):
             typer.echo('Release flow aborted.')
             raise typer.Exit(1)
 
@@ -224,19 +309,43 @@ def run(
         release_source_branch=release_source_branch,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        qualification_pythons=qualification_pythons,
+        security_policy=security_policy,
+        security_exceptions=security_exceptions,
+        image_qualification=image_qualification,
     )
     run_steps(context)
     typer.echo(f'Release flow complete for {context.metadata.tag}')
+
+
+@app.command(
+    'promote-latest', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def promote_latest(
+    version: str = typer.Option(
+        ..., help='Published stable backend release version.'
+    ),
+    dry_run: bool = typer.Option(
+        False, help='Preview CI promotion without dispatch.'
+    ),
+) -> None:
+    """Promote existing published image indexes through CI without
+    rebuilding."""
+    from .promotion import dispatch
+
+    dispatch(version, dry_run=dry_run)
 
 
 @app.command('steps', context_settings={'help_option_names': HELP_OPTION_NAMES})
 def list_steps(
     release_type: str = typer.Option('patch', help='major, minor, or patch.'),
     include_backend: bool = typer.Option(
-        True, help='Include backend/image steps.'),
+        True, help='Include backend/image steps.'
+    ),
     include_sdk: bool = typer.Option(True, help='Include SDK steps.'),
     diagram: bool = typer.Option(
-        False, help='Print an ASCII release flow diagram.'),
+        False, help='Print an ASCII release flow diagram.'
+    ),
 ) -> None:
     """List steps for a selected release flow."""
     if diagram:
@@ -249,8 +358,11 @@ def list_steps(
 
 
 @app.command(context_settings={'help_option_names': HELP_OPTION_NAMES})
-def status(state_file: Path = typer.Option(
-    Path(STATE_FILE), help='Path to checkpoint state file.')) -> None:
+def status(
+    state_file: Path = typer.Option(
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
+) -> None:
     """Print checkpoint answers, step status, and resume command."""
     _print_state_status(_load_state(state_file))
 
@@ -258,17 +370,21 @@ def status(state_file: Path = typer.Option(
 @app.command('next', context_settings={'help_option_names': HELP_OPTION_NAMES})
 def next_command(
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
     dry_run: bool = typer.Option(
-        False, help='Print commands without executing.'),
+        False, help='Print commands without executing.'
+    ),
     skip_local_review: bool = typer.Option(
         False,
         '--skip-local-review',
-        help='Skip local review prompts before git commit.'),
+        help='Skip local review prompts before git commit.',
+    ),
     previous_release: Optional[str] = typer.Option(
         None,
         '--previous-release',
-        help='Previous release tag for changelog generation.'),
+        help='Previous release tag for changelog generation.',
+    ),
 ) -> None:
     """Run the next incomplete checkpoint step."""
     state = _load_state(state_file)
@@ -278,7 +394,8 @@ def next_command(
             typer.echo(error)
         raise typer.Exit(1)
     next_step = next(
-        (step for step in steps if not state.is_done(step.step_id)), None)
+        (step for step in steps if not state.is_done(step.step_id)), None
+    )
     if next_step is None:
         typer.echo('No pending release steps.')
         return
@@ -303,8 +420,11 @@ def next_command(
 
 
 @app.command(context_settings={'help_option_names': HELP_OPTION_NAMES})
-def clear(state_file: Path = typer.Option(
-    Path(STATE_FILE), help='Path to checkpoint state file.')) -> None:
+def clear(
+    state_file: Path = typer.Option(
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
+) -> None:
     """Delete the checkpoint state file."""
     if state_file.exists():
         state_file.unlink()
@@ -314,9 +434,13 @@ def clear(state_file: Path = typer.Option(
 
 
 @app.command(
-    'validate-state', context_settings={'help_option_names': HELP_OPTION_NAMES})
-def validate_state_command(state_file: Path = typer.Option(
-    Path(STATE_FILE), help='Path to checkpoint state file.')) -> None:
+    'validate-state', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def validate_state_command(
+    state_file: Path = typer.Option(
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
+) -> None:
     """Validate a checkpoint file before resuming."""
     errors = validate_state(_load_state(state_file))
     if errors:
@@ -330,7 +454,8 @@ def validate_state_command(state_file: Path = typer.Option(
 def done_command(
     step_id: str,
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
 ) -> None:
     """Mark one release step complete in the checkpoint."""
     if step_id not in STEP_HANDLERS:
@@ -342,11 +467,13 @@ def done_command(
 
 
 @app.command(
-    'reset-step', context_settings={'help_option_names': HELP_OPTION_NAMES})
+    'reset-step', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
 def reset_step_command(
     step_id: str,
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
 ) -> None:
     """Remove one release step from the completed checkpoint list."""
     if step_id not in STEP_HANDLERS:
@@ -361,7 +488,8 @@ def reset_step_command(
 def goto_command(
     step_id: str,
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
 ) -> None:
     """Mark all steps before STEP_ID complete so the flow resumes there."""
     state = _load_state(state_file)
@@ -375,7 +503,7 @@ def goto_command(
         typer.echo(f'step is not in this release flow: {step_id}')
         raise typer.Exit(1)
     state.completed_steps = []
-    for prior_step_id in step_ids[:step_ids.index(step_id)]:
+    for prior_step_id in step_ids[: step_ids.index(step_id)]:
         state.mark_done(prior_step_id)
     state.save()
     typer.echo(f'next step: {step_id}')
@@ -384,9 +512,11 @@ def goto_command(
 @app.command(context_settings={'help_option_names': HELP_OPTION_NAMES})
 def doctor(
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
     release_type: Optional[str] = typer.Option(
-        None, help='major, minor, or patch.'),
+        None, help='major, minor, or patch.'
+    ),
     version: Optional[str] = typer.Option(None, help='Release version.'),
     fork_remote: Optional[str] = typer.Option(None, help='Fork remote.'),
 ) -> None:
@@ -410,12 +540,15 @@ def doctor(
 
 @run_app.command(
     'watch-publish-images',
-    context_settings={'help_option_names': HELP_OPTION_NAMES})
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
 def watch_publish_images(
     state_file: Path = typer.Option(
-        Path(STATE_FILE), help='Path to checkpoint state file.'),
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
     dry_run: bool = typer.Option(
-        False, help='Print commands without executing.'),
+        False, help='Print commands without executing.'
+    ),
 ) -> None:
     """Watch the latest publish-images workflow run without dispatching it."""
     state = _load_state(state_file)
@@ -436,15 +569,19 @@ def _make_step_command(step_id: str):
 
     def command(
         state_file: Path = typer.Option(
-            Path(STATE_FILE), help='Path to checkpoint state file.'),
+            Path(STATE_FILE), help='Path to checkpoint state file.'
+        ),
         dry_run: bool = typer.Option(
-            False, help='Print commands without executing.'),
+            False, help='Print commands without executing.'
+        ),
         release_type: Optional[str] = typer.Option(
-            None, help='major, minor, or patch.'),
+            None, help='major, minor, or patch.'
+        ),
         version: Optional[str] = typer.Option(None, help='Release version.'),
         fork_remote: Optional[str] = typer.Option(None, help='Fork remote.'),
         patch_prs: Optional[str] = typer.Option(
-            None, help='Comma-separated patch PRs.'),
+            None, help='Comma-separated patch PRs.'
+        ),
         include_backend: Optional[bool] = typer.Option(
             None,
             '--include-backend/--no-include-backend',
@@ -456,15 +593,34 @@ def _make_step_command(step_id: str):
             help='Include SDK steps.',
         ),
         done: bool = typer.Option(
-            False, '--done', help='Mark this step complete after success.'),
+            False, '--done', help='Mark this step complete after success.'
+        ),
         skip_local_review: bool = typer.Option(
             False,
             '--skip-local-review',
-            help='Skip local review prompts before git commit.'),
+            help='Skip local review prompts before git commit.',
+        ),
         previous_release: Optional[str] = typer.Option(
             None,
             '--previous-release',
-            help='Previous release tag for changelog generation.'),
+            help='Previous release tag for changelog generation.',
+        ),
+        qualification_pythons: Optional[str] = typer.Option(
+            None,
+            help='Comma-separated Python executables covering every supported SDK minor version.',
+        ),
+        security_policy: Optional[str] = typer.Option(
+            None,
+            help='Security policy: zero-fixable (default), approved-exceptions, or historical 2.17.3-approved-exceptions-v1.',
+        ),
+        security_exceptions: Optional[Path] = typer.Option(
+            None,
+            help='JSON exception file with exact findings, justifications and expiries; selects approved-exceptions.',
+        ),
+        image_qualification: Optional[ImageQualification] = typer.Option(
+            None,
+            help='Image qualification: upstream CI by default, or explicit local builds with disposable builders.',
+        ),
     ) -> None:
         if step_id != 'cherry-pick-prs' and patch_prs is None:
             patch_prs = 'not-needed'
@@ -483,18 +639,28 @@ def _make_step_command(step_id: str):
             include_sdk,
             skip_local_review=skip_local_review,
             previous_release=previous_release,
+            qualification_pythons=qualification_pythons,
+            security_policy=security_policy,
+            security_exceptions=security_exceptions,
+            image_qualification=image_qualification,
             save_state=done,
             require_previous_release=step_id
             in ('update-version-tags', 'sync-master'),
         )
-        if not dry_run and step_id in {
+        if (
+            not dry_run
+            and step_id
+            in {
                 'prepare-release-branch',
                 'prepare-patch-branch',
                 'cherry-pick-prs',
                 'update-version-tags',
                 'sync-master',
-        } and context.runner.capture(['git', 'status', '--short'],
-                                     cwd=context.root).strip():
+            }
+            and context.runner.capture(
+                ['git', 'status', '--short'], cwd=context.root
+            ).strip()
+        ):
             raise typer.BadParameter('git working tree is dirty')
         STEP_HANDLERS[step_id](context)
         if done:
@@ -508,9 +674,8 @@ def _make_step_command(step_id: str):
 
 for _step in _all_steps():
     run_app.command(
-        _step.step_id,
-        context_settings={'help_option_names': HELP_OPTION_NAMES})(
-            _make_step_command(_step.step_id))
+        _step.step_id, context_settings={'help_option_names': HELP_OPTION_NAMES}
+    )(_make_step_command(_step.step_id))
 
 app.add_typer(run_app, name='run')
 

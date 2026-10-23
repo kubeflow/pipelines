@@ -12,9 +12,7 @@ export interface ConfigurationParameters {
   password?: string; // parameter for basic security
   apiKey?: string | Promise<string> | ((name: string) => string | Promise<string>); // parameter for apiKey security
   accessToken?:
-    | string
-    | Promise<string>
-    | ((name?: string, scopes?: string[]) => string | Promise<string>); // parameter for oauth2 security
+    string | Promise<string> | ((name?: string, scopes?: string[]) => string | Promise<string>); // parameter for oauth2 security
   headers?: HTTPHeaders; //header params we want to use on every request
   credentials?: RequestCredentials; //value for the credentials param we want to use on each request
 }

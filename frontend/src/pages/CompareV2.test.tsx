@@ -225,8 +225,8 @@ describe('CompareV2', () => {
   }
 
   beforeEach(() => {
-    vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation(
-      async (runId) => [...runs, thirdRun].find((run) => run.run_id === runId)!,
+    vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation(async (runId) =>
+      [...runs, thirdRun].find((run) => run.run_id === runId)!,
     );
     vi.spyOn(Apis.runServiceApiV2, 'tasks').mockImplementation(async (runId) => ({
       tasks: tasksByRun[runId] || [],
@@ -844,8 +844,7 @@ describe('CompareV2', () => {
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(3);
 
     const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.REFRESH].action as
-      | (() => Promise<void>)
-      | undefined;
+      (() => Promise<void>) | undefined;
     expect(refreshAction).toBeDefined();
     await act(async () => {
       await refreshAction?.();

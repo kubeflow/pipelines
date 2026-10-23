@@ -13,18 +13,14 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
 import pytest
 import yaml
+from kfp import compiler, components, dsl
 
-from backend.src.v2.test.components import download_gcs_tgz
-from backend.src.v2.test.components import kaniko
-from backend.src.v2.test.components import run_sample
+from backend.src.v2.test.components import download_gcs_tgz, kaniko, run_sample
 
 COMPONENTS_DIR = Path(__file__).parent
 
@@ -50,18 +46,23 @@ def test_native_component_compiles_and_reloads_ir(module, tmp_path):
         for executor in actual['deploymentSpec']['executors'].values()
     ]
     assert len(containers) == 1
-    assert containers[0][
-        'image'] == component.component_spec.implementation.container.image
+    assert (
+        containers[0]['image']
+        == component.component_spec.implementation.container.image
+    )
     assert containers[0]['command'][:3] == ['sh', '-exc', module.SHELL_COMMAND]
 
 
 def test_ir_components_compose_with_uri_and_artifact_context(tmp_path):
     download = components.load_component_from_file(
-        str(COMPONENTS_DIR / 'download_gcs_tgz.yaml'))
+        str(COMPONENTS_DIR / 'download_gcs_tgz.yaml')
+    )
     build = components.load_component_from_file(
-        str(COMPONENTS_DIR / 'kaniko.yaml'))
+        str(COMPONENTS_DIR / 'kaniko.yaml')
+    )
     run = components.load_component_from_file(
-        str(COMPONENTS_DIR / 'run_sample.yaml'))
+        str(COMPONENTS_DIR / 'run_sample.yaml')
+    )
 
     @dsl.pipeline
     def sample_runner():
@@ -69,18 +70,23 @@ def test_ir_components_compose_with_uri_and_artifact_context(tmp_path):
         build(
             dockerfile='Dockerfile',
             destination='registry.example/image',
-            context_artifact=folder.outputs['folder'])
+            context_artifact=folder.outputs['folder'],
+        )
         build(
             dockerfile='Dockerfile',
             destination='registry.example/other-image',
-            context_uri='gs://bucket/source.tar.gz')
+            context_uri='gs://bucket/source.tar.gz',
+        )
         binary = dsl.importer(
-            artifact_uri='gs://bucket/compiler', artifact_class=dsl.Artifact)
-        run(name='hello',
+            artifact_uri='gs://bucket/compiler', artifact_class=dsl.Artifact
+        )
+        run(
+            name='hello',
             sample_path='samples.v2.hello_world',
             gcs_root='gs://bucket/output',
             external_host='http://pipeline-ui',
-            backend_compiler=binary.output)
+            backend_compiler=binary.output,
+        )
 
     path = tmp_path / 'runner.yaml'
     compiler.Compiler().compile(sample_runner, package_path=str(path))
@@ -89,8 +95,9 @@ def test_ir_components_compose_with_uri_and_artifact_context(tmp_path):
     assert build.component_spec.inputs['context_artifact'].optional
     assert build.component_spec.inputs['cache'].default == 'true'
     assert build.component_spec.inputs['cache_ttl'].default == '24h'
-    assert run.component_spec.inputs[
-        'host'].default == 'http://ml-pipeline:8888'
+    assert (
+        run.component_spec.inputs['host'].default == 'http://ml-pipeline:8888'
+    )
 
 
 def test_sample_runner_uses_uv_workspace_and_preserves_arguments(tmp_path):
@@ -103,17 +110,16 @@ def test_sample_runner_uses_uv_workspace_and_preserves_arguments(tmp_path):
     binaries = tmp_path / 'bin'
     binaries.mkdir()
     scripts = {
-        'chmod':
-            'exit 0\n',
-        'cp':
-            'exit 0\n',
-        'pip':
-            'printf "%s\\n" "$@" > "$TRACE_DIR/install"\n',
-        'uv': ('test -f pyproject.toml\n'
-               'test -f uv.lock\n'
-               'test -d sdk/python\n'
-               'printf "%s\\n" "$KF_PIPELINES_ENDPOINT" '
-               '"$KF_PIPELINES_UI_ENDPOINT" "$@" > "$TRACE_DIR/run"\n'),
+        'chmod': 'exit 0\n',
+        'cp': 'exit 0\n',
+        'pip': 'printf "%s\\n" "$@" > "$TRACE_DIR/install"\n',
+        'uv': (
+            'test -f pyproject.toml\n'
+            'test -f uv.lock\n'
+            'test -d sdk/python\n'
+            'printf "%s\\n" "$KF_PIPELINES_ENDPOINT" '
+            '"$KF_PIPELINES_UI_ENDPOINT" "$@" > "$TRACE_DIR/run"\n'
+        ),
     }
     for name, body in scripts.items():
         executable = binaries / name
@@ -122,19 +128,38 @@ def test_sample_runner_uses_uv_workspace_and_preserves_arguments(tmp_path):
     env = dict(
         os.environ,
         PATH=f'{binaries}:{os.environ["PATH"]}',
-        TRACE_DIR=str(tmp_path))
-    subprocess.run([
-        'sh', '-ec', run_sample.SHELL_COMMAND, '/artifacts/compiler',
-        'samples.v2.hello_world', 'gs://bucket/output/hello',
-        'http://ml-pipeline:8888', 'http://pipeline-ui', 'launcher:test'
-    ],
-                   cwd=repo,
-                   env=env,
-                   check=True)
+        TRACE_DIR=str(tmp_path),
+    )
+    subprocess.run(
+        [
+            'sh',
+            '-ec',
+            run_sample.SHELL_COMMAND,
+            '/artifacts/compiler',
+            'samples.v2.hello_world',
+            'gs://bucket/output/hello',
+            'http://ml-pipeline:8888',
+            'http://pipeline-ui',
+            'launcher:test',
+        ],
+        cwd=repo,
+        env=env,
+        check=True,
+    )
     assert (tmp_path / 'install').read_text().splitlines() == ['install', 'uv']
     assert (tmp_path / 'run').read_text().splitlines() == [
-        'http://ml-pipeline:8888', 'http://pipeline-ui', 'run', '--frozen',
-        '--extra', 'backend-v2-test', 'python3', '-u', '-m',
-        'samples.v2.hello_world', '--pipeline_root', 'gs://bucket/output/hello',
-        '--launcher_v2_image', 'launcher:test'
+        'http://ml-pipeline:8888',
+        'http://pipeline-ui',
+        'run',
+        '--frozen',
+        '--extra',
+        'backend-v2-test',
+        'python3',
+        '-u',
+        '-m',
+        'samples.v2.hello_world',
+        '--pipeline_root',
+        'gs://bucket/output/hello',
+        '--launcher_v2_image',
+        'launcher:test',
     ]

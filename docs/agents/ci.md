@@ -2,9 +2,12 @@
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
+- Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
+
 - The Kubernetes-native migration experiment-creation test uses a 60-second polling budget for a reported run state. Initial Workflow persistence may temporarily omit the state before Argo reports a phase. API errors and observed failed/canceled runs fail immediately; an unreported state times out with the run ID and log guidance. CI Scripts Tests covers delayed state, timeout, and error behavior without a cluster.
 
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
+- `release-qualification.yml` is a read-only `workflow_dispatch` image qualification workflow. It checks out the tool at `github.workflow_sha` and `kubeflow/pipelines` at the requested full source SHA with credentials disabled. Its native AMD64/ARM64 matrix comes from that source commit's `image-builds-release.yml`, including architecture exclusions; do not substitute the tool branch's image inventory. Each isolated lane builds locally without registry login or push, then scans the immutable image ID with checksum-pinned Trivy 0.76.0 in comprehensive mode. All severities are retained and every fixable image finding blocks qualification. Lane artifacts retain build logs and raw scans even on failure. Aggregation uses the trusted tool checkout's shared artifact-download retry action with a nonempty required-file inventory generated from the source matrix: every attempt-bound lane must provide both `lane.json` and `scan.json` before content validation. Aggregation verifies the complete expected inventory, source/tool/request/run-attempt identities, raw scan subjects, and SHA-256 checksums before uploading `kfpr-images-<request_id>-<run_attempt>` with `manifest.json` and `scans/<name>-<arch>.json`. Reruns use separate attempt-bound artifacts. The workflow must be merged upstream before `kfpr` can dispatch it; local runtime builds are not a fallback. Test the helper without Docker builds using `PYTHONPATH=release python -m unittest kfpr.ci_images_runner_test`.
 - The bundled MySQL database stays on 8.4 LTS. Pin its exact patch and multi-platform index digest in `manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml` and keep `.github/resources/runtime-base-images.txt` identical after registry-name normalization. Dependabot ignores versions outside 8.4, while patch and digest refreshes remain enabled. Review future proposals for both references; the preload consistency test rejects drift. Major/LTS migrations require explicit authentication, persisted-data upgrade, and recovery validation, not an image-only bump.
 - The analyzer lockfile is generated with gh-aw v0.91.12 (`gh aw compile ai-analyzer`); keep `.github/aw/actions-lock.json` with the generated update. Actionlint v1.7.12 does not yet understand GitHub's `concurrency.queue` or `copilot-requests` permission. `.github/actionlint.yaml` ignores only those exact diagnostics in `ai-analyzer.lock.yml`; `actionlint_compatibility_test.py` checks the exception scope and generated values. Remove these exceptions once actionlint supports the fields; do not exclude the generated workflow from linting. The compiler excludes collector endpoint/header credentials from both the primary agent and threat-detection sandboxes while retaining host/API-proxy telemetry; `analyzer_telemetry_isolation_test.py` guards both boundaries.
 - The backend test workflow, legacy V2 API integration workflow, and shared `test-and-report` action prefetch root Go modules through `download-go-modules.sh`. It preserves an explicit `GOPROXY`, otherwise defaults to `https://proxy.golang.org|direct`, and leaves checksum verification unchanged. Downloads get up to three attempts with ten-second delays inside one five-minute deadline plus a ten-second termination grace. The backend workflow downloads before its single-run module-tidy check and test suite; the legacy workflow downloads before cluster creation; the shared action downloads after cache restore and before API setup. Exhaustion or timeout stops the job before tests; test execution itself is never retried.
@@ -31,7 +34,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - The `dra-check` E2E lane runs on a Kind cluster with Kubernetes 1.34 (DRA GA minimum). It generates both Python and Go pipeline-spec bindings, then uses `kfp component build` with the checked-out unified SDK (including Kubernetes helpers and generated pipeline-spec bindings) to create the `kfp-dra-sdk:test` component image, then loads that image into Kind. `.github/actions/install-dra-driver` installs dra-example-driver via Helm, runs a smoke test that verifies a pod can schedule with a DRA ResourceClaim, then the E2E suite uploads DRA pipelines and validates pod-level `resourceClaimStatuses`. The driver version is pinned in `action.yml`; v0.2.1 targets K8s 1.34, while v0.4.0+ requires K8s 1.36.
 - Use `.github/actions/setup-python` for uv workspace jobs; it synchronizes the CI extra from `uv.lock`. Include `**/pyproject.toml`, `uv.lock`, and the setup action in dependency-sensitive workflow triggers. Legacy jobs outside the workspace retain `.github/actions/setup-python-pip-cache` with distinct cache scopes.
 - The workspace `ci` extra includes `test`, which activates `kfp[notebooks]`. This makes the real-kernel regression in `sdk/python/kfp/dsl/notebook_component_decorator_test.py` run in both SDK unit-test matrix lanes (Python 3.11 and 3.13). It executes the generated notebook helper with the test interpreter and temporary kernelspec/Jupyter directories, covering parameter injection, streamed stdout/stderr, artifact output, and cell-error propagation without Docker. The test skips only when notebook dependencies are absent from an ad hoc environment; keep them enabled in the CI extra.
-- `pre-commit.yml` runs the hooks pinned by `.pre-commit-config.yaml` over each base-to-head change. Its local isort hook uses `uv run --frozen --extra lint isort --profile google`, sharing the SDK formatter version from the root lint extra and `uv.lock`. Hook configuration and workspace dependency updates also run each applicable content hook against a small set of clean representative files so a hook upgrade executes without requiring the repository's historical formatting backlog to be fixed in the same PR.
+- `pre-commit.yml` runs the hooks pinned by `.pre-commit-config.yaml` over each base-to-head change. Its local Ruff hooks use `uv run --frozen --extra lint ruff`, sharing the CI formatter version from the root lint extra and `uv.lock`; do not add a separate pre-commit pin. `sdk-isort.yml` and `sdk-yapf.yml` now run repository-wide Ruff lint and formatting checks using `pyproject.toml`. Their display names are `Python Ruff Lint` and `Python Ruff Format`. Keep their legacy file paths because CI Check matches paths from the PR's immutable base; display-name changes must also update CI Check's completion selector and regenerate the workflow inventory. Docformatter remains a separate prose-wrapping check and runs before Ruff in pre-commit. Hook configuration and workspace dependency updates also run each applicable content hook against a small set of clean representative files so a hook upgrade executes without requiring the repository's historical formatting backlog to be fixed in the same PR.
 - The uv development extra requires pre-commit >=3.2 for the current hook stage names. Do not reintroduce the unused legacy `filelock==3.0.*` pin: it prevents installing the compatible virtualenv/pre-commit versions.
 - `validate-generated-files.yml` validates backend-generated outputs. Go-based API generator versions come from the root or `backend/api/tools` Go modules; a lightweight change detector skips this expensive validation for unrelated Go module updates. API generator toolchain upgrades must include every affected committed output and a root `go mod tidy`. Regenerated clients can also change handwritten integration points; go-swagger v0.36 and later pass request contexts through the operation's `...Context` method instead of a public parameter `Context` field. `frontend.yml` runs `npm run apis:all` and rejects stale frontend clients.
 - Presubmit enforces the bounded [Go version policy](go-version-policy.md): tracked modules, explicitly registered builder `FROM` lines, and the two setup-go actions must agree with the root compiler. A path-filtered job inspects each pinned builder digest and verifies its Linux AMD64 and ARM64 image configurations declare the expected Go version. Upstream tag changes do not invalidate existing pins; Dependabot proposes image updates.
@@ -76,6 +79,76 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 3.4.1 (using its v3 command syntax); `manifests/kustomize/hack/presubmit.sh` already installs the pinned `kustomize` and `yq` versions. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
 - `ci-scripts-tests.yml` runs script and profile-controller unit tests on pushes to master and path-filtered PRs. Its filters include the deployment contract's manifest, API, generation, and developer-workflow inputs, including deleted visualization paths so reintroductions trigger the guard. The profile-controller job runs `run_tests.sh` over HTTP against an ephemeral local server; no Kubernetes cluster is required. The script installs its test dependencies, including PyYAML for checking the DecoratorController attachment update policy.
 
+## Workflow credentials and settings rollout
+
+Every job must have explicit, enumerated token permissions, directly or through
+its workflow default. Ordinary builds and tests use `contents: read`; jobs that
+look up artifacts from other runs or poll jobs/artifacts through the REST API
+also need `actions: read`. Same-run artifact upload/download and cache operations
+do not require `actions: write`.
+Reusable-workflow callers must explicitly allow the permissions their callees
+need: a callee cannot elevate a read-only caller. Do not use `secrets: inherit`
+when the callee only needs the automatically available `GITHUB_TOKEN`.
+
+Keep write scopes on the jobs that use them:
+
+- Image publication retains `packages: write`, `attestations: write`, and
+  `id-token: write`. The separate image dry-run job shares the same build steps
+  but has only `contents: read` and `packages: read` for registry inspection.
+  Manifest promotion needs `packages: write`, not OIDC. Native tools PR builds
+  are read-only; trusted staging and verified-index promotion retain package
+  writes and the architecture comparison gate.
+- Python distribution selection, builds, and validation are read-only. Only
+  the separate non-dry-run PyPI upload job receives `id-token: write`; it consumes
+  validated distributions from the same workflow run, not source code. A
+  checksum manifest verifies the complete wheel/sdist inventory before upload,
+  without checking out code in the OIDC job. Stable per-package artifact names
+  let failed publisher jobs retry without rebuilding or republishing successful
+  packages; a rerun of the build replaces only that package's same-run artifact.
+  Keep checkout-independent setup and source-tag package selection so legacy
+  four-distribution releases continue to work.
+- Metadata workflows retain only their actual label/comment/status and
+  workflow-approval permissions. The analyzer's `actions: write` is intentional:
+  invalid or ignored title edits and rate-limited runs self-cancel to preserve
+  quota behavior. Do not remove this scope without replacing that contract.
+  Runtime-cache pruning and security-report uploads also retain their required
+  write permissions.
+
+Use `persist-credentials: false` on checkouts; explicitly scope any subsequent
+authenticated operation instead of leaving the token in Git configuration.
+Frontend base-ref fetches use the public repository without stored credentials.
+External actions are pinned to full commit SHAs with version comments, including
+actions inside composites. Dependabot continues to propose reviewed updates.
+The workflow permission regression suite guards explicit scopes, intentional
+writes, reusable caller/callee contracts, and credential persistence.
+
+Repository settings are a **separate, post-merge rollout**, not part of deploying
+these YAML changes:
+
+1. Merge and validate the workflow changes on `master`. Before reducing the
+   repository token default, audit and minimally backport explicit image-build
+   and publication caller contracts to every supported release branch,
+   including `release-2.18`. Preserve each branch's legacy image inventory and
+   release architecture policy; do not replace it with the master workflow.
+2. After those changes merge and representative CI and release dry runs pass,
+   change the default token permission to read-only and disable Actions-created
+   or Actions-approved pull requests. The latter does not disable approval of
+   pending workflow runs. Verify metadata jobs and subsequent release runs.
+3. Enable required SHA pinning only after supported release refs and every
+   allowed external action/reusable-workflow dependency are compatible. Review
+   an action allowlist separately; do not block existing third-party reusable
+   workflows or old release tags as a side effect of lowering token defaults.
+
+Do not add `environment: pypi` until the PyPI Trusted Publisher configuration
+accepts that environment's OIDC identity and its GitHub deployment policies
+permit all supported publishing refs. The upload-job split preserves the
+existing workflow identity; environment protection is a coordinated follow-up,
+not an unverified credential change. Never publish images or packages merely to
+test the permissions rollout.
+
+See GitHub's [secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use)
+and [reusable-workflow permission rules](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations).
+
 The Python visualization service is retired. Image builds, CI artifact inventories, and Kustomize overlays exclude it; v2 artifact viewers and the TensorBoard viewer controller remain supported. See [artifact migration and deployment cleanup](../concepts/output-artifact.md#migrating-from-the-python-visualization-server).
 
 ## Python dependency artifacts
@@ -88,6 +161,14 @@ Modern release preparation builds from metadata; older source checkouts retain t
 legacy exports. See [Dependency updates](dependabot.md) for usage.
 
 ## Common CI failures
+
+- Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
+
+- The `sdk-viewer-assets` pre-commit hook rebuilds the SDK bundle on frontend, bundled-asset, or hook/workflow configuration changes; modified outputs fail the check and must be committed. Pre-commit CI installs the pinned Node/npm toolchain and locked dependencies only for these changes or configuration smoke tests. Local contributors must run `npm ci` in `frontend` first, and again after lockfile changes. See [viewer build instructions](../../frontend/src/standalone/README.md#rebuild-the-sdk-assets).
+
+- The standalone viewer's generated `sdk/python/kfp/cli/viewer_assets/viewer.js` and `viewer.css` are excluded only from pre-commit's end-of-file and trailing-whitespace rewriting hooks. Vite owns those bytes, including whitespace in bundled third-party template strings; rebuilding would undo manual whitespace edits. Source files, licenses, and non-rewriting checks remain covered. `.gitattributes` does not control pre-commit hook exclusions.
+
+- SDK client deployment failures collect full pod descriptions and current and previous container logs before Kind cleanup. Keep an explicit failure-status condition on collection and place its output under the uploaded `/tmp/tmp*/*` glob; otherwise setup crashes lose their termination evidence.
 
 - The recurring-run cache integration test must use one concurrent execution and list only its own schedule's runs in ascending creation order. Concurrent cold runs may legitimately both execute; explicit filtering and ordering keep the assertion scoped to the intended warm run. Preserve the cached-state and no-executor-pod assertions.
 
@@ -113,8 +194,8 @@ legacy exports. See [Dependency updates](dependabot.md) for usage.
 - Upgrade preparation explicitly sets `-useLegacyAPIPrefix=true` so current Go clients and readiness checks reach the old server through `/apis/v2beta1`. Verification uses the default `/apis/v2` transport. Port-forward or preparation failure blocks branch deployment and verification; cleanup still runs.
 - Upgrade jobs are explicitly paused in the workflow pending #14029. Once the MLMD-to-native migration and startup gate are implemented, remove both checked-in false conditions and their scoped `.github/actionlint.yaml` exception in a reviewed PR, then regenerate the workflow inventory. Update open PR branches to the enabling base commit before requiring upgrade coverage. Repository variables do not control this pause.
 
-- SDK and pre-commit import formatting use `uv run --frozen --extra lint isort` and the Google profile. The root lint extra and `uv.lock` are the single source of the formatter version; do not add a separate pre-commit pin. Pre-commit requires uv, provisioned in its CI workflow. Hook configuration or workspace dependency changes trigger the representative-file smoke command from `pre-commit.yml`; run both that command and the base-to-head check twice to confirm the formatters agree.
-- Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.
+- Pre-commit requires uv, provisioned in its CI workflow. When hook configuration, `pyproject.toml`, or `uv.lock` changes, run both the base-to-head check and the representative-file smoke command from `pre-commit.yml`; the smoke command includes files outside the PR diff. Run the hook chain twice to confirm docformatter and Ruff agree.
+- Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and corrupts blank-line handling. Dependabot ignores only v1.7.8, and the configuration smoke test includes the updater and SDK structures files. Verify formatter upgrades by running the full hook chain twice on these files.
 - Registry pull failures for Kind, BuildKit, Python, or Alpine images are usually transient; retry before changing code.
 - Presubmit frontend image builds use `build_frontend_image.py` for two eight-minute attempts, each including builder setup. Every attempt gets an isolated builder; failed attempts collect bounded BuildKit diagnostics, stop the client process group, and remove the daemon before an uncached retry. Cleanup failure stops recovery instead of competing with an abandoned build. Cancellation cleans up without retrying. The worst-case attempt and cleanup budgets leave over nine minutes of the thirty-minute job for runner setup and artifact upload. Only a successful nonempty export with completed cleanup becomes the published archive. The helper preserves native AMD64/ARM64 selection, both image tags, and architecture-specific artifacts and identity records. Dockerfile dependency-install completion markers distinguish npm returning from a later builder stall; installation summaries alone do not establish that the RUN layer completed.
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
@@ -147,3 +228,5 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   pinned official release and checked-in AMD64/ARM64 archive checksums. Existing
   installations remain in use. Image-artifact polling fails immediately when
   invoked without `gh`; missing runner dependencies are not publication delays.
+
+- `release-promote-latest.yml` is upstream/master dispatch-only. Its read-only job derives the image matrix from the immutable published release tag commit. The serialized promotion job alone has `packages: write`, rechecks highest stable release eligibility, snapshots every published full index, and copies only `@digest` to `:latest` without builds. It verifies full indexes and unchanged versioned tags and always uploads partial/success evidence. Dispatch through `kfpr promote-latest --version X.Y.Z`; this workflow must first be merged upstream. Test with `PYTHONPATH=release python -m unittest kfpr.promotion_test`.

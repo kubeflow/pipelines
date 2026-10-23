@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+
 from kfp import dsl
 
 # In tests, we install a KFP package from the PR under test. Users should not
@@ -26,6 +27,7 @@ def flip_coin(force_flip_result: str = '') -> str:
     if force_flip_result:
         return force_flip_result
     import random
+
     result = 'heads' if random.randint(0, 1) == 0 else 'tails'
     return result
 

@@ -14,10 +14,9 @@
 
 from pathlib import Path
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
-SHELL_COMMAND = r'''backend_compiler_path="$0"
+SHELL_COMMAND = r"""backend_compiler_path="$0"
 sample_path="$1"
 output_dir="$2"
 export KF_PIPELINES_ENDPOINT="$3"
@@ -34,7 +33,7 @@ uv run --frozen --extra backend-v2-test python3 \
   -m "$sample_path" \
   --pipeline_root "$output_dir" \
   --launcher_v2_image "$launcher_v2_image"
-'''
+"""
 
 
 @dsl.container_component
@@ -67,4 +66,5 @@ def run_sample(
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        run_sample, package_path=str(Path(__file__).with_suffix('.yaml')))
+        run_sample, package_path=str(Path(__file__).with_suffix('.yaml'))
+    )

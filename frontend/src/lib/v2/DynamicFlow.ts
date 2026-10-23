@@ -40,7 +40,7 @@ import {
   NodeTypeNames,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
-import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
 import {
   formatRuntimeIterationLayer,
   isRuntimeIterationLayer,
@@ -216,6 +216,8 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      // Always assign so the warning clears when the message is cleared on recovery.
+      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = getRuntimeTaskState(
@@ -225,6 +227,7 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
       data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
@@ -706,6 +709,19 @@ function getIterationState(
     return PipelineTaskTaskState.SUCCEEDED;
   }
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+}
+
+// The amber warning has to agree with the state the node is drawn in. When the state was
+// reset because the run or a parent scope already finished, the old diagnostic no longer
+// describes an unresolved problem, so the node stays neutral instead of turning amber.
+function getNodeLifecycleMessage(
+  task: V2PipelineTask,
+  displayedState: PipelineTaskTaskState | undefined,
+): string | undefined {
+  if (displayedState !== task.state) {
+    return undefined;
+  }
+  return getTaskLifecycleMessage(task);
 }
 
 function getRuntimeTaskState(

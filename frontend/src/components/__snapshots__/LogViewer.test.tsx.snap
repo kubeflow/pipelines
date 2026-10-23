@@ -343,7 +343,7 @@ exports[`LogViewer > renders an empty container when no logs passed 1`] = `
       class="ReactVirtualized__Grid ReactVirtualized__List root_f17jcl2y"
       id="logViewer"
       role="grid"
-      style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; -webkit-overflow-scrolling: touch; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
+      style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
       tabindex="0"
     />
   </div>

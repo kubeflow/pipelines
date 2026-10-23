@@ -9,7 +9,7 @@ There are no duplicate workspace pip exports for Dependabot to update separately
 
 CI checks lock consistency, installs the frozen workspace, builds SDK distributions,
 and installs the wheel in a clean Python 3.11 pip environment. Optional pip consumers
-can generate dependency-only artifacts with uv 0.10.3:
+can generate dependency-only artifacts with uv 0.13.4:
 
 ```bash
 bash .github/resources/scripts/export_python_requirements.sh /tmp/kfp-python-exports
@@ -31,3 +31,5 @@ coverage providers require the exact runner release. Keep these groups before
 the generic npm group and update the frontend manifest and lock together.
 Security grouping does not guarantee a non-vulnerable peer is updated; verify
 the resolved peer versions and the coverage suite before merging.
+The locked-version guard covers both `frontend` and `frontend/server`; each
+package installs its own runner and coverage provider and must stay aligned.

@@ -16,9 +16,9 @@
 import argparse
 import copy
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import publish_image_index as publication
@@ -36,26 +36,24 @@ def index(arches):
     manifests = []
     for arch in arches:
         number = 1 if arch == 'amd64' else 2
-        manifests.append({
-            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
-            'digest': digest(number),
-            'platform': {
-                'os': 'linux',
-                'architecture': arch
-            },
-        })
-        manifests.append({
-            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
-            'digest': digest(number + 2),
-            'platform': {
-                'os': 'unknown',
-                'architecture': 'unknown'
-            },
-            'annotations': {
-                'vnd.docker.reference.type': 'attestation-manifest',
-                'vnd.docker.reference.digest': digest(number),
-            },
-        })
+        manifests.append(
+            {
+                'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                'digest': digest(number),
+                'platform': {'os': 'linux', 'architecture': arch},
+            }
+        )
+        manifests.append(
+            {
+                'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                'digest': digest(number + 2),
+                'platform': {'os': 'unknown', 'architecture': 'unknown'},
+                'annotations': {
+                    'vnd.docker.reference.type': 'attestation-manifest',
+                    'vnd.docker.reference.digest': digest(number),
+                },
+            }
+        )
     return {
         'schemaVersion': 2,
         'mediaType': 'application/vnd.oci.image.index.v1+json',
@@ -64,7 +62,6 @@ def index(arches):
 
 
 class ParsePlatformsTest(unittest.TestCase):
-
     def test_supported_platform_subsets_and_order(self):
         cases = (
             ('linux/amd64', {'linux/amd64'}),
@@ -78,9 +75,18 @@ class ParsePlatformsTest(unittest.TestCase):
                 self.assertEqual(publication.parse_platforms(value), expected)
 
     def test_empty_malformed_or_unsupported_platforms(self):
-        for value in ('', ' ', ',', ',linux/amd64', 'linux/amd64,',
-                      'linux/amd64,,linux/arm64', 'linux/amd64, linux/arm64',
-                      'linux/arm64/v8', 'windows/amd64', 'linux/386'):
+        for value in (
+            '',
+            ' ',
+            ',',
+            ',linux/amd64',
+            'linux/amd64,',
+            'linux/amd64,,linux/arm64',
+            'linux/amd64, linux/arm64',
+            'linux/arm64/v8',
+            'windows/amd64',
+            'linux/386',
+        ):
             with self.subTest(value=value):
                 with self.assertRaisesRegex(ValueError, 'Expected platforms'):
                     publication.parse_platforms(value)
@@ -94,7 +100,6 @@ class ParsePlatformsTest(unittest.TestCase):
 
 
 class PublicationTest(unittest.TestCase):
-
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -113,10 +118,12 @@ class PublicationTest(unittest.TestCase):
 
     def test_complete_build_inventory(self):
         self.assertEqual(
-            publication.load_sources(self.directory, SHA, PLATFORMS), {
+            publication.load_sources(self.directory, SHA, PLATFORMS),
+            {
                 'linux/amd64': digest(10),
                 'linux/arm64': digest(20),
-            })
+            },
+        )
 
     def test_missing_architecture(self):
         (self.directory / 'arm64.json').unlink()
@@ -140,14 +147,17 @@ class PublicationTest(unittest.TestCase):
 
     def test_exact_platforms_with_attestations(self):
         result = publication.validate_index(
-            index(['amd64', 'arm64']), PLATFORMS)
+            index(['amd64', 'arm64']), PLATFORMS
+        )
         self.assertEqual(
-            result, {
+            result,
+            {
                 ('platform', 'linux/amd64', digest(1)),
                 ('platform', 'linux/arm64', digest(2)),
                 ('attestation', digest(3), digest(1)),
                 ('attestation', digest(4), digest(2)),
-            })
+            },
+        )
 
     def test_inventory_is_independent_of_descriptor_order(self):
         original = index(['amd64', 'arm64'])
@@ -155,7 +165,8 @@ class PublicationTest(unittest.TestCase):
         reordered['manifests'].reverse()
         self.assertEqual(
             publication.validate_index(original, PLATFORMS),
-            publication.validate_index(reordered, PLATFORMS))
+            publication.validate_index(reordered, PLATFORMS),
+        )
 
     def test_single_platform_inventory(self):
         publication.validate_index(index(['amd64']), {'linux/amd64'})
@@ -165,22 +176,26 @@ class PublicationTest(unittest.TestCase):
             publication.validate_index(index(['amd64']), PLATFORMS)
 
     def test_extra_index_platform(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Unexpected or duplicate index'):
+        with self.assertRaisesRegex(
+            ValueError, 'Unexpected or duplicate index'
+        ):
             publication.validate_index(
-                index(['amd64', 'arm64']), {'linux/amd64'})
+                index(['amd64', 'arm64']), {'linux/amd64'}
+            )
 
     def test_unrecognized_unknown_platform(self):
         candidate = index(['amd64', 'arm64'])
         candidate['manifests'][1].pop('annotations')
-        with self.assertRaisesRegex(ValueError,
-                                    'without a BuildKit attestation'):
+        with self.assertRaisesRegex(
+            ValueError, 'without a BuildKit attestation'
+        ):
             publication.validate_index(candidate, PLATFORMS)
 
     def test_orphan_attestation(self):
         candidate = index(['amd64', 'arm64'])
         candidate['manifests'][1]['annotations'][
-            'vnd.docker.reference.digest'] = digest(99)
+            'vnd.docker.reference.digest'
+        ] = digest(99)
         with self.assertRaisesRegex(ValueError, 'does not reference'):
             publication.validate_index(candidate, PLATFORMS)
 
@@ -206,14 +221,19 @@ class PublicationTest(unittest.TestCase):
                 if '--metadata-file' in args:
                     metadata = Path(args[args.index('--metadata-file') + 1])
                     metadata.write_text(
-                        json.dumps({
-                            'containerimage.descriptor': {
-                                'digest':
-                                    digest(99 if corrupt == 'promotion' and
-                                           metadata.name == 'promotion.json'
-                                           else 30)
-                            },
-                        }))
+                        json.dumps(
+                            {
+                                'containerimage.descriptor': {
+                                    'digest': digest(
+                                        99
+                                        if corrupt == 'promotion'
+                                        and metadata.name == 'promotion.json'
+                                        else 30
+                                    )
+                                },
+                            }
+                        )
+                    )
                 return ''
             reference = args[-1]
             if reference.endswith(digest(10)):
@@ -228,15 +248,21 @@ class PublicationTest(unittest.TestCase):
                 if corrupt == 'substitution':
                     result['manifests'][0]['digest'] = digest(99)
                     result['manifests'][1]['annotations'][
-                        'vnd.docker.reference.digest'] = digest(99)
+                        'vnd.docker.reference.digest'
+                    ] = digest(99)
                 if corrupt == 'platform-swap':
-                    first, second = result['manifests'][0], result['manifests'][
-                        2]
-                    first['platform'], second['platform'] = (second['platform'],
-                                                             first['platform'])
+                    first, second = (
+                        result['manifests'][0],
+                        result['manifests'][2],
+                    )
+                    first['platform'], second['platform'] = (
+                        second['platform'],
+                        first['platform'],
+                    )
                 if corrupt == 'attestation-retarget':
                     result['manifests'][1]['annotations'][
-                        'vnd.docker.reference.digest'] = digest(2)
+                        'vnd.docker.reference.digest'
+                    ] = digest(2)
                 if corrupt == 'tag' and ':run-' in reference:
                     result['digest'] = digest(99)
             return json.dumps(result)
@@ -249,14 +275,16 @@ class PublicationTest(unittest.TestCase):
             run_tag='run-123-1',
             target_tag='master',
             set_latest=set_latest,
-            output=self.directory / 'output' / 'kfp-driver.json')
+            output=self.directory / 'output' / 'kfp-driver.json',
+        )
         with mock.patch.object(publication, 'imagetools', side_effect=registry):
             if corrupt:
                 with self.assertRaises(ValueError):
                     publication.publish(args)
                 self.assertEqual(
                     len([call for call in calls if call[0] == 'create']),
-                    2 if corrupt == 'promotion' else 1)
+                    2 if corrupt == 'promotion' else 1,
+                )
                 self.assertFalse(args.output.exists())
             else:
                 publication.publish(args)
@@ -264,21 +292,31 @@ class PublicationTest(unittest.TestCase):
 
     def test_verified_digest_promoted_and_exported(self):
         calls, output = self.publish()
-        self.assertEqual(calls[-1][3:],
-                         ('-t', f'{IMAGE}:master', '-t', f'{IMAGE}:latest',
-                          f'{IMAGE}@{digest(30)}'))
         self.assertEqual(
-            json.loads(output.read_text()), {
+            calls[-1][3:],
+            (
+                '-t',
+                f'{IMAGE}:master',
+                '-t',
+                f'{IMAGE}:latest',
+                f'{IMAGE}@{digest(30)}',
+            ),
+        )
+        self.assertEqual(
+            json.loads(output.read_text()),
+            {
                 'image': IMAGE,
                 'source_sha': SHA,
                 'reference': f'{IMAGE}@{digest(30)}',
                 'platforms': sorted(PLATFORMS),
-            })
+            },
+        )
 
     def test_latest_remains_optional(self):
         calls, _ = self.publish(set_latest='false')
-        self.assertEqual(calls[-1][3:],
-                         ('-t', f'{IMAGE}:master', f'{IMAGE}@{digest(30)}'))
+        self.assertEqual(
+            calls[-1][3:], ('-t', f'{IMAGE}:master', f'{IMAGE}@{digest(30)}')
+        )
 
     def test_substituted_manifest_not_promoted(self):
         self.publish(corrupt='substitution')

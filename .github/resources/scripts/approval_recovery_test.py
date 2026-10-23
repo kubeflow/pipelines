@@ -15,14 +15,16 @@
 """Exercise the scheduled approval workflow against mocked GitHub responses."""
 
 import json
-from pathlib import Path
 import subprocess
 import textwrap
 import unittest
+from pathlib import Path
 
 WORKFLOW = (
-    Path(__file__).resolve().parents[2] / 'workflows' /
-    'gh-workflow-approve.yml')
+    Path(__file__).resolve().parents[2]
+    / 'workflows'
+    / 'gh-workflow-approve.yml'
+)
 
 
 def recovery_script():
@@ -98,37 +100,39 @@ const core = {info: () => {}};
 })().catch(error => { console.error(error); process.exit(1); });
 """
     result = subprocess.run(
-        ['node', '-e', harness,
-         recovery_script(),
-         json.dumps(options or {})],
+        ['node', '-e', harness, recovery_script(), json.dumps(options or {})],
         check=True,
         capture_output=True,
-        text=True)
+        text=True,
+    )
     return json.loads(result.stdout)
 
 
 class ApprovalRecoveryTest(unittest.TestCase):
-
     def test_schedule_is_distinct_from_pull_request_job(self):
         workflow = WORKFLOW.read_text(encoding='utf-8')
         self.assertIn("- cron: '2,17,32,47 * * * *'", workflow)
         self.assertIn("github.event_name == 'pull_request_target' &&", workflow)
         self.assertIn(
             "  scheduled-recovery:\n    if: github.event_name == 'schedule'",
-            workflow)
+            workflow,
+        )
 
     def test_eligible_unique_head_approves_pending_run(self):
         result = exercise()
         self.assertEqual(result['calls'].count(['approve', 42]), 1)
-        self.assertIn(['list-runs', 'pull_request', 'action_required', 'head'],
-                      result['calls'])
+        self.assertIn(
+            ['list-runs', 'pull_request', 'action_required', 'head'],
+            result['calls'],
+        )
         self.assertIsNone(result.get('error'))
 
     def test_ambiguous_head_skips_even_if_other_pr_is_unadmitted(self):
         result = exercise({'ambiguous': True})
         self.assertFalse(any(call[0] == 'approve' for call in result['calls']))
         self.assertFalse(
-            any(call[0] == 'list-runs' for call in result['calls']))
+            any(call[0] == 'list-runs' for call in result['calls'])
+        )
 
     def test_new_ambiguity_before_approval_skips(self):
         result = exercise({'lateAmbiguity': True})
@@ -143,21 +147,24 @@ class ApprovalRecoveryTest(unittest.TestCase):
             with self.subTest(options=options):
                 result = exercise(options)
                 self.assertFalse(
-                    any(call[0] == 'approve' for call in result['calls']))
+                    any(call[0] == 'approve' for call in result['calls'])
+                )
 
     def test_unadmitted_pr_skips(self):
         for options in ({'noLabel': True}, {'needsLabel': True}):
             with self.subTest(options=options):
                 result = exercise(options)
                 self.assertFalse(
-                    any(call[0] == 'list-runs' for call in result['calls']))
+                    any(call[0] == 'list-runs' for call in result['calls'])
+                )
 
     def test_run_identity_and_explicit_association_must_match(self):
         for options in ({'wrongRepo': True}, {'wrongAssociation': True}):
             with self.subTest(options=options):
                 result = exercise(options)
                 self.assertFalse(
-                    any(call[0] == 'approve' for call in result['calls']))
+                    any(call[0] == 'approve' for call in result['calls'])
+                )
 
     def test_approval_error_remains_visible_if_run_is_pending(self):
         result = exercise({'apiFailure': True})

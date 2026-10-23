@@ -13,15 +13,14 @@
 # limitations under the License.
 """ParallelFor pipelines that propagate pipeline parameters through sub-DAGs.
 
-These pipelines verify that pipeline-level parameters are correctly surfaced
-through ParallelFor sub-DAG boundaries and accessible to components inside
-the loop, alongside the loop item variable.
+These pipelines verify that pipeline-level parameters are correctly
+surfaced through ParallelFor sub-DAG boundaries and accessible to
+components inside the loop, alongside the loop item variable.
 """
 
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -59,5 +58,5 @@ def my_pipeline(prefix: str, loop_parameter: List[str]):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

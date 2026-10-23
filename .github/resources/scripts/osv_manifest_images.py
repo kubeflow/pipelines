@@ -16,8 +16,8 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import yaml
 
@@ -30,7 +30,8 @@ def extract_images(rendered_manifest: str) -> set[str]:
         if isinstance(node, dict):
             for key, value in node.items():
                 if key in ('initContainers', 'containers') and isinstance(
-                        value, list):
+                    value, list
+                ):
                     for container in value:
                         if isinstance(container, dict):
                             image = container.get('image')
@@ -69,16 +70,20 @@ def render_overlay(kustomize: Path, overlay: Path) -> str:
 def create_matrix(images: set[str]) -> dict[str, list[dict[str, str]]]:
     """Creates a stable GitHub Actions matrix for the discovered images."""
     return {
-        'include': [{
-            'image': image,
-            'category': hashlib.sha256(image.encode()).hexdigest()[:16],
-        } for image in sorted(images)]
+        'include': [
+            {
+                'image': image,
+                'category': hashlib.sha256(image.encode()).hexdigest()[:16],
+            }
+            for image in sorted(images)
+        ]
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Render KFP Kustomize overlays and emit an image matrix.')
+        description='Render KFP Kustomize overlays and emit an image matrix.'
+    )
     parser.add_argument('--kustomize', required=True, type=Path)
     parser.add_argument('--overlay', action='append', required=True, type=Path)
     return parser.parse_args()
@@ -92,7 +97,8 @@ def main() -> None:
 
     if not images:
         raise RuntimeError(
-            'No container images found in rendered KFP manifests')
+            'No container images found in rendered KFP manifests'
+        )
 
     print(json.dumps(create_matrix(images), separators=(',', ':')))
 

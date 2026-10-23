@@ -2386,16 +2386,14 @@ describe('minio-helper', () => {
 
     it('yields a single page of objects with name and size', async () => {
       const client = {
-        listObjectsV2Query: vi.fn(
-          async (): Promise<Page> => ({
-            objects: [
-              { name: 'a.txt', size: 10 },
-              { name: 'b.txt', size: 20 },
-            ],
-            isTruncated: false,
-            nextContinuationToken: '',
-          }),
-        ),
+        listObjectsV2Query: vi.fn(async (): Promise<Page> => ({
+          objects: [
+            { name: 'a.txt', size: 10 },
+            { name: 'b.txt', size: 20 },
+          ],
+          isTruncated: false,
+          nextContinuationToken: '',
+        })),
       } as unknown as MinioClient;
 
       const results = await collect(listObjectsUnderPrefix(client, 'bucket', 'p/'));
@@ -2446,13 +2444,11 @@ describe('minio-helper', () => {
 
     it('defaults missing size to 0 and skips entries without a name', async () => {
       const client = {
-        listObjectsV2Query: vi.fn(
-          async (): Promise<Page> => ({
-            objects: [{ name: 'has-size', size: 42 }, { name: 'no-size' }, { size: 99 }],
-            isTruncated: false,
-            nextContinuationToken: '',
-          }),
-        ),
+        listObjectsV2Query: vi.fn(async (): Promise<Page> => ({
+          objects: [{ name: 'has-size', size: 42 }, { name: 'no-size' }, { size: 99 }],
+          isTruncated: false,
+          nextContinuationToken: '',
+        })),
       } as unknown as MinioClient;
 
       const results = await collect(listObjectsUnderPrefix(client, 'bucket', 'p/'));

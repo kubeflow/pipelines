@@ -15,8 +15,8 @@
 from typing import List, Union
 
 from google.protobuf import json_format
-from kfp.dsl import pipeline_channel
-from kfp.dsl import PipelineTask
+
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
@@ -40,7 +40,8 @@ class ResourceClaimConfig(dict):
                 'Argument for resource_claim_template_name must be a non-empty string.'
             )
         super().__init__(
-            resourceClaimTemplateName=resource_claim_template_name,)
+            resourceClaimTemplateName=resource_claim_template_name,
+        )
 
     @property
     def resource_claim_template_name(self) -> str:
@@ -78,7 +79,9 @@ def add_resource_claim(
     msg = common.get_existing_kubernetes_config_as_message(task)
     msg.pod_resource_claims.append(
         pb.PodResourceClaim(
-            resource_claim_template_name=resource_claim_template_name,))
+            resource_claim_template_name=resource_claim_template_name,
+        )
+    )
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task
@@ -86,9 +89,11 @@ def add_resource_claim(
 
 def add_resource_claim_json(
     task: PipelineTask,
-    resource_claim_json: Union[pipeline_channel.PipelineParameterChannel,
-                               'ResourceClaimConfig',
-                               List['ResourceClaimConfig']],
+    resource_claim_json: Union[
+        pipeline_channel.PipelineParameterChannel,
+        'ResourceClaimConfig',
+        List['ResourceClaimConfig'],
+    ],
 ) -> PipelineTask:
     """Add a DRA resource claim in JSON form to a task.
 
@@ -106,12 +111,14 @@ def add_resource_claim_json(
     Returns:
         Task object with added resource claim.
     """
-    if isinstance(resource_claim_json,
-                  pipeline_channel.PipelineParameterChannel):
+    if isinstance(
+        resource_claim_json, pipeline_channel.PipelineParameterChannel
+    ):
         msg = common.get_existing_kubernetes_config_as_message(task)
         claim = pb.PodResourceClaim()
         claim.resource_claim_json.CopyFrom(
-            common.parse_k8s_parameter_input(resource_claim_json, task))
+            common.parse_k8s_parameter_input(resource_claim_json, task)
+        )
         msg.pod_resource_claims.append(claim)
         task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
     elif isinstance(resource_claim_json, list):
@@ -119,12 +126,14 @@ def add_resource_claim_json(
             if not isinstance(config, ResourceClaimConfig):
                 raise ValueError(
                     'Each element in resource_claim_json list must be a '
-                    'ResourceClaimConfig instance.')
+                    'ResourceClaimConfig instance.'
+                )
         msg = common.get_existing_kubernetes_config_as_message(task)
         for config in resource_claim_json:
             claim = pb.PodResourceClaim()
             claim.resource_claim_json.CopyFrom(
-                common.parse_k8s_parameter_input(config.to_dict(), task))
+                common.parse_k8s_parameter_input(config.to_dict(), task)
+            )
             msg.pod_resource_claims.append(claim)
         task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
     elif isinstance(resource_claim_json, ResourceClaimConfig):
@@ -132,7 +141,8 @@ def add_resource_claim_json(
     else:
         raise ValueError(
             'resource_claim_json must be a PipelineParameterChannel, '
-            'ResourceClaimConfig, or list of ResourceClaimConfig.')
+            'ResourceClaimConfig, or list of ResourceClaimConfig.'
+        )
 
     return task
 
@@ -141,6 +151,7 @@ def _add_resource_claim_config(task: PipelineTask, config: ResourceClaimConfig):
     msg = common.get_existing_kubernetes_config_as_message(task)
     claim = pb.PodResourceClaim()
     claim.resource_claim_json.CopyFrom(
-        common.parse_k8s_parameter_input(config.to_dict(), task))
+        common.parse_k8s_parameter_input(config.to_dict(), task)
+    )
     msg.pod_resource_claims.append(claim)
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)

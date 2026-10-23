@@ -34,6 +34,9 @@ concurrency:
   group: runtime-base-images-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+permissions:
+  contents: read
+
 jobs:
   produce-runtime-base-images:
     runs-on: ubuntu-latest
@@ -48,7 +51,9 @@ jobs:
       RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Configure Docker Hub mirror
         shell: bash
@@ -74,7 +79,7 @@ jobs:
 
       - name: Restore runtime base images from cache
         id: cache-runtime-base-images
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
@@ -91,7 +96,7 @@ jobs:
           github.event_name != 'pull_request' &&
           github.ref == 'refs/heads/master' &&
           steps.cache-runtime-base-images.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
@@ -99,7 +104,7 @@ jobs:
           key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
 
       - name: Upload runtime base image producer artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           path: ${{ env.ARTIFACTS_PATH }}
@@ -116,7 +121,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Prune superseded runtime base image caches
         shell: bash
