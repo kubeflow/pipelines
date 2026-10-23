@@ -895,11 +895,15 @@ func Test_uploadArtifactPreviewSibling(t *testing.T) {
 	tests := []struct {
 		name              string
 		descriptor        map[string]interface{}
+		localDirSuffix    string
+		blobKeySuffix     string
 		previewSize       int
 		wantUploaded      bool
 		wantDescriptorSet bool
 	}{
 		{name: "uploads the preview beside the artifact", descriptor: sibling, previewSize: 13, wantUploaded: true, wantDescriptorSet: true},
+		{name: "normalizes trailing slashes on the local path and object key", descriptor: sibling, localDirSuffix: "/", blobKeySuffix: "/", previewSize: 13, wantUploaded: true, wantDescriptorSet: true},
+		{name: "normalizes a trailing slash on only the object key", descriptor: sibling, blobKeySuffix: "/", previewSize: 13, wantUploaded: true, wantDescriptorSet: true},
 		{name: "drops the descriptor when the preview file is missing", descriptor: sibling, previewSize: -1},
 		{name: "drops the descriptor when the preview is too large", descriptor: sibling, previewSize: 64*1024 + 1},
 		{name: "leaves in-directory v1 previews to the artifact upload", descriptor: map[string]interface{}{"version": 1, "path": "_kfp_preview.json"}, previewSize: 13, wantDescriptorSet: true},
@@ -918,7 +922,7 @@ func Test_uploadArtifactPreviewSibling(t *testing.T) {
 			metadata, err := structpb.NewStruct(map[string]interface{}{"_kfp_preview": test.descriptor, "rows": 3})
 			require.NoError(t, err)
 
-			uploadArtifactPreviewSibling(ctx, bucket, "dataset", localDir, "pipeline-root/dataset", metadata)
+			uploadArtifactPreviewSibling(ctx, bucket, "dataset", localDir+test.localDirSuffix, "pipeline-root/dataset"+test.blobKeySuffix, metadata)
 
 			uploaded, err := bucket.Exists(ctx, "pipeline-root/dataset.kfp-preview.json")
 			require.NoError(t, err)
