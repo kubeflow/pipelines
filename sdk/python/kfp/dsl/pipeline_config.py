@@ -66,8 +66,8 @@ class WorkspaceConfig:
         """The size of the workspace (e.g., ``'250Gi'``). This is a required
         field.
 
-        See the `Kubernetes quantity documentation
-        <https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/>`_
+        See the
+        `Kubernetes quantity documentation <https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/>`_
         for valid quantity formats.
         """
         return self._size
