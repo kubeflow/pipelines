@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { range } from 'lodash';
 import ResourceSelector, { BaseResource, ResourceSelectorProps } from './ResourceSelector';
 import TestUtils from '../TestUtils';
@@ -115,6 +115,42 @@ describe('ResourceSelector', () => {
     vi.restoreAllMocks();
   });
 
+  it('clears the pending selection and replaces resources after a pagination restart', async () => {
+    listResourceSpy.mockResolvedValue({ resources: RESOURCES, nextPageToken: 'old-token' });
+    const selectionCleared = vi.fn();
+    await renderResourceSelector({ selectionCleared });
+    fireEvent.click(getRowById('some-id-1'));
+    expect(getResourceSelectorState()?.selectedIds).toEqual(['some-id-1']);
+    const selectionIsCurrent = selectionChangedCbSpy.mock.calls.at(-1)![1];
+    expect(selectionIsCurrent()).toBe(true);
+    listResourceSpy.mockClear().mockImplementation(async (token: string) => {
+      if (token)
+        throw new Response(
+          JSON.stringify({
+            code: 9,
+            details: [
+              {
+                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                domain: 'kubeflow.org',
+                reason: 'PAGINATION_RESTART_REQUIRED',
+              },
+            ],
+          }),
+          { status: 400 },
+        );
+      return { resources: [RESOURCES[1]], nextPageToken: '' };
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('next-page-btn'));
+    });
+    await waitFor(() => expect(selectionCleared).toHaveBeenCalledOnce());
+    expect(listResourceSpy).toHaveBeenCalledTimes(2);
+    expect(selectionIsCurrent()).toBe(false);
+    expect(getResourceSelectorState()?.selectedIds).toEqual([]);
+    expect(getResourceSelectorState()?.resources).toEqual([RESOURCES[1]]);
+    expect(updateDialogSpy).not.toHaveBeenCalled();
+  });
+
   it('displays resource selector', async () => {
     await renderResourceSelector();
     expect(listResourceSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
@@ -172,7 +208,10 @@ describe('ResourceSelector', () => {
     row.click();
 
     await waitFor(() => {
-      expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1].id!);
+      expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(
+        RESOURCES[1].id!,
+        expect.any(Function),
+      );
       expect(getResourceSelectorState()).toHaveProperty('selectedIds', [RESOURCES[1].id]);
     });
   });
