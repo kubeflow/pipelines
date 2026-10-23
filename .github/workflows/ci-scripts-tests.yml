@@ -11,6 +11,7 @@ on:
     paths:
       - '.github/dependabot.yml'
       - '**/go.mod'
+      - 'backend/api/hack/uv.sh'
       - '**/package.json'
       - '**/requirements*.txt'
       - '**/setup.py'

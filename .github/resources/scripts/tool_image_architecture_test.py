@@ -78,11 +78,6 @@ class ToolImageArchitectureTest(unittest.TestCase):
                 ),
                 (
                     RELEASE_DOCKERFILE,
-                    'yq_linux_',
-                    f'mikefarah/yq/releases/download/3.4.1/yq_linux_{arch}',
-                ),
-                (
-                    RELEASE_DOCKERFILE,
                     'git_cliff_arch=',
                     'orhun/git-cliff/releases/download/v2.10.0/'
                     f'git-cliff-2.10.0-{cliff_arch}-unknown-linux-gnu.tar.gz',

@@ -26,6 +26,7 @@ ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
 # Dependabot can update them without adding build-only dependencies to KFP.
 COPY go.mod /tmp/kfp-module/go.mod
 COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
+COPY backend/api/tools/go.sum /tmp/api-generator-tools/go.sum
 
 # Install protoc and Java (needed for KFP server API package generation).
 RUN apt-get update -y && apt-get install -y jq sed unzip default-jdk
@@ -47,13 +48,20 @@ ENV PROTOCINCLUDE=/usr/include/google/protobuf
 
 # Install the Go-based generators at their manifest-selected versions. Keep the
 # grpc-gateway options alongside the plugins because protoc imports them.
+# Build gateway plugins in a module so the root grpc/text security patches apply;
+# go install package@version would silently use upstream's older dependencies.
 RUN set -eu; \
     module_version() { cd "$1" && go mod edit -json | jq -er --arg module "$2" '.Require[] | select(.Path == $module) | .Version'; }; \
     grpc_gateway_version="$(module_version /tmp/kfp-module github.com/grpc-ecosystem/grpc-gateway/v2)"; \
     protobuf_go_version="$(module_version /tmp/kfp-module google.golang.org/protobuf)"; \
     protoc_gen_go_grpc_version="$(module_version /tmp/kfp-module google.golang.org/grpc/cmd/protoc-gen-go-grpc)"; \
-    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@"${grpc_gateway_version}"; \
-    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@"${grpc_gateway_version}"; \
+    grpc_version="$(module_version /tmp/kfp-module google.golang.org/grpc)"; \
+    text_version="$(module_version /tmp/kfp-module golang.org/x/text)"; \
+    mkdir /tmp/grpc-gateway-build; \
+    cd /tmp/grpc-gateway-build; \
+    go mod init kfp-grpc-gateway-build; \
+    go get "github.com/grpc-ecosystem/grpc-gateway/v2@${grpc_gateway_version}" "google.golang.org/grpc@${grpc_version}" "golang.org/x/text@${text_version}"; \
+    go install -mod=mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2; \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@"${protobuf_go_version}"; \
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@"${protoc_gen_go_grpc_version}"; \
     mkdir -p /protoc-gen-openapiv2; \
@@ -71,9 +79,12 @@ RUN set -eu; \
     curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_${TARGETARCH}"; \
     chmod +x /usr/bin/swagger
 
-# Needed for buildling python packages requiring protoc
-RUN apt-get update && apt-get install -y python3-pip
-RUN python3 -m pip install --no-cache-dir --break-system-packages --upgrade --ignore-installed pip setuptools wheel
+# Use uv for Python builds: pip bundles dependencies independently of upgrades
+# to the installed setuptools and HTTP libraries.
+COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /usr/local/bin/uv
+RUN apt-get update && apt-get install -y --no-install-recommends python3 && \
+    rm -rf /var/lib/apt/lists/*
+RUN uv pip install --system --break-system-packages --no-cache setuptools==84.2.1 wheel==0.48.0
 
 # WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
 ENV XDG_CACHE_HOME=/tmp/.cache

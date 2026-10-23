@@ -43,6 +43,7 @@ CALLERS = {
     ('.github/workflows/release-qualification.yml', 'aggregate'),
     ('.github/workflows/release-branch-image-scanning.yml', 'aggregate'),
     ('.github/workflows/release-branch-image-scanning.yml', 'upload'),
+    ('.github/workflows/osv-scanner.yml', 'discover-images'),
 }
 
 
@@ -293,6 +294,12 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 for extension in ('tar', 'json')
             },
         )
+
+    def test_osv_discovery_requires_complete_published_records(self):
+        actual = self.required_files(
+            '.github/workflows/osv-scanner.yml', 'discover-images'
+        )
+        self.assertEqual(actual, {f'{name}.json' for name in IMAGES})
 
     def test_published_record_manifests_follow_each_publication_matrix(self):
         for name, job in (

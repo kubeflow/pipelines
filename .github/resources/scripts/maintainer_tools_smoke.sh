@@ -77,7 +77,9 @@ main() {
   output=$(cd "$2" && pwd)
   source_dir=$(mktemp -d "${TMPDIR:-/tmp}/kfp-maintainer-smoke.XXXXXX")
   # This directory is exclusively owned by this run; never modify the checkout.
-  trap 'rm -rf -- "$source_dir"' EXIT
+  local cleanup_command
+  printf -v cleanup_command 'rm -rf -- %q' "$source_dir"
+  trap "$cleanup_command" EXIT
   git -C "$root" archive HEAD | tar -x -C "$source_dir"
 
   for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
@@ -99,7 +101,7 @@ backend/api/build_kfp_server_api_python_package.sh
 test -s backend/api/v2/go_client/run.pb.go
 test -s backend/api/v2/swagger/kfp_api_single_file.swagger.json
 test -s sdk/python/kfp/server_api/api_client.py
-python3 -m pip wheel --no-deps ./sdk/python --wheel-dir /tmp/kfp-smoke-dist
+uv build --wheel ./sdk/python --out-dir /tmp/kfp-smoke-dist
 compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl' >/dev/null
 CONTAINER
     snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}" \
@@ -115,11 +117,16 @@ CONTAINER
 set -euo pipefail
 mkdir -p "$HOME"
 test "$(node --version)" = "v$(tr -d 'v\r\n' < frontend/.nvmrc)"
-npm --version
-yq --version | grep -F '3.4.1'
+test "$(npm --version)" = "$NPM_VERSION"
+mkdir -p /tmp/kfp-npm-smoke
+printf '%s\n' '{"name":"kfp-tooling-smoke","version":"1.0.0"}' > /tmp/kfp-npm-smoke/package.json
+npm pack /tmp/kfp-npm-smoke --pack-destination /tmp
+test -s /tmp/kfp-tooling-smoke-1.0.0.tgz
+yq --version | grep -F 'v4.54.1'
 test "$(git-cliff --version)" = "git-cliff ${GIT_CLIFF_VERSION}"
+python3 manifests/kustomize/hack/yq_release_test.py
 manifests/kustomize/hack/release.sh 3.0.0-smoke
-test "$(yq r manifests/kustomize/base/installs/generic/pipeline-install-config.yaml data.appVersion)" = 3.0.0-smoke
+test "$(yq eval '.data.appVersion' manifests/kustomize/base/installs/generic/pipeline-install-config.yaml)" = 3.0.0-smoke
 # Synthetic history exercises the project's real changelog configuration without
 # needing credentials, tags, or a writable clone of the contributor's repository.
 git init -q
