@@ -315,8 +315,11 @@ On the [KFP open source][oss-be] UI, `ClassificationMetrics`, `SlicedClassificat
 
 ### Dataset and Model previews
 
-By default, supported Python components include a small, versioned
-`_kfp_preview.json` **file** in Dataset and Model output directories. Pipeline and
+By default, supported Python components store a small, versioned preview
+**object** beside each Dataset and Model output directory, at
+`<artifact-uri>.kfp-preview.json`. It is never placed inside the directory, so
+directory readers such as `pq.read_table(dataset.path)` and
+`pl.read_parquet(dataset.path)` see only the producer's files. Pipeline and
 component authors can disable generation as described below. Select that same artifact
 in the run graph and open **Visualization** to view it. On the artifact's own
 details page, select **Show artifact visualization** in Overview.
@@ -336,9 +339,9 @@ into a directory: its consumers must know which data/model file to read.
 #### Automatic previews: pipeline and component controls
 
 Automatic generation is **enabled by default**. With a supporting component SDK,
-keep writing the native data/model files normally: the SDK generates
-`_kfp_preview.json` and its metadata
-descriptor inside that component. No adapter call or hand-written JSON is
+keep writing the native data/model files normally: the SDK generates the
+preview file and its metadata descriptor inside that component, and the
+launcher uploads the file beside the artifact. No adapter call or hand-written JSON is
 required, and no deployment configuration or explicit opt-in is needed.
 
 ```python
@@ -390,11 +393,10 @@ recompile the pipeline and submit the new definition; runs of earlier
 definitions keep their compiled settings. There is no deployment, launcher, or
 environment variable switch.
 
-The sidecar's leading underscore makes PyArrow and pandas directory reads, such
-as `pq.read_table(dataset.path)`, ignore it. Polars directory reads, such as
-`pl.read_parquet(dataset.path)`, reject any non-Parquet file in the directory.
-Have Polars consumers read the data file or a `*.parquet` glob, or disable
-previews for the producing component.
+Sibling previews require a launcher that uploads them. If a supporting SDK runs
+under an older launcher, the preview file is not uploaded and the UI reports it
+as missing; the artifact itself is unaffected. If the preview upload fails, the
+launcher logs a warning, removes the descriptor, and the task still succeeds.
 
 These settings affect generated previews, not native output files. They do not
 remove or hide previously generated, cached, imported, or manually written
@@ -499,7 +501,7 @@ which the SDK currently rejects.
 Other producers, container components, and imported artifacts can implement the
 same file contract themselves. This is not needed for the automatic adapters.
 Write the data/model files and a UTF-8 JSON preview under the artifact directory,
-then advertise it in the artifact's metadata:
+then advertise it in the artifact's metadata with the version 1 descriptor:
 
 ```python
 artifact.metadata['_kfp_preview'] = {
@@ -514,6 +516,17 @@ or metadata artifact. The normal launcher upload copies the directory's files.
 Manually produced and imported directory artifacts can use the same contract.
 Keep published bundles immutable so the snapshot stays associated with the
 same data/model version.
+
+The leading underscore makes PyArrow and pandas directory reads ignore this
+file, but Polars directory reads such as `pl.read_parquet(dataset.path)` reject
+any non-Parquet file in the directory. Have Polars consumers read the data file
+or a `*.parquet` glob. The automatic SDK previews avoid this by using sibling
+storage.
+
+The UI also accepts the version 2 descriptor
+`{'version': 2, 'storage': 'sibling'}`, which manual producers should not need:
+the preview is the object at `<artifact-uri>.kfp-preview.json`. The SDK writes
+`<artifact-path>.kfp-preview.json` locally and the launcher uploads it.
 
 Before setting the metadata, serialize with `json.dumps(..., allow_nan=False)`,
 verify the encoded content fits **64 KiB**, and atomically rename a temporary
@@ -664,7 +677,7 @@ Preview responses use `Cache-Control: no-store`; ordinary metadata/list
 responses contain only the descriptor, not row samples.
 
 The existing UI service resolves the stored parent artifact, applies its viewer
-and namespace ownership policies, and reads only the fixed child file with a
+and namespace ownership policies, and reads only the fixed preview object with a
 byte limit and cancellation. Existing namespace artifact proxies must also
 support this endpoint; upgrade their existing images with the UI rather than
 adding containers or bypassing isolation. Strict artifact-only ownership mode

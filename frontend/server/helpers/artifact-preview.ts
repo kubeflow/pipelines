@@ -15,7 +15,13 @@
 import type { Readable } from 'stream';
 
 export const MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024;
-export const ARTIFACT_PREVIEW_FILE_NAME = '_kfp_preview.json';
+/** Preview stored inside the artifact directory (v1, manual producers). */
+export const IN_DIRECTORY_PREVIEW_SUFFIX = '/_kfp_preview.json';
+/** Preview stored beside the artifact directory (v2 sibling, SDK default). */
+export const SIBLING_PREVIEW_SUFFIX = '.kfp-preview.json';
+export type ArtifactPreviewStorage = 'directory' | 'sibling';
+export const MISSING_PREVIEW_MESSAGE =
+  'The preview file is missing. Regenerate the artifact with its preview.';
 const PREVIEW_SOURCES = new Set(['gcs', 'minio', 's3']);
 const MAX_OBJECT_KEY_LENGTH = 1024;
 
@@ -30,12 +36,36 @@ export class ArtifactPreviewError extends Error {
 }
 
 /**
- * Returns the fixed preview object beneath an authorized parent artifact directory.
+ * Parses the preview storage requested by the UI from the artifact's `_kfp_preview` descriptor.
+ * Requests without a storage value keep the original in-directory v1 location.
+ */
+export function parsePreviewStorage(value: unknown): ArtifactPreviewStorage {
+  if (value === undefined || value === 'directory') {
+    return 'directory';
+  }
+  if (value === 'sibling') {
+    return 'sibling';
+  }
+  throw new ArtifactPreviewError(400, 'Preview storage must be "directory" or "sibling".');
+}
+
+/** Returns the filename sent with a preview response for the given storage. */
+export function getPreviewFileName(storage: ArtifactPreviewStorage): string {
+  return storage === 'sibling' ? 'kfp-preview.json' : '_kfp_preview.json';
+}
+
+/**
+ * Returns the fixed preview object derived from an authorized parent artifact directory: either
+ * `<parent>/_kfp_preview.json` (v1) or the sibling `<parent>.kfp-preview.json` (v2).
  *
- * The parent key, not the derived child, is the authorization identity: _kfp_preview.json has no
+ * The parent key, not the derived object, is the authorization identity: the preview has no
  * metadata record of its own, so it is only readable through its registered parent.
  */
-export function getPreviewObjectKey(source: string, parentKey: string): string {
+export function getPreviewObjectKey(
+  source: string,
+  parentKey: string,
+  storage: ArtifactPreviewStorage = 'directory',
+): string {
   if (!PREVIEW_SOURCES.has(source)) {
     throw new ArtifactPreviewError(
       422,
@@ -43,19 +73,20 @@ export function getPreviewObjectKey(source: string, parentKey: string): string {
     );
   }
   const key = parentKey.replace(/\/$/, '');
+  const suffix = storage === 'sibling' ? SIBLING_PREVIEW_SUFFIX : IN_DIRECTORY_PREVIEW_SUFFIX;
   const segments = key.split('/');
   if (
     !key ||
     key.includes('*') ||
     segments.some((segment) => !segment || segment === '.' || segment === '..') ||
-    key.length + ARTIFACT_PREVIEW_FILE_NAME.length + 1 > MAX_OBJECT_KEY_LENGTH
+    key.length + suffix.length > MAX_OBJECT_KEY_LENGTH
   ) {
     throw new ArtifactPreviewError(
       422,
       'The parent artifact URI is not a supported exact directory path.',
     );
   }
-  return `${key}/${ARTIFACT_PREVIEW_FILE_NAME}`;
+  return `${key}${suffix}`;
 }
 
 /** Collects one small file, cancelling the source instead of draining an oversized object. */
@@ -83,7 +114,7 @@ export async function readArtifactPreviewBytes(
       if (size > MAX_ARTIFACT_PREVIEW_BYTES) {
         throw new ArtifactPreviewError(
           413,
-          'Preview exceeds 64 KiB. Regenerate a smaller _kfp_preview.json.',
+          'Preview exceeds 64 KiB. Regenerate a smaller preview.',
         );
       }
     }
@@ -94,7 +125,7 @@ export async function readArtifactPreviewBytes(
     } catch {
       throw new ArtifactPreviewError(
         422,
-        'Preview is not valid UTF-8. Regenerate _kfp_preview.json as UTF-8 JSON.',
+        'Preview is not valid UTF-8. Regenerate the preview as UTF-8 JSON.',
       );
     }
     return result;

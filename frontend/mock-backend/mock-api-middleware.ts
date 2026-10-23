@@ -1232,7 +1232,7 @@ export default (app: express.Application) => {
         ? modelPreview
         : undefined;
     if (!preview) {
-      res.status(404).send('_kfp_preview.json is missing.');
+      res.status(404).send('The preview file is missing.');
       return;
     }
     res.set('Cache-Control', 'no-store').json(preview);

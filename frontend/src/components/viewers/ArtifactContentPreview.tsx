@@ -28,6 +28,7 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import {
   ArtifactContentPreview as ArtifactContentPreviewData,
+  ArtifactPreviewDescriptor,
   ARTIFACT_PREVIEW_METADATA_KEY,
   DatasetPreview,
   getArtifactPreviewDescriptor,
@@ -88,7 +89,7 @@ interface ArtifactContentPreviewProps {
   providerInfo?: string;
 }
 
-/** Reads and renders only the bounded _kfp_preview.json beneath one Dataset or Model artifact. */
+/** Reads and renders only the bounded preview file of one Dataset or Model artifact. */
 export function ArtifactContentPreview({
   artifact,
   artifactTypeName,
@@ -98,7 +99,7 @@ export function ArtifactContentPreview({
   const kind = getArtifactContentPreviewKind(artifactTypeName);
   const metadata = getMlmdArtifactPreviewMetadata(artifact);
   const uri = artifact.getUri();
-  let descriptor;
+  let descriptor: ArtifactPreviewDescriptor | undefined;
   let descriptorError: string | undefined;
   try {
     descriptor = getArtifactPreviewDescriptor(metadata);
@@ -122,6 +123,7 @@ export function ArtifactContentPreview({
         path: WorkflowParser.parseStoragePath(uri),
         namespace,
         providerInfo,
+        storage: descriptor?.version === 2 ? descriptor.storage : undefined,
         signal,
       });
       return parseArtifactContentPreview(content, kind);

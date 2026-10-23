@@ -219,7 +219,7 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
-  // /artifacts/preview reads only the bounded _kfp_preview.json beneath the authorized parent artifact.
+  // /artifacts/preview reads only the bounded preview file of the authorized parent artifact.
   for (const previewPath of ['/artifacts/preview', `${basePath}/artifacts/preview`]) {
     app.get(
       previewPath,

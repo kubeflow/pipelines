@@ -79,6 +79,15 @@ describe('artifact content previews', () => {
     expect(rawRead).not.toHaveBeenCalled();
   });
 
+  it('reads a v2 preview stored beside the artifact directory', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(dataset));
+    render(view(buildArtifact({ version: 2, storage: 'sibling' })));
+    await screen.findByRole('table', { name: 'Dataset sample' });
+    expect(read).toHaveBeenCalledWith(expect.objectContaining({ storage: 'sibling' }));
+  });
+
   it('keeps missing and malformed declarations out of the network path', () => {
     const read = vi.spyOn(Apis, 'getArtifactContentPreview');
     const { rerender } = render(view(buildArtifact(null)));
@@ -128,7 +137,7 @@ describe('artifact content previews', () => {
   it('shows read errors with an explicit retry and rejects malformed files', async () => {
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
-      .mockRejectedValue(new Error('_kfp_preview.json is missing'));
+      .mockRejectedValue(new Error('The preview file is missing'));
     render(view());
     await screen.findByText('Unable to display the artifact preview.');
     const attempts = read.mock.calls.length;

@@ -327,21 +327,26 @@ export class Apis {
     return this._fetch(query);
   }
 
-  /** Reads only the bounded, producer-generated preview beneath a registered artifact. */
+  /**
+   * Reads only the bounded, producer-generated preview for a registered artifact. `sibling`
+   * storage reads the preview beside the artifact directory instead of inside it.
+   */
   public static getArtifactContentPreview({
     path,
     namespace,
     providerInfo,
+    storage,
     signal,
   }: {
     path: StoragePath;
     namespace?: string;
     providerInfo?: string;
+    storage?: 'sibling';
     signal?: AbortSignal;
   }): Promise<string> {
     const { source, bucket, key } = path;
     return this._fetch(
-      `artifacts/preview${buildQuery({ source, namespace, providerInfo, bucket, key })}`,
+      `artifacts/preview${buildQuery({ source, namespace, providerInfo, bucket, key, storage })}`,
       undefined,
       undefined,
       { signal, cache: 'no-store' },

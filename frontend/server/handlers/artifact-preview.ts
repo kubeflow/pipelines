@@ -16,15 +16,15 @@ import type { Request, Response } from 'express';
 import type { Readable } from 'stream';
 import {
   ArtifactPreviewError,
-  ARTIFACT_PREVIEW_FILE_NAME,
+  getPreviewFileName,
   getPreviewObjectKey,
+  MISSING_PREVIEW_MESSAGE,
+  parsePreviewStorage,
   readArtifactPreviewBytes,
 } from '../helpers/artifact-preview.js';
 import { isNoSuchKeyError } from '../minio-helper.js';
 
 const PREVIEW_REQUEST_TIMEOUT_MS = 30_000;
-const MISSING_PREVIEW_MESSAGE =
-  '_kfp_preview.json is missing. Regenerate the artifact with its preview file.';
 
 /** Opens one object from the storage provider already selected for the parent artifact. */
 export type ArtifactPreviewObjectOpener = (
@@ -73,10 +73,11 @@ function sendPreviewFailure(error: unknown, response: Response): void {
 }
 
 /**
- * Sends the bounded _kfp_preview.json beneath an already authorized parent artifact.
+ * Sends the bounded preview file for an already authorized parent artifact.
  *
  * Callers must authorize and resolve storage for the parent coordinates. This function derives
- * only the fixed child object, so a request cannot select another object through the preview
+ * only the fixed preview object (`storage=sibling` selects `<parent>.kfp-preview.json`, otherwise
+ * `<parent>/_kfp_preview.json`), so a request cannot select another object through the preview
  * route, and it never lists, archives, extracts, or partially returns a directory.
  */
 export async function sendArtifactContentPreview(
@@ -88,7 +89,6 @@ export async function sendArtifactContentPreview(
 ): Promise<void> {
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('X-Content-Type-Options', 'nosniff');
-  response.setHeader('Content-Disposition', `attachment; filename="${ARTIFACT_PREVIEW_FILE_NAME}"`);
   const disconnected = new AbortController();
   const cancel = () => disconnected.abort();
   request.once('aborted', cancel);
@@ -98,7 +98,12 @@ export async function sendArtifactContentPreview(
     AbortSignal.timeout(PREVIEW_REQUEST_TIMEOUT_MS),
   ]);
   try {
-    const objectKey = getPreviewObjectKey(source, parentKey);
+    const storage = parsePreviewStorage(request.query.storage);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${getPreviewFileName(storage)}"`,
+    );
+    const objectKey = getPreviewObjectKey(source, parentKey, storage);
     const stream = await openObject(objectKey, signal);
     const content = await readArtifactPreviewBytes(stream, signal);
     response.type('application/json').send(content);

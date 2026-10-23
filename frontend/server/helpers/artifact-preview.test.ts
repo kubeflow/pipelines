@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getPreviewObjectKey,
   MAX_ARTIFACT_PREVIEW_BYTES,
+  parsePreviewStorage,
   readArtifactPreviewBytes,
 } from './artifact-preview.js';
 
@@ -28,6 +29,16 @@ describe('preview object key', () => {
     ['gcs', 'root/with space/model'],
   ])('reads only _kfp_preview.json beneath the %s parent %s', (source, key) => {
     expect(getPreviewObjectKey(source, key)).toBe(`${key.replace(/\/$/, '')}/_kfp_preview.json`);
+  });
+
+  it.each([
+    ['s3', 'private-artifacts/team-a/run/dataset'],
+    ['minio', 'v2/artifacts/pipeline/run/task/dataset/'],
+    ['gcs', 'root/with space/model'],
+  ])('reads only the sibling preview beside the %s parent %s', (source, key) => {
+    expect(getPreviewObjectKey(source, key, 'sibling')).toBe(
+      `${key.replace(/\/$/, '')}.kfp-preview.json`,
+    );
   });
 
   it.each([
@@ -50,6 +61,21 @@ describe('preview object key', () => {
   it('accepts the longest parent whose preview key fits the object-key limit', () => {
     const key = 'a'.repeat(1024 - '/_kfp_preview.json'.length);
     expect(getPreviewObjectKey('s3', key)).toHaveLength(1024);
+    const siblingKey = 'a'.repeat(1024 - '.kfp-preview.json'.length);
+    expect(getPreviewObjectKey('s3', siblingKey, 'sibling')).toHaveLength(1024);
+    expect(() => getPreviewObjectKey('s3', `${siblingKey}a`, 'sibling')).toThrow();
+  });
+});
+
+describe('preview storage', () => {
+  it('defaults to the in-directory v1 location', () => {
+    expect(parsePreviewStorage(undefined)).toBe('directory');
+    expect(parsePreviewStorage('directory')).toBe('directory');
+    expect(parsePreviewStorage('sibling')).toBe('sibling');
+  });
+
+  it.each(['inline', '', '../other', ['sibling']])('rejects storage %j', (value) => {
+    expect(() => parsePreviewStorage(value)).toThrow(/must be "directory" or "sibling"/);
   });
 });
 

@@ -121,6 +121,41 @@ describe('artifact preview endpoint', () => {
     expect(gcsList).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['minio', 'v2/artifacts/model/'],
+    ['s3', 'v2/artifacts/model'],
+  ])('reads only the sibling preview beside a %s parent', async (source, key) => {
+    const response = await request(false, {
+      AWS_ACCESS_KEY_ID: 'aws',
+      AWS_SECRET_ACCESS_KEY: 'aws-secret',
+    })
+      .get(
+        `/artifacts/preview?source=${source}&bucket=bucket&key=${encodeURIComponent(key)}&storage=sibling`,
+      )
+      .expect(200);
+    expect(response.text).toBe(content);
+    expect(response.headers['content-disposition']).toContain('kfp-preview.json');
+    expect(getObject).toHaveBeenCalledWith('bucket', 'v2/artifacts/model.kfp-preview.json');
+    expect(listObjects).not.toHaveBeenCalled();
+  });
+
+  it('reads only the sibling preview beside a GCS parent', async () => {
+    await request()
+      .get('/artifacts/preview?source=gcs&bucket=bucket&key=root%2Fdataset&storage=sibling')
+      .expect(200, content);
+    expect(gcsDownload).toHaveBeenCalledWith(
+      expect.objectContaining({ bucket: 'bucket', objectName: 'root/dataset.kfp-preview.json' }),
+    );
+  });
+
+  it('rejects an unknown preview storage before reading storage', async () => {
+    const response = await request()
+      .get('/artifacts/preview?source=minio&bucket=bucket&key=model&storage=inline')
+      .expect(400);
+    expect(response.text).toContain('must be "directory" or "sibling"');
+    expect(getObject).not.toHaveBeenCalled();
+  });
+
   it('serves previews from the base-path route', async () => {
     const options = loadConfigs(argv, minioEnv);
     options.server.basePath = '/custom';
@@ -214,7 +249,7 @@ describe('artifact preview endpoint', () => {
     const response = await request()
       .get('/artifacts/preview?source=minio&bucket=bucket&key=model')
       .expect(404);
-    expect(response.text).toContain('_kfp_preview.json is missing');
+    expect(response.text).toContain('The preview file is missing');
 
     gcsDownload.mockRejectedValue(Object.assign(new Error('missing'), { status: 404 }));
     await request().get('/artifacts/preview?source=gcs&bucket=bucket&key=model').expect(404);

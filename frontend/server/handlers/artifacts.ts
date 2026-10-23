@@ -451,7 +451,7 @@ export function getArtifactsAuthMiddleware(
  * @param tryExtract whether preview responses may extract content from *.tar.gz files.
  * Download routes pass false so S3 and MinIO archives are returned byte-for-byte
  * with an attachment filename; preview routes may extract the first tar entry.
- * @param contentPreview read only the bounded _kfp_preview.json beneath the requested parent artifact.
+ * @param contentPreview read only the bounded preview file of the requested parent artifact.
  */
 export function getArtifactsHandler({
   artifactsConfigs,

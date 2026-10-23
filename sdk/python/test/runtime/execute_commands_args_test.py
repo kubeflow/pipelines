@@ -228,7 +228,7 @@ class TestRuntime:
         ))['artifacts']['dataset']['artifacts'][0]['metadata']
         enabled = pipeline_enabled and component_enabled
         assert ('_kfp_preview' in metadata) is enabled
-        assert (dataset / '_kfp_preview.json').exists() is enabled
+        preview = dataset.with_name(dataset.name + '.kfp-preview.json')
+        assert preview.exists() is enabled
         if enabled:
-            assert json.loads(
-                (dataset / '_kfp_preview.json').read_text())['rows'] == [['1']]
+            assert json.loads(preview.read_text())['rows'] == [['1']]
