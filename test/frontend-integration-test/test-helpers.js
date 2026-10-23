@@ -118,8 +118,17 @@ function buildTableRowSelector(rowLabel, { containerXPath = '' } = {}) {
   return containerXPath ? `${containerXPath}${rowSelector}` : rowSelector;
 }
 
+async function openNewExperiment({ timeout = defaultTimeout } = {}) {
+  // Experiment creation belongs to the experiment list, not pipeline details.
+  await $('a[aria-label="Experiments"]').click();
+  await waitForHashPrefix('#/experiments', { timeout });
+  await $('#newExperimentBtn').waitForDisplayed({ timeout });
+  await $('#newExperimentBtn').click();
+  await waitForHashPrefix('#/experiments/new', { timeout });
+}
+
 async function selectPipelineCard(pipelineName, { timeout = defaultTimeout } = {}) {
-  const filterSelector = 'input[type="search"][placeholder="Filter pipelines"]';
+  const filterSelector = 'input[type="search"][placeholder="Search pipelines"]';
   await waitForSelectorDisplayed(filterSelector, { timeout });
   await $(filterSelector).setValue(pipelineName);
 
@@ -353,6 +362,7 @@ async function runPhase(phaseName, fn, { screenshotName } = {}) {
 }
 
 module.exports = {
+  openNewExperiment,
   buildTableRowSelector,
   clearDefaultInput,
   getValueFromDetailsTable,

@@ -16,6 +16,7 @@ const assert = require('assert');
 const {
   selectPipelineCard,
   clearDefaultInput,
+  openNewExperiment,
   getValueFromDetailsTable,
   isSelectorDisplayed,
   runPhase,
@@ -248,9 +249,7 @@ describe('deploy tensorboard example run', () => {
     });
 
     await runPhase('create experiment', async () => {
-      await $('#newExperimentBtn').waitForDisplayed({ timeout: uiTimeout });
-      await $('#newExperimentBtn').click();
-      await waitForHashPrefix('#/experiments/new', { timeout: uiTimeout });
+      await openNewExperiment({ timeout: uiTimeout });
 
       await $('#experimentName').waitForDisplayed({ timeout: uiTimeout });
       await $('#experimentName').setValue(experimentName);

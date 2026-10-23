@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
-import { selectPipelineCard, waitForSelectorDisplayed } from './test-helpers.js';
+import { openNewExperiment, selectPipelineCard, waitForSelectorDisplayed } from './test-helpers.js';
 
 let originalBrowser;
 let originalSelector;
@@ -72,7 +72,7 @@ test('selector visibility wait still fails if the destination never becomes visi
 
 test('pipeline card selection waits for an enabled named checkbox after filtering', async () => {
   const pipelineName = 'uploaded-pipeline';
-  const filterSelector = 'input[type="search"][placeholder="Filter pipelines"]';
+  const filterSelector = 'input[type="search"][placeholder="Search pipelines"]';
   const checkboxSelector = `[role="checkbox"][aria-label="Select pipeline ${pipelineName}"]`;
   let filterValue = '';
   let readinessChecks = 0;
@@ -132,4 +132,28 @@ test('pipeline card selection fails when clicking does not select the pipeline',
     selectPipelineCard('uploaded-pipeline', { timeout: 5000 }),
     /expected pipeline uploaded-pipeline to be selected/,
   );
+});
+
+test('experiment creation navigates to its owning list before using the toolbar', async () => {
+  let hash = '#/pipelines/details/uploaded';
+  const clicks = [];
+  globalThis.browser.getUrl = async () => `http://localhost/${hash}`;
+  globalThis.$ = (selector) => ({
+    async waitForDisplayed() {
+      assert.equal(hash, '#/experiments', 'the creation action only exists on the list');
+    },
+    async click() {
+      clicks.push(selector);
+      if (selector === 'a[aria-label="Experiments"]') {
+        hash = '#/experiments';
+      } else {
+        assert.equal(selector, '#newExperimentBtn');
+        assert.equal(hash, '#/experiments');
+        hash = '#/experiments/new';
+      }
+    },
+  });
+  await openNewExperiment({ timeout: 5000 });
+  assert.deepEqual(clicks, ['a[aria-label="Experiments"]', '#newExperimentBtn']);
+  assert.equal(hash, '#/experiments/new');
 });

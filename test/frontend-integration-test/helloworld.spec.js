@@ -16,6 +16,7 @@ const assert = require('assert');
 const URL = require('url').URL;
 const {
   clearDefaultInput,
+  openNewExperiment,
   getValueFromDetailsTable,
   runPhase,
   saveDebugScreenshot,
@@ -126,9 +127,8 @@ describe('deploy helloworld sample run', () => {
     await waitForGraphNodeCount(4, { timeout: uiTimeout });
   });
 
-  it('creates a new experiment out of this pipeline', async () => {
-    await $('#newExperimentBtn').click();
-    await waitForHashPrefix('#/experiments/new', { timeout: uiTimeout });
+  it('creates a new experiment for the uploaded pipeline', async () => {
+    await openNewExperiment({ timeout: uiTimeout });
 
     await $('#experimentName').setValue(experimentName);
     await $('#experimentDescription').setValue(experimentDescription);
@@ -322,7 +322,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('filters the experiment list', async () => {
-    const filterSelector = 'input[type="search"][placeholder="Filter experiments"]';
+    const filterSelector = 'input[type="search"][placeholder="Search experiments"]';
     await waitForSelectorDisplayed(filterSelector, { timeout: uiTimeout });
     await $(filterSelector).setValue(experimentName);
 
