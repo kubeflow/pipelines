@@ -16,10 +16,13 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
 	"strings"
 	"testing"
 
@@ -85,7 +88,36 @@ func TestAPIRegistration_V2WithLegacyAliases(t *testing.T) {
 	require.NoError(t, json.Unmarshal(archived.Body.Bytes(), &experiment))
 	require.Equal(t, "ARCHIVED", experiment["storage_state"])
 
+	// Exercise the real version-prefix adapter with a cursor whose ordering
+	// changed, so legacy callers receive the same actionable error as v2.
+	fixtureBytes, err := os.ReadFile("server/testdata/filtered_tokens_2_17_2.json")
+	require.NoError(t, err)
+	var fixtures []struct{ Version, Token string }
+	require.NoError(t, json.Unmarshal(fixtureBytes, &fixtures))
+	var cursor map[string]interface{}
+	for _, fixture := range fixtures {
+		if fixture.Version == "v2" {
+			decoded, err := base64.StdEncoding.DecodeString(fixture.Token)
+			require.NoError(t, err)
+			require.NoError(t, json.Unmarshal(decoded, &cursor))
+			break
+		}
+	}
+	require.NotEmpty(t, cursor)
+	cursor["SortByFieldName"], cursor["SortBySQLColumn"] = "State", "State"
+	cursor["SortByFieldValue"], cursor["KeyFieldValue"] = "RUNNING", "run-id"
+	cursor["ModelName"], cursor["SortByFieldPrefix"], cursor["KeyFieldPrefix"] = "", "", ""
+	cursor["IsDesc"], cursor["Filter"] = false, nil
+	delete(cursor, "OrderingVersion")
+	cursorBytes, err := json.Marshal(cursor)
+	require.NoError(t, err)
+	pageToken := base64.StdEncoding.EncodeToString(cursorBytes)
 	for _, prefix := range []string{canonicalAPIPath, legacyAPIPath} {
+		pagination := request(http.MethodGet, prefix+"/runs?page_token="+url.QueryEscape(pageToken), "", http.StatusBadRequest)
+		require.Contains(t, pagination.Body.String(), "PAGINATION_RESTART_REQUIRED")
+		require.Contains(t, pagination.Body.String(), "kubeflow.org")
+		require.Contains(t, pagination.Body.String(), "Clear page_token")
+		require.NotContains(t, pagination.Body.String(), pageToken)
 		request(http.MethodGet, prefix+"/auth?namespace=ns1&resources=VIEWERS&verb=GET", "", http.StatusOK)
 		request(http.MethodPost, prefix+"/visualizations/ns1", `{"type":"CUSTOM","arguments":"{}"}`, http.StatusNotFound)
 		// Report routes reach validation, rather than an unregistered-route 404.
