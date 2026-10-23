@@ -113,6 +113,30 @@ class ScheduleQualificationTest(unittest.TestCase):
             ACCOUNT,
         )
 
+    def test_runtime_account_can_watch_agent_tasks_and_report_status(self):
+        items = fixture('profile-a', 'system', 'controller-sa')['items']
+        rules = next(
+            item['rules']
+            for item in items
+            if item['kind'] == 'Role'
+            and item['metadata']['name'] == 'kfp-schedule-test-runtime'
+        )
+        # Argo runs the agent as the workflow account. Its watch must start,
+        # and completed driver tasks must be written back to the taskset.
+        for resource, verb in (
+            ('workflowtasksets', 'watch'),
+            ('workflowtasksets/status', 'patch'),
+        ):
+            with self.subTest(resource=resource, verb=verb):
+                self.assertTrue(
+                    any(
+                        'argoproj.io' in rule['apiGroups']
+                        and resource in rule['resources']
+                        and verb in rule['verbs']
+                        for rule in rules
+                    )
+                )
+
     def test_required_cases_reject_skips_and_missing_reports(self):
         labels = json.loads(
             (

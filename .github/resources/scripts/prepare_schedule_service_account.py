@@ -81,7 +81,7 @@ def fixture(namespace, controller_namespace, controller_account):
         [rule('', ['serviceaccounts/token'], ['create'], [ACCOUNT])],
         [subject('ml-pipeline-driver-agent-executor-plugin')],
     )
-    # The argument-only fixture needs API runtime metadata and executor result writes.
+    # The fixture needs API metadata, Argo agent tasks, and executor results.
     items += grant(
         'kfp-schedule-test-runtime',
         [
@@ -91,6 +91,8 @@ def fixture(namespace, controller_namespace, controller_account):
                 ['artifacts'],
                 ['get', 'list', 'create'],
             ),
+            rule('argoproj.io', ['workflowtasksets'], ['watch']),
+            rule('argoproj.io', ['workflowtasksets/status'], ['patch']),
             rule('argoproj.io', ['workflowtaskresults'], ['create', 'patch']),
             rule('', ['secrets'], ['get'], ['mlpipeline-minio-artifact']),
             rule('', ['configmaps'], ['get'], ['kfp-launcher']),
