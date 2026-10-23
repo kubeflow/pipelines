@@ -26,8 +26,8 @@ import {
   ArtifactArtifactType,
   ArtifactServiceApi,
   Configuration,
-} from '../src/generated/apisv2beta1/artifact/index.js';
-import { ResponseError } from '../src/generated/apisv2beta1/artifact/runtime.js';
+} from '../src/generated/apisv2/artifact/index.js';
+import { ResponseError } from '../src/generated/apisv2/artifact/runtime.js';
 import { isAllowedResourceName } from '../utils.js';
 import {
   getArtifactsAuthMiddleware,

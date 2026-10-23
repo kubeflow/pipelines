@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
-import { V2beta1Artifact } from 'src/apisv2beta1/run';
+import { V2Artifact } from 'src/apisv2/run';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
 import { padding } from 'src/Css';
@@ -60,7 +60,7 @@ export function ArtifactContentPreviews({
   artifacts,
   active = true,
   ...context
-}: PreviewContext & { artifacts: V2beta1Artifact[] }) {
+}: PreviewContext & { artifacts: V2Artifact[] }) {
   const labelId = useId();
   const [selectedKey, setSelectedKey] = useState('');
   const entries = [
@@ -111,7 +111,7 @@ function SelectedArtifactPreview({
   namespace,
   sourceFinished,
   refreshGeneration = 0,
-}: PreviewContext & { artifact: V2beta1Artifact }) {
+}: PreviewContext & { artifact: V2Artifact }) {
   const kind = getArtifactContentPreviewKind(artifact);
   const effectiveNamespace = artifact.namespace || namespace;
   let descriptor;

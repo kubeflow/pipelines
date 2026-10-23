@@ -27,10 +27,7 @@ import * as minioHelper from '../minio-helper.js';
 import * as gcs from '../gcs-helper.js';
 import * as artifacts from './artifacts.js';
 import { getArtifactPreviewHandler } from './artifact-preview.js';
-import {
-  ArtifactArtifactType,
-  V2beta1Artifact,
-} from '../src/generated/apisv2beta1/artifact/index.js';
+import { ArtifactArtifactType, V2Artifact } from '../src/generated/apisv2/artifact/index.js';
 import {
   ARTIFACT_PREVIEW_RESPONSE_HEADER,
   MAX_ARTIFACT_PREVIEW_BYTES,
@@ -43,7 +40,7 @@ const content = '{"version":1,"kind":"model","hyperparameters":{"max_depth":3}}'
 const { argv } = commonSetup();
 const authorize = vi.fn<AuthorizeFn>();
 const storage = new Client({ endPoint: 'localhost', port: 9000, useSSL: false });
-let storedArtifact: V2beta1Artifact;
+let storedArtifact: V2Artifact;
 let metadataStatus: number;
 let proxyResponse: Response | undefined;
 let ownershipLookupAvailable: boolean;
@@ -108,10 +105,10 @@ beforeEach(() => {
         if (proxyResponse) return proxyResponse;
         throw new Error('Unexpected external request');
       }
-      if (url.pathname === '/apis/v2beta1/artifacts/artifact-1') {
+      if (url.pathname === '/apis/v2/artifacts/artifact-1') {
         return new Response(JSON.stringify(storedArtifact), { status: metadataStatus });
       }
-      if (url.pathname === '/apis/v2beta1/artifacts') {
+      if (url.pathname === '/apis/v2/artifacts') {
         if (!ownershipLookupAvailable) return new Response('Unavailable', { status: 503 });
         const filter = JSON.parse(decodeURIComponent(url.searchParams.get('filter') || ''));
         const exactParent = filter.predicates[0].stringValue === storedArtifact.uri;

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, V2Artifact } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { ArtifactContentPreviews } from './ArtifactContentPreview';
@@ -21,7 +21,7 @@ import type { MockInstance } from 'vitest';
 import dataset from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 import model from '../../../mock-backend/data/v2/artifact-previews/model.json';
 
-const artifact: V2beta1Artifact = {
+const artifact: V2Artifact = {
   artifact_id: 'dataset-1',
   name: 'training data',
   type: ArtifactArtifactType.Dataset,
@@ -83,7 +83,7 @@ describe('artifact content previews', () => {
   });
 
   it('preserves multi-artifact selection across refreshes and reordering', async () => {
-    const second: V2beta1Artifact = { ...artifact, artifact_id: 'dataset-2', name: 'second data' };
+    const second: V2Artifact = { ...artifact, artifact_id: 'dataset-2', name: 'second data' };
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
       .mockResolvedValue(JSON.stringify(dataset));

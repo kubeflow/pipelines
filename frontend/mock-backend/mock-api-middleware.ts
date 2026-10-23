@@ -180,7 +180,7 @@ const mockV2Tasks: V2PipelineTask[] = [
         {
           artifact_key: 'model',
           artifacts: [mockV2Artifacts[1]],
-          type: V2beta1IOType.OUTPUT,
+          type: V2IOType.OUTPUT,
         },
       ],
     },
@@ -199,7 +199,7 @@ const mockV2ArtifactTasks: V2ArtifactTask[] = [
     key: 'model',
     run_id: mockNativeRunId,
     task_id: 'mock-task-trainer',
-    type: V2beta1IOType.OUTPUT,
+    type: V2IOType.OUTPUT,
   },
   {
     artifact_id: 'mock-artifact-1',

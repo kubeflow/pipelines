@@ -1073,7 +1073,7 @@ describe('RuntimeNodeDetailsV2', () => {
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
       .mockResolvedValue(JSON.stringify(datasetPreview));
-    const root: V2beta1PipelineTask = {
+    const root: V2PipelineTask = {
       task_id: 'root-task',
       name: 'root',
       type: PipelineTaskTaskType.ROOT,

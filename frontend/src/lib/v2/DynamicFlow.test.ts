@@ -362,12 +362,12 @@ describe('DynamicFlow', () => {
           { artifact_key: 'datasets', artifacts: artifacts.slice(1) },
         ];
         const root = { ...rootTask };
-        const task: V2beta1PipelineTask = {
+        const task: V2PipelineTask = {
           task_id: 'producer',
           parent_task_id: root.task_id,
           name: 'exec',
         };
-        const child: V2beta1PipelineTask = {
+        const child: V2PipelineTask = {
           task_id: 'child',
           parent_task_id: task.task_id,
           name: 'child',

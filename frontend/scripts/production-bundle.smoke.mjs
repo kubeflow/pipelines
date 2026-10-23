@@ -109,14 +109,14 @@ test(
         },
       };
       const responses = {
-        '/apis/v2beta1/runs/preview-run': {
+        '/apis/v2/runs/preview-run': {
           run_id: 'preview-run',
           display_name: 'Artifact previews',
           namespace: 'kubeflow',
           state: 'SUCCEEDED',
           pipeline_spec: pipelineSpec,
         },
-        '/apis/v2beta1/runs/preview-run/tasks': {
+        '/apis/v2/runs/preview-run/tasks': {
           tasks: [
             {
               task_id: 'root',
@@ -148,7 +148,7 @@ test(
         },
         ...Object.fromEntries(
           artifacts.flatMap((artifact, index) => [
-            [`/apis/v2beta1/artifacts/${artifact.artifact_id}`, artifact],
+            [`/apis/v2/artifacts/${artifact.artifact_id}`, artifact],
             [`/artifacts/${artifact.artifact_id}/preview`, previews[kinds[index]]],
           ]),
         ),

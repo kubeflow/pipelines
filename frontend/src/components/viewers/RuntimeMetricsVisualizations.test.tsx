@@ -601,7 +601,7 @@ describe('RuntimeMetricsVisualizations', () => {
     const previewRead = vi
       .spyOn(Apis, 'getArtifactContentPreview')
       .mockResolvedValue(JSON.stringify(datasetPreview));
-    const artifact: V2beta1Artifact = {
+    const artifact: V2Artifact = {
       artifact_id: 'dataset-preview',
       name: 'mlpipeline-ui-metadata',
       type: ArtifactArtifactType.Dataset,

@@ -234,7 +234,7 @@ describe('mock backend routes', () => {
         type: 'Dataset',
       });
 
-      const modelResponse = await request.get('/apis/v2beta1/artifacts/mock-model-1').expect(200);
+      const modelResponse = await request.get('/apis/v2/artifacts/mock-model-1').expect(200);
 
       expect(modelResponse.body).toMatchObject({
         artifact_id: 'mock-model-1',

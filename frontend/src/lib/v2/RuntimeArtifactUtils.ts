@@ -223,7 +223,7 @@ export function isVisualizableArtifact(artifact: V2Artifact): boolean {
   );
 }
 
-export function getArtifactContentPreviewKind(artifact: V2beta1Artifact): PreviewKind | undefined {
+export function getArtifactContentPreviewKind(artifact: V2Artifact): PreviewKind | undefined {
   if (artifact.type === ArtifactArtifactType.Dataset) {
     return 'dataset';
   }
@@ -233,7 +233,7 @@ export function getArtifactContentPreviewKind(artifact: V2beta1Artifact): Previe
   return undefined;
 }
 
-export function hasArtifactContentPreview(artifact: V2beta1Artifact): boolean {
+export function hasArtifactContentPreview(artifact: V2Artifact): boolean {
   return (
     !!getArtifactContentPreviewKind(artifact) &&
     Object.prototype.hasOwnProperty.call(artifact.metadata || {}, ARTIFACT_PREVIEW_METADATA_KEY)

@@ -233,7 +233,7 @@ describe('profile-generated artifact preview identity', () => {
       }
       next();
     });
-    api.get('/apis/v2beta1/artifacts/model-1', (_req, res) => res.json(artifact));
+    api.get('/apis/v2/artifacts/model-1', (_req, res) => res.json(artifact));
     const apiAddress = await listen(api);
     const authorize = vi.fn<AuthorizeFn>().mockResolvedValue(undefined);
     const receiverOptions = loadConfigs(['node', 'server.js', '/tmp', '3000'], receiverEnvironment);
@@ -291,8 +291,8 @@ describe('profile-generated artifact preview identity', () => {
       expect(authorize).toHaveBeenCalledOnce();
       expect(target).toHaveBeenCalledExactlyOnceWith('tenant');
       expect(metadataRequests).toEqual([
-        { path: '/apis/v2beta1/artifacts/model-1', identity },
-        { path: '/apis/v2beta1/artifacts/model-1', identity },
+        { path: '/apis/v2/artifacts/model-1', identity },
+        { path: '/apis/v2/artifacts/model-1', identity },
       ]);
       expect(getObject).toHaveBeenCalledExactlyOnceWith(
         'mlpipeline',
