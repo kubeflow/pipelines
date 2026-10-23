@@ -57,9 +57,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: kubeflow/pipelines
-          ref: ${{ steps.source.outputs.source-sha }}
+          ref: refs/heads/release-2.18
           path: source
           persist-credentials: false
+      # The literal branch establishes trust; the guard preserves exact identity.
+      - name: Verify exact release source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ steps.source.outputs.source-sha }}
+        run: |
+          if [[ ! "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [[ "$(git -C source rev-parse HEAD)" != "$EXPECTED_SOURCE_SHA" ]]; then
+            echo "::error::release-2.18 moved or source identity is invalid; retry against the current branch head."
+            exit 1
+          fi
       - name: Read exact source version and release image matrix
         id: inventory
         env:
@@ -90,9 +100,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: kubeflow/pipelines
-          ref: ${{ needs.inventory.outputs.source-sha }}
+          ref: refs/heads/release-2.18
           path: source
           persist-credentials: false
+      # The literal branch establishes trust; the guard preserves exact identity.
+      - name: Verify exact release source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ needs.inventory.outputs.source-sha }}
+        run: |
+          if [[ ! "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [[ "$(git -C source rev-parse HEAD)" != "$EXPECTED_SOURCE_SHA" ]]; then
+            echo "::error::release-2.18 moved or source identity is invalid; retry against the current branch head."
+            exit 1
+          fi
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.13'
@@ -136,9 +156,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: kubeflow/pipelines
-          ref: ${{ needs.inventory.outputs.source-sha }}
+          ref: refs/heads/release-2.18
           path: source
           persist-credentials: false
+      # The literal branch establishes trust; the guard preserves exact identity.
+      - name: Verify exact release source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ needs.inventory.outputs.source-sha }}
+        run: |
+          if [[ ! "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [[ "$(git -C source rev-parse HEAD)" != "$EXPECTED_SOURCE_SHA" ]]; then
+            echo "::error::release-2.18 moved or source identity is invalid; retry against the current branch head."
+            exit 1
+          fi
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.13'
@@ -187,9 +217,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: kubeflow/pipelines
-          ref: ${{ needs.inventory.outputs.source-sha }}
+          ref: refs/heads/release-2.18
           path: source
           persist-credentials: false
+      # The literal branch establishes trust; the guard preserves exact identity.
+      - name: Verify exact release source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ needs.inventory.outputs.source-sha }}
+        run: |
+          if [[ ! "$EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] ||
+             [[ "$(git -C source rev-parse HEAD)" != "$EXPECTED_SOURCE_SHA" ]]; then
+            echo "::error::release-2.18 moved or source identity is invalid; retry against the current branch head."
+            exit 1
+          fi
       - uses: ./tooling/.github/actions/download-artifact-with-retry
         with:
           name: release218-scans-${{ needs.inventory.outputs.request-id }}-${{ github.run_attempt }}

@@ -1,5 +1,8 @@
 """Keep release image scans isolated, complete, and stably attributed."""
 
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -70,7 +73,9 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         upload = workflow['jobs']['upload']
         self.assertEqual(upload['needs'], ['inventory', 'aggregate'])
         self.assertNotIn('if', upload)
-        self.assertTrue(all('run' not in step for step in upload['steps']))
+        scripts = [step for step in upload['steps'] if 'run' in step]
+        self.assertEqual(len(scripts), 1)
+        self.assertEqual(scripts[0]['name'], 'Verify exact release source')
         self.assertNotIn('packages: write', str(workflow))
 
     def test_source_and_tool_checkouts_are_separate_and_immutable(self):
@@ -90,10 +95,64 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
                 if name == 'inventory'
                 else '${{ needs.inventory.outputs.source-sha }}'
             )
-            self.assertEqual(checkouts[1]['ref'], expected)
+            self.assertEqual(checkouts[1]['ref'], 'refs/heads/release-2.18')
+            source_index = next(
+                index
+                for index, step in enumerate(job['steps'])
+                if step.get('with', {}).get('path') == 'source'
+            )
+            guard = job['steps'][source_index + 1]
+            self.assertEqual(guard['name'], 'Verify exact release source')
+            self.assertEqual(guard['env']['EXPECTED_SOURCE_SHA'], expected)
+            self.assertIn('^[0-9a-f]{40}$', guard['run'])
+            self.assertIn('git -C source rev-parse HEAD', guard['run'])
+            self.assertIn('!= "$EXPECTED_SOURCE_SHA"', guard['run'])
+            self.assertIn('exit 1', guard['run'])
             self.assertTrue(
                 all(item['persist-credentials'] is False for item in checkouts)
             )
+
+    def test_source_guard_rejects_changed_and_invalid_commits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'source'
+            subprocess.run(['git', 'init', '--quiet', str(source)], check=True)
+            subprocess.run(
+                [
+                    'git',
+                    '-C',
+                    str(source),
+                    '-c',
+                    'user.name=Test',
+                    '-c',
+                    'user.email=test@example.invalid',
+                    'commit',
+                    '--quiet',
+                    '--allow-empty',
+                    '-m',
+                    'Fixture',
+                ],
+                check=True,
+            )
+            sha = subprocess.check_output(
+                ['git', '-C', str(source), 'rev-parse', 'HEAD'],
+                text=True,
+            ).strip()
+            for name, job in self.workflow()['jobs'].items():
+                guard = next(
+                    step
+                    for step in job['steps']
+                    if step.get('name') == 'Verify exact release source'
+                )
+                for expected, code in ((sha, 0), ('a' * 40, 1), ('invalid', 1)):
+                    with self.subTest(job=name, expected=expected):
+                        result = subprocess.run(
+                            ['bash', '-e', '-c', guard['run']],
+                            cwd=directory,
+                            env={**os.environ, 'EXPECTED_SOURCE_SHA': expected},
+                            capture_output=True,
+                            text=True,
+                        )
+                        self.assertEqual(result.returncode, code, result.stderr)
 
     def test_native_builds_reuse_qualification_and_always_preserve_evidence(
         self,
