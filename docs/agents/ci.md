@@ -230,3 +230,10 @@ is inspected by the packaging regression suite to prevent tracked exports from r
   invoked without `gh`; missing runner dependencies are not publication delays.
 
 - `release-promote-latest.yml` is upstream/master dispatch-only. Its read-only job derives the image matrix from the immutable published release tag commit. The serialized promotion job alone has `packages: write`, rechecks highest stable release eligibility, snapshots every published full index, and copies only `@digest` to `:latest` without builds. It verifies full indexes and unchanged versioned tags and always uploads partial/success evidence. Dispatch through `kfpr promote-latest --version X.Y.Z`; this workflow must first be merged upstream. Test with `PYTHONPATH=release python -m unittest kfpr.promotion_test`.
+- Both SDK reference sites set the Sphinx Immaterial `font` option to `False`.
+  This uses the theme's system fallback fonts and disables build-time Google
+  Fonts downloads. ReadTheDocs readiness builds a minimal site using each real
+  font configuration with network connections rejected before building the full
+  references. Keep the no-network regression when changing themes or fonts.
+
+- Automatic single-user E2E lanes cap Ginkgo workers at half the runner CPUs (minimum one), retaining stricter per-lane caps, because Kind and pipeline pods share those CPUs. Explicit workflow-dispatch concurrency overrides remain authoritative. All specs and suite timeouts are unchanged.

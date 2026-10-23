@@ -135,7 +135,8 @@ html_theme_options = {
             },
         },
     ],
-    'font': {'text': 'Open Sans'},
+    # Use the theme's system fallback stack without build-time Google Fonts fetches.
+    'font': False,
     'version_dropdown': True,
     'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
     # "toc_title_is_page_title": True,
