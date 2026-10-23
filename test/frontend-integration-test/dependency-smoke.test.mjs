@@ -90,6 +90,62 @@ test("explicit Selenium configuration skips automatic browser and driver provisi
   }
 });
 
+function assertPatchedBraceExpansion(version, name) {
+  // GHSA-q2hr-2g5m-vwhr: major 4 has no patched release.
+  // Require a stable version so prereleases cannot bypass patch boundaries.
+  assert.match(version, /^\d+\.\d+\.\d+$/, `${name}@${version}`);
+  const [major, minor, patch] = version.split(".").map(Number);
+  const minimum = { 1: [1, 21], 2: [1, 7], 3: [0, 9], 5: [0, 12] }[major];
+  assert.ok(
+    major > 5 ||
+      (minimum &&
+        (minor > minimum[0] || (minor === minimum[0] && patch >= minimum[1]))),
+    `${name}@${version}`,
+  );
+}
+
+for (const version of [
+  "0.2.0",
+  "1.1.20",
+  "2.1.6",
+  "3.0.8",
+  "4.0.0",
+  "4.0.1",
+  "5.0.11",
+]) {
+  test(`brace-expansion guard rejects vulnerable ${version}`, () => {
+    assert.throws(() =>
+      assertPatchedBraceExpansion(version, "nested/brace-expansion"),
+    );
+  });
+}
+
+for (const version of [
+  "1.1.21",
+  "1.2.0",
+  "2.1.7",
+  "2.2.0",
+  "3.0.9",
+  "3.1.0",
+  "5.0.12",
+  "5.1.0",
+  "6.0.0",
+]) {
+  test(`brace-expansion guard accepts patched ${version}`, () => {
+    assert.doesNotThrow(() =>
+      assertPatchedBraceExpansion(version, "nested/brace-expansion"),
+    );
+  });
+}
+
+for (const version of ["5.0.12-rc.1", "5", "invalid"]) {
+  test(`brace-expansion guard rejects unverified version ${version}`, () => {
+    assert.throws(() =>
+      assertPatchedBraceExpansion(version, "nested/brace-expansion"),
+    );
+  });
+}
+
 test("the integration lockfile excludes braces and vulnerable brace-expansion copies", async () => {
   const lock = JSON.parse(
     await readFile(new URL("./package-lock.json", import.meta.url), "utf8"),
@@ -100,15 +156,7 @@ test("the integration lockfile excludes braces and vulnerable brace-expansion co
       `${name} must be removed through the runner upgrade`,
     );
     if (name.endsWith("/brace-expansion")) {
-      const [major, minor, patch] = dependency.version.split(".").map(Number);
-      assert.ok(
-        major !== 1 || minor > 1 || (minor === 1 && patch >= 21),
-        `${name}@${dependency.version}`,
-      );
-      assert.ok(
-        major !== 2 || minor > 1 || (minor === 1 && patch >= 7),
-        `${name}@${dependency.version}`,
-      );
+      assertPatchedBraceExpansion(dependency.version, name);
     }
   }
 });
