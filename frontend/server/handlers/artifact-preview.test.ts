@@ -19,6 +19,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
 import { MAX_ARTIFACT_PREVIEW_BYTES } from '../helpers/artifact-preview.js';
+import { getK8sSecret } from '../k8s-helper.js';
 import { commonSetup } from '../integration-tests/test-helper.js';
 
 const MinioClient = minio.Client;
@@ -127,6 +128,27 @@ describe('artifact preview endpoint', () => {
     await requests(app.app)
       .get('/custom/artifacts/preview?source=minio&bucket=bucket&key=model')
       .expect(200, content);
+  });
+
+  it('bounds GCS credential lookup by the preview deadline', async () => {
+    vi.mocked(getK8sSecret).mockReturnValue(new Promise<string>(() => undefined));
+    const timeout = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timeout.signal);
+    const providerInfo = encodeURIComponent(
+      JSON.stringify({
+        Provider: 'gs',
+        Params: { fromEnv: 'false', secretName: 'gcs-secret', tokenKey: 'token' },
+      }),
+    );
+    const pending = request()
+      .get(`/artifacts/preview?source=gcs&bucket=bucket&key=model&providerInfo=${providerInfo}`)
+      .then((response) => response);
+    await vi.waitFor(() => expect(getK8sSecret).toHaveBeenCalled());
+    timeout.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    const response = await pending;
+    timeoutSpy.mockRestore();
+    expect(response.status).toBe(504);
+    expect(gcsDownload).not.toHaveBeenCalled();
   });
 
   it('authorizes the parent artifact identity in multi-user mode', async () => {

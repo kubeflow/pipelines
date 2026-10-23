@@ -679,7 +679,10 @@ export function getArtifactsHandler({
     if (contentPreview) {
       const openPreviewObject: ArtifactPreviewObjectOpener = async (objectKey, signal) => {
         if (source === 'gcs') {
-          const credentials = await getGCSCredentials(effectiveProviderInfo, namespace);
+          const credentials = await waitForArtifactOperation(
+            getGCSCredentials(effectiveProviderInfo, namespace),
+            signal,
+          );
           const gcsClient = await waitForArtifactOperation(getGCSClient(credentials), signal);
           return waitForArtifactOperation(
             downloadGCSObjectStream({
