@@ -17,7 +17,9 @@
 // See README.md, "Dependency compatibility checks".
 
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { EventEmitter } from "node:events";
+import { MochaAdapter } from "@wdio/mocha-framework";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -44,13 +46,19 @@ test("WebdriverIO loads and merges the integration configuration", async () => {
   assert.equal(options.framework, expectedConfig.framework);
   assert.equal(options.hostname, expectedConfig.hostname);
   assert.equal(options.port, expectedConfig.port);
-  assert.deepEqual(options.mochaOpts, { ...expectedConfig.mochaOpts, retries: 1 });
-  assert.equal(capabilities[0].browserName, expectedConfig.capabilities[0].browserName);
+  assert.deepEqual(options.mochaOpts, {
+    ...expectedConfig.mochaOpts,
+    retries: 1,
+  });
+  assert.equal(
+    capabilities[0].browserName,
+    expectedConfig.capabilities[0].browserName,
+  );
   assert.ok(options.specs.length > 0);
 });
 
 test("the pinned browser installer exposes the API WebdriverIO calls", () => {
-  // The override must make @wdio/utils load the pinned copy, not a nested 2.x.
+  // WebdriverIO 10 supports the pinned 3.x browser installer directly.
   const utilsRequire = createRequire(import.meta.resolve("@wdio/utils"));
   assert.equal(
     utilsRequire.resolve("@puppeteer/browsers"),
@@ -79,5 +87,61 @@ test("explicit Selenium configuration skips automatic browser and driver provisi
     assert.deepEqual(await readdir(cacheDir), []);
   } finally {
     await rm(cacheDir, { recursive: true, force: true });
+  }
+});
+
+test("the integration lockfile excludes braces and vulnerable brace-expansion copies", async () => {
+  const lock = JSON.parse(
+    await readFile(new URL("./package-lock.json", import.meta.url), "utf8"),
+  );
+  for (const [name, dependency] of Object.entries(lock.packages)) {
+    assert.ok(
+      !name.endsWith("/braces"),
+      `${name} must be removed through the runner upgrade`,
+    );
+    if (name.endsWith("/brace-expansion")) {
+      const [major, minor, patch] = dependency.version.split(".").map(Number);
+      assert.ok(
+        major !== 1 || minor > 1 || (minor === 1 && patch >= 21),
+        `${name}@${dependency.version}`,
+      );
+      assert.ok(
+        major !== 2 || minor > 1 || (minor === 1 && patch >= 7),
+        `${name}@${dependency.version}`,
+      );
+    }
+  }
+});
+
+test("the WebdriverIO adapter executes Mocha tests and hooks", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "kfp-mocha-adapter-"));
+  const spec = path.join(directory, "adapter.cjs");
+  try {
+    await writeFile(
+      spec,
+      `
+      const assert = require('node:assert/strict');
+      describe('adapter compatibility', function () {
+        beforeEach(function () { this.value = 42; });
+        it('runs the hook before the test', function () { assert.equal(this.value, 42); });
+      });
+    `,
+    );
+    const { options, capabilities } = await loadConfig();
+    const reporter = new EventEmitter();
+    const passed = [];
+    reporter.on("test:pass", (event) => passed.push(event.title));
+    const adapter = await new MochaAdapter(
+      "0-0",
+      options,
+      [spec],
+      capabilities[0],
+      reporter,
+    ).init();
+    assert.equal(adapter.hasTests(), true);
+    assert.equal(await adapter.run(), 0);
+    assert.deepEqual(passed, ["runs the hook before the test"]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
