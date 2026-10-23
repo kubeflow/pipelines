@@ -190,6 +190,8 @@ def qualify_release(context: ReleaseContext) -> None:
     )
     _run(['git', 'fetch', f'https://github.com/{REPO}.git', sha], root)
     _run(['git', 'checkout', '--detach', sha], root)
+    # Coverage and publication checks read Git objects from the caller checkout.
+    _run(['git', 'fetch', '--no-tags', str(root), sha], context.root)
     if (
         context.include_backend
         and (root / 'VERSION').read_text().strip() != context.metadata.tag

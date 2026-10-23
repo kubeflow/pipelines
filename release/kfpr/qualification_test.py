@@ -3,6 +3,7 @@ source."""
 
 import hashlib
 import json
+import subprocess
 import sys
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -360,6 +361,145 @@ class QualificationTest(unittest.TestCase):
           - image: {name: kfp-writer}
             arch: {arch_name: arm64}
 """)
+
+    def test_new_approved_commit_is_available_without_moving_caller_checkout(
+        self,
+    ):
+        self.coverage_patcher.stop()
+        with TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / 'upstream'
+            upstream.mkdir()
+
+            def git(root, *arguments):
+                return subprocess.check_output(
+                    ['git', '-c', 'core.fsmonitor=false', *arguments],
+                    cwd=root,
+                    text=True,
+                    stderr=subprocess.PIPE,
+                ).strip()
+
+            git(upstream, 'init', '--quiet')
+            self.inventory(upstream)
+            (upstream / 'VERSION').write_text('2.17.2\n')
+            sdk = upstream / 'sdk/python'
+            sdk.mkdir(parents=True)
+            metadata = sdk / 'setup.py'
+            metadata.write_text(
+                "classifiers=['Programming Language :: Python :: 3.9']\n"
+            )
+            (upstream / 'operator-notes.txt').write_text('committed notes\n')
+            git(upstream, 'add', '.')
+            git(
+                upstream,
+                '-c',
+                'user.name=Qualification Test',
+                '-c',
+                'user.email=qualification@example.invalid',
+                'commit',
+                '--quiet',
+                '-m',
+                'Older release fixture',
+            )
+            caller = base / 'caller'
+            git(base, 'clone', '--quiet', str(upstream), str(caller))
+            caller_head = git(caller, 'rev-parse', 'HEAD')
+            (caller / 'operator-notes.txt').write_text(
+                'uncommitted operator notes\n'
+            )
+            (caller / 'scratch.txt').write_text('untracked user work\n')
+            initial_status = git(caller, 'status', '--porcelain')
+
+            (upstream / 'VERSION').write_text('2.17.3\n')
+            metadata.write_text(
+                "classifiers=['Programming Language :: Python :: 3.9', "
+                "'Programming Language :: Python :: 3.11']\n"
+            )
+            git(upstream, 'add', '.')
+            git(
+                upstream,
+                '-c',
+                'user.name=Qualification Test',
+                '-c',
+                'user.email=qualification@example.invalid',
+                'commit',
+                '--quiet',
+                '-m',
+                'Approved release fixture',
+            )
+            approved = git(upstream, 'rev-parse', 'HEAD')
+            with self.assertRaises(subprocess.CalledProcessError):
+                git(caller, 'cat-file', '-e', approved)
+            context = self.context(caller)
+            context.state = ReleaseState(base / 'state.json')
+            output = base / 'evidence'
+            output.mkdir()
+            images = [
+                {**record, 'image_id': 'sha256:' + str(index + 1) * 64}
+                for index, record in enumerate(q.image_matrix(upstream))
+            ]
+            scans = [{'name': 'source', 'target': '/source', 'findings': []}]
+            scans.extend(self.python_scans())
+            scans.extend(
+                {
+                    'name': f'image-{index}',
+                    'target': record['image_id'],
+                    'findings': [],
+                }
+                for index, record in enumerate(images)
+            )
+            self.ci.qualify_ci.return_value = {
+                'images': images,
+                'wheels': {
+                    'passed': True,
+                    'python_environments': ['/venv39', '/venv311'],
+                },
+                'security': self.security(context, scans),
+                'run': {'id': 123},
+            }
+            original_run = q._run
+            fetched = []
+
+            def local_upstream(command, root):
+                command = list(command)
+                if command[:3] == [
+                    'git',
+                    'fetch',
+                    f'https://github.com/{q.REPO}.git',
+                ]:
+                    fetched.append(command[-1])
+                    command[2] = str(upstream)
+                original_run(command, root)
+
+            with (
+                patch('kfpr.steps.validate_release_pr', return_value=approved),
+                patch.object(q.tempfile, 'mkdtemp', return_value=str(output)),
+                patch.object(q, '_run', side_effect=local_upstream),
+            ):
+                q.qualify_release(context)
+                q.require_qualification(context)
+            self.assertEqual(fetched, [approved])
+            self.assertEqual(
+                self.ci.qualify_ci.call_args.args[1], q.image_matrix(upstream)
+            )
+            self.assertEqual(
+                self.ci.qualify_ci.call_args.args[2], {'3.9', '3.11'}
+            )
+            self.ci.verify_run.assert_called_once_with(context, {'id': 123})
+            self.assertEqual(
+                git(caller, 'show', f'{approved}:VERSION'), '2.17.3'
+            )
+            self.assertEqual(git(caller, 'rev-parse', 'HEAD'), caller_head)
+            self.assertEqual(
+                git(caller, 'status', '--porcelain'), initial_status
+            )
+            self.assertEqual(
+                (caller / 'operator-notes.txt').read_text(),
+                'uncommitted operator notes\n',
+            )
+            self.assertEqual(
+                (caller / 'scratch.txt').read_text(), 'untracked user work\n'
+            )
 
     def test_backend_uses_only_ci_scans_and_complete_source_inventory(self):
         with TemporaryDirectory() as tmp:
