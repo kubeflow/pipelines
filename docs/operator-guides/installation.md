@@ -1,5 +1,12 @@
 # Installation
 
+:::{note}
+Upgrading an existing installation to 2.18? The
+[2.18 upgrade guide](upgrade-2.18.md) explains automatic schedule adoption and UI
+signing-key initialization during the normal rollout, compatibility checks for
+custom configurations, and troubleshooting.
+:::
+
 As an alternative to deploying Kubeflow Pipelines (KFP) as part of the [Community distribution](https://www.kubeflow.org/docs/started/installing-kubeflow),
 you can also choose to deploy only Kubeflow Pipelines standalone.
 
@@ -12,16 +19,20 @@ You should be familiar with [Kubernetes](https://kubernetes.io/docs/home/),
 
 ## Upgrading to 2.18: HTTP artifact access
 
-In authenticated multi-user deployments, the shared `ml-pipeline-ui` now fetches
-HTTP and HTTPS artifacts even when namespace artifact proxies are enabled. Before
-upgrading, make HTTP artifact credentials and network access available to the
-shared UI; configuration only on tenant proxies is insufficient. Configure
-`HTTP_BASE_URL` and the required HTTP authentication on the shared UI, and ensure
-its network policies permit access to the approved artifact server.
+With namespace artifact proxying enabled, HTTP and HTTPS artifact reads retain
+namespace receiver routing and its credential placement. Keep `HTTP_BASE_URL`,
+HTTP authentication and network access on the process that fetches the object;
+direct-serving installations use the serving UI. This upgrade does not require
+moving tenant HTTP credentials into the shared UI.
 
-After restarting the shared UI, verify an HTTP artifact preview or download as a
-user in its owning namespace. See [HTTP artifact configuration](server-config.md)
-for the base URL, authentication, namespace boundaries, and redirect restrictions.
+Updated receivers apply the retained destination and redirect protections. Old
+receivers keep their older behavior until the normal rollout replaces them.
+Verify each affected receiver's image and a real preview/download after rollout.
+Custom HTTP authentication and mounts must survive profile reconciliation through
+the installation's provisioning configuration; stock profile generation does not
+provision arbitrary tenant HTTP credentials. See
+[HTTP artifact configuration](server-config.md#http-artifact-migration-for-218)
+and [artifact compatibility](upgrade-2.18.md#artifact-compatibility-and-retained-exposure).
 
 ## Deploying Kubeflow Pipelines
 

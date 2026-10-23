@@ -128,8 +128,8 @@ The runner separately needs its normal pipeline execution permissions.
 ### Automatic adoption for existing multi-user installations
 
 The standard 2.18 managed rollout automatically adopts legacy database-stored
-schedules. Apply the complete release manifests; ordinary upgrades require no
-operator stop/migrate/restart sequence or migration Job. API listeners remain
+schedules as part of the normal deployment upgrade. No separate migration Job or
+manual sequencing of API/controller updates is needed. API listeners remain
 available while migration runs in the background, subject to normal deployment
 availability. The upgraded controller waits automatically for the managed
 API/controller rollout to finish and incompatible or terminating writer Pods to
@@ -140,24 +140,32 @@ This assumes legacy writers will not be reintroduced after handoff. Downgrading
 to legacy writers requires a separate coordinated rollback plan, not a live
 rolling downgrade.
 
-During that automatic handoff, the upgraded API rejects schedule creation and
-enable/disable requests with retryable `Unavailable` **before any mutation**.
-Clients retry after handoff completes; those requests are not accepted or queued
-as durable intent during the wait. This prevents old API reporters from undoing a
-new enabled-state change or executing a newly created schedule outside the new
-protocol. Run operations, reads, reporting, and deletion remain available. Existing
-legacy schedules retain the old behavior until the handoff; the new controller
-waits. This scheduling-write pause is automatic and requires no operator cutover.
+During that automatic handoff, the upgraded API waits up to 30 seconds before
+schedule creation, enable/disable, or non-dry-run transfer preparation. The limit
+includes time waiting behind another request and is shortened by the client's
+request deadline or cancellation. Concurrent requests share one polling check;
+a successful handoff lets their mutations proceed without a client retry.
+Requests are not queued as durable intent. Run operations, reads, reporting,
+deletion, and API readiness remain available. Existing legacy schedules retain
+the old behavior until handoff; the new controller waits. This scheduling-write
+pause is automatic and requires no operator cutover.
 
-A handoff rejection means the requested operation was **not applied**. In
-particular, a rejected disable request leaves the schedule enabled; do not report
-it as paused. Retry the same operation with bounded exponential backoff after
-the rollout completes, then read the schedule back to confirm its enabled state.
-If the retry budget expires, surface the failure and inspect the managed rollout
-and API/controller logs instead of assuming the request was queued. This advice
-applies to the explicit handoff rejection; a generic connection timeout does not
-prove a create request was rejected before mutation. Check for an existing
-created schedule before resubmitting an ambiguously completed create request.
+If handoff takes longer than the wait limit, the API returns retryable
+`Unavailable` **before the schedule mutation**. For create and enable/disable,
+a handoff rejection means the requested operation was **not applied**. Transfer
+errors only guarantee that the current schedule was not staged: earlier import
+staging can already exist. Resume the same archive after resolving the error. In particular, a rejected disable request leaves
+the schedule enabled; do not report it as paused. Retry with bounded exponential
+backoff after the rollout completes, then read the schedule back to confirm its
+enabled state. If the retry budget expires, inspect the managed rollout and
+API/controller logs instead of assuming the request was queued. Definite
+configuration errors, such as missing Kubernetes permissions, fail immediately
+with `FailedPrecondition` and require correcting the configuration.
+
+This guarantee applies to an explicit handoff rejection. A generic connection
+timeout does not prove a create request was rejected before mutation: the handoff
+may already have completed. Check for an existing created schedule before
+resubmitting an ambiguously completed create request.
 
 Adoption accepts existing **database-stored schedule definitions as the upgrade
 baseline**, initializes their API-owned progress, and restores corresponding CRs
@@ -225,9 +233,10 @@ synchronize the same record on every request or prevent other records recovering
    its configuration or RBAC and allow Kubernetes to restart it.
 4. Inspect `Recurring-run reconciliation will retry schedule` diagnostics and
    the inventory below. Verify next-tick execution, disabled state, preserved
-   progress, concurrency accounting, and duplicate prevention. Recover missing
-   persistence reports or other inconsistent records while unrelated schedules
-   continue; running pipeline tasks need not drain.
+   progress, concurrency accounting, and duplicate prevention. Use the
+   [reporting recovery guide](workflow-report-recovery.md) to recover missing
+   persistence reports or investigate inconsistent records while unrelated
+   schedules continue; running pipeline tasks need not drain.
 
 The automatic handoff does not discover separate installations or external
 processes sharing the database. Deployments with changed role identities or unmanaged writers need an
@@ -489,7 +498,7 @@ The tests create and remove only their uniquely named databases/schemas. The tes
 roles need database/schema and trigger DDL privileges, plus access to MySQL
 `performance_schema.data_lock_waits`/`threads` or PostgreSQL session lock metadata.
 Without a DSN, that database's cases are skipped. These storage tests do not replace
-live schedule firing, coordinated rollout, or populated-cluster upgrade acceptance.
+live schedule firing, managed rollout, or populated-cluster upgrade acceptance.
 
 ## Scheduling regression test
 

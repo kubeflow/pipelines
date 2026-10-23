@@ -33,7 +33,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - The shared runtime-image inventory pins acquisition of the Python 3.12 image used by the cache and proxy fixtures to a Docker Hub digest. Archive creation and direct Kind loading restore its runtime tag before save/load; keep fixture image references and source declarations aligned with that tag. CI script tests check this contract whenever those fixtures change.
 
 - Frontend Vitest snapshots preserve rendered whitespace. The trailing-whitespace hook excludes `frontend/**/*.snap`; update snapshots through Vitest so formatting hooks do not alter expected UI text.
-- `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 3.4.1 (using its v3 command syntax); `manifests/kustomize/hack/presubmit.sh` already installs the pinned `kustomize` and `yq` versions. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
+- `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 4.54.1 (using its v4 command syntax); `manifests/kustomize/hack/presubmit.sh` installs pinned `kustomize` and builds pinned `yq` from `backend/api/tools` with the repository Go toolchain. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
 
 ## Common CI failures
 
@@ -206,3 +206,13 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the profile controller; the pin selects more than Istio images.
 
 - The shared deploy action provisions GitHub CLI before image artifact polling. It reuses an installed CLI or downloads a checksum-pinned Linux AMD64/ARM64 release into runner temporary storage and exports its path for later steps. Missing CLI prerequisites fail immediately instead of consuming the artifact wait window.
+
+- Adoption acceptance also exercises bounded server-side handoff waiting against
+  a replacement API Pod during a real rollout. A fixture-only, bounded controller
+  preStop hook holds a retiring writer alive; releasing it must let one pending
+  HTTP create succeed without retry. A separate request exhausts the 30-second
+  server wait, and a canceled request must not create SQL or CR state, including
+  after release. Health and list requests remain responsive. This controlled
+  overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
+  that upgrade or change production manifests. The fixture restores its original
+  controller template and records results in `reports/handoff-wait.json`.

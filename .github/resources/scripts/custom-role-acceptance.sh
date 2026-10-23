@@ -10,6 +10,28 @@ context=kind-kfp-custom-roles
 state=${RUNNER_TEMP:?}/custom-roles
 mkdir -p "$state"
 kube() { kubectl --context "$context" --request-timeout=30s "$@"; }
+# The standalone fixture needs the same writer registration grants as a normal
+# multi-user installation. Namespace transformation also scopes the subjects.
+mkdir -p "$state/handoff"
+cp manifests/kustomize/base/installs/multi-user/managed-schedule-writers.yaml "$state/handoff/"
+cat >"$state/handoff/kustomization.yaml" <<'EOF'
+resources:
+- managed-schedule-writers.yaml
+namespace: kubeflow
+patches:
+- target:
+    kind: RoleBinding
+    name: ml-pipeline-schedule-writer-handoff
+  patch: |-
+    - op: add
+      path: /subjects/0/namespace
+      value: kubeflow
+    - op: add
+      path: /subjects/1/namespace
+      value: kubeflow
+EOF
+kube apply -k "$state/handoff"
+kube -n kubeflow set env deployment/ml-pipeline-scheduledworkflow MULTIUSER=true
 # Trusted-header authentication is confined to the disposable cluster and
 # localhost forwards. This tests authorization, not ingress authentication.
 kube -n kubeflow set env deployment/ml-pipeline MULTIUSER=true \
@@ -19,6 +41,7 @@ kube -n kubeflow set env deployment/ml-pipeline MULTIUSER=true \
   COMPILED_PIPELINE_SPEC_PATCH='{}'
 kube -n kubeflow set env deployment/ml-pipeline-ui ENABLE_AUTHZ=true \
   KUBEFLOW_USERID_HEADER=kubeflow-userid KUBEFLOW_USERID_PREFIX=
+kube -n kubeflow rollout status deployment/ml-pipeline-scheduledworkflow --timeout=300s
 kube -n kubeflow rollout status deployment/ml-pipeline --timeout=300s
 kube -n kubeflow rollout status deployment/ml-pipeline-ui --timeout=300s
 pids=()

@@ -16,12 +16,30 @@ cache-server startup. Existing rows retain an empty namespace and are not reused
 by default because their ownership cannot be safely inferred. Do not backfill
 them. Normal expiry still applies to these rows.
 
-Stop all old cache-server replicas before bringing up the fixed version, and
-coordinate the webhook outage with workload submission. A mixed-version rollout
-does not provide the new isolation guarantee. Allow startup migration to complete
-before resuming submissions. Expect a cold cache, extra step executions, and
-additional resource use; pre-upgrade pods with old-format keys do not seed the new
-cache. Do not roll back to the vulnerable implementation to recover cache hits.
+The standard cache-server Deployment supports a rolling upgrade from 2.17.2.
+Apply the upgraded manifests normally; you do not need to manually stop the old
+cache-server replicas or pause submissions. Wait for the rollout to complete:
+
+```sh
+kubectl rollout status deployment/cache-server -n kubeflow
+kubectl get pods -n kubeflow -l app=cache-server \
+  -o 'custom-columns=NAME:.metadata.name,IMAGES:.spec.containers[*].image,DELETING:.metadata.deletionTimestamp'
+```
+
+Adjust the namespace for your installation and confirm only upgraded pods remain,
+including no old pods in `Terminating`. Namespace isolation is fully enforced
+only after all old cache-server processes have terminated and the new replicas
+use `enforce`. Custom installations with additional cache deployments sharing the
+database must upgrade every writer before declaring remediation complete.
+Completing the upgrade does not undo outputs reused or data disclosed earlier.
+
+Cache hits can decrease during overlap: the old reader misses after the namespace
+column is added, and an old watcher can record a completion without making it
+reusable by the fixed reader. These unowned entries cannot satisfy enforcing
+lookups or prevent a later execution from creating a scoped entry. Pre-upgrade
+pods with old-format keys also do not seed the new cache. Expect extra step
+executions and resource use as tasks next run; there is no startup cache rebuild.
+Do not roll back to the vulnerable implementation to recover cache hits.
 
 ### Temporary cache audit mode
 
@@ -61,8 +79,9 @@ kubectl rollout status deployment/cache-server -n "$NAMESPACE"
 
 Keep all cache-server replicas configured consistently and persist the setting in
 your deployment/GitOps configuration. A restart/rollout is required for environment
-changes. The coordinated initial upgrade described above still applies: stop old
-cache-server replicas before starting namespace-aware replicas.
+changes. Rolling upgrades are supported as described above. Audit mode continues
+to permit legacy reuse after rollout; completing the rollout does not make audit
+mode fully isolated.
 
 Legacy hits do not populate the new namespaced cache, and no promotion or backfill
 occurs. Return to enforcement after the migration period:

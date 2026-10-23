@@ -142,7 +142,7 @@ in the [ml-pipeline-ui-deployment.yaml](https://github.com/kubeflow/pipelines/bl
 
 For S3-compatible storage, `ALLOWED_ARTIFACT_ENDPOINTS` lists additional exact
 trusted origins; a permissive domain regex alone does not authorize a custom
-storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
+storage origin. See the [custom S3 upgrade example](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage)
 for ConfigMap, profile-proxy rollout, alias, and archived-log credential guidance.
 HTTP artifact bases use the separate setting described below.
 
@@ -274,7 +274,35 @@ configuration does not bypass namespace authorization or artifact ownership
 checks. Artifact responses remain attachments, and HTTP archive bytes remain
 unextracted.
 
+### Artifact ownership controls in 2.18
+
+The stronger ownership requirement is deferred to 3.0. The existing 2.17 lookup
+controls below remain available; they do not establish complete object ownership.
+Configure them on the authenticated serving UI, restart that process after changes,
+and keep its replicas consistent.
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `ARTIFACT_NAMESPACE_OWNERSHIP_MODE` | `mlmd-then-prefix` | Controls a successful MLMD lookup with no artifact: `mlmd-then-prefix` checks the leading namespace prefix; `mlmd-only` denies untracked artifacts. Neither value changes the retained permissive behavior for unavailable MLMD or missing tracked namespace evidence. |
+| `ARTIFACT_NAMESPACE_KEY_PREFIX` | `private-artifacts` | One literal leading object-key prefix in `<prefix>/<namespace>/...` for the no-record fallback. It does not move objects or impose a new prefix on tracked custom roots. |
+
+The unreleased `KFP_SECURITY_ARTIFACT_OWNERSHIP_MODE` and earlier
+`ARTIFACT_OWNERSHIP_ENFORCEMENT` settings are removed; neither enables artifact
+audit. The proposed `auto`/`storage` authorization modes and external-storage
+adoption policies do not ship in 2.18. See
+[artifact compatibility and retained exposure](upgrade-2.18.md#artifact-compatibility-and-retained-exposure)
+for the preserved access behavior and the separate 3.0 security work.
+
 ### TensorBoard proxy signing secret
+
+#### Standard manifests: automatic initialization
+
+The standard deployment initializes the signing key automatically during
+installation or upgrade. Kubernetes starts the UI once the key is available;
+no manual key generation or Secret editing is needed. The
+{ref}`2.18 UI signing-key guidance <prepare-the-ui-signing-key>` gives the
+normal upgrade steps and first-adoption impact. The custom configuration and
+recovery sections below are not additional steps for every installation.
 
 The frontend signs scoped TensorBoard proxy paths with
 `TENSORBOARD_PROXY_SIGNING_SECRET`. The default Kustomize installation initializes
@@ -296,17 +324,15 @@ only orders old and new UI pods. The non-optional `secretKeyRef` for
 briefly show `CreateContainerConfigError` while the Job populates the empty
 Secret; kubelet retries and starts the container when the key exists. This is
 expected and does not require an init container or Secret-read RBAC for the UI.
-Wait for the initializer Job to complete and then for the UI rollout before
-routing traffic. An existing valid shared key lets new UI pods start immediately,
-without waiting for the idempotent Job.
-If initialization fails, check the Job status, its get/update permissions, and
-whether an existing key is valid UTF-8 of at least 32 bytes with no NUL characters.
-An invalid existing key is never replaced automatically. After correcting a failed
-initialization, delete the failed Job and reapply the manifests to retry. If the Secret was deleted, restore it from
-backup before starting replacement UI pods. If restoration is impossible,
-reapply the manifests to recreate the empty Secret, delete the existing
-initializer Job, and reapply again to generate a new key. Restart all UI replicas
-together after regeneration. Reapplying alone does not rerun a completed Job.
+Kubernetes handles UI startup during the rollout. An existing valid shared key
+lets new UI pods start immediately, without waiting for the idempotent Job.
+
+#### Custom overlays and GitOps
+
+Custom overlays must retain the initializer Job and its RBAC, the named Secret,
+the UI's required Secret reference, and `Recreate` for first adoption. Updating
+only the UI image does not install these resources. If you already override the
+deployment with an externally managed key, see the configuration below.
 
 The Secret manifest intentionally omits `data` and `stringData`. Keep those
 fields absent when using automatic initialization, and preserve the Secret
@@ -325,6 +351,8 @@ pruned after upgrades; do not delete the signing Secret. If an overlay changes
 the Job pod template, also add or change a literal in its ConfigMap generator to
 force a new Job name.
 
+#### Externally managed signing keys
+
 To use an externally managed key, provide a dedicated random secret of at least
 32 UTF-8 bytes with no NUL characters and override the deployment's reference if
 necessary:
@@ -342,8 +370,10 @@ Do not reuse `MINIO_SECRET_KEY` or another application credential. The frontend
 refuses to start if the configured signing secret is shorter than 32 UTF-8 bytes
 or matches `MINIO_SECRET_KEY`.
 
-**Upgrade and rotation:** the first upgrade from a storage-derived or
-process-local key briefly interrupts the UI and invalidates existing TensorBoard
+#### Key rotation and URL lifetime
+
+The first upgrade from a storage-derived or process-local key briefly interrupts
+the UI and invalidates existing TensorBoard
 proxy URLs. Wait for the upgrade to complete, then reopen TensorBoard from the
 UI to obtain a new URL. Subsequent UI restarts and rolling updates keep URLs
 valid while the shared key remains unchanged. Deliberately replacing or losing
@@ -356,10 +386,32 @@ still generates a process-local key. This supports local development, but URLs
 expire on process restart and replicas cannot share URLs. Configure a shared key
 before enabling multiple replicas or rolling updates in custom deployments.
 
+#### Signing-key startup and recovery
+
+If UI startup remains blocked, inspect the initializer Job's status and logs and
+its get/update permissions on `ml-pipeline-ui-tensorboard-proxy`. The Job name
+includes a generated hash; use its name from the rendered manifests or installed
+Jobs rather than assuming a fixed suffix. A brief `CreateContainerConfigError`
+while the key is absent is normal; a failed Job or persistent error is not.
+Do not delete or regenerate the key as the first troubleshooting step.
+
+Check whether an existing key is valid UTF-8 of at least 32 bytes with no NUL
+characters, without printing its value in logs or support reports. An invalid
+existing key is never replaced automatically. After correcting a failed
+initialization, delete the failed Job and reapply the manifests to retry.
+
+If the Secret was deleted, restore it from backup before starting replacement UI
+pods. If restoration is impossible, reapply the manifests to recreate the empty
+Secret, delete the existing initializer Job, and reapply again to generate a new
+key. Restart all UI replicas together after regeneration; existing TensorBoard
+proxy URLs are invalidated. Reapplying alone does not rerun a completed Job.
+
 #### Enabling rolling UI updates
 
-Adopt the shared key and enable rolling updates in two separate apply or GitOps
-sync phases. Keep the same shared-key revision throughout both phases.
+Rolling UI updates are an optional customization; the standard upgrade retains
+`Recreate`. If you choose to enable them, adopt the shared key and change the
+strategy in two separate apply or GitOps sync phases. Keep the same shared-key
+revision throughout both phases.
 
 First, remove any existing rolling-update overrides and apply the shared-key
 revision with `Recreate`. If `spec.strategy.rollingUpdate` was explicitly
@@ -497,6 +549,26 @@ To return to defaults, remove the overrides and roll out the deployment. Before
 lowering `MAX_PIPELINE_SPEC_BYTES`, check stored pipelines accepted under the higher
 limit: object-store specifications may no longer be readable for subsequent execution. This
 setting does not add a new size check to the existing direct database-spec read path.
+
+### Legacy metrics file limit
+
+`MAX_METRICS_FILE_BYTES` bounds each uncompressed legacy V1 metrics file. Its default
+is 1048576 bytes (1 MiB); set a positive decimal integer on the process collecting
+legacy workflow metrics, normally the persistence agent. The collector also bounds
+the archive response and traversal. This is independent of the API's pipeline-size
+settings and does not configure native V2 metrics collection.
+
+Unset values use the default. Invalid, zero or negative values fall back to the
+default with a warning, rather than preventing startup. Review memory/concurrency
+before raising the limit, persist the setting in your deployment configuration and
+roll out the collector. There is no audit or unlimited mode.
+
+An oversized or malformed metrics file can leave an otherwise completed task without
+metrics. Review the collector's limit error, reduce the file or deliberately raise
+`MAX_METRICS_FILE_BYTES` for future collection. Completed-node permanent failures
+are not automatically replayed when the setting changes; verify a new execution
+rather than assuming old metrics will be recovered. The pre-existing metric-count
+and single-file archive rules still apply.
 
 ### Legacy V1 cache security mode
 
