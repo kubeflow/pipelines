@@ -44,6 +44,11 @@ class QualificationOsvWorkflowTest(unittest.TestCase):
                 all(step['persist-credentials'] is False for step in checkouts)
             )
 
+    def test_selected_source_cannot_access_repository_caches(self):
+        self.assertEqual(self.workflow['cache-mode'], 'none')
+        for job in self.jobs.values():
+            self.assertNotIn('cache-mode', job)
+
     def test_dispatch_title_and_local_actions_match_existing_contracts(self):
         self.assertEqual(
             self.workflow['run-name'],

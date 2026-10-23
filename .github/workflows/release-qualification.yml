@@ -27,6 +27,9 @@ on:
         type: boolean
         required: true
         default: true
+# Qualification executes the selected source; deny cache reads and writes
+# even when dispatched from master. Repository permissions do not scope caches.
+cache-mode: none
 permissions: {}
 
 env:

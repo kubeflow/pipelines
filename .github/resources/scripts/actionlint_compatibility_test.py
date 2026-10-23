@@ -58,6 +58,28 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             if path != WORKFLOW:
                 self.assertFalse(set(self.patterns) & set(settings['ignore']))
 
+    def test_cache_mode_exception_only_matches_qualification_workflow_syntax(
+        self,
+    ):
+        path = '.github/workflows/release-qualification.yml'
+        patterns = self.config['paths'][path]['ignore']
+        self.assertEqual(len(patterns), 1)
+        diagnostic = (
+            'unexpected key "cache-mode" for "workflow" section. expected one of '
+            '"concurrency", "defaults", "env", "jobs", "name", "on", '
+            '"permissions", "run-name"'
+        )
+        self.assertTrue(re.fullmatch(patterns[0], diagnostic))
+        for invalid in (
+            diagnostic.replace('cache-mode', 'cache-modes'),
+            diagnostic.replace('"workflow"', '"job"'),
+            'undefined variable "missing"',
+        ):
+            self.assertIsNone(re.search(patterns[0], invalid))
+        for other_path, settings in self.config['paths'].items():
+            if other_path != path:
+                self.assertNotIn(patterns[0], settings['ignore'])
+
     def test_generated_fields_have_supported_values(self):
         workflow = yaml.safe_load((ROOT / WORKFLOW).read_text())
         queues = []
