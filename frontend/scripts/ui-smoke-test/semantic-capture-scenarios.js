@@ -342,6 +342,29 @@ const enteredSubgraphActions = (taskName, childName, iterationName) => [
   fitGraphAction,
 ];
 
+// Native groups expand inline; root context stays visible. Start from a known
+// collapsed state so automatic expansion and saved preferences cannot invert clicks.
+const expandedNativeSubgraphActions = (taskName, childName, iterationName) => [
+  ...waitForGraph,
+  { type: 'click', selector: 'button[aria-label="Collapse all"]' },
+  { type: 'click', selector: `button[aria-label="Expand ${taskName}"][aria-expanded="false"]` },
+  ...(iterationName
+    ? [
+        {
+          type: 'click',
+          selector: `button[aria-label="Expand ${iterationName}"][aria-expanded="false"]`,
+        },
+      ]
+    : []),
+  { type: 'waitForSelector', selector: nodeDataSelector(childName, 'execution-icon-active') },
+  { type: 'waitForSelector', selector: nodeDataSelector('write-metrics', 'execution-icon-active') },
+  {
+    type: 'waitForSelector',
+    selector: `button[aria-label="Collapse ${taskName}"][aria-expanded="true"]`,
+  },
+  fitGraphAction,
+];
+
 const collapseComparisonContext = [
   ...['Run overview', 'Parameters'].map((name) => ({
     type: 'click',
@@ -1117,7 +1140,11 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: enteredSubgraphActions('Loop', 'loop-worker', 'parallel-loop.0'),
+        actions: expandedNativeSubgraphActions(
+          'parallel-loop (Loop)',
+          'loop-worker',
+          'parallel-loop.0',
+        ),
       },
     },
   },
@@ -1158,7 +1185,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: enteredSubgraphActions('nested-dag', 'nested-worker'),
+        actions: expandedNativeSubgraphActions('nested-dag', 'nested-worker'),
       },
     },
   },

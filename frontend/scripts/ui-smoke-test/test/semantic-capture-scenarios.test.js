@@ -678,8 +678,8 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     headParallelFor.actions.some(
       (action) =>
         action.type === 'click' &&
-        action.selector.includes(':has-text("Loop")') &&
-        action.selector.includes('expand-button'),
+        action.selector.includes('Expand parallel-loop (Loop)') &&
+        action.selector.includes('aria-label="Expand'),
     ),
     true,
   );
@@ -1835,7 +1835,9 @@ test('topology journeys enter the nested graph and first loop iteration', () => 
       ['topology-parallel-for', 'loop-worker', 2],
     ]) {
       const actions = byKey(scenarios, key).actions;
-      const expand = actions.filter((action) => action.selector?.includes('expand-button'));
+      const expand = actions.filter((action) =>
+        action.selector?.includes(role === 'base' ? 'expand-button' : 'aria-label="Expand'),
+      );
       assert.equal(expand.length, expansions);
       assert.ok(expand.every((action) => action.type === 'click'));
       if (expansions === 2) assert.match(expand[1].selector, /parallel-loop\.0/);
@@ -1849,7 +1851,9 @@ test('topology journeys enter the nested graph and first loop iteration', () => 
       );
       assert.ok(
         actions.some(
-          (action) => action.type === 'assertAbsent' && action.selector.includes('write-metrics'),
+          (action) =>
+            action.type === (role === 'base' ? 'assertAbsent' : 'waitForSelector') &&
+            action.selector.includes('write-metrics'),
         ),
       );
       assert.equal(
