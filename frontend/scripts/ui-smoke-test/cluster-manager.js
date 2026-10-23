@@ -1715,9 +1715,18 @@ function createKindStack(config = {}) {
     const runner = stackRunner(options);
     validatePlatform(platform, 'Manifest node platform');
     const images = extractManifestImages(fs.readFileSync(manifestPath, 'utf8'));
+    const pinnedAliases = new Map();
     const imagePlan = manifestImagePlan(images, platform, builtMixedPlatformWorkloads);
     validateMixedPlatformPullPolicies(fs.readFileSync(manifestPath, 'utf8'), imagePlan, platform);
     for (const [index, { image, platform: imagePlatform }] of imagePlan.entries()) {
+      // Docker archives saved by digest have no RepoTags. Containerd imports them under an
+      // anonymous name, which can break CRI lookup when kubelet also pulls the pinned reference.
+      // Pull the exact digest first, then export and address that image by a deterministic tag.
+      const pinned = /@sha256:[a-f0-9]{64}$/i.test(image);
+      const loadedReference = pinned
+        ? `kfp-ui-smoke/pinned:${crypto.createHash('sha256').update(`${clusterName}\0${imageScope}\0${image}\0${imagePlatform}`).digest('hex')}`
+        : image;
+      if (pinned) pinnedAliases.set(image, loadedReference);
       if (loadedImages.has(loadedImageKey(image, imagePlatform))) continue;
       pullImageForPlatform(image, imagePlatform, {
         nodePlatform: platform,
@@ -1727,17 +1736,59 @@ function createKindStack(config = {}) {
       const preflightKey = loadedImageKey(image, imagePlatform);
       const releaseSource =
         options.removeSourceAfterLoad === true && ownedPreflightedImages.has(preflightKey);
-      saveAndLoadImage(image, `manifest-image-${index}`, imagePlatform, {
+      if (pinned) {
+        assertImageTagAvailable(loadedReference, runner);
+        requireSuccess(
+          runner(
+            'docker',
+            ['image', 'tag', image, loadedReference],
+            commandOptions({ timeout: 30000 }),
+          ),
+          `Failed to tag pinned manifest image ${image}`,
+        );
+        trackOwnedImage(loadedReference, runner);
+      }
+      saveAndLoadImage(loadedReference, `manifest-image-${index}`, imagePlatform, {
         nodePlatform: platform,
-        removeSourceAfterExport: releaseSource,
+        removeSourceAfterExport: pinned || releaseSource,
         runner,
       });
+      loadedImages.add(loadedImageKey(image, imagePlatform));
+      if (releaseSource && pinned) {
+        requireSuccess(
+          runner('docker', ['image', 'rm', image], commandOptions()),
+          `Failed to release pinned manifest image ${image} after loading it`,
+        );
+      }
       if (releaseSource) {
         ownedPreflightedImages.delete(preflightKey);
         preflightedImageIds.delete(preflightKey);
       }
     }
     verifyAmd64WorkloadEmulation(imagePlan, platform, { runner });
+    if (pinnedAliases.size) {
+      const { parseAllDocuments } = require('yaml');
+      const documents = parseAllDocuments(fs.readFileSync(manifestPath, 'utf8'));
+      const replaceContainerImages = (value) => {
+        if (!value || typeof value !== 'object') return;
+        if (pinnedAliases.has(value.image)) {
+          value.image = pinnedAliases.get(value.image);
+          value.imagePullPolicy = 'IfNotPresent';
+        }
+        if (/^V2_(DRIVER|LAUNCHER)_IMAGE$/.test(value.name) && pinnedAliases.has(value.value)) {
+          value.value = pinnedAliases.get(value.value);
+        }
+        for (const nested of Array.isArray(value) ? value : Object.values(value)) {
+          replaceContainerImages(nested);
+        }
+      };
+      for (const document of documents) {
+        const resource = document.toJS({ maxAliasCount: 100 });
+        replaceContainerImages(resource);
+        document.contents = document.createNode(resource);
+      }
+      fs.writeFileSync(manifestPath, documents.map(String).join('\n---\n'));
+    }
     return images;
   }
 

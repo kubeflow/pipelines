@@ -211,7 +211,10 @@ function deploymentRunner(calls, options = {}) {
     }
     if (command === 'docker' && args[0] === 'image' && args[1] === 'inspect') {
       const image = args.at(-1);
-      if (image.startsWith('kfp-ui-smoke/') && image.includes('ui-smoke-')) {
+      if (
+        image.startsWith('kfp-ui-smoke/') &&
+        (image.includes('ui-smoke-') || image.startsWith('kfp-ui-smoke/pinned:'))
+      ) {
         return localImages.has(image)
           ? success(localImages.get(image))
           : { success: false, error: `No such image: ${image}` };
@@ -2586,5 +2589,72 @@ spec:
         manifest.replaceAll('ml-pipeline-ui-signing-key-init-abc123', 'unrelated'),
       )
       .includes('ghcr.io/kubeflow/kfp-frontend:dummy'),
+  );
+});
+
+test('digest-pinned manifest images are loaded under stable local tags', (t) => {
+  const calls = [];
+  const image = `mysql:8.4.11@sha256:${'b'.repeat(64)}`;
+  const stack = createTestStack(t, { runner: deploymentRunner(calls) });
+  const manifestPath = path.join(stack.archiveDir, 'pinned.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(manifestPath, renderedManifest([image]));
+
+  stack.preloadManifestImages(manifestPath, 'linux/amd64');
+
+  const tag = calls.find(
+    ({ command, args }) => command === 'docker' && args[0] === 'image' && args[1] === 'tag',
+  );
+  assert.ok(tag, 'digest-only Docker archives must have an explicit image tag');
+  assert.equal(tag.args[2], image);
+  assert.match(tag.args[3], /^kfp-ui-smoke\/pinned:[a-f0-9]{64}$/);
+  assert.ok(
+    calls.some(
+      ({ command, args }) =>
+        command === 'docker' &&
+        args[0] === 'pull' &&
+        args.at(-1) === image &&
+        args.includes('linux/amd64'),
+    ),
+  );
+  assert.ok(
+    calls.some(
+      ({ command, args }) =>
+        command === 'docker' && args[0] === 'save' && args.at(-1) === tag.args[3],
+    ),
+  );
+  const resources = parseAllDocuments(fs.readFileSync(manifestPath, 'utf8')).map((document) =>
+    document.toJS(),
+  );
+  const container = resources.find((resource) => resource.kind === 'Deployment').spec.template.spec
+    .containers[0];
+  assert.equal(container.image, tag.args[3]);
+  assert.equal(container.imagePullPolicy, 'IfNotPresent');
+});
+
+test('failed digest-image tagging does not rewrite or load the manifest', (t) => {
+  const calls = [];
+  const runner = deploymentRunner(calls);
+  const image = `mysql:8.4.11@sha256:${'c'.repeat(64)}`;
+  const stack = createTestStack(t, {
+    runner: (command, args, options) => {
+      const result = runner(command, args, options);
+      return command === 'docker' && args[0] === 'image' && args[1] === 'tag'
+        ? { success: false, error: 'tagging failed' }
+        : result;
+    },
+  });
+  const manifestPath = path.join(stack.archiveDir, 'pinned.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  const original = renderedManifest([image]);
+  fs.writeFileSync(manifestPath, original);
+  assert.throws(
+    () => stack.preloadManifestImages(manifestPath, 'linux/amd64'),
+    /Failed to tag pinned manifest image/,
+  );
+  assert.equal(fs.readFileSync(manifestPath, 'utf8'), original);
+  assert.equal(
+    calls.some(({ command }) => command === 'kind'),
+    false,
   );
 });
