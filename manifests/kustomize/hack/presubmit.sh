@@ -33,11 +33,9 @@ curl -s -LO "https://github.com/kubernetes-sigs/kustomize/releases/download/kust
 tar -xzf kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz
 chmod +x kustomize
 
-# Install yq
-# Reference: https://github.com/mikefarah/yq/releases/tag/3.4.1
-curl -s -LO "https://github.com/mikefarah/yq/releases/download/3.4.1/yq_linux_amd64"
-chmod +x yq_linux_amd64
-mv yq_linux_amd64 yq
+# Build pinned yq with the repository's patched Go toolchain and dependencies.
+(cd "${DIR}/../../../backend/api/tools" && \
+  GOTOOLCHAIN=local go build -mod=readonly -o "${TMP}/yq" github.com/mikefarah/yq/v4)
 
 # Install kpt
 KPT_VERSION=1.0.0-beta.54

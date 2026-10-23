@@ -16,7 +16,7 @@
 
 set -ex
 
-TAG_NAME=$1
+export TAG_NAME=$1
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 MANIFEST_DIR="${DIR}/.."
 
@@ -25,7 +25,7 @@ if [[ -z "$TAG_NAME" ]]; then
   exit 1
 fi
 
-echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/3.3.0"
+echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/v4.54.1"
 kustomization_yamls_with_images=(
   "base/cache-deployer/kustomization.yaml"
   "base/cache/kustomization.yaml"
@@ -36,18 +36,14 @@ kustomization_yamls_with_images=(
 )
 for path in "${kustomization_yamls_with_images[@]}"
 do
-  yq w -i "${MANIFEST_DIR}/$path" images[*].newTag "$TAG_NAME"
+  yq eval -i '.images[].newTag = strenv(TAG_NAME)' "${MANIFEST_DIR}/$path"
 done
 
-yq w -i "${MANIFEST_DIR}/base/installs/generic/pipeline-install-config.yaml" data.appVersion "$TAG_NAME"
+yq eval -i '.data.appVersion = strenv(TAG_NAME)' "${MANIFEST_DIR}/base/installs/generic/pipeline-install-config.yaml"
 
 ## Driver & Launcher images are added as environment variables
 API_SERVER_MANIFEST="${MANIFEST_DIR}/base/pipeline/ml-pipeline-apiserver-deployment.yaml"
 
-yq w -i ${API_SERVER_MANIFEST} \
-  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_LAUNCHER_IMAGE).value" \
-  "ghcr.io/kubeflow/kfp-launcher:${TAG_NAME}"
+yq eval -i '(.spec.template.spec.containers[] | select(.name == "ml-pipeline-api-server") | .env[] | select(.name == "V2_LAUNCHER_IMAGE").value) = "ghcr.io/kubeflow/kfp-launcher:" + strenv(TAG_NAME)' "${API_SERVER_MANIFEST}"
 
-yq w -i ${API_SERVER_MANIFEST} \
-  "spec.template.spec.containers.(name==ml-pipeline-api-server).env.(name==V2_DRIVER_IMAGE).value" \
-  "ghcr.io/kubeflow/kfp-driver:${TAG_NAME}"
+yq eval -i '(.spec.template.spec.containers[] | select(.name == "ml-pipeline-api-server") | .env[] | select(.name == "V2_DRIVER_IMAGE").value) = "ghcr.io/kubeflow/kfp-driver:" + strenv(TAG_NAME)' "${API_SERVER_MANIFEST}"

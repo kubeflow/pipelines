@@ -30,7 +30,7 @@ def render(path, allow_external_patches=False):
     if allow_external_patches:
         command.append('--load-restrictor=LoadRestrictionsNone')
     yaml = subprocess.check_output(command, text=True)
-    encoded = subprocess.check_output(['yq', 'r', '-d', '*', '-j', '-'],
+    encoded = subprocess.check_output(['yq', 'eval', '-o=json', '.', '-'],
                                       input=yaml,
                                       text=True)
     decoder = json.JSONDecoder()

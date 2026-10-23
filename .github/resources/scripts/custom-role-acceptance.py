@@ -163,6 +163,23 @@ def request(port, user, method, path, value=None, upload=None):
         connection.close()
 
 
+def schedule_handoff(status, raw):
+    if status != 503:
+        return False
+    try:
+        value = json.loads(raw)
+    except (ValueError, UnicodeError, RecursionError):
+        return False
+    if not isinstance(value, dict) or value.get('code') != 14:
+        return False
+    details = value.get('details')
+    return isinstance(details, list) and any(
+        isinstance(detail, dict) and
+        detail.get('@type') == 'type.googleapis.com/google.rpc.ErrorInfo' and
+        detail.get('reason') == 'SCHEDULE_HANDOFF_IN_PROGRESS' and
+        detail.get('domain') == 'kubeflow.org' for detail in details)
+
+
 class Matrix:
 
     def __init__(self):
@@ -176,12 +193,21 @@ class Matrix:
               expected=200,
               expected_upload_scope=None,
               **kwargs):
-        status, raw = request(8888, user, method, path, **kwargs)
+        handoff_retries = 0
+        while True:
+            status, raw = request(8888, user, method, path, **kwargs)
+            if (method != 'POST' or path != '/apis/v2beta1/recurringruns' or
+                    not schedule_handoff(status, raw) or handoff_retries == 4):
+                break
+            # Only this typed response guarantees creation was not applied.
+            time.sleep(2**handoff_retries)
+            handoff_retries += 1
         self.cases.append(
             dict(
                 name=name,
                 expected_status=expected,
                 status=status,
+                handoff_retries=handoff_retries,
                 passed=status == expected))
         if status != expected:
             raise RuntimeError('unexpected_status_' + name)

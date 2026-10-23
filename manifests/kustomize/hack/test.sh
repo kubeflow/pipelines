@@ -39,7 +39,7 @@ kustomization_yamls=(
 )
 for path in "${kustomization_yamls[@]}"
 do
-  kubectl kustomize "${MANIFESTS_DIR}/${path}" | yq read --tojson --doc '*' - | \
+  kubectl kustomize "${MANIFESTS_DIR}/${path}" | yq eval -o=json '.' - | \
     python3 "${DIR}/schedule_writer_rbac_test.py" standalone
 done
 
@@ -53,17 +53,18 @@ kustomization_yamls_v3=(
 for path in "${kustomization_yamls_v3[@]}"
 do
   {
-    kustomize build "${MANIFESTS_DIR}/${path}" | yq read --tojson --doc '*' - || exit 1
+    kustomize build "${MANIFESTS_DIR}/${path}" | yq eval -o=json '.' - || exit 1
     # The base installation expects metacontroller to be installed separately.
     if [[ "${path}" == "base/installs/multi-user" ]]; then
       kustomize build "${MANIFESTS_DIR}/third-party/metacontroller/base" | \
-        yq read --tojson --doc '*' - || exit 1
+        yq eval -o=json '.' - || exit 1
     fi
   } | python3 "${DIR}/profile_controller_networkpolicy_test.py"
-  kustomize build "${MANIFESTS_DIR}/${path}" | yq read --tojson --doc '*' - | \
+  kustomize build "${MANIFESTS_DIR}/${path}" | yq eval -o=json '.' - | \
     python3 "${DIR}/schedule_writer_rbac_test.py" multi-user
 done
 
 python3 "${DIR}/tensorboard_signing_key_test.py"
+python3 "${DIR}/yq_release_test.py"
 
 kpt pkg tree "${MANIFESTS_DIR}" >/dev/null
