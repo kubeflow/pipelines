@@ -301,6 +301,16 @@ message Run {
   // experiment_id omitted, this selects the namespace whose default
   // experiment the run is placed in.
   string namespace = 24;
+
+  // Output only. Deployment-selected workload executor for this run.
+  string executor_type = 25 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {read_only: true}];
+
+  // Output only. Deployment-selected pipeline run workspace provisioner.
+  string workspace_provisioner = 26 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {read_only: true}];
+
+  // Output only. Safe description of the pipeline run workspace, without
+  // internal workspace references, filesystem paths, or credentials.
+  string workspace_description = 27 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {read_only: true}];
 }
 
 // Reference to an existing pipeline version.

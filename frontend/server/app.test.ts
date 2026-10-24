@@ -641,6 +641,74 @@ describe('UIServer apis', () => {
       }
     });
 
+    it.each([
+      ['false', 200],
+      ['false', 403],
+      ['true', 200],
+      ['true', 403],
+    ])(
+      'proxies managed task logs without Kubernetes when Pod streaming is %s, preserving status %s',
+      async (streamLogs, status) => {
+        const podLogs = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPodLog');
+        const upstreamRequests: Array<{
+          path: string;
+          user: string | string[] | undefined;
+          authorization: string | undefined;
+        }> = [];
+        kfpApiServer = express()
+          .all('/*', (req, res) => {
+            upstreamRequests.push({
+              path: req.originalUrl,
+              user: req.headers['kubeflow-userid'],
+              authorization: req.headers.authorization,
+            });
+            res.status(status).type('text/html').send('managed task output');
+          })
+          .listen(0);
+        await waitForListening(kfpApiServer);
+        const address = kfpApiServer.address();
+        if (!address || typeof address === 'string') throw new Error('Expected TCP port');
+        app = new UIServer(
+          loadConfigs(argv, {
+            ML_PIPELINE_SERVICE_HOST: 'localhost',
+            ML_PIPELINE_SERVICE_PORT: `${address.port}`,
+            STREAM_LOGS_FROM_SERVER_API: streamLogs,
+            AUTH_ENABLED: 'true',
+          }),
+        );
+
+        const response = await requests(app.app)
+          .get('/pipeline/k8s/pod/logs?runid=run%2Fid&taskid=task-uuid')
+          .set('kubeflow-userid', 'user@example.com')
+          .set('Authorization', 'Bearer test-token')
+          .expect(status);
+
+        expect(upstreamRequests).toEqual([
+          {
+            path: '/apis/v2/runs/run%2Fid/nodes/task-uuid/log',
+            user: 'user@example.com',
+            authorization: 'Bearer test-token',
+          },
+        ]);
+        expect(podLogs).not.toHaveBeenCalled();
+        expect(response.text).toBe('managed task output');
+        expect(response.headers['content-type']).toBe('text/plain; charset=utf-8');
+        expect(response.headers['content-disposition']).toBe('attachment');
+        expect(response.headers['x-content-type-options']).toBe('nosniff');
+      },
+    );
+
+    it.each([
+      'taskid=task-uuid',
+      'runid=run&taskid=',
+      'runid=run&taskid=..',
+      'runid=run&taskid=.',
+      'runid=run&taskid=a&taskid=b',
+    ])('rejects invalid managed task log proxy parameters: %s', async (query) => {
+      app = new UIServer(loadConfigs(argv, { STREAM_LOGS_FROM_SERVER_API: 'false' }));
+      await requests(app.app).get(`/k8s/pod/logs?${query}`).expect(400);
+    });
+
     it('forces HTML log responses to download without MIME sniffing', async () => {
       kfpApiServer = express()
         .all('/*', (_, res) => {

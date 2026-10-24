@@ -27,6 +27,9 @@ Name | Type | Description | Notes
 **task_count** | **int** |  | [optional] 
 **tasks** | [**list[V2PipelineTask]**](V2PipelineTask.md) |  | [optional] 
 **namespace** | **str** | Optional input field. Namespace this run belongs to. Derived from the parent experiment when experiment_id is set. In multi-user mode with experiment_id omitted, this selects the namespace whose default experiment the run is placed in. | [optional] 
+**executor_type** | **str** | Output only. Deployment-selected workload executor for this run. | [optional] [readonly] 
+**workspace_provisioner** | **str** | Output only. Deployment-selected pipeline run workspace provisioner. | [optional] [readonly] 
+**workspace_description** | **str** | Output only. Safe description of the pipeline run workspace, without internal workspace references, filesystem paths, or credentials. | [optional] [readonly] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

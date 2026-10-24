@@ -28,6 +28,30 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class V2DeploymentContractTest(unittest.TestCase):
+    def test_tls_lanes_read_the_certificate_secret(self):
+        certificate = yaml.safe_load(
+            (
+                ROOT
+                / 'manifests/kustomize/env/cert-manager/base-tls-certs/kfp-api-cert.yaml'
+            ).read_text()
+        )
+        secret_name = certificate['spec']['secretName']
+        for filename in ('api-server-tests.yml', 'e2e-test.yml'):
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / filename).read_text()
+            )
+            for job_name, job in workflow['jobs'].items():
+                for step in job.get('steps', []):
+                    if (
+                        step.get('name')
+                        != 'Configure Cluster CA Cert for TLS-Enabled Tests'
+                    ):
+                        continue
+                    with self.subTest(workflow=filename, job=job_name):
+                        self.assertIn(
+                            f'kubectl get secret {secret_name} ', step['run']
+                        )
+
     def test_api_and_ui_probes_use_v2_healthz(self):
         for filename, count in (
             ('ml-pipeline-apiserver-deployment.yaml', 3),

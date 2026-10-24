@@ -84,7 +84,8 @@ type TaskStoreInterface interface {
 	// ListChildTasksByParentAndRun fetches child tasks for a specific parent task scoped to a run.
 	ListChildTasksByParentAndRun(parentTaskID, runID string, opts *list.Options) ([]*model.Task, int, string, error)
 
-	// UpdateTask Updates an existing task entry in the database.
+	// UpdateTask is a trusted internal update. Launcher/API reports must use
+	// ReportTasks so attempt and cancellation fences cover every written field.
 	UpdateTask(new *model.Task) (*model.Task, error)
 
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
@@ -105,6 +106,10 @@ type TaskStoreInterface interface {
 
 	// FindLatestCachedTask returns the newest succeeded task for a fingerprint.
 	FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error)
+
+	// FindLatestSucceededTaskByFingerprint returns the newest succeeded task
+	// in a namespace with the given cache fingerprint.
+	FindLatestSucceededTaskByFingerprint(namespace, fingerprint string) (*model.Task, error)
 }
 
 type TaskStore struct {
@@ -543,7 +548,16 @@ func writeOptionalInt64(buffer *bytes.Buffer, value *int64) error {
 	return binary.Write(buffer, binary.BigEndian, *value)
 }
 
+type taskSQLExecutor interface {
+	Exec(string, ...any) (sql.Result, error)
+	QueryRow(string, ...any) *sql.Row
+}
+
 func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error) {
+	return s.findTaskByLogicalKeyWithExecutor(s.db, logicalKey)
+}
+
+func (s *TaskStore) findTaskByLogicalKeyWithExecutor(executor taskSQLExecutor, logicalKey string) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	rowSQL, rowArgs, err := qb.
@@ -554,7 +568,7 @@ func (s *TaskStore) findTaskByLogicalKey(logicalKey string) (*model.Task, error)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create logical task key query: %v", err.Error())
 	}
-	task, err := scanTaskRow(s.db.QueryRow(rowSQL, rowArgs...))
+	task, err := scanTaskRow(executor.QueryRow(rowSQL, rowArgs...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -576,14 +590,21 @@ func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, er
 }
 
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
+	return s.createTaskWithExecutor(s.db, task)
+}
+
+func (s *TaskStore) createTaskWithExecutor(executor taskSQLExecutor, task *model.Task) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	existingTask, err := s.FindTaskByLogicalIdentity(task)
+	logicalKey, err := taskLogicalKey(task)
 	if err != nil {
 		return nil, err
 	}
-	if existingTask != nil {
-		return existingTask, nil
+	if logicalKey != nil {
+		existingTask, err := s.findTaskByLogicalKeyWithExecutor(executor, *logicalKey)
+		if err != nil || existingTask != nil {
+			return existingTask, err
+		}
 	}
 
 	// Set up UUID for task.
@@ -668,7 +689,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to marshal type attributes in a new task")
 	}
 
-	sql, args, err := qb.
+	query, args, err := qb.
 		Insert(q(tableName)).
 		SetMap(
 			sq.Eq{
@@ -701,18 +722,64 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
 			err.Error())
 	}
-	_, err = s.db.Exec(sql, args...)
+	if tx, ok := executor.(*sql.Tx); ok {
+		if _, err := tx.Exec("SAVEPOINT runtime_report_create_task"); err != nil {
+			return nil, err
+		}
+	}
+	_, err = executor.Exec(query, args...)
 	if err != nil {
+		if tx, ok := executor.(*sql.Tx); ok {
+			if _, rollbackErr := tx.Exec("ROLLBACK TO SAVEPOINT runtime_report_create_task"); rollbackErr != nil {
+				return nil, errors.Join(err, rollbackErr)
+			}
+		}
 		if newTask.LogicalKey != nil {
-			existingTask, findErr := s.findTaskByLogicalKey(*newTask.LogicalKey)
+			existingTask, findErr := s.findTaskByLogicalKeyWithExecutor(executor, *newTask.LogicalKey)
 			if findErr == nil && existingTask != nil {
+				if tx, ok := executor.(*sql.Tx); ok {
+					if _, err := tx.Exec("RELEASE SAVEPOINT runtime_report_create_task"); err != nil {
+						return nil, err
+					}
+				}
 				return existingTask, nil
 			}
 		}
 		return nil, util.NewInternalServerError(err, "Failed to add task to task table: %v",
 			err.Error())
 	}
+	if tx, ok := executor.(*sql.Tx); ok {
+		if _, err := tx.Exec("RELEASE SAVEPOINT runtime_report_create_task"); err != nil {
+			return nil, err
+		}
+	}
 	return &newTask, nil
+}
+
+func (s *TaskStore) FindLatestSucceededTaskByFingerprint(namespace, fingerprint string) (*model.Task, error) {
+	sqlQuery, args, err := sq.
+		Select(taskColumns...).
+		From(tableName).
+		Where(sq.Eq{
+			"Namespace":   namespace,
+			"Fingerprint": fingerprint,
+			"State":       model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		}).
+		OrderBy("CreatedAtInSec DESC").
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to fetch succeeded task by fingerprint")
+	}
+	row := s.db.QueryRow(sqlQuery, args...)
+	task, scanErr := scanTaskRow(row)
+	if scanErr == sql.ErrNoRows {
+		return nil, nil
+	}
+	if scanErr != nil {
+		return nil, util.NewInternalServerError(scanErr, "Failed to fetch succeeded task by fingerprint")
+	}
+	return task, nil
 }
 
 // ListTasks Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
@@ -1076,9 +1143,8 @@ func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error)
 // UpdateTask updates an existing task in the tasks table and returns the updated task.
 // Uses row-level locking to prevent race conditions when multiple concurrent updates
 // try to modify the same task (e.g., loop iterations propagating parameters to parent task).
+// External launcher/API callers must use ReportTasks, not this trusted method.
 func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
 	if new == nil {
 		return nil, util.NewInvalidInputError("Failed to update task: task cannot be nil")
 	}
@@ -1097,11 +1163,45 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}()
 
+	if err := s.updateTaskInTransaction(tx, new, false); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to commit transaction for task update")
+	}
+	return s.GetTask(new.UUID)
+}
+
+// updateTaskInTransaction shares task merge semantics with runtime checkpoints.
+// The caller owns the transaction and must guard the current execution attempt.
+func (s *TaskStore) updateTaskInTransaction(tx *sql.Tx, new *model.Task, finalizing bool) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
 	// This prevents other concurrent updates from reading the same old state
 	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if !finalizing && terminalRuntimeTask(new.State) {
+		query, args, err := qb.Select(q("TaskUUID")).From(q("runtime_tasks")).
+			Where(sq.Eq{q("TaskUUID"): new.UUID}).ToSql()
+		if err != nil {
+			return fmt.Errorf("build runtime publication guard: %w", err)
+		}
+		var runtimeID string
+		err = tx.QueryRow(query, args...).Scan(&runtimeID)
+		switch {
+		case err == nil:
+			// Launcher reports may contain outputs before durable publication.
+			// Only RuntimeStore.Finalize can make these eligible for cache reuse.
+			provisional := *new
+			provisional.State = model.TaskStatus(apiv2.PipelineTask_RUNNING)
+			provisional.FinishedInSec = 0
+			new = &provisional
+		case !errors.Is(err, sql.ErrNoRows):
+			return fmt.Errorf("check runtime publication guard: %w", err)
+		}
 	}
 
 	// Use the locked version for merging instead of the 'old' parameter
@@ -1151,7 +1251,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 			}
 			newEntry, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskStatus{taskStatus})
 			if err != nil {
-				return nil, util.NewInternalServerError(err, "Failed to create state history entry")
+				return util.NewInternalServerError(err, "Failed to create state history entry")
 			}
 			if len(newEntry) > 0 {
 				mergedHistory = append(mergedHistory, newEntry[0])
@@ -1162,7 +1262,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		if b, err := json.Marshal(mergedHistory); err == nil {
 			setMap[q("StateHistory")] = string(b)
 		} else {
-			return nil, util.NewInternalServerError(err, "Failed to marshal state history in an updated task")
+			return util.NewInternalServerError(err, "Failed to marshal state history in an updated task")
 		}
 	}
 
@@ -1183,14 +1283,14 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		if b, err := json.Marshal(new.StatusMetadata); err == nil {
 			setMap[q("StatusMetadata")] = string(b)
 		} else {
-			return nil, util.NewInternalServerError(err, "Failed to marshal status metadata in an updated task")
+			return util.NewInternalServerError(err, "Failed to marshal status metadata in an updated task")
 		}
 	}
 	if new.Pods != nil {
 		if b, err := json.Marshal(new.Pods); err == nil {
 			setMap[q("pods")] = string(b)
 		} else {
-			return nil, util.NewInternalServerError(err, "Failed to marshal pod names in an updated task")
+			return util.NewInternalServerError(err, "Failed to marshal pod names in an updated task")
 		}
 	}
 
@@ -1201,12 +1301,12 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		oldInputParams := lockedOld.InputParameters
 		merged, err := mergeParameters(oldInputParams, new.InputParameters)
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to merge input parameters in an updated task")
+			return util.NewInternalServerError(err, "Failed to merge input parameters in an updated task")
 		}
 		if b, err := json.Marshal(merged); err == nil {
 			setMap[q("InputParameters")] = string(b)
 		} else {
-			return nil, util.NewInternalServerError(err, "Failed to marshal input parameters in an updated task")
+			return util.NewInternalServerError(err, "Failed to marshal input parameters in an updated task")
 		}
 	}
 
@@ -1218,12 +1318,12 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 		merged, err := mergeParameters(oldOutputParams, new.OutputParameters)
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to merge output parameters in an updated task")
+			return util.NewInternalServerError(err, "Failed to merge output parameters in an updated task")
 		}
 		if b, err := json.Marshal(merged); err == nil {
 			setMap[q("OutputParameters")] = string(b)
 		} else {
-			return nil, util.NewInternalServerError(err, "Failed to marshal output parameters in an updated task")
+			return util.NewInternalServerError(err, "Failed to marshal output parameters in an updated task")
 		}
 	}
 
@@ -1231,7 +1331,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		if b, err := json.Marshal(new.TypeAttrs); err == nil {
 			setMap[q("TypeAttrs")] = string(b)
 		} else {
-			return nil, util.NewInternalServerError(err, "Failed to marshal type attributes in an updated task")
+			return util.NewInternalServerError(err, "Failed to marshal type attributes in an updated task")
 		}
 	}
 
@@ -1251,11 +1351,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	}
 
 	if len(setMap) == 0 {
-		// Nothing to update; commit transaction and return current record
-		if err := tx.Commit(); err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to commit transaction (no changes)")
-		}
-		return s.GetTask(new.UUID)
+		return nil
 	}
 
 	// Build UPDATE query
@@ -1265,26 +1361,21 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		Where(sq.Eq{q("UUID"): new.UUID}).
 		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to update task: %v", err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to update task: %v", err.Error())
 	}
 
 	// Execute UPDATE within the transaction
 	// The row is already locked by our SELECT FOR UPDATE, so this is safe
 	res, err := tx.Exec(sqlStr, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to update task: %v", err.Error())
+		return util.NewInternalServerError(err, "Failed to update task: %v", err.Error())
 	}
-	if rows, _ := res.RowsAffected(); rows == 0 {
-		return nil, util.NewResourceNotFoundError("task", new.UUID)
+	if _, err := res.RowsAffected(); err != nil {
+		return util.NewInternalServerError(err, "Failed to determine updated task count")
 	}
-
-	// Commit the transaction to release the row lock and make changes visible
-	if err := tx.Commit(); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to commit transaction for task update")
-	}
-
-	glog.Infof("Successfully updated task %s with row-level locking", new.UUID)
-	return s.GetTask(new.UUID)
+	// The locked read proved existence; MySQL can report zero changed rows for
+	// an idempotent checkpoint even though the task still exists.
+	return nil
 }
 
 func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
@@ -1334,7 +1425,28 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 
 	retryStartedAt := s.time.Now().Unix()
 	emptyJSONArray := "[]"
+	runtime := &runtimeStore{tasks: s}
 	for _, task := range tasks {
+		runtimeSQL, runtimeArgs, err := qb.Select(q("AttemptUUID")).From(q("runtime_tasks")).
+			Where(sq.Eq{q("TaskUUID"): task.UUID}).ToSql()
+		if err != nil {
+			return fmt.Errorf("build manual retry attempt fence: %w", err)
+		}
+		var attemptID sql.NullString
+		err = tx.QueryRow(s.dbDialect.SelectForUpdate(runtimeSQL), runtimeArgs...).Scan(&attemptID)
+		if err == nil {
+			if attemptID.Valid {
+				task.StateHistory, err = runtime.snapshotAttemptHistory(task, attemptID.String)
+				if err != nil {
+					return err
+				}
+			}
+			if err := runtime.deleteOutputRelationships(tx, task); err != nil {
+				return err
+			}
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("read manual retry attempt fence: %w", err)
+		}
 		mergedHistory := task.StateHistory
 		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != model.TaskStatus(apiv2.PipelineTask_RUNNING) {
 			taskStatus := &apiv2.PipelineTask_TaskStatus{
@@ -1375,6 +1487,15 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		if _, err := tx.Exec(updateSQL, updateArgs...); err != nil {
 			return util.NewInternalServerError(err, "Failed to reset retry task %s: %v", task.UUID, err.Error())
 		}
+	}
+
+	deleteRuntimeSQL, deleteRuntimeArgs, err := qb.Delete(q("runtime_tasks")).
+		Where(sq.Eq{q("TaskUUID"): taskIDs}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build runtime attempt invalidation for task retry")
+	}
+	if _, err := tx.Exec(deleteRuntimeSQL, deleteRuntimeArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to invalidate runtime attempts for task retry")
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1421,23 +1542,31 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 		return key, nil
 	}
 	mergedParams := map[string]*apiv2.PipelineTask_InputOutputs_IOParameter{}
-	for _, p := range oldParams {
+	orderedKeys := make([]string, 0, len(oldParams)+len(newParams))
+	addOrReplace := func(p *apiv2.PipelineTask_InputOutputs_IOParameter) error {
 		key, err := makeKey(p)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		if _, ok := mergedParams[key]; !ok {
+			orderedKeys = append(orderedKeys, key)
 		}
 		mergedParams[key] = p
+		return nil
+	}
+	for _, p := range oldParams {
+		if err := addOrReplace(p); err != nil {
+			return nil, err
+		}
 	}
 	for _, p := range newParams {
-		key, err := makeKey(p)
-		if err != nil {
+		if err := addOrReplace(p); err != nil {
 			return nil, err
 		}
-		mergedParams[key] = p
 	}
 	paramsSlice := make([]*apiv2.PipelineTask_InputOutputs_IOParameter, 0, len(mergedParams))
-	for _, p := range mergedParams {
-		paramsSlice = append(paramsSlice, p)
+	for _, key := range orderedKeys {
+		paramsSlice = append(paramsSlice, mergedParams[key])
 	}
 	parameters, err := model.ProtoSliceToJSONSlice(paramsSlice)
 	if err != nil {

@@ -33,6 +33,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/fileblob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
@@ -427,6 +428,9 @@ func getS3BucketCredential(
 			err = fmt.Errorf("failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
 		}
 	}()
+	if clientSet == nil {
+		return nil, fmt.Errorf("a Kubernetes client is unavailable; configure non-Kubernetes bucket credentials such as from_env instead of Secret-backed credentials")
+	}
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(
 		ctx,
 		secretName,

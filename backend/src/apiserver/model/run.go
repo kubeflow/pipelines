@@ -261,9 +261,12 @@ func (r *Run) ToV2() *Run {
 
 // Stores runtime information about a pipeline run.
 type RunDetails struct {
-	CreatedAtInSec   int64 `gorm:"column:CreatedAtInSec; not null;index:experimentuuid_createatinsec,priority:2; index:namespace_createatinsec,priority:2"`
-	ScheduledAtInSec int64 `gorm:"column:ScheduledAtInSec; default:0;"`
-	FinishedAtInSec  int64 `gorm:"column:FinishedAtInSec; default:0; index:experimentuuid_conditions_finishedatinsec,priority:3;index:namespace_conditions_finishedatinsec,priority:3"`
+	ExecutorType         *string   `gorm:"column:ExecutorType;type:varchar(191);"`
+	WorkspaceProvisioner *string   `gorm:"column:WorkspaceProvisioner;type:varchar(191);"`
+	WorkspaceReference   *JSONData `gorm:"column:WorkspaceReference;type:json;"`
+	CreatedAtInSec       int64     `gorm:"column:CreatedAtInSec; not null;index:experimentuuid_createatinsec,priority:2; index:namespace_createatinsec,priority:2"`
+	ScheduledAtInSec     int64     `gorm:"column:ScheduledAtInSec; default:0;"`
+	FinishedAtInSec      int64     `gorm:"column:FinishedAtInSec; default:0; index:experimentuuid_conditions_finishedatinsec,priority:3;index:namespace_conditions_finishedatinsec,priority:3"`
 	// Conditions were deprecated. Use State instead.
 	// varchar(125) is carefully chosen to ensure composite index constraints remain
 	// within MySQL's 767-byte limit (e.g., when combined with ExperimentId and FinishedAtInSec).

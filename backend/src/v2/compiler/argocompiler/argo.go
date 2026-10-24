@@ -27,6 +27,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
@@ -613,43 +614,6 @@ var dummyImages = map[string]bool{
 	"argostub/deletepvc": true,
 }
 
-// convertStructToPVCSpec converts a protobuf Struct to a PersistentVolumeClaimSpec using JSON marshaling/unmarshalling.
-func convertStructToPVCSpec(structVal *structpb.Struct) (*k8score.PersistentVolumeClaimSpec, error) {
-	if structVal == nil {
-		return nil, nil
-	}
-	jsonBytes, err := structVal.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-
-	// Strict validation: check for unknown fields
-	var patchMap map[string]interface{}
-	if err := json.Unmarshal(jsonBytes, &patchMap); err != nil {
-		return nil, err
-	}
-	// List of allowed fields in PersistentVolumeClaimSpec
-	allowed := map[string]struct{}{
-		"accessModes":      {},
-		"storageClassName": {},
-	}
-	var unknown []string
-	for k := range patchMap {
-		if _, ok := allowed[k]; !ok {
-			unknown = append(unknown, k)
-		}
-	}
-	if len(unknown) > 0 {
-		return nil, fmt.Errorf("unknown fields in PVC spec patch: %v", unknown)
-	}
-
-	var pvcSpec k8score.PersistentVolumeClaimSpec
-	if err := json.Unmarshal(jsonBytes, &pvcSpec); err != nil {
-		return nil, err
-	}
-	return &pvcSpec, nil
-}
-
 // GetWorkspacePVC constructs a PersistentVolumeClaim for the workspace.
 // It uses the default PVC spec (from API server config), and applies any user-specified
 // overrides from the pipeline spec, including the requested storage size.
@@ -658,60 +622,20 @@ func GetWorkspacePVC(
 	workspace *pipelinespec.WorkspaceConfig,
 	opts *Options,
 ) (k8score.PersistentVolumeClaim, error) {
-	sizeStr := workspace.GetSize()
-	if sizeStr == "" {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace size is required but not specified")
-	}
-
-	k8sWorkspace := workspace.GetKubernetes()
-	var pvcSpec k8score.PersistentVolumeClaimSpec
-	// If no default workspace spec is configured, users can still use workspaces.
-	// This allows workspace usage without requiring default configuration.
+	var defaults *k8score.PersistentVolumeClaimSpec
 	if opts != nil && opts.DefaultWorkspace != nil {
-		pvcSpec = *opts.DefaultWorkspace.DeepCopy()
+		defaults = opts.DefaultWorkspace
 	}
-	if k8sWorkspace != nil {
-		if k8sWorkspacePVCSpec := k8sWorkspace.GetPvcSpecPatch(); k8sWorkspacePVCSpec != nil {
-			userPatch, err := convertStructToPVCSpec(k8sWorkspacePVCSpec)
-			if err != nil {
-				return k8score.PersistentVolumeClaim{}, err
-			}
-			pvcSpec = *util.PatchPVCSpec(&pvcSpec, userPatch)
-		}
-	}
-
-	// Access modes define the read/write semantics for the underlying volume and
-	// gate whether multiple pods can mount it concurrently. It is required when creating the
-	// underlying PVC for the workspace.
-	if len(pvcSpec.AccessModes) == 0 {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify accessModes")
-	}
-
-	// Allow nil storageClassName so Kubernetes can apply the cluster default.
-	// Explicit empty string requests "no storage class" behavior and is rejected.
-	if pvcSpec.StorageClassName != nil && *pvcSpec.StorageClassName == "" {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf(
-			"workspace PVC spec storageClassName must be omitted or set to a non-empty value",
-		)
-	}
-
-	quantity, err := k8sres.ParseQuantity(sizeStr)
+	pvcSpec, err := config.WorkspacePVCSpec(workspace, defaults)
 	if err != nil {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf("invalid size value for workspace PVC: %v", err)
+		return k8score.PersistentVolumeClaim{}, err
 	}
-	if quantity.Sign() < 0 {
-		return k8score.PersistentVolumeClaim{}, fmt.Errorf("negative size value for workspace PVC: %v", sizeStr)
-	}
-	if pvcSpec.Resources.Requests == nil {
-		pvcSpec.Resources.Requests = make(map[k8score.ResourceName]k8sres.Quantity)
-	}
-	pvcSpec.Resources.Requests[k8score.ResourceStorage] = quantity
 
 	return k8score.PersistentVolumeClaim{
 		ObjectMeta: k8smeta.ObjectMeta{
 			Name: workspaceVolumeName,
 		},
-		Spec: pvcSpec,
+		Spec: *pvcSpec,
 	}, nil
 }
 

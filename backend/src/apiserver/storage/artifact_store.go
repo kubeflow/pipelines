@@ -118,8 +118,6 @@ func (s *ArtifactStore) CreateArtifact(artifact *model.Artifact) (*model.Artifac
 }
 
 func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sql.Result, error), artifact *model.Artifact) (*model.Artifact, error) {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
 	// Set up UUID for artifact.
 	newArtifact := *artifact
 	id, err := s.uuid.NewRandom()
@@ -132,7 +130,14 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 	now := s.time.Now().Unix()
 	newArtifact.CreatedAtInSec = now
 	newArtifact.LastUpdateInSec = now
+	return s.insertArtifactWithExecutor(exec, &newArtifact)
+}
 
+// insertArtifactWithExecutor preserves a caller-supplied durable artifact ID.
+func (s *ArtifactStore) insertArtifactWithExecutor(exec func(string, ...any) (sql.Result, error), artifact *model.Artifact) (*model.Artifact, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	newArtifact := *artifact
 	// Convert metadata to JSON string for storage
 	metadataJSON, err := newArtifact.Metadata.Value()
 	if err != nil {
@@ -339,6 +344,14 @@ func (s *ArtifactStore) linkExistingArtifact(existingArtifact *model.Artifact, a
 }
 
 func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	return s.getArtifactTaskByUniqueLinkWithQuerier(s.db, artifactTask)
+}
+
+type artifactSQLQuerier interface {
+	Query(string, ...any) (*sql.Rows, error)
+}
+
+func (s *ArtifactStore) getArtifactTaskByUniqueLinkWithQuerier(querier artifactSQLQuerier, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if artifactTask == nil {
@@ -368,13 +381,16 @@ func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.Artifact
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get artifact-task by unique link: %v", err.Error())
 	}
-	rows, err := s.db.Query(sql, args...)
+	rows, err := querier.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get artifact-task by unique link: %v", err.Error())
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 		return nil, nil
 	}
 	var (

@@ -91,6 +91,9 @@ var _ = Describe("Legacy API coverage migration", Label(constants.APIServerTests
 			PluginsOutput: terminated.PluginsOutput, ExperimentID: experiment.ExperimentID,
 			PipelineVersionReference: payload.PipelineVersionReference,
 			CreatedAt:                terminated.CreatedAt, ScheduledAt: terminated.ScheduledAt, FinishedAt: terminated.FinishedAt,
+			ExecutorType:         run.ExecutorType,
+			WorkspaceProvisioner: run.WorkspaceProvisioner,
+			WorkspaceDescription: run.WorkspaceDescription,
 		}
 		Expect(terminated).To(Equal(expected))
 	})

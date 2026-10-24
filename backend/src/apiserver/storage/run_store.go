@@ -64,6 +64,9 @@ var runColumns = []string{
 	"ArchivedAtInSec",
 	"ImportedFrom",
 	"ImportDigest",
+	"ExecutorType",
+	"WorkspaceProvisioner",
+	"WorkspaceReference",
 }
 
 // runListColumns is a lightweight version of runColumns for List endpoints.
@@ -105,6 +108,9 @@ var runListColumns = []string{
 	"ArchivedAtInSec",
 	"ImportedFrom",
 	"ImportDigest",
+	"ExecutorType",
+	"WorkspaceProvisioner",
+	"WorkspaceReference",
 }
 
 // terminalRunStateStrings lists every raw value that a terminal run can carry
@@ -647,6 +653,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
+		var executorType, workspaceProvisioner sql.NullString
+		var workspaceReference *model.JSONData
 
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
@@ -684,6 +692,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&archivedAtInSec,
 			&importedFrom,
 			&importDigest,
+			&executorType,
+			&workspaceProvisioner,
+			&workspaceReference,
 			&resourceReferencesInString,
 		}
 
@@ -765,6 +776,13 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			lt := model.LargeText(pluginsInput.String)
 			run.PluginsInputString = &lt
 		}
+		if executorType.Valid {
+			run.ExecutorType = &executorType.String
+		}
+		if workspaceProvisioner.Valid {
+			run.WorkspaceProvisioner = &workspaceProvisioner.String
+		}
+		run.WorkspaceReference = workspaceReference
 		if pluginsOutput.Valid {
 			lt := model.LargeText(pluginsOutput.String)
 			run.PluginsOutputString = &lt
@@ -858,6 +876,9 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			q("StateHistory"):            stateHistoryString,
 			q("PluginsInput"):            largeTextToNullableSQL(r.RunDetails.PluginsInputString),
 			q("PluginsOutput"):           largeTextToNullableSQL(r.RunDetails.PluginsOutputString),
+			q("ExecutorType"):            r.ExecutorType,
+			q("WorkspaceProvisioner"):    r.WorkspaceProvisioner,
+			q("WorkspaceReference"):      r.WorkspaceReference,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -1141,6 +1162,9 @@ func (s *RunStore) updateRun(
 		q("FinishedAtInSec"):         run.FinishedAtInSec,
 		q("WorkflowRuntimeManifest"): run.WorkflowRuntimeManifest,
 	}
+	if run.PipelineRuntimeManifest != "" {
+		updateFields[q("PipelineRuntimeManifest")] = run.PipelineRuntimeManifest
+	}
 	if run.K8SName != "" {
 		updateFields[q("Name")] = run.K8SName
 	}
@@ -1154,6 +1178,15 @@ func (s *RunStore) updateRun(
 	// run creation and never updated.
 	if run.PluginsOutputString != nil {
 		updateFields[q("PluginsOutput")] = largeTextToNullableSQL(run.PluginsOutputString)
+	}
+	if run.ExecutorType != nil {
+		updateFields[q("ExecutorType")] = run.ExecutorType
+	}
+	if run.WorkspaceProvisioner != nil {
+		updateFields[q("WorkspaceProvisioner")] = run.WorkspaceProvisioner
+	}
+	if run.WorkspaceReference != nil {
+		updateFields[q("WorkspaceReference")] = run.WorkspaceReference
 	}
 	// Include RetryGeneration in the WHERE clause so that a stale workflow
 	// reporter that passed workflowStillMatchesReportedVersion before a

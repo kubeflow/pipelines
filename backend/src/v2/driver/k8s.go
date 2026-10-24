@@ -1061,6 +1061,16 @@ func extendPodSpecPatch(
 	return nil
 }
 
+func ExtendPodSpecPatch(
+	ctx context.Context,
+	podSpec *k8score.PodSpec,
+	opts common.Options,
+	inputParams []*apiV2.PipelineTask_InputOutputs_IOParameter,
+	taskConfig *TaskConfig,
+) error {
+	return extendPodSpecPatch(ctx, podSpec, opts, inputParams, taskConfig)
+}
+
 // execution is passed by pointer so we can update TaskID for the defer function
 func createPVCTask(
 	ctx context.Context,

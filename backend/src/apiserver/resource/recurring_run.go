@@ -180,6 +180,9 @@ func (r *ResourceManager) authorizeStoredRunServiceAccount(ctx context.Context, 
 
 // Compiled schedules may carry the effective account inside their embedded Argo spec.
 func scheduledServiceAccount(swf *scheduledworkflow.ScheduledWorkflow, fallback string) (string, error) {
+	if swf == nil {
+		return fallback, nil
+	}
 	if swf.Spec.Workflow != nil && swf.Spec.Workflow.Spec != nil {
 		execution, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
 		if err != nil {

@@ -51,6 +51,9 @@ type Client struct {
 
 // Config holds connection options.
 type Config struct {
+	// Task identity is fixed for this client; empty fields fall back to launcher env.
+	TaskID        string
+	TaskAttemptID string
 	// Endpoint in host:port form, e.g. ml-pipeline.kubeflow:8887
 	Endpoint string
 	// TokenSource overrides projected-file credentials for this client only.
@@ -105,6 +108,13 @@ func New(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(defaultMaxCallRecvMsgSize)),
 		grpc.WithTransportCredentials(creds),
 		grpc.WithPerRPCCredentials(newTokenPerRPCCredentials(tlsCfg != nil, cfg.TokenSource)),
+	}
+	reportInterceptor, err := taskReportInterceptor(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if reportInterceptor != nil {
+		dialOptions = append(dialOptions, grpc.WithChainUnaryInterceptor(reportInterceptor))
 	}
 	connectParams, err := cfg.connectParams()
 	if err != nil {

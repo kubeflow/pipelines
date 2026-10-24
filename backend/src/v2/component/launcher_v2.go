@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
@@ -48,6 +49,8 @@ import (
 )
 
 type LauncherV2Options struct {
+	// TaskAttemptID enables fenced runtime reports and publication-only recovery.
+	TaskAttemptID     string
 	Namespace         string
 	PodName           string
 	PodUID            string
@@ -92,9 +95,11 @@ type LauncherV2 struct {
 	batchUpdater *BatchUpdater
 
 	// Dependency interfaces for testing
-	fileSystem  FileSystem
-	cmdExecutor CommandExecutor
-	objectStore ObjectStoreClientInterface
+	fileSystem             FileSystem
+	cmdExecutor            CommandExecutor
+	objectStore            ObjectStoreClientInterface
+	computationCompleted   bool
+	onComputationCompleted func(context.Context) error
 }
 
 type OutputPropagationOptions struct {
@@ -143,6 +148,9 @@ func NewLauncherV2(
 		cmdExecutor:       &RealCommandExecutor{},
 		openedBucketCache: make(map[string]*blob.Bucket),
 		pipelineSpec:      opts.PipelineSpec,
+	}
+	if launcher.options.TaskAttemptID == "" {
+		launcher.options.TaskAttemptID = os.Getenv(apiclient.KFPTaskAttemptIDEnvVar)
 	}
 
 	// Object store is initialized after launcher creation
@@ -216,11 +224,18 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		}
 	}()
 
-	l.options.Task.Pods = append(l.options.Task.Pods, &apiV2.PipelineTask_TaskPod{
-		Name: l.options.PodName,
-		Uid:  l.options.PodUID,
-		Type: apiV2.PipelineTask_EXECUTOR,
-	})
+	podRecorded := false
+	for _, pod := range l.options.Task.Pods {
+		if pod.GetName() == l.options.PodName && pod.GetUid() == l.options.PodUID {
+			podRecorded = true
+			break
+		}
+	}
+	if !podRecorded {
+		l.options.Task.Pods = append(l.options.Task.Pods, &apiV2.PipelineTask_TaskPod{
+			Name: l.options.PodName, Uid: l.options.PodUID, Type: apiV2.PipelineTask_EXECUTOR,
+		})
+	}
 
 	dispatcher := plugins.TaskPluginDispatcher(plugins.NoOpDispatcher{})
 	var executorOutput *pipelinespec.ExecutorOutput
@@ -246,6 +261,9 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	}()
 
 	defer func() {
+		if l.options.TaskAttemptID != "" {
+			return
+		}
 		executionErr = l.finalizeExecution(ctx, executionErr)
 	}()
 
@@ -278,6 +296,16 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		return fmt.Errorf("failed to get launcher configmap: %w", executionErr)
 	}
 	l.launcherConfig = launcherConfig
+
+	if l.options.TaskAttemptID != "" {
+		executorOutput, executionErr = l.executeRuntimeAttempt(ctx)
+		if executionErr != nil {
+			return executionErr
+		}
+		l.options.Task = proto.Clone(l.options.Task).(*apiV2.PipelineTask)
+		l.options.Task.State = apiV2.PipelineTask_SUCCEEDED
+		return nil
+	}
 
 	if executionErr = l.prepareOutputFolders(l.executorInput); executionErr != nil {
 		return fmt.Errorf("failed to prepare output folders: %w", executionErr)
@@ -854,6 +882,12 @@ func (l *LauncherV2) execute(
 	if err := l.cmdExecutor.Run(ctx, cmd, args, os.Stdin, writer, writer); err != nil {
 		return nil, err
 	}
+	l.computationCompleted = true
+	if l.onComputationCompleted != nil {
+		if err := l.onComputationCompleted(ctx); err != nil {
+			return nil, err
+		}
+	}
 
 	return l.getExecutorOutputFile(l.executorInput.GetOutputs().GetOutputFile())
 }
@@ -919,6 +953,9 @@ func (l *LauncherV2) uploadOutputArtifacts(
 	// Create artifactsMap for each output port
 	artifactsMap := map[string][]*apiV2.Artifact{}
 	for artifactKey, artifactList := range l.executorInput.GetOutputs().GetArtifacts() {
+		if l.options.TaskAttemptID != "" && artifactKey == "executor-logs" {
+			continue
+		}
 		artifactsMap[artifactKey] = []*apiV2.Artifact{}
 		for index, outputArtifact := range artifactList.Artifacts {
 			glog.Infof("outputArtifact in uploadOutputArtifacts call: %s", outputArtifact.Name)
@@ -987,6 +1024,14 @@ func (l *LauncherV2) uploadOutputArtifacts(
 					}
 					err = l.objectStore.UploadArtifact(ctx, localPath, outputArtifact.Uri, artifactKey)
 					if err != nil {
+						if artifactKey == "executor-logs" {
+							glog.Warningf(
+								"Failed to upload executor logs artifact to remote storage URI %q: %v. Continuing without recording executor logs artifact.",
+								outputArtifact.Uri,
+								err,
+							)
+							continue
+						}
 						if errors.Is(err, os.ErrNotExist) {
 							return fmt.Errorf(
 								"declared output artifact %q is missing at %q: %w",
@@ -1826,6 +1871,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		if len(artifactList.Artifacts) == 0 {
 			continue
 		}
+		if artifactListJSON, err := marshalInputArtifactListPlaceholder(artifactList); err == nil {
+			placeholders[fmt.Sprintf(`{{$.inputs.artifacts['%s']}}`, name)] = artifactListJSON
+		}
 		inputArtifact := artifactList.Artifacts[0]
 
 		// Prepare input uri placeholder.
@@ -1908,6 +1956,28 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 	return placeholders, nil
 }
 
+func marshalInputArtifactListPlaceholder(artifactList *pipelinespec.ArtifactList) (string, error) {
+	if artifactList == nil || len(artifactList.Artifacts) == 0 {
+		return "[]", nil
+	}
+	artifacts := make([]json.RawMessage, 0, len(artifactList.Artifacts))
+	for _, artifact := range artifactList.Artifacts {
+		if artifact == nil {
+			continue
+		}
+		artifactJSON, err := protojson.Marshal(artifact)
+		if err != nil {
+			return "", err
+		}
+		artifacts = append(artifacts, json.RawMessage(artifactJSON))
+	}
+	listJSON, err := json.Marshal(artifacts)
+	if err != nil {
+		return "", err
+	}
+	return string(listJSON), nil
+}
+
 func getArtifactSchemaType(schema *pipelinespec.ArtifactTypeSchema) (string, error) {
 	switch t := schema.Kind.(type) {
 	case *pipelinespec.ArtifactTypeSchema_InstanceSchema:
@@ -1977,13 +2047,18 @@ func LocalPathForURI(uri string) (string, error) {
 	rootPath := os.Getenv("ARTIFACT_LOCAL_PATH")
 
 	if strings.HasPrefix(uri, "gs://") {
-		return fmt.Sprintf("%s/gcs/", rootPath) + strings.TrimPrefix(uri, "gs://"), nil
+		return localPathWithinSchemeRoot(rootPath, "gcs", strings.TrimPrefix(uri, "gs://"), uri)
 	}
 	if strings.HasPrefix(uri, "minio://") {
-		return fmt.Sprintf("%s/minio/", rootPath) + strings.TrimPrefix(uri, "minio://"), nil
+		return localPathWithinSchemeRoot(rootPath, "minio", strings.TrimPrefix(uri, "minio://"), uri)
 	}
 	if strings.HasPrefix(uri, "s3://") {
-		return fmt.Sprintf("%s/s3/", rootPath) + strings.TrimPrefix(uri, "s3://"), nil
+		return localPathWithinSchemeRoot(rootPath, "s3", strings.TrimPrefix(uri, "s3://"), uri)
+	}
+	if strings.HasPrefix(uri, "file:///") || strings.HasPrefix(uri, "file://") {
+		trimmedURI := strings.TrimPrefix(uri, "file:///")
+		trimmedURI = strings.TrimPrefix(trimmedURI, "file://")
+		return localPathWithinSchemeRoot(rootPath, "file", trimmedURI, uri)
 	}
 	if strings.HasPrefix(uri, "oci://") {
 		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
@@ -2047,6 +2122,19 @@ func (l *LauncherV2) uploadArtifactPreviewSibling(
 	}
 }
 
+func localPathWithinSchemeRoot(rootPath, scheme, uriPath, uri string) (string, error) {
+	if rootPath == "" {
+		rootPath = string(filepath.Separator)
+	}
+	schemeRoot := filepath.Join(rootPath, scheme)
+	localPath := filepath.Join(schemeRoot, filepath.FromSlash(uriPath))
+	relativePath, err := filepath.Rel(schemeRoot, localPath)
+	if err != nil || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("failed to generate local path for URI %s: path escapes artifact root", uri)
+	}
+	return localPath, nil
+}
+
 func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error) {
 	// If artifact custom path is set, use custom path. Otherwise, use URI.
 	customPath := artifact.CustomPath
@@ -2055,6 +2143,24 @@ func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error
 	} else {
 		return LocalPathForURI(artifact.Uri)
 	}
+}
+
+// CompileCommandAndArgs resolves placeholders in a container command/args pair
+// using the provided executor input.
+func CompileCommandAndArgs(
+	executorInput *pipelinespec.ExecutorInput,
+	command []string,
+	args []string,
+) ([]string, []string, error) {
+	if len(command) == 0 {
+		_, compiledArgs, err := compileCmdAndArgs(executorInput, "", args)
+		return nil, compiledArgs, err
+	}
+	compiledCommand, compiledArgs, err := compileCmdAndArgs(executorInput, command[0], append(append([]string{}, command[1:]...), args...))
+	if err != nil {
+		return nil, nil, err
+	}
+	return []string{compiledCommand}, compiledArgs, nil
 }
 
 // LocalWorkspacePathForURI returns the local workspace path for a given artifact URI.

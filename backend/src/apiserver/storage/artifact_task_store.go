@@ -87,8 +87,6 @@ func (s *ArtifactTaskStore) CreateArtifactTask(artifactTask *model.ArtifactTask)
 }
 
 func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error), uuid util.UUIDGeneratorInterface, artifactTask *model.ArtifactTask, d dialect.DBDialect) (*model.ArtifactTask, error) {
-	q := d.QuoteIdentifier
-	qb := d.QueryBuilder()
 	// Set up UUID for artifact-task relationship.
 	newArtifactTask := *artifactTask
 	if err := newArtifactTask.SyncIterationFromProducer(); err != nil {
@@ -100,6 +98,14 @@ func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error
 	}
 	newArtifactTask.UUID = id.String()
 
+	return insertArtifactTaskWithExecutor(exec, &newArtifactTask, d)
+}
+
+// insertArtifactTaskWithExecutor preserves a caller-supplied durable link ID.
+func insertArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error), artifactTask *model.ArtifactTask, d dialect.DBDialect) (*model.ArtifactTask, error) {
+	q := d.QuoteIdentifier
+	qb := d.QueryBuilder()
+	newArtifactTask := *artifactTask
 	// Serialize Producer to JSON if present
 	producerValue, err := newArtifactTask.Producer.Value()
 	if err != nil {
