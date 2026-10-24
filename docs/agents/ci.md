@@ -52,6 +52,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- Tinyproxy runs in the foreground under Kubernetes supervision. Keep its PID file disabled; health probes use its listening socket, and no fixture consumes a PID file. This avoids requiring a writable runtime path without changing its service identity or security profiles.
 
 ## Release 2.18 stabilization
 
