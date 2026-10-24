@@ -15,6 +15,7 @@
  */
 
 export enum StorageService {
+  FILE = 'file',
   GCS = 'gcs',
   HTTP = 'http',
   HTTPS = 'https',
@@ -54,6 +55,13 @@ export function parseStoragePath(strPath: string): StoragePath {
       bucket: pathParts[0],
       key: pathParts.slice(1).join('/'),
       source: StorageService.S3,
+    };
+  } else if (strPath.startsWith('file:///')) {
+    const pathParts = strPath.substr('file:///'.length).split('/');
+    return {
+      bucket: pathParts[0],
+      key: pathParts.slice(1).join('/'),
+      source: StorageService.FILE,
     };
   } else if (strPath.startsWith('http://')) {
     const pathParts = strPath.substr('http://'.length).split('/');

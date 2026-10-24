@@ -780,6 +780,10 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		// If TaskCount wasn't populated but we have tasks, use the task slice length
 		taskCount = int32(len(apiTasks))
 	}
+	runState := r.State
+	if (runState == "" || runState == model.RuntimeStateUnspecified) && len(r.StateHistory) > 0 {
+		runState = r.RunDetails.StateHistory[len(r.RunDetails.StateHistory)-1].State
+	}
 
 	apiRunV2 := &apiv2.Run{
 		RunId:          r.UUID,
@@ -791,7 +795,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		ServiceAccount: r.ServiceAccount,
 		RuntimeConfig:  runtimeConfig,
 		StorageState:   toAPIRunStorageState(&r.StorageState),
-		State:          toAPIRuntimeState(&r.RunDetails.State),          //nolint:staticcheck // Keep the persisted RunDetails field explicit.
+		State:          toAPIRuntimeState(&runState),
 		StateHistory:   toAPIRuntimeStatuses(r.RunDetails.StateHistory), //nolint:staticcheck // Keep the persisted RunDetails field explicit.
 		CreatedAt:      timestamppb.New(time.Unix(r.CreatedAtInSec, 0)),
 		ScheduledAt:    timestamppb.New(time.Unix(r.ScheduledAtInSec, 0)),

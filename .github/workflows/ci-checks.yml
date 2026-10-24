@@ -12,6 +12,7 @@ on:
       - 'API Server Tests'
       - 'Build tools images'
       - 'CI Scripts Tests'
+      - 'Coordinator Runtime Local Docker E2E'
       - 'Check Python dependency artifacts'
       - 'Check uv.lock sync'
       - 'Workflow Compiler Tests'

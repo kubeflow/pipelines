@@ -542,3 +542,27 @@ func TestExistingWorkflowRequiresMultiUserAPIReconciliation(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildRuntimeConfigForScheduledRunFormatsRecurringMacros(t *testing.T) {
+	nextScheduledEpoch := time.Date(2026, time.May, 11, 14, 0, 0, 0, time.UTC).Unix()
+	nowEpoch := nextScheduledEpoch + 300
+	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "scheduled", Namespace: "ns1"},
+		Spec: swfapi.ScheduledWorkflowSpec{
+			Workflow: &swfapi.WorkflowResource{
+				PipelineRoot: "gs://root",
+				Parameters: []swfapi.Parameter{
+					{Name: "schedule", Value: `"prefix-[[ScheduledTime.2006-01-02-15-04]]"`},
+					{Name: "index", Value: `"run-[[Index]]"`},
+				},
+			},
+		},
+	})
+
+	runtimeConfig, err := buildRuntimeConfigForScheduledRun(swf, nextScheduledEpoch, nowEpoch)
+	require.NoError(t, err)
+	require.NotNil(t, runtimeConfig)
+	assert.Equal(t, "gs://root", runtimeConfig.PipelineRoot)
+	assert.Equal(t, "prefix-2026-05-11-14-00", runtimeConfig.Parameters["schedule"].GetStringValue())
+	assert.Equal(t, "run-1", runtimeConfig.Parameters["index"].GetStringValue())
+}

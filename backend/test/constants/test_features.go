@@ -43,6 +43,8 @@ const (
 	// E2eDriverPlugin - Verifies drivers run as the Argo executor plugin
 	// ("driver-plugin" sidecar of the per-workflow agent pod) instead of per-task pods.
 	E2eDriverPlugin string = "E2EDriverPlugin"
+	// CoordinatorRuntime - focused lane for explicitly selected coordinator-managed runs
+	CoordinatorRuntime string = "CoordinatorRuntime"
 
 	WorkflowCompiler       string = "WorkflowCompiler"
 	WorkflowCompilerVisits string = "WorkflowCompilerVisits"

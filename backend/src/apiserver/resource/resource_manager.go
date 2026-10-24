@@ -45,10 +45,14 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	pocruntime "github.com/kubeflow/pipelines/backend/src/v2/runtime/poc"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -56,6 +60,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 )
 
 const (
@@ -174,6 +180,7 @@ type ResourceManager struct {
 	options                   *ResourceManagerOptions
 	pluginDispatcher          apiserverPlugins.RunPluginDispatcher
 	storedWorkflowIdentities  storedWorkflowIdentityCache
+	pocCoordinator            *pocruntime.Coordinator
 }
 
 type storedWorkflowIdentity struct {
@@ -328,6 +335,19 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		glog.Errorf("failed to create plugin dispatcher: %s", err)
 	}
 	rm.pluginDispatcher = dispatcher
+	if pocruntime.Enabled() {
+		rm.pocCoordinator = pocruntime.NewCoordinator(
+			rm.runStore,
+			rm.taskStore,
+			rm.artifactStore,
+			rm.artifactTaskStore,
+			rm.time,
+			rm.k8sCoreClient,
+			options.DefaultWorkspace,
+			options.MLPipelineTLSEnabled,
+		)
+		rm.pocCoordinator.Start()
+	}
 	return rm
 }
 
@@ -337,6 +357,224 @@ func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInte
 
 func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduledworkflowclient.ScheduledWorkflowInterface {
 	return r.swfClient.ScheduledWorkflow(namespace)
+}
+
+func kubernetesWorkflowClientsRequiredError(operation string) error {
+	return util.NewFailedPreconditionError(
+		fmt.Errorf("kubernetes workflow clients are not initialized"),
+		"%s requires Kubernetes workflow clients, but this API server is running without them",
+		operation,
+	)
+}
+
+func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
+	if modelRuntimeConfig == nil {
+		return nil, nil
+	}
+	parameters := map[string]*structpb.Value{}
+	if modelRuntimeConfig.Parameters != "" {
+		if err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), &parameters); err != nil {
+			return nil, util.NewInternalServerError(err, "error unmarshalling model runtime config parameters")
+		}
+	}
+	return &pipelinespec.PipelineJob_RuntimeConfig{
+		ParameterValues:    parameters,
+		GcsOutputDirectory: string(modelRuntimeConfig.PipelineRoot),
+	}, nil
+}
+
+func messageToStruct(msg proto.Message) (*structpb.Struct, error) {
+	bytes, err := protojson.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	res := &structpb.Struct{}
+	if err := protojson.Unmarshal(bytes, res); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func validatePipelineJobInputs(spec *pipelinespec.PipelineSpec, job *pipelinespec.PipelineJob) error {
+	if spec == nil {
+		return util.NewInvalidInputError("pipeline spec is required")
+	}
+	requiredParams := make(map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec)
+	if spec.GetRoot() != nil && spec.GetRoot().GetInputDefinitions() != nil {
+		requiredParams = spec.GetRoot().GetInputDefinitions().GetParameters()
+	}
+	runtimeConfig := job.GetRuntimeConfig()
+	if runtimeConfig == nil {
+		if len(requiredParams) == 0 {
+			return nil
+		}
+		requiredParamNames := make([]string, 0, len(requiredParams))
+		for name := range requiredParams {
+			requiredParamNames = append(requiredParamNames, name)
+		}
+		return util.NewInvalidInputError(
+			"pipeline requiring input has no parameter(s) provided. Need parameter(s): %s",
+			strings.Join(requiredParamNames, ", "),
+		)
+	}
+	for name, param := range requiredParams {
+		input, ok := runtimeConfig.GetParameterValues()[name]
+		if !ok {
+			if !param.GetIsOptional() && param.GetDefaultValue() == nil {
+				return util.NewInvalidInputError("parameter %s is not optional, yet has neither default value nor user provided value", name)
+			}
+			continue
+		}
+		switch param.GetParameterType() {
+		case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
+			return util.NewInvalidInputError("input parameter %s has unspecified type", name)
+		case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
+			if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
+				return util.NewInvalidInputError("input parameter %s requires type double or integer, but the parameter value is not of number value type", name)
+			}
+		case pipelinespec.ParameterType_STRING:
+			if _, ok := input.GetKind().(*structpb.Value_StringValue); !ok {
+				return util.NewInvalidInputError("input parameter %s requires type string, but the input parameter is not of string value type", name)
+			}
+		case pipelinespec.ParameterType_BOOLEAN:
+			if _, ok := input.GetKind().(*structpb.Value_BoolValue); !ok {
+				return util.NewInvalidInputError("input parameter %s requires type bool, but the input parameter is not of bool value type", name)
+			}
+		case pipelinespec.ParameterType_LIST:
+			if _, ok := input.GetKind().(*structpb.Value_ListValue); !ok {
+				return util.NewInvalidInputError("input parameter %s requires type list, but the input parameter is not of list value type", name)
+			}
+		case pipelinespec.ParameterType_STRUCT:
+			if _, ok := input.GetKind().(*structpb.Value_StructValue); !ok {
+				return util.NewInvalidInputError("input parameter %s requires type struct, but the input parameter is not of struct value type", name)
+			}
+		case pipelinespec.ParameterType_TASK_FINAL_STATUS:
+			return util.NewInvalidInputError("input parameter %s requires type TASK_FINAL_STATUS, which is invalid for root component", name)
+		default:
+			return util.NewInvalidInputError("input parameter %s requires type unknown", name)
+		}
+		if err := util.ValidateLiteralParameter(name, input, param.GetLiterals()); err != nil {
+			return util.NewInvalidInputError("%s", err.Error())
+		}
+	}
+	extraParams := make([]string, 0)
+	for name := range runtimeConfig.GetParameterValues() {
+		if _, ok := requiredParams[name]; !ok {
+			extraParams = append(extraParams, name)
+		}
+	}
+	if len(extraParams) > 0 {
+		return util.NewInvalidInputError("parameter(s) provided are not required by pipeline: %s", strings.Join(extraParams, ", "))
+	}
+	return nil
+}
+
+func buildCoordinatorPipelineJobFromManifest(
+	manifest []byte,
+	displayName string,
+	runtimeConfig *model.RuntimeConfig,
+	runID string,
+	runAt int64,
+	scheduledAt int64,
+) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec, error) {
+	spec, platformSpec, err := util.LoadPipelineAndPlatformSpecBytes(manifest)
+	if err != nil {
+		return nil, nil, err
+	}
+	if spec.GetSchemaVersion() != template.SCHEMA_VERSION_2_1_0 {
+		return nil, nil, util.NewInvalidInputError("KFP only supports schema version %s, but the pipeline spec has version %s", template.SCHEMA_VERSION_2_1_0, spec.GetSchemaVersion())
+	}
+	if spec.GetPipelineInfo().GetName() == "" {
+		return nil, nil, util.NewInvalidInputError("invalid v2 pipeline spec: name is empty")
+	}
+	if err := common.ValidatePipelineName(spec.GetPipelineInfo().GetName()); err != nil {
+		return nil, nil, err
+	}
+	if spec.GetRoot() == nil {
+		return nil, nil, util.NewInvalidInputError("invalid v2 pipeline spec: root component is empty")
+	}
+	specStruct, err := messageToStruct(spec)
+	if err != nil {
+		return nil, nil, err
+	}
+	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(runtimeConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	job := &pipelinespec.PipelineJob{
+		DisplayName:   displayName,
+		PipelineSpec:  specStruct,
+		RuntimeConfig: jobRuntimeConfig,
+	}
+	if runID != "" && job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
+		scheduledEpoch := int64(-1)
+		if scheduledAt > 0 {
+			scheduledEpoch = scheduledAt
+		}
+		formatter := util.NewSWFParameterFormatter(runID, scheduledEpoch, runAt, -1)
+		stringParams := make(map[string]string)
+		for key, value := range job.RuntimeConfig.GetParameterValues() {
+			if value.GetStringValue() != "" {
+				stringParams[key] = value.GetStringValue()
+			}
+		}
+		formattedParams := formatter.FormatWorkflowParameters(stringParams)
+		for key, formattedValue := range formattedParams {
+			job.RuntimeConfig.ParameterValues[key] = structpb.NewStringValue(formattedValue)
+		}
+	}
+	if err := validatePipelineJobInputs(spec, job); err != nil {
+		return nil, nil, err
+	}
+	var kubernetesSpec *pipelinespec.SinglePlatformSpec
+	if platformSpec != nil && platformSpec.GetPlatforms() != nil {
+		if singlePlatformSpecRaw, ok := platformSpec.GetPlatforms()["kubernetes"]; ok && singlePlatformSpecRaw != nil {
+			jsonBytes, err := protojson.Marshal(singlePlatformSpecRaw)
+			if err != nil {
+				return nil, nil, err
+			}
+			kubernetesSpec = &pipelinespec.SinglePlatformSpec{}
+			if err := protojson.Unmarshal(jsonBytes, kubernetesSpec); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	return job, kubernetesSpec, nil
+}
+
+func requestedCoordinatorRuntime(manifest []byte) bool {
+	if !pocruntime.Enabled() {
+		return false
+	}
+	tmpl, err := template.New(manifest, template.TemplateOptions{})
+	if err != nil || tmpl == nil {
+		return false
+	}
+	return tmpl.GetTemplateType() == template.V2
+}
+
+func (r *ResourceManager) fetchPipelineSpecManifest(pipelineSpec *model.PipelineSpec) ([]byte, error) {
+	pipelineVersion, err := r.fetchPipelineVersionFromPipelineSpec(*pipelineSpec)
+	if err != nil {
+		return nil, util.Wrapf(err, "Failed to fetch a template due to error retrieving pipeline version")
+	} else if pipelineVersion != nil {
+		pipelineSpec.PipelineId = pipelineVersion.PipelineId
+		pipelineSpec.PipelineVersionId = pipelineVersion.UUID
+		pipelineSpec.PipelineName = pipelineVersion.Name
+		templateBytes, _, err := r.fetchTemplateFromPipelineVersion(pipelineVersion)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to fetch a template due invalid manifest in pipeline version %v", pipelineSpec.PipelineVersionId)
+		}
+		return templateBytes, nil
+	}
+	manifest := []byte(pipelineSpec.PipelineSpecManifest)
+	if len(manifest) == 0 {
+		manifest = []byte(pipelineSpec.WorkflowSpecManifest)
+	}
+	if len(manifest) == 0 {
+		return nil, util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
+	}
+	return manifest, nil
 }
 
 // Creates a new experiment.
@@ -770,7 +1008,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		}
 	}
 	var err error
-
 	// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 	// Proposed flow:
 	// 1. Create an entry and assign creation timestamp and uuid.
@@ -799,7 +1036,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	var owner *scheduledworkflow.ScheduledWorkflow
 	var tick *recurringRunTick
-	if run.RecurringRunId != "" {
+	if run.RecurringRunId != "" && r.swfClient != nil {
 		job, err := r.jobStore.GetJob(run.RecurringRunId)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to retrieve recurring run")
@@ -838,13 +1075,63 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		// runs without a stored account. The server checks pipeline and namespace access.
 		return r.authorizeRecurringRunReplay(ctx, run, tick.replay)
 	}
-	// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
+	var recurringJob *model.Job
+	if run.RecurringRunId != "" &&
+		run.PipelineId == "" &&
+		run.PipelineVersionId == "" &&
+		run.PipelineSpecManifest == "" &&
+		run.WorkflowSpecManifest == "" {
+		recurringJob, err = r.jobStore.GetJob(run.RecurringRunId)
+		if err != nil {
+			return nil, util.NewInternalServerError(
+				util.NewInvalidInputError("RecurringRunId doesn't exist: %s", run.RecurringRunId),
+				"Failed to create a run due to invalid recurring run id",
+			)
+		}
+		run.PipelineId = recurringJob.PipelineId
+		run.PipelineVersionId = recurringJob.PipelineVersionId
+		run.PipelineName = recurringJob.PipelineName
+		run.PipelineSpecManifest = recurringJob.PipelineSpecManifest
+		run.WorkflowSpecManifest = recurringJob.WorkflowSpecManifest
+	}
+	manifestBytes, manifestErr := r.fetchPipelineSpecManifest(&run.PipelineSpec)
+	if manifestErr != nil {
+		return nil, util.NewInternalServerError(manifestErr, "Failed to create a run due to error fetching manifest")
+	}
+	useCoordinatorRuntime := requestedCoordinatorRuntime(manifestBytes)
+	if useCoordinatorRuntime {
+		job, kubernetesSpec, jobErr := buildCoordinatorPipelineJobFromManifest(
+			manifestBytes,
+			run.DisplayName,
+			&run.RuntimeConfig,
+			runWorkflowOptions.RunID,
+			runWorkflowOptions.RunAt,
+			run.ScheduledAtInSec,
+		)
+		if jobErr != nil {
+			return nil, util.NewBadRequestError(
+				util.NewInvalidInputError("Coordinator-managed V2 runtime requires a supported KFP v2 pipeline manifest: %v", jobErr),
+				"Failed to create a coordinator-managed run",
+			)
+		}
+		if supportErr := pocruntime.SupportsPipelineJob(job); supportErr != nil {
+			return nil, util.NewBadRequestError(
+				util.NewInvalidInputError("Coordinator-managed V2 runtime does not support this pipeline yet: %v", supportErr),
+				"Failed to create a coordinator-managed run",
+			)
+		}
+		return r.createManagedV2Run(ctx, run, manifestBytes, job, kubernetesSpec, tick)
+	}
+	if r.execClient == nil {
+		return nil, kubernetesWorkflowClientsRequiredError("Creating a run with the Kubernetes-backed runtime")
+	}
+
+	// Create a template based on the manifest of an existing pipeline version or user-provided manifest.
 	// Update the run.PipelineSpec if an existing pipeline version is used.
 	tmpl, _, err := r.fetchTemplateFromPipelineSpec(&run.PipelineSpec)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a run due to error fetching manifest")
 	}
-
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to generate the ExecutionSpec")
@@ -974,8 +1261,84 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	return newRun, nil
 }
 
+func (r *ResourceManager) createManagedV2Run(
+	ctx context.Context,
+	run *model.Run,
+	manifest []byte,
+	job *pipelinespec.PipelineJob,
+	kubernetesSpec *pipelinespec.SinglePlatformSpec,
+	ticks ...*recurringRunTick,
+) (*model.Run, error) {
+	if r.pocCoordinator == nil {
+		return nil, util.NewInternalServerError(
+			fmt.Errorf("coordinator-managed runtime is not initialized"),
+			"Failed to create a coordinator-managed run",
+		)
+	}
+	if run.Namespace == "" {
+		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to determine namespace for coordinator-managed run")
+		}
+		run.Namespace = namespace
+	}
+	if run.Namespace == "" {
+		run.Namespace = common.GetPodNamespace()
+	}
+	if run.Namespace == "" {
+		return nil, util.NewInternalServerError(
+			util.NewInvalidInputError("Namespace cannot be empty when creating a coordinator-managed run. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"),
+			"Failed to create a coordinator-managed run due to empty namespace",
+		)
+	}
+	run.K8SName = run.UUID
+	if run.ServiceAccount == "" {
+		run.ServiceAccount = common.DefaultPipelineRunnerServiceAccount
+	}
+	if err := r.authorizeServiceAccount(ctx, run.ServiceAccount, run.Namespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a coordinator-managed run due to service account authorization error")
+	}
+	for _, tick := range ticks {
+		if tick != nil {
+			if err := r.claimRecurringRunTick(run, tick); err != nil {
+				return nil, err
+			}
+		}
+	}
+	run.State = model.RuntimeStatePending
+	run.Conditions = string(run.State.ToExecutionPhase())
+	run.PipelineSpecManifest = model.LargeText(manifest)
+	initialRuntimeManifest, err := pocruntime.NewRuntimeManifest(pocruntime.RequestedExecutor()).ToJSON()
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to initialize coordinator runtime manifest")
+	}
+	run.PipelineRuntimeManifest = model.LargeText(initialRuntimeManifest)
+	run.State = model.RuntimeStatePending
+	if run.ScheduledAtInSec == 0 {
+		run.ScheduledAtInSec = run.CreatedAtInSec
+	}
+
+	newRun, err := r.runStore.CreateRun(run)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a run")
+	}
+	if err := r.pocCoordinator.SubmitRun(ctx, newRun, job, kubernetesSpec); err != nil {
+		if deleteErr := r.runStore.DeleteRun(newRun.UUID); deleteErr != nil {
+			glog.Warningf("Failed to cleanup managed run %s after submit error: %v", newRun.UUID, deleteErr)
+		}
+		return nil, util.Wrap(err, "Failed to enqueue run into the coordinator proof-of-concept runtime")
+	}
+	if err := r.experimentStore.SetLastRunTimestamp(newRun); err != nil {
+		return nil, util.Wrap(err, fmt.Sprintf("Failed to set last run timestamp on experiment %s for run %s", newRun.ExperimentId, newRun.UUID))
+	}
+	return r.runStore.GetRun(newRun.UUID, false)
+}
+
 // ReconcileSwfCrs reconciles the ScheduledWorkflow CRs based on existing jobs.
 func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
+	if r.swfClient == nil {
+		return nil
+	}
 	filterContext := &model.FilterContext{
 		ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: common.GetPodNamespace()},
 	}
@@ -1000,22 +1363,48 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			continue
 		}
 
-		var newScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
-		if common.IsMultiUserMode() {
-			// Preserve API routing across restarts instead of restoring an embedded workflow.
-			newScheduledWorkflow, err = template.NewGenericScheduledWorkflow(jobs[i])
-		} else {
-			tmpl, _, templateErr := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
-			if templateErr != nil {
-				return failedToReconcileSwfCrsError(templateErr)
-			}
-			newScheduledWorkflow, err = tmpl.ScheduledWorkflow(jobs[i])
+		manifestBytes, manifestErr := r.fetchPipelineSpecManifest(&jobs[i].PipelineSpec)
+		if manifestErr != nil {
+			return failedToReconcileSwfCrsError(manifestErr)
 		}
+		newScheduledWorkflow, err := template.NewGenericScheduledWorkflow(jobs[i])
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
-		// The names are informational, so a failed lookup keeps the current
-		// names instead of blocking reconciliation.
+		useCoordinatorRuntime := requestedCoordinatorRuntime(manifestBytes)
+		if useCoordinatorRuntime {
+			builtJob, _, jobErr := buildCoordinatorPipelineJobFromManifest(
+				manifestBytes,
+				jobs[i].DisplayName,
+				&jobs[i].RuntimeConfig,
+				"",
+				0,
+				0,
+			)
+			if jobErr != nil {
+				return failedToReconcileSwfCrsError(jobErr)
+			}
+			if supportErr := pocruntime.SupportsPipelineJob(builtJob); supportErr != nil {
+				return failedToReconcileSwfCrsError(supportErr)
+			}
+			parameters, err := template.StringMapToCRDParameters(string(jobs[i].RuntimeConfig.Parameters))
+			if err != nil {
+				return failedToReconcileSwfCrsError(err)
+			}
+			newScheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+				Parameters:   parameters,
+				PipelineRoot: string(jobs[i].PipelineRoot),
+			}
+		} else if !common.IsMultiUserMode() {
+			tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
+			if err != nil {
+				return failedToReconcileSwfCrsError(err)
+			}
+			newScheduledWorkflow, err = tmpl.ScheduledWorkflow(jobs[i])
+			if err != nil {
+				return failedToReconcileSwfCrsError(err)
+			}
+		}
 		namesErr := r.setScheduledWorkflowPipelineNames(newScheduledWorkflow)
 		if namesErr != nil {
 			glog.Warningf("Keeping the pipeline names of ScheduledWorkflow %v/%v: %v", jobs[i].Namespace, jobs[i].K8SName, namesErr)
@@ -1160,6 +1549,19 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 		r.storedWorkflowIdentities.delete(runId)
 		return nil
 	}
+	if r.pocCoordinator != nil && pocruntime.IsManagedRun(run) {
+		if err := r.pocCoordinator.TerminateManagedRun(ctx, run); err != nil {
+			return util.Wrapf(err, "Failed to stop managed run %s before deletion", runId)
+		}
+		if cleanupErr := r.pocCoordinator.CleanupManagedRun(ctx, run); cleanupErr != nil {
+			glog.Warningf("Failed to cleanup managed run %v: %v", runId, cleanupErr)
+		}
+		err = r.runStore.DeleteRun(runId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to delete a run %v", runId)
+		}
+		return nil
+	}
 	if run.Namespace == "" {
 		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
@@ -1296,6 +1698,9 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 	}
 	operation := func() error {
 		_, err = wfClient.Patch(ctx, name, types.MergePatchType, patch, v1.PatchOptions{})
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 		return util.Wrapf(err, "Failed to terminate workflow %s due to patching error", name)
 	}
 	err = backoff.Retry(operation, newStandardBackoffPolicy())
@@ -1314,6 +1719,19 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 	if err := importedRunMutationError(run); err != nil {
 		return err
 	}
+	if r.pocCoordinator != nil && pocruntime.IsManagedRun(run) {
+		if isTerminalManagedRunState(run.State) {
+			return nil
+		}
+		err = r.runStore.TerminateRun(runId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to terminate run %s", runId)
+		}
+		if err := r.pocCoordinator.TerminateManagedRun(ctx, run); err != nil {
+			return util.Wrapf(err, "Failed to stop managed run %s", runId)
+		}
+		return nil
+	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate run %s due to error fetching its namespace", runId)
@@ -1329,9 +1747,21 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 	}
 	err = TerminateWorkflow(ctx, r.getWorkflowClient(namespace), run.K8SName)
 	if err != nil {
+		if util.IsNotFound(err) {
+			return nil
+		}
 		return util.NewInternalServerError(err, "Failed to terminate run %s due to error terminating its workflow", runId)
 	}
 	return nil
+}
+
+func isTerminalManagedRunState(state model.RuntimeState) bool {
+	switch state.ToV2() {
+	case model.RuntimeStateSucceeded, model.RuntimeStateSkipped, model.RuntimeStateFailed, model.RuntimeStateCanceled:
+		return true
+	default:
+		return false
+	}
 }
 
 // Retries a run given its id.
@@ -1345,6 +1775,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 	if run.StorageState.ToV2() == model.StorageStateArchived {
 		return storage.NewArchivedRunRetryError(runId)
+	}
+	if r.pocCoordinator != nil && pocruntime.IsManagedRun(run) {
+		return util.NewBadRequestError(util.NewInvalidInputError("Retry is not supported for coordinator-managed runs"), "Failed to retry run %s", runId)
 	}
 	// TODO(gkcalat): consider using run.Namespace after migration logic will be available.
 	namespace, err := r.getNamespaceFromRunId(runId)
@@ -1675,6 +2108,17 @@ func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
 	}
 }
 
+func (r *ResourceManager) ReconcileManagedRuns(ctx context.Context) error {
+	if r.pocCoordinator == nil {
+		return nil
+	}
+	return r.pocCoordinator.ReconcileManagedRuns(ctx)
+}
+
+func (r *ResourceManager) CoordinatorRuntimeEnabled() bool {
+	return r.pocCoordinator != nil
+}
+
 // Fetches execution logs and writes to the destination.
 // 1. Attempts to read logs directly from pod.
 // 2. Attempts the archive only if the pod failed before writing any logs.
@@ -1847,6 +2291,9 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 // Manifest's namespace gets overwritten with the job.Namespace if the later is non-empty.
 // Otherwise, job.Namespace gets overwritten by the manifest.
 func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model.Job, error) {
+	if r.swfClient == nil {
+		return nil, kubernetesWorkflowClientsRequiredError("Creating a recurring run")
+	}
 	scheduledWorkflow, err := r.prepareJobWorkflow(ctx, job)
 	if err != nil {
 		return nil, err
@@ -1885,22 +2332,59 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 	var renderedScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
 	var templateType template.TemplateType
+	var err error
 
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
 	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
 	if job.PipelineVersionId != "" || job.PipelineSpecManifest != "" || job.WorkflowSpecManifest != "" {
-		var err error
-		// Create a template based on the manifest of an existing pipeline version or used-provided manifest.
-		// Update the job.PipelineSpec if an existing pipeline version is used.
-		tmpl, _, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
+		manifestBytes, manifestErr := r.fetchPipelineSpecManifest(&job.PipelineSpec)
+		if manifestErr != nil {
+			return nil, util.NewInternalServerError(manifestErr, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
-		templateType = tmpl.GetTemplateType()
-
-		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to validate the recurring run workflow")
+		useCoordinatorRuntime := requestedCoordinatorRuntime(manifestBytes)
+		if useCoordinatorRuntime {
+			builtJob, _, jobErr := buildCoordinatorPipelineJobFromManifest(
+				manifestBytes,
+				job.DisplayName,
+				&job.RuntimeConfig,
+				"",
+				0,
+				0,
+			)
+			if jobErr != nil {
+				return nil, util.NewBadRequestError(
+					util.NewInvalidInputError("Coordinator-managed V2 runtime requires a supported KFP v2 pipeline manifest: %v", jobErr),
+					"Failed to create a recurring run",
+				)
+			}
+			if supportErr := pocruntime.SupportsPipelineJob(builtJob); supportErr != nil {
+				return nil, util.NewBadRequestError(
+					util.NewInvalidInputError("Coordinator-managed V2 runtime does not support this pipeline yet: %v", supportErr),
+					"Failed to create a recurring run",
+				)
+			}
+			parameters, err := template.StringMapToCRDParameters(string(job.RuntimeConfig.Parameters))
+			if err != nil {
+				return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
+			}
+			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+			}
+			scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+				Parameters:   parameters,
+				PipelineRoot: string(job.PipelineRoot),
+			}
+		} else {
+			tmpl, _, err = r.fetchTemplateFromPipelineSpec(&job.PipelineSpec)
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
+			}
+			templateType = tmpl.GetTemplateType()
+			scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+			}
 		}
 		renderedScheduledWorkflow = scheduledWorkflow
 		job.ServiceAccount, err = scheduledServiceAccount(scheduledWorkflow, job.ServiceAccount)
@@ -1922,31 +2406,48 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 		// Validate the input parameters on the latest pipeline version. The latest pipeline version is not stored
 		// in the ScheduledWorkflow. It's just to help the user with up front validation at recurring run creation
 		// time.
-		manifest, err := r.GetPipelineLatestTemplate(job.PipelineId)
+		manifestBytes, err := r.GetPipelineLatestTemplate(job.PipelineId)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		templateOptions := template.TemplateOptions{
-			CacheDisabled:        r.options.CacheDisabled,
-			DefaultWorkspace:     r.options.DefaultWorkspace,
-			MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     r.options.DefaultRunAsUser,
-			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
-			DefaultHostUsers:     r.options.DefaultHostUsers,
-		}
-		latestTemplate, err := template.New(manifest, templateOptions)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
-		}
-		templateType = latestTemplate.GetTemplateType()
+		useCoordinatorRuntime := requestedCoordinatorRuntime(manifestBytes)
+		if useCoordinatorRuntime {
+			builtJob, _, buildErr := buildCoordinatorPipelineJobFromManifest(manifestBytes, job.DisplayName, &job.RuntimeConfig, "", 0, 0)
+			if buildErr != nil {
+				return nil, util.NewBadRequestError(
+					util.NewInvalidInputError("Coordinator-managed V2 runtime requires a supported KFP v2 pipeline manifest: %v", buildErr),
+					"Failed to create a recurring run",
+				)
+			}
+			if supportErr := pocruntime.SupportsPipelineJob(builtJob); supportErr != nil {
+				return nil, util.NewBadRequestError(
+					util.NewInvalidInputError("Coordinator-managed V2 runtime does not support this pipeline yet: %v", supportErr),
+					"Failed to create a recurring run",
+				)
+			}
+		} else {
+			templateOptions := template.TemplateOptions{
+				CacheDisabled:        r.options.CacheDisabled,
+				DefaultWorkspace:     r.options.DefaultWorkspace,
+				MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
+				DefaultRunAsUser:     r.options.DefaultRunAsUser,
+				DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
+				DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
+				DefaultHostUsers:     r.options.DefaultHostUsers,
+			}
+			tmpl, err = template.New(manifestBytes, templateOptions)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
+			}
 
-		renderedScheduledWorkflow, err = latestTemplate.ScheduledWorkflow(job)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+			templateType = tmpl.GetTemplateType()
+			renderedScheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+			}
 		}
-		if v2Tmpl, ok := latestTemplate.(*template.V2Spec); ok {
+		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
 			if err = v2Tmpl.ValidateJobInputs(job); err != nil {
 				return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 			}
@@ -1956,7 +2457,6 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
-
 		parameters, err := template.StringMapToCRDParameters(string(job.RuntimeConfig.Parameters))
 		if err != nil {
 			return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
@@ -1976,16 +2476,28 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 		return nil, err
 	}
 	job.ServiceAccount = resolvedJobServiceAccount
-	jobExecutionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, renderedScheduledWorkflow.Spec.Workflow)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
-	}
-	if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
+	if tmpl != nil {
+		jobExecutionSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, renderedScheduledWorkflow.Spec.Workflow)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to inspect the recurring run's service accounts")
+		}
+		if err := r.authorizeExecutionServiceAccounts(ctx, jobExecutionSpec, templateType == template.V2, k8sNamespace, "create_recurring_run"); err != nil {
+			return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
+		}
 	}
 	// The names are informational, so a failed lookup must not block creation.
 	if err := r.setScheduledWorkflowPipelineNames(scheduledWorkflow); err != nil {
 		glog.Warningf("Creating recurring run %q in namespace %q without pipeline names: %v", job.DisplayName, k8sNamespace, err)
+	}
+	if tmpl == nil && scheduledWorkflow != nil && scheduledWorkflow.Spec.ServiceAccount == "" {
+		defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
+		if defaultServiceAccount == "" {
+			defaultServiceAccount = common.DefaultPipelineRunnerServiceAccount
+		}
+		scheduledWorkflow.Spec.ServiceAccount = defaultServiceAccount
+	}
+	if r.swfClient == nil {
+		return nil, kubernetesWorkflowClientsRequiredError("Creating a recurring run")
 	}
 
 	return scheduledWorkflow, nil
@@ -2022,6 +2534,9 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 	job, err := r.GetJob(jobId)
 	if err != nil {
 		return util.Wrapf(err, "Failed to change recurring run's mode to enable:%v. Check if recurring run %v exists", enable, jobId)
+	}
+	if r.swfClient == nil {
+		return kubernetesWorkflowClientsRequiredError("Changing recurring run mode")
 	}
 	k8sNamespace := job.Namespace
 	if k8sNamespace == "" {
@@ -2078,6 +2593,9 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagati
 	job, err := r.GetJob(jobID)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)
+	}
+	if r.swfClient == nil {
+		return kubernetesWorkflowClientsRequiredError("Deleting a recurring run")
 	}
 
 	k8sNamespace := job.Namespace

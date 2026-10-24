@@ -119,7 +119,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "6df897d5f41127f359c4e63d5011b3a8b3506f0edf99664729bf83003ae715f6",
+      "header_sha256": "3764c3b0e55f181ac52ecdab43e95e08952140496454f9ab512cc7cf326b0abc",
       "pull_request": null
     },
     {
@@ -300,6 +300,22 @@
           "sdk/python/kfp/**",
           ".readthedocs.yml",
           ".github/workflows/docs.yml"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/e2e-test-coordinator-local-docker.yml",
+      "name": "Coordinator Runtime Local Docker E2E",
+      "header_sha256": "7887463140164f948196b9a1e021db0bdb4c40e1cf023be5d398847ddecd6863",
+      "pull_request": {
+        "paths": [
+          ".github/workflows/e2e-test-coordinator-local-docker.yml",
+          "backend/Makefile",
+          "backend/src/**",
+          "backend/test/**",
+          ".github/resources/tinyproxy/**",
+          "!**/*.md",
+          "!**/OWNERS"
         ]
       }
     },

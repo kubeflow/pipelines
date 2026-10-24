@@ -33,6 +33,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/util/file"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -49,6 +50,7 @@ import (
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swfclientv1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	pocruntime "github.com/kubeflow/pipelines/backend/src/v2/runtime/poc"
 	"github.com/pkg/errors"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/spf13/viper"
@@ -199,6 +201,20 @@ func (m *readerOnlyObjectStore) GetFileReader(ctx context.Context, filePath stri
 		return nil, util.NewInternalServerError(errors.New("not found"), "file not found")
 	}
 	return io.NopCloser(bytes.NewReader(content)), nil
+}
+
+type failingPrepareExecutor struct{}
+
+func (failingPrepareExecutor) Type() string {
+	return pocruntime.ExecutorDocker
+}
+
+func (failingPrepareExecutor) PrepareRun(context.Context, *model.Run, *pipelinespec.PipelineJob, *pocruntime.WorkspaceHandle) (map[string]string, error) {
+	return nil, fmt.Errorf("prepare failed")
+}
+
+func (failingPrepareExecutor) ExecuteTask(context.Context, *pocruntime.TaskExecutionRequest) (*pocruntime.TaskExecutionResult, error) {
+	return nil, fmt.Errorf("unexpected ExecuteTask call")
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -498,6 +514,75 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	return store, manager, experiment
 }
 
+func initWithExperimentV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
+	initEnvVars()
+	originalAutoExecute := viper.GetString(common.V2RuntimeAutoExecute)
+	viper.Set(common.V2RuntimeAutoExecute, "false")
+	t.Cleanup(func() {
+		viper.Set(common.V2RuntimeAutoExecute, originalAutoExecute)
+	})
+	store := NewFakeClientManagerOrFatalV2()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
+	assert.Nil(t, err)
+	return store, manager, experiment
+}
+
+func enableCoordinatorRuntimeModeForTest(t *testing.T) {
+	t.Helper()
+	originalMode := viper.GetString(common.V2RuntimeMode)
+	t.Cleanup(func() {
+		viper.Set(common.V2RuntimeMode, originalMode)
+	})
+	viper.Set(common.V2RuntimeMode, pocruntime.RuntimeModeCoordinator)
+}
+
+func TestRequestedCoordinatorRuntime_DisabledByDefault(t *testing.T) {
+	useCoordinatorRuntime := requestedCoordinatorRuntime([]byte(v2SpecHelloWorld))
+
+	assert.False(t, useCoordinatorRuntime)
+}
+
+func TestRequestedCoordinatorRuntime_UsesCoordinatorForV2WhenEnabled(t *testing.T) {
+	enableCoordinatorRuntimeModeForTest(t)
+
+	useCoordinatorRuntime := requestedCoordinatorRuntime([]byte(v2SpecHelloWorld))
+
+	assert.True(t, useCoordinatorRuntime)
+}
+
+func TestRequestedCoordinatorRuntime_KeepsArgoForWorkflowSpecs(t *testing.T) {
+	enableCoordinatorRuntimeModeForTest(t)
+
+	useCoordinatorRuntime := requestedCoordinatorRuntime([]byte(testWorkflow.ToStringForStore()))
+
+	assert.False(t, useCoordinatorRuntime)
+}
+
+func TestNewResourceManager_CoordinatorRuntimeDisabledByDefault(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	assert.False(t, manager.CoordinatorRuntimeEnabled())
+	assert.Nil(t, manager.pocCoordinator)
+}
+
+func TestNewResourceManager_CoordinatorRuntimeEnabledWhenConfigured(t *testing.T) {
+	initEnvVars()
+	enableCoordinatorRuntimeModeForTest(t)
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	assert.True(t, manager.CoordinatorRuntimeEnabled())
+	assert.NotNil(t, manager.pocCoordinator)
+}
+
 func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
@@ -587,7 +672,7 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 		ExperimentId: exp.UUID,
 	}
 	runDetail, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	return store, manager, runDetail
 }
 
@@ -621,7 +706,7 @@ func storedWorkflowUID(t *testing.T, run *model.Run) types.UID {
 }
 
 func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
-	store, manager, exp := initWithExperiment(t)
+	store, manager, exp := initWithExperimentV2(t)
 	apiRun := &model.Run{
 		DisplayName: "run1",
 		PipelineSpec: model.PipelineSpec{
@@ -2236,9 +2321,10 @@ func TestDeletePipeline(t *testing.T) {
 func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRunV2(t)
 	expectedExperimentUUID := runDetail.ExperimentId
+	require.NotEmpty(t, runDetail.UUID)
 
 	expectedRunDetail := &model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		UUID:           runDetail.UUID,
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "hello-world-0",
@@ -2271,6 +2357,259 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2(), "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_ThroughWorkflowSpecV2_DefaultsToCoordinatorWhenCoordinatorRuntimeEnabled(t *testing.T) {
+	enableCoordinatorRuntimeModeForTest(t)
+	originalExecutor := viper.GetString(common.V2RuntimeExecutor)
+	originalAutoExecute := viper.GetString(common.V2RuntimeAutoExecute)
+	viper.Set(common.V2RuntimeExecutor, pocruntime.ExecutorDocker)
+	viper.Set(common.V2RuntimeAutoExecute, "false")
+	t.Cleanup(func() {
+		viper.Set(common.V2RuntimeExecutor, originalExecutor)
+		viper.Set(common.V2RuntimeAutoExecute, originalAutoExecute)
+	})
+
+	store, _, runDetail := initWithOneTimeRunV2(t)
+
+	assert.NotEmpty(t, runDetail.PipelineRuntimeManifest)
+	assert.Empty(t, runDetail.WorkflowRuntimeManifest)
+	assert.True(t, pocruntime.IsManagedRun(runDetail))
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "Argo workflow should not be created when coordinator runtime is enabled")
+}
+
+func TestCreateRun_CoordinatorManagedV2RunDefaultsNamespace(t *testing.T) {
+	enableCoordinatorRuntimeModeForTest(t)
+	originalExecutor := viper.GetString(common.V2RuntimeExecutor)
+	originalAutoExecute := viper.GetString(common.V2RuntimeAutoExecute)
+	viper.Set(common.V2RuntimeExecutor, pocruntime.ExecutorKubernetes)
+	viper.Set(common.V2RuntimeAutoExecute, "false")
+	defer func() {
+		viper.Set(common.V2RuntimeExecutor, originalExecutor)
+		viper.Set(common.V2RuntimeAutoExecute, originalAutoExecute)
+	}()
+
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	exp, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+
+	manager.pocCoordinator = pocruntime.NewCoordinator(
+		manager.runStore,
+		manager.taskStore,
+		manager.artifactStore,
+		manager.artifactTaskStore,
+		manager.time,
+		nil,
+		nil,
+		false,
+	)
+
+	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName:  "run1",
+		ExperimentId: exp.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: `{"text":"world"}`,
+			},
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, exp.Namespace, runDetail.Namespace)
+	assert.NotEmpty(t, string(runDetail.PipelineRuntimeManifest))
+}
+
+func TestCreateRun_CoordinatorManagedSubmitFailureCleansUpRun(t *testing.T) {
+	enableCoordinatorRuntimeModeForTest(t)
+	originalExecutor := viper.GetString(common.V2RuntimeExecutor)
+	originalAutoExecute := viper.GetString(common.V2RuntimeAutoExecute)
+	viper.Set(common.V2RuntimeExecutor, pocruntime.ExecutorDocker)
+	viper.Set(common.V2RuntimeAutoExecute, "false")
+	defer func() {
+		viper.Set(common.V2RuntimeExecutor, originalExecutor)
+		viper.Set(common.V2RuntimeAutoExecute, originalAutoExecute)
+	}()
+
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	exp, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+
+	manager.pocCoordinator.RegisterExecutor(failingPrepareExecutor{})
+
+	_, err = manager.CreateRun(context.Background(), &model.Run{
+		DisplayName:  "run1",
+		ExperimentId: exp.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: `{"text":"world"}`,
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "prepare failed")
+
+	runs, totalSize, _, listErr := manager.runStore.ListRuns(&model.FilterContext{}, list.EmptyOptions(), false)
+	require.NoError(t, listErr)
+	assert.Equal(t, 0, totalSize)
+	assert.Empty(t, runs)
+}
+
+func TestCreateRun_RecurringManagedRunLoadsPinnedManifestFromJob(t *testing.T) {
+	enableCoordinatorRuntimeModeForTest(t)
+	originalExecutor := viper.GetString(common.V2RuntimeExecutor)
+	originalAutoExecute := viper.GetString(common.V2RuntimeAutoExecute)
+	viper.Set(common.V2RuntimeExecutor, pocruntime.ExecutorDocker)
+	viper.Set(common.V2RuntimeAutoExecute, "false")
+	defer func() {
+		viper.Set(common.V2RuntimeExecutor, originalExecutor)
+		viper.Set(common.V2RuntimeAutoExecute, originalAutoExecute)
+	}()
+
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	exp, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName:  "j1",
+		Enabled:      true,
+		ExperimentId: exp.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `{"text":"world"}`,
+				PipelineRoot: "job-root",
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName:    "child-run",
+		ExperimentId:   exp.UUID,
+		RecurringRunId: job.UUID,
+		RunDetails: model.RunDetails{
+			ScheduledAtInSec: 123,
+		},
+		PipelineSpec: model.PipelineSpec{
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `{"text":"child-world"}`,
+				PipelineRoot: "child-root",
+			},
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, job.UUID, runDetail.RecurringRunId)
+	assert.Equal(t, job.PipelineSpecManifest, runDetail.PipelineSpecManifest)
+	assert.Equal(t, `{"text":"child-world"}`, string(runDetail.RuntimeConfig.Parameters))
+	assert.NotEmpty(t, string(runDetail.PipelineRuntimeManifest))
+}
+
+func TestCreateRun_UsesArgoWhenCoordinatorRuntimeDisabled(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	exp, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+
+	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName:  "run1",
+		ExperimentId: exp.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: `{"text":"world"}`,
+			},
+		},
+	})
+	require.NoError(t, err)
+	assert.False(t, pocruntime.IsManagedRun(runDetail))
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount())
+}
+
+func TestCreateRun_WithoutWorkflowClientsReturnsFailedPrecondition(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	manager.execClient = nil
+
+	_, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
+	assert.Contains(t, err.Error(), "requires Kubernetes workflow clients")
+}
+
+func TestCreateManagedV2Run_RequiresInitializedCoordinator(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	_, err := manager.createManagedV2Run(
+		context.Background(),
+		&model.Run{UUID: "run-id"},
+		[]byte(v2SpecHelloWorld),
+		nil,
+		nil,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "coordinator-managed runtime is not initialized")
+}
+
+func TestCreateJob_WithoutScheduledWorkflowClientReturnsFailedPrecondition(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	manager.swfClient = nil
+
+	_, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
+	assert.Contains(t, err.Error(), "requires Kubernetes workflow clients")
+}
+
+func TestChangeJobMode_WithoutScheduledWorkflowClientReturnsFailedPrecondition(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	manager.swfClient = nil
+
+	err := manager.ChangeJobMode(context.Background(), job.UUID, false)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
+	assert.Contains(t, err.Error(), "requires Kubernetes workflow clients")
+}
+
+func TestDeleteJob_WithoutScheduledWorkflowClientReturnsFailedPrecondition(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	manager.swfClient = nil
+
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
+	assert.Contains(t, err.Error(), "requires Kubernetes workflow clients")
 }
 
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
@@ -2754,6 +3093,39 @@ func TestTerminateRun_DbFailure(t *testing.T) {
 	err := manager.TerminateRun(context.Background(), runDetail.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestTerminateRun_WorkflowNotFound(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	err := store.ExecClientFake.Execution("ns1").Delete(context.Background(), runDetail.K8SName, v1.DeleteOptions{})
+	require.NoError(t, err)
+
+	err = manager.TerminateRun(context.Background(), runDetail.UUID)
+	assert.Nil(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
+}
+
+func TestTerminateRun_ManagedRunAlreadyFinished(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRunV2(t)
+	defer store.Close()
+
+	manifestJSON, err := pocruntime.NewRuntimeManifest("docker").ToJSON()
+	require.NoError(t, err)
+
+	runDetail.PipelineRuntimeManifest = model.LargeText(manifestJSON)
+	runDetail.WorkflowRuntimeManifest = ""
+	runDetail.State = model.RuntimeStateSucceeded
+	require.NoError(t, manager.runStore.UpdateRun(runDetail))
+
+	manager.pocCoordinator = &pocruntime.Coordinator{}
+
+	err = manager.TerminateRun(context.Background(), runDetail.UUID)
+	assert.Nil(t, err)
 }
 
 func TestRetryRun(t *testing.T) {
@@ -6563,10 +6935,12 @@ func TestReconcileSwfCrs(t *testing.T) {
 	swf, err := swfClient.Get(ctx, "job-", options)
 	require.Nil(t, err)
 
-	// emulates an invalid/outdated spec
-	swf.Spec.Workflow.Spec = nil
+	// Emulate an invalid/outdated recurring-run payload that should be reconstructed
+	// from pinned pipeline metadata rather than an embedded workflow spec.
+	require.NotNil(t, swf.Spec.Workflow)
+	swf.Spec.Workflow.Parameters = nil
 	swf, err = swfClient.Update(ctx, swf)
-	require.Nil(t, swf.Spec.Workflow.Spec)
+	require.Nil(t, swf.Spec.Workflow.Parameters)
 	require.NoError(t, err)
 
 	err = manager.ReconcileSwfCrs(ctx)
@@ -6574,7 +6948,8 @@ func TestReconcileSwfCrs(t *testing.T) {
 
 	swf, err = swfClient.Get(ctx, "job-", options)
 	require.Nil(t, err)
-	require.NotNil(t, swf.Spec.Workflow.Spec)
+	require.NotNil(t, swf.Spec.Workflow)
+	require.NotEmpty(t, swf.Spec.Workflow.Parameters)
 }
 
 func TestScheduledWorkflowPipelineNames(t *testing.T) {
@@ -7476,7 +7851,7 @@ func TestCreateRun_LiteralParameterValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store, manager, exp := initWithExperiment(t)
+			store, manager, exp := initWithExperimentV2(t)
 			defer store.Close()
 			apiRun := &model.Run{
 				DisplayName:  "run1",

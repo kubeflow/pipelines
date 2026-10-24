@@ -484,6 +484,54 @@ func initPodSpecPatch(
 	return podSpec, nil
 }
 
+// BuildLauncherPodSpec builds the launcher-backed pod spec used for runtime task execution.
+func BuildLauncherPodSpec(
+	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
+	componentSpec *pipelinespec.ComponentSpec,
+	executorInput *pipelinespec.ExecutorInput,
+	taskID string,
+	parentTaskID string,
+	pipelineName string,
+	runID string,
+	runName string,
+	pipelineLogLevel string,
+	publishLogs string,
+	cacheDisabled string,
+	taskConfig *TaskConfig,
+	fingerPrint string,
+	iterationIndex *int,
+	taskName string,
+	mlPipelineTLSEnabled bool,
+	caCertPath string,
+	mlPipelineServerAddress string,
+	mlPipelineServerPort string,
+	proxyConfig proxy.Config,
+) (*k8score.PodSpec, error) {
+	return initPodSpecPatch(
+		container,
+		componentSpec,
+		executorInput,
+		taskID,
+		parentTaskID,
+		pipelineName,
+		runID,
+		runName,
+		pipelineLogLevel,
+		publishLogs,
+		cacheDisabled,
+		taskConfig,
+		fingerPrint,
+		iterationIndex,
+		taskName,
+		mlPipelineTLSEnabled,
+		caCertPath,
+		mlPipelineServerAddress,
+		mlPipelineServerPort,
+		nil,
+		proxyConfig,
+	)
+}
+
 func resolveContainerCommandAndArgs(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
@@ -780,6 +828,17 @@ func provisionOutputs(
 		outputs.OutputFile = component.OutputMetadataFilepath
 	}
 	return outputs
+}
+
+// BuildProvisionedOutputs prepares ExecutorInput output locations for a task.
+func BuildProvisionedOutputs(
+	pipelineRoot,
+	taskName string,
+	outputsSpec *pipelinespec.ComponentOutputsSpec,
+	outputURISalt string,
+	publishOutput string,
+) *pipelinespec.ExecutorInput_Outputs {
+	return provisionOutputs(pipelineRoot, taskName, outputsSpec, outputURISalt, publishOutput)
 }
 
 func validateVolumeMounts(podSpec *k8score.PodSpec) error {
