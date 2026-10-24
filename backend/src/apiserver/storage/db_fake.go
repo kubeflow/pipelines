@@ -42,6 +42,11 @@ func NewFakeDB() (*sql.DB, dialect.DBDialect, error) {
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to get generic database object from GORM DB")
 	}
+	// SQLite disables foreign-key enforcement by default. Enable it so that
+	// ON DELETE CASCADE constraints behave the same as MySQL/PostgreSQL.
+	if _, err := sqlDB.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		return nil, nil, util.Wrap(err, "Failed to enable foreign key enforcement")
+	}
 	return sqlDB, dialect.NewDBDialect("sqlite"), nil
 }
 
