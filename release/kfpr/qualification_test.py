@@ -36,8 +36,10 @@ class QualificationTest(unittest.TestCase):
         )
 
     def setUp(self):
-        self.ci = SimpleNamespace(qualify_images=Mock(), verify_run=Mock())
-        client = patch.dict(sys.modules, {'kfpr.ci_images_client': self.ci})
+        self.ci = SimpleNamespace(qualify_ci=Mock(), verify_run=Mock())
+        client = patch.dict(
+            sys.modules, {'kfpr.ci_qualification_client': self.ci}
+        )
         client.start()
         self.addCleanup(client.stop)
         patcher = patch.object(
@@ -72,6 +74,7 @@ class QualificationTest(unittest.TestCase):
         policy = context.state.answers.get('security_policy', 'zero-fixable')
         return {
             'passed': True,
+            'scanner': q.SCANNER,
             'errors': [],
             'policy': policy,
             'release_version': context.metadata.tag,
@@ -106,6 +109,7 @@ class QualificationTest(unittest.TestCase):
             'qualified_at': datetime.now(timezone.utc).isoformat(),
             'security': self.security(context, scans),
             'images': images,
+            'security_ci': {'id': 123},
             'wheels': {
                 'passed': True,
                 'python_environments': ['/venv39', '/venv311'],
@@ -287,96 +291,54 @@ class QualificationTest(unittest.TestCase):
             patch('kfpr.steps.validate_release_pr', return_value=SHA),
             patch.object(q, '_run'),
         ):
-            root = Path(tmp)
-            context = self.context(root, backend=False, sdk=False)
+            context = self.context(Path(tmp), backend=False, sdk=False)
             self.evidence(context)
-            (root / 'source').mkdir()
-            (root / 'source/VERSION').write_text('2.17.3')
-            with (
-                patch.object(q.tempfile, 'mkdtemp', return_value=tmp),
-                patch.object(
-                    q,
-                    'qualify_security',
-                    side_effect=RuntimeError('fixable CVE'),
-                ),
-            ):
-                with self.assertRaisesRegex(RuntimeError, 'fixable CVE'):
+            (Path(tmp) / 'source').mkdir()
+            self.ci.qualify_ci.side_effect = RuntimeError('scanner failed')
+            with patch.object(q.tempfile, 'mkdtemp', return_value=tmp):
+                with self.assertRaisesRegex(RuntimeError, 'scanner failed'):
                     q.qualify_release(context)
             self.assertNotIn('qualification_path', context.state.answers)
             self.assertNotIn('qualification_digest', context.state.answers)
 
-    def test_isolated_merged_source_passes_and_evidence_can_be_reused(self):
+    def test_sdk_only_dispatches_ci_and_rechecks_run_at_publication(self):
         with (
             TemporaryDirectory() as tmp,
             patch('kfpr.steps.validate_release_pr', return_value=SHA),
         ):
             root = Path(tmp)
-            source = root / 'source'
-            source.mkdir()
-            subprocess.run(['git', 'init', '-q', str(source)], check=True)
-            (source / 'VERSION').write_text('2.17.3')
-            subprocess.run(
-                ['git', '-C', str(source), 'add', 'VERSION'], check=True
-            )
-            subprocess.run(
-                [
-                    'git',
-                    '-C',
-                    str(source),
-                    '-c',
-                    'user.name=Test',
-                    '-c',
-                    'user.email=test@example.test',
-                    'commit',
-                    '-qm',
-                    'fixture',
-                ],
-                check=True,
-            )
+            (root / 'source').mkdir()
             context = self.context(root, backend=False, sdk=True)
-            context.state.answers['qualification_pythons'] = (
-                '/python39,/python311'
-            )
+            self.ci.qualify_ci.return_value = {
+                'images': [],
+                'wheels': {
+                    'passed': True,
+                    'python_environments': ['/venv39', '/venv311'],
+                },
+                'security': self.security(
+                    context,
+                    [{'name': 'source', 'target': '/source', 'findings': []}]
+                    + self.python_scans(),
+                ),
+                'run': {'id': 123},
+            }
             with (
                 patch.object(q.tempfile, 'mkdtemp', return_value=tmp),
                 patch.object(q, '_run') as run,
-                patch.object(q, 'build_wheels'),
-                patch.object(
-                    q,
-                    'qualify_wheels',
-                    return_value={
-                        'passed': True,
-                        'python_environments': ['/venv39', '/venv311'],
-                    },
-                ) as wheels,
-                patch.object(
-                    q,
-                    'qualify_security',
-                    return_value=self.security(
-                        context,
-                        [
-                            {
-                                'name': 'source',
-                                'target': '/source',
-                                'findings': [],
-                            }
-                        ]
-                        + self.python_scans(),
-                    ),
-                ) as scan,
+                patch.object(q.subprocess, 'check_output', return_value=''),
+                patch.object(q, 'build_wheels') as build,
             ):
                 q.qualify_release(context)
+                build.assert_not_called()
                 self.assertIn(
                     ['git', 'checkout', '--detach', SHA],
-                    [call.args[0] for call in run.call_args_list],
+                    [c.args[0] for c in run.call_args_list],
                 )
-                self.assertEqual(
-                    wheels.call_args.args[2], ['/python39', '/python311']
-                )
-                self.assertEqual(
-                    scan.call_args.args[2], [Path('/venv39'), Path('/venv311')]
-                )
+            self.assertEqual(
+                self.ci.qualify_ci.call_args.args[1:3], ([], {'3.9', '3.11'})
+            )
             q.require_qualification(context)
+            self.ci.verify_run.assert_called_once_with(context, {'id': 123})
 
     def inventory(self, root):
         (root / '.github/workflows').mkdir(parents=True)
@@ -400,7 +362,146 @@ class QualificationTest(unittest.TestCase):
             arch: {arch_name: arm64}
 """)
 
-    def test_backend_uses_ci_reports_without_local_docker(self):
+    def test_new_approved_commit_is_available_without_moving_caller_checkout(
+        self,
+    ):
+        self.coverage_patcher.stop()
+        with TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            upstream = base / 'upstream'
+            upstream.mkdir()
+
+            def git(root, *arguments):
+                return subprocess.check_output(
+                    ['git', '-c', 'core.fsmonitor=false', *arguments],
+                    cwd=root,
+                    text=True,
+                    stderr=subprocess.PIPE,
+                ).strip()
+
+            git(upstream, 'init', '--quiet')
+            self.inventory(upstream)
+            (upstream / 'VERSION').write_text('2.17.2\n')
+            sdk = upstream / 'sdk/python'
+            sdk.mkdir(parents=True)
+            metadata = sdk / 'setup.py'
+            metadata.write_text(
+                "classifiers=['Programming Language :: Python :: 3.9']\n"
+            )
+            (upstream / 'operator-notes.txt').write_text('committed notes\n')
+            git(upstream, 'add', '.')
+            git(
+                upstream,
+                '-c',
+                'user.name=Qualification Test',
+                '-c',
+                'user.email=qualification@example.invalid',
+                'commit',
+                '--quiet',
+                '-m',
+                'Older release fixture',
+            )
+            caller = base / 'caller'
+            git(base, 'clone', '--quiet', str(upstream), str(caller))
+            caller_head = git(caller, 'rev-parse', 'HEAD')
+            (caller / 'operator-notes.txt').write_text(
+                'uncommitted operator notes\n'
+            )
+            (caller / 'scratch.txt').write_text('untracked user work\n')
+            initial_status = git(caller, 'status', '--porcelain')
+
+            (upstream / 'VERSION').write_text('2.17.3\n')
+            metadata.write_text(
+                "classifiers=['Programming Language :: Python :: 3.9', "
+                "'Programming Language :: Python :: 3.11']\n"
+            )
+            git(upstream, 'add', '.')
+            git(
+                upstream,
+                '-c',
+                'user.name=Qualification Test',
+                '-c',
+                'user.email=qualification@example.invalid',
+                'commit',
+                '--quiet',
+                '-m',
+                'Approved release fixture',
+            )
+            approved = git(upstream, 'rev-parse', 'HEAD')
+            with self.assertRaises(subprocess.CalledProcessError):
+                git(caller, 'cat-file', '-e', approved)
+            context = self.context(caller)
+            context.state = ReleaseState(base / 'state.json')
+            output = base / 'evidence'
+            output.mkdir()
+            images = [
+                {**record, 'image_id': 'sha256:' + str(index + 1) * 64}
+                for index, record in enumerate(q.image_matrix(upstream))
+            ]
+            scans = [{'name': 'source', 'target': '/source', 'findings': []}]
+            scans.extend(self.python_scans())
+            scans.extend(
+                {
+                    'name': f'image-{index}',
+                    'target': record['image_id'],
+                    'findings': [],
+                }
+                for index, record in enumerate(images)
+            )
+            self.ci.qualify_ci.return_value = {
+                'images': images,
+                'wheels': {
+                    'passed': True,
+                    'python_environments': ['/venv39', '/venv311'],
+                },
+                'security': self.security(context, scans),
+                'run': {'id': 123},
+            }
+            original_run = q._run
+            fetched = []
+
+            def local_upstream(command, root):
+                command = list(command)
+                if command[:3] == [
+                    'git',
+                    'fetch',
+                    f'https://github.com/{q.REPO}.git',
+                ]:
+                    fetched.append(command[-1])
+                    command[2] = str(upstream)
+                original_run(command, root)
+
+            with (
+                patch('kfpr.steps.validate_release_pr', return_value=approved),
+                patch.object(q.tempfile, 'mkdtemp', return_value=str(output)),
+                patch.object(q, '_run', side_effect=local_upstream),
+            ):
+                q.qualify_release(context)
+                q.require_qualification(context)
+            self.assertEqual(fetched, [approved])
+            self.assertEqual(
+                self.ci.qualify_ci.call_args.args[1], q.image_matrix(upstream)
+            )
+            self.assertEqual(
+                self.ci.qualify_ci.call_args.args[2], {'3.9', '3.11'}
+            )
+            self.ci.verify_run.assert_called_once_with(context, {'id': 123})
+            self.assertEqual(
+                git(caller, 'show', f'{approved}:VERSION'), '2.17.3'
+            )
+            self.assertEqual(git(caller, 'rev-parse', 'HEAD'), caller_head)
+            self.assertEqual(
+                git(caller, 'status', '--porcelain'), initial_status
+            )
+            self.assertEqual(
+                (caller / 'operator-notes.txt').read_text(),
+                'uncommitted operator notes\n',
+            )
+            self.assertEqual(
+                (caller / 'scratch.txt').read_text(), 'untracked user work\n'
+            )
+
+    def test_backend_uses_only_ci_scans_and_complete_source_inventory(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             source = root / 'source'
@@ -408,14 +509,10 @@ class QualificationTest(unittest.TestCase):
             (source / 'VERSION').write_text('2.17.3')
             self.inventory(source)
             context = self.context(root, sdk=False)
-            self.ci.qualify_images.return_value = {
-                'images': [{'image_id': 'sha256:' + 'b' * 64}],
-                'reports': [
-                    {
-                        'image_id': 'sha256:' + 'b' * 64,
-                        'path': '/download/image.json',
-                    }
-                ],
+            self.ci.qualify_ci.return_value = {
+                'images': [],
+                'wheels': None,
+                'security': self.security(context),
                 'run': {'id': 123},
             }
             with (
@@ -423,26 +520,23 @@ class QualificationTest(unittest.TestCase):
                 patch.object(q.tempfile, 'mkdtemp', return_value=tmp),
                 patch.object(q, '_run') as run,
                 patch.object(q.subprocess, 'check_output', return_value=''),
-                patch.object(
-                    q, 'qualify_security', return_value=self.security(context)
-                ) as scan,
             ):
                 q.qualify_release(context)
             self.assertFalse(
-                any(call.args[0][0] == 'docker' for call in run.call_args_list)
+                any(
+                    c.args[0][0]
+                    in ('docker', 'trivy', 'osv-scanner', 'pip-audit')
+                    for c in run.call_args_list
+                )
             )
-            self.assertEqual(context.state.answers['release_sha'], SHA)
             self.assertEqual(
-                self.ci.qualify_images.call_args.args[1], q.image_matrix(source)
-            )
-            self.assertEqual(
-                scan.call_args.kwargs['image_reports'],
-                [('sha256:' + 'b' * 64, Path('/download/image.json'))],
+                self.ci.qualify_ci.call_args.args[1], q.image_matrix(source)
             )
             report = json.loads(
                 Path(context.state.answers['qualification_path']).read_text()
             )
-            self.assertEqual(report['image_ci'], {'id': 123})
+            self.assertEqual(report['security_ci'], {'id': 123})
+            self.assertEqual(report['schema'], 2)
 
     def test_publication_rechecks_ci_run(self):
         with (
@@ -450,74 +544,32 @@ class QualificationTest(unittest.TestCase):
             patch('kfpr.steps.validate_release_pr', return_value=SHA),
         ):
             context = self.context(Path(tmp), sdk=False)
-            self.evidence(context, image_ci={'id': 123})
+            self.evidence(context, security_ci={'id': 123})
             self.ci.verify_run.side_effect = ValueError('CI attempt changed')
             with self.assertRaisesRegex(ValueError, 'CI attempt changed'):
                 q.require_qualification(context)
             self.ci.verify_run.assert_called_once_with(context, {'id': 123})
 
-    def test_local_scanner_failure_closes_owned_builder_and_retains_evidence(
-        self,
-    ):
-        with TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            source = root / 'source'
-            source.mkdir()
-            (source / 'VERSION').write_text('2.17.3')
-            self.inventory(source)
-            context = self.context(root, sdk=False)
+    def test_local_mode_cannot_authorize_qualification(self):
+        with TemporaryDirectory() as tmp:
+            context = self.context(Path(tmp), sdk=False)
             context.state.answers['image_qualification'] = 'local'
-            closed = []
+            with self.assertRaisesRegex(ValueError, 'require CI'):
+                q._identity(context, SHA)
+            self.ci.qualify_ci.assert_not_called()
 
-            def images(*args):
-                try:
-                    yield {
-                        'name': 'kfp-api-server',
-                        'platform': 'linux/amd64',
-                        'image_id': 'sha256:' + 'b' * 64,
-                    }
-                finally:
-                    closed.append(True)
-
-            def fail_scan(source, output, environments, image_ids, **kwargs):
-                self.assertEqual(next(image_ids), 'sha256:' + 'b' * 64)
-                output.mkdir()
-                (output / 'image-0.json').write_text('{"raw": "retained"}')
-                raise RuntimeError('scanner failed')
-
-            with (
-                patch('kfpr.steps.validate_release_pr', return_value=SHA),
-                patch.object(q.tempfile, 'mkdtemp', return_value=temporary),
-                patch.object(q, '_run'),
-                patch(
-                    'kfpr.local_images.build_images', side_effect=images
-                ) as builds,
-                patch.object(q, 'qualify_security', side_effect=fail_scan),
-            ):
-                with self.assertRaisesRegex(RuntimeError, 'scanner failed'):
-                    q.qualify_release(context)
-            self.assertEqual(closed, [True])
-            self.assertEqual(builds.call_args.args[3], q.image_matrix(source))
-            self.assertTrue((root / 'security/image-0.json').is_file())
-            self.assertTrue((root / 'images.json').is_file())
-            self.assertNotIn('qualification_path', context.state.answers)
-            self.ci.qualify_images.assert_not_called()
-
-    def test_explicit_local_evidence_skips_image_ci_but_mode_changes_invalidate(
-        self,
-    ):
+    def test_legacy_trivy_receipt_cannot_authorize_publication(self):
         with (
-            TemporaryDirectory() as temporary,
+            TemporaryDirectory() as tmp,
             patch('kfpr.steps.validate_release_pr', return_value=SHA),
         ):
-            context = self.context(Path(temporary), sdk=False)
-            context.state.answers['image_qualification'] = 'local'
-            self.evidence(context)
-            q.require_qualification(context)
-            self.ci.verify_run.assert_not_called()
-            context.state.answers['image_qualification'] = 'ci'
-            with self.assertRaisesRegex(ValueError, 'scope'):
+            context = self.context(Path(tmp), sdk=False)
+            self.evidence(context, schema=1)
+            with self.assertRaisesRegex(
+                ValueError, 'different commit/version/scope'
+            ):
                 q.require_qualification(context)
+            self.ci.verify_run.assert_not_called()
 
     def test_unknown_image_matrix_cannot_silently_reduce_coverage(self):
         with TemporaryDirectory() as tmp:
@@ -529,17 +581,13 @@ class QualificationTest(unittest.TestCase):
                 q.image_matrix(root)
 
     def test_dry_run_has_no_build_scan_or_file_side_effects(self):
-        with (
-            TemporaryDirectory() as tmp,
-            patch.object(q, '_run') as run,
-            patch.object(q, 'qualify_security') as scan,
-        ):
+        with TemporaryDirectory() as tmp, patch.object(q, '_run') as run:
             context = self.context(Path(tmp))
             context.runner.dry_run = True
             q.qualify_release(context)
             q.require_qualification(context)
             run.assert_not_called()
-            scan.assert_not_called()
+            self.ci.qualify_ci.assert_not_called()
             self.assertEqual(list(Path(tmp).iterdir()), [])
 
 

@@ -137,7 +137,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "e4fb7a43a1a5473f74033cab4ae8d2bed36110b89f577d8d4459deb1dea75c03",
+      "header_sha256": "b9edad320d9e44a8714fb1d387c893a57d4c8bc7ec1454c5b2c9e2333446c530",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -201,11 +201,8 @@
           "Makefile",
           "api/Makefile",
           "backend/src/v2/Makefile",
-          "release/kfpr/core.py",
-          "release/kfpr/branch_scan*.py",
-          "release/kfpr/ci_images_runner*.py",
-          "release/kfpr/qualification.py",
-          "release/kfpr/security.py",
+          "release/kfpr/**",
+          "release/pyproject.toml",
           ".github/workflows/release-branch-image-scanning.yml",
           ".github/workflows/release-qualification.yml",
           "test_data/sdk_compiled_pipelines/valid/**",
@@ -680,8 +677,8 @@
     },
     {
       "path": ".github/workflows/release-qualification.yml",
-      "name": "Release Image Qualification",
-      "header_sha256": "ace3dfeceec9fe301b712618dfe7b96cdca1d067320512c4e586e25731bbcf2d",
+      "name": "Release Qualification",
+      "header_sha256": "ecf394b4eb4fee70bb811aeb30b78513ed1c6ec5cde0bedc3fbfac4c3eaf0298",
       "pull_request": null
     },
     {

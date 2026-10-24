@@ -1,17 +1,15 @@
 """Build and report the current release branch without publishing images."""
 
 import argparse
-import copy
 import json
 import os
 import re
 import subprocess
-import tempfile
 import uuid
-from collections import Counter
 from pathlib import Path
 
 from . import ci_images_runner as runner
+from .osv_image_scan import SCANNER
 
 REPOSITORY = 'kubeflow/pipelines'
 BRANCH = 'release-2.18'
@@ -84,6 +82,8 @@ def convert_scans(source: Path, directory: Path, release: dict) -> None:
     manifest = json.loads((directory / 'manifest.json').read_text())
     if any(manifest.get(key) != value for key, value in release.items()):
         raise ValueError('Scan manifest does not match this workflow attempt')
+    if manifest.get('scanner') != SCANNER:
+        raise ValueError('Branch scan manifest must contain OSV evidence')
     expected = {
         (item['name'], item['platform'])
         for item in runner.inventory(source, release)
@@ -103,7 +103,7 @@ def convert_scans(source: Path, directory: Path, release: dict) -> None:
         if record.get('scan_file') != filename or path.is_symlink():
             raise ValueError('Unexpected raw scan path')
         if (
-            runner._verify_scan(path, record['image_id'])
+            runner._verify_scan(path, record['image_id'], scanner='osv')
             != record['scan_sha256']
         ):
             raise ValueError(
@@ -112,73 +112,14 @@ def convert_scans(source: Path, directory: Path, release: dict) -> None:
     output = directory / 'sarif'
     output.mkdir()
     for record in records:
-        raw = directory / record['scan_file']
-        report = json.loads(raw.read_text())
-        findings = Counter(
-            vulnerability['VulnerabilityID']
-            for result in report.get('Results', [])
-            for vulnerability in (result.get('Vulnerabilities') or [])
-        )
-        presentation = copy.deepcopy(report)
-        for result in presentation.get('Results', []):
-            if result.get('Class') == 'os-pkgs':
-                # Trivy uses this target as the SARIF location. Image digests
-                # and distro versions would otherwise create alert churn.
-                result['Target'] = record['name']
+        report = json.loads((directory / record['scan_file']).read_text())
         destination = (
             output
             / f'{record["name"]}-{record["platform"].split("/")[1]}.sarif'
         )
-        convert_report(presentation, destination)
-        sarif = json.loads(destination.read_text())
-        runs = sarif.get('runs', [])
-        if (
-            sarif.get('version') != '2.1.0'
-            or len(runs) != 1
-            or Counter(
-                result['ruleId'] for result in runs[0].get('results', [])
-            )
-            != findings
-        ):
-            raise ValueError(
-                'SARIF conversion did not preserve every vulnerability finding'
-            )
-
-
-def convert_report(report: dict, destination: Path) -> None:
-    """Convert a presentation copy with repository/env ignore policy
-    disabled."""
-    environment = {
-        key: value
-        for key, value in os.environ.items()
-        if not key.startswith('TRIVY_')
-    }
-    with tempfile.TemporaryDirectory() as temporary:
-        config = Path(temporary) / 'config.json'
-        config.write_text('{}\n')
-        ignore = Path(temporary) / 'ignore.txt'
-        ignore.write_text('')
-        converted = Path(temporary) / 'report.json'
-        converted.write_text(json.dumps(report))
-        subprocess.run(
-            [
-                'trivy',
-                'convert',
-                '--config',
-                str(config),
-                '--ignorefile',
-                str(ignore),
-                '--severity',
-                'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL',
-                '--format',
-                'sarif',
-                '--output',
-                str(destination),
-                str(converted),
-            ],
-            check=True,
-            env=environment,
-        )
+        # OSV already emits SARIF. Preserve every result and its stable package
+        # location rather than translating findings between scanner formats.
+        destination.write_text(json.dumps(report['sarif'], indent=2) + '\n')
 
 
 def main() -> None:

@@ -262,9 +262,10 @@ inline rendering.
 
 ## Custom artifact-store endpoints
 
-The UI server only accepts secret-backed S3-compatible `bucketProviders` whose
-HTTP(S) origin matches the operator-configured MinIO or AWS endpoint. Add any
-additional origins to `ALLOWED_ARTIFACT_ENDPOINTS` in `pipeline-install-config`.
+S3-compatible artifact requests may use only operator-trusted HTTP(S) origins,
+including the configured MinIO or AWS endpoint. Endpoint validation applies to
+both authenticated and anonymous requests, including Secret-backed `bucketProviders`.
+Add additional origins to `ALLOWED_ARTIFACT_ENDPOINTS` in `pipeline-install-config`.
 Entries are comma-separated absolute origins, including the scheme and optional
 port, for example `https://objects.example.com:9443`; paths and credentials are
 not accepted. HTTP origins must be listed as HTTP and should only be used for

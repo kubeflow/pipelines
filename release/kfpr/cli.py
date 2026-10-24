@@ -27,7 +27,6 @@ HELP_OPTION_NAMES = ['-h', '--help']
 
 class ImageQualification(str, Enum):
     ci = 'ci'
-    local = 'local'
 
 
 app = typer.Typer(
@@ -84,6 +83,11 @@ def _context(
     if skip_local_review:
         state.answers['skip_local_review'] = True
     _set_answer(state, 'previous_release', previous_release)
+    if qualification_pythons:
+        raise typer.BadParameter(
+            'CI selects Python versions from the release source',
+            param_hint='--qualification-pythons',
+        )
     _set_answer(state, 'qualification_pythons', qualification_pythons)
     if security_policy not in (
         None,
@@ -123,9 +127,9 @@ def _context(
         )
     _set_answer(state, 'image_qualification', image_qualification)
     state.answers.setdefault('image_qualification', 'ci')
-    if state.answers['image_qualification'] not in ('ci', 'local'):
+    if state.answers['image_qualification'] != 'ci':
         raise typer.BadParameter(
-            'Choose ci or local', param_hint='--image-qualification'
+            'Qualification scans require ci', param_hint='--image-qualification'
         )
 
     if 'release_type' in state.answers and 'version' in state.answers:
@@ -270,7 +274,7 @@ def run(
     ),
     qualification_pythons: Optional[str] = typer.Option(
         None,
-        help='Comma-separated Python executables covering every supported SDK minor version.',
+        help='Deprecated: CI selects every supported Python minor from the release source.',
     ),
     security_policy: Optional[str] = typer.Option(
         None,
@@ -282,7 +286,7 @@ def run(
     ),
     image_qualification: Optional[ImageQualification] = typer.Option(
         None,
-        help='Image qualification: upstream CI by default, or explicit local builds with disposable builders.',
+        help='Qualification scans run in upstream CI; local scanning is unsupported.',
     ),
 ) -> None:
     """Run the full checkpointed release flow."""
@@ -607,7 +611,7 @@ def _make_step_command(step_id: str):
         ),
         qualification_pythons: Optional[str] = typer.Option(
             None,
-            help='Comma-separated Python executables covering every supported SDK minor version.',
+            help='Deprecated: CI selects every supported Python minor from the release source.',
         ),
         security_policy: Optional[str] = typer.Option(
             None,
@@ -619,7 +623,7 @@ def _make_step_command(step_id: str):
         ),
         image_qualification: Optional[ImageQualification] = typer.Option(
             None,
-            help='Image qualification: upstream CI by default, or explicit local builds with disposable builders.',
+            help='Qualification scans run in upstream CI; local scanning is unsupported.',
         ),
     ) -> None:
         if step_id != 'cherry-pick-prs' and patch_prs is None:

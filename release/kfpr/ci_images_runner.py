@@ -12,9 +12,21 @@ import os
 import re
 import shutil
 import subprocess
+import tarfile
 from pathlib import Path
 
+from . import osv_image_scan
 from .security import _trivy_findings
+
+TRIVY = {'name': 'trivy', 'version': '0.76.0'}
+
+
+def scanner_identity(scanner: str) -> dict:
+    if scanner == 'trivy':
+        return dict(TRIVY)
+    if scanner in ('osv', 'osv-json'):
+        return dict(osv_image_scan.SCANNER)
+    raise ValueError('Unsupported image scanner: ' + str(scanner))
 
 
 def identity() -> dict:
@@ -85,8 +97,14 @@ def _logged(command: list[str], destination: Path, source: Path) -> None:
         )
 
 
-def _verify_scan(path: Path, image_id: str) -> str:
+def _verify_scan(path: Path, image_id: str, scanner: str = 'trivy') -> str:
+    scanner_identity(scanner)
     data = json.loads(path.read_text())
+    if scanner in ('osv', 'osv-json'):
+        osv_image_scan.validate_report(
+            data, image_id, 'json' if scanner == 'osv-json' else 'sarif'
+        )
+        return hashlib.sha256(path.read_bytes()).hexdigest()
     # The immutable Docker ID must be the actual subject of the raw scan.
     if (
         data.get('ArtifactName') != image_id
@@ -100,8 +118,14 @@ def _verify_scan(path: Path, image_id: str) -> str:
 
 
 def lane(
-    source: Path, output: Path, release: dict, name: str, platform: str
+    source: Path,
+    output: Path,
+    release: dict,
+    name: str,
+    platform: str,
+    scanner: str = 'trivy',
 ) -> None:
+    scanner_record = scanner_identity(scanner)
     output.mkdir(parents=True, exist_ok=True)
     records = [
         record
@@ -135,7 +159,14 @@ def lane(
         'TAG_NAME': release['version'],
     }.items():
         command.extend(['--build-arg', f'{key}={value}'])
-    evidence = {**release, 'name': name, 'platform': platform, 'passed': False}
+    evidence = {
+        **release,
+        'name': name,
+        'platform': platform,
+        'scanner': scanner_record,
+        'report_format': 'sarif' if scanner == 'osv' else 'json',
+        'passed': False,
+    }
     try:
         _logged(command + [record['context']], output / 'build.log', source)
         image_id = subprocess.check_output(
@@ -146,60 +177,81 @@ def lane(
         if not re.fullmatch(r'sha256:[0-9a-f]{64}', image_id):
             raise ValueError('Build did not produce an immutable image ID')
         evidence['image_id'] = image_id
-        # Explicit empty configs prevent environment/repository ignore policies.
-        (output / 'trivy-config.json').write_text('{}\n')
-        (output / 'trivy-ignore.txt').write_text('')
-        environment = {
-            key: value
-            for key, value in os.environ.items()
-            if not key.startswith('TRIVY_')
-        }
         scan = output / 'scan.json'
-        with (output / 'scan.stderr.log').open('w') as errors:
-            subprocess.run(
-                [
-                    'trivy',
-                    'image',
-                    '--config',
-                    str(output / 'trivy-config.json'),
-                    '--ignorefile',
-                    str(output / 'trivy-ignore.txt'),
-                    '--detection-priority',
-                    'comprehensive',
-                    '--scanners',
-                    'vuln',
-                    '--severity',
-                    'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL',
-                    '--ignore-unfixed=false',
-                    '--list-all-pkgs',
-                    '--format',
-                    'json',
-                    '--output',
-                    str(scan),
-                    '--exit-code',
-                    '0',
-                    image_id,
-                ],
-                cwd=source,
-                env=environment,
-                stderr=errors,
-                check=True,
+        if scanner in ('osv', 'osv-json'):
+            osv_image_scan.scan_image(
+                image_id,
+                platform,
+                output,
+                'json' if scanner == 'osv-json' else 'sarif',
             )
+        else:
+            # Explicit empty configs prevent environment/repository ignore policies.
+            (output / 'trivy-config.json').write_text('{}\n')
+            (output / 'trivy-ignore.txt').write_text('')
+            environment = {
+                key: value
+                for key, value in os.environ.items()
+                if not key.startswith('TRIVY_')
+            }
+            scan = output / 'scan.json'
+            with (output / 'scan.stderr.log').open('w') as errors:
+                subprocess.run(
+                    [
+                        'trivy',
+                        'image',
+                        '--config',
+                        str(output / 'trivy-config.json'),
+                        '--ignorefile',
+                        str(output / 'trivy-ignore.txt'),
+                        '--detection-priority',
+                        'comprehensive',
+                        '--scanners',
+                        'vuln',
+                        '--severity',
+                        'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL',
+                        '--ignore-unfixed=false',
+                        '--list-all-pkgs',
+                        '--format',
+                        'json',
+                        '--output',
+                        str(scan),
+                        '--exit-code',
+                        '0',
+                        image_id,
+                    ],
+                    cwd=source,
+                    env=environment,
+                    stderr=errors,
+                    check=True,
+                )
         evidence.update(
             scan_file='scan.json',
-            scan_sha256=_verify_scan(scan, image_id),
+            scan_sha256=_verify_scan(scan, image_id, scanner),
             passed=True,
         )
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (
+        OSError,
+        ValueError,
+        tarfile.TarError,
+        subprocess.CalledProcessError,
+    ) as error:
         evidence['error'] = str(error)
         raise
     finally:
         (output / 'lane.json').write_text(json.dumps(evidence, indent=2) + '\n')
 
 
-def aggregate(source: Path, lanes: Path, output: Path, release: dict) -> dict:
+def aggregate(
+    source: Path,
+    lanes: Path,
+    output: Path,
+    release: dict,
+    scanner: str = 'trivy',
+) -> dict:
     """Require complete successful evidence from this exact workflow
     attempt."""
+    scanner_record = scanner_identity(scanner)
     expected = {
         (record['name'], record['platform'])
         for record in inventory(source, release)
@@ -212,6 +264,18 @@ def aggregate(source: Path, lanes: Path, output: Path, release: dict) -> dict:
         if any(lane_report.get(key) != value for key, value in release.items()):
             raise ValueError(
                 'Lane identity does not match this workflow attempt'
+            )
+        if lane_report.get('scanner', TRIVY) != scanner_record:
+            raise ValueError(
+                'Lane scanner identity does not match requested scanner'
+            )
+        expected_format = 'sarif' if scanner == 'osv' else 'json'
+        actual_format = lane_report.get('report_format')
+        if actual_format is None and scanner != 'osv-json':
+            actual_format = expected_format
+        if actual_format != expected_format:
+            raise ValueError(
+                'Lane report format does not match requested scanner'
             )
         pair = (lane_report.get('name'), lane_report.get('platform'))
         if (
@@ -230,7 +294,7 @@ def aggregate(source: Path, lanes: Path, output: Path, release: dict) -> dict:
         scan = path.parent / 'scan.json'
         if scan.is_symlink():
             raise ValueError('Symlink scan evidence is not allowed')
-        digest = _verify_scan(scan, image_id)
+        digest = _verify_scan(scan, image_id, scanner)
         if digest != lane_report.get('scan_sha256'):
             raise ValueError('Raw image scan checksum mismatch')
         filename = f'scans/{pair[0]}-{pair[1].split("/")[1]}.json'
@@ -242,6 +306,8 @@ def aggregate(source: Path, lanes: Path, output: Path, release: dict) -> dict:
                 'name': pair[0],
                 'platform': pair[1],
                 'image_id': image_id,
+                'scanner': scanner_record,
+                'report_format': 'sarif' if scanner == 'osv' else 'json',
                 'scan_file': filename,
                 'scan_sha256': digest,
             }
@@ -251,7 +317,12 @@ def aggregate(source: Path, lanes: Path, output: Path, release: dict) -> dict:
         raise ValueError(
             f'Incomplete image inventory: missing {sorted(expected - seen)}'
         )
-    manifest = {**release, 'images': images}
+    manifest = {
+        **release,
+        'scanner': scanner_record,
+        'report_format': 'sarif' if scanner == 'osv' else 'json',
+        'images': images,
+    }
     (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest
 
@@ -264,6 +335,9 @@ def main() -> None:
     parser.add_argument('--lanes', type=Path)
     parser.add_argument('--name')
     parser.add_argument('--platform')
+    parser.add_argument(
+        '--scanner', choices=('trivy', 'osv', 'osv-json'), default='trivy'
+    )
     args = parser.parse_args()
     release = identity()
     tool_sha = subprocess.check_output(
@@ -279,11 +353,24 @@ def main() -> None:
     elif args.command == 'lane':
         if not args.output or not args.name or not args.platform:
             parser.error('lane requires --output, --name, and --platform')
-        lane(source, args.output.resolve(), release, args.name, args.platform)
+        lane(
+            source,
+            args.output.resolve(),
+            release,
+            args.name,
+            args.platform,
+            args.scanner,
+        )
     else:
         if not args.output or not args.lanes:
             parser.error('aggregate requires --output and --lanes')
-        aggregate(source, args.lanes.resolve(), args.output.resolve(), release)
+        aggregate(
+            source,
+            args.lanes.resolve(),
+            args.output.resolve(),
+            release,
+            args.scanner,
+        )
 
 
 if __name__ == '__main__':
