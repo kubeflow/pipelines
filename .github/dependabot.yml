@@ -126,6 +126,16 @@ updates:
         patterns:
           - "vitest"
           - "@vitest/*"
+      # The TypeScript ESLint plugin requires a compatible parser release.
+      # Keep this family together before the catch-all dependency-name group.
+      typescript-eslint-version:
+        applies-to: version-updates
+        patterns:
+          - "@typescript-eslint/*"
+      typescript-eslint-security:
+        applies-to: security-updates
+        patterns:
+          - "@typescript-eslint/*"
       # @mui/icons-material declares a peer dependency on the matching
       # @mui/material version, so bumping either one alone leaves the other
       # outside its peer range and `npm install` fails to resolve. They have to

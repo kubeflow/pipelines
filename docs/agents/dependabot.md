@@ -34,6 +34,12 @@ the resolved peer versions and the coverage suite before merging.
 The locked-version guard covers both `frontend` and `frontend/server`; each
 package installs its own runner and coverage provider and must stay aligned.
 
+`@typescript-eslint/*` packages are grouped for version and security updates
+because the ESLint plugin requires a compatible parser release. Keep these
+groups before the generic npm group and update the manifest and lock together.
+Security grouping may leave non-vulnerable peers unchanged; verify the resolved
+parser satisfies the plugin's peer range before merging.
+
 ## Frontend dependency security constraints
 
 The Kubernetes client override patches its nested `js-yaml` independently of
