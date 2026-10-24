@@ -12,7 +12,9 @@ count as replacements.
 
 ## API assertion ledger
 
-Paths below are relative to `backend/test/v2`. `api/legacy_api_migration_test.go`
+Legacy source paths below describe the removed harness at commit
+`9c7763b4c6cebfb89d74c3f9d983833ab8cc9c5f` and are relative to
+`backend/test/v2`. `api/legacy_api_migration_test.go`
 contains the `LegacyAPI*` scenarios.
 
 | Legacy source and assertion group | Replacement | Execution status |
@@ -55,8 +57,9 @@ by experiment/schedule-owned cleanup to permit parallel execution.
 
 ## Nonexecuting and shared code
 
-- `integration/experiment_api_test.go` has entry point `V2TestExperimentAPI`,
-  which `go test` does not discover. It is not active legacy workflow coverage.
+- `integration/experiment_api_test.go` had entry point `V2TestExperimentAPI`,
+  which `go test` did not discover. It was removed with the retired harness
+  and is not counted as active legacy workflow coverage.
   The newer `api/experiment_api_test.go` also uses only `PDescribe` containers.
   This is a pre-existing dormant coverage gap, not active replacement coverage
   and not a regression introduced by retiring the legacy workflow.
@@ -64,15 +67,16 @@ by experiment/schedule-owned cleanup to permit parallel execution.
   `PContext` bodies do not count toward either baseline or parity.
 - New URL imports replace the newer suite's explicitly skipped placeholder URL
   cases. CI should use `KFP_TEST_FIXTURE_BASE_URL` to serve checked-out fixtures,
-  as the legacy workflow does, so this tests imports without public-network
+  as the retired legacy workflow did, so this tests imports without public-network
   dependence.
 - Preserve `resources/` YAML/ZIP fixtures referenced by the replacement tests.
 - Preserve `integration/webhook_test.go`: its three `WEBHOOK_INTEGRATION`-gated
   admission tests have a separate caller and are not obsolete API-harness code.
 - `TestCacheRunSucceeded`, `TestCacheRecurringRunsSucceeded`, and
-  `cache_diagnostics_unit_test.go` test legacy support code, not deployed API
-  behavior. Remove only together with the now-unused helpers after retirement;
-  keep them while the old harness runs.
+  `cache_diagnostics_unit_test.go` tested legacy support code, not deployed API
+  behavior. They were removed together with the unused harness helpers after
+  workflow retirement. Shared readiness, client configuration, TLS, upload
+  helpers, and database initialization tests remain.
 
 ## Retirement evidence
 
