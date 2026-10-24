@@ -12,7 +12,7 @@ from unittest import mock
 import yaml
 
 from kfpr import ci_images_runner as runner
-from kfpr.osv_image_scan_test import envelope
+from kfpr.osv_image_scan_test import envelope, json_envelope
 
 IMAGE_ID = 'sha256:' + 'a' * 64
 
@@ -168,6 +168,55 @@ class CiImagesRunnerTest(unittest.TestCase):
                 self.root / 'missing',
                 self.release,
                 scanner='osv',
+            )
+
+    def test_json_aggregate_rejects_mixed_osv_report_formats(self):
+        for arch in ('amd64', 'arm64'):
+            directory = self.write_lane(arch)
+            scan = directory / 'scan.json'
+            scan.write_text(json.dumps(json_envelope(IMAGE_ID, findings=True)))
+            lane_path = directory / 'lane.json'
+            lane = json.loads(lane_path.read_text())
+            lane.update(
+                scanner=runner.scanner_identity('osv-json'),
+                report_format='json',
+                scan_sha256=hashlib.sha256(scan.read_bytes()).hexdigest(),
+            )
+            lane_path.write_text(json.dumps(lane))
+        result = runner.aggregate(
+            self.source,
+            self.root / 'lanes',
+            self.root / 'final',
+            self.release,
+            scanner='osv-json',
+        )
+        self.assertEqual(result['report_format'], 'json')
+        for record in result['images']:
+            self.assertEqual(record['report_format'], 'json')
+            runner._verify_scan(
+                self.root / 'final' / record['scan_file'], IMAGE_ID, 'osv-json'
+            )
+        lane_path = self.root / 'lanes/arm64/lane.json'
+        lane = json.loads(lane_path.read_text())
+        lane['report_format'] = 'sarif'
+        lane_path.write_text(json.dumps(lane))
+        with self.assertRaisesRegex(ValueError, 'format'):
+            runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                self.root / 'mixed',
+                self.release,
+                scanner='osv-json',
+            )
+        del lane['report_format']
+        lane_path.write_text(json.dumps(lane))
+        with self.assertRaisesRegex(ValueError, 'format'):
+            runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                self.root / 'missing',
+                self.release,
+                scanner='osv-json',
             )
 
     def test_unsupported_scanner_rejected_before_output_creation(self):
@@ -409,8 +458,13 @@ else:
                 ):
                     self.assertIn('required-files', step['with'])
                     continue
-                if step.get('uses') == './tooling/.github/actions/setup-trivy':
-                    self.assertEqual(step['with']['arch'], '${{ matrix.arch }}')
+                if (
+                    step.get('uses')
+                    == './tooling/.github/actions/setup-osv-scanner'
+                ):
+                    self.assertIn(
+                        step['with']['arch'], ('${{ matrix.arch }}', 'amd64')
+                    )
                     continue
                 if 'uses' in step:
                     self.assertRegex(step['uses'], r'@[0-9a-f]{40}$')

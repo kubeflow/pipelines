@@ -126,7 +126,11 @@ def validate_sarif(sarif: dict) -> list[dict]:
     return results
 
 
-def validate_report(report: dict, image_id: str) -> None:
+def validate_report(
+    report: dict, image_id: str, report_format: str = 'sarif'
+) -> None:
+    if report_format not in ('sarif', 'json'):
+        raise ValueError('Unsupported OSV report format')
     if (
         not isinstance(report, dict)
         or report.get('schema') != 1
@@ -142,15 +146,29 @@ def validate_report(report: dict, image_id: str) -> None:
     code = report.get('exit_code')
     if type(code) is not int or code not in (0, 1):
         raise ValueError('OSV scan did not complete successfully')
-    results = validate_sarif(report.get('sarif'))
+    actual_format = report.get('report_format', 'sarif')
+    if actual_format != report_format:
+        raise ValueError(
+            'OSV envelope report format does not match requested format'
+        )
+    if report_format == 'json':
+        from .osv_reports import findings
+
+        results = findings(report.get('report'))
+    else:
+        results = validate_sarif(report.get('sarif'))
     if bool(results) != (code == 1):
         raise ValueError(
             'OSV exit code does not match reported vulnerability findings'
         )
 
 
-def scan_image(image_id: str, platform: str, output: Path) -> None:
-    """Bind direct OSV SARIF to one verified Docker archive and image ID."""
+def scan_image(
+    image_id: str, platform: str, output: Path, report_format: str = 'sarif'
+) -> None:
+    """Bind an OSV report to one verified Docker archive and image ID."""
+    if report_format not in ('sarif', 'json'):
+        raise ValueError('Unsupported OSV report format')
     output = output.resolve()
     environment = {
         key: value
@@ -166,8 +184,10 @@ def scan_image(image_id: str, platform: str, output: Path) -> None:
         archive_sha256 = verify_archive(archive, image_id, platform)
         config = directory / 'empty.toml'
         config.write_text('')
-        sarif_path = output / 'scan.sarif'
-        sarif_path.unlink(missing_ok=True)
+        report_path = output / (
+            'scan.sarif' if report_format == 'sarif' else 'osv-report.json'
+        )
+        report_path.unlink(missing_ok=True)
         with (output / 'scan.stderr.log').open('w') as errors:
             result = subprocess.run(
                 [
@@ -178,10 +198,11 @@ def scan_image(image_id: str, platform: str, output: Path) -> None:
                     '--config',
                     str(config),
                     '--all-vulns',
+                    *(['--all-packages'] if report_format == 'json' else []),
                     '--format',
-                    'sarif',
+                    report_format,
                     '--output-file',
-                    str(sarif_path),
+                    str(report_path),
                     str(archive),
                 ],
                 cwd=directory,
@@ -189,21 +210,32 @@ def scan_image(image_id: str, platform: str, output: Path) -> None:
                 stderr=errors,
                 check=False,
             )
+        if report_format == 'json' and 'Error during extraction:' in (
+            output / 'scan.stderr.log'
+        ).read_text(errors='replace'):
+            raise ValueError(
+                'OSV image scan reported incomplete package extraction'
+            )
         if result.returncode not in (0, 1):
             raise subprocess.CalledProcessError(result.returncode, result.args)
         if (
-            not sarif_path.is_file()
-            or sarif_path.is_symlink()
-            or not sarif_path.stat().st_size
+            not report_path.is_file()
+            or report_path.is_symlink()
+            or not report_path.stat().st_size
         ):
-            raise ValueError('OSV scan produced no SARIF report')
+            raise ValueError(
+                'OSV scan produced no ' + report_format.upper() + ' report'
+            )
         report = {
             'schema': 1,
             'scanner': SCANNER,
             'image_id': image_id,
             'archive_sha256': archive_sha256,
             'exit_code': result.returncode,
-            'sarif': json.loads(sarif_path.read_text()),
+            'report_format': report_format,
+            ('sarif' if report_format == 'sarif' else 'report'): json.loads(
+                report_path.read_text()
+            ),
         }
-        validate_report(report, image_id)
+        validate_report(report, image_id, report_format)
         (output / 'scan.json').write_text(json.dumps(report, indent=2) + '\n')

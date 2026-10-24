@@ -73,12 +73,8 @@ on:
       - 'Makefile'
       - 'api/Makefile'
       - 'backend/src/v2/Makefile'
-      - 'release/kfpr/core.py'
-      - 'release/kfpr/branch_scan*.py'
-      - 'release/kfpr/osv_image_scan*.py'
-      - 'release/kfpr/ci_images_runner*.py'
-      - 'release/kfpr/qualification.py'
-      - 'release/kfpr/security.py'
+      - 'release/kfpr/**'
+      - 'release/pyproject.toml'
       - '.github/workflows/release-branch-image-scanning.yml'
       - '.github/workflows/release-qualification.yml'
       - 'test_data/sdk_compiled_pipelines/valid/**'
@@ -143,14 +139,20 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install workflow script dependencies
-        run: python3 -m pip install -r .github/scripts/requirements.txt
+        run: python3 -m pip install -r .github/scripts/requirements.txt ./release
       - name: Run Python resource script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
       - name: Run release image scanning and qualification tests
         env:
           PYTHONPATH: release
-        run: python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test kfpr.osv_image_scan_test
+        run: >-
+          python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test
+          kfpr.osv_image_scan_test kfpr.osv_reports_test
+          kfpr.ci_security_runner_test kfpr.ci_qualification_runner_test
+          kfpr.ci_qualification_client_test kfpr.qualification_test
+          kfpr.qualification_exceptions_test kfpr.security_test
+          kfpr.security_exceptions_test
       - name: Run repo-local workflow script unit tests
         working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

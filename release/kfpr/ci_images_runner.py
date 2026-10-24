@@ -24,7 +24,7 @@ TRIVY = {'name': 'trivy', 'version': '0.76.0'}
 def scanner_identity(scanner: str) -> dict:
     if scanner == 'trivy':
         return dict(TRIVY)
-    if scanner == 'osv':
+    if scanner in ('osv', 'osv-json'):
         return dict(osv_image_scan.SCANNER)
     raise ValueError('Unsupported image scanner: ' + str(scanner))
 
@@ -100,8 +100,10 @@ def _logged(command: list[str], destination: Path, source: Path) -> None:
 def _verify_scan(path: Path, image_id: str, scanner: str = 'trivy') -> str:
     scanner_identity(scanner)
     data = json.loads(path.read_text())
-    if scanner == 'osv':
-        osv_image_scan.validate_report(data, image_id)
+    if scanner in ('osv', 'osv-json'):
+        osv_image_scan.validate_report(
+            data, image_id, 'json' if scanner == 'osv-json' else 'sarif'
+        )
         return hashlib.sha256(path.read_bytes()).hexdigest()
     # The immutable Docker ID must be the actual subject of the raw scan.
     if (
@@ -162,6 +164,7 @@ def lane(
         'name': name,
         'platform': platform,
         'scanner': scanner_record,
+        'report_format': 'sarif' if scanner == 'osv' else 'json',
         'passed': False,
     }
     try:
@@ -175,8 +178,13 @@ def lane(
             raise ValueError('Build did not produce an immutable image ID')
         evidence['image_id'] = image_id
         scan = output / 'scan.json'
-        if scanner == 'osv':
-            osv_image_scan.scan_image(image_id, platform, output)
+        if scanner in ('osv', 'osv-json'):
+            osv_image_scan.scan_image(
+                image_id,
+                platform,
+                output,
+                'json' if scanner == 'osv-json' else 'sarif',
+            )
         else:
             # Explicit empty configs prevent environment/repository ignore policies.
             (output / 'trivy-config.json').write_text('{}\n')
@@ -261,6 +269,14 @@ def aggregate(
             raise ValueError(
                 'Lane scanner identity does not match requested scanner'
             )
+        expected_format = 'sarif' if scanner == 'osv' else 'json'
+        actual_format = lane_report.get('report_format')
+        if actual_format is None and scanner != 'osv-json':
+            actual_format = expected_format
+        if actual_format != expected_format:
+            raise ValueError(
+                'Lane report format does not match requested scanner'
+            )
         pair = (lane_report.get('name'), lane_report.get('platform'))
         if (
             pair not in expected
@@ -291,6 +307,7 @@ def aggregate(
                 'platform': pair[1],
                 'image_id': image_id,
                 'scanner': scanner_record,
+                'report_format': 'sarif' if scanner == 'osv' else 'json',
                 'scan_file': filename,
                 'scan_sha256': digest,
             }
@@ -300,7 +317,12 @@ def aggregate(
         raise ValueError(
             f'Incomplete image inventory: missing {sorted(expected - seen)}'
         )
-    manifest = {**release, 'scanner': scanner_record, 'images': images}
+    manifest = {
+        **release,
+        'scanner': scanner_record,
+        'report_format': 'sarif' if scanner == 'osv' else 'json',
+        'images': images,
+    }
     (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest
 
@@ -313,7 +335,9 @@ def main() -> None:
     parser.add_argument('--lanes', type=Path)
     parser.add_argument('--name')
     parser.add_argument('--platform')
-    parser.add_argument('--scanner', choices=('trivy', 'osv'), default='trivy')
+    parser.add_argument(
+        '--scanner', choices=('trivy', 'osv', 'osv-json'), default='trivy'
+    )
     args = parser.parse_args()
     release = identity()
     tool_sha = subprocess.check_output(

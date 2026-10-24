@@ -50,6 +50,47 @@ def envelope(image_id, findings=False):
     }
 
 
+def json_report(findings=False):
+    item = {
+        'package': {'name': 'sample', 'ecosystem': 'PyPI', 'version': '1.0'}
+    }
+    if findings:
+        item['vulnerabilities'] = [
+            {
+                'id': 'GHSA-test',
+                'affected': [
+                    {
+                        'package': {'name': 'sample', 'ecosystem': 'PyPI'},
+                        'ranges': [
+                            {
+                                'type': 'ECOSYSTEM',
+                                'events': [
+                                    {'introduced': '0'},
+                                    {'fixed': '2.0'},
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    return {
+        'results': [
+            {
+                'source': {'path': '/usr/lib/sample', 'type': 'os'},
+                'packages': [item],
+            }
+        ]
+    }
+
+
+def json_envelope(image_id, findings=False):
+    report = envelope(image_id, findings)
+    del report['sarif']
+    report.update(report_format='json', report=json_report(findings))
+    return report
+
+
 class OsvImageScanTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
@@ -125,16 +166,25 @@ class OsvImageScanTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     osv.validate_report(report, self.image_id)
 
-    def invoke(self, code=0, report=None, write=True):
+    def invoke(
+        self, code=0, report=None, write=True, report_format='sarif', stderr=''
+    ):
         def run(command, **kwargs):
             if command[0] == 'docker':
                 self.assertEqual(command[-1], self.image_id)
                 self.archive(Path(command[3]))
             else:
+                kwargs['stderr'].write(stderr)
                 self.assertEqual(
                     command[:4], ['osv-scanner', 'scan', 'image', '--archive']
                 )
                 self.assertIn('--all-vulns', command)
+                self.assertEqual(
+                    '--all-packages' in command, report_format == 'json'
+                )
+                self.assertEqual(
+                    command[command.index('--format') + 1], report_format
+                )
                 self.assertNotIn('--allow-no-lockfiles', command)
                 self.assertEqual(
                     Path(command[command.index('--config') + 1]).read_text(), ''
@@ -153,7 +203,9 @@ class OsvImageScanTest(unittest.TestCase):
             mock.patch.dict('os.environ', {'OSV_TEST_OPTION': 'ignored'}),
             mock.patch.object(osv.subprocess, 'run', side_effect=run),
         ):
-            osv.scan_image(self.image_id, 'linux/amd64', self.root)
+            osv.scan_image(
+                self.image_id, 'linux/amd64', self.root, report_format
+            )
 
     def test_scan_preserves_sarif_and_checksums(self):
         report = sarif(True)
@@ -175,3 +227,55 @@ class OsvImageScanTest(unittest.TestCase):
                     self.invoke(code=code, write=write)
         with self.assertRaises(ValueError):
             self.invoke(report={})
+
+    def test_json_scanning_preserves_complete_report_and_requires_inventory(
+        self,
+    ):
+        for findings in (False, True):
+            report = json_report(findings)
+            self.invoke(code=int(findings), report=report, report_format='json')
+            saved = json.loads((self.root / 'scan.json').read_text())
+            osv.validate_report(saved, self.image_id, 'json')
+            self.assertEqual(saved['report'], report)
+            self.assertEqual(saved['report_format'], 'json')
+            self.assertEqual(
+                json.loads((self.root / 'osv-report.json').read_text()), report
+            )
+            with self.assertRaisesRegex(ValueError, 'format'):
+                osv.validate_report(saved, self.image_id)
+        for report in ({}, {'results': []}):
+            with self.assertRaises(ValueError):
+                self.invoke(report=report, report_format='json')
+
+    def test_json_missing_stale_error_and_wrong_format_fail(self):
+        for code, write in ((0, False), (128, True), (1, True)):
+            (self.root / 'osv-report.json').write_text(
+                json.dumps(json_report())
+            )
+            with self.assertRaises((ValueError, subprocess.CalledProcessError)):
+                self.invoke(
+                    code=code,
+                    write=write,
+                    report=json_report(),
+                    report_format='json',
+                )
+        report = json_envelope(self.image_id)
+        del report['report_format']
+        with self.assertRaisesRegex(ValueError, 'format'):
+            osv.validate_report(report, self.image_id, 'json')
+        with self.assertRaisesRegex(ValueError, 'subject'):
+            osv.validate_report(
+                json_envelope('sha256:' + 'f' * 64), self.image_id, 'json'
+            )
+
+    def test_json_rejects_partial_extraction_even_with_valid_findings(self):
+        with self.assertRaisesRegex(
+            ValueError, 'incomplete package extraction'
+        ):
+            self.invoke(
+                code=1,
+                report=json_report(True),
+                report_format='json',
+                stderr='Error during extraction: incomplete lockfile\n',
+            )
+        self.assertFalse((self.root / 'scan.json').exists())

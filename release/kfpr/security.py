@@ -219,18 +219,26 @@ def evaluate_policy(
                 if scope == 'python'
                 else scan.get('target')
             )
-            key = (
-                scope,
-                target,
-                finding.get('package'),
-                finding.get('id'),
-                finding.get('installed_version'),
-            )
-            approval = (
-                approved.get(key)
-                if scope != 'image' or policy == 'approved-exceptions'
-                else None
-            )
+            aliases = _list(finding.get('aliases', []), 'security aliases')
+            for alias in aliases:
+                _text(alias, 'security alias')
+            identifiers = [
+                _text(finding.get('id'), 'security vulnerability ID'),
+                *aliases,
+            ]
+            approval = None
+            if scope != 'image' or policy == 'approved-exceptions':
+                for identifier in identifiers:
+                    key = (
+                        scope,
+                        target,
+                        finding.get('package'),
+                        identifier,
+                        finding.get('installed_version'),
+                    )
+                    if key in approved:
+                        approval = approved[key]
+                        break
             entry = {
                 **finding,
                 'scan': name,

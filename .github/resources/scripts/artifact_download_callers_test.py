@@ -31,7 +31,7 @@ from artifact_workflow_test_support import render
 ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
-CALLERS = {
+CALLERS = [
     ('.github/actions/deploy/action.yml', 'composite'),
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
@@ -40,11 +40,12 @@ CALLERS = {
     ('.github/workflows/image-builds-master.yml', 'arm64-smoke'),
     ('.github/workflows/image-builds-release.yml', 'validate-release-images'),
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
-    ('.github/workflows/release-qualification.yml', 'aggregate'),
+    ('.github/workflows/release-qualification.yml', 'aggregate'),  # Images
+    ('.github/workflows/release-qualification.yml', 'aggregate'),  # Source/SDK
     ('.github/workflows/release-branch-image-scanning.yml', 'aggregate'),
     ('.github/workflows/release-branch-image-scanning.yml', 'upload'),
     ('.github/workflows/osv-scanner.yml', 'discover-images'),
-}
+]
 
 
 def workflow(name):
@@ -225,7 +226,8 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 verify = next(
                     step
                     for step in steps
-                    if 'ci_images_runner aggregate' in step.get('run', '')
+                    if 'ci_qualification_runner aggregate'
+                    in step.get('run', '')
                 )
                 self.assertLess(steps.index(download), steps.index(verify))
                 self.assertNotIn('continue-on-error', download)

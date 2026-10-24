@@ -103,7 +103,7 @@ class PackageImportTest(unittest.TestCase):
             Path('/tmp/exceptions.json'),
         )
 
-    def test_local_image_qualification_is_explicit_cli_choice(self):
+    def test_local_image_qualification_is_rejected(self):
         from kfpr import cli
 
         with (
@@ -122,10 +122,8 @@ class PackageImportTest(unittest.TestCase):
                     'local',
                 ],
             )
-            self.assertEqual(result.exit_code, 0, result.stdout)
-            self.assertEqual(
-                context.call_args.kwargs['image_qualification'], 'local'
-            )
+            self.assertNotEqual(result.exit_code, 0)
+            context.assert_not_called()
             rejected = CliRunner().invoke(
                 app,
                 [
@@ -138,7 +136,7 @@ class PackageImportTest(unittest.TestCase):
             )
             self.assertNotEqual(rejected.exit_code, 0)
 
-    def test_image_mode_defaults_to_ci_and_preserves_explicit_saved_local(self):
+    def test_image_mode_defaults_to_ci_and_rejects_saved_local(self):
         from kfpr import cli
 
         with TemporaryDirectory() as temporary:
@@ -150,10 +148,15 @@ class PackageImportTest(unittest.TestCase):
                 args = [state.path, False, None, None, None, None, None, None]
                 cli._context(*args)
                 self.assertEqual(state.answers['image_qualification'], 'ci')
-                cli._context(*args, image_qualification='local')
-                self.assertEqual(state.answers['image_qualification'], 'local')
-                cli._context(*args)
-                self.assertEqual(state.answers['image_qualification'], 'local')
+                state.answers['image_qualification'] = 'local'
+                with self.assertRaises(cli.typer.BadParameter):
+                    cli._context(*args)
+                cli._context(*args, image_qualification='ci')
+                self.assertEqual(state.answers['image_qualification'], 'ci')
+                with self.assertRaises(cli.typer.BadParameter):
+                    cli._context(
+                        *args, qualification_pythons='/usr/bin/python3'
+                    )
 
     def test_exception_selection_persists_and_strict_selection_clears_it(self):
         from kfpr import cli
