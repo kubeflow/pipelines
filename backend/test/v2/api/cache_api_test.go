@@ -16,6 +16,7 @@ package api
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -32,10 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Pipeline cache reuse >", Label(constants.APIServerTests, constants.PipelineCacheEnabled, "LegacyMigration", "LegacyCache"), func() {
+var _ = Describe("Pipeline cache reuse >", SpecPriority(1), Label(constants.APIServerTests, constants.PipelineCacheEnabled, "LegacyMigration", "LegacyCache"), func() {
 	It("reuses a completed run without creating an executor pod", Label("LegacyCacheSingleRun"), func() {
 		experiment := createExperiment(experimentName)
-		pipeline := uploadAPipeline(filepath.Join("..", "resources", "hello-world-with-returning-component.yaml"), &testContext.Pipeline.PipelineGeneratedName)
+		pipeline := uploadAPipeline(cachePipelineFixture("hello-world-with-returning-component.yaml"), &testContext.Pipeline.PipelineGeneratedName)
 		version := testutil.GetLatestPipelineVersion(pipelineClient, &pipeline.PipelineID)
 		// A unique input prevents another spec or a previous CI run from warming this cache.
 		inputs := map[string]interface{}{"message": randomName}
@@ -47,7 +48,7 @@ var _ = Describe("Pipeline cache reuse >", Label(constants.APIServerTests, const
 
 	It("reuses a completed recurring run without creating an executor pod", Label("LegacyCacheRecurringRun"), func() {
 		experiment := createExperiment(experimentName)
-		pipeline := uploadAPipeline(filepath.Join("..", "resources", "hello-world-with-returning-component.yaml"), &testContext.Pipeline.PipelineGeneratedName)
+		pipeline := uploadAPipeline(cachePipelineFixture("hello-world-with-returning-component.yaml"), &testContext.Pipeline.PipelineGeneratedName)
 		version := testutil.GetLatestPipelineVersion(pipelineClient, &pipeline.PipelineID)
 		schedule, err := recurringRunClient.Create(&recurringrunparams.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 			DisplayName:              "cache-" + randomName,
@@ -88,7 +89,7 @@ var _ = Describe("Pipeline cache reuse >", Label(constants.APIServerTests, const
 
 	It("caches both PVC tasks for the same claim and executes both for a different claim", Label("LegacyCachePVC"), func() {
 		experiment := createExperiment(experimentName)
-		pipeline := uploadAPipeline(filepath.Join("..", "resources", "pvc-mount.yaml"), &testContext.Pipeline.PipelineGeneratedName)
+		pipeline := uploadAPipeline(cachePipelineFixture("pvc-mount.yaml"), &testContext.Pipeline.PipelineGeneratedName)
 		version := testutil.GetLatestPipelineVersion(pipelineClient, &pipeline.PipelineID)
 		pvcName := "cache-" + randomName
 		createCachePVC(pvcName)
@@ -107,6 +108,14 @@ var _ = Describe("Pipeline cache reuse >", Label(constants.APIServerTests, const
 		}
 	})
 })
+
+func cachePipelineFixture(name string) string {
+	directory := os.Getenv("KFP_CACHE_FIXTURE_DIRECTORY")
+	if directory == "" {
+		directory = filepath.Join("..", "resources")
+	}
+	return filepath.Join(directory, name)
+}
 
 func expectCacheTask(runID, taskName string, state run_model.PipelineTaskTaskState) {
 	full := string(run_model.V2beta1GetRunRequestViewModeFULL)

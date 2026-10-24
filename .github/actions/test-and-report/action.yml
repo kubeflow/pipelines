@@ -2,6 +2,10 @@ name: "Create Kind Cluster and Run Tests"
 description: "Step to set up a kind cluster and run tests against it"
 
 inputs:
+  cluster_name:
+    description: "Kind cluster receiving the offline cache fixture image"
+    required: false
+    default: 'kfp'
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
     default: 'database'
@@ -45,6 +49,10 @@ inputs:
     default: "10"
   required_service_account_specs:
     description: "Require both custom service-account recurring-run cases to pass"
+    required: false
+    default: 'false'
+  prepare_cache_fixtures:
+    description: "Build offline current-SDK fixtures for API cache scenarios"
     required: false
     default: 'false'
   required_migration_specs:
@@ -170,6 +178,14 @@ runs:
     - name: Download Go modules
       shell: bash
       run: bash .github/resources/scripts/download-go-modules.sh
+
+    - name: Prepare offline cache fixtures
+      if: ${{ inputs.test_directory == './backend/test/v2/api' && inputs.prepare_cache_fixtures == 'true' }}
+      shell: bash
+      run: |
+        fixture_directory="$RUNNER_TEMP/kfp-cache-fixtures"
+        bash .github/resources/scripts/build-cache-fixture-image.sh "${{ inputs.cluster_name }}" "$fixture_directory"
+        echo "KFP_CACHE_FIXTURE_DIRECTORY=$fixture_directory" >> "$GITHUB_ENV"
 
     - name: Deploy API URL import fixtures
       if: ${{ inputs.test_directory == './backend/test/v2/api' }}
