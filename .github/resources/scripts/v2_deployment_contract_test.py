@@ -119,25 +119,6 @@ class V2DeploymentContractTest(unittest.TestCase):
                 )
                 self.assertTrue(source.is_file(), source)
 
-    def test_v2_integration_forwards_the_api_before_running_tests(self):
-        workflow = (
-            ROOT / '.github/workflows/legacy-v2-api-integration-tests.yml'
-        ).read_text()
-        forwarding = './.github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888'
-        deploy = workflow.split('- name: Deploy\n', 1)[1].split(
-            '- name: Deploy pipeline URL test fixtures', 1
-        )[0]
-        self.assertIn("forward_port: 'false'", deploy)
-        self.assertEqual(workflow.count(forwarding), 1)
-        self.assertLess(
-            workflow.index('kubectl rollout status deployment/ml-pipeline'),
-            workflow.index(forwarding),
-        )
-        self.assertLess(
-            workflow.index(forwarding),
-            workflow.index('- name: API integration tests v2'),
-        )
-
     def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
         self,
     ):
@@ -402,11 +383,6 @@ class V2DeploymentContractTest(unittest.TestCase):
         ).read_text()
         self.assertIn('name: CACHEENABLED', overlay)
         self.assertIn('value: "false"', overlay)
-        self.assertTrue(
-            (
-                ROOT / '.github/workflows/legacy-v2-api-integration-tests.yml'
-            ).is_file()
-        )
 
 
 if __name__ == '__main__':

@@ -91,6 +91,28 @@ def produce(
     ]
 
 
+def sibling_preview(artifact: dsl.Artifact) -> Path:
+    """Return the generated preview object beside an artifact directory."""
+    path = Path(artifact.path)
+    return path.with_name(path.name + _artifact_preview.PREVIEW_SIBLING_SUFFIX)
+
+
+def test_preview_keeps_parquet_directory_reads_working(
+    tmp_path: Path,
+) -> None:
+    """Directory consumers must see only the producer's data files."""
+    import polars as pl
+
+    dataset, _ = produce(tmp_path)
+    assert sibling_preview(dataset).exists()
+    assert [path.name for path in Path(dataset.path).iterdir()] == [
+        'data.parquet'
+    ]
+    table = pq.read_table(dataset.path)
+    assert (table.num_rows, table.num_columns) == (32, 25)
+    assert pl.read_parquet(dataset.path).shape == (32, 25)
+
+
 @pytest.mark.parametrize('include_rows', [True, False])
 def test_parquet_preview_matches_the_actual_file(
     tmp_path: Path,
@@ -99,17 +121,13 @@ def test_parquet_preview_matches_the_actual_file(
     dataset, model = produce(tmp_path, artifact_preview_rows=include_rows)
     for artifact in (dataset, model):
         assert artifact.metadata['_kfp_preview'] == {
-            'version': 1,
-            'path': 'preview.json',
+            'version': 2,
+            'storage': 'sibling',
         }
-        assert (
-            Path(artifact.path) / 'preview.json'
-        ).stat().st_size <= 64 * 1024
-        assert not list(Path(artifact.path).glob('.kfp-preview-*.tmp'))
+        assert sibling_preview(artifact).stat().st_size <= 64 * 1024
+        assert not list(Path(artifact.path).parent.glob('.kfp-preview-*.tmp'))
 
-    preview = json.loads(
-        (Path(dataset.path) / 'preview.json').read_text(encoding='utf-8')
-    )
+    preview = json.loads(sibling_preview(dataset).read_text(encoding='utf-8'))
     parquet = pq.ParquetFile(Path(dataset.path) / 'data.parquet')
     assert preview['kind'] == 'dataset'
     assert preview['format'] == 'parquet'
@@ -143,9 +161,7 @@ def test_model_summary_and_predictions_survive_native_io(
     tmp_path: Path,
 ) -> None:
     dataset, model = produce(tmp_path)
-    preview = json.loads(
-        (Path(model.path) / 'preview.json').read_text(encoding='utf-8')
-    )
+    preview = json.loads(sibling_preview(model).read_text(encoding='utf-8'))
     loaded = xgb.XGBClassifier()
     loaded.load_model(Path(model.path) / 'model.ubj')
     booster = loaded.get_booster()
@@ -237,7 +253,7 @@ def test_disabling_previews_preserves_dataset_and_model_outputs(
     sample.assert_not_called()
     for artifact in (dataset, model):
         assert '_kfp_preview' not in artifact.metadata
-        assert not (Path(artifact.path) / 'preview.json').exists()
+        assert not sibling_preview(artifact).exists()
     assert pq.read_table(Path(dataset.path) / 'data.parquet').equals(
         pq.read_table(Path(enabled_dataset.path) / 'data.parquet')
     )
@@ -429,7 +445,7 @@ def test_unresolvable_time_zone_skips_only_the_affected_row_preview(
     ]
     if include_rows:
         assert '_kfp_preview' not in zoned.metadata
-        assert not (Path(zoned.path) / 'preview.json').exists()
+        assert not sibling_preview(zoned).exists()
         assert "Automatic preview unavailable for output 'zoned'" in caplog.text
     else:
         assert load_preview(zoned)['columns'] == [
@@ -474,7 +490,7 @@ def test_native_booster_preview_without_model_reload_or_tree_dump(
             booster.save_model(tmp_path / 'model.ubj')
             session.generate()
     assert xgb.Booster.save_model is original
-    preview = json.loads((tmp_path / 'preview.json').read_text())
+    preview = json.loads(sibling_preview(artifact).read_text())
     assert preview['estimator_class'] == 'xgboost.Booster'
     assert (
         preview['hyperparameters']['training']['objective'] == 'binary:logistic'
@@ -534,10 +550,10 @@ def execute_sample(
 def load_preview(artifact: dsl.Artifact) -> dict:
     """Require the descriptor, encoded budget, and completed publication."""
     assert artifact.metadata['_kfp_preview'] == {
-        'version': 1,
-        'path': 'preview.json',
+        'version': 2,
+        'storage': 'sibling',
     }
-    path = Path(artifact.path) / 'preview.json'
+    path = sibling_preview(artifact)
     assert path.stat().st_size <= _artifact_preview.MAX_BYTES
     assert not list(path.parent.glob('.kfp-preview-*.tmp'))
     return json.loads(path.read_text())
@@ -843,7 +859,7 @@ def test_preview_policy_controls_model_previews(
     )
     assert torch.save is original
     assert ('_kfp_preview' in artifact.metadata) is enabled
-    assert (Path(artifact.path) / 'preview.json').exists() is enabled
+    assert sibling_preview(artifact).exists() is enabled
     assert any(Path(artifact.path).iterdir())
 
 

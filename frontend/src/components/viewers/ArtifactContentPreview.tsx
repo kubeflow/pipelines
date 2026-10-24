@@ -35,6 +35,7 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import {
   ArtifactContentPreview,
+  ArtifactPreviewDescriptor,
   DatasetPreview,
   getArtifactPreviewDescriptor,
   ModelPreview,
@@ -114,7 +115,7 @@ function SelectedArtifactPreview({
 }: PreviewContext & { artifact: V2Artifact }) {
   const kind = getArtifactContentPreviewKind(artifact);
   const effectiveNamespace = artifact.namespace || namespace;
-  let descriptor;
+  let descriptor: ArtifactPreviewDescriptor | undefined;
   let descriptorError: string | undefined;
   try {
     descriptor = getArtifactPreviewDescriptor(artifact.metadata);

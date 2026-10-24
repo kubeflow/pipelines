@@ -212,7 +212,7 @@ describe('ArtifactDetails', () => {
   it('keeps dataset samples collapsed until explicitly opened and refreshes them on demand', async () => {
     vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
       ...artifact,
-      metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+      metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
     });
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')

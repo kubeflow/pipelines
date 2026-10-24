@@ -1595,6 +1595,120 @@ func TestUploadOutputArtifacts_PreservesArtifactListOutputs(t *testing.T) {
 	assert.Equal(t, "one", launcher.batchUpdater.artifacts[1].request.Artifact.Metadata["id"].GetStringValue())
 }
 
+func TestUploadOutputArtifacts_UploadsSiblingPreview(t *testing.T) {
+	const uri = "s3://bucket/output/dataset"
+	sibling := map[string]interface{}{"version": 2, "storage": "sibling"}
+	tests := []struct {
+		name              string
+		artifactURI       string
+		descriptor        map[string]interface{}
+		writePreview      bool
+		uploadErrors      []error
+		wantUploads       []string
+		wantDescriptorSet bool
+	}{
+		{
+			name:              "uploads the preview beside the artifact",
+			descriptor:        sibling,
+			writePreview:      true,
+			wantUploads:       []string{uri, uri + ".kfp-preview.json"},
+			wantDescriptorSet: true,
+		},
+		{
+			name:              "normalizes a trailing slash before adding the sibling suffix",
+			artifactURI:       uri + "/",
+			descriptor:        sibling,
+			writePreview:      true,
+			wantUploads:       []string{uri + "/", uri + ".kfp-preview.json"},
+			wantDescriptorSet: true,
+		},
+		{
+			name:        "drops the descriptor when the preview file is missing",
+			descriptor:  sibling,
+			wantUploads: []string{uri},
+		},
+		{
+			name:         "drops the descriptor when the preview upload fails",
+			descriptor:   sibling,
+			writePreview: true,
+			uploadErrors: []error{nil, errors.New("upload failed")},
+			wantUploads:  []string{uri, uri + ".kfp-preview.json"},
+		},
+		{
+			name:              "leaves in-directory v1 previews to the artifact upload",
+			descriptor:        map[string]interface{}{"version": 1, "path": "_kfp_preview.json"},
+			writePreview:      true,
+			wantUploads:       []string{uri},
+			wantDescriptorSet: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			artifactURI := test.artifactURI
+			if artifactURI == "" {
+				artifactURI = uri
+			}
+			localPath, err := LocalPathForURI(uri)
+			require.NoError(t, err)
+			fileSystem := NewMockFileSystem()
+			if test.writePreview {
+				fileSystem.SetFileContent(localPath+".kfp-preview.json", []byte(`{"version":1}`))
+			}
+			objectStore := NewMockObjectStoreClient()
+			objectStore.UploadErrors = test.uploadErrors
+			launcher := &LauncherV2{
+				executorInput: &pipelinespec.ExecutorInput{
+					Outputs: &pipelinespec.ExecutorInput_Outputs{
+						Artifacts: map[string]*pipelinespec.ArtifactList{
+							"dataset": {Artifacts: []*pipelinespec.RuntimeArtifact{{
+								Name: "dataset",
+								Uri:  artifactURI,
+								Type: &pipelinespec.ArtifactTypeSchema{
+									Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+								},
+							}}},
+						},
+					},
+				},
+				options: LauncherV2Options{
+					Namespace: "default",
+					Run:       &apiv2.Run{RunId: "run-1"},
+					Task:      &apiv2.PipelineTask{TaskId: "task-1"},
+				},
+				batchUpdater: NewBatchUpdater(),
+				objectStore:  objectStore,
+				fileSystem:   fileSystem,
+			}
+			metadata, err := structpb.NewStruct(map[string]interface{}{
+				"_kfp_preview": test.descriptor,
+				"rows":         3,
+			})
+			require.NoError(t, err)
+
+			err = launcher.uploadOutputArtifacts(context.Background(), &pipelinespec.ExecutorOutput{
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"dataset": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: artifactURI, Metadata: metadata}}},
+				},
+			})
+			require.NoError(t, err)
+
+			var uploads []string
+			for _, call := range objectStore.UploadCalls {
+				uploads = append(uploads, call.RemoteURI)
+			}
+			assert.Equal(t, test.wantUploads, uploads)
+			if len(objectStore.UploadCalls) == 2 {
+				assert.Equal(t, localPath+".kfp-preview.json", objectStore.UploadCalls[1].LocalPath)
+			}
+			require.Len(t, launcher.batchUpdater.artifacts, 1)
+			registered := launcher.batchUpdater.artifacts[0].request.Artifact.Metadata
+			_, hasDescriptor := registered["_kfp_preview"]
+			assert.Equal(t, test.wantDescriptorSet, hasDescriptor)
+			assert.Equal(t, float64(3), registered["rows"].GetNumberValue())
+		})
+	}
+}
+
 func TestUploadOutputArtifacts_RegistersOCIOutputs(t *testing.T) {
 	launcher := &LauncherV2{
 		executorInput: &pipelinespec.ExecutorInput{

@@ -27,7 +27,7 @@ const artifact: V2Artifact = {
   type: ArtifactArtifactType.Dataset,
   namespace: 'team-a',
   uri: 's3://bucket/private-artifacts/team-a/dataset',
-  metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+  metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
 };
 
 function view(artifacts = [artifact], active = true, sourceFinished = false) {
@@ -76,10 +76,21 @@ describe('artifact content previews', () => {
     const { rerender } = render(view([{ ...artifact, metadata: {} }]));
     expect(screen.getByText(/pipeline and component preview settings/)).toBeVisible();
     rerender(
-      view([{ ...artifact, metadata: { _kfp_preview: { version: 2, path: 'preview.json' } } }]),
+      view([
+        { ...artifact, metadata: { _kfp_preview: { version: 2, path: '_kfp_preview.json' } } },
+      ]),
     );
     expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
     expect(read).not.toHaveBeenCalled();
+  });
+
+  it('fetches sibling previews like in-directory previews', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(dataset));
+    render(view([{ ...artifact, metadata: { _kfp_preview: { version: 2, storage: 'sibling' } } }]));
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(completedRequests(read)).toHaveLength(1);
   });
 
   it('preserves multi-artifact selection across refreshes and reordering', async () => {
@@ -145,7 +156,7 @@ describe('artifact content previews', () => {
   it('shows read errors with an explicit retry and rejects malformed files', async () => {
     const read = vi
       .spyOn(Apis, 'getArtifactContentPreview')
-      .mockRejectedValue(new Error('preview.json is missing'));
+      .mockRejectedValue(new Error('_kfp_preview.json is missing'));
     render(view());
     await screen.findByText('Unable to display the artifact preview.');
     expect(completedRequests(read)).toHaveLength(1);

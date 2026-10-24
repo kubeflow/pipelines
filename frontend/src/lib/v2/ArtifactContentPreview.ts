@@ -25,10 +25,12 @@ export type PreviewScalar = string | number | boolean | null;
 export type ModelPreviewValue =
   PreviewScalar | ModelPreviewValue[] | { [key: string]: ModelPreviewValue };
 
-export interface ArtifactPreviewDescriptor {
-  version: 1;
-  path: 'preview.json';
-}
+/**
+ * Where a preview is stored: v1 inside the artifact directory (manual producers), or v2 sibling
+ * beside it (SDK default, keeps directory readers such as Polars working).
+ */
+export type ArtifactPreviewDescriptor =
+  { version: 1; path: '_kfp_preview.json' } | { version: 2; storage: 'sibling' };
 
 export interface DatasetPreview {
   version: 1;
@@ -61,7 +63,7 @@ export interface ModelPreview {
 export type ArtifactContentPreview = DatasetPreview | ModelPreview;
 
 function invalid(message: string): never {
-  throw new Error(`${message} Regenerate preview.json using the documented v1 preview format.`);
+  throw new Error(`${message} Regenerate the preview using the documented v1 preview format.`);
 }
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -127,10 +129,15 @@ export function getArtifactPreviewDescriptor(
     return undefined;
   }
   const descriptor = record(metadata[ARTIFACT_PREVIEW_METADATA_KEY], 'Preview descriptor');
-  if (descriptor.version !== 1 || descriptor.path !== 'preview.json') {
-    return invalid('The preview descriptor must specify version 1 and path "preview.json".');
+  if (descriptor.version === 1 && descriptor.path === '_kfp_preview.json') {
+    return { version: 1, path: '_kfp_preview.json' };
   }
-  return { version: 1, path: 'preview.json' };
+  if (descriptor.version === 2 && descriptor.storage === 'sibling') {
+    return { version: 2, storage: 'sibling' };
+  }
+  return invalid(
+    'The preview descriptor must specify version 1 with path "_kfp_preview.json", or version 2 with storage "sibling".',
+  );
 }
 
 function datasetPreview(value: Record<string, unknown>): DatasetPreview {

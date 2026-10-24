@@ -168,7 +168,7 @@ describe('profile-generated artifact preview identity', () => {
     namespace: 'tenant',
     type: 'Model',
     uri: 'minio://mlpipeline/private-artifacts/tenant/model',
-    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+    metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
   };
   const preview = {
     version: 1,
@@ -305,7 +305,7 @@ describe('profile-generated artifact preview identity', () => {
       ]);
       expect(getObject).toHaveBeenCalledExactlyOnceWith(
         'mlpipeline',
-        'private-artifacts/tenant/model/preview.json',
+        'private-artifacts/tenant/model/_kfp_preview.json',
       );
 
       await requests(sharedAddress).get('/artifacts/model-1/preview?namespace=tenant').expect(401);

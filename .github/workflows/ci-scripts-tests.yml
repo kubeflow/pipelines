@@ -31,6 +31,7 @@ on:
       - '.github/resources/scripts/*.js'
       - '.github/resources/ci-workflow-inventory.json'
       - '.github/resources/legacy-v2-migration-specs.json'
+      - '.github/resources/legacy-v2-service-account-specs.json'
       - 'test/presubmit-backend-test.sh'
       - 'hack/update-all-requirements.sh'
       # Any trigger change must update the expected-workflow inventory.
@@ -82,7 +83,6 @@ on:
       - 'backend/test/v2/resources/env-var.yaml'
       - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
       - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'
-      - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - 'backend/Dockerfile'
       - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'api/v2alpha1/python/generate_proto.py'

@@ -76,7 +76,7 @@ beforeEach(() => {
     type: ArtifactArtifactType.Model,
     uri: 's3://bucket/private-artifacts/team-a/model',
     namespace: 'team-a',
-    metadata: { _kfp_preview: { version: 1, path: 'preview.json' } },
+    metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
   };
   metadataStatus = 200;
   ownershipLookupAvailable = true;
@@ -125,7 +125,7 @@ afterEach(() => {
 
 describe('artifact preview endpoint', () => {
   it.each(['s3', 'minio', 'gs'])(
-    'reads only preview.json with strict parent ownership on %s',
+    'reads only _kfp_preview.json with strict parent ownership on %s',
     async (scheme) => {
       storedArtifact.uri = `${scheme}://bucket/private-artifacts/team-a/model/`;
       const response = await previewRequest().expect(200);
@@ -139,12 +139,12 @@ describe('artifact preview endpoint', () => {
         expect(gcs.downloadGCSObjectStream).toHaveBeenCalledWith(
           expect.objectContaining({
             bucket: 'bucket',
-            objectName: 'private-artifacts/team-a/model/preview.json',
+            objectName: 'private-artifacts/team-a/model/_kfp_preview.json',
           }),
         );
       } else {
         expect(storage.openRead).toHaveBeenCalledExactlyOnceWith(
-          'private-artifacts/team-a/model/preview.json',
+          'private-artifacts/team-a/model/_kfp_preview.json',
           { signal: expect.any(AbortSignal) },
         );
       }
@@ -164,9 +164,19 @@ describe('artifact preview endpoint', () => {
       }),
       'team-a',
     );
-    expect(storage.openRead).toHaveBeenCalledWith('private-artifacts/team-a/a b/preview.json', {
-      signal: expect.any(AbortSignal),
-    });
+    expect(storage.openRead).toHaveBeenCalledWith(
+      'private-artifacts/team-a/a b/_kfp_preview.json',
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it('reads SDK previews from the sibling object beside the directory', async () => {
+    storedArtifact.metadata = { _kfp_preview: { version: 2, storage: 'sibling' } };
+    await previewRequest().expect(200);
+    expect(storage.openRead).toHaveBeenCalledExactlyOnceWith(
+      'private-artifacts/team-a/model.kfp-preview.json',
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it('supports standalone metadata reads without an explicit namespace', async () => {
@@ -239,13 +249,14 @@ describe('artifact preview endpoint', () => {
       expect(gcs.downloadGCSObjectStream).toHaveBeenCalledWith(
         expect.objectContaining({
           bucket: 'bucket',
-          objectName: 'custom-root/model/preview.json',
+          objectName: 'custom-root/model/_kfp_preview.json',
         }),
       );
     } else {
-      expect(storage.openRead).toHaveBeenCalledExactlyOnceWith('custom-root/model/preview.json', {
-        signal: expect.any(AbortSignal),
-      });
+      expect(storage.openRead).toHaveBeenCalledExactlyOnceWith(
+        'custom-root/model/_kfp_preview.json',
+        { signal: expect.any(AbortSignal) },
+      );
     }
     expect(gcs.listGCSObjectNames).not.toHaveBeenCalled();
     expect(storage.list).not.toHaveBeenCalled();
@@ -279,7 +290,9 @@ describe('artifact preview endpoint', () => {
 
   it.each([
     undefined,
-    { version: 2, path: 'preview.json' },
+    { version: 2, path: '_kfp_preview.json' },
+    { version: 2, storage: 'object' },
+    { version: 2, storage: 'inline', content: '{}' },
     { version: 1, path: '../private.json' },
   ])('does not probe files without a supported declaration: %j', async (descriptor) => {
     storedArtifact.metadata = descriptor === undefined ? {} : { _kfp_preview: descriptor };
@@ -295,7 +308,7 @@ describe('artifact preview endpoint', () => {
       Object.assign(new Error('missing'), { code: 'NoSuchKey' }),
     );
     const response = await previewRequest().expect(404);
-    expect(response.text).toContain('preview.json is missing');
+    expect(response.text).toContain('The preview file is missing');
     expect(storage.list).not.toHaveBeenCalled();
   });
 
