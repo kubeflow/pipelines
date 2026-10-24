@@ -1,0 +1,31 @@
+{
+  "skill_name": "kfp-generator",
+  "description": "Standardized evaluation suite for Kubeflow Pipelines (KFP) v2 pipeline generation, adhering to agentskills.io evaluation specification.",
+  "evals": [
+    {
+      "id": "eval-churn-prediction",
+      "prompt": "Create a production-grade KFP v2 customer churn prediction pipeline.\n\nThe pipeline must orchestrate the following operational steps:\n1. load_churn_data: Ingests raw tabular user interaction records, scales continuous features dynamically using a standard scaler, and performs a stratified train/test split.\n2. train_xgboost_model: Fits an XGBoost or Random Forest classifier on the preprocessed training split, tracking tuning parameters.\n3. evaluate_and_validate: Computes ROC-AUC, Precision, and Recall metrics, exporting them into a native KFP Metrics artifact. It must save the optimized model artifact using a serialized format.",
+      "expected_output": "A production-grade Python script (pipeline.py) compiling to KFP v2 YAML, orchestrating data preprocessing, XGBoost/Random Forest model training, and metrics evaluation with explicit v2 type annotations and compiler entrypoint.",
+      "assertions": [
+        "The output file compiles to valid KFP v2 YAML specification using kfp.compiler.Compiler",
+        "Uses modern KFP v2 DSL decorators (@dsl.component, @dsl.pipeline) with no legacy v1 ContainerOp",
+        "Implements all three requested steps: load_churn_data, train_xgboost_model, evaluate_and_validate",
+        "Exports evaluation metrics (ROC-AUC, Precision, Recall) using native KFP Metrics artifact",
+        "Contains explicit InputPath/OutputPath or Artifact annotations for clean component data linkage",
+        "Includes Apache 2.0 license header and standard compiler entrypoint block"
+      ]
+    },
+    {
+      "id": "eval-image-anomaly-detection",
+      "prompt": "Create a complete KFP v2 image processing and embedding pipeline named 'pipeline.py' under a self-contained evaluation directory.\n\nThe pipeline must model these sequential operations:\n1. fetch_image_batch: Simulates pulling a compressed batch of image arrays from an object store and unpacking them into a target staging path.\n2. extract_visual_features: Iterates through the raw image paths, resizes them to standard dimensions (e.g., 224x224), flattens the arrays into structural feature matrices, and outputs the directory path.\n3. train_anomaly_detector: Loads the extracted features from the previous step to fit an Isolation Forest or simple classifier to detect structural visual anomalies, logging the total execution time and final anomaly score.\n\nEnsure the file contains clean docstrings, clear input/output directory variable definitions using the modern KFP v2 DSL decorators, and the standard compilation execution block. Run our local evaluation script with --run --host http://localhost:8080 on it to guarantee a valid KFP v2 YAML specification and verify live backend execution.",
+      "expected_output": "A self-contained KFP v2 Python script (pipeline.py) compiling to valid YAML, implementing sequential image batch fetch, feature extraction, and anomaly detector training with clean directory artifact passing.",
+      "assertions": [
+        "The output file compiles to valid KFP v2 YAML specification using kfp.compiler.Compiler",
+        "Uses modern KFP v2 DSL decorators (@dsl.component, @dsl.pipeline) with no legacy v1 ContainerOp",
+        "Implements all three requested tasks: fetch_image_batch, extract_visual_features, train_anomaly_detector",
+        "Uses explicit directory artifact or OutputPath type annotations for passing image and feature directories",
+        "Includes Apache 2.0 license header and standard compiler entrypoint block"
+      ]
+    }
+  ]
+}

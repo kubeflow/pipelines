@@ -1,0 +1,30 @@
+{
+  "assertion_results": [
+    {
+      "text": "Pipeline file exists on disk",
+      "passed": true,
+      "evidence": "Found pipeline file at .agents/kfp-generator/kfp-generator_workspace/iteration_1/eval-churn-prediction/with-skill/outputs/pipeline.py"
+    },
+    {
+      "text": "Pipeline compiles successfully into a valid KFP v2 YAML workflow",
+      "passed": true,
+      "evidence": ""
+    },
+    {
+      "text": "Compiled YAML artifact generated successfully",
+      "passed": true,
+      "evidence": "Found artifact .agents/kfp-generator/kfp-generator_workspace/iteration_1/eval-churn-prediction/with-skill/outputs/pipeline.py.yaml (15842 bytes)"
+    },
+    {
+      "text": "Live backend cluster execution completed successfully",
+      "passed": true,
+      "evidence": "Run 43b73d6a-d1ca-43e2-b0b7-1117ab8439d7 finished with state: SUCCEEDED"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}
