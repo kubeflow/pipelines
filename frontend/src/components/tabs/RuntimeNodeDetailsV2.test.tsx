@@ -106,10 +106,24 @@ describe('RuntimeNodeDetailsV2', () => {
     const driverLogUri = 's3://pipeline-root/driver-logs.txt';
 
     beforeEach(() => {
-      // Give the real virtualized LogViewer a viewport in jsdom.
-      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
-      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(800);
+      // AutoSizer measures its parent after ResizeObserver reports a viewport.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 800, 600),
+      );
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(private callback: ResizeObserverCallback) {}
+          observe() {
+            this.callback([], this as unknown as ResizeObserver);
+          }
+          unobserve() {}
+          disconnect() {}
+        },
+      );
     });
+
+    afterEach(() => vi.unstubAllGlobals());
 
     function createSystemLogsTask(
       uri: unknown = driverLogUri,
@@ -251,6 +265,8 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(screen.getByText('Failed to retrieve system logs.')).toBeVisible();
 
       await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      // Flush AutoSizer's animation frame after the recovered log viewer mounts.
+      await act(async () => vi.advanceTimersByTimeAsync(20));
       expect(screen.getByText('live system logs')).toBeVisible();
       expect(screen.queryByText('Failed to retrieve system logs.')).not.toBeInTheDocument();
       expect(readFileSpy).toHaveBeenCalledTimes(2);
