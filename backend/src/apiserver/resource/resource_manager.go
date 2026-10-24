@@ -2460,8 +2460,14 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
-		pipelineSpec := recurringJob.PipelineSpec
-		pipelineSpec.WorkflowSpecManifest = model.LargeText(execSpec.GetExecutionSpec().ToStringForStore())
+		pipelineSpec, err := r.recurringRunReportPipelineSpec(recurringJob, execSpec, runId)
+		if err != nil {
+			return nil, err
+		}
+		displayName := execSpec.ExecutionName()
+		if !common.IsMultiUserMode() && objMeta.Annotations[util.AnnotationKeyRunName] != "" {
+			displayName = objMeta.Annotations[util.AnnotationKeyRunName]
+		}
 		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
@@ -2470,7 +2476,7 @@ func (r *ResourceManager) reportWorkflowResource(
 			UUID:           runId,
 			ExperimentId:   experimentID,
 			RecurringRunId: jobId,
-			DisplayName:    execSpec.ExecutionName(),
+			DisplayName:    displayName,
 			K8SName:        execSpec.ExecutionName(),
 			ServiceAccount: execSpec.ServiceAccount(),
 			StorageState:   model.StorageStateAvailable,
