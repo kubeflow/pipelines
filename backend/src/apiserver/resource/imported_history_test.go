@@ -169,3 +169,63 @@ func TestImportedHistoryLogsUseOnlyArchive(t *testing.T) {
 		})
 	}
 }
+
+// Test for terminal-run immutability check. This is a separate test from the imported-history tests above, but it is placed in this file to avoid creating a new test file.
+type terminalRunStore struct {
+	storage.RunStoreInterface
+	run *model.Run
+}
+
+// GetRun satisfies storage.RunStoreInterface, returning our mock terminal run.
+func (s *terminalRunStore) GetRun(id string, _ bool) (*model.Run, error) {
+	if id != s.run.UUID {
+		return nil, util.NewResourceNotFoundError("run", id)
+	}
+	return s.run, nil
+}
+
+func newTerminalRunManager(state model.RuntimeState) (*ResourceManager, *terminalRunStore) {
+	store := &terminalRunStore{run: &model.Run{
+		UUID:         "terminal-run",
+		ImportedFrom: "",
+		RunDetails: model.RunDetails{
+			State:           state,
+			FinishedAtInSec: 123456789,
+		},
+	}}
+	return &ResourceManager{runStore: store}, store
+}
+
+// TestTerminalRunStatePredicate explicitly verifies that native runs in terminal states block mutations.
+func TestTerminalRunStatePredicate(t *testing.T) {
+	tests := []struct {
+		state          model.RuntimeState
+		expectTerminal bool
+	}{
+		{model.RuntimeStateRunning, false},
+		{model.RuntimeStatePending, false},
+		{model.RuntimeStateCancelling, false},
+		{model.RuntimeStateSucceeded, true},
+		{model.RuntimeStateFailed, true},
+		{model.RuntimeStateCanceled, true},
+		{model.RuntimeStateSkipped, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(string(tc.state), func(t *testing.T) {
+			run := &model.Run{
+				UUID: "run-1",
+				RunDetails: model.RunDetails{
+					State: tc.state,
+				},
+			}
+			err := terminalRunMutationError(run)
+			if tc.expectTerminal {
+				assert.Error(t, err)
+				assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

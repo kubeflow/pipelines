@@ -29,12 +29,52 @@ func importedRunMutationError(run *model.Run) error {
 		"Run %s is imported history and cannot accept runtime changes. Create a new run to execute it in this installation", run.UUID)
 }
 
+var terminalRunStateStrings = []string{
+	string(model.RuntimeStateSucceeded),
+	string(model.RuntimeStateFailed),
+	string(model.RuntimeStateSkipped),
+	string(model.RuntimeStateCanceled),
+	string(model.RuntimeStateSucceededV1),
+	string(model.RuntimeStateFailedV1),
+	string(model.RuntimeStateSkippedV1),
+	string(model.RuntimeStateErrorV1),
+	model.LegacyStateDone,
+	model.LegacyStateDisabled,
+}
+
+var terminalRunStateValues = func() map[string]bool {
+	values := make(map[string]bool, len(terminalRunStateStrings))
+	for _, state := range terminalRunStateStrings {
+		values[state] = true
+	}
+	return values
+}()
+
+func terminalRunMutationError(run *model.Run) error {
+	originalState := string(run.State)
+	isTerminal := terminalRunStateValues[originalState]
+	if isTerminal {
+		return util.NewFailedPreconditionError(
+			errors.New("the execution is in a terminal state"),
+			"Run %s is in terminal state %s and cannot accept runtime changes", run.UUID, originalState,
+		)
+	}
+	return nil
+}
+
 func (r *ResourceManager) checkRunAllowsRuntimeWrites(runID string) error {
 	run, err := r.runStore.GetRun(runID, false)
 	if err != nil {
 		return util.Wrapf(err, "Failed to check whether run %s accepts runtime changes", runID)
 	}
-	return importedRunMutationError(run)
+	if err := importedRunMutationError(run); err != nil {
+		return err
+	}
+
+	if err := terminalRunMutationError(run); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *ResourceManager) checkArtifactTasksAllowRuntimeWrites(links []*model.ArtifactTask) error {
