@@ -41,6 +41,7 @@ RUN git clone --depth=1 --branch "${KUBECTL_VERSION}" https://github.com/kuberne
     && rm -rf vendor \
     && GOFLAGS=-mod=mod go get golang.org/x/net@v0.60.0 \
       golang.org/x/sys@v0.48.0 golang.org/x/text@v0.42.0 \
+      go.opentelemetry.io/otel@v1.44.0 \
     && CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildvcs=true \
       -ldflags="-X k8s.io/component-base/version.gitVersion=${KUBECTL_VERSION}" \
       -o /out/kubectl ./cmd/kubectl \
