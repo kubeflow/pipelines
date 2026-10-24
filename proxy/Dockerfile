@@ -30,7 +30,7 @@ RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /go/bin/proxy-forwarding-a
 # Keep only the runtime tools needed by registration and the Cloud SDK.
 FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
 RUN apt-get update && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends bash ca-certificates curl jq python3-venv wget \
+    && apt-get install -y --no-install-recommends bash ca-certificates curl jq python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # These defaults were previously inherited from the upstream agent image.
@@ -42,12 +42,15 @@ ENV DEBUG=false \
 WORKDIR /opt/proxy
 ENV VIRTUAL_ENV=/opt/proxy-venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+# Keep the interpreter explicitly installed; venv creation and pip are build tools.
 COPY requirements.txt .
 RUN python3 -m venv "${VIRTUAL_ENV}" \
     && "${VIRTUAL_ENV}/bin/python3" -m pip install -r \
     requirements.txt --quiet --no-cache-dir \
     && rm -f requirements.txt \
-    && "${VIRTUAL_ENV}/bin/python3" -c "import requests"
+    && "${VIRTUAL_ENV}/bin/python3" -c "import requests" \
+    && "${VIRTUAL_ENV}/bin/python3" -m pip uninstall -y pip \
+    && apt-get purge -y python3-venv python3.13-venv python3-pip-whl python3-setuptools-whl
 
 # Install gcloud SDK (pinned)
 ARG GCLOUD_VERSION=589.0.0
@@ -70,11 +73,15 @@ RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kub
 COPY --from=builder /go/bin/proxy-forwarding-agent /opt/bin/proxy-forwarding-agent
 COPY --from=builder /src/LICENSE /usr/share/doc/inverting-proxy/LICENSE
 
-COPY ./ /opt/proxy
+COPY attempt-register-vm-on-proxy.sh get_proxy_url.py get_proxy_url_test.py registration_test.py /opt/proxy/
+COPY security /tmp/proxy-security
 # These run in every CI qualification build of the final runtime image.
 RUN /opt/bin/proxy-forwarding-agent --help \
     && kubectl version --client=true --output=json \
     && gcloud --version \
-    && python3 -m unittest discover -s /opt/proxy -p '*_test.py'
+    && python3 -c 'import importlib.util; import requests; assert importlib.util.find_spec("pip") is None' \
+    && python3 -m unittest discover -s /opt/proxy -p '*_test.py' \
+    && python3 -m unittest discover -s /tmp/proxy-security -p '*_test.py' \
+    && rm -rf /tmp/proxy-security /opt/proxy/get_proxy_url_test.py /opt/proxy/registration_test.py
 
 CMD ["/bin/sh", "-c", "/opt/proxy/attempt-register-vm-on-proxy.sh"]

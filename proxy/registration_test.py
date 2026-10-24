@@ -66,7 +66,11 @@ elif name == 'gcloud':
     elif args != ['auth', 'activate-service-account', '--key-file=/test-only/service-account.json']:
         sys.exit('Unexpected gcloud invocation')
 elif name == 'curl':
-    if 'http://metadata.google.internal/computeMetadata/v1/instance/zone' in args:
+    if args == ['-fsSL', 'https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json', '-o', 'proxy-agent-config.json']:
+        pathlib.Path('proxy-agent-config.json').write_text(json.dumps({
+            'agent-docker-containers': {'latest': {'proxy-urls': {
+                'us-central1': [os.environ['EXPECTED_PROXY_URL']]}}}}))
+    elif 'http://metadata.google.internal/computeMetadata/v1/instance/zone' in args:
         print('projects/test/zones/us-central1-a')
     elif any('instance/service-accounts/default/identity?' in arg for arg in args):
         print('test-vm-identity')
@@ -74,12 +78,6 @@ elif name == 'curl':
         print(json.dumps({'hostname': 'public.invalid', 'backendID': 'fresh-backend'}))
     else:
         sys.exit('Unexpected curl invocation')
-elif name == 'wget':
-    if args != ['https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json']:
-        sys.exit('Unexpected config URL')
-    pathlib.Path('proxy-agent-config.json').write_text(json.dumps({
-        'agent-docker-containers': {'latest': {'proxy-urls': {
-            'us-central1': [os.environ['EXPECTED_PROXY_URL']]}}}}))
 elif name == 'sleep':
     if args != ['20']:
         sys.exit('Unexpected retry delay')
@@ -265,9 +263,12 @@ elif name != 'proxy-forwarding-agent':
         self.assertEqual(received, ['/'])
         self.assert_agent(calls, proxy, 'fresh-backend')
         self.assertEqual([
-            call['args'] for call in calls if call['name'] == 'wget'
+            call['args'] for call in calls if call['name'] == 'curl' and
+            'proxy-agent-config.json' in call['args']
         ], [[
-            'https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json'
+            '-fsSL',
+            'https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json',
+            '-o', 'proxy-agent-config.json'
         ]])
         patches = [
             call for call in calls
@@ -281,7 +282,10 @@ elif name != 'proxy-forwarding-agent':
                     'ProxyUrl': proxy,
                     'BackendId': 'fresh-backend'
                 })
-        registration = [call for call in calls if call['name'] == 'curl']
+        registration = [
+            call for call in calls if call['name'] == 'curl' and
+            'proxy-agent-config.json' not in call['args']
+        ]
         self.assertEqual(registration[-1]['args'][-1],
                          proxy + '/request-service-account-endpoint')
         self.assertIn(
