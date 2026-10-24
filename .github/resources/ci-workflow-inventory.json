@@ -781,6 +781,12 @@
       "pull_request": null
     },
     {
+      "path": ".github/workflows/third-party-image-scanning.yml",
+      "name": "Third-party Image Evidence",
+      "header_sha256": "f858a4b6b34287e00e9c472ab748f47104cd0e7c2c17ef1b14bdbbc744a0a07e",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
       "header_sha256": "7137ec8a53d6b9eb36a192bcce329387f6bcbd4f39648dd4dcc7fbac8dd95225",

@@ -247,3 +247,10 @@ jobs:
           sha: ${{ needs.inventory.outputs.source-sha }}
           ref: refs/heads/release-2.18
           checkout_path: source
+
+  third-party-evidence:
+    needs: inventory
+    uses: ./.github/workflows/third-party-image-scanning.yml
+    permissions:
+      contents: read
+      actions: read
