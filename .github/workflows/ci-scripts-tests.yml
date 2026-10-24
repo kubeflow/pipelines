@@ -9,6 +9,8 @@ on:
       - master
   pull_request:
     paths:
+      # The offline cache fixture image copies this SDK source tree.
+      - 'sdk/python/kfp/**'
       - '.github/dependabot.yml'
       - '**/go.mod'
       - 'backend/api/hack/uv.sh'

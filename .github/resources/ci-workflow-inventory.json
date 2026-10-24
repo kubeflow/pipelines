@@ -10,9 +10,10 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "d5b052c2abca8947d8b6b24909c5cf7328bff40d8a64e91c430f24531f400965",
+      "header_sha256": "006969818f325d06b7cac0e7078c838f61c0b862197295f3372628aad4856d4d",
       "pull_request": {
         "paths": [
+          "sdk/python/kfp/**",
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/api-server-tests.yml",
@@ -138,9 +139,10 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "f37cdbc4f943ff80f2e53f333fe4af452fc6808aa5dbad10eb9f240b5ba1e42a",
+      "header_sha256": "c397530f153369d9840df28ca2ce109e7b03cec2f7e9b23fea0a7d512cc269cb",
       "pull_request": {
         "paths": [
+          "sdk/python/kfp/**",
           ".github/dependabot.yml",
           "**/go.mod",
           "backend/api/hack/uv.sh",

@@ -40,6 +40,8 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self,
         *,
         ready_after: int,
+        requested_artifacts: tuple[str, ...] = (),
+        available_artifacts: tuple[str, ...] = ARTIFACTS,
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
@@ -85,7 +87,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             environment.pop('WAIT_ATTEMPTS', None)
             environment.update(
                 {
-                    'ARTIFACT_NAMES': ' '.join(ARTIFACTS),
+                    'ARTIFACT_NAMES': ' '.join(available_artifacts),
                     'GH_COUNTER': str(counter),
                     'GITHUB_REPOSITORY': 'kubeflow/pipelines',
                     'GITHUB_RUN_ID': '123',
@@ -111,7 +113,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                     producer_state_unavailable_extensions
                 )
             result = subprocess.run(
-                ['bash', str(SCRIPT)],
+                ['bash', str(SCRIPT), *requested_artifacts],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -127,6 +129,49 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             'All 8 branch image artifacts are available', result.stdout
         )
         self.assertEqual(attempts, 1)
+
+    def test_runtime_only_succeeds_without_branch_images(self):
+        result, attempts = self._run(
+            ready_after=1,
+            requested_artifacts=('runtime-base-images',),
+            available_artifacts=('runtime-base-images',),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            'All 1 branch image artifacts are available', result.stdout
+        )
+        self.assertEqual(attempts, 1)
+
+    def test_rejects_unknown_or_empty_selection_before_polling(self):
+        for artifact in ('unknown-image', ''):
+            with self.subTest(artifact=artifact):
+                result, attempts = self._run(
+                    ready_after=1,
+                    requested_artifacts=(artifact,),
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('Unknown image artifact requested', result.stderr)
+                self.assertEqual(attempts, 0)
+
+    def test_runtime_only_fails_when_runtime_producer_fails(self):
+        result, attempts = self._run(
+            ready_after=99,
+            requested_artifacts=('runtime-base-images',),
+            missing_artifact='runtime-base-images',
+            producer_jobs=(
+                ('build / runtime-base-images', 'completed', 'failure'),
+                (
+                    'build / image-build (frontend, frontend/Dockerfile, .)',
+                    'in_progress',
+                    '',
+                ),
+            ),
+        )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('runtime-base-images:failure', result.stderr)
+        self.assertEqual(attempts, 2)
 
     def test_rejects_invalid_publication_grace(self):
         result, attempts = self._run(
