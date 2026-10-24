@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
         - name: ml-pipeline-persistenceagent
-          command: ["/bin/sh", "-c", "persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL} -mlPipelineServiceTLSEnabled=true -caCertPath=/etc/pki/tls/certs/ca.crt"]
+          command: ["/bin/sh", "-c", "exec persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH} --numWorker ${NUM_WORKERS} --executionType ${EXECUTIONTYPE} --logLevel=${LOG_LEVEL} -mlPipelineServiceTLSEnabled=true -caCertPath=/etc/pki/tls/certs/ca.crt"]
           args:
             - "--mlPipelineAPIServerName=ml-pipeline.kubeflow.svc.cluster.local"
             - "--mlPipelineAPIServerHttpPort=8888"
