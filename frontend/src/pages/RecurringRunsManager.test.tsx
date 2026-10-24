@@ -198,8 +198,21 @@ describe('RecurringRunsManager', () => {
   });
 
   it('retries a list-row disable only after an explicit handoff rejection', async () => {
+    let resolveInitialList!: (value: { recurringRuns: V2beta1RecurringRun[] }) => void;
+    listRecurringRunsSpy.mockReturnValue(
+      new Promise((resolve) => {
+        resolveInitialList = resolve;
+      }),
+    );
     renderManager();
     await waitFor(() => expect(listRecurringRunsSpy).toHaveBeenCalled());
+    // A request starting does not mean its rows have been rendered.
+    expect(screen.queryByTestId('table-row')).not.toBeInTheDocument();
+    resolveInitialList({ recurringRuns: RECURRINGRUNS });
+    const disableButton = await waitFor(() =>
+      within(getRowById('recurringrun1')).getByRole('button', { name: 'Enabled' }),
+    );
+    listRecurringRunsSpy.mockResolvedValue({ recurringRuns: RECURRINGRUNS });
     listRecurringRunsSpy.mockClear();
     disableRecurringRunSpy.mockRejectedValueOnce(
       new Response(
@@ -219,9 +232,7 @@ describe('RecurringRunsManager', () => {
     vi.useFakeTimers();
     try {
       await act(async () => {
-        fireEvent.click(
-          within(getRowById('recurringrun1')).getByRole('button', { name: 'Enabled' }),
-        );
+        fireEvent.click(disableButton);
       });
       expect(disableRecurringRunSpy).toHaveBeenCalledTimes(1);
       expect(listRecurringRunsSpy).not.toHaveBeenCalled();
