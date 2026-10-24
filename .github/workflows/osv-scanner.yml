@@ -121,7 +121,7 @@ jobs:
 
   discover-images:
     needs: resolve-images
-    name: Discover published master and third-party images
+    name: Discover published master images
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -193,6 +193,7 @@ jobs:
             --kustomize "${RUNNER_TEMP}/kustomize" \
             --overlay producer/manifests/kustomize/env/platform-agnostic \
             --overlay producer/manifests/kustomize/env/platform-agnostic-multi-user \
+            --image-scope first-party \
             --published-records published-indexes \
             --source-sha "${SOURCE_SHA}" --image-owner "${IMAGE_OWNER}")
           echo "matrix=$(jq -c .matrix <<< "${image_inventory}")" >> "${GITHUB_OUTPUT}"
@@ -272,3 +273,10 @@ jobs:
           ref: refs/heads/master
           checkout_path: producer
           category: kubeflow-pipelines-osv-image-${{ matrix.category }}
+
+  third-party-evidence:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/third-party-image-scanning.yml
+    permissions:
+      contents: read
+      actions: read
