@@ -15,10 +15,15 @@
  */
 
 import * as React from 'react';
-import { List, AutoSizer, ListRowProps } from 'react-virtualized';
+import {
+  List,
+  ListImperativeAPI,
+  OverscanIndicesGetter,
+  RowRendererParams,
+} from 'react-virtualized';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { fontsize, fonts } from '../Css';
 import { stylesheet } from 'typestyle';
-import { OverscanIndicesGetter } from 'react-virtualized/dist/es/Grid';
 
 const css = stylesheet({
   a: {
@@ -104,15 +109,13 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     followNewLogs: true,
   };
 
-  private _rootRef = React.createRef<List>();
+  private _rootRef: ListImperativeAPI | null = null;
 
-  public componentDidMount(): void {
-    // Wait until the next frame to scroll to bottom, because doms haven't been
-    // rendered when running this.
-    setTimeout(() => {
-      this._scrollToEnd();
-    });
-  }
+  private _setRootRef = (root: ListImperativeAPI | null): void => {
+    this._rootRef = root;
+    // AutoSizer measures asynchronously, so the list can mount after LogViewer.
+    this._scrollToEnd();
+  };
 
   public componentDidUpdate(): void {
     if (this.state.followNewLogs) {
@@ -122,26 +125,28 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
 
   public render(): React.JSX.Element {
     return (
-      <AutoSizer>
-        {({ height, width }) => (
-          <List
-            id='logViewer'
-            containerStyle={listContainerStyleOverride}
-            width={width}
-            height={height}
-            rowCount={this.props.logLines.length}
-            rowHeight={15}
-            className={css.root}
-            ref={this._rootRef}
-            overscanIndicesGetter={overscanOnBothDirections}
-            overscanRowCount={
-              400 /* make this large, so selecting maximum 400 lines is supported */
-            }
-            rowRenderer={this._rowRenderer.bind(this)}
-            onScroll={this.handleScroll}
-          />
-        )}
-      </AutoSizer>
+      <AutoSizer
+        renderProp={({ height, width }) =>
+          height === undefined || width === undefined ? null : (
+            <List
+              id='logViewer'
+              containerStyle={listContainerStyleOverride}
+              width={width}
+              height={height}
+              rowCount={this.props.logLines.length}
+              rowHeight={15}
+              className={css.root}
+              ref={this._setRootRef}
+              overscanIndicesGetter={overscanOnBothDirections}
+              overscanRowCount={
+                400 /* make this large, so selecting maximum 400 lines is supported */
+              }
+              rowRenderer={this._rowRenderer.bind(this)}
+              onScroll={this.handleScroll}
+            />
+          )
+        }
+      />
     );
   }
 
@@ -161,13 +166,13 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
   };
 
   private _scrollToEnd(): void {
-    const root = this._rootRef.current;
-    if (root) {
-      root.scrollToRow(this.props.logLines.length + 1);
+    const root = this._rootRef;
+    if (root && this.props.logLines.length > 0) {
+      root.scrollToRow({ index: this.props.logLines.length - 1, align: 'end' });
     }
   }
 
-  private _rowRenderer(props: ListRowProps): React.ReactNode {
+  private _rowRenderer(props: RowRendererParams): React.JSX.Element {
     const { style, key, index } = props;
     const line = this.props.logLines[index];
     return (

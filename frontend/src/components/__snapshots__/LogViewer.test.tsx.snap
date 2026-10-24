@@ -335,18 +335,8 @@ exports[`LogViewer > renders a row with warning word as substring 1`] = `
 exports[`LogViewer > renders an empty container when no logs passed 1`] = `
 <DocumentFragment>
   <div
-    style="overflow: visible; height: 0px; width: 0px;"
-  >
-    <div
-      aria-label="grid"
-      aria-readonly="true"
-      class="ReactVirtualized__Grid ReactVirtualized__List root_f17jcl2y"
-      id="logViewer"
-      role="grid"
-      style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
-      tabindex="0"
-    />
-  </div>
+    data-auto-sizer=""
+  />
   <div
     class="resize-triggers"
   >
