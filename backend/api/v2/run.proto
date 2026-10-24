@@ -585,6 +585,27 @@ message PipelineTask {
   // One of image-pull, scheduling, runtime, admission, or unknown.
   // Empty when lifecycle_message is empty.
   optional string lifecycle_category = 20;
+  // Log references from an execution archived before a manual run retry.
+  // References can outlive pods or archived objects and do not guarantee availability.
+  message LogHistory {
+    // Together with task_id, identifies this snapshot. This is the manual retry
+    // generation that archived it, not an automatic pod retry attempt number.
+    int64 before_retry_generation = 1;
+    google.protobuf.Timestamp archived_at = 2;
+    google.protobuf.Timestamp start_time = 3;
+    google.protobuf.Timestamp end_time = 4;
+    TaskState state = 5;
+    repeated TaskPod pods = 6;
+    // Log artifacts only; never includes task outputs used by downstream tasks.
+    repeated InputOutputs.IOArtifact log_artifacts = 7;
+    // Legacy driver log reference, when not represented by a log artifact.
+    string driver_logs_uri = 8;
+  }
+
+  // Output only. Prior executions archived by manual retries, oldest first.
+  // History begins when preservation is enabled; older retries are not backfilled.
+  repeated LogHistory log_history = 21;
+
 }
 
 message CreateRunRequest {

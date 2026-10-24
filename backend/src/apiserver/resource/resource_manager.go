@@ -1644,24 +1644,9 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 		return nil
 	}
 
-	// Logical task identity stays stable within a run so duplicate CreateTask
-	// delivery still resolves to the existing row. Clear only the previous
-	// attempt's transient task state before Argo resumes so those rows can
-	// safely represent the new attempt.
-	if err := r.artifactTaskStore.DeleteOutputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
-		return err
-	}
-	// Input links are also attempt-local: leaving them in place causes
-	// CreateArtifactTasks UniqueLink conflicts when the retried driver recreates
-	// the same (artifact, task, key, type) input rows.
-	if err := r.artifactTaskStore.DeleteInputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
-		return err
-	}
-
-	// Output parameters and output artifact links are attempt-local. Resetting
-	// them here prevents a retried task from exposing stale failed-attempt
-	// outputs while leaving successful sibling results intact.
-	return r.taskStore.ResetTasksForRetry(taskIDsToReset)
+	// Preserve log references, unlink attempt-local artifacts, and reset state in
+	// one generation-fenced transaction before the workflow resumes.
+	return r.taskStore.ResetTasksForRetry(run.UUID, run.RetryGeneration, taskIDsToReset)
 }
 
 func shouldPreserveTaskAcrossRetry(task *model.Task) bool {

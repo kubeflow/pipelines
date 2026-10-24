@@ -25,6 +25,7 @@ from kfp.server_api.models.input_outputs_io_parameter import InputOutputsIOParam
 from kfp.server_api.models.metadata_value_render_type import MetadataValueRenderType
 from kfp.server_api.models.pipeline_task_child_task import PipelineTaskChildTask
 from kfp.server_api.models.pipeline_task_input_outputs import PipelineTaskInputOutputs
+from kfp.server_api.models.pipeline_task_log_history import PipelineTaskLogHistory
 from kfp.server_api.models.pipeline_task_status_metadata import PipelineTaskStatusMetadata
 from kfp.server_api.models.pipeline_task_task_pod import PipelineTaskTaskPod
 from kfp.server_api.models.pipeline_task_task_pod_type import PipelineTaskTaskPodType

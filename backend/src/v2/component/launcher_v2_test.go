@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
@@ -1832,8 +1833,70 @@ func TestQualifyExecutorLogsForRetry_UsesRetryEnv(t *testing.T) {
 		},
 	}
 
-	qualifyExecutorLogsForRetry(context.Background(), executorInput, "true", "", nil, "")
-	require.Equal(t, "minio://bucket/logs/executor-logs-2", executorInput.GetOutputs().GetArtifacts()["executor-logs"].Artifacts[0].GetUri())
+	qualifyExecutorLogsForRetry(context.Background(), executorInput, "true", "", nil, "", "pod-uid")
+	require.Equal(t, "minio://bucket/logs/attempts/pod-uid/executor-logs-2", executorInput.GetOutputs().GetArtifacts()["executor-logs"].Artifacts[0].GetUri())
+}
+
+// A successful driver survives manual retry, so every executor receives the
+// same original log URI even when its automatic retry index restarts at zero.
+func TestQualifyExecutorLogsURI_PreservesManualRetryHistory(t *testing.T) {
+	base := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{
+					Uri:        "minio://bucket/task/driver-prefix/executor-logs",
+					CustomPath: proto.String("/logs/executor-logs"),
+				}}},
+				"model": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: "minio://bucket/task/model"}}},
+			},
+		},
+	}
+	storedLogs := make(map[string]string)
+	for _, attempt := range []struct{ podUID, index, output string }{
+		{"initial-pod", "0", "initial failure"},
+		{"automatic-pod", "1", "automatic retry failure"},
+		{"manual-pod", "0", "manual retry failure"},
+		{"second-manual-pod", "0", "successful retry"},
+	} {
+		input := proto.Clone(base).(*pipelinespec.ExecutorInput)
+		artifacts := input.GetOutputs().GetArtifacts()
+		qualifyExecutorLogsURI(artifacts, attempt.index, attempt.podUID)
+		log := artifacts["executor-logs"].Artifacts[0]
+		require.Equal(t, "minio://bucket/task/driver-prefix/attempts/"+attempt.podUID+"/executor-logs-"+attempt.index, log.Uri)
+		require.Equal(t, "/logs/attempts/"+attempt.podUID+"/executor-logs-"+attempt.index, log.GetCustomPath())
+		require.Equal(t, "minio://bucket/task/model", artifacts["model"].Artifacts[0].Uri)
+		require.NotContains(t, storedLogs, log.Uri, "new execution must not overwrite earlier output")
+		storedLogs[log.Uri] = attempt.output
+		qualified := proto.Clone(input)
+		qualifyExecutorLogsURI(artifacts, attempt.index, attempt.podUID)
+		require.True(t, proto.Equal(qualified, input), "qualification must be idempotent")
+	}
+	require.Len(t, storedLogs, 4)
+	require.Contains(t, storedLogs, "minio://bucket/task/driver-prefix/attempts/initial-pod/executor-logs-0")
+}
+
+func TestQualifyExecutorLogsForRetry_PublicationDisabled(t *testing.T) {
+	input := &pipelinespec.ExecutorInput{Outputs: &pipelinespec.ExecutorInput_Outputs{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"executor-logs": {Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: "minio://bucket/executor-logs"}}},
+		},
+	}}
+	original := proto.Clone(input)
+	qualifyExecutorLogsForRetry(context.Background(), input, "false", "", nil, "", "pod-uid")
+	require.True(t, proto.Equal(original, input))
+}
+
+func TestExecutorLogAttemptPath(t *testing.T) {
+	for _, tc := range []struct{ name, input, expected string }{
+		{"empty", "", ""},
+		{"relative", "executor-logs", "attempts/pod-uid/executor-logs-0"},
+		{"already retry qualified", "s3://bucket/logs/executor-logs-0", "s3://bucket/logs/attempts/pod-uid/executor-logs-0"},
+		{"already invocation qualified", "s3://bucket/logs/attempts/pod-uid/executor-logs-0", "s3://bucket/logs/attempts/pod-uid/executor-logs-0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, executorLogAttemptPath(tc.input, "0", "pod-uid"))
+		})
+	}
 }
 
 // Tests happy and unhappy paths for constructing a new LauncherV2

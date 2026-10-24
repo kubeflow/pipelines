@@ -20,6 +20,7 @@ import (
 	"sync"
 	"testing"
 
+	sq "github.com/Masterminds/squirrel"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
@@ -723,7 +724,7 @@ func TestResetTasksForRetry_ClearsAttemptLocalStateAndPreservesHistory(t *testin
 	})
 	require.NoError(t, err)
 
-	err = taskStore.ResetTasksForRetry([]string{created.UUID})
+	err = taskStore.ResetTasksForRetry("run-1", 0, []string{created.UUID})
 	require.NoError(t, err)
 
 	retried, err := taskStore.GetTask(created.UUID)
@@ -1907,6 +1908,182 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 				got = append(got, task.Name)
 			}
 			assert.Equal(t, []string{"task-a", "task-b", "task-c"}, got)
+		})
+	}
+}
+
+func TestRetryLogHistoryLifecycle(t *testing.T) {
+	db, store, _ := initializeTaskStore()
+	defer db.Close()
+	task, err := store.CreateTask(&model.Task{Namespace: "ns1", RunUUID: "run-1", Name: "retry", ScopePath: "root.retry", State: model.TaskStatus(apiv2.PipelineTask_FAILED), StatusMetadata: model.JSONData{"customProperties": map[string]interface{}{"driver_logs_uri": "s3://logs/driver"}}, Pods: createTaskPodsAsJSONSlice(createTaskPod("pod-1", "uid-1", apiv2.PipelineTask_EXECUTOR))})
+	require.NoError(t, err)
+	// Include both log artifacts and ordinary output artifacts: only logs survive
+	// in history, and neither remains a current-attempt output.
+	artifacts := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil), store.dbDialect)
+	uri := "s3://logs/attempt-1/executor-logs-0"
+	artifact, err := artifacts.CreateArtifact(&model.Artifact{Namespace: "ns1", Name: "logs", URI: &uri})
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO artifact_tasks (UUID, ArtifactID, TaskID, Type, RunUUID, ArtifactKey) VALUES (?, ?, ?, ?, ?, ?)", "log-link", artifact.UUID, task.UUID, int32(apiv2.IOType_OUTPUT), "run-1", "executor-logs")
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO artifact_tasks (UUID, ArtifactID, TaskID, Type, RunUUID, ArtifactKey) VALUES (?, ?, ?, ?, ?, ?)", "data-link", artifact.UUID, task.UUID, int32(apiv2.IOType_OUTPUT), "run-1", "model")
+	require.NoError(t, err)
+	require.NoError(t, store.ResetTasksForRetry("run-1", 0, []string{task.UUID}))
+	got, err := store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Len(t, got.LogHistory, 1)
+	history := got.LogHistory[0]
+	require.Equal(t, apiv2.PipelineTask_FAILED, history.State)
+	require.Equal(t, "uid-1", history.Pods[0].Uid)
+	require.Equal(t, "s3://logs/driver", history.DriverLogsUri)
+	require.Len(t, history.LogArtifacts, 1)
+	require.Equal(t, uri, history.LogArtifacts[0].Artifacts[0].GetUri())
+	require.Empty(t, got.OutputArtifactsHydrated)
+	// Repeated delivery cannot snapshot or erase data already written by the new attempt.
+	_, err = db.Exec("UPDATE tasks SET pods = ? WHERE UUID = ?", `[{"name":"pod-2","uid":"uid-2"}]`, task.UUID)
+	require.NoError(t, err)
+	require.NoError(t, store.ResetTasksForRetry("run-1", 0, []string{task.UUID}))
+	got, err = store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Len(t, got.LogHistory, 1)
+	require.NotEmpty(t, got.Pods)
+	// A later generation appends history. An older claimant may not reset it.
+	_, err = db.Exec("UPDATE run_details SET RetryGeneration = 1 WHERE UUID = ?", "run-1")
+	require.NoError(t, err)
+	require.Error(t, store.ResetTasksForRetry("run-1", 0, []string{task.UUID}))
+	require.NoError(t, store.ResetTasksForRetry("run-1", 1, []string{task.UUID}))
+	got, err = store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Len(t, got.LogHistory, 2)
+	require.Equal(t, "uid-2", got.LogHistory[1].Pods[0].Uid)
+	// A new claim after reset but before workflow resume has no new references.
+	_, err = db.Exec("UPDATE run_details SET RetryGeneration = 2 WHERE UUID = ?", "run-1")
+	require.NoError(t, err)
+	require.NoError(t, store.ResetTasksForRetry("run-1", 2, []string{task.UUID}))
+	got, err = store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Len(t, got.LogHistory, 2)
+	require.NoError(t, store.ResetTasksForRetry("run-1", 2, []string{task.UUID}))
+	// Completing the retried task retains old logs separately from fresh output.
+	output, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{{ParameterKey: "result", Type: apiv2.IOType_OUTPUT, Value: structpb.NewStringValue("fresh")}})
+	require.NoError(t, err)
+	_, err = store.UpdateTask(&model.Task{UUID: task.UUID, State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), OutputParameters: output})
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO artifact_tasks (UUID, ArtifactID, TaskID, Type, RunUUID, ArtifactKey) VALUES (?, ?, ?, ?, ?, ?)", "new-output-link", artifact.UUID, task.UUID, int32(apiv2.IOType_OUTPUT), "run-1", "new-model")
+	require.NoError(t, err)
+	got, err = store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), got.State)
+	require.Len(t, got.LogHistory, 2)
+	require.Len(t, got.OutputArtifactsHydrated, 1)
+	require.Equal(t, "new-model", got.OutputArtifactsHydrated[0].Key)
+	require.NotEmpty(t, got.OutputParameters)
+	// Cross-run resets are refused without exposing or mutating another run.
+	require.Error(t, store.ResetTasksForRetry("run-2", 0, []string{task.UUID}))
+	require.NoError(t, store.DeleteTasksForRun(nil, "run-1"))
+	var count int
+	require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM task_log_history").Scan(&count))
+	require.Zero(t, count)
+	// Retention records are references; deleting them never deletes object-store data.
+	_, err = artifacts.GetArtifact(artifact.UUID)
+	require.NoError(t, err)
+}
+
+func TestRetryLogHistoryResetRollsBackAtomically(t *testing.T) {
+	db, store, _ := initializeTaskStore()
+	defer db.Close()
+	task, err := store.CreateTask(&model.Task{Namespace: "ns1", RunUUID: "run-1", Name: "retry", ScopePath: "root.retry", State: model.TaskStatus(apiv2.PipelineTask_FAILED), Pods: createTaskPodsAsJSONSlice(createTaskPod("old-pod", "old-uid", apiv2.PipelineTask_EXECUTOR))})
+	require.NoError(t, err)
+	// Fail after snapshot insertion and artifact unlinking, at the state reset.
+	_, err = db.Exec("CREATE TRIGGER fail_reset BEFORE UPDATE ON tasks BEGIN SELECT RAISE(ABORT, 'injected reset failure'); END")
+	require.NoError(t, err)
+	require.Error(t, store.ResetTasksForRetry("run-1", 0, []string{task.UUID}))
+	got, err := store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State)
+	require.Empty(t, got.LogHistory)
+	_, err = db.Exec("DROP TRIGGER fail_reset")
+	require.NoError(t, err)
+	require.NoError(t, store.ResetTasksForRetry("run-1", 0, []string{task.UUID}))
+	got, err = store.GetTask(task.UUID)
+	require.NoError(t, err)
+	require.Len(t, got.LogHistory, 1)
+}
+
+// Uses the same disposable database configuration as the recurring-run tests so
+// retry history exercises real MySQL and PostgreSQL transactions in backend CI.
+func TestRetryLogHistoryProductionDatabases(t *testing.T) {
+	for _, driver := range []string{"mysql", "pgx"} {
+		t.Run(driver, func(t *testing.T) {
+			dbs, d := recurringIntegrationDatabases(t, driver)
+			db := dbs[0]
+			q := d.QuoteIdentifier
+			qb := d.QueryBuilder()
+			clock := util.NewFakeTimeForEpoch()
+			runs := NewRunStore(db, clock, d)
+			store := NewTaskStore(db, clock, util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), d)
+			_, err := runs.CreateRun(&model.Run{UUID: "retry-run", Namespace: "test", DisplayName: "retry", RunDetails: model.RunDetails{State: model.RuntimeStateFailed}})
+			require.NoError(t, err)
+			task, err := store.CreateTask(&model.Task{Namespace: "test", RunUUID: "retry-run", Name: "retry", ScopePath: "root.retry", State: model.TaskStatus(apiv2.PipelineTask_FAILED), Pods: createTaskPodsAsJSONSlice(createTaskPod("old", "uid-old", apiv2.PipelineTask_EXECUTOR))})
+			require.NoError(t, err)
+			artifacts := NewArtifactStore(db, clock, util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil), d)
+			uri := "s3://test/immutable/executor-logs-0"
+			artifact, err := artifacts.CreateArtifact(&model.Artifact{Namespace: "test", Name: "logs", URI: &uri})
+			require.NoError(t, err)
+			links := NewArtifactTaskStore(db, util.NewFakeUUIDGeneratorOrFatal(testUUID3, nil), d)
+			_, err = links.CreateArtifactTask(&model.ArtifactTask{ArtifactID: artifact.UUID, TaskID: task.UUID, RunUUID: "retry-run", Type: model.IOType(apiv2.IOType_OUTPUT), ArtifactKey: "executor-logs"})
+			require.NoError(t, err)
+			// Inject a failure after snapshot/link changes to prove the entire boundary rolls back.
+			if driver == "mysql" {
+				_, err = db.Exec("CREATE TRIGGER reject_retry BEFORE UPDATE ON tasks FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected retry failure'")
+			} else {
+				_, err = db.Exec("CREATE FUNCTION reject_retry() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected retry failure'; END $$")
+				require.NoError(t, err)
+				_, err = db.Exec("CREATE TRIGGER reject_retry BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION reject_retry()")
+			}
+			require.NoError(t, err)
+			require.Error(t, store.ResetTasksForRetry("retry-run", 0, []string{task.UUID}))
+			got, err := store.GetTask(task.UUID)
+			require.NoError(t, err)
+			require.Empty(t, got.LogHistory)
+			require.Len(t, got.OutputArtifactsHydrated, 1)
+			require.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State)
+			if driver == "mysql" {
+				_, err = db.Exec("DROP TRIGGER reject_retry")
+			} else {
+				_, err = db.Exec("DROP TRIGGER reject_retry ON tasks")
+			}
+			require.NoError(t, err)
+			require.NoError(t, store.ResetTasksForRetry("retry-run", 0, []string{task.UUID}))
+			require.NoError(t, store.ResetTasksForRetry("retry-run", 0, []string{task.UUID}))
+			got, err = store.GetTask(task.UUID)
+			require.NoError(t, err)
+			require.Len(t, got.LogHistory, 1)
+			require.Len(t, got.LogHistory[0].LogArtifacts, 1)
+			require.Empty(t, got.OutputArtifactsHydrated)
+			// Two concurrently delivered resets commit exactly one history row.
+			statement, args, err := qb.Update(q("run_details")).Set(q("RetryGeneration"), 1).Where(sq.Eq{q("UUID"): "retry-run"}).ToSql()
+			require.NoError(t, err)
+			_, err = db.Exec(statement, args...)
+			require.NoError(t, err)
+			statement, args, err = qb.Update(q("tasks")).Set(q("pods"), `[{"name":"new","uid":"uid-new"}]`).Where(sq.Eq{q("UUID"): task.UUID}).ToSql()
+			require.NoError(t, err)
+			_, err = db.Exec(statement, args...)
+			require.NoError(t, err)
+			errs := recurringConcurrent(2, func(i int) error {
+				other := NewTaskStore(dbs[i], clock, nil, d)
+				return other.ResetTasksForRetry("retry-run", 1, []string{task.UUID})
+			})
+			for _, err := range errs {
+				require.NoError(t, err)
+			}
+			require.Error(t, store.ResetTasksForRetry("retry-run", 0, []string{task.UUID}))
+			got, err = store.GetTask(task.UUID)
+			require.NoError(t, err)
+			require.Len(t, got.LogHistory, 2)
+			require.NoError(t, store.DeleteTasksForRun(nil, "retry-run"))
+			var count int
+			require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM task_log_history").Scan(&count))
+			require.Zero(t, count)
 		})
 	}
 }
