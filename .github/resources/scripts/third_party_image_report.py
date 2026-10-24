@@ -281,7 +281,7 @@ def markdown(summary):
     lines = [
         '# Third-party image review',
         '',
-        'Raw OSV evidence is retained. Package fix versions do not establish an available image upgrade. Candidate comparisons require compatibility and applicability review. No findings are suppressed and release security gates are unchanged.',
+        'Raw OSV evidence is retained. Package fix versions do not establish an available image upgrade. Candidate comparisons require compatibility and applicability review. No findings are suppressed. Release qualification evaluates its candidate-bound evidence separately; this report does not authorize release.',
         '',
         '| Image | Branches | Raw findings | Unique advisories | Packages with fix versions | Image action |',
         '| --- | --- | ---: | ---: | ---: | --- |',
