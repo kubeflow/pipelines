@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 
@@ -39,7 +38,7 @@ func (s *JobStore) GetRecurringRunState(jobID string) (*model.RecurringRunState,
 func (s *JobStore) getRecurringRunState(db recurringRunStateQueryer, jobID string, lock bool) (*model.RecurringRunState, error) {
 	q := s.dbDialect.QuoteIdentifier
 	query, args, err := s.dbDialect.QueryBuilder().
-		Select(q("JobUUID"), q("RequestKey"), q("PipelineVersionID"), q("LastRunIndex"), q("LastScheduledAtInSec"), q("LastCreatedAtInSec"), q("Pending")).
+		Select(q("JobUUID"), q("RequestKey"), q("PipelineVersionID"), q("LastRunUUID"), q("LastRunIndex"), q("LastScheduledAtInSec"), q("LastCreatedAtInSec"), q("Pending")).
 		From(q("recurring_run_states")).Where(sq.Eq{q("JobUUID"): jobID}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to build scheduling-state query for recurring run %s", jobID)
@@ -48,11 +47,11 @@ func (s *JobStore) getRecurringRunState(db recurringRunStateQueryer, jobID strin
 		query = s.dbDialect.SelectForUpdate(query)
 	}
 	state := &model.RecurringRunState{}
-	err = db.QueryRow(query, args...).Scan(&state.JobUUID, &state.RequestKey, &state.PipelineVersionID, &state.LastRunIndex,
+	err = db.QueryRow(query, args...).Scan(&state.JobUUID, &state.RequestKey, &state.PipelineVersionID, &state.LastRunUUID, &state.LastRunIndex,
 		&state.LastScheduledAtInSec, &state.LastCreatedAtInSec, &state.Pending)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, util.NewFailedPreconditionError(err,
-			"Recurring run %s has no trusted scheduling state; recreate it through the KFP API", jobID)
+			"Recurring run %s has no trusted scheduling state; complete recurring-run adoption in KFP 2.18 before upgrading", jobID)
 	}
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to read scheduling state for recurring run %s", jobID)
@@ -97,6 +96,10 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 	if err != nil {
 		return nil, err
 	}
+	// Read receipts only after both row locks; an earlier MySQL snapshot can miss concurrent run persistence.
+	if err := s.requireAdoptionReadyForClaim(tx, jobID); err != nil {
+		return nil, err
+	}
 	if state.Pending {
 		if state.RequestKey != requestKey {
 			return nil, util.NewFailedPreconditionError(errors.New("another tick is pending"),
@@ -124,10 +127,7 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 	// Match the controller's existing [1, 10] concurrency limits. Legacy rows
 	// without State derive their lifecycle from Conditions.
 	maxConcurrency = min(int64(10), max(int64(1), maxConcurrency))
-	effectiveState := fmt.Sprintf("COALESCE(NULLIF(%s, ''), %s, '')", q("State"), q("Conditions"))
-	query, args, err = qb.Select("COUNT(*)").From(q("run_details")).
-		Where(sq.Eq{q("JobUUID"): jobID}).
-		Where(sq.NotEq{effectiveState: terminalRunStateStrings}).ToSql()
+	query, args, err = s.dbDialect.FinalizeSelect(recurringRunActiveCount(q, jobID))
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to build active-run count for recurring run %s", jobID)
 	}
@@ -142,12 +142,14 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 	state.LastRunIndex++
 	state.RequestKey = requestKey
 	state.PipelineVersionID = pipelineVersionID
+	state.LastRunUUID = ""
 	state.LastScheduledAtInSec = scheduledAt
 	state.LastCreatedAtInSec = createdAt
 	state.Pending = true
 	query, args, err = qb.Update(q("recurring_run_states")).SetMap(sq.Eq{
 		q("RequestKey"):        requestKey,
 		q("PipelineVersionID"): pipelineVersionID,
+		q("LastRunUUID"):       "",
 		q("LastRunIndex"):      state.LastRunIndex, q("LastScheduledAtInSec"): scheduledAt,
 		q("LastCreatedAtInSec"): createdAt, q("Pending"): true,
 	}).Where(sq.Eq{q("JobUUID"): jobID}).ToSql()

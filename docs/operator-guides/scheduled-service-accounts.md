@@ -123,92 +123,25 @@ The runner separately needs its normal pipeline execution permissions.
 
 ## Upgrade and revocation
 
-Before upgrading, block recurring-run creation and recreation for all clients.
-Keep this block until every old API server replica has stopped and its in-flight
-persistence-agent reports have drained. During a rolling upgrade, an old API can
-still overwrite a new schedule's stored inputs from its editable Kubernetes CR,
-even when the schedule is disabled and already has API-owned scheduling state.
+For multi-user upgrades to 3.0, first complete recurring-run adoption into
+trusted SQL scheduling state on a 2.18 build containing the adoption fix. See the
+[3.0 recurring-run prerequisite](upgrade-3.0-schedules.md) for the startup check,
+rolling-upgrade behavior, and recovery when that check fails. Installing a 2.18
+version alone is insufficient: disabled schedules also need trusted scheduling
+state before 3.0 database migrations. Valid pending receipts allow unfinished
+Kubernetes synchronization to recover automatically after the rolling handoff.
 
-Upgrade the API server and the ScheduledWorkflow controller together and apply
-the complete release manifests, including the controller's pipeline-read grants.
-Also wait for old controller pods to stop before adding custom-account grants or
-enabling replacement schedules.
+Use the complete release manifests, including the API server, ScheduledWorkflow
+controller, and their managed-writer permissions. Compatible processes coordinate
+the scheduling handoff automatically. Schedule creation and mode changes may
+return retryable errors while the handoff is incomplete; operators do not need to
+block clients or run a separate migration command.
 
-Review existing schedules before granting controller access to an account.
-Schedules created before service-account authorization, or whose inputs were
-previously changed through Kubernetes, must be reviewed and recreated through the
-API to establish authorized inputs. Multi-user schedules created only as Kubernetes
-CRs, without a corresponding API job, must also be recreated through the API.
-**Every pre-existing multi-user schedule without API-owned scheduling state must
-be reviewed and recreated before its next execution.** It will otherwise stop
-submitting runs, including when the UI still shows it enabled. Audit mode does not
-bypass this requirement. Disabled schedules also require recreation before use.
-The API does not initialize trusted counters from an existing CR's status.
-
-An old `jobs` row is not sufficient evidence of authorized inputs: earlier
-controller reports could overwrite its parameters, trigger, catch-up policy and
-concurrency settings from the CR. Automatically seeding an index and timestamp
-would trust those settings without reviewing them. Preserve the original pipeline
-and parameters from an independently reviewed source when recreating a schedule;
-do not blindly copy its current CR or database row.
-Unresolvable namespaces or missing/replaced Kubernetes objects fail closed.
-
-### Inventory before completing the upgrade
-
-Each multi-user API replica logs `recurring_run_migration action=recreate` at
-startup for every job missing trusted scheduling state, including disabled jobs.
-The messages contain its ID, namespace, ScheduledWorkflow name and enabled state;
-they omit execution inputs. A final `affected_jobs` count summarizes the inventory.
-An `inventory_failed` error means the inventory is incomplete, not that no jobs
-need migration. Rerun the read-only inventory below after database recovery.
-
-Inspect the API startup logs and Kubernetes schedule identities:
-
-```bash
-kubectl -n kubeflow logs deployment/ml-pipeline --all-pods=true --all-containers=true --prefix | grep recurring_run_migration
-kubectl get scheduledworkflows.kubeflow.org --all-namespaces \
-  -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,UID:.metadata.uid,ENABLED:.spec.enabled'
-```
-
-Use a read-only database connection after the upgraded API has created the
-`recurring_run_states` table. For MySQL:
-
-```sql
-SELECT j.`UUID`, j.`Namespace`, j.`Name`, j.`Enabled`
-FROM `jobs` AS j
-LEFT JOIN `recurring_run_states` AS s ON s.`JobUUID` = j.`UUID`
-WHERE s.`JobUUID` IS NULL
-ORDER BY j.`UUID`;
-```
-
-For PostgreSQL:
-
-```sql
-SELECT j."UUID", j."Namespace", j."Name", j."Enabled"
-FROM jobs AS j
-LEFT JOIN recurring_run_states AS s ON s."JobUUID" = j."UUID"
-WHERE s."JobUUID" IS NULL
-ORDER BY j."UUID";
-```
-
-Match database IDs to Kubernetes UIDs. A CR without a matching API job also
-requires recreation. The SQL result alone cannot inventory CR-only schedules.
-Before the first upgraded API startup, all existing jobs require review; the new
-state table does not exist yet.
-
-Also review and recreate every schedule created or recreated while old and new
-API replicas overlapped, including disabled schedules. Use the rollout window and
-creation records to identify them. The startup logs and SQL inventory above omit
-those that already have scheduling-state rows.
-
-After all old API replicas and their in-flight reports have drained, resume
-creation. Disable the old schedule through the API, review its intended inputs
-and account, and recreate it through the API using native IR. Keep the replacement
-disabled until the old controller pods have stopped and existing executions have
-been accounted for. Disabling a schedule does not terminate its runs. Do not insert
-scheduling-state rows or reset counters directly in the database to bypass review.
-Repeat the inventory after recreation and remove obsolete disabled schedules
-through the API when their history is no longer needed.
+Do not insert scheduling-state rows or reset counters directly in the database.
+Master does not import legacy CR status or recreate legacy schedules to bypass the
+2.18 prerequisite. Kubernetes-only CRs without a corresponding API job are not
+adopted by this path; configure schedules through the API. Existing authorization
+checks still apply after adoption, including namespace and service-account access.
 
 A schedule without a pipeline version ID can execute future default versions of
 its referenced pipeline. Trust publishers of that pipeline to supply code running under the

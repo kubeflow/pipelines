@@ -28,6 +28,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	clockapi "k8s.io/utils/clock"
 	testingclock "k8s.io/utils/clock/testing"
 )
 
@@ -287,6 +288,17 @@ func (r *recordingPersistenceRateLimiter) When(item any) time.Duration {
 	return delay
 }
 
+type notifyingPersistenceClock struct {
+	*testingclock.FakeClock
+	timerCreated chan struct{}
+}
+
+func (c *notifyingPersistenceClock) NewTimer(duration time.Duration) clockapi.Timer {
+	timer := c.FakeClock.NewTimer(duration)
+	c.timerCreated <- struct{}{}
+	return timer
+}
+
 func TestPersistenceWorker_TransientFailureRetainsBackoffAndSuccessResetsIt(t *testing.T) {
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "team", Name: "run", Labels: map[string]string{util.LabelKeyWorkflowRunId: "run-id"}},
@@ -301,7 +313,10 @@ func TestPersistenceWorker_TransientFailureRetainsBackoffAndSuccessResetsIt(t *t
 		NewWorkflowSaver(workflowClient, pipelineClient, 100))
 	require.NoError(t, err)
 	worker.Shutdown()
-	clock := testingclock.NewFakeClock(time.Now())
+	clock := &notifyingPersistenceClock{
+		FakeClock:    testingclock.NewFakeClock(time.Now()),
+		timerCreated: make(chan struct{}, 1),
+	}
 	limiter := &recordingPersistenceRateLimiter{TypedRateLimiter: workqueue.NewTypedItemExponentialFailureRateLimiter[any](DefaultJobBackOff, MaxJobBackOff)}
 	worker.workqueue = workqueue.NewTypedRateLimitingQueueWithConfig[any](
 		limiter,
@@ -312,14 +327,20 @@ func TestPersistenceWorker_TransientFailureRetainsBackoffAndSuccessResetsIt(t *t
 	for update := 0; update < 10; update++ {
 		events.handler.OnUpdate(workflow, workflow)
 	}
-	clock.Step(DefaultJobBackOff)
-	require.Eventually(t, func() bool { return worker.Len() == 1 }, time.Second, time.Millisecond)
+	require.Equal(t, 1, worker.Len(), "normal informer events are immediately ready")
 	require.True(t, worker.processNextWorkItem())
 	assert.Nil(t, pipelineClient.GetWorkflow("team", "run"))
 	assert.Equal(t, 1, worker.workqueue.NumRequeues("team/run"))
 	require.Equal(t, DefaultJobBackOff, limiter.delays[len(limiter.delays)-1], "normal updates must not turn the first transient failure into a maximum-backoff retry")
 	assert.Zero(t, worker.Len(), "transient errors must not retry immediately")
 	pipelineClient.SetError(nil)
+	// AddRateLimited queues timer creation asynchronously. Advancing the fake
+	// clock before NewTimer registers can move the timer's deadline forward.
+	select {
+	case <-clock.timerCreated:
+	case <-time.After(5 * time.Second):
+		t.Fatal("retry timer was not registered")
+	}
 	clock.Step(DefaultJobBackOff)
 	require.Eventually(t, func() bool { return worker.Len() == 1 }, time.Second, time.Millisecond)
 	require.True(t, worker.processNextWorkItem())

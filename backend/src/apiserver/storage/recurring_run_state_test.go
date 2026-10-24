@@ -74,7 +74,7 @@ func TestRecurringRunStateLifecycle(t *testing.T) {
 	require.Equal(t, second, current)
 	require.NoError(t, store.DeleteJob("1"))
 	_, err = store.GetRecurringRunState("1")
-	require.ErrorContains(t, err, "recreate it through the KFP API")
+	require.ErrorContains(t, err, "complete recurring-run adoption in KFP 2.18 before upgrading")
 }
 
 func TestRecurringRunStateRequiresEnabledRegisteredJob(t *testing.T) {
@@ -91,7 +91,7 @@ func TestRecurringRunStateRequiresEnabledRegisteredJob(t *testing.T) {
 	_, err = db.Exec(`DELETE FROM recurring_run_states WHERE JobUUID = ?`, "1")
 	require.NoError(t, err)
 	_, err = store.ClaimRecurringRun("1", "tick", 0, 100, 110, "")
-	require.ErrorContains(t, err, "recreate it through the KFP API")
+	require.ErrorContains(t, err, "complete recurring-run adoption in KFP 2.18 before upgrading")
 	// Missing state is never reconstructed from an editable Kubernetes report.
 	_, err = store.GetJob("1")
 	require.NoError(t, err)

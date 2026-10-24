@@ -84,6 +84,7 @@ func AllModels() []any {
 		&PipelineVersionTag{},
 		&Job{},
 		&RecurringRunState{},
+		&RecurringRunAdoption{},
 		&Run{},
 		&RunMetricV1{},
 		&Task{},
