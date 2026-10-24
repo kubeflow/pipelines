@@ -15,11 +15,11 @@
 import { createServer } from 'http';
 import type { AddressInfo } from 'net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMinioClient, summarizeDirectoryUnderPrefix } from './minio-helper.js';
+import { createS3ArtifactStore, summarizeDirectoryUnderPrefix } from './artifact-store.js';
 
 vi.mock('./k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
-describe('MinIO retry integration', () => {
+describe('S3 retry integration', () => {
   beforeEach(() => vi.spyOn(Math, 'random').mockReturnValue(0));
   afterEach(() => vi.restoreAllMocks());
 
@@ -36,7 +36,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -48,13 +48,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: String(maxRetries) },
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+      await expect(client.openRead('key')).rejects.toThrow();
       expect(requestCount).toBe(attempts);
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -84,7 +85,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -95,13 +96,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '3' },
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toMatchObject({ code });
+      await expect(client.openRead('key')).rejects.toMatchObject({ code });
       expect(requestCount).toBe(1);
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -125,7 +127,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -136,13 +138,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '3' },
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+      await expect(client.openRead('key')).rejects.toMatchObject({
         code: 'AccessDenied',
       });
       expect(requestCount).toBe(1);
@@ -167,7 +170,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -179,13 +182,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '3' },
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+      await expect(client.openRead('key')).rejects.toThrow();
       expect(requestCount).toBe(3);
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -210,7 +214,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -221,14 +225,15 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '3' },
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
-      await expect(summarizeDirectoryUnderPrefix(client, 'bucket', 'key/')).rejects.toThrow();
+      await expect(client.openRead('key')).rejects.toThrow();
+      await expect(summarizeDirectoryUnderPrefix(client, 'key/')).rejects.toThrow();
       expect(requestCount).toBe(4);
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -259,7 +264,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -270,14 +275,15 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '1' },
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
-      await expect(summarizeDirectoryUnderPrefix(client, 'bucket', 'key/')).resolves.toMatchObject({
+      await expect(client.openRead('key')).rejects.toThrow();
+      await expect(summarizeDirectoryUnderPrefix(client, 'key/')).resolves.toMatchObject({
         count: 1,
       });
       expect(requestCount).toBe(2);
@@ -295,8 +301,10 @@ describe('MinIO retry integration', () => {
       requestCount += 1;
       if (requestCount < 3) {
         response.writeHead(200, { 'content-type': 'application/xml' });
+        response.flushHeaders();
         response.write('<ListBucketResult><Name>bucket</Name>');
-        response.socket?.destroy();
+        // Let the client receive headers before the body transport fails.
+        setTimeout(() => response.socket?.destroy(), 25);
         return;
       }
       response
@@ -311,7 +319,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -322,10 +330,11 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true', maxRetries: '3' } }),
       );
 
-      await expect(summarizeDirectoryUnderPrefix(client, 'bucket', 'key/')).resolves.toMatchObject({
+      await expect(summarizeDirectoryUnderPrefix(client, 'key/')).resolves.toMatchObject({
         count: 1,
       });
       expect(requestCount).toBe(3);
@@ -350,7 +359,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -361,6 +370,7 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '10' },
@@ -368,7 +378,7 @@ describe('MinIO retry integration', () => {
       );
 
       for (let index = 0; index < 12; index++) {
-        await expect(client.getObject('bucket', `key-${index}`)).rejects.toThrow();
+        await expect(client.openRead(`key-${index}`)).rejects.toThrow();
       }
       expect(requestCount).toBe(12);
     } finally {
@@ -390,7 +400,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -401,6 +411,7 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 'minio',
           Params: { fromEnv: 'true', maxRetries: '3' },
@@ -410,7 +421,7 @@ describe('MinIO retry integration', () => {
         abortController.signal,
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+      await expect(client.openRead('key')).rejects.toMatchObject({
         name: 'AbortError',
       });
       expect(requestCount).toBe(1);
@@ -430,7 +441,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -441,13 +452,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true', maxRetries: '3' } }),
         undefined,
         undefined,
         abortController.signal,
       );
 
-      const result = expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+      const result = expect(client.openRead('key')).rejects.toMatchObject({
         name: 'AbortError',
       });
       await requestObserved;
@@ -470,7 +482,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -481,13 +493,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         undefined,
         undefined,
         undefined,
         abortController.signal,
       );
 
-      const result = expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+      const result = expect(client.openRead('key')).rejects.toMatchObject({
         name: 'AbortError',
       });
       await requestObserved;
@@ -511,7 +524,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -522,13 +535,14 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true', maxRetries: '3' } }),
         undefined,
         undefined,
         abortController.signal,
       );
 
-      const stream = await client.getObject('bucket', 'key');
+      const stream = await client.openRead('key');
       const streamClosed = new Promise<void>((resolve) => stream.once('close', resolve));
       abortController.abort();
 
@@ -566,7 +580,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -578,10 +592,11 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true' } }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+      await expect(client.openRead('key')).rejects.toThrow();
       expect(requestCount).toBe(attempts);
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -605,7 +620,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -616,10 +631,11 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         'minio',
+        'bucket',
         JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true' } }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+      await expect(client.openRead('key')).rejects.toThrow();
       expect(requestCount).toBe(1);
     } finally {
       await new Promise<void>((resolve, reject) =>
@@ -646,7 +662,7 @@ describe('MinIO retry integration', () => {
 
       try {
         const { port } = server.address() as AddressInfo;
-        const client = await createMinioClient(
+        const client = await createS3ArtifactStore(
           {
             accessKey: 'accesskey',
             endPoint: '127.0.0.1',
@@ -657,10 +673,11 @@ describe('MinIO retry integration', () => {
             useSSL: false,
           },
           'minio',
+          'bucket',
           JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true' } }),
         );
 
-        await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+        await expect(client.openRead('key')).rejects.toThrow();
         expect(requestCount).toBe(1);
       } finally {
         await new Promise<void>((resolve, reject) =>
@@ -681,7 +698,7 @@ describe('MinIO retry integration', () => {
     try {
       const { port } = server.address() as AddressInfo;
       const endpoint = `http://127.0.0.1:${port}/%2e%2e/%41/%7e/%2f/%3A/raw[bracket]`;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -692,6 +709,7 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         's3',
+        'bucket',
         JSON.stringify({
           Provider: 's3',
           Params: {
@@ -703,8 +721,8 @@ describe('MinIO retry integration', () => {
         }),
       );
 
-      await client.getObject('bucket', 'key');
-      expect(requestPath).toBe('/../A/~///:/raw[bracket]/bucket/key');
+      await client.openRead('key');
+      expect(requestPath?.split('?')[0]).toBe('/../A/~///:/raw[bracket]/bucket/key');
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -724,7 +742,7 @@ describe('MinIO retry integration', () => {
 
       try {
         const { port } = server.address() as AddressInfo;
-        const client = await createMinioClient(
+        const client = await createS3ArtifactStore(
           {
             accessKey: 'accesskey',
             endPoint: '127.0.0.1',
@@ -735,6 +753,7 @@ describe('MinIO retry integration', () => {
             useSSL: false,
           },
           's3',
+          'bucket',
           JSON.stringify({
             Provider: 's3',
             Params: {
@@ -746,8 +765,8 @@ describe('MinIO retry integration', () => {
           }),
         );
 
-        await client.getObject('bucket', 'key');
-        expect(requestPath).toBe('/base/key');
+        await client.openRead('key');
+        expect(requestPath?.split('?')[0]).toBe('/base/key');
       } finally {
         await new Promise<void>((resolve, reject) =>
           server.close((error) => (error ? reject(error) : resolve())),
@@ -770,7 +789,7 @@ describe('MinIO retry integration', () => {
 
     try {
       const { port } = server.address() as AddressInfo;
-      const client = await createMinioClient(
+      const client = await createS3ArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: '127.0.0.1',
@@ -781,6 +800,7 @@ describe('MinIO retry integration', () => {
           useSSL: false,
         },
         's3',
+        'bucket',
         JSON.stringify({
           Provider: 's3',
           Params: {
@@ -792,8 +812,8 @@ describe('MinIO retry integration', () => {
         }),
       );
 
-      await client.getObject('bucket', 'key');
-      expect(requestPath).toBe(expectedPath);
+      await client.openRead('key');
+      expect(requestPath?.split('?')[0]).toBe(expectedPath);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

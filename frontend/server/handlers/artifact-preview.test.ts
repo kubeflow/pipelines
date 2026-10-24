@@ -14,7 +14,6 @@
 
 import express from 'express';
 import requests from 'supertest';
-import { Client } from 'minio';
 import { JWT } from 'google-auth-library';
 import { Readable } from 'stream';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,7 +22,7 @@ import { UIServer } from '../app.js';
 import type { AuthorizeFn } from '../helpers/auth.js';
 import { commonSetup } from '../integration-tests/test-helper.js';
 import * as launcher from '../helpers/launcher-config.js';
-import * as minioHelper from '../minio-helper.js';
+import * as artifactStore from '../artifact-store.js';
 import * as gcs from '../gcs-helper.js';
 import * as artifacts from './artifacts.js';
 import { getArtifactPreviewHandler } from './artifact-preview.js';
@@ -39,7 +38,7 @@ afterAll(() => vi.unstubAllEnvs());
 const content = '{"version":1,"kind":"model","hyperparameters":{"max_depth":3}}';
 const { argv } = commonSetup();
 const authorize = vi.fn<AuthorizeFn>();
-const storage = new Client({ endPoint: 'localhost', port: 9000, useSSL: false });
+const storage: artifactStore.ArtifactStore = { openRead: vi.fn(), list: vi.fn() };
 let storedArtifact: V2Artifact;
 let metadataStatus: number;
 let proxyResponse: Response | undefined;
@@ -84,10 +83,10 @@ beforeEach(() => {
   proxyResponse = undefined;
   authorize.mockReset().mockResolvedValue(undefined);
   vi.spyOn(launcher, 'getLauncherProviderInfo').mockResolvedValue('');
-  vi.spyOn(minioHelper, 'createArtifactStoreClient').mockResolvedValue(storage);
-  vi.spyOn(minioHelper, 'createMinioClient').mockResolvedValue(storage);
-  vi.spyOn(storage, 'getObject').mockImplementation(async () => Readable.from([content]));
-  vi.spyOn(storage, 'listObjectsV2').mockImplementation(() => {
+  vi.spyOn(artifactStore, 'createArtifactStoreClient').mockResolvedValue(storage);
+  vi.spyOn(artifactStore, 'createS3ArtifactStore').mockResolvedValue(storage);
+  vi.spyOn(storage, 'openRead').mockImplementation(async () => Readable.from([content]));
+  vi.spyOn(storage, 'list').mockImplementation(() => {
     throw new Error('Must not list a preview directory');
   });
   vi.spyOn(gcs, 'getGCSClient').mockResolvedValue(new JWT());
@@ -144,13 +143,13 @@ describe('artifact preview endpoint', () => {
           }),
         );
       } else {
-        expect(storage.getObject).toHaveBeenCalledExactlyOnceWith(
-          'bucket',
+        expect(storage.openRead).toHaveBeenCalledExactlyOnceWith(
           'private-artifacts/team-a/model/_kfp_preview.json',
+          { signal: expect.any(AbortSignal) },
         );
       }
       expect(gcs.listGCSObjectNames).not.toHaveBeenCalled();
-      expect(storage.listObjectsV2).not.toHaveBeenCalled();
+      expect(storage.list).not.toHaveBeenCalled();
     },
   );
 
@@ -165,18 +164,18 @@ describe('artifact preview endpoint', () => {
       }),
       'team-a',
     );
-    expect(storage.getObject).toHaveBeenCalledWith(
-      'bucket',
+    expect(storage.openRead).toHaveBeenCalledWith(
       'private-artifacts/team-a/a b/_kfp_preview.json',
+      { signal: expect.any(AbortSignal) },
     );
   });
 
   it('reads SDK previews from the sibling object beside the directory', async () => {
     storedArtifact.metadata = { _kfp_preview: { version: 2, storage: 'sibling' } };
     await previewRequest().expect(200);
-    expect(storage.getObject).toHaveBeenCalledExactlyOnceWith(
-      'bucket',
+    expect(storage.openRead).toHaveBeenCalledExactlyOnceWith(
       'private-artifacts/team-a/model.kfp-preview.json',
+      { signal: expect.any(AbortSignal) },
     );
   });
 
@@ -192,7 +191,7 @@ describe('artifact preview endpoint', () => {
       .get('/artifacts/artifact-1/preview')
       .set('kubeflow-userid', 'reader')
       .expect(400);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -212,13 +211,13 @@ describe('artifact preview endpoint', () => {
   it('denies viewers independently of artifact read access', async () => {
     authorize.mockResolvedValue({ message: 'Viewers denied' });
     await previewRequest().expect(403);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it('denies a different stored namespace', async () => {
     storedArtifact.namespace = 'team-b';
     await previewRequest().expect(403);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
     expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
   });
 
@@ -235,7 +234,7 @@ describe('artifact preview endpoint', () => {
       storedArtifact.uri = uri;
       await previewRequest(true, proxy).expect(403);
       expect(fetch).toHaveBeenCalledOnce();
-      expect(storage.getObject).not.toHaveBeenCalled();
+      expect(storage.openRead).not.toHaveBeenCalled();
       expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
     });
   });
@@ -254,13 +253,13 @@ describe('artifact preview endpoint', () => {
         }),
       );
     } else {
-      expect(storage.getObject).toHaveBeenCalledExactlyOnceWith(
-        'bucket',
+      expect(storage.openRead).toHaveBeenCalledExactlyOnceWith(
         'custom-root/model/_kfp_preview.json',
+        { signal: expect.any(AbortSignal) },
       );
     }
     expect(gcs.listGCSObjectNames).not.toHaveBeenCalled();
-    expect(storage.listObjectsV2).not.toHaveBeenCalled();
+    expect(storage.list).not.toHaveBeenCalled();
   });
 
   it('denies a custom-root preview without a matching ownership record', async () => {
@@ -270,7 +269,7 @@ describe('artifact preview endpoint', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ artifacts: [] })));
     await previewRequest().expect(403);
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
     expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
   });
 
@@ -279,14 +278,14 @@ describe('artifact preview endpoint', () => {
     ownershipLookupAvailable = false;
     await previewRequest().expect(403);
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
     expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
   });
 
   it('fails closed when strict ownership lookup is unavailable', async () => {
     ownershipLookupAvailable = false;
     await previewRequest().expect(403);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -298,19 +297,19 @@ describe('artifact preview endpoint', () => {
   ])('does not probe files without a supported declaration: %j', async (descriptor) => {
     storedArtifact.metadata = descriptor === undefined ? {} : { _kfp_preview: descriptor };
     await previewRequest().expect(descriptor === undefined ? 404 : 422);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it('reports missing parent artifacts and sidecar files distinctly', async () => {
     metadataStatus = 404;
     await previewRequest().expect(404);
     metadataStatus = 200;
-    vi.mocked(storage.getObject).mockRejectedValue(
+    vi.mocked(storage.openRead).mockRejectedValue(
       Object.assign(new Error('missing'), { code: 'NoSuchKey' }),
     );
     const response = await previewRequest().expect(404);
     expect(response.text).toContain('The preview file is missing');
-    expect(storage.listObjectsV2).not.toHaveBeenCalled();
+    expect(storage.list).not.toHaveBeenCalled();
   });
 
   it('reports missing GCS previews without treating them as empty data', async () => {
@@ -323,7 +322,7 @@ describe('artifact preview endpoint', () => {
 
   it('rejects an oversized object before sending success headers', async () => {
     const source = Readable.from([content.padEnd(MAX_ARTIFACT_PREVIEW_BYTES + 1)]);
-    vi.mocked(storage.getObject).mockResolvedValue(source);
+    vi.mocked(storage.openRead).mockResolvedValue(source);
     await previewRequest().expect(413);
     expect(source.destroyed).toBe(true);
   });
@@ -358,10 +357,10 @@ describe('artifact preview endpoint', () => {
     } else if (stage === 'provider') {
       vi.mocked(launcher.getLauncherProviderInfo).mockImplementation(() => pending());
     } else if (stage === 's3-client') {
-      vi.mocked(minioHelper.createMinioClient).mockImplementation(() => pending());
+      vi.mocked(artifactStore.createS3ArtifactStore).mockImplementation(() => pending());
     } else if (stage === 'minio-client') {
       storedArtifact.uri = 'minio://bucket/private-artifacts/team-a/model';
-      vi.mocked(minioHelper.createArtifactStoreClient).mockImplementation(() => pending());
+      vi.mocked(artifactStore.createArtifactStoreClient).mockImplementation(() => pending());
     } else {
       storedArtifact.uri = 'gs://bucket/private-artifacts/team-a/model';
       vi.mocked(gcs.getGCSClient).mockImplementation(() => pending());
@@ -370,7 +369,7 @@ describe('artifact preview endpoint', () => {
     await ready;
     deadline.abort(new DOMException('Preview deadline exceeded', 'TimeoutError'));
     expect((await result).status).toBe(504);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
     expect(gcs.downloadGCSObjectStream).not.toHaveBeenCalled();
   });
 
@@ -388,7 +387,7 @@ describe('artifact preview endpoint', () => {
         signal: expect.any(AbortSignal),
       }),
     );
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it('rejects legacy proxy responses and enforces the limit at the shared boundary', async () => {
@@ -401,7 +400,7 @@ describe('artifact preview endpoint', () => {
       headers: { [ARTIFACT_PREVIEW_RESPONSE_HEADER]: '1' },
     });
     await previewRequest(true, true).expect(413);
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it('preserves a namespace receiver rate limit and only its delay-seconds retry guidance', async () => {
@@ -424,7 +423,7 @@ describe('artifact preview endpoint', () => {
     const undated = await previewRequest(true, true).expect(429);
     expect(undated.headers['retry-after']).toBeUndefined();
     expect(undated.text).toBe('Too many artifact requests. Retry later.');
-    expect(storage.getObject).not.toHaveBeenCalled();
+    expect(storage.openRead).not.toHaveBeenCalled();
   });
 
   it('registers both normal and base-path routes before the generic artifact handler', async () => {
@@ -438,6 +437,6 @@ describe('artifact preview endpoint', () => {
     await requests(app.app)
       .get('/pipeline/artifacts/artifact-1/preview?namespace=team-a')
       .expect(200);
-    expect(storage.getObject).toHaveBeenCalledTimes(2);
+    expect(storage.openRead).toHaveBeenCalledTimes(2);
   });
 });
