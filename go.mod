@@ -15,7 +15,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4
 	github.com/aws/smithy-go v1.28.5
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/eapache/go-resiliency v1.7.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-openapi/errors v0.22.9
 	github.com/go-openapi/runtime v0.33.3
