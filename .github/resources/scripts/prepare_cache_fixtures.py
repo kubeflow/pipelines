@@ -45,7 +45,7 @@ def installer(version):
 
 
 def transform(name, documents, image):
-    """Preserve the full IR and platform documents except image/install prefix."""
+    """Change only the image and SDK installer prefix."""
     if name not in FIXTURES or not documents:
         raise ValueError(f'Unsupported cache fixture: {name}')
     result = copy.deepcopy(documents)
