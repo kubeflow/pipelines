@@ -118,9 +118,46 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         )
         self.assertIn('branch-image-files', branch_wait['run'])
         self.assertIn(
-            './.github/resources/scripts/wait-for-image-artifacts.sh',
-            [line.strip() for line in branch_wait['run'].splitlines()],
+            'wait-for-image-artifacts.sh "${BRANCH_CI_IMAGE_ARTIFACTS[@]}"',
+            branch_wait['run'],
         )
+        self.assertIn(
+            'source .github/resources/scripts/ci-image-artifacts.sh',
+            branch_wait['run'],
+        )
+        cache_restore = next(
+            step for step in steps if step.get('id') == 'runtime-image-cache'
+        )
+        cache_stage = next(
+            step
+            for step in steps
+            if step.get('id') == 'runtime-image-cache-files'
+        )
+        self.assertTrue(
+            cache_restore['uses'].startswith('actions/cache/restore@')
+        )
+        self.assertIs(cache_restore.get('continue-on-error'), True)
+        self.assertEqual(
+            cache_stage['env']['CACHE_OUTCOME'],
+            '${{ steps.runtime-image-cache.outcome }}',
+        )
+        self.assertEqual(
+            cache_stage['env']['CACHE_HIT'],
+            '${{ steps.runtime-image-cache.outputs.cache-hit }}',
+        )
+        self.assertEqual(
+            cache_stage['env']['IMAGE_DIRECTORY'],
+            runtime_download['with']['path'],
+        )
+        self.assertLess(steps.index(cache_restore), steps.index(cache_stage))
+        self.assertLess(steps.index(cache_stage), steps.index(runtime_wait))
+        for step in (runtime_wait, runtime_download):
+            self.assertEqual(
+                step['if'],
+                "steps.runtime-image-cache-files.outputs.ready != 'true'",
+            )
+        for step in (branch_wait, branch_download):
+            self.assertNotIn('if', step)
         for wait, download in zip(wait_steps, download_steps):
             self.assertLess(steps.index(wait), steps.index(download))
             self.assertEqual(
@@ -157,6 +194,8 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             for step in steps
             if step.get('name') == 'Load Modelcar Fixture Into Kind'
         )
+        self.assertNotIn('if', runtime_load)
+        self.assertIn('verify_runtime_base_images_in_kind', runtime_load['run'])
         self.assertEqual(
             modelcar_load['if'],
             "${{ inputs.load_modelcar_fixture == 'true' }}",

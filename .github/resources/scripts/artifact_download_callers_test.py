@@ -252,7 +252,9 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             inventory = ROOT / '.github/resources/scripts/ci-image-artifacts.sh'
             (scripts / inventory.name).write_text(inventory.read_text())
             waiter = scripts / 'wait-for-image-artifacts.sh'
-            waiter.write_text('#!/usr/bin/env bash\nexit 0\n')
+            waiter.write_text(
+                '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > waiter-args\n'
+            )
             waiter.chmod(0o755)
             for modelcar in ('false', 'true'):
                 with self.subTest(modelcar=modelcar):
@@ -266,12 +268,20 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                         context,
                         cwd=root,
                     )
+                    self.assertEqual(
+                        (root / 'waiter-args').read_text().splitlines(),
+                        ['runtime-base-images'],
+                    )
                     branch = self.required_files(
                         '.github/actions/deploy/action.yml',
                         'composite',
                         context,
                         cwd=root,
                         caller_index=1,
+                    )
+                    self.assertCountEqual(
+                        (root / 'waiter-args').read_text().splitlines(),
+                        built_images,
                     )
                     expected_runtime = {'runtime-base-images.tar'}
                     if modelcar == 'true':
