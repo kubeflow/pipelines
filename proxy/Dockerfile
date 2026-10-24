@@ -27,6 +27,25 @@ RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /go/bin/proxy-forwarding-a
     && CGO_ENABLED=0 go build -mod=readonly -trimpath -o /go/bin/inverting-proxy ./server \
     && go test -mod=readonly -count=1 ./agent/...
 
+# Match the 2.17.3 rebuild pattern while retaining the newer kubectl patch.
+# Reuse the canonical compiler pin and keep Kubernetes separate from agent source.
+FROM builder AS kubectl
+ARG TARGETARCH
+ARG KUBECTL_VERSION=v1.36.5
+ARG KUBECTL_SHA256=e768e95c34605f3829116736e189f46af54c6416c3229cadd7308e524202735b
+ENV GOWORK=off
+WORKDIR /src/kubernetes
+RUN curl -fsSL "https://github.com/kubernetes/kubernetes/archive/refs/tags/${KUBECTL_VERSION}.tar.gz" -o /tmp/kubernetes.tar.gz \
+    && echo "${KUBECTL_SHA256}  /tmp/kubernetes.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/kubernetes.tar.gz --strip-components=1 \
+    && rm -rf vendor \
+    && GOFLAGS=-mod=mod go get golang.org/x/net@v0.60.0 \
+      golang.org/x/sys@v0.48.0 golang.org/x/text@v0.42.0 \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod \
+      -ldflags="-X k8s.io/component-base/version.gitVersion=${KUBECTL_VERSION}" \
+      -o /out/kubectl ./cmd/kubectl \
+    && go version -m /out/kubectl
+
 # Keep only the runtime tools needed by registration and the Cloud SDK.
 FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
 RUN apt-get update && apt-get upgrade -y \
@@ -59,16 +78,15 @@ RUN curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/googl
 RUN echo "${GCLOUD_SHA256}  /tmp/google-cloud-sdk.tar.gz" | sha256sum -c -
 RUN mkdir -p /usr/local/gcloud
 RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
-RUN /usr/local/gcloud/google-cloud-sdk/install.sh --quiet \
+# As in 2.17.3, registration uses gcloud auth, not Cloud Storage transfers.
+# Use the maintained runtime Python instead of a second bundled interpreter.
+RUN rm -rf /usr/local/gcloud/google-cloud-sdk/platform/bundledpythonunix \
+    && rm /usr/local/gcloud/google-cloud-sdk/bin/gcloud-crc32c \
     && rm /tmp/google-cloud-sdk.tar.gz
+ENV CLOUDSDK_PYTHON=/usr/bin/python3
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
-# Use the supported Kubernetes minor, with an immutable download checksum.
-ARG KUBECTL_VERSION=v1.36.5
-ARG KUBECTL_SHA256=33bc88a24c3b09cf55bfd59e6ca977881b61fc3f25ab65bc80c65b430248648e
-RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
-    && echo "${KUBECTL_SHA256}  /usr/local/bin/kubectl" | sha256sum -c - \
-    && chmod +x /usr/local/bin/kubectl
+COPY --from=kubectl /out/kubectl /usr/local/bin/kubectl
 
 COPY --from=builder /go/bin/proxy-forwarding-agent /opt/bin/proxy-forwarding-agent
 COPY --from=builder /src/LICENSE /usr/share/doc/inverting-proxy/LICENSE
@@ -79,6 +97,11 @@ COPY security /tmp/proxy-security
 RUN /opt/bin/proxy-forwarding-agent --help \
     && kubectl version --client=true --output=json \
     && gcloud --version \
+    && test "$(gcloud info --format='value(basic.python_location)')" = "${CLOUDSDK_PYTHON}" \
+    && gcloud auth activate-service-account --help >/dev/null \
+    && gcloud auth print-access-token --help >/dev/null \
+    && test ! -e /usr/local/gcloud/google-cloud-sdk/platform/bundledpythonunix \
+    && test ! -e /usr/local/gcloud/google-cloud-sdk/bin/gcloud-crc32c \
     && python3 -c 'import importlib.util; import requests; assert importlib.util.find_spec("pip") is None' \
     && python3 -m unittest discover -s /opt/proxy -p '*_test.py' \
     && python3 -m unittest discover -s /tmp/proxy-security -p '*_test.py' \
