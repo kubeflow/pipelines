@@ -8,6 +8,28 @@ normal deployment upgrade process; eligible schedules are adopted automatically.
 
 ### Upgrade notes
 
+#### Artifact previews and request limits
+
+Supported Python-component Dataset and Model outputs now generate previews by
+default with a supporting SDK. Review sample rows and model configuration for
+sensitive data; pipeline/component opt-outs and schema-only dataset previews are
+available. Automatic previews are uploaded beside artifact directories by the
+updated launcher. Existing artifacts are not backfilled, and older launchers do
+not upload the new sibling preview files.
+
+Previews and downloads share a limit of 300 requests per minute per user per UI
+server process (client IP without authenticated identity). Excess requests return
+HTTP 429 with `Retry-After`. See the
+[upgrade guidance](docs/operator-guides/upgrade-2.18.md#automatic-artifact-previews-and-request-limits)
+for privacy controls, version skew and namespace receiver behavior.
+
+#### Standalone pipeline previews
+
+The SDK adds offline HTML/Mermaid pipeline visualization, local watch mode and
+browser launch, with `--no-open` available. See the
+[SDK visualization guide](sdk/python/README.md) for usage. These previews do not
+require a deployed KFP UI.
+
 #### Artifact ownership compatibility
 
 The stronger artifact ownership requirement is deferred to 3.0. Version 2.18

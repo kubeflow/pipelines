@@ -243,6 +243,23 @@ Also inspect custom consumers of download responses: hardened routes can return
 raw archives and attachment headers. UI preview support does not imply a custom
 client that relied on inline rendering or auto-extraction will behave identically.
 
+### Artifact preview privacy and request budgets
+
+Record the component SDK and launcher versions for workloads that produce Dataset
+or Model outputs. Supporting SDKs generate previews by default; assess whether
+sample rows or model configuration are appropriate without collecting those
+values in the report. Record pipeline/component opt-outs or schema-only settings
+and whether the pipeline was recompiled. Disabling generation does not remove
+previously generated previews, and an older launcher does not upload the sibling
+preview file. Do not infer preview support from the UI version alone.
+
+Check clients that make frequent artifact requests against the shared preview and
+download budget: 300 requests per minute per user per UI process, or by client IP
+without authenticated identity. Record HTTP 429/`Retry-After` handling and whether
+custom namespace receivers avoid applying a second shared-IP budget behind the
+UI. Do not load-test a live installation without authorization. See
+[preview and limit upgrade guidance](upgrade-2.18.md#automatic-artifact-previews-and-request-limits).
+
 ### Authorization and client scope
 
 Inventory custom roles, ordinary users, read-only users, designated shared publishers

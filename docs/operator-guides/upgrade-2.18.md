@@ -27,6 +27,11 @@ optional review procedure, not an additional upgrade prerequisite.
 | API, controller, and RBAC | The release configuration routes multi-user scheduled executions through the API under the controller's identity. | If you use custom execution accounts or custom roles, check their scoped permissions. Standard deployment wiring is supplied by the release. See [recurring-run accounts](scheduled-service-accounts.md) and [RBAC migration](rbac-migration-2.18.md). |
 | UI signing key | The initializer creates or reuses a persistent signing key; Kubernetes starts the UI when it is available. | First adoption briefly interrupts the UI and invalidates old TensorBoard URLs; reopen TensorBoard after the rollout. Existing valid keys are preserved. See [UI signing-key behavior](#prepare-the-ui-signing-key). |
 
+Metadata Envoy now has readiness and liveness probes in the release manifests.
+Readiness removes initializing or draining Envoy Pods from service; liveness
+checks the admin endpoint and can restart an unresponsive process. These probes
+do not establish MLMD backend health.
+
 ## Database migration paths
 
 The following operations have different timing and operator requirements. KFP 2.18
@@ -246,6 +251,41 @@ recognize and decompress the archive explicitly. Test a known archive and compar
 its downloaded bytes with the stored object. Do not blindly decompress every
 response or infer archive type solely from a filename. These changes apply when
 users or integrations next retrieve content, including historical artifacts.
+
+## Automatic artifact previews and request limits
+
+With a supporting component SDK, automatic previews are enabled by default for
+supported Python-component Dataset and Model outputs. Dataset previews can expose
+up to ten rows and twenty columns; model previews can expose configuration.
+Before upgrading sensitive component SDKs, review those contents and set
+`PipelineConfig(artifact_previews=False)` for a pipeline or
+`@dsl.component(artifact_previews=False)` for a component where needed. Use
+`artifact_preview_rows=False` for schema-only dataset previews. Recompile when
+changing these controls. Disabling generation does not remove existing previews.
+
+The SDK writes automatic previews beside the artifact directory, and the updated
+launcher uploads them as `<artifact-uri>.kfp-preview.json`. This keeps dataset
+directories readable by tools that expect only data files. An older launcher does
+not upload that sibling file, so a supporting SDK alone does not guarantee a
+visible preview. Preview-upload failure does not fail the task. Existing artifacts
+are not automatically backfilled; supported manual v1 previews remain readable.
+See [Dataset and Model previews](../user-guides/data-handling/artifacts.md#dataset-and-model-previews)
+for the supported formats, privacy controls and version contract.
+
+Artifact previews and downloads now share a limit of **300 requests per minute
+per user per UI server process** in authenticated deployments. Without an
+authenticated identity, requests are grouped by client IP. Excess requests return
+HTTP 429 with `Retry-After`; clients should respect that delay. This is not a
+cluster-wide quota. The profile controller disables the duplicate limiter on
+generated namespace artifact servers, while the shared UI keeps its limiter.
+Custom receivers should follow the same arrangement. See
+[artifact request limits](server-config.md#artifact-request-limits).
+
+These features use the normal SDK and deployment upgrade paths; they do not
+require a separate migration or coordinated cutover. During rollout, verify a
+newly produced preview and an ordinary artifact download after the relevant
+components are updated. Preview availability does not establish stronger artifact
+ownership enforcement; the compatibility and security limits below still apply.
 
 ## Artifact compatibility and retained exposure
 
