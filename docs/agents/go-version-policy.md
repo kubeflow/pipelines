@@ -28,6 +28,7 @@ The managed Go builder images are the single builder `FROM` instructions in:
 - `backend/Dockerfile.scheduledworkflow`
 - `backend/Dockerfile.viewercontroller`
 - `backend/api/Dockerfile`
+- `proxy/Dockerfile`
 
 Go setup is managed through these composite actions:
 

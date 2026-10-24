@@ -56,6 +56,7 @@ MANAGED_DOCKERFILES = (
     DockerPin(
         Path('backend/Dockerfile.viewercontroller'), '-alpine', 'builder'),
     DockerPin(Path('backend/api/Dockerfile'), '', 'generator'),
+    DockerPin(Path('proxy/Dockerfile'), '-bookworm', 'builder'),
 )
 
 MANAGED_SETUP_GO_ACTIONS = (
