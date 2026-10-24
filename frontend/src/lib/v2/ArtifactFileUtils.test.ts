@@ -17,6 +17,19 @@ import { StorageService } from 'src/lib/StoragePath';
 import { parseArtifactFileLocation, readArtifactFile } from './ArtifactFileUtils';
 
 describe('readArtifactFile', () => {
+  it.each([
+    ['file:///home/user/artifacts/data', 'home', 'user/artifacts/data', undefined],
+    ['file:///tmp/root%20dir/data', 'tmp', 'root dir/data', 'root%20dir/data'],
+  ])('does not duplicate the filesystem root in %s', (uri, bucket, key, uriKey) => {
+    expect(parseArtifactFileLocation(uri).path).toEqual({
+      bucket,
+      key,
+      source: StorageService.FILE,
+      keyEncoding: 'storage',
+      ...(uriKey ? { uriKey } : {}),
+    });
+  });
+
   it('uses server-side provider resolution and the explicit namespace', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('contents');
 

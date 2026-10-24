@@ -9,6 +9,7 @@ on:
       - 'uv.lock'
       - 'api/**'
       - 'sdk/**'
+      - 'local/**'
       - 'kubernetes_platform/**'
       - 'backend/api/**'
       - '.github/actions/protobuf/**'
@@ -61,6 +62,9 @@ jobs:
 
     - name: Run generated API client tests
       run: uv run pytest backend/api/v2/python_http_client_smoke backend/api/hack/generate_python_compat_test.py
+
+    - name: Run optional local package unit tests
+      run: uv run pytest -c local/pyproject.toml local/tests
 
     - name: Check unified wheel and standalone sdist
       run: |

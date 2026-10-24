@@ -366,6 +366,19 @@ func TestInitConfig(t *testing.T) {
 
 // Subtests must not run in parallel: they mutate package-level flags.
 func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
+	t.Run("preserves a loopback RPC bind address", func(t *testing.T) {
+		previous := *rpcPortFlag
+		*rpcPortFlag = "127.0.0.1:3003"
+		t.Cleanup(func() { *rpcPortFlag = previous })
+		var captured string
+		handler := func(_ context.Context, _ *runtime.ServeMux, endpoint string, _ []grpc.DialOption) error {
+			captured = endpoint
+			return nil
+		}
+		require.NoError(t, registerHTTPHandlerFromEndpoint(context.Background(), handler, "LocalService", runtime.NewServeMux(), nil))
+		require.Equal(t, "127.0.0.1:3003", captured)
+	})
+
 	t.Run("success without TLS", func(t *testing.T) {
 		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
 			return nil

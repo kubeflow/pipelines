@@ -95,9 +95,12 @@ export class UIServer {
       throw new Error('UIServer already started.');
     }
     port = port ?? this.options.server.port;
-    this.httpServer = this.app.listen(port, () => {
+    const onListening = () => {
       console.log('Server listening at http://localhost:' + port);
-    });
+    };
+    this.httpServer = this.options.server.host
+      ? this.app.listen(Number(port), this.options.server.host, onListening)
+      : this.app.listen(port, onListening);
     return this.httpServer;
   }
 

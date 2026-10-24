@@ -15,6 +15,12 @@ The only distributable workspace member is `sdk/python` (`kfp`); regenerate
 `uv.lock` with `uv lock` after dependency changes. Workspace requirements exports are not committed; see
 [dependency artifacts](dependabot.md) for optional pip consumers.
 
+The independent [local packaging proof](../../local/README.md) builds an optional
+native `kfp-local` wheel from the same checkout. It is not installed by root
+`uv sync`; its SDK commands load it only when explicitly invoked. Build and
+install both proof wheels together. Runtime users need Docker and, for the UI,
+Node.js, but do not need the checkout, Go, npm, or frontend build tooling.
+
 Install Ginkgo into the repository when running its suites:
 
 ```bash

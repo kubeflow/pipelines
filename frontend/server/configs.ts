@@ -195,6 +195,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     HTTP_BASE_URL = '',
     /** Absolute host path for local file-backed artifacts. */
     ARTIFACTS_LOCAL_ROOT = '',
+    /** Optional interface for the UI listener; unset preserves deployment defaults. */
+    UI_SERVER_HOST,
     /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
     /** Additional object-store origins allowed for artifact provider configs. */
@@ -361,6 +363,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
           ? DEPLOYMENT_STR.toUpperCase() === Deployments.KUBEFLOW
           : asBool(HIDE_SIDENAV),
       port,
+      host: UI_SERVER_HOST,
       staticDir,
       serverNamespace: FRONTEND_SERVER_NAMESPACE,
     },
@@ -448,6 +451,7 @@ export interface ArgoConfigs {
 export interface ServerConfigs {
   basePath: string;
   port: string | number;
+  host?: string;
   staticDir: string;
   apiVersion2Prefix: string;
   deployment: Deployments;

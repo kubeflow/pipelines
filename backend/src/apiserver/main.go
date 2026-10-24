@@ -712,7 +712,15 @@ func resolveWebhookTLSPaths(webhookCert, webhookKey, serverCert, serverKey strin
 }
 
 func registerHTTPHandlerFromEndpoint(ctx context.Context, handler RegisterHttpHandlerFromEndpoint, serviceName string, mux *runtime.ServeMux, tlsCfg *tls.Config) error {
-	endpoint := "localhost" + *rpcPortFlag
+	host, port, err := net.SplitHostPort(*rpcPortFlag)
+	if err != nil {
+		return fmt.Errorf("invalid RPC listener address: %w", err)
+	}
+	ip := net.ParseIP(host)
+	if host == "" || (ip != nil && ip.IsUnspecified()) {
+		host = "localhost"
+	}
+	endpoint := net.JoinHostPort(host, port)
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),

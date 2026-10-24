@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kfp-local"
+version = "0.1.0a0"
+description = "Experimental packaged local Kubeflow Pipelines server"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = ["kfp>=2.17.0"]
+
+[project.scripts]
+kfp-local = "kfp_local.cli:entrypoint"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kfp_local"]
+exclude = ["src/kfp_local/_assets/**"]
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

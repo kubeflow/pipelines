@@ -527,13 +527,14 @@
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
       "name": "KFP SDK Unit Tests",
-      "header_sha256": "831442d8a0b8cdf53fd4da52dc6d754874cfd840256036ddcd8c78055afb65b4",
+      "header_sha256": "b06807357ffa2a534fa8e24f9aefbf492f249a33c2324182ffcfde7c833e30f9",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           "api/**",
           "sdk/**",
+          "local/**",
           "kubernetes_platform/**",
           "backend/api/**",
           ".github/actions/protobuf/**",

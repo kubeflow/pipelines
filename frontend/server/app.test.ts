@@ -67,6 +67,17 @@ describe('UIServer apis', () => {
     }
   });
 
+  it('binds only the configured loopback interface', async () => {
+    app = new UIServer(loadConfigs(argv, { UI_SERVER_HOST: '127.0.0.1' }));
+    const server = app.start(0);
+    await waitForListening(server);
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected a TCP listener');
+    }
+    expect(address.address).toBe('127.0.0.1');
+  });
+
   it('allows restarting on the same port after close resolves', async () => {
     app = new UIServer(loadConfigs(argv, {}));
 
