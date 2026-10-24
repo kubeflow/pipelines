@@ -242,3 +242,36 @@ is inspected by the packaging regression suite to prevent tracked exports from r
 - The offline frontend qualification reliability reporter preserves first-attempt job outcomes across reruns and cancelled workflows; it does not retry jobs or promote qualification gates. See [collection and interpretation](../contributing/frontend-qualification-reliability.md). Missing attempt evidence remains unknown.
 
 The frontend qualification reliability reporter supports `--collect --repository OWNER/REPO --since YYYY-MM-DD --until YYYY-MM-DD` with repeated `--workflow` selections. Collect into an empty directory; preserve raw attempt responses and `collection.json`. Bounds, pagination and unchanged-run identities are verified before the collection is marked complete. Collection failure remains explicit and does not publish a success report; rerun into a new directory. Scheduling, deduplicated alerts and maintainer ownership remain separate prerequisites for monitoring. See [the contributor guide](../contributing/frontend-qualification-reliability.md).
+
+## Third-party image security evidence
+
+`third-party-image-scanning.yml` is called by the master OSV workflow and the
+release-2.18 branch scan workflow. It resolves both branch heads, renders the
+single-user and multi-user platform-agnostic overlays, and scans each distinct
+third-party image once on Linux AMD64. The seven published master KFP images
+continue to upload to their existing GitHub code-scanning categories; third-party
+images upload no SARIF.
+
+Each run retains rendered inventories, source commits, immutable Docker image
+IDs and registry digests, complete OSV JSON, and scanner diagnostics for seven days (the repository artifact-retention cap).
+The aggregate job fails on missing lanes, extraction errors, or inconsistent
+reports. A successful evidence job means scanning completed, not that images
+have no vulnerabilities or are authorized for release.
+
+The image-level summary compares release pins with different pins already used
+on master in the same image repository. It lists advisories removed and added,
+using advisory aliases to avoid counting renamed advisories as fixes. These are
+scanned candidates, not compatibility-approved upgrades. Other findings remain
+upstream/applicability work; a package fixed version alone is not evidence that a
+replacement image exists. The JSON report retains all packages and findings.
+
+Backend release qualification additionally scans third-party images rendered from
+the exact candidate commit. Their raw findings enter the existing zero-fixable
+policy; approved exceptions remain exact to image ID, package, installed version
+and advisory, require a justification and expiry, and are rechecked at
+publication. Missing, stale or inconsistent third-party evidence blocks release.
+SDK-only qualification does not require backend images. Scheduled comparison
+reports are supplemental and cannot authorize publication.
+Retire old third-party GitHub configurations only after the replacement workflow
+is merged and complete branch coverage has been verified; archive the old
+analyses before deletion. Keep first-party and source configurations intact.

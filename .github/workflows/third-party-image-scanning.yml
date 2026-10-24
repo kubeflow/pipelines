@@ -37,6 +37,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: release
         run: |
           python .github/resources/scripts/third_party_image_scan.py discover \
             --repository "$REPOSITORY" --kustomize "$RUNNER_TEMP/kustomize" \
@@ -46,7 +47,7 @@ jobs:
           name: third-party-inventory-${{ github.run_attempt }}
           path: third-party-inventory
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 7
 
   scan:
     needs: inventory
@@ -83,7 +84,7 @@ jobs:
           name: third-party-scan-${{ matrix.key }}-${{ github.run_attempt }}
           path: evidence
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 7
 
   report:
     if: always()
@@ -141,4 +142,4 @@ jobs:
           name: third-party-image-report-${{ github.run_attempt }}
           path: report
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 7

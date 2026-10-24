@@ -173,7 +173,10 @@ class ImageReportTest(unittest.TestCase):
 
     def test_corrupt_subject_envelope_raw_and_inventory_fail(self):
         for name, change in [
-            ('subject.json', lambda value: value.update(image='other/image:1')),
+            (
+                'subject.json',
+                lambda value: value.update(image='other/image:1'),
+            ),
             (
                 'subject.json',
                 lambda value: value.update(image_id='sha256:wrong'),
@@ -228,6 +231,15 @@ class ImageReportTest(unittest.TestCase):
         self.document['images'][1]['branches'] = ['release-2.18']
         with self.assertRaisesRegex(ValueError, 'deployed master'):
             aggregate(self.document, self.evidence)
+
+    def test_support_channel_evidence_is_visible_in_summary(self):
+        report = aggregate(self.document, self.evidence)
+        row = report['images'][0]
+        row['support_channel_review_count'] = 3
+        self.assertIn(
+            '3 findings need support-channel review', markdown(report)
+        )
+        self.assertIn('not a standard-channel fix', markdown(report))
 
     def test_registry_port_is_not_a_tag(self):
         self.assertEqual(
