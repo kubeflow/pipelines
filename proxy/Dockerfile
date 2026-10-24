@@ -32,19 +32,24 @@ RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /go/bin/proxy-forwarding-a
 FROM builder AS kubectl
 ARG TARGETARCH
 ARG KUBECTL_VERSION=v1.36.5
-ARG KUBECTL_SHA256=e768e95c34605f3829116736e189f46af54c6416c3229cadd7308e524202735b
+ARG KUBECTL_COMMIT=ad950d1cc78b0183c476bd4d3f1934c104229727
 ENV GOWORK=off
 WORKDIR /src/kubernetes
-RUN curl -fsSL "https://github.com/kubernetes/kubernetes/archive/refs/tags/${KUBECTL_VERSION}.tar.gz" -o /tmp/kubernetes.tar.gz \
-    && echo "${KUBECTL_SHA256}  /tmp/kubernetes.tar.gz" | sha256sum -c - \
-    && tar -xzf /tmp/kubernetes.tar.gz --strip-components=1 \
+# Real tag metadata lets Go report the module version; patches retain +dirty.
+RUN git clone --depth=1 --branch "${KUBECTL_VERSION}" https://github.com/kubernetes/kubernetes.git . \
+    && test "$(git rev-parse HEAD)" = "${KUBECTL_COMMIT}" \
     && rm -rf vendor \
     && GOFLAGS=-mod=mod go get golang.org/x/net@v0.60.0 \
       golang.org/x/sys@v0.48.0 golang.org/x/text@v0.42.0 \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildvcs=true \
       -ldflags="-X k8s.io/component-base/version.gitVersion=${KUBECTL_VERSION}" \
       -o /out/kubectl ./cmd/kubectl \
-    && go version -m /out/kubectl
+    && go version -m /out/kubectl > /out/kubectl.buildinfo \
+    && cat /out/kubectl.buildinfo \
+    && awk -v expected="${KUBECTL_VERSION}+dirty" -v commit="${KUBECTL_COMMIT}" \
+      '$1 == "mod" && $2 == "k8s.io/kubernetes" { version = $3 } \
+       $1 == "build" && $2 == "vcs.revision=" commit { revision = 1 } \
+       END { exit !(version == expected && revision) }' /out/kubectl.buildinfo
 
 # Keep only the runtime tools needed by registration and the Cloud SDK.
 FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
