@@ -81,7 +81,9 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     self.assertIn('image_tag: latest', job)
                     self.assertIn('image_registry: kind-registry:5000', job)
 
-    def test_deploy_waits_before_downloading_images(self):
+    def test_runtime_import_overlaps_branch_builds_without_skipping_images(
+        self,
+    ):
         deploy_action = yaml.safe_load(
             (ROOT / '.github/actions/deploy/action.yml').read_text(
                 encoding='utf-8'
@@ -92,7 +94,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             step
             for step in steps
             if './.github/resources/scripts/wait-for-image-artifacts.sh'
-            in [line.strip() for line in step.get('run', '').splitlines()]
+            in step.get('run', '')
         ]
         download_steps = [
             step
@@ -100,13 +102,74 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             if step.get('uses')
             == './.github/actions/download-artifact-with-retry'
         ]
-        self.assertEqual(len(wait_steps), 1)
-        self.assertEqual(len(download_steps), 1)
-        wait = wait_steps[0]
-        self.assertLess(steps.index(wait), steps.index(download_steps[0]))
-        self.assertEqual(
-            wait.get('env', {}).get('GH_TOKEN'), '${{ github.token }}'
+        self.assertEqual(len(wait_steps), 2)
+        self.assertEqual(len(download_steps), 2)
+        runtime_wait, branch_wait = wait_steps
+        runtime_download, branch_download = download_steps
+        self.assertEqual(runtime_wait['id'], 'runtime-image-artifacts')
+        self.assertEqual(branch_wait['id'], 'image-artifacts')
+        self.assertIn(
+            'wait-for-image-artifacts.sh runtime-base-images',
+            runtime_wait['run'],
         )
+        self.assertIn(
+            'runtime-base-image-files "$LOAD_MODELCAR_FIXTURE"',
+            runtime_wait['run'],
+        )
+        self.assertIn('branch-image-files', branch_wait['run'])
+        self.assertIn(
+            './.github/resources/scripts/wait-for-image-artifacts.sh',
+            [line.strip() for line in branch_wait['run'].splitlines()],
+        )
+        for wait, download in zip(wait_steps, download_steps):
+            self.assertLess(steps.index(wait), steps.index(download))
+            self.assertEqual(
+                wait.get('env', {}).get('GH_TOKEN'), '${{ github.token }}'
+            )
+            self.assertEqual(
+                download['with']['required-files'],
+                '${{ steps.' + wait['id'] + '.outputs.required-files }}',
+            )
+            self.assertNotIn('continue-on-error', wait)
+            self.assertNotIn('continue-on-error', download)
+        self.assertEqual(
+            runtime_download['with']['name'], 'runtime-base-images'
+        )
+        self.assertEqual(
+            runtime_download['with']['path'],
+            'images_${{ github.run_id }}/runtime-base-images',
+        )
+        self.assertNotIn('pattern', runtime_download['with'])
+        self.assertEqual(
+            branch_download['with']['pattern'],
+            '${{ steps.image-artifacts.outputs.artifact-pattern }}',
+        )
+        self.assertEqual(
+            branch_download['with']['path'], 'images_${{ github.run_id }}'
+        )
+        runtime_load = next(
+            step
+            for step in steps
+            if step.get('name') == 'Load Runtime Base Images Into Kind'
+        )
+        modelcar_load = next(
+            step
+            for step in steps
+            if step.get('name') == 'Load Modelcar Fixture Into Kind'
+        )
+        self.assertEqual(
+            modelcar_load['if'],
+            "${{ inputs.load_modelcar_fixture == 'true' }}",
+        )
+        for load in (runtime_load, modelcar_load):
+            self.assertLess(steps.index(runtime_download), steps.index(load))
+            self.assertLess(steps.index(load), steps.index(branch_wait))
+        for name in (
+            'Load Control Plane Images Into Kind',
+            'Load Driver and Launcher Images Into Kind',
+        ):
+            load = next(step for step in steps if step.get('name') == name)
+            self.assertLess(steps.index(branch_download), steps.index(load))
 
     def test_multi_user_artifact_proxy_lane_uses_critical_shards(self):
         workflow = (ROOT / '.github/workflows/e2e-test.yml').read_text(

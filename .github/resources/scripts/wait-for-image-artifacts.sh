@@ -52,6 +52,26 @@ fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
 
+# Optional positional arguments select a subset; no arguments retain the full
+# deployment barrier. Validate before polling so typos cannot silently skip it.
+required_artifacts=("${ALL_CI_IMAGE_ARTIFACTS[@]}")
+if (( $# > 0 )); then
+  required_artifacts=("$@")
+  for requested_artifact in "${required_artifacts[@]}"; do
+    known_artifact=false
+    for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+      if [[ "$requested_artifact" == "$artifact" ]]; then
+        known_artifact=true
+        break
+      fi
+    done
+    if [[ "$known_artifact" != "true" ]]; then
+      echo "Unknown image artifact requested: '${requested_artifact}'" >&2
+      exit 2
+    fi
+  done
+fi
+
 active_missing_producers=()
 failed_missing_producers=()
 successful_missing_producers=()
@@ -112,14 +132,14 @@ while true; do
   fi
 
   missing_artifacts=()
-  for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  for artifact in "${required_artifacts[@]}"; do
     if ! grep -Fqx -- "$artifact" <<< "$artifact_names"; then
       missing_artifacts+=("$artifact")
     fi
   done
 
   if (( ${#missing_artifacts[@]} == 0 )); then
-    echo "All ${#ALL_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
+    echo "All ${#required_artifacts[@]} branch image artifacts are available."
     exit 0
   fi
 
