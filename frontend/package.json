@@ -100,7 +100,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@storybook/addon-links": "^10.6.2",
+    "@storybook/addon-links": "^10.6.3",
     "@storybook/react-vite": "^10.6.2",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
