@@ -2,8 +2,8 @@
 
 Tracking: https://github.com/kubeflow/pipelines/issues/14950
 
-The legacy workflow remains a retirement gate until replacement execution has
-been demonstrated. This ledger maps active legacy assertions to replacement
+The legacy workflow is retired after the recorded replacement execution and
+trusted-publisher transition. This ledger maps active legacy assertions to replacement
 specifications; code presence or successful compilation is not cluster parity.
 All new specs inherit `ApiServerTests`, `PipelineCacheEnabled`, and
 `LegacyMigration`. Unique scenario labels identify executed results in the
@@ -93,7 +93,7 @@ Retirement requires all of the following, recorded on the tracking issue:
    of that transition and update the CI guide.
 
 The implementation and compilation checks establish candidate replacements.
-Until these execution gates pass, leave the legacy workflow enabled.
+The API workflow continues enforcing the replacement manifests after retirement.
 
 ## Verified CI evidence
 
