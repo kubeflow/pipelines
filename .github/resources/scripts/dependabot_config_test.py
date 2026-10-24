@@ -480,6 +480,32 @@ class DependabotConfigTest(unittest.TestCase):
                     )
                     self.assertEqual(matching_group, expected_group)
 
+    def test_frontend_typescript_eslint_versions_match(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        manifest = json.loads((frontend / 'package.json').read_text())
+        packages = json.loads((frontend / 'package-lock.json').read_text())[
+            'packages'
+        ]
+        expected_version = manifest['devDependencies'][
+            '@typescript-eslint/eslint-plugin'
+        ]
+        for dependency in (
+            '@typescript-eslint/eslint-plugin',
+            '@typescript-eslint/parser',
+        ):
+            with self.subTest(dependency=dependency):
+                self.assertEqual(
+                    manifest['devDependencies'][dependency], expected_version
+                )
+                self.assertEqual(
+                    packages['']['devDependencies'][dependency],
+                    expected_version,
+                )
+                self.assertEqual(
+                    packages[f'node_modules/{dependency}']['version'],
+                    expected_version,
+                )
+
     def test_frontend_vitest_coverage_matches_locked_runner(self):
         self.assert_vitest_coverage_matches_locked_runner('frontend')
 

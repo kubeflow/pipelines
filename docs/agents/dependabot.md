@@ -38,7 +38,9 @@ package installs its own runner and coverage provider and must stay aligned.
 because the ESLint plugin requires a compatible parser release. Keep these
 groups before the generic npm group and update the manifest and lock together.
 Security grouping may leave non-vulnerable peers unchanged; verify the resolved
-parser satisfies the plugin's peer range before merging.
+parser satisfies the plugin's peer range before merging. Keep the directly
+pinned parser and plugin on the same release in the frontend manifest and lock;
+the dependency configuration tests guard that alignment.
 
 ## Frontend dependency security constraints
 
