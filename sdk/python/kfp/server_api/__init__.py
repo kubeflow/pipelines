@@ -73,8 +73,10 @@ from kfp.server_api.models.v2_create_artifacts_bulk_response import V2CreateArti
 from kfp.server_api.models.v2_create_pipeline_and_version_request import V2CreatePipelineAndVersionRequest
 from kfp.server_api.models.v2_cron_schedule import V2CronSchedule
 from kfp.server_api.models.v2_delete_propagation_policy import V2DeletePropagationPolicy
+from kfp.server_api.models.v2_deployment_capabilities import V2DeploymentCapabilities
 from kfp.server_api.models.v2_experiment import V2Experiment
 from kfp.server_api.models.v2_experiment_storage_state import V2ExperimentStorageState
+from kfp.server_api.models.v2_feature_capability import V2FeatureCapability
 from kfp.server_api.models.v2_filter import V2Filter
 from kfp.server_api.models.v2_find_cached_task_request import V2FindCachedTaskRequest
 from kfp.server_api.models.v2_find_cached_task_response import V2FindCachedTaskResponse
@@ -125,8 +127,10 @@ from kfp.server_api.models.v2_create_artifacts_bulk_response import V2CreateArti
 from kfp.server_api.models.v2_create_pipeline_and_version_request import V2CreatePipelineAndVersionRequest as V2beta1CreatePipelineAndVersionRequest
 from kfp.server_api.models.v2_cron_schedule import V2CronSchedule as V2beta1CronSchedule
 from kfp.server_api.models.v2_delete_propagation_policy import V2DeletePropagationPolicy as V2beta1DeletePropagationPolicy
+from kfp.server_api.models.v2_deployment_capabilities import V2DeploymentCapabilities as V2beta1DeploymentCapabilities
 from kfp.server_api.models.v2_experiment import V2Experiment as V2beta1Experiment
 from kfp.server_api.models.v2_experiment_storage_state import V2ExperimentStorageState as V2beta1ExperimentStorageState
+from kfp.server_api.models.v2_feature_capability import V2FeatureCapability as V2beta1FeatureCapability
 from kfp.server_api.models.v2_filter import V2Filter as V2beta1Filter
 from kfp.server_api.models.v2_find_cached_task_request import V2FindCachedTaskRequest as V2beta1FindCachedTaskRequest
 from kfp.server_api.models.v2_find_cached_task_response import V2FindCachedTaskResponse as V2beta1FindCachedTaskResponse

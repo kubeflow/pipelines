@@ -17,9 +17,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -32,7 +29,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
-	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 
@@ -152,7 +148,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 		)
 		diagnosticRunID = createdRun.RunID
 
-		retryTimeout := time.Duration(argoLifecycleTimeout / time.Second)
+		retryTimeout := argoLifecycleTimeout
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
@@ -211,7 +207,7 @@ var _ = Describe("Argo runtime compatibility >", Serial, Label(constants.POSITIV
 			return string(logContents)
 		}, argoLifecycleTimeout, time.Second).Should(ContainSubstring("input:  foo"))
 
-		artifactTimeout := time.Duration(argoLifecycleTimeout / time.Second)
+		artifactTimeout := argoLifecycleTimeout
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
@@ -418,33 +414,5 @@ func findArgoCompatibilityTaskArtifact(tasks []*run_model.V2PipelineTask) bool {
 }
 
 func readArgoCompatibilityRunLog(runID string, nodeID string) (string, error) {
-	logURL := fmt.Sprintf(
-		"%s/apis/v2/runs/%s/nodes/%s/log?follow=false",
-		strings.TrimRight(*config.ApiUrl, "/"),
-		url.PathEscape(runID),
-		url.PathEscape(nodeID),
-	)
-	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, logURL, nil)
-	if err != nil {
-		return "", err
-	}
-	if *config.AuthToken != "" {
-		request.Header.Set("Authorization", "Bearer "+*config.AuthToken)
-	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	response, err := client.Do(request)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-
-	contents, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	if response.StatusCode != http.StatusOK {
-		return string(contents), fmt.Errorf("run log request returned %s", response.Status)
-	}
-	return string(contents), nil
+	return testutil.ReadRunLog(context.Background(), runID, nodeID, userToken)
 }

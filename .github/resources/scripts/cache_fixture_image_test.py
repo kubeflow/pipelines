@@ -214,11 +214,19 @@ class CacheFixtureImageTest(unittest.TestCase):
                     'if [[ "$(basename "$0")" == kind && "$1" == get ]]; then\n'
                     '  echo test-control-plane\n'
                     'fi\n'
+                    'if [[ "$(basename "$0") $1" == "docker inspect" ]]; then echo sha256:node; fi\n'
+                    'if [[ "$(basename "$0") $1 $2" == "docker image inspect" ]]; then echo linux/amd64; fi\n'
                     'if [[ "$(basename "$0") $*" == *"$FAIL_COMMAND"* ]]; then exit 1; fi\n'
                     'if [[ "$*" == *--image-matrix* ]]; then echo "python:3.12 2.13.0 kfp-cache-fixture:2.13.0-python3.12"; fi\n'
                 )
                 stub.chmod(0o755)
-            for failure in ('docker exec', 'python -m pip wheel', 'kind load'):
+            for failure in (
+                'docker exec',
+                'python -m pip wheel',
+                'docker buildx build',
+                'docker save',
+                'kind --name test load image-archive',
+            ):
                 with self.subTest(failure=failure):
                     log = work / 'commands'
                     log.write_text('')
@@ -260,15 +268,19 @@ class CacheFixtureImageTest(unittest.TestCase):
             ROOT / 'backend/test/v2/resources/cache-image/Dockerfile'
         ).read_text()
         self.assertIn(
-            'images export --platform linux/amd64 - "docker.io/library/$base"',
+            'images export --platform "$platform" - "docker.io/library/$base"',
             script,
         )
         self.assertIn(
             'DOCKER_BUILDKIT=0 docker build --network=none --pull=false', script
         )
         self.assertIn(
-            'kind load docker-image --name "$cluster_name" "$image"', script
+            'kind --name "$cluster_name" load image-archive "$fixture_archive"',
+            script,
         )
+        self.assertIn('runtime_image_platform "$cluster_name"', script)
+        self.assertIn('docker buildx build --builder default', script)
+        self.assertIn('docker save "--platform=$platform"', script)
         self.assertIn(
             '--build-arg "PYTHON_BASE=$base" --build-arg "KFP_VERSION=$version"',
             script,

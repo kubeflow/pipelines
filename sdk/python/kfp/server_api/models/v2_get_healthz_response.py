@@ -33,29 +33,90 @@ class V2GetHealthzResponse(object):
                             and the value is json key in definition.
     """
     openapi_types = {
+        'commit_sha': 'str',
+        'tag_name': 'str',
         'multi_user': 'bool',
-        'pipeline_store': 'str'
+        'pipeline_store': 'str',
+        'capabilities': 'V2DeploymentCapabilities'
     }
 
     attribute_map = {
+        'commit_sha': 'commit_sha',
+        'tag_name': 'tag_name',
         'multi_user': 'multi_user',
-        'pipeline_store': 'pipeline_store'
+        'pipeline_store': 'pipeline_store',
+        'capabilities': 'capabilities'
     }
 
-    def __init__(self, multi_user=None, pipeline_store=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, commit_sha=None, tag_name=None, multi_user=None, pipeline_store=None, capabilities=None, local_vars_configuration=None):  # noqa: E501
         """V2GetHealthzResponse - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
 
+        self._commit_sha = None
+        self._tag_name = None
         self._multi_user = None
         self._pipeline_store = None
+        self._capabilities = None
         self.discriminator = None
 
+        if commit_sha is not None:
+            self.commit_sha = commit_sha
+        if tag_name is not None:
+            self.tag_name = tag_name
         if multi_user is not None:
             self.multi_user = multi_user
         if pipeline_store is not None:
             self.pipeline_store = pipeline_store
+        if capabilities is not None:
+            self.capabilities = capabilities
+
+    @property
+    def commit_sha(self):
+        """Gets the commit_sha of this V2GetHealthzResponse.  # noqa: E501
+
+        API server build commit.  # noqa: E501
+
+        :return: The commit_sha of this V2GetHealthzResponse.  # noqa: E501
+        :rtype: str
+        """
+        return self._commit_sha
+
+    @commit_sha.setter
+    def commit_sha(self, commit_sha):
+        """Sets the commit_sha of this V2GetHealthzResponse.
+
+        API server build commit.  # noqa: E501
+
+        :param commit_sha: The commit_sha of this V2GetHealthzResponse.  # noqa: E501
+        :type commit_sha: str
+        """
+
+        self._commit_sha = commit_sha
+
+    @property
+    def tag_name(self):
+        """Gets the tag_name of this V2GetHealthzResponse.  # noqa: E501
+
+        API server build tag.  # noqa: E501
+
+        :return: The tag_name of this V2GetHealthzResponse.  # noqa: E501
+        :rtype: str
+        """
+        return self._tag_name
+
+    @tag_name.setter
+    def tag_name(self, tag_name):
+        """Sets the tag_name of this V2GetHealthzResponse.
+
+        API server build tag.  # noqa: E501
+
+        :param tag_name: The tag_name of this V2GetHealthzResponse.  # noqa: E501
+        :type tag_name: str
+        """
+
+        self._tag_name = tag_name
 
     @property
     def multi_user(self):
@@ -100,6 +161,27 @@ class V2GetHealthzResponse(object):
         """
 
         self._pipeline_store = pipeline_store
+
+    @property
+    def capabilities(self):
+        """Gets the capabilities of this V2GetHealthzResponse.  # noqa: E501
+
+
+        :return: The capabilities of this V2GetHealthzResponse.  # noqa: E501
+        :rtype: V2DeploymentCapabilities
+        """
+        return self._capabilities
+
+    @capabilities.setter
+    def capabilities(self, capabilities):
+        """Sets the capabilities of this V2GetHealthzResponse.
+
+
+        :param capabilities: The capabilities of this V2GetHealthzResponse.  # noqa: E501
+        :type capabilities: V2DeploymentCapabilities
+        """
+
+        self._capabilities = capabilities
 
     def to_dict(self):
         """Returns the model properties as a dict"""

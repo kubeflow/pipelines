@@ -66,8 +66,26 @@ service HealthzService {
 }
 
 message GetHealthzResponse {
+  // API server build commit.
+  string commit_sha = 1;
+  // API server build tag.
+  string tag_name = 2;
   // Returns whether KFP is in multi-user mode.
   bool multi_user = 3;
   // Returns the pipeline storage type (database or kubernetes)
   string pipeline_store = 4;
+  // Deployment restrictions. Absent capabilities on older servers do not
+  // disable existing client functionality.
+  DeploymentCapabilities capabilities = 5;
+}
+
+message DeploymentCapabilities {
+  // Recurring-run management requires the scheduled-workflow controller.
+  FeatureCapability recurring_runs = 1;
+}
+
+message FeatureCapability {
+  bool supported = 1;
+  // Explains the restriction when supported is false.
+  string reason = 2;
 }

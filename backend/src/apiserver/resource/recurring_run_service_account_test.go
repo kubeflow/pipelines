@@ -59,52 +59,63 @@ func configureRecurringRunAccountTest(t *testing.T) {
 	}
 }
 
-func TestCreateJobFollowLatestV2AuthorizesServiceAccount(t *testing.T) {
-	for _, permitted := range []bool{false, true} {
-		name := "denied"
-		if permitted {
-			name = "authorized"
-		}
-		t.Run(name, func(t *testing.T) {
-			configureRecurringRunAccountTest(t)
-			store, _, experiment := initWithExperiment(t)
-			defer store.Close()
-			review := &recurringRunAccountReview{}
-			if permitted {
-				review.allowedAccount = "embedded-runner"
-			}
-			store.SubjectAccessReviewClientFake = review
-			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-			pipeline, err := manager.CreatePipeline(createPipeline("schedule-pipeline", "", "ns1"))
-			require.NoError(t, err)
-			_, err = manager.CreatePipelineVersion(createPipelineVersion(
-				pipeline.UUID, "schedule-pipeline/v1", "v2", "", v2SpecHelloWorld, "", "ns1"))
-			require.NoError(t, err)
+func TestScheduledServiceAccountWithoutCompiledWorkflowUsesAuthorizedFallback(t *testing.T) {
+	account, err := scheduledServiceAccount(nil, "pipeline-runner")
+	require.NoError(t, err)
+	require.Equal(t, "pipeline-runner", account)
+}
 
-			job, err := manager.CreateJob(multiUserContext(), &model.Job{
-				DisplayName:    "follow-latest",
-				Namespace:      "ns1",
-				ExperimentId:   experiment.UUID,
-				Enabled:        true,
-				ServiceAccount: "embedded-runner",
-				PipelineSpec:   model.PipelineSpec{PipelineId: pipeline.UUID, RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
-			})
-			if !permitted {
-				require.ErrorContains(t, err, "Unauthorized")
-				require.Nil(t, job)
-			} else {
-				require.NoError(t, err)
-				stored, err := manager.GetJob(job.UUID)
-				require.NoError(t, err)
-				require.Equal(t, "embedded-runner", stored.ServiceAccount)
-				require.Empty(t, stored.PipelineVersionId, "the schedule must continue following the latest version")
+func TestCreateJobFollowLatestV2AuthorizesServiceAccount(t *testing.T) {
+	for _, runtime := range []string{"argo", "coordinator"} {
+		for _, permitted := range []bool{false, true} {
+			name := runtime + "/denied"
+			if permitted {
+				name = runtime + "/authorized"
 			}
-			require.NotEmpty(t, review.reviews)
-			last := review.reviews[len(review.reviews)-1]
-			require.Equal(t, authzv1.ResourceAttributes{
-				Verb: "use", Resource: "serviceaccounts", Name: "embedded-runner", Namespace: "ns1",
-			}, *last.Spec.ResourceAttributes)
-		})
+			t.Run(name, func(t *testing.T) {
+				if runtime == "coordinator" {
+					enableCoordinatorRuntimeModeForTest(t)
+				}
+				configureRecurringRunAccountTest(t)
+				store, _, experiment := initWithExperiment(t)
+				defer store.Close()
+				review := &recurringRunAccountReview{}
+				if permitted {
+					review.allowedAccount = "embedded-runner"
+				}
+				store.SubjectAccessReviewClientFake = review
+				manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+				pipeline, err := manager.CreatePipeline(createPipeline("schedule-pipeline", "", "ns1"))
+				require.NoError(t, err)
+				_, err = manager.CreatePipelineVersion(createPipelineVersion(
+					pipeline.UUID, "schedule-pipeline/v1", "v2", "", v2SpecHelloWorld, "", "ns1"))
+				require.NoError(t, err)
+
+				job, err := manager.CreateJob(multiUserContext(), &model.Job{
+					DisplayName:    "follow-latest",
+					Namespace:      "ns1",
+					ExperimentId:   experiment.UUID,
+					Enabled:        true,
+					ServiceAccount: "embedded-runner",
+					PipelineSpec:   model.PipelineSpec{PipelineId: pipeline.UUID, RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+				})
+				if !permitted {
+					require.ErrorContains(t, err, "Unauthorized")
+					require.Nil(t, job)
+				} else {
+					require.NoError(t, err)
+					stored, err := manager.GetJob(job.UUID)
+					require.NoError(t, err)
+					require.Equal(t, "embedded-runner", stored.ServiceAccount)
+					require.Empty(t, stored.PipelineVersionId, "the schedule must continue following the latest version")
+				}
+				require.NotEmpty(t, review.reviews)
+				last := review.reviews[len(review.reviews)-1]
+				require.Equal(t, authzv1.ResourceAttributes{
+					Verb: "use", Resource: "serviceaccounts", Name: "embedded-runner", Namespace: "ns1",
+				}, *last.Spec.ResourceAttributes)
+			})
+		}
 	}
 }
 

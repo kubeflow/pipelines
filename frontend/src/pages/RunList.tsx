@@ -30,6 +30,7 @@ import { commonCss } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import { Tooltip } from '@mui/material';
+import { BuildInfoContext, getRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -258,10 +259,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       ':' + RouteParams.recurringRunId,
       props.value.id || '',
     );
+    const label = props.value.displayName || '[View config]';
     return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
-        {props.value.displayName || '[View config]'}
-      </Link>
+      <BuildInfoContext.Consumer>
+        {(buildInfo) => {
+          const restriction = getRecurringRunsUnavailableReason(buildInfo);
+          return restriction ? (
+            <Tooltip title={restriction}>
+              <span aria-disabled='true'>{label}</span>
+            </Tooltip>
+          ) : (
+            <Link className={commonCss.link} onClick={(e) => e.stopPropagation()} to={url}>
+              {label}
+            </Link>
+          );
+        }}
+      </BuildInfoContext.Consumer>
     );
   };
 

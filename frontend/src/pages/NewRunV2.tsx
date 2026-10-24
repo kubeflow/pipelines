@@ -23,6 +23,8 @@ import {
   FormControlLabel,
   Radio,
   Checkbox,
+  Alert,
+  Tooltip,
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
@@ -65,6 +67,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { NewExperimentFC } from './functional_components/NewExperimentFC';
+import { useRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 const css = stylesheet({
   nonEditableInput: {
@@ -251,6 +254,7 @@ function NewRunV2(props: NewRunV2Props) {
     chosenExperiment,
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
+  const recurringRunsRestriction = useRecurringRunsUnavailableReason();
   const urlParser = new URLParser(props);
   const returnPath = getSafeReturnPath(urlParser.get(QUERY_PARAMS.returnTo));
   const [customRunName, setCustomRunName] = useState<string | null>(null);
@@ -408,11 +412,17 @@ function NewRunV2(props: NewRunV2Props) {
   });
   const newRecurringRunMutation = useMutation({
     mutationFn: (recurringRun: V2RecurringRun) => {
+      if (recurringRunsRestriction) {
+        throw new Error(recurringRunsRestriction);
+      }
       return Apis.recurringRunServiceApi.createRecurringRun(recurringRun);
     },
   });
 
   const startRun = async () => {
+    if (isRecurringRun && recurringRunsRestriction) {
+      return;
+    }
     const submittedIsRecurringRun = isRecurringRun;
 
     let newRun: V2Run = {
@@ -689,15 +699,21 @@ function NewRunV2(props: NewRunV2Props) {
               onChange={() => setIsRecurringRun(false)}
               checked={!isRecurringRun}
             />
-            <FormControlLabel
-              id='recurringToggle'
-              label='Recurring'
-              control={<Radio color='primary' />}
-              onChange={() => setIsRecurringRun(true)}
-              checked={isRecurringRun}
-            />
+            <Tooltip title={recurringRunsRestriction || ''}>
+              <span>
+                <FormControlLabel
+                  id='recurringToggle'
+                  label='Recurring'
+                  control={<Radio color='primary' />}
+                  disabled={!!recurringRunsRestriction}
+                  onChange={() => setIsRecurringRun(true)}
+                  checked={isRecurringRun}
+                />
+              </span>
+            </Tooltip>
           </>
         )}
+        {recurringRunsRestriction && <Alert severity='info'>{recurringRunsRestriction}</Alert>}
 
         {/* Recurring run controls */}
         {isRecurringRun && (
@@ -746,7 +762,7 @@ function NewRunV2(props: NewRunV2Props) {
         <div className={classes(commonCss.flex, padding(20, 'tb'))}>
           <BusyButton
             id='startNewRunBtn'
-            disabled={!isStartButtonEnabled}
+            disabled={!isStartButtonEnabled || (isRecurringRun && !!recurringRunsRestriction)}
             busy={isStartingNewRun}
             className={commonCss.buttonAction}
             title='Start'

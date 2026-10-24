@@ -588,6 +588,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                   layers={activeLayers}
                   pipelineJobString={pipelineJobStr}
                   runId={runId}
+                  executorType={run.executor_type}
                   element={activeSelectedNode}
                   elementRuntimeInfo={selectedNodeRuntimeInfo}
                   namespace={namespace}
@@ -758,6 +759,16 @@ function getDetailsFields(run?: V2Run): Array<KeyValue<string>> {
     ['Finished at', hasFinishedV2(run?.state) ? formatDateString(run?.finished_at) : '-'],
     ['Duration', hasFinishedV2(run?.state) ? getRunDurationV2(run) : '-'],
   ];
+
+  if (run?.executor_type) {
+    fields.push(['Executor', run.executor_type]);
+  }
+  if (run?.workspace_provisioner) {
+    fields.push(['Workspace provisioner', run.workspace_provisioner]);
+  }
+  if (run?.workspace_description) {
+    fields.push(['Workspace', run.workspace_description]);
+  }
 
   if (startDiffers) {
     const startedAtIndex = fields.findIndex((field) => field[0] === 'Started at');

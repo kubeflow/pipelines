@@ -9,7 +9,9 @@ package healthz_model
 import canonical "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/healthz_model"
 
 type (
-	GoogleRPCStatus           = canonical.GoogleRPCStatus
-	ProtobufAny               = canonical.ProtobufAny
-	V2beta1GetHealthzResponse = canonical.V2GetHealthzResponse
+	GoogleRPCStatus               = canonical.GoogleRPCStatus
+	ProtobufAny                   = canonical.ProtobufAny
+	V2beta1DeploymentCapabilities = canonical.V2DeploymentCapabilities
+	V2beta1FeatureCapability      = canonical.V2FeatureCapability
+	V2beta1GetHealthzResponse     = canonical.V2GetHealthzResponse
 )

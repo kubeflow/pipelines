@@ -23,7 +23,7 @@ import (
 	"time"
 
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
@@ -53,12 +53,11 @@ const (
 
 // These tests run against a deployment that opted in to image pull failure
 // handling (see manifests/kustomize/components/image-pull-failure-handling).
-// They verify the production contract end to end: the persistence agent
-// observes a workflow pod stuck pulling its image, the conditional merge patch
-// it sends is accepted by the API server, Argo finishes the workflow, and the
-// run is reported as failed with the image pull failure recorded on the
-// workflow. Overlays that leave the feature disabled skip these tests, unless
-// the job declares the feature expected (see imagePullFailureExpectedEnvVar).
+// They verify both production paths end to end: the persistence agent
+// terminates Argo Workflows with the failure annotations, and the Kubernetes
+// coordinator confirms termination and records the managed task's failure.
+// Overlays that leave the feature disabled skip these tests, unless the job
+// declares it expected (see imagePullFailureExpectedEnvVar).
 var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITIVE, constants.APIServerTests, "ImagePullFailure"), func() {
 	var diagnosticRunID string
 	var gracePeriod time.Duration
@@ -68,10 +67,10 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 		enabled, configuredGracePeriod := imagePullFailureHandlingConfig()
 		if !enabled {
 			if os.Getenv(imagePullFailureExpectedEnvVar) == "true" {
-				Fail(fmt.Sprintf("%s=true but %s is not \"true\" on the %s deployment: this job's overlay must opt in through manifests/kustomize/components/image-pull-failure-handling",
-					imagePullFailureExpectedEnvVar, imagePullFailureEnabledEnvVar, persistenceAgentDeploymentName))
+				Fail(fmt.Sprintf("%s=true but %s is not enabled on the selected execution backend deployment: this job's overlay must opt in through manifests/kustomize/components/image-pull-failure-handling",
+					imagePullFailureExpectedEnvVar, imagePullFailureEnabledEnvVar))
 			}
-			Skip("Image pull failure handling is not enabled on the persistence agent")
+			Skip("Image pull failure handling is not enabled for the selected execution backend")
 		}
 		gracePeriod = configuredGracePeriod
 	})
@@ -95,12 +94,11 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 		)
 		diagnosticRunID = createdRun.RunID
 
-		// WaitForRunToBeInState takes the timeout as a count of seconds.
-		waitTimeout := time.Duration((gracePeriod + imagePullFailureDetectionMargin) / time.Second)
+		waitTimeout := imagePullFailureWaitTimeout(gracePeriod)
 		testutil.WaitForRunToBeInState(
 			runClient,
 			&createdRun.RunID,
-			[]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateFAILED},
+			[]run_model.V2RuntimeState{run_model.V2RuntimeStateFAILED},
 			&waitTimeout,
 		)
 
@@ -112,6 +110,20 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 			LabelSelector: fmt.Sprintf("%s=%s", commonutil.LabelKeyWorkflowRunId, createdRun.RunID),
 		})
 		Expect(err).NotTo(HaveOccurred())
+		if testutil.ShouldUseCoordinatorRuntimeSelector() {
+			Expect(workflows.Items).To(BeEmpty(), "coordinator-managed runs must not create Argo workflows")
+			run := testutil.GetPipelineRun(runClient, &createdRun.RunID)
+			Expect(run.ExecutorType).To(Equal("kubernetes"))
+			Expect(run.Tasks).To(ContainElement(SatisfyAll(
+				HaveField("State", Equal(run_model.PipelineTaskTaskStateFAILED.Pointer())),
+				HaveField("StatusMetadata", Not(BeNil())),
+				HaveField("StatusMetadata.CustomProperties", SatisfyAll(
+					HaveKeyWithValue("terminationReason", commonutil.TerminationReasonImagePullFailure),
+					HaveKeyWithValue("failedImage", unpullableImage),
+				)),
+			)), "the task must retain the image-pull failure cause")
+			return
+		}
 		Expect(workflows.Items).To(HaveLen(1), "expected exactly one workflow for the run")
 		workflow := workflows.Items[0]
 
@@ -125,18 +137,28 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 	})
 })
 
-// imagePullFailureHandlingConfig reads the persistence agent deployment and
-// reports whether image pull failure handling is enabled and with which grace
-// period, so the test adapts to the deployment under test instead of assuming
-// a particular overlay.
+func imagePullFailureWaitTimeout(gracePeriod time.Duration) time.Duration {
+	return gracePeriod + imagePullFailureDetectionMargin
+}
+
+func imagePullFailureBackendDeployment(coordinator bool) (string, string) {
+	if coordinator {
+		return "ml-pipeline", "ml-pipeline-api-server"
+	}
+	return persistenceAgentDeploymentName, persistenceAgentDeploymentName
+}
+
+// imagePullFailureHandlingConfig reads the selected engine's deployment so the
+// test uses the grace period of the component that actually owns the workload.
 func imagePullFailureHandlingConfig() (bool, time.Duration) {
-	deployment, err := k8Client.AppsV1().Deployments(*config.Namespace).Get(context.Background(), persistenceAgentDeploymentName, metav1.GetOptions{})
-	Expect(err).NotTo(HaveOccurred(), "failed to read the persistence agent deployment")
+	deploymentName, containerName := imagePullFailureBackendDeployment(testutil.ShouldUseCoordinatorRuntimeSelector())
+	deployment, err := k8Client.AppsV1().Deployments(*config.Namespace).Get(context.Background(), deploymentName, metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred(), "failed to read the workload owner's deployment")
 
 	enabled := false
 	gracePeriod := imagePullFailureDefaultGracePeriod
 	for _, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name != persistenceAgentDeploymentName {
+		if container.Name != containerName {
 			continue
 		}
 		for _, envVar := range container.Env {

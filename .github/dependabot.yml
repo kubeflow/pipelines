@@ -156,6 +156,7 @@ updates:
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"
+      - "/local"
       - "/release"
       - "/samples/core/artifact_previews"
     schedule:

@@ -19,6 +19,7 @@ cluster_name=${1:?Usage: build-cache-fixture-image.sh CLUSTER_NAME OUTPUT_DIRECT
 output_directory=${2:?Usage: build-cache-fixture-image.sh CLUSTER_NAME OUTPUT_DIRECTORY}
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
+source .github/resources/scripts/helper-functions.sh
 
 nodes=$(kind get nodes --name "$cluster_name")
 if [[ -z "$nodes" ]]; then
@@ -26,6 +27,7 @@ if [[ -z "$nodes" ]]; then
   exit 1
 fi
 node=${nodes%%$'\n'*}
+platform=$(runtime_image_platform "$cluster_name")
 # Deployment already verified this exact preloaded base. Export it back to the
 # host so preparing the fixture cannot introduce another registry dependency.
 build_context=$(mktemp -d)
@@ -37,7 +39,7 @@ cp backend/test/v2/resources/cache-image/Dockerfile "$build_context/Dockerfile"
 matrix=$(python .github/resources/scripts/prepare_cache_fixtures.py --image-matrix)
 while read -r base version image; do
   archive="$build_context/base.tar"
-  docker exec "$node" ctr --namespace=k8s.io images export --platform linux/amd64 - "docker.io/library/$base" > "$archive"
+  docker exec "$node" ctr --namespace=k8s.io images export --platform "$platform" - "docker.io/library/$base" > "$archive"
   docker load --input "$archive"
   rm "$archive"
   mkdir -p "$build_context/wheels"
@@ -47,7 +49,14 @@ while read -r base version image; do
   DOCKER_BUILDKIT=0 docker build --network=none --pull=false \
     --build-arg "PYTHON_BASE=$base" --build-arg "KFP_VERSION=$version" \
     --file "$build_context/Dockerfile" --tag "$image" "$build_context"
-  kind load docker-image --name "$cluster_name" "$image"
+  # Classic builds lack platform metadata on Docker's containerd image store.
+  # Canonicalize through the local BuildKit driver before exporting to Kind.
+  printf 'FROM %s\n' "$image" | docker buildx build --builder default \
+    --platform "$platform" --provenance=false --sbom=false --load -t "$image" -
+  fixture_archive="$build_context/fixture.tar"
+  docker save "--platform=$platform" "$image" -o "$fixture_archive"
+  kind --name "$cluster_name" load image-archive "$fixture_archive"
+  rm "$fixture_archive"
   rm -rf "$build_context/wheels"
 done <<< "$matrix"
 # Reuse the readiness helper interpreter: its Kubernetes client installs PyYAML.

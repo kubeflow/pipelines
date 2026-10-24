@@ -68,6 +68,7 @@ type ArtifactTaskStoreInterface interface {
 }
 
 type ArtifactTaskStore struct {
+	lease     *leaseFence
 	dbDialect dialect.DBDialect
 	db        *sql.DB
 	uuid      util.UUIDGeneratorInterface
@@ -83,12 +84,28 @@ func NewArtifactTaskStore(db *sql.DB, uuid util.UUIDGeneratorInterface, d dialec
 }
 
 func (s *ArtifactTaskStore) CreateArtifactTask(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	if s.lease != nil {
+		tx, err := beginStoreMutation(s.db, s.lease)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		if err := checkLeaseLinks(tx, s.lease, []*model.ArtifactTask{artifactTask}); err != nil {
+			return nil, err
+		}
+		created, err := createArtifactTaskWithExecutor(tx.Exec, s.uuid, artifactTask, s.dbDialect)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		return created, nil
+	}
 	return createArtifactTaskWithExecutor(s.db.Exec, s.uuid, artifactTask, s.dbDialect)
 }
 
 func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error), uuid util.UUIDGeneratorInterface, artifactTask *model.ArtifactTask, d dialect.DBDialect) (*model.ArtifactTask, error) {
-	q := d.QuoteIdentifier
-	qb := d.QueryBuilder()
 	// Set up UUID for artifact-task relationship.
 	newArtifactTask := *artifactTask
 	if err := newArtifactTask.SyncIterationFromProducer(); err != nil {
@@ -100,6 +117,14 @@ func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error
 	}
 	newArtifactTask.UUID = id.String()
 
+	return insertArtifactTaskWithExecutor(exec, &newArtifactTask, d)
+}
+
+// insertArtifactTaskWithExecutor preserves a caller-supplied durable link ID.
+func insertArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error), artifactTask *model.ArtifactTask, d dialect.DBDialect) (*model.ArtifactTask, error) {
+	q := d.QuoteIdentifier
+	qb := d.QueryBuilder()
+	newArtifactTask := *artifactTask
 	// Serialize Producer to JSON if present
 	producerValue, err := newArtifactTask.Producer.Value()
 	if err != nil {
@@ -142,7 +167,7 @@ func (s *ArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactT
 		return []*model.ArtifactTask{}, nil
 	}
 
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to start transaction for creating artifact-tasks")
 	}
@@ -151,6 +176,9 @@ func (s *ArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactT
 			glog.Warningf("Failed to rollback artifact-task create transaction: %v", rbErr)
 		}
 	}()
+	if err := checkLeaseLinks(tx, s.lease, artifactTasks); err != nil {
+		return nil, err
+	}
 
 	var newArtifactTasks []*model.ArtifactTask
 	for _, artifactTask := range artifactTasks {
@@ -433,27 +461,30 @@ func (s *ArtifactTaskStore) GetArtifactTask(id string) (*model.ArtifactTask, err
 	return artifactTasks[0], nil
 }
 
+func outputArtifactTaskTypes() []model.IOType {
+	return []model.IOType{
+		model.IOType(apiv2.IOType_OUTPUT),
+		model.IOType(apiv2.IOType_ITERATOR_OUTPUT),
+		model.IOType(apiv2.IOType_ONE_OF_OUTPUT),
+		model.IOType(apiv2.IOType_TASK_FINAL_STATUS_OUTPUT),
+	}
+}
+
 func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if len(taskIDs) == 0 {
 		return nil
 	}
-	outputLinkTypes := []model.IOType{
-		model.IOType(apiv2.IOType_OUTPUT),
-		model.IOType(apiv2.IOType_ITERATOR_OUTPUT),
-		model.IOType(apiv2.IOType_ONE_OF_OUTPUT),
-		model.IOType(apiv2.IOType_TASK_FINAL_STATUS_OUTPUT),
-	}
 	sql, args, err := qb.
 		Delete(q(artifactTaskTableName)).
 		Where(sq.Eq{q("TaskID"): taskIDs}).
-		Where(sq.Eq{q("Type"): outputLinkTypes}).
+		Where(sq.Eq{q("Type"): outputArtifactTaskTypes()}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to delete output artifact-tasks: %v", err.Error())
 	}
-	if _, err := s.db.Exec(sql, args...); err != nil {
+	if _, err := execTaskLinkedMutation(s.db, s.lease, taskIDs, sql, args...); err != nil {
 		return util.NewInternalServerError(err, "Failed to delete output artifact-tasks: %v", err.Error())
 	}
 	return nil
@@ -482,7 +513,7 @@ func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) 
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to delete input artifact-tasks: %v", err.Error())
 	}
-	if _, err := s.db.Exec(sql, args...); err != nil {
+	if _, err := execTaskLinkedMutation(s.db, s.lease, taskIDs, sql, args...); err != nil {
 		return util.NewInternalServerError(err, "Failed to delete input artifact-tasks: %v", err.Error())
 	}
 	return nil

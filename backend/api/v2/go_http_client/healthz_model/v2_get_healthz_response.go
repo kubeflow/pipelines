@@ -4,9 +4,12 @@ package healthz_model
 
 import (
 	"context"
+	stderrors "errors"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag/jsonutils"
+	"github.com/go-openapi/swag/typeutils"
 )
 
 // V2GetHealthzResponse v2 get healthz response
@@ -14,20 +17,96 @@ import (
 // swagger:model v2GetHealthzResponse
 type V2GetHealthzResponse struct {
 
+	// Deployment restrictions. Absent capabilities on older servers do not
+	// disable existing client functionality.
+	Capabilities *V2DeploymentCapabilities `json:"capabilities,omitempty"`
+
+	// API server build commit.
+	CommitSha string `json:"commit_sha,omitempty"`
+
 	// Returns whether KFP is in multi-user mode.
 	MultiUser bool `json:"multi_user,omitempty"`
 
 	// Returns the pipeline storage type (database or kubernetes)
 	PipelineStore string `json:"pipeline_store,omitempty"`
+
+	// API server build tag.
+	TagName string `json:"tag_name,omitempty"`
 }
 
 // Validate validates this v2 get healthz response
-func (m *V2GetHealthzResponse) Validate(_ strfmt.Registry) error {
+func (m *V2GetHealthzResponse) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateCapabilities(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
 	return nil
 }
 
-// ContextValidate validates this v2 get healthz response based on context it is used
-func (m *V2GetHealthzResponse) ContextValidate(_ context.Context, _ strfmt.Registry) error {
+func (m *V2GetHealthzResponse) validateCapabilities(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.Capabilities) { // not required
+		return nil
+	}
+
+	if m.Capabilities != nil {
+		if err := m.Capabilities.Validate(formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("capabilities")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("capabilities")
+			}
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2 get healthz response based on the context it is used
+func (m *V2GetHealthzResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateCapabilities(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2GetHealthzResponse) contextValidateCapabilities(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Capabilities != nil {
+
+		if typeutils.IsZero(m.Capabilities) { // not required
+			return nil
+		}
+
+		if err := m.Capabilities.ContextValidate(ctx, formats); err != nil {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
+				return ve.ValidateName("capabilities")
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
+				return ce.ValidateName("capabilities")
+			}
+
+			return err
+		}
+	}
+
 	return nil
 }
 

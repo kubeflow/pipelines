@@ -41,6 +41,7 @@ type (
 	DeletePropagationPolicy                = canonical.DeletePropagationPolicy
 	DeleteRecurringRunRequest              = canonical.DeleteRecurringRunRequest
 	DeleteRunRequest                       = canonical.DeleteRunRequest
+	DeploymentCapabilities                 = canonical.DeploymentCapabilities
 	DisableRecurringRunRequest             = canonical.DisableRecurringRunRequest
 	DummyFilterServiceClient               = canonical.DummyFilterServiceClient
 	DummyFilterServiceServer               = canonical.DummyFilterServiceServer
@@ -49,6 +50,7 @@ type (
 	ExperimentServiceClient                = canonical.ExperimentServiceClient
 	ExperimentServiceServer                = canonical.ExperimentServiceServer
 	Experiment_StorageState                = canonical.Experiment_StorageState
+	FeatureCapability                      = canonical.FeatureCapability
 	Filter                                 = canonical.Filter
 	FindCachedTaskRequest                  = canonical.FindCachedTaskRequest
 	FindCachedTaskResponse                 = canonical.FindCachedTaskResponse

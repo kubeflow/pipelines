@@ -19,3 +19,4 @@ resources:
 
 patches:
 - path: persistence-agent-env-patch.yaml
+- path: apiserver-env-patch.yaml

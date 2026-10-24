@@ -293,7 +293,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			}
 		}
 
-		if needsWorkspaceMount(execution.ExecutorInput) {
+		if NeedsWorkspaceMount(execution.ExecutorInput) {
 			if opts.RunName == "" {
 				return execution, fmt.Errorf("failed to generate fingerprint: run name is required when workspace is used")
 			}

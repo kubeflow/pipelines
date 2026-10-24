@@ -100,6 +100,7 @@ export default class Buttons {
 
   public cloneRecurringRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
     this._map[ButtonKeys.CLONE_RECURRING_RUN] = {
+      requiresRecurringRuns: true,
       action: () => this._cloneRun(getSelectedIds(), true),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
@@ -159,6 +160,7 @@ export default class Buttons {
     useCurrentResource: boolean,
   ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
+      requiresRecurringRuns: resourceName === 'recurring run config',
       action: () =>
         resourceName === 'pipeline'
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
@@ -227,6 +229,7 @@ export default class Buttons {
 
   public disableRecurringRun(getId: () => string): Buttons {
     this._map[ButtonKeys.DISABLE_RECURRING_RUN] = {
+      requiresRecurringRuns: true,
       action: () => this._setRecurringRunEnabledState(getId(), false),
       disabled: true,
       disabledTitle: 'Run schedule already disabled',
@@ -239,6 +242,7 @@ export default class Buttons {
 
   public enableRecurringRun(getId: () => string): Buttons {
     this._map[ButtonKeys.ENABLE_RECURRING_RUN] = {
+      requiresRecurringRuns: true,
       action: () => this._setRecurringRunEnabledState(getId(), true),
       disabled: true,
       disabledTitle: 'Run schedule already enabled',
@@ -307,6 +311,7 @@ export default class Buttons {
 
   public newRecurringRunPrimary(experimentId: string): Buttons {
     this._map[ButtonKeys.NEW_RECURRING_RUN] = {
+      requiresRecurringRuns: true,
       action: () => this._createNewRun(true, experimentId),
       icon: AddIcon,
       id: 'createNewRecurringRunBtn',
@@ -321,6 +326,7 @@ export default class Buttons {
 
   public newRecurringRun(experimentId: string): Buttons {
     this._map[ButtonKeys.NEW_RECURRING_RUN] = {
+      requiresRecurringRuns: true,
       action: () => this._createNewRun(true, experimentId),
       icon: AddIcon,
       id: 'createNewRecurringRunBtn',

@@ -23,6 +23,20 @@ interface BuildInfoProviderState {
 }
 
 export const BuildInfoContext = React.createContext<BuildInfo | undefined>(undefined);
+
+/** Missing capability advertisements retain older servers' existing behavior. */
+export function getRecurringRunsUnavailableReason(
+  buildInfo: BuildInfo | undefined,
+): string | undefined {
+  const capability = buildInfo?.capabilities?.recurring_runs;
+  return capability?.supported === false
+    ? capability.reason || 'Recurring-run management is not supported by this deployment.'
+    : undefined;
+}
+
+export function useRecurringRunsUnavailableReason(): string | undefined {
+  return getRecurringRunsUnavailableReason(React.useContext(BuildInfoContext));
+}
 export class BuildInfoProvider extends React.Component<
   React.PropsWithChildren,
   BuildInfoProviderState

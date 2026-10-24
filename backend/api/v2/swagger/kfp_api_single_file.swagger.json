@@ -2874,9 +2874,38 @@
       "default": "OPERATION_UNSPECIFIED",
       "description": "Operation is the operation to apply.\n\n - OPERATION_UNSPECIFIED: Default operation. This operation is not used.\n - EQUALS: Operation on scalar values. Only applies to one of |int_value|,\n|long_value|, |string_value| or |timestamp_value|.\n - NOT_EQUALS: Negated EQUALS.\n - GREATER_THAN: Greater than operation.\n - GREATER_THAN_EQUALS: Greater than or equals operation.\n - LESS_THAN: Less than operation.\n - LESS_THAN_EQUALS: Less than or equals operation\n - IN: Checks if the value is a member of a given array, which should be one of\n|int_values|, |long_values| or |string_values|.\n - IS_SUBSTRING: Checks if the value contains |string_value| as a substring match. Only\napplies to |string_value|."
     },
+    "v2DeploymentCapabilities": {
+      "type": "object",
+      "properties": {
+        "recurring_runs": {
+          "$ref": "#/definitions/v2FeatureCapability",
+          "description": "Recurring-run management requires the scheduled-workflow controller."
+        }
+      }
+    },
+    "v2FeatureCapability": {
+      "type": "object",
+      "properties": {
+        "supported": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Explains the restriction when supported is false."
+        }
+      }
+    },
     "v2GetHealthzResponse": {
       "type": "object",
       "properties": {
+        "commit_sha": {
+          "type": "string",
+          "description": "API server build commit."
+        },
+        "tag_name": {
+          "type": "string",
+          "description": "API server build tag."
+        },
         "multi_user": {
           "type": "boolean",
           "description": "Returns whether KFP is in multi-user mode."
@@ -2884,6 +2913,10 @@
         "pipeline_store": {
           "type": "string",
           "title": "Returns the pipeline storage type (database or kubernetes)"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/v2DeploymentCapabilities",
+          "description": "Deployment restrictions. Absent capabilities on older servers do not\ndisable existing client functionality."
         }
       }
     },
@@ -3784,6 +3817,21 @@
         "namespace": {
           "type": "string",
           "description": "Optional input field. Namespace this run belongs to. Derived from the\nparent experiment when experiment_id is set. In multi-user mode with\nexperiment_id omitted, this selects the namespace whose default\nexperiment the run is placed in."
+        },
+        "executor_type": {
+          "type": "string",
+          "description": "Output only. Deployment-selected workload executor for this run.",
+          "readOnly": true
+        },
+        "workspace_provisioner": {
+          "type": "string",
+          "description": "Output only. Deployment-selected pipeline run workspace provisioner.",
+          "readOnly": true
+        },
+        "workspace_description": {
+          "type": "string",
+          "description": "Output only. Safe description of the pipeline run workspace, without\ninternal workspace references, filesystem paths, or credentials.",
+          "readOnly": true
         }
       }
     },

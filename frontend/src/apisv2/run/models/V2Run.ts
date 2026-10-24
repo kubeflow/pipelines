@@ -237,6 +237,25 @@ export interface V2Run {
    * @memberof V2Run
    */
   namespace?: string;
+  /**
+   * Output only. Deployment-selected workload executor for this run.
+   * @type {string}
+   * @memberof V2Run
+   */
+  readonly executor_type?: string;
+  /**
+   * Output only. Deployment-selected pipeline run workspace provisioner.
+   * @type {string}
+   * @memberof V2Run
+   */
+  readonly workspace_provisioner?: string;
+  /**
+   * Output only. Safe description of the pipeline run workspace, without
+   * internal workspace references, filesystem paths, or credentials.
+   * @type {string}
+   * @memberof V2Run
+   */
+  readonly workspace_description?: string;
 }
 
 /**
@@ -296,6 +315,11 @@ export function V2RunFromJSONTyped(json: any, ignoreDiscriminator: boolean): V2R
     tasks:
       json['tasks'] == null ? undefined : (json['tasks'] as Array<any>).map(V2PipelineTaskFromJSON),
     namespace: json['namespace'] == null ? undefined : json['namespace'],
+    executor_type: json['executor_type'] == null ? undefined : json['executor_type'],
+    workspace_provisioner:
+      json['workspace_provisioner'] == null ? undefined : json['workspace_provisioner'],
+    workspace_description:
+      json['workspace_description'] == null ? undefined : json['workspace_description'],
   };
 }
 
@@ -303,7 +327,10 @@ export function V2RunToJSON(json: any): V2Run {
   return V2RunToJSONTyped(json, false);
 }
 
-export function V2RunToJSONTyped(value?: V2Run | null, ignoreDiscriminator: boolean = false): any {
+export function V2RunToJSONTyped(
+  value?: Omit<V2Run, 'executor_type' | 'workspace_provisioner' | 'workspace_description'> | null,
+  ignoreDiscriminator: boolean = false,
+): any {
   if (value == null) {
     return value;
   }

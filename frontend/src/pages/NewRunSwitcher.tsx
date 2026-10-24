@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
-import { CircularProgress } from '@mui/material';
+import { Alert, CircularProgress } from '@mui/material';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
@@ -13,9 +13,11 @@ import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import { V2Run } from 'src/apisv2/run';
 import { V2RecurringRun } from 'src/apisv2/recurringrun';
 import { V2Experiment } from 'src/apisv2/experiment';
+import { useRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
+  const recurringRunsRestriction = useRecurringRunsUnavailableReason();
 
   const urlParser = new URLParser(props);
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
@@ -67,7 +69,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.recurringRunServiceApi.getRecurringRun(originalRecurringRunId);
     },
-    enabled: !!originalRecurringRunId && !hasConflictingCloneSources,
+    enabled: !!originalRecurringRunId && !hasConflictingCloneSources && !recurringRunsRestriction,
     staleTime: Infinity,
   });
 
@@ -172,6 +174,10 @@ function NewRunSwitcher(props: PageProps) {
   }, [firstQueryError, updateBanner]);
 
   const templateString = pipelineManifest ?? templateStrFromSpec;
+
+  if (originalRecurringRunId && recurringRunsRestriction) {
+    return <Alert severity='info'>{recurringRunsRestriction}</Alert>;
+  }
 
   if (
     v2RunIsFetching ||

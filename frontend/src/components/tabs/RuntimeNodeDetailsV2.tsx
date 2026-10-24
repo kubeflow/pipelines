@@ -118,6 +118,7 @@ interface RuntimeNodeDetailsV2Props {
   layers: string[];
   pipelineJobString?: string;
   runId?: string;
+  executorType?: string;
   element?: PipelineFlowElement | null;
   elementRuntimeInfo?: NodeRuntimeInfo | null;
   namespace?: string;
@@ -128,6 +129,7 @@ export function RuntimeNodeDetailsV2({
   layers,
   pipelineJobString,
   runId,
+  executorType,
   element,
   elementRuntimeInfo,
   namespace,
@@ -141,6 +143,7 @@ export function RuntimeNodeDetailsV2({
       <TaskNodeDetail
         pipelineJobString={pipelineJobString}
         runId={runId}
+        executorType={executorType}
         element={element}
         task={elementRuntimeInfo?.task}
         layers={layers}
@@ -175,6 +178,7 @@ export function RuntimeNodeDetailsV2({
 interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
+  executorType?: string;
   element?: PipelineFlowElement | null;
   task?: V2PipelineTask;
   layers: string[];
@@ -195,9 +199,14 @@ function getLatestTaskPod(
   return undefined;
 }
 
+function isCoordinatorExecutor(executorType?: string): boolean {
+  return executorType === 'docker' || executorType === 'kubernetes';
+}
+
 function TaskNodeDetail({
   pipelineJobString,
   runId,
+  executorType,
   element,
   task,
   layers,
@@ -205,12 +214,20 @@ function TaskNodeDetail({
   sourceFinished,
 }: TaskNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
+  const showSystemLogs = !isCoordinatorExecutor(executorType);
+  const activeTab = selectedTab === 3 && !showSystemLogs ? 2 : selectedTab;
+  const tabs = ['Input/Output', 'Task Details', 'Logs'];
+  if (showSystemLogs) {
+    tabs.push('System Logs');
+  }
   const executorPod = getLatestTaskPod(task, PipelineTaskTaskPodType.EXECUTOR);
   const driverPod = getLatestTaskPod(task, PipelineTaskTaskPodType.DRIVER);
   const executorLogsArtifact = task
     ? getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY)
     : undefined;
   const logsSourceIdentity = [
+    runId,
+    executorType,
     executorPod?.name,
     driverPod?.name,
     executorLogsArtifact?.artifact_id,
@@ -232,9 +249,9 @@ function TaskNodeDetail({
       if (!task) {
         throw new Error('No task is found.');
       }
-      return getLogsInfo(task, runId, namespace);
+      return getLogsInfo(task, runId, namespace, executorType);
     },
-    enabled: !!task && selectedTab === 2,
+    enabled: !!task && activeTab === 2,
     // Pod/artifact identity changes identify a new attempt or a newly available log source. Keep
     // the last readable output visible while that source is fetched instead of blanking the tab.
     placeholderData: (previousLogs, previousQuery) => {
@@ -261,7 +278,7 @@ function TaskNodeDetail({
       }
       return getDriverLogsInfo(driverLogUri, namespace);
     },
-    enabled: !!task && !!driverLogUri && selectedTab === 3,
+    enabled: !!task && !!driverLogUri && activeTab === 3,
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
@@ -276,19 +293,16 @@ function TaskNodeDetail({
   return (
     <div className={commonCss.page}>
       <LifecycleBanner task={task} sourceFinished={sourceFinished} />
-      <MD2Tabs
-        tabs={['Input/Output', 'Task Details', 'Logs', 'System Logs']}
-        selectedTab={selectedTab}
-        onSwitch={setSelectedTab}
-      />
+      {/* MD2Tabs initializes its label refs only on mount. */}
+      <MD2Tabs key={tabs.length} tabs={tabs} selectedTab={activeTab} onSwitch={setSelectedTab} />
       <div className={commonCss.page}>
-        {selectedTab === 0 &&
+        {activeTab === 0 &&
           (task ? (
             <RuntimeInputOutputTab task={task} namespace={namespace} />
           ) : (
             NODE_STATE_UNAVAILABLE
           ))}
-        {selectedTab === 1 && (
+        {activeTab === 1 && (
           <div className={padding(20)}>
             <RuntimeTaskDetails element={element} task={task} />
             <TaskPodsDetails pods={task?.pods} />
@@ -299,7 +313,7 @@ function TaskNodeDetail({
             />
           </div>
         )}
-        {selectedTab === 2 && (
+        {activeTab === 2 && (
           <LogsTabPanel
             details={logsDetails || undefined}
             bannerMessage={logsBannerMessage}
@@ -307,7 +321,7 @@ function TaskNodeDetail({
             bannerMode={logsDetails ? 'info' : 'error'}
           />
         )}
-        {selectedTab === 3 && (
+        {activeTab === 3 && (
           <LogsTabPanel
             details={systemLogsInfo?.get(LOGS_DETAILS)}
             bannerMessage={systemLogsInfo?.get(LOGS_BANNER_MESSAGE)}
@@ -548,14 +562,29 @@ export async function getDriverLogsInfo(
   return logsInfo;
 }
 
+/** Read managed task logs through the API server, retaining Pod/archive fallbacks for Argo. */
 export async function getLogsInfo(
   task: V2PipelineTask,
   runId?: string,
   namespace?: string,
+  executorType?: string,
 ): Promise<Map<string, string>> {
   const logsInfo = new Map<string, string>();
   if (task.state === PipelineTaskTaskState.CACHED) {
     logsInfo.set(LOGS_DETAILS, 'This step output is taken from cache.');
+    return logsInfo;
+  }
+
+  if (isCoordinatorExecutor(executorType)) {
+    try {
+      if (!runId || !task.task_id) {
+        throw new Error('Run and task IDs are required to retrieve task logs.');
+      }
+      logsInfo.set(LOGS_DETAILS, await Apis.getTaskLogs(runId, task.task_id));
+    } catch (error) {
+      logsInfo.set(LOGS_BANNER_MESSAGE, 'Failed to retrieve task logs.');
+      logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, `Error response: ${await errorToMessage(error)}`);
+    }
     return logsInfo;
   }
 

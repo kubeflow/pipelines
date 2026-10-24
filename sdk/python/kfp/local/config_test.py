@@ -14,6 +14,7 @@
 """Tests for config.py."""
 
 import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -85,6 +86,34 @@ class LocalRunnerConfigTest(unittest.TestCase):
 class TestInitCalls(unittest.TestCase):
     def setUp(self):
         config.LocalExecutionConfig.instance = None
+
+    def test_init_warns_without_starting_services_or_changing_configuration(
+        self,
+    ):
+        """Migration is explicit: existing calls retain their runner and paths."""
+        with tempfile.TemporaryDirectory() as root:
+            runner = local.SubprocessRunner()
+            with mock.patch('subprocess.Popen') as popen:
+                with self.assertWarnsRegex(FutureWarning, 'kfp local ui'):
+                    local.init(
+                        runner=runner,
+                        pipeline_root=root,
+                        workspace_root=root,
+                        raise_on_error=False,
+                        enable_caching=True,
+                    )
+                popen.assert_not_called()
+            self.assertIs(config.LocalExecutionConfig.instance.runner, runner)
+            self.assertEqual(
+                config.LocalExecutionConfig.instance.pipeline_root, root
+            )
+            self.assertEqual(
+                config.LocalExecutionConfig.instance.workspace_root, root
+            )
+            self.assertFalse(
+                config.LocalExecutionConfig.instance.raise_on_error
+            )
+            self.assertTrue(config.LocalExecutionConfig.instance.enable_caching)
 
     def test_init_more_than_once(self):
         """Tests config instance attributes with one init() call."""

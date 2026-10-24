@@ -40,6 +40,7 @@ import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { getNodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
+import { EXECUTOR_LOGS_ARTIFACT_KEY } from 'src/lib/v2/RuntimeArtifactUtils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -134,6 +135,60 @@ describe('RuntimeNodeDetailsV2', () => {
         ...overrides,
       });
     }
+
+    it.each(['docker', 'kubernetes'])(
+      'hides System Logs for the %s executor while retaining task logs',
+      async (executorType) => {
+        const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('unused driver logs');
+        const taskLogs = vi.spyOn(Apis, 'getTaskLogs').mockResolvedValue('managed task output');
+        renderTask(createSystemLogsTask(), { executorType });
+
+        expect(
+          screen.queryByRole('button', { name: 'System Logs', exact: true }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Input/Output', exact: true })).toBeVisible();
+        expect(screen.getByRole('button', { name: 'Task Details', exact: true })).toBeVisible();
+        fireEvent.click(screen.getByRole('button', { name: 'Logs', exact: true }));
+
+        expect(await screen.findByText('managed task output')).toBeVisible();
+        expect(taskLogs).toHaveBeenCalledWith(TEST_RUN_ID, TEST_TASK_ID);
+        expect(readFileSpy).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['docker', 'kubernetes'])(
+      'falls back to task logs when %s metadata hides the selected System Logs tab',
+      async (executorType) => {
+        vi.useFakeTimers();
+        const readFileSpy = vi
+          .spyOn(Apis, 'readFile')
+          .mockResolvedValueOnce('Argo system logs')
+          .mockResolvedValue('restored Argo system logs');
+        vi.spyOn(Apis, 'getTaskLogs').mockResolvedValue('managed task output');
+        const task = createSystemLogsTask(driverLogUri, {
+          state: PipelineTaskTaskState.RUNNING,
+        });
+        const view = renderTask(task);
+        fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+        await act(async () => vi.advanceTimersByTimeAsync(1));
+        expect(screen.getByText('Argo system logs')).toBeVisible();
+
+        view.rerender(taskView(task, { executorType }));
+        await act(async () => vi.advanceTimersByTimeAsync(1));
+        expect(
+          screen.queryByRole('button', { name: 'System Logs', exact: true }),
+        ).not.toBeInTheDocument();
+        expect(screen.getByText('managed task output')).toBeVisible();
+        expect(screen.queryByText('Argo system logs')).not.toBeInTheDocument();
+        await act(async () => vi.advanceTimersByTimeAsync(20_000));
+        expect(readFileSpy).toHaveBeenCalledTimes(1);
+
+        view.rerender(taskView(createSystemLogsTask('s3://pipeline-root/restored.txt')));
+        await act(async () => vi.advanceTimersByTimeAsync(1));
+        expect(screen.getByRole('button', { name: 'System Logs', exact: true })).toBeVisible();
+        expect(screen.getByText('restored Argo system logs')).toBeVisible();
+      },
+    );
 
     it('derives the driver log URI only from a non-empty string property', () => {
       expect(getDriverLogUri(createSystemLogsTask())).toBe(driverLogUri);
@@ -365,6 +420,79 @@ describe('RuntimeNodeDetailsV2', () => {
     });
   });
 
+  it.each(['docker', 'kubernetes'])(
+    'reads managed %s task logs without Pod metadata',
+    async (executorType) => {
+      const taskLogs = vi.spyOn(Apis, 'getTaskLogs').mockResolvedValue('managed task output');
+      const podLogs = vi.spyOn(Apis, 'getPodLogs');
+      renderTask(createTask({ pods: undefined }), { executorType });
+
+      expect(taskLogs).not.toHaveBeenCalled();
+      fireEvent.click(await screen.findByText('Logs'));
+
+      await waitFor(() => expect(taskLogs).toHaveBeenCalledWith(TEST_RUN_ID, TEST_TASK_ID));
+      expect(podLogs).not.toHaveBeenCalled();
+      expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeInTheDocument();
+    },
+  );
+
+  it('refetches logs through the task route when managed executor metadata becomes available', async () => {
+    const taskLogs = vi.spyOn(Apis, 'getTaskLogs').mockResolvedValue('managed task output');
+    const podLogs = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('legacy Pod output');
+    const task = createTask();
+    const view = renderTask(task);
+    fireEvent.click(await screen.findByText('Logs'));
+    await waitFor(() => expect(podLogs).toHaveBeenCalledOnce());
+
+    view.rerender(taskView(task, { executorType: 'docker' }));
+
+    await waitFor(() => expect(taskLogs).toHaveBeenCalledWith(TEST_RUN_ID, TEST_TASK_ID));
+    expect(podLogs).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [undefined, TEST_TASK_ID],
+    [TEST_RUN_ID, undefined],
+  ])('does not request managed logs without run/task scope (%s, %s)', async (runId, taskId) => {
+    const taskLogs = vi.spyOn(Apis, 'getTaskLogs');
+    const logs = await getLogsInfo(
+      createTask({ task_id: taskId, pods: undefined }),
+      runId,
+      TEST_NAMESPACE,
+      'docker',
+    );
+    expect(taskLogs).not.toHaveBeenCalled();
+    expect(logs.get(LOGS_BANNER_MESSAGE)).toBe('Failed to retrieve task logs.');
+  });
+
+  it('keeps failed managed task log requests on the run-scoped API route', async () => {
+    const taskLogs = vi
+      .spyOn(Apis, 'getTaskLogs')
+      .mockRejectedValue(new Error('Task does not belong to run'));
+    const podLogs = vi.spyOn(Apis, 'getPodLogs');
+    const readArtifact = vi.spyOn(Apis, 'readFile');
+    const logsInfo = await getLogsInfo(
+      createTask({
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: EXECUTOR_LOGS_ARTIFACT_KEY,
+              artifacts: [{ uri: 'file:///private/task-logs', name: EXECUTOR_LOGS_ARTIFACT_KEY }],
+            },
+          ],
+        },
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+      'docker',
+    );
+
+    expect(logsInfo.get(LOGS_BANNER_MESSAGE)).toBe('Failed to retrieve task logs.');
+    expect(taskLogs).toHaveBeenCalledWith(TEST_RUN_ID, TEST_TASK_ID);
+    expect(podLogs).not.toHaveBeenCalled();
+    expect(readArtifact).not.toHaveBeenCalled();
+  });
+
   it('shows an error when pod logs and the native artifact fallback are unavailable', async () => {
     const getPodLogsSpy = vi
       .spyOn(Apis, 'getPodLogs')
@@ -571,6 +699,26 @@ describe('RuntimeNodeDetailsV2', () => {
     await act(async () => vi.advanceTimersByTimeAsync(20_000));
     expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
+  });
+
+  it('polls managed task logs and fetches final output when the parent run completes', async () => {
+    vi.useFakeTimers();
+    const taskLogs = vi.spyOn(Apis, 'getTaskLogs').mockResolvedValue('task output');
+    const task = createTask({ state: PipelineTaskTaskState.RUNNING, pods: undefined });
+    const view = renderTask(task, { executorType: 'docker' });
+
+    fireEvent.click(screen.getByText('Logs'));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(taskLogs).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(taskLogs).toHaveBeenCalledTimes(2);
+
+    view.rerender(taskView(task, { executorType: 'docker', sourceFinished: true }));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(taskLogs).toHaveBeenCalledTimes(3);
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(taskLogs).toHaveBeenCalledTimes(3);
   });
 
   it('falls back to the native executor-logs artifact when pod logs fail', async () => {

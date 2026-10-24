@@ -16,6 +16,7 @@ package util
 
 import (
 	"math"
+	"sync"
 	"testing"
 	"time"
 
@@ -57,6 +58,20 @@ func TestNewFakeTimeForEpoch(t *testing.T) {
 
 	secondCall := fakeTime.Now()
 	assert.Equal(t, time.Unix(2, 0).UTC(), secondCall)
+}
+
+func TestFakeTimeConcurrent(t *testing.T) {
+	clock := NewFakeTimeForEpoch()
+	var workers sync.WaitGroup
+	for index := 0; index < 20; index++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			clock.Now()
+		}()
+	}
+	workers.Wait()
+	assert.Equal(t, int64(21), clock.Now().Unix())
 }
 
 func TestFormatTimeForLogging(t *testing.T) {

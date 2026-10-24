@@ -165,7 +165,7 @@ func (s *JobStore) ClaimRecurringRun(jobID, requestKey string, expectedIndex, sc
 
 // completeRecurringRunWithInsert makes the completed-tick tombstone atomic with
 // run persistence, so deleting a persisted run cannot reopen its pending claim.
-func (s *RunStore) completeRecurringRunWithInsert(tx *sql.Tx, run *model.Run) error {
+func (s *RunStore) completeRecurringRunWithInsert(tx sqlTransaction, run *model.Run) error {
 	if run.RecurringRunId == "" {
 		return nil
 	}

@@ -366,6 +366,19 @@ func TestInitConfig(t *testing.T) {
 
 // Subtests must not run in parallel: they mutate package-level flags.
 func TestRegisterHTTPHandlerFromEndpoint(t *testing.T) {
+	t.Run("preserves a loopback RPC bind address", func(t *testing.T) {
+		previous := *rpcPortFlag
+		*rpcPortFlag = "127.0.0.1:3003"
+		t.Cleanup(func() { *rpcPortFlag = previous })
+		var captured string
+		handler := func(_ context.Context, _ *runtime.ServeMux, endpoint string, _ []grpc.DialOption) error {
+			captured = endpoint
+			return nil
+		}
+		require.NoError(t, registerHTTPHandlerFromEndpoint(context.Background(), handler, "LocalService", runtime.NewServeMux(), nil))
+		require.Equal(t, "127.0.0.1:3003", captured)
+	})
+
 	t.Run("success without TLS", func(t *testing.T) {
 		handler := func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error {
 			return nil
@@ -863,6 +876,7 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 			wantV2Store:   true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			viper.Reset()
@@ -892,6 +906,29 @@ func TestBuildHTTPRouter_HealthzResponses(t *testing.T) {
 			if tt.wantV2Store {
 				assert.Equal(t, tt.pipelineStore, pipelineStoreValue)
 			}
+		})
+	}
+}
+
+func TestHealthzDeploymentCapabilities(t *testing.T) {
+	for _, path := range []string{"/apis/v2/healthz", "/apis/v2beta1/healthz"} {
+		t.Run(path, func(t *testing.T) {
+			viper.Set("SCHEDULED_WORKFLOW_CONTROLLER_ENABLED", false)
+			t.Cleanup(func() { viper.Set("SCHEDULED_WORKFLOW_CONTROLLER_ENABLED", nil) })
+			router := buildHTTPRouter(newNoOpHTTPRouterDeps(), http.NotFoundHandler(), "database")
+			recorder := httptest.NewRecorder()
+			router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, path, nil))
+			require.Equal(t, http.StatusOK, recorder.Code)
+			var body map[string]any
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+			require.Equal(t, map[string]any{"recurring_runs": map[string]any{
+				"supported": false,
+				"reason":    "The scheduled-workflow controller is not enabled.",
+			}}, body["capabilities"])
+			require.Contains(t, body, "commit_sha")
+			require.Contains(t, body, "tag_name")
+			require.Contains(t, body, "multi_user")
+			require.Equal(t, "database", body["pipeline_store"])
 		})
 	}
 }

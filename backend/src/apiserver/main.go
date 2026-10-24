@@ -26,9 +26,11 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc/credentials"
@@ -57,6 +59,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -87,6 +91,9 @@ var (
 	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
 	disableWebhook                = flag.Bool("disableWebhook", false, "Set this if pipelinesStoreKubernetes is on but using a global webhook in a separate pod")
 	globalKubernetesWebhookMode   = flag.Bool("globalKubernetesWebhookMode", false, "Set this to run exclusively in Kubernetes Webhook mode")
+	runtimeCleanup                = flag.Bool("runtimeCleanup", false, "Reconcile terminal coordinator resources offline, without starting servers or a worker")
+	runtimeCleanupKeepWorkspaces  = flag.Bool("runtimeCleanupKeepWorkspaces", false, "Retain run workspaces during offline cleanup")
+	runtimeCleanupTimeout         = flag.Duration("runtimeCleanupTimeout", 2*time.Minute, "Maximum duration of offline runtime cleanup")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -201,6 +208,12 @@ func main() {
 
 	if err := initConfig(); err != nil {
 		glog.Fatalf("Failed to initialize config: %v", err)
+	}
+	if *runtimeCleanup {
+		if err := cleanupRuntimeCommand(signals.SetupSignalHandler()); err != nil {
+			glog.Exitf("Runtime cleanup failed: %v", err)
+		}
+		return
 	}
 	if _, err := common.GetPipelineSizeLimits(); err != nil {
 		glog.Fatalf("Failed to initialize pipeline size limits: %v", err)
@@ -318,13 +331,16 @@ func main() {
 		}
 	}
 
-	wg.Add(1)
-	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	if clientManager.SwfClient() != nil {
+		wg.Add(1)
+		go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	}
 
 	// Start run GC when a retention window is configured. The collector
 	// re-validates the required database index on every tick and skips
 	// collection until the operator has applied the index migration.
-	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+	if clientManager.KubernetesCoreClient() != nil &&
+		(common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) {
 		runGC := gc.NewRunGarbageCollector(
 			clientManager.RunStore(),
 			clientManager.KubernetesCoreClient().GetClientSet(),
@@ -338,11 +354,50 @@ func main() {
 		}()
 	}
 
+	if resourceManager.CoordinatorRuntimeEnabled() {
+		if err := resourceManager.StartCoordinatorRuntime(backgroundCtx); err != nil {
+			glog.Fatalf("Failed to start coordinator runtime: %v", err)
+		}
+		if common.GetBoolConfigWithDefault(common.V2RuntimeAutoExecute, true) {
+			if err := resourceManager.ReconcileManagedRuns(backgroundCtx); err != nil {
+				glog.Fatalf("Failed to reconcile coordinator runtime: %v", err)
+			}
+		}
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := resourceManager.ShutdownCoordinatorRuntime(ctx); err != nil {
+				glog.Errorf("Failed to shut down coordinator runtime: %v", err)
+			}
+		}()
+	}
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
 	backgroundCancel()
 	wg.Wait()
+}
+
+func cleanupRuntimeCommand(parent context.Context) error {
+	if *runtimeCleanupTimeout <= 0 {
+		return fmt.Errorf("runtimeCleanupTimeout must be positive")
+	}
+	if common.GetStringConfig(common.V2RuntimeMode) != "coordinator-poc" {
+		return fmt.Errorf("cleanup requires KFP_V2_RUNTIME_MODE=coordinator-poc")
+	}
+	if *usePipelinesKubernetesStorage || *globalKubernetesWebhookMode {
+		return fmt.Errorf("offline runtime cleanup cannot start pipeline storage controllers or webhooks; disable those flags")
+	}
+	ctx, cancel := context.WithTimeout(parent, *runtimeCleanupTimeout)
+	defer cancel()
+	clientManager, err := cm.NewClientManager(&cm.Options{Context: ctx, WaitGroup: &sync.WaitGroup{}})
+	if err != nil {
+		return fmt.Errorf("initialize cleanup stores: %w", err)
+	}
+	defer clientManager.Close()
+	manager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{})
+	result, cleanupErr := manager.CleanupCoordinatorRuntime(ctx, *runtimeCleanupKeepWorkspaces)
+	return errors.Join(cleanupErr, json.NewEncoder(os.Stdout).Encode(result))
 }
 
 func reconcileSwfCrs(resourceManager *resource.ResourceManager, ctx context.Context, wg *sync.WaitGroup) {
@@ -540,15 +595,9 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	glog.Info("Http Proxy started")
 }
 
-type healthzResponse struct {
-	CommitSHA     string `json:"commit_sha"`
-	TagName       string `json:"tag_name"`
-	MultiUser     bool   `json:"multi_user"`
-	PipelineStore string `json:"pipeline_store,omitempty"`
-}
-
-func writeJSONResponse(w http.ResponseWriter, payload any) {
-	responseBody, err := json.Marshal(payload)
+func writeJSONResponse(w http.ResponseWriter, payload proto.Message) {
+	// Explicit false values are essential for capability discovery.
+	responseBody, err := (protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}).Marshal(payload)
 	if err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		return
@@ -559,12 +608,17 @@ func writeJSONResponse(w http.ResponseWriter, payload any) {
 	}
 }
 
-func newHealthzResponse(pipelineStore string) healthzResponse {
-	return healthzResponse{
-		CommitSHA:     common.GetStringConfigWithDefault("COMMIT_SHA", "unknown"),
+func newHealthzResponse(pipelineStore string) *apiv2.GetHealthzResponse {
+	recurringRuns := &apiv2.FeatureCapability{Supported: common.IsScheduledWorkflowControllerEnabled()}
+	if !recurringRuns.Supported {
+		recurringRuns.Reason = common.RecurringRunsUnavailableReason
+	}
+	return &apiv2.GetHealthzResponse{
+		CommitSha:     common.GetStringConfigWithDefault("COMMIT_SHA", "unknown"),
 		TagName:       common.GetStringConfigWithDefault("TAG_NAME", "unknown"),
 		MultiUser:     common.IsMultiUserMode(),
 		PipelineStore: pipelineStore,
+		Capabilities:  &apiv2.DeploymentCapabilities{RecurringRuns: recurringRuns},
 	}
 }
 
@@ -691,7 +745,15 @@ func resolveWebhookTLSPaths(webhookCert, webhookKey, serverCert, serverKey strin
 }
 
 func registerHTTPHandlerFromEndpoint(ctx context.Context, handler RegisterHttpHandlerFromEndpoint, serviceName string, mux *runtime.ServeMux, tlsCfg *tls.Config) error {
-	endpoint := "localhost" + *rpcPortFlag
+	host, port, err := net.SplitHostPort(*rpcPortFlag)
+	if err != nil {
+		return fmt.Errorf("invalid RPC listener address: %w", err)
+	}
+	ip := net.ParseIP(host)
+	if host == "" || (ip != nil && ip.IsUnspecified()) {
+		host = "localhost"
+	}
+	endpoint := net.JoinHostPort(host, port)
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),

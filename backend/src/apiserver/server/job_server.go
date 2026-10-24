@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"errors"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -83,6 +84,15 @@ type BaseJobServer struct {
 type JobServer struct {
 	*BaseJobServer
 	apiv2.UnimplementedRecurringRunServiceServer
+}
+
+func checkRecurringRunsSupported() error {
+	if !common.IsScheduledWorkflowControllerEnabled() {
+		return util.NewFailedPreconditionError(errors.New("scheduled-workflow controller is not enabled"),
+			"Recurring-run management is unavailable. %s Enable the controller and set %s=true to manage recurring runs.",
+			common.RecurringRunsUnavailableReason, common.ScheduledWorkflowControllerEnabled)
+	}
+	return nil
 }
 
 func (s *BaseJobServer) createJob(ctx context.Context, job *model.Job) (*model.Job, error) {
@@ -198,6 +208,9 @@ func (s *JobServer) CreateRecurringRun(ctx context.Context, request *apiv2.Creat
 	if s.options.CollectMetrics {
 		createJobRequests.Inc()
 	}
+	if err := checkRecurringRunsSupported(); err != nil {
+		return nil, err
+	}
 
 	modelJob, err := toModelJob(request.GetRecurringRun())
 	if err != nil {
@@ -227,6 +240,9 @@ func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2.GetRecur
 	if s.options.CollectMetrics {
 		getJobRequests.Inc()
 	}
+	if err := checkRecurringRunsSupported(); err != nil {
+		return nil, err
+	}
 	recurringRun, err := s.getJob(ctx, request.GetRecurringRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to fetch a recurring run")
@@ -243,6 +259,9 @@ func (s *JobServer) GetRecurringRun(ctx context.Context, request *apiv2.GetRecur
 func (s *JobServer) ListRecurringRuns(ctx context.Context, r *apiv2.ListRecurringRunsRequest) (*apiv2.ListRecurringRunsResponse, error) {
 	if s.options.CollectMetrics {
 		listJobRequests.Inc()
+	}
+	if err := checkRecurringRunsSupported(); err != nil {
+		return nil, err
 	}
 
 	opts, err := validatedListOptions(&model.Job{}, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), r.GetFilter())
@@ -269,6 +288,9 @@ func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2.Enabl
 	if s.options.CollectMetrics {
 		enableJobRequests.Inc()
 	}
+	if err := checkRecurringRunsSupported(); err != nil {
+		return nil, err
+	}
 	err := s.enableJob(ctx, request.GetRecurringRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to enable a recurring run")
@@ -279,6 +301,9 @@ func (s *JobServer) EnableRecurringRun(ctx context.Context, request *apiv2.Enabl
 func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2.DisableRecurringRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		disableJobRequests.Inc()
+	}
+	if err := checkRecurringRunsSupported(); err != nil {
+		return nil, err
 	}
 
 	err := s.disableJob(ctx, request.GetRecurringRunId())
@@ -291,6 +316,9 @@ func (s *JobServer) DisableRecurringRun(ctx context.Context, request *apiv2.Disa
 func (s *JobServer) DeleteRecurringRun(ctx context.Context, request *apiv2.DeleteRecurringRunRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteJobRequests.Inc()
+	}
+	if err := checkRecurringRunsSupported(); err != nil {
+		return nil, err
 	}
 	err := s.deleteJob(ctx, request.GetRecurringRunId(), request.GetPropagationPolicy())
 	if err != nil {

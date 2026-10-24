@@ -4,7 +4,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"maps"
 	"sort"
 	"strings"
 	"time"
@@ -56,7 +55,7 @@ func CreatePipelineRunPayload(runName string, runDescription string, pipelineID 
 			PipelineVersionID: testutil.ParsePointersToString(pipelineVersionID),
 		},
 		RuntimeConfig: &run_model.V2RuntimeConfig{
-			Parameters: inputParams,
+			Parameters: testutil.MaybeWithCoordinatorRuntimeSelector(inputParams),
 		},
 	}
 }
@@ -66,7 +65,7 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Cli
 	logger.Log("Create run for pipeline with id: '%s' and name: '%s'", pipelineID, pipelineDisplayName)
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
-	timeout := time.Duration(maxPipelineWaitTime)
+	timeout := runWaitTimeout(maxPipelineWaitTime)
 	var checks []func() error
 	if k8Client != nil {
 		checks = append(checks, testutil.NewRunImagePullCheck(k8Client, testutil.GetNamespace(), uploadedPipelineRun.RunID))
@@ -75,8 +74,28 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Cli
 	return uploadedPipelineRun.RunID
 }
 
+func runWaitTimeout(maxPipelineWaitTime int) time.Duration {
+	return time.Duration(maxPipelineWaitTime) * time.Second
+}
+
+// CreateCoordinatorPipelineRunAndWaitForItToFinish creates a run that explicitly
+// opts into the coordinator-managed runtime and waits for it to finish.
+func CreateCoordinatorPipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Client kubernetes.Interface, testContext *apitests.TestContext, pipelineID string, pipelineDisplayName string, pipelineVersionID *string, experimentID *string, runTimeParams map[string]interface{}, maxPipelineWaitTime int) string {
+	return CreatePipelineRunAndWaitForItToFinish(
+		runClient,
+		k8Client,
+		testContext,
+		pipelineID,
+		pipelineDisplayName,
+		pipelineVersionID,
+		experimentID,
+		testutil.WithCoordinatorRuntimeSelector(runTimeParams),
+		maxPipelineWaitTime,
+	)
+}
+
 // ValidateComponentStatuses - Validate that all the components of a pipeline run ran successfully
-func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow) {
+func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow, authToken string) {
 	logger.Log("Fetching updated pipeline run details for run with id=%s", runID)
 	updatedRun := testutil.GetPipelineRun(runClient, &runID)
 	actualTasks := updatedRun.Tasks
@@ -93,7 +112,7 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	} else {
 		if *updatedRun.State != run_model.V2RuntimeStateSUCCEEDED {
 			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
-			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTasks)
+			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTasks, authToken)
 			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
 		} else {
 			logger.Log("Pipeline run succeeded, checking if the number of tasks are what is expected")
@@ -104,7 +123,7 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 }
 
 // CapturePodLogsForUnsuccessfulTasks - Capture pod logs of a failed component
-func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, tasks []*run_model.V2PipelineTask) {
+func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testContext *apitests.TestContext, tasks []*run_model.V2PipelineTask, authToken string) {
 	failedTasks := make(map[string]string)
 	capturedPods := make(map[string]bool)
 	sort.Slice(tasks, func(i, j int) bool {
@@ -129,6 +148,20 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 			case run_model.PipelineTaskTaskStateFAILED:
 				{
 					logger.Log("%s - Task %s for Run %s did not complete successfully", *task.State, task.DisplayName, task.RunID)
+					if task.StatusMetadata != nil {
+						logger.Log("Failure diagnostics for task %s: %s", task.DisplayName, task.StatusMetadata.Message)
+						ginkgo.AddReportEntry(fmt.Sprintf("Failure metadata for %s", task.DisplayName), task.StatusMetadata)
+					}
+					if testutil.ShouldUseCoordinatorRuntimeSelector() && task.TaskID != "" && len(task.Pods) > 0 {
+						logs, err := testutil.ReadRunLog(context.Background(), task.RunID, task.TaskID, authToken)
+						if err == nil {
+							ginkgo.AddReportEntry(fmt.Sprintf("Retained task logs for %s", task.DisplayName), logs)
+							failedTasks[task.DisplayName] = string(*task.State)
+							continue
+						}
+						logger.Log("Failed to retrieve retained logs for task %s: %v", task.DisplayName, err)
+						ginkgo.AddReportEntry(fmt.Sprintf("Task log retrieval error for %s", task.DisplayName), fmt.Sprintf("%v\n%s", err, logs))
+					}
 					for _, pod := range task.Pods {
 						if pod == nil || pod.Name == "" || capturedPods[pod.Name] {
 							continue
@@ -152,7 +185,7 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 		}
 	}
 	if len(failedTasks) > 0 {
-		logger.Log("Found failed tasks: %v", maps.Keys(failedTasks))
+		logger.Log("Found failed tasks: %v", failedTasks)
 	}
 }
 

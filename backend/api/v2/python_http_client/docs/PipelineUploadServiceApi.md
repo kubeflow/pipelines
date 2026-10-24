@@ -4,8 +4,8 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload | 
-[**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version | 
+[**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload |
+[**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version |
 
 
 # **upload_pipeline**
@@ -66,13 +66,13 @@ code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
- **name** | **str**|  | [optional] 
- **display_name** | **str**|  | [optional] 
- **description** | **str**|  | [optional] 
- **namespace** | **str**|  | [optional] 
- **tags** | **str**| JSON-encoded map of key-value pairs for pipeline tags. | [optional] 
- **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
+ **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. |
+ **name** | **str**|  | [optional]
+ **display_name** | **str**|  | [optional]
+ **description** | **str**|  | [optional]
+ **namespace** | **str**|  | [optional]
+ **tags** | **str**| JSON-encoded map of key-value pairs for pipeline tags. | [optional]
+ **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional]
 
 ### Return type
 
@@ -153,13 +153,13 @@ code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
- **name** | **str**|  | [optional] 
- **display_name** | **str**|  | [optional] 
- **pipelineid** | **str**|  | [optional] 
- **description** | **str**|  | [optional] 
- **tags** | **str**| JSON-encoded map of key-value pairs for pipeline version tags. | [optional] 
- **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
+ **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. |
+ **name** | **str**|  | [optional]
+ **display_name** | **str**|  | [optional]
+ **pipelineid** | **str**|  | [optional]
+ **description** | **str**|  | [optional]
+ **tags** | **str**| JSON-encoded map of key-value pairs for pipeline version tags. | [optional]
+ **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional]
 
 ### Return type
 
@@ -181,4 +181,3 @@ Name | Type | Description  | Notes
 **0** |  |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

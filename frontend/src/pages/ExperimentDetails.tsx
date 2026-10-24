@@ -31,6 +31,7 @@ import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Navigate } from 'react-router';
 import { V2RunStorageState } from 'src/apisv2/run';
 import { V2RecurringRunStatus } from 'src/apisv2/recurringrun';
+import { BuildInfoContext, getRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 import { Button, Dialog, DialogActions, DialogContent, Paper, Tooltip } from '@mui/material';
 
@@ -108,6 +109,9 @@ interface ExperimentDetailsState {
 }
 
 export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
+  static contextType = BuildInfoContext;
+  declare context: React.ContextType<typeof BuildInfoContext>;
+
   constructor(props: any) {
     super(props);
 
@@ -150,6 +154,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public render(): React.JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
+    const recurringRunsRestriction = getRecurringRunsUnavailableReason(this.context);
     const description = experiment ? experiment.description || '' : '';
 
     return (
@@ -173,6 +178,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                       className={css.cardBtn}
                       id='manageExperimentRecurringRunsBtn'
                       disableRipple={true}
+                      disabled={!!recurringRunsRestriction}
                       onClick={() => this.setState({ recurringRunsManagerOpen: true })}
                     >
                       Manage
@@ -184,7 +190,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                       !!activeRecurringRunsCount && css.recurringRunsActive,
                     )}
                   >
-                    {activeRecurringRunsCount + ' active'}
+                    {recurringRunsRestriction || activeRecurringRunsCount + ' active'}
                   </div>
                 </div>
               </Paper>
@@ -238,7 +244,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             />
 
             <Dialog
-              open={this.state.recurringRunsManagerOpen}
+              open={this.state.recurringRunsManagerOpen && !recurringRunsRestriction}
               classes={{ paper: css.recurringRunsDialog }}
               onClose={this._recurringRunsManagerClosed.bind(this)}
             >
@@ -318,26 +324,28 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       let activeRecurringRunsCount = -1;
 
       // Fetch this experiment's jobs
-      try {
-        // TODO: get ALL jobs in the experiment
-        const recurringRuns = await Apis.recurringRunServiceApi.listRecurringRuns(
-          undefined,
-          100,
-          '',
-          undefined,
-          undefined,
-          experimentId,
-        );
-        activeRecurringRunsCount = (recurringRuns.recurringRuns || []).filter(
-          (rr) => rr.status === V2RecurringRunStatus.ENABLED,
-        ).length;
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(await errorToMessage(err));
-        await this.showPageError(
-          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
-          error,
-        );
-        logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
+      if (!getRecurringRunsUnavailableReason(this.context)) {
+        try {
+          // TODO: get ALL jobs in the experiment
+          const recurringRuns = await Apis.recurringRunServiceApi.listRecurringRuns(
+            undefined,
+            100,
+            '',
+            undefined,
+            undefined,
+            experimentId,
+          );
+          activeRecurringRunsCount = (recurringRuns.recurringRuns || []).filter(
+            (rr) => rr.status === V2RecurringRunStatus.ENABLED,
+          ).length;
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+          await this.showPageError(
+            `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
+            error,
+          );
+          logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
+        }
       }
 
       let runlistRefreshCount = this.state.runlistRefreshCount + 1;

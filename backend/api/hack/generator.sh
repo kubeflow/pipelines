@@ -22,7 +22,7 @@ fi
 
 set -ex
 
-export TMP_OUTPUT=/tmp
+export TMP_OUTPUT="${TMP_OUTPUT:-/tmp}"
 API_VERSION=$API_VERSION
 echo ${PROTOCCOMPILER}
 

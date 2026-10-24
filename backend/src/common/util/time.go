@@ -16,6 +16,7 @@ package util
 
 import (
 	"math"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -36,6 +37,7 @@ func (r *RealTime) Now() time.Time {
 }
 
 type FakeTime struct {
+	mu  sync.Mutex
 	now time.Time
 }
 
@@ -52,6 +54,8 @@ func NewFakeTimeForEpoch() TimeInterface {
 }
 
 func (f *FakeTime) Now() time.Time {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.now = time.Unix(f.now.Unix()+1, 0).UTC()
 	return f.now
 }

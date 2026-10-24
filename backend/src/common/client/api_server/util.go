@@ -33,19 +33,25 @@ var PassThroughAuth runtime.ClientAuthInfoWriter = runtime.ClientAuthInfoWriterF
 
 var SATokenVolumeProjectionAuth runtime.ClientAuthInfoWriter = runtime.ClientAuthInfoWriterFunc(
 	func(r runtime.ClientRequest, _ strfmt.Registry) error {
-		var projectedPath string
-		if projectedPath = os.Getenv(saTokenPathEnvVar); projectedPath == "" {
-			projectedPath = saDefaultTokenPath
-		}
-
-		content, err := os.ReadFile(projectedPath)
+		token, err := ReadProjectedSAToken()
 		if err != nil {
-			return fmt.Errorf("Failed to read projected SA token at %s: %w", projectedPath, err)
+			return err
 		}
-
-		r.SetHeaderParam("Authorization", "Bearer "+string(content))
-		return nil
+		return r.SetHeaderParam("Authorization", "Bearer "+token)
 	})
+
+// ReadProjectedSAToken reads the current token rather than caching a rotated credential.
+func ReadProjectedSAToken() (string, error) {
+	projectedPath := os.Getenv(saTokenPathEnvVar)
+	if projectedPath == "" {
+		projectedPath = saDefaultTokenPath
+	}
+	content, err := os.ReadFile(projectedPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read projected SA token at %s: %w", projectedPath, err)
+	}
+	return string(content), nil
+}
 
 func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
 	return runtime.ClientAuthInfoWriterFunc(

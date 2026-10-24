@@ -48,7 +48,7 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-codegen_file=/tmp/openapi-generator-cli.jar
+codegen_file=${TMPDIR:-/tmp}/openapi-generator-cli.jar
 # Browse all versions in: https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/
 codegen_uri="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/4.3.1/openapi-generator-cli-4.3.1.jar"
 if ! [ -f "$codegen_file" ]; then
@@ -150,6 +150,11 @@ from kfp import server_api
     if replacements != 1:
         raise RuntimeError("Generated README is missing its installation section")
     readme.write_text(text.replace("# kfp.server-api\n", "# kfp.server_api\n", 1))
+
+# Keep generated Markdown stable under whitespace and end-of-file hooks.
+for document in root.rglob("*.md"):
+    text = "\n".join(line.rstrip() for line in document.read_text().splitlines())
+    document.write_text(text.rstrip() + "\n")
 PY
 
 echo "Copying LICENSE to $DIR"
