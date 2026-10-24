@@ -215,9 +215,6 @@ runs:
       shell: bash
       if: ${{ steps.deploy-kfp.outcome == 'success' && inputs.runtime_mode != '' }}
       run: |
-        # A rolling update would overlap embedded workers without database leases.
-        kubectl -n kubeflow patch deployment/ml-pipeline --type=merge \
-          -p '{"spec":{"strategy":{"type":"Recreate","rollingUpdate":null}}}'
         echo "Setting API server runtime mode to ${{ inputs.runtime_mode }}"
         kubectl -n kubeflow set env deployment/ml-pipeline KFP_V2_RUNTIME_MODE="${{ inputs.runtime_mode }}"
         kubectl -n kubeflow rollout status deployment/ml-pipeline --timeout=180s

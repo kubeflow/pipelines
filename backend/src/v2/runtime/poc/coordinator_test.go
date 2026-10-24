@@ -809,7 +809,7 @@ func TestKubernetesExecutorUsesDistinctAttemptPodsForRepeatedTask(t *testing.T) 
 	assert.Equal(t, "double-task-id", pod.Name)
 }
 
-func TestReconcileManagedRunsQueuesManagedRun(t *testing.T) {
+func TestAPIOnlyReconcileLeavesManagedRunForLeaseHolder(t *testing.T) {
 	clientSet := kubernetesfake.NewSimpleClientset()
 	viper.Set(common.V2RuntimeExecutor, ExecutorKubernetes)
 	viper.Set(common.V2RuntimeAutoExecute, "false")
@@ -866,11 +866,13 @@ func TestReconcileManagedRunsQueuesManagedRun(t *testing.T) {
 			State:            model.RuntimeStateRunning,
 		},
 	}
-	_, err = runStore.CreateRun(run)
-	require.NoError(t, err)
 	job, _, err := v2Spec.BuildPipelineJob(run, template.RunWorkflowOptions{RunID: run.UUID, RunAt: run.CreatedAtInSec})
 	require.NoError(t, err)
-	require.NoError(t, coordinator.SubmitRun(context.Background(), run, job, nil))
+	prepared, err := coordinator.PrepareRunSubmission(run, job, nil)
+	require.NoError(t, err)
+	require.True(t, prepared)
+	_, err = runStore.CreateRun(run)
+	require.NoError(t, err)
 
 	coordinator = NewCoordinator(
 		runStore,
@@ -883,11 +885,16 @@ func TestReconcileManagedRunsQueuesManagedRun(t *testing.T) {
 		false,
 	)
 	require.NoError(t, coordinator.ReconcileManagedRuns(context.Background()))
-	assert.Equal(t, 1, len(coordinator.queue))
+	assert.Empty(t, coordinator.queue)
+	assert.Empty(t, coordinator.ownedRuns, "an API-only replica must not prefetch work into its own backlog")
+	lease, err := coordinator.leaseStore.Acquire(run.UUID, "independent-worker", coordinator.leaseDuration, false)
+	require.NoError(t, err, "the pending managed run must remain claimable by an execution worker")
+	require.NoError(t, coordinator.leaseStore.Release(*lease))
 
 	persistedRun, err := runStore.GetRun(run.UUID, false)
 	require.NoError(t, err)
 	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	require.Equal(t, ExecutorKubernetes, *persistedRun.ExecutorType)
 }
 
 func TestReconcileManagedRunsRecoversRunningLocalDockerRun(t *testing.T) {

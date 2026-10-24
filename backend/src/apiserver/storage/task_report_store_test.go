@@ -15,7 +15,6 @@
 package storage
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
@@ -95,7 +94,7 @@ func TestTaskReportFenceProductionTransaction(t *testing.T) {
 			reportDone := make(chan error, 1)
 			go func() {
 				reportDone <- tasks.withTaskReport(&model.TaskReportIdentity{TaskUUID: task.UUID, AttemptUUID: "attempt-a"}, []string{task.UUID},
-					func(tx *sql.Tx, _ *taskReportScope) error {
+					func(tx sqlTransaction, _ *taskReportScope) error {
 						close(entered)
 						<-release
 						return tasks.updateTaskInTransaction(tx, &model.Task{

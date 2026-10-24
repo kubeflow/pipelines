@@ -727,6 +727,12 @@ jobs:
             proxy: "false"
             pod_to_pod_tls_enabled: "false"
             test_label: "CoordinatorRuntime"
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v4.1.5"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            test_label: "CoordinatorRuntimeMultiReplica"
       fail-fast: false
     name: End to End Coordinator Runtime ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:

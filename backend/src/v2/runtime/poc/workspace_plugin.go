@@ -231,12 +231,32 @@ func (p pvcWorkspaceProvisioner) Provision(ctx context.Context, request Workspac
 	if err != nil {
 		return nil, fmt.Errorf("cannot provision workspace PVC: %w", err)
 	}
-	if pvc == nil || pvc.UID == "" || pvc.Labels[attemptRunLabel] != request.RunID {
+	return workspacePVCReference(pvc, request)
+}
+
+func workspacePVCReference(pvc *corev1.PersistentVolumeClaim, request WorkspaceRequest) (*WorkspaceHandle, error) {
+	if pvc == nil || pvc.UID == "" || pvc.Labels[attemptRunLabel] != request.RunID ||
+		pvc.Namespace != request.Namespace || pvc.Name != driver.GetWorkspacePVCName(request.RunName) {
 		return nil, fmt.Errorf("workspace PVC has no UID or belongs to another run")
 	}
 	return &WorkspaceHandle{Version: 1, Type: WorkspaceTypePVC, Metadata: map[string]string{
-		"runID": request.RunID, "namespace": request.Namespace, "pvcName": name, "pvcUID": string(pvc.UID),
+		"runID": request.RunID, "namespace": request.Namespace, "pvcName": pvc.Name, "pvcUID": string(pvc.UID),
 	}}, nil
+}
+
+func (p pvcWorkspaceProvisioner) recoverForCleanup(ctx context.Context, request WorkspaceRequest) (*WorkspaceHandle, error) {
+	if err := p.checkClient(request.Namespace); err != nil {
+		return nil, err
+	}
+	pvc, err := p.coreClient.GetClientSet().CoreV1().PersistentVolumeClaims(request.Namespace).
+		Get(ctx, driver.GetWorkspacePVCName(request.RunName), metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return workspacePVCReference(pvc, request)
 }
 
 func (p pvcWorkspaceProvisioner) validateHandle(workspace *WorkspaceHandle) error {

@@ -113,6 +113,7 @@ type TaskStoreInterface interface {
 }
 
 type TaskStore struct {
+	lease     *leaseFence
 	dbDialect dialect.DBDialect
 	db        *sql.DB
 	time      util.TimeInterface
@@ -590,6 +591,32 @@ func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, er
 }
 
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
+	if s.lease != nil {
+		if task == nil {
+			return nil, util.NewInvalidInputError("Task cannot be nil")
+		}
+		if err := checkLeaseRun(s.lease, task.RunUUID); err != nil {
+			return nil, err
+		}
+		tx, err := beginStoreMutation(s.db, s.lease)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		if task.ParentTaskUUID != nil && *task.ParentTaskUUID != "" {
+			if err := checkLeaseTasks(tx, s.lease, []string{*task.ParentTaskUUID}); err != nil {
+				return nil, err
+			}
+		}
+		created, err := s.createTaskWithExecutor(tx, task)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		return created, nil
+	}
 	return s.createTaskWithExecutor(s.db, task)
 }
 
@@ -722,14 +749,14 @@ func (s *TaskStore) createTaskWithExecutor(executor taskSQLExecutor, task *model
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert task to task table: %v",
 			err.Error())
 	}
-	if tx, ok := executor.(*sql.Tx); ok {
+	if tx, ok := executor.(sqlTransaction); ok {
 		if _, err := tx.Exec("SAVEPOINT runtime_report_create_task"); err != nil {
 			return nil, err
 		}
 	}
 	_, err = executor.Exec(query, args...)
 	if err != nil {
-		if tx, ok := executor.(*sql.Tx); ok {
+		if tx, ok := executor.(sqlTransaction); ok {
 			if _, rollbackErr := tx.Exec("ROLLBACK TO SAVEPOINT runtime_report_create_task"); rollbackErr != nil {
 				return nil, errors.Join(err, rollbackErr)
 			}
@@ -737,7 +764,7 @@ func (s *TaskStore) createTaskWithExecutor(executor taskSQLExecutor, task *model
 		if newTask.LogicalKey != nil {
 			existingTask, findErr := s.findTaskByLogicalKeyWithExecutor(executor, *newTask.LogicalKey)
 			if findErr == nil && existingTask != nil {
-				if tx, ok := executor.(*sql.Tx); ok {
+				if tx, ok := executor.(sqlTransaction); ok {
 					if _, err := tx.Exec("RELEASE SAVEPOINT runtime_report_create_task"); err != nil {
 						return nil, err
 					}
@@ -748,7 +775,7 @@ func (s *TaskStore) createTaskWithExecutor(executor taskSQLExecutor, task *model
 		return nil, util.NewInternalServerError(err, "Failed to add task to task table: %v",
 			err.Error())
 	}
-	if tx, ok := executor.(*sql.Tx); ok {
+	if tx, ok := executor.(sqlTransaction); ok {
 		if _, err := tx.Exec("RELEASE SAVEPOINT runtime_report_create_task"); err != nil {
 			return nil, err
 		}
@@ -1109,7 +1136,10 @@ func (s *TaskStore) GetTasksByIDs(taskIDs []string) (map[string]*model.Task, err
 // This must be called within a transaction.
 // The lock ensures that no other transaction can modify this row until the current transaction completes.
 // For MySQL/PostgreSQL, this adds FOR UPDATE. For SQLite (tests), it's a no-op since SQLite doesn't support row locks.
-func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error) {
+func (s *TaskStore) getTaskForUpdate(tx sqlTransaction, id string) (*model.Task, error) {
+	if err := requireLeaseTransaction(s.lease, tx); err != nil {
+		return nil, err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	// Build SELECT query
@@ -1137,6 +1167,9 @@ func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error)
 		return nil, util.NewInternalServerError(err, "Failed to get task for update: %v", err)
 	}
 
+	if err := checkLeaseRun(s.lease, task.RunUUID); err != nil {
+		return nil, err
+	}
 	return task, nil
 }
 
@@ -1152,8 +1185,8 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		return nil, util.NewInvalidInputError("Failed to update task: task ID cannot be empty")
 	}
 
-	// Start a transaction to ensure atomic read-merge-write with row locking
-	tx, err := s.db.Begin()
+	// Start a transaction to ensure atomic read-merge-write with row locking.
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to start transaction for task update")
 	}
@@ -1174,7 +1207,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 
 // updateTaskInTransaction shares task merge semantics with runtime checkpoints.
 // The caller owns the transaction and must guard the current execution attempt.
-func (s *TaskStore) updateTaskInTransaction(tx *sql.Tx, new *model.Task, finalizing bool) error {
+func (s *TaskStore) updateTaskInTransaction(tx sqlTransaction, new *model.Task, finalizing bool) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
@@ -1182,6 +1215,9 @@ func (s *TaskStore) updateTaskInTransaction(tx *sql.Tx, new *model.Task, finaliz
 	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
 	if err != nil {
 		return err
+	}
+	if s.lease != nil && new.RunUUID != "" && new.RunUUID != lockedOld.RunUUID {
+		return ErrRunLeaseScope
 	}
 	if !finalizing && terminalRuntimeTask(new.State) {
 		query, args, err := qb.Select(q("TaskUUID")).From(q("runtime_tasks")).
@@ -1385,7 +1421,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		return nil
 	}
 
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to start transaction for retry task reset")
 	}
@@ -1394,6 +1430,9 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 			glog.Warningf("Failed to rollback retry task reset transaction: %v", rbErr)
 		}
 	}()
+	if err := checkLeaseTasks(tx, s.lease, taskIDs); err != nil {
+		return err
+	}
 
 	sqlStr, args, err := qb.
 		Select(dialect.QuoteAll(q, taskColumns)...).
@@ -1798,7 +1837,24 @@ func getLastTaskState(history model.JSONSlice) model.TaskStatus {
 
 // DeleteTasksForRun deletes all tasks associated with a specific run.
 // This should be called before deleting a run to avoid foreign key constraint violations.
-func (s *TaskStore) DeleteTasksForRun(tx *sql.Tx, runUUID string) error {
+func (s *TaskStore) DeleteTasksForRun(tx sqlTransaction, runUUID string) error {
+	if err := checkLeaseRun(s.lease, runUUID); err != nil {
+		return err
+	}
+	if s.lease != nil && tx == nil {
+		scoped, err := beginStoreMutation(s.db, s.lease)
+		if err != nil {
+			return err
+		}
+		defer scoped.Rollback()
+		if err := s.DeleteTasksForRun(scoped, runUUID); err != nil {
+			return err
+		}
+		return scoped.Commit()
+	}
+	if err := requireLeaseTransaction(s.lease, tx); err != nil {
+		return err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	deleteSQL, deleteArgs, err := qb.Delete(q(tableName)).Where(sq.Eq{q("RunUUID"): runUUID}).ToSql()

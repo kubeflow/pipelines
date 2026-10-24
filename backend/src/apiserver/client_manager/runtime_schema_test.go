@@ -69,6 +69,8 @@ func runtimeSchemaSQLite(t *testing.T) (*gorm.DB, *runtimeSchemaTrace) {
 func runtimePriorSchema(t *testing.T, db *gorm.DB) {
 	t.Helper()
 	require.NoError(t, autoMigrate(db))
+	require.NoError(t, db.Migrator().DropTable(&model.RunLease{}))
+	require.NoError(t, db.Migrator().DropIndex(&model.Run{}, runLeaseDiscoveryIndex))
 	require.NoError(t, db.Migrator().DropTable(&model.RuntimeTask{}))
 	for _, column := range runtimeRunColumns {
 		require.NoError(t, db.Exec("ALTER TABLE "+runtimeSchemaQuote(db, "run_details")+" DROP COLUMN "+runtimeSchemaQuote(db, column.name)).Error)

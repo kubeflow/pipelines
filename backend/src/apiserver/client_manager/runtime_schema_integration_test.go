@@ -128,6 +128,8 @@ func runtimeSeedPriorRuns(t *testing.T, db *gorm.DB, count int) {
 	}
 	require.NoError(t, db.Table("tasks").CreateInBatches(tasks, 100).Error)
 	require.NoError(t, db.Migrator().DropTable(&model.RuntimeTask{}))
+	require.NoError(t, db.Migrator().DropTable(&model.RunLease{}))
+	require.NoError(t, db.Migrator().DropIndex(&model.Run{}, runLeaseDiscoveryIndex))
 	for _, column := range runtimeRunColumns {
 		require.NoError(t, db.Exec("ALTER TABLE "+runtimeSchemaQuote(db, "run_details")+" DROP COLUMN "+runtimeSchemaQuote(db, column.name)).Error)
 	}
@@ -235,6 +237,11 @@ func TestRuntimeSchemaLiveUpgradeConcurrentDML(t *testing.T) {
 			runtimeDDL, inheritedDDL := 0, 0
 			for _, query := range trace.queries() {
 				if strings.HasPrefix(query, "ALTER TABLE "+runtimeSchemaQuote(db, "run_details")) {
+					if strings.Contains(query, runLeaseDiscoveryIndex) {
+						assert.Contains(t, query, "ALGORITHM=INPLACE")
+						assert.Contains(t, query, "LOCK=NONE")
+						continue
+					}
 					runtimeColumn := false
 					for _, column := range runtimeRunColumns {
 						runtimeColumn = runtimeColumn || strings.Contains(query, runtimeSchemaQuote(db, column.name))

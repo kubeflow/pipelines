@@ -104,9 +104,6 @@ func (c *Coordinator) cancelRuntimeAttempt(ctx context.Context, run *model.Run, 
 		var logURI string
 		var captureErr error
 		if reference.Executor != "" {
-			if executor.Type() == ExecutorKubernetes {
-				logURI, captureErr = c.captureCancellationLogs(ctx, run, executor, attempt, reference, request)
-			}
 			if err := executor.Cancel(ctx, reference); err != nil {
 				return pendingAttempt(err)
 			}
@@ -115,9 +112,7 @@ func (c *Coordinator) cancelRuntimeAttempt(ctx context.Context, run *model.Run, 
 			if err != nil {
 				return err
 			}
-			if executor.Type() != ExecutorKubernetes {
-				logURI, captureErr = c.captureCancellationLogs(ctx, run, executor, attempt, reference, request)
-			}
+			logURI, captureErr = c.captureCancellationLogs(ctx, run, executor, attempt, reference, request)
 		}
 		c.releaseAttempt(*attempt.AttemptUUID)
 		task, err := c.taskStore.GetTask(attempt.TaskUUID)
@@ -166,6 +161,22 @@ func (c *Coordinator) finishCancellation(runID, message string) error {
 	}
 	if err := c.markRunTasksForState(runID, model.RuntimeStateCanceled, message); err != nil {
 		return err
+	}
+	run, err := c.runStore.GetRun(runID, false)
+	if err != nil {
+		return err
+	}
+	manifest, err := ParseManifest(string(run.PipelineRuntimeManifest))
+	if err != nil {
+		return err
+	}
+	if err := c.cleanupWorkspaceForRun(ctx, run, manifest); err != nil {
+		return pendingAttempt(err)
+	}
+	if manifest != nil {
+		if err := c.cleanupRunStaging(ctx, runID, manifest.Executor); err != nil {
+			return pendingAttempt(err)
+		}
 	}
 	return c.updateRunState(runID, model.RuntimeStateCanceled, c.time.Now().Unix())
 }

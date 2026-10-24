@@ -31,7 +31,7 @@ import (
 // checkpointArtifacts writes output metadata and relationships while the public
 // task and runtime row are locked. Identity depends on the attempt and logical
 // output, never on a fresh random UUID or publication delivery count.
-func (s *runtimeStore) checkpointArtifacts(tx *sql.Tx, runtime *model.RuntimeTask, task *model.Task, outputs []model.TaskArtifactHydrated) error {
+func (s *runtimeStore) checkpointArtifacts(tx sqlTransaction, runtime *model.RuntimeTask, task *model.Task, outputs []model.TaskArtifactHydrated) error {
 	seen := map[string]bool{}
 	for _, output := range outputs {
 		if output.Value == nil || output.Key == "" {
@@ -80,7 +80,7 @@ func (s *runtimeStore) checkpointArtifacts(tx *sql.Tx, runtime *model.RuntimeTas
 	return nil
 }
 
-func (s *runtimeStore) checkpointArtifact(tx *sql.Tx, namespace, id string, artifact *model.Artifact) error {
+func (s *runtimeStore) checkpointArtifact(tx sqlTransaction, namespace, id string, artifact *model.Artifact) error {
 	q := s.tasks.dbDialect.QuoteIdentifier
 	qb := s.tasks.dbDialect.QueryBuilder()
 	query, args, err := qb.Select(dialect.QuoteAll(q, artifactColumns)...).From(q("artifacts")).Where(sq.Eq{q("UUID"): id}).ToSql()
@@ -122,7 +122,7 @@ func (s *runtimeStore) checkpointArtifact(tx *sql.Tx, namespace, id string, arti
 	return err
 }
 
-func (s *runtimeStore) checkpointArtifactLink(tx *sql.Tx, link *model.ArtifactTask) error {
+func (s *runtimeStore) checkpointArtifactLink(tx sqlTransaction, link *model.ArtifactTask) error {
 	q := s.tasks.dbDialect.QuoteIdentifier
 	qb := s.tasks.dbDialect.QueryBuilder()
 	query, args, err := qb.Select(q("ArtifactID"), q("TaskID"), q("RunUUID"), q("Type"), q("Iteration"), q("ArtifactKey")).
@@ -146,7 +146,7 @@ func (s *runtimeStore) checkpointArtifactLink(tx *sql.Tx, link *model.ArtifactTa
 	return err
 }
 
-func (s *runtimeStore) checkpointSuppliedArtifacts(tx *sql.Tx, task *model.Task, artifacts []*model.Artifact, links []*model.ArtifactTask) error {
+func (s *runtimeStore) checkpointSuppliedArtifacts(tx sqlTransaction, task *model.Task, artifacts []*model.Artifact, links []*model.ArtifactTask) error {
 	byID := make(map[string]*model.Artifact, len(artifacts))
 	for _, artifact := range artifacts {
 		if artifact == nil || artifact.UUID == "" {

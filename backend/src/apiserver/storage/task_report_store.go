@@ -64,7 +64,12 @@ func uniqueReportTaskIDs(ids []string) ([]string, error) {
 // withTaskReport binds validation and every report mutation to the same
 // transaction. ExecutorType, not runtime-row existence, distinguishes Argo
 // reports from managed reports after an attempt has been finalized.
-func (s *TaskStore) withTaskReport(identity *model.TaskReportIdentity, ids []string, change func(*sql.Tx, *taskReportScope) error) error {
+func (s *TaskStore) withTaskReport(identity *model.TaskReportIdentity, ids []string, change func(sqlTransaction, *taskReportScope) error) error {
+	if s.lease != nil {
+		unbound := *s
+		unbound.lease = nil
+		return unbound.withTaskReport(identity, ids, change)
+	}
 	ids, err := uniqueReportTaskIDs(ids)
 	if err != nil {
 		return err
@@ -74,7 +79,7 @@ func (s *TaskStore) withTaskReport(identity *model.TaskReportIdentity, ids []str
 			return ErrTaskReportIdentityRequired
 		}
 		return (&runtimeStore{tasks: s}).withAttempt(identity.TaskUUID, identity.AttemptUUID, false,
-			func(tx *sql.Tx, runtime *model.RuntimeTask, reporter *model.Task) error {
+			func(tx sqlTransaction, runtime *model.RuntimeTask, reporter *model.Task) error {
 				if runtimeCancellationPhase(runtime.State) {
 					return ErrRuntimeRunCanceled
 				}
@@ -139,7 +144,7 @@ func (s *TaskStore) withTaskReport(identity *model.TaskReportIdentity, ids []str
 	return tx.Commit()
 }
 
-func (s *TaskStore) lockUnmanagedReportTargets(tx *sql.Tx, ids []string) (*taskReportScope, error) {
+func (s *TaskStore) lockUnmanagedReportTargets(tx sqlTransaction, ids []string) (*taskReportScope, error) {
 	q, qb := s.dbDialect.QuoteIdentifier, s.dbDialect.QueryBuilder()
 	ownership := make(map[string]string, len(ids))
 	runs := make(map[string]bool)
@@ -178,7 +183,7 @@ func (s *TaskStore) lockUnmanagedReportTargets(tx *sql.Tx, ids []string) (*taskR
 	return scope, nil
 }
 
-func (s *TaskStore) lockUnmanagedReportRun(tx *sql.Tx, runID string) error {
+func (s *TaskStore) lockUnmanagedReportRun(tx sqlTransaction, runID string) error {
 	q := s.dbDialect.QuoteIdentifier
 	query, args, err := s.dbDialect.QueryBuilder().Select(q("ExecutorType")).From(q("run_details")).Where(sq.Eq{q("UUID"): runID}).ToSql()
 	if err != nil {
@@ -221,6 +226,11 @@ func (s *TaskStore) ReportCreateTask(task *model.Task) (*model.Task, error) {
 // ReportTasks applies an entire launcher task batch under its attempt fence.
 // UpdateTask remains an internal/coordinator API; report handlers use this API.
 func (s *TaskStore) ReportTasks(identity *model.TaskReportIdentity, updates []*model.Task) ([]*model.Task, error) {
+	if s.lease != nil {
+		unbound := *s
+		unbound.lease = nil
+		return unbound.ReportTasks(identity, updates)
+	}
 	ids := make([]string, len(updates))
 	for i, update := range updates {
 		if update == nil {
@@ -228,7 +238,7 @@ func (s *TaskStore) ReportTasks(identity *model.TaskReportIdentity, updates []*m
 		}
 		ids[i] = update.UUID
 	}
-	err := s.withTaskReport(identity, ids, func(tx *sql.Tx, scope *taskReportScope) error {
+	err := s.withTaskReport(identity, ids, func(tx sqlTransaction, scope *taskReportScope) error {
 		for _, update := range updates {
 			current := scope.targets[update.UUID]
 			if update.RunUUID != "" && update.RunUUID != current.RunUUID {
@@ -280,6 +290,11 @@ func (s *TaskStore) ReportTasks(identity *model.TaskReportIdentity, updates []*m
 // the same fence as task reports. Managed creations use attempt-scoped stable
 // identities so a lost RPC response can be replayed without duplicate outputs.
 func (s *TaskStore) ReportArtifacts(identity *model.TaskReportIdentity, artifacts []*model.Artifact, links []*model.ArtifactTask, reuse bool) ([]*model.Artifact, []*model.ArtifactTask, error) {
+	if s.lease != nil {
+		unbound := *s
+		unbound.lease = nil
+		return unbound.ReportArtifacts(identity, artifacts, links, reuse)
+	}
 	if len(artifacts) != 0 && len(artifacts) != len(links) {
 		return nil, nil, errors.New("reported artifacts and links must be index-aligned")
 	}
@@ -292,7 +307,7 @@ func (s *TaskStore) ReportArtifacts(identity *model.TaskReportIdentity, artifact
 	}
 	created := make([]*model.Artifact, 0, len(artifacts))
 	createdLinks := make([]*model.ArtifactTask, 0, len(links))
-	err := s.withTaskReport(identity, ids, func(tx *sql.Tx, scope *taskReportScope) error {
+	err := s.withTaskReport(identity, ids, func(tx sqlTransaction, scope *taskReportScope) error {
 		store := NewArtifactStore(s.db, s.time, s.uuid, s.dbDialect)
 		for i, source := range links {
 			task := scope.targets[source.TaskID]
@@ -362,7 +377,7 @@ func (s *TaskStore) ReportArtifacts(identity *model.TaskReportIdentity, artifact
 	return created, createdLinks, nil
 }
 
-func (s *TaskStore) getReportArtifact(tx *sql.Tx, id string) (*model.Artifact, error) {
+func (s *TaskStore) getReportArtifact(tx sqlTransaction, id string) (*model.Artifact, error) {
 	q := s.dbDialect.QuoteIdentifier
 	query, args, err := s.dbDialect.QueryBuilder().Select(dialect.QuoteAll(q, artifactColumns)...).
 		From(q("artifacts")).Where(sq.Eq{q("UUID"): id}).ToSql()
@@ -390,7 +405,7 @@ func (s *TaskStore) getReportArtifact(tx *sql.Tx, id string) (*model.Artifact, e
 	return artifacts[0], nil
 }
 
-func (s *TaskStore) createReportedArtifact(tx *sql.Tx, store *ArtifactStore, scope *taskReportScope, source *model.Artifact, link *model.ArtifactTask, reuse bool) (*model.Artifact, error) {
+func (s *TaskStore) createReportedArtifact(tx sqlTransaction, store *ArtifactStore, scope *taskReportScope, source *model.Artifact, link *model.ArtifactTask, reuse bool) (*model.Artifact, error) {
 	if reuse {
 		return s.reuseReportedArtifact(tx, store, source)
 	}
@@ -415,7 +430,7 @@ func (s *TaskStore) createReportedArtifact(tx *sql.Tx, store *ArtifactStore, sco
 	return s.getReportArtifact(tx, artifact.UUID)
 }
 
-func (s *TaskStore) reuseReportedArtifact(tx *sql.Tx, store *ArtifactStore, source *model.Artifact) (*model.Artifact, error) {
+func (s *TaskStore) reuseReportedArtifact(tx sqlTransaction, store *ArtifactStore, source *model.Artifact) (*model.Artifact, error) {
 	key, err := computeArtifactIdentityKey(source)
 	if err != nil {
 		return nil, err

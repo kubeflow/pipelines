@@ -22,6 +22,8 @@ ARTIFACT_BUCKET_ROOT="${ARTIFACT_BUCKET_ROOT:-${TMP_DIR}/artifacts}"
 SDK_WHEEL_DIR="${TMP_DIR}/sdk-wheel"
 SDK_BUILD_ROOT="${TMP_DIR}/sdk-build"
 API_SERVER_LOG="${TMP_DIR}/local-apiserver.log"
+API_SERVER_BINARY="${TMP_DIR}/apiserver"
+API_SERVER_BUILD_LOG="${SCRIPT_DIR}/logs/local-apiserver-build.log"
 API_SERVER_PID=""
 KUBECONFIG_PATH="${TMP_DIR}/kubeconfig"
 SCRIPT_FAILED=false
@@ -30,6 +32,14 @@ SQUID_STARTED=false
 cleanup() {
   if [[ -n "${API_SERVER_PID}" ]] && kill -0 "${API_SERVER_PID}" >/dev/null 2>&1; then
     kill "${API_SERVER_PID}" || true
+    stop_deadline=$((SECONDS + 10))
+    while kill -0 "${API_SERVER_PID}" >/dev/null 2>&1 && (( SECONDS < stop_deadline )); do
+      sleep 0.1
+    done
+    if kill -0 "${API_SERVER_PID}" >/dev/null 2>&1; then
+      echo "Local API server did not exit after SIGTERM; stopping test process ${API_SERVER_PID}" >&2
+      kill -KILL "${API_SERVER_PID}" || true
+    fi
     wait "${API_SERVER_PID}" || true
   fi
   if [[ "${SQUID_STARTED}" == "true" ]]; then
@@ -129,6 +139,14 @@ fi
 
 pushd "${REPO_ROOT}" >/dev/null
 
+mkdir -p "$(dirname "${API_SERVER_BUILD_LOG}")"
+if ! go build -o "${API_SERVER_BINARY}" ./backend/src/apiserver >"${API_SERVER_BUILD_LOG}" 2>&1; then
+  echo "Failed to build the local API server" >&2
+  SCRIPT_FAILED=true
+  tail -n 200 "${API_SERVER_BUILD_LOG}" >&2
+  exit 1
+fi
+
 cp -a "${REPO_ROOT}/sdk/python/." "${SDK_BUILD_ROOT}/"
 python3 -m pip wheel --no-deps --wheel-dir "${SDK_WHEEL_DIR}" "${SDK_BUILD_ROOT}" >/dev/null
 SDK_WHEEL_PATH="$(ls "${SDK_WHEEL_DIR}"/kfp-*.whl | sed -n '1p')"
@@ -160,7 +178,7 @@ env \
   HTTP_PROXY="${HTTP_PROXY_VALUE}" \
   HTTPS_PROXY="${HTTPS_PROXY_VALUE}" \
   NO_PROXY="${NO_PROXY_VALUE}" \
-  go run ./backend/src/apiserver --config ./backend/src/apiserver/config -logtostderr=true --rpcPortFlag=":${API_SERVER_RPC_PORT}" --httpPortFlag=":${API_SERVER_HTTP_PORT}" > "${API_SERVER_LOG}" 2>&1 &
+  "${API_SERVER_BINARY}" --config ./backend/src/apiserver/config -logtostderr=true --rpcPortFlag=":${API_SERVER_RPC_PORT}" --httpPortFlag=":${API_SERVER_HTTP_PORT}" > "${API_SERVER_LOG}" 2>&1 &
 API_SERVER_PID=$!
 
 for _ in $(seq 1 90); do

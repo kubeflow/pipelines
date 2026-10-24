@@ -152,6 +152,9 @@ func (s *runtimeStore) Create(task *model.RuntimeTask) error {
 	if err := validateRuntimeTask(task); err != nil {
 		return err
 	}
+	if err := checkLeaseRun(s.tasks.lease, task.RunUUID); err != nil {
+		return err
+	}
 	values, err := s.values(task)
 	if err != nil {
 		return err
@@ -161,7 +164,7 @@ func (s *runtimeStore) Create(task *model.RuntimeTask) error {
 	if err != nil {
 		return fmt.Errorf("build runtime task insert: %w", err)
 	}
-	tx, err := s.tasks.db.Begin()
+	tx, err := beginStoreMutation(s.tasks.db, s.tasks.lease)
 	if err != nil {
 		return fmt.Errorf("begin runtime task creation: %w", err)
 	}
@@ -187,8 +190,8 @@ func (s *runtimeStore) Create(task *model.RuntimeTask) error {
 
 // withAttempt locks the public task before its coordination row, consistently
 // with task deletion and FK checks. No read/merge/write crosses a transaction.
-func (s *runtimeStore) withAttempt(taskID, attemptID string, allowCanceled bool, change func(*sql.Tx, *model.RuntimeTask, *model.Task) error) error {
-	tx, err := s.tasks.db.Begin()
+func (s *runtimeStore) withAttempt(taskID, attemptID string, allowCanceled bool, change func(sqlTransaction, *model.RuntimeTask, *model.Task) error) error {
+	tx, err := beginStoreMutation(s.tasks.db, s.tasks.lease)
 	if err != nil {
 		return fmt.Errorf("begin runtime task transaction: %w", err)
 	}
@@ -229,7 +232,7 @@ func (s *runtimeStore) withAttempt(taskID, attemptID string, allowCanceled bool,
 	return nil
 }
 
-func (s *runtimeStore) lockRun(tx *sql.Tx, taskID string, allowCanceled bool) error {
+func (s *runtimeStore) lockRun(tx sqlTransaction, taskID string, allowCanceled bool) error {
 	q := s.tasks.dbDialect.QuoteIdentifier
 	qb := s.tasks.dbDialect.QueryBuilder()
 	query, args, err := qb.Select(q("RunUUID")).From(q("tasks")).Where(sq.Eq{q("UUID"): taskID}).ToSql()
@@ -241,6 +244,9 @@ func (s *runtimeStore) lockRun(tx *sql.Tx, taskID string, allowCanceled bool) er
 		return ErrRuntimeTaskConflict
 	} else if err != nil {
 		return fmt.Errorf("read runtime task ownership: %w", err)
+	}
+	if err := checkLeaseRun(s.tasks.lease, runID); err != nil {
+		return err
 	}
 	query, args, err = qb.Select(q("State"), q("Conditions")).From(q("run_details")).
 		Where(sq.Eq{q("UUID"): runID}).ToSql()
@@ -270,7 +276,7 @@ func runtimeAttempt(task *model.RuntimeTask) string {
 	return *task.AttemptUUID
 }
 
-func (s *runtimeStore) replace(tx *sql.Tx, task *model.RuntimeTask) error {
+func (s *runtimeStore) replace(tx sqlTransaction, task *model.RuntimeTask) error {
 	values, err := s.values(task)
 	if err != nil {
 		return err
@@ -342,7 +348,7 @@ func (s *runtimeStore) Update(task *model.RuntimeTask, expectedAttempt string) e
 	if err := validateRuntimeTask(task); err != nil {
 		return err
 	}
-	return s.withAttempt(task.TaskUUID, expectedAttempt, task.State == model.RuntimeTaskCanceling, func(tx *sql.Tx, current *model.RuntimeTask, _ *model.Task) error {
+	return s.withAttempt(task.TaskUUID, expectedAttempt, task.State == model.RuntimeTaskCanceling, func(tx sqlTransaction, current *model.RuntimeTask, _ *model.Task) error {
 		if err := validateRuntimeReplacement(current, task, true); err != nil {
 			return err
 		}
@@ -386,7 +392,7 @@ func (s *runtimeStore) CheckpointCancellation(task *model.RuntimeTask, taskUpdat
 	if terminalRuntimeTask(taskUpdate.State) {
 		return errors.New("cancellation checkpoint must keep public results provisional until Finalize")
 	}
-	return s.withAttempt(task.TaskUUID, runtimeAttempt(task), true, func(tx *sql.Tx, current *model.RuntimeTask, public *model.Task) error {
+	return s.withAttempt(task.TaskUUID, runtimeAttempt(task), true, func(tx sqlTransaction, current *model.RuntimeTask, public *model.Task) error {
 		if current.State == model.RuntimeTaskCancelFinalizing && task.State != model.RuntimeTaskCancelFinalizing {
 			return errors.New("cancellation checkpoint cannot return from cleanup to log capture")
 		}
@@ -420,7 +426,7 @@ func (s *runtimeStore) checkpoint(task *model.RuntimeTask, taskUpdate *model.Tas
 	if terminalRuntimeTask(taskUpdate.State) {
 		return errors.New("checkpoint outputs remain provisional; use Finalize for terminal task state")
 	}
-	return s.withAttempt(task.TaskUUID, runtimeAttempt(task), false, func(tx *sql.Tx, current *model.RuntimeTask, public *model.Task) error {
+	return s.withAttempt(task.TaskUUID, runtimeAttempt(task), false, func(tx sqlTransaction, current *model.RuntimeTask, public *model.Task) error {
 		if runtimeCancellationPhase(current.State) {
 			return ErrRuntimeRunCanceled
 		}
@@ -445,7 +451,7 @@ func (s *runtimeStore) Finalize(taskID, attemptID string, taskUpdate *model.Task
 		return errors.New("runtime finalization requires a terminal public task state")
 	}
 	allowCanceled := taskUpdate.State == model.TaskStatus(apiv2.PipelineTask_FAILED) || taskUpdate.State == model.TaskStatus(apiv2.PipelineTask_SKIPPED)
-	return s.withAttempt(taskID, attemptID, allowCanceled, func(tx *sql.Tx, current *model.RuntimeTask, public *model.Task) error {
+	return s.withAttempt(taskID, attemptID, allowCanceled, func(tx sqlTransaction, current *model.RuntimeTask, public *model.Task) error {
 		if runtimeCancellationPhase(current.State) && !allowCanceled {
 			return ErrRuntimeRunCanceled
 		}
@@ -479,7 +485,7 @@ func (s *runtimeStore) BeginRetry(taskID, previousAttemptID string, next *model.
 		return errors.New("retry requires the same task ID and a new nonempty attempt ID")
 	}
 	var retryCount int
-	err := s.withAttempt(taskID, previousAttemptID, false, func(tx *sql.Tx, current *model.RuntimeTask, public *model.Task) error {
+	err := s.withAttempt(taskID, previousAttemptID, false, func(tx sqlTransaction, current *model.RuntimeTask, public *model.Task) error {
 		if runtimeCancellationPhase(current.State) {
 			return ErrRuntimeRunCanceled
 		}
@@ -530,7 +536,7 @@ func (s *runtimeStore) snapshotAttemptHistory(task *model.Task, previousAttemptI
 	return append(append(model.JSONSlice{}, task.StateHistory...), entry...), nil
 }
 
-func (s *runtimeStore) resetPublicAttempt(tx *sql.Tx, task *model.Task, previousAttemptID string) error {
+func (s *runtimeStore) resetPublicAttempt(tx sqlTransaction, task *model.Task, previousAttemptID string) error {
 	retryHistory, err := s.snapshotAttemptHistory(task, previousAttemptID)
 	if err != nil {
 		return err
@@ -554,7 +560,7 @@ func (s *runtimeStore) resetPublicAttempt(tx *sql.Tx, task *model.Task, previous
 	return s.deleteOutputRelationships(tx, task)
 }
 
-func (s *runtimeStore) deleteOutputRelationships(tx *sql.Tx, task *model.Task) error {
+func (s *runtimeStore) deleteOutputRelationships(tx sqlTransaction, task *model.Task) error {
 	q := s.tasks.dbDialect.QuoteIdentifier
 	query, args, err := s.tasks.dbDialect.QueryBuilder().Delete(q("artifact_tasks")).
 		Where(sq.Eq{q("TaskID"): task.UUID, q("RunUUID"): task.RunUUID, q("Type"): model.IOType(apiv2.IOType_OUTPUT)}).ToSql()
@@ -599,6 +605,7 @@ func (s *runtimeStore) FinalizeRun(runID string, state model.RuntimeState, finis
 		return fmt.Errorf("cannot finalize runtime run with invalid state %q", state)
 	}
 	runs := NewRunStore(s.tasks.db, s.tasks.time, s.tasks.dbDialect)
+	runs.lease = s.tasks.lease
 	run, err := runs.GetRun(runID, false)
 	if err != nil {
 		return err

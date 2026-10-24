@@ -8,6 +8,9 @@ import (
 )
 
 func (c *Coordinator) lockInstallation() error {
+	if c.coordinatorState == nil {
+		c.coordinatorState = &coordinatorState{}
+	}
 	if err := os.MkdirAll(WorkspaceRoot(), 0o700); err != nil {
 		return fmt.Errorf("create runtime installation directory: %w", err)
 	}

@@ -64,6 +64,11 @@ func runtimeStagingPath(runID string) (string, error) {
 }
 
 func (c *Coordinator) cleanupRunStaging(ctx context.Context, runID, executorType string) error {
+	ctx, cancel, err := c.ownership.operation(ctx)
+	if err != nil {
+		return err
+	}
+	defer cancel()
 	executor, ok := c.executors[executorType]
 	if !ok {
 		return fmt.Errorf("cannot clean staging for run %s: executor %q is not configured", runID, executorType)

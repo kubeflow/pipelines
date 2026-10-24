@@ -54,6 +54,7 @@ func (c *Coordinator) dispatcher(executor WorkloadExecutorPlugin) *taskDispatche
 }
 
 func (c *Coordinator) reserveRecoveredAttempt(executor WorkloadExecutorPlugin, attemptID string) {
+	c.ownership.trackAttempt(attemptID)
 	c.reservationMu.Lock()
 	defer c.reservationMu.Unlock()
 	if _, exists := c.reservations[attemptID]; exists {
@@ -67,6 +68,7 @@ func (c *Coordinator) reserveRecoveredAttempt(executor WorkloadExecutorPlugin, a
 }
 
 func (c *Coordinator) acquireAttempt(ctx context.Context, executor WorkloadExecutorPlugin, attemptID string, retry bool) (func(), error) {
+	c.ownership.trackAttempt(attemptID)
 	c.reservationMu.Lock()
 	if release, exists := c.reservations[attemptID]; exists {
 		c.reservationMu.Unlock()

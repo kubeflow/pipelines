@@ -263,6 +263,7 @@ type RunStoreInterface interface {
 }
 
 type RunStore struct {
+	lease                  *leaseFence
 	db                     *sql.DB
 	resourceReferenceStore *ResourceReferenceStore
 	taskStore              *TaskStore
@@ -819,6 +820,9 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 }
 
 func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
+	if s.lease != nil {
+		return nil, ErrRunLeaseScope
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
@@ -1041,7 +1045,7 @@ type runRuntimeManifestPrecondition struct {
 }
 
 func lockRunForRuntimeManifestWrite(
-	tx *sql.Tx,
+	tx sqlTransaction,
 	d dialect.DBDialect,
 	runID string,
 	expected runRuntimeManifestPrecondition,
@@ -1110,14 +1114,36 @@ func (s *RunStore) updateRun(
 	run *model.Run,
 	expectedRuntimeManifests *runRuntimeManifestPrecondition,
 ) (bool, error) {
+	if err := checkLeaseRun(s.lease, run.UUID); err != nil {
+		return false, err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return false, util.NewInternalServerError(err, "transaction creation failed")
 	}
 	defer tx.Rollback()
+	if s.lease != nil {
+		checkSQL, checkArgs, err := qb.Select(q("State"), q("Conditions")).From(q("run_details")).
+			Where(sq.Eq{q("UUID"): run.UUID}).ToSql()
+		if err != nil {
+			return false, err
+		}
+		var state, conditions sql.NullString
+		if err := tx.QueryRow(checkSQL, checkArgs...).Scan(&state, &conditions); err != nil {
+			return false, err
+		}
+		current := model.RuntimeState(state.String).ToV2()
+		if current == model.RuntimeStateUnspecified {
+			current = model.RuntimeState(conditions.String).ToV2()
+		}
+		if (current == model.RuntimeStateCancelling || current == model.RuntimeStateCanceled) &&
+			run.State.ToV2() != model.RuntimeStateCancelling && run.State.ToV2() != model.RuntimeStateCanceled {
+			return false, ErrRuntimeRunCanceled
+		}
+	}
 	if expectedRuntimeManifests != nil {
 		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
 			tx,
@@ -1235,6 +1261,9 @@ func (s *RunStore) updateRun(
 }
 
 func (s *RunStore) ArchiveRun(runId string) error {
+	if err := checkLeaseRun(s.lease, runId); err != nil {
+		return err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
@@ -1251,7 +1280,7 @@ func (s *RunStore) ArchiveRun(runId string) error {
 			"Failed to create query to archive run %s. error: '%v'", runId, err.Error())
 	}
 
-	_, err = s.db.Exec(sql, args...)
+	_, err = execStoreMutation(s.db, s.lease, sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to archive run %s. error: '%v'", runId, err.Error())
@@ -1261,6 +1290,9 @@ func (s *RunStore) ArchiveRun(runId string) error {
 }
 
 func (s *RunStore) UnarchiveRun(runId string) error {
+	if err := checkLeaseRun(s.lease, runId); err != nil {
+		return err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
@@ -1277,7 +1309,7 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 			"Failed to create query to unarchive run %s. error: '%v'", runId, err.Error())
 	}
 
-	_, err = s.db.Exec(sql, args...)
+	_, err = execStoreMutation(s.db, s.lease, sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to unarchive run %s. error: '%v'", runId, err.Error())
@@ -1287,14 +1319,20 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 }
 
 func (s *RunStore) DeleteRun(id string) error {
+	if err := checkLeaseRun(s.lease, id); err != nil {
+		return err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
 	}
 	defer tx.Rollback()
+	if scoped, ok := tx.(*leasedTransaction); ok {
+		scoped.allowDeletion = true
+	}
 
 	// Lock parent row first to match GC DeleteExpiredArchivedRuns lock ordering
 	// (parent → children). Without this, concurrent GC and manual deletion of
@@ -1353,10 +1391,13 @@ func (s *RunStore) DeleteRun(id string) error {
 }
 
 func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+	if err := checkLeaseRun(s.lease, runID); err != nil {
+		return "", "", 0, 0, err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
 	}
@@ -1462,6 +1503,9 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 }
 
 func (s *RunStore) RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error {
+	if err := checkLeaseRun(s.lease, runID); err != nil {
+		return err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
@@ -1481,7 +1525,7 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to build rollback query for run %s", runID)
 	}
-	_, err = s.db.Exec(rollbackSQL, rollbackArgs...)
+	_, err = execStoreMutation(s.db, s.lease, rollbackSQL, rollbackArgs...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to rollback retry claim for run %s", runID)
 	}
@@ -1489,6 +1533,9 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 }
 
 func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (int64, error) {
+	if s.lease != nil {
+		return 0, ErrRunLeaseScope
+	}
 	if batchSize <= 0 {
 		batchSize = 100
 	}
@@ -1595,6 +1642,9 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 }
 
 func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error) {
+	if s.lease != nil {
+		return 0, ErrRunLeaseScope
+	}
 	if batchSize <= 0 {
 		batchSize = 100
 	}
@@ -1813,6 +1863,9 @@ func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunS
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
+	if err := checkLeaseRun(s.lease, runId); err != nil {
+		return err
+	}
 	// TODO(gkcalat): append CANCELLING to StateHistory
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -1838,7 +1891,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
 	}
-	result, err := s.db.Exec(sql, args...)
+	result, err := execStoreMutation(s.db, s.lease, sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
@@ -1861,6 +1914,9 @@ func (s *RunStore) TerminateRun(runId string) error {
 // plugin handlers need to persist their output after the run state has already
 // been committed.
 func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.LargeText) error {
+	if err := checkLeaseRun(s.lease, runID); err != nil {
+		return err
+	}
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
@@ -1874,7 +1930,7 @@ func (s *RunStore) UpdateRunPluginsOutput(runID string, pluginsOutput *model.Lar
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to update plugins output for run %s", runID)
 	}
-	result, err := s.db.Exec(sql, args...)
+	result, err := execStoreMutation(s.db, s.lease, sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to update plugins output for run %s", runID)
 	}

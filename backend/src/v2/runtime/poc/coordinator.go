@@ -57,21 +57,37 @@ type Coordinator struct {
 	time                  util.TimeInterface
 	executors             map[string]WorkloadExecutorPlugin
 	workspaceProvisioners map[string]WorkspaceProvisionerPlugin
-	queue                 chan *queuedRun
-	activeRunMu           sync.Mutex
-	activeRuns            map[string]*activeRunExecution
-	pendingRuns           map[string]bool
 	runtimeStore          storage.RuntimeStoreInterface
-	dispatchMu            sync.Mutex
-	dispatchers           map[string]*taskDispatcher
-	workerCancel          context.CancelFunc
-	workerDone            chan struct{}
-	workerLock            *os.File
-	runWorkers            sync.WaitGroup
-	reservationMu         sync.Mutex
-	reservations          map[string]func()
-	cancellationMu        sync.Mutex
-	cancellations         map[string]*cancellationExecution
+	ownership             *ownershipGuard
+	leaseStore            storage.RunLeaseStoreInterface
+	leaseProvider         runLeaseProvider
+	*coordinatorState
+}
+
+// coordinatorState is shared by the worker and its lease-scoped run coordinators.
+type coordinatorState struct {
+	queue              chan *queuedRun
+	activeRunMu        sync.Mutex
+	activeRuns         map[string]*activeRunExecution
+	pendingRuns        map[string]bool
+	dispatchMu         sync.Mutex
+	dispatchers        map[string]*taskDispatcher
+	workerCancel       context.CancelFunc
+	workerDone         chan struct{}
+	workerLock         *os.File
+	runWorkers         sync.WaitGroup
+	reservationMu      sync.Mutex
+	reservations       map[string]func()
+	cancellationMu     sync.Mutex
+	cancellations      map[string]*cancellationExecution
+	admissionMu        sync.Mutex
+	ownedRuns          map[string]*ownedRun
+	workerContext      context.Context
+	ownerID            string
+	leaseDuration      time.Duration
+	leaseRenewInterval time.Duration
+	leasePollInterval  time.Duration
+	claimRetryStreak   int
 }
 
 type queuedRun struct {
@@ -99,7 +115,7 @@ func NewCoordinator(
 	taskStore storage.TaskStoreInterface,
 	artifactStore storage.ArtifactStoreInterface,
 	artifactTaskStore storage.ArtifactTaskStoreInterface,
-	time util.TimeInterface,
+	clock util.TimeInterface,
 	kubernetesCoreClient apiserverclient.KubernetesCoreInterface,
 	defaultWorkspaceSpec *corev1.PersistentVolumeClaimSpec,
 	mlPipelineTLSEnabled bool,
@@ -112,7 +128,7 @@ func NewCoordinator(
 		kubernetesCoreClient: kubernetesCoreClient,
 		defaultWorkspaceSpec: defaultWorkspaceSpec,
 		mlPipelineTLSEnabled: mlPipelineTLSEnabled,
-		time:                 time,
+		time:                 clock,
 		executors: map[string]WorkloadExecutorPlugin{
 			ExecutorDocker:     dockerExecutor{},
 			ExecutorKubernetes: kubernetesExecutor{coreClient: kubernetesCoreClient},
@@ -121,17 +137,28 @@ func NewCoordinator(
 			WorkspaceTypeHostPath: hostPathWorkspaceProvisioner{},
 			WorkspaceTypePVC:      pvcWorkspaceProvisioner{coreClient: kubernetesCoreClient, defaultWorkspaceSpec: defaultWorkspaceSpec},
 		},
-		queue:         make(chan *queuedRun, 32),
-		activeRuns:    map[string]*activeRunExecution{},
-		pendingRuns:   map[string]bool{},
-		dispatchers:   map[string]*taskDispatcher{},
-		reservations:  map[string]func(){},
-		cancellations: map[string]*cancellationExecution{},
+		coordinatorState: &coordinatorState{
+			queue:              make(chan *queuedRun, 32),
+			activeRuns:         map[string]*activeRunExecution{},
+			pendingRuns:        map[string]bool{},
+			dispatchers:        map[string]*taskDispatcher{},
+			reservations:       map[string]func(){},
+			cancellations:      map[string]*cancellationExecution{},
+			ownedRuns:          map[string]*ownedRun{},
+			ownerID:            uuid.NewString(),
+			leaseDuration:      30 * time.Second,
+			leaseRenewInterval: 5 * time.Second,
+			leasePollInterval:  time.Second,
+		},
 	}
 	if provider, ok := taskStore.(interface {
 		RuntimeStore() storage.RuntimeStoreInterface
 	}); ok {
 		coordinator.runtimeStore = provider.RuntimeStore()
+	}
+	if provider, ok := taskStore.(runLeaseProvider); ok {
+		coordinator.leaseProvider = provider
+		coordinator.leaseStore = provider.RunLeaseStore()
 	}
 	return coordinator
 }
@@ -151,20 +178,33 @@ func (c *Coordinator) Start(ctx context.Context) error {
 	if err := executor.CheckRequirements(ctx); err != nil {
 		return err
 	}
-	if err := c.lockInstallation(); err != nil {
-		return err
+	if c.usesRunLeases() {
+		if _, err := c.leaseStore.ListEligible(executor.Type(), 1, true); err != nil {
+			return fmt.Errorf("validate runtime lease storage: %w", err)
+		}
+	} else {
+		if err := c.lockInstallation(); err != nil {
+			return err
+		}
 	}
 	workerCtx, cancel := context.WithCancel(ctx)
+	c.workerContext = workerCtx
 	c.workerCancel = cancel
 	c.workerDone = make(chan struct{})
 	if err := executor.Start(workerCtx); err != nil {
 		cancel()
-		_ = c.workerLock.Close()
+		if c.workerLock != nil {
+			_ = c.workerLock.Close()
+		}
 		return err
 	}
 	go func() {
 		defer close(c.workerDone)
-		c.runLoop(workerCtx)
+		if c.usesRunLeases() {
+			c.runLeaseLoop(workerCtx)
+		} else {
+			c.runLoop(workerCtx)
+		}
 	}()
 	return nil
 }
@@ -232,6 +272,9 @@ func (c *Coordinator) SubmitRun(
 	}
 	if err := validateExecutor(executor, common.IsMultiUserMode()); err != nil {
 		return err
+	}
+	if c.usesRunLeases() && c.ownership == nil {
+		return fmt.Errorf("lease-managed Kubernetes submissions must be initialized before the run is stored")
 	}
 	var workspaceProvisioner WorkspaceProvisionerPlugin
 	var workspace *WorkspaceHandle
@@ -303,7 +346,7 @@ func (c *Coordinator) SubmitRun(
 	if err := c.updateRun(run); err != nil {
 		return fmt.Errorf("failed to persist runtime manifest: %w", err)
 	}
-	if !common.GetBoolConfigWithDefault(common.V2RuntimeAutoExecute, true) {
+	if c.ownership != nil || !common.GetBoolConfigWithDefault(common.V2RuntimeAutoExecute, true) {
 		cleanupWorkspace = false
 		return nil
 	}
@@ -548,6 +591,9 @@ func (c *Coordinator) executeRun(ctx context.Context, item *queuedRun) error {
 
 	if err := c.executeDagComponent(runCtx, item, executor, item.spec.GetRoot(), "root", rootInputs, false); err != nil {
 		if ctx.Err() != nil {
+			return err
+		}
+		if errors.Is(err, storage.ErrRunLeaseConflict) {
 			return err
 		}
 		if c.isCancellationError(run.UUID, err) {
@@ -888,6 +934,11 @@ func (c *Coordinator) executeImporterTask(
 	importerSpec *pipelinespec.PipelineDeploymentConfig_ImporterSpec,
 	parameterValues map[string]*structpb.Value,
 ) (*TaskExecutionResult, error) {
+	ctx, cancel, err := c.ownership.operation(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
 	if item == nil || item.run == nil || importerSpec == nil || componentSpec == nil {
 		return nil, fmt.Errorf("importer task execution request is incomplete")
 	}
@@ -969,6 +1020,11 @@ func (c *Coordinator) executePlatformTask(
 	executorInput *pipelinespec.ExecutorInput,
 	taskSpec *pipelinespec.PipelineTaskSpec,
 ) (*TaskExecutionResult, bool, error) {
+	ctx, cancel, err := c.ownership.operation(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	defer cancel()
 	if container == nil {
 		return nil, false, nil
 	}
@@ -993,6 +1049,9 @@ func (c *Coordinator) createPVCPlatformTask(
 	}
 	if run == nil {
 		return nil, fmt.Errorf("createpvc task requires a run")
+	}
+	if task == nil || task.UUID == "" {
+		return nil, fmt.Errorf("createpvc task requires a materialized task identity")
 	}
 	namespace := run.Namespace
 	if namespace == "" {
@@ -1030,11 +1089,11 @@ func (c *Coordinator) createPVCPlatformTask(
 		pvcNameSuffixInput != nil && pvcNameSuffixInput.GetStringValue() != "":
 		return nil, fmt.Errorf("failed to create pvc: at most one of pvc_name and pvc_name_suffix can be non-empty")
 	case pvcNameSuffixInput != nil && pvcNameSuffixInput.GetStringValue() != "":
-		pvcName = uuid.NewString() + pvcNameSuffixInput.GetStringValue()
+		pvcName = task.UUID + pvcNameSuffixInput.GetStringValue()
 	case pvcNameInput != nil && pvcNameInput.GetStringValue() != "":
 		pvcName = pvcNameInput.GetStringValue()
 	default:
-		pvcName = uuid.NewString()
+		pvcName = task.UUID
 	}
 
 	volumeSizeInput, ok := inputs["size"]
@@ -1099,7 +1158,7 @@ func (c *Coordinator) createPVCPlatformTask(
 			DataSource:       dataSource,
 		},
 	}
-	if _, err := c.kubernetesCoreClient.GetClientSet().CoreV1().PersistentVolumeClaims(namespace).Create(ctx, pvc, metav1.CreateOptions{}); err != nil {
+	if err := c.createOrRecoverPlatformPVC(ctx, run, task, pvc); err != nil {
 		return nil, fmt.Errorf("failed to create pvc: %w", err)
 	}
 
@@ -1297,6 +1356,9 @@ func isSQLiteLockedError(err error) bool {
 }
 
 func (c *Coordinator) ReconcileManagedRuns(ctx context.Context) error {
+	if c.usesRunLeases() {
+		return c.admitLeasedRuns(ctx)
+	}
 	runs, _, _, err := c.runStore.ListRuns(&model.FilterContext{}, list.EmptyOptions(), false)
 	if err != nil {
 		return err
@@ -1361,19 +1423,45 @@ func (c *Coordinator) ReconcileManagedRuns(ctx context.Context) error {
 }
 
 func (c *Coordinator) cleanupWorkspaceForRun(ctx context.Context, run *model.Run, manifest *RuntimeManifest) error {
-	if run == nil || manifest == nil || manifest.Workspace == nil {
+	if run == nil || manifest == nil {
 		return nil
 	}
-	provisioner, err := c.workspaceProvisioner(run, manifest.Executor, manifest.Workspace)
+	ctx, cancel, err := c.ownership.operation(ctx)
 	if err != nil {
 		return err
 	}
-	return provisioner.Cleanup(ctx, manifest.Workspace)
+	defer cancel()
+	reference := manifest.Workspace
+	if reference == nil && run.WorkspaceProvisioner != nil && *run.WorkspaceProvisioner == WorkspaceTypePVC {
+		reference, err = (pvcWorkspaceProvisioner{coreClient: c.kubernetesCoreClient}).recoverForCleanup(ctx, WorkspaceRequest{
+			RunID: run.UUID, RunName: run.K8SName, Namespace: run.Namespace,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	if reference == nil {
+		return nil
+	}
+	provisioner, err := c.workspaceProvisioner(run, manifest.Executor, reference)
+	if err != nil {
+		return err
+	}
+	return provisioner.Cleanup(ctx, reference)
 }
 
 func (c *Coordinator) CleanupManagedRun(ctx context.Context, run *model.Run) error {
 	if run == nil || !IsManagedRun(run) {
 		return nil
+	}
+	if c.usesRunLeases() && c.ownership == nil {
+		return c.runOwnedMaintenance(ctx, run.UUID, func(owned *Coordinator) error {
+			current, err := owned.runStore.GetRun(run.UUID, false)
+			if err != nil {
+				return err
+			}
+			return owned.CleanupManagedRun(ctx, current)
+		})
 	}
 	manifest, err := ParseManifest(string(run.PipelineRuntimeManifest))
 	if err != nil || manifest == nil {
@@ -1394,6 +1482,9 @@ func (c *Coordinator) CleanupManagedRun(ctx context.Context, run *model.Run) err
 func (c *Coordinator) TerminateManagedRun(ctx context.Context, run *model.Run) error {
 	if run == nil || !IsManagedRun(run) {
 		return nil
+	}
+	if c.usesRunLeases() && c.ownership == nil {
+		return c.terminateLeasedRun(ctx, run)
 	}
 	done := c.cancelActiveRun(run.UUID)
 	if err := c.cancelRuntimeAttempts(ctx, run.UUID); err != nil {
@@ -1427,6 +1518,11 @@ func (c *Coordinator) TerminateManagedRun(ctx context.Context, run *model.Run) e
 }
 
 func (c *Coordinator) deleteManagedRunPods(ctx context.Context, runID string, namespace string) error {
+	ctx, cancel, err := c.ownership.operation(ctx)
+	if err != nil {
+		return err
+	}
+	defer cancel()
 	if c.kubernetesCoreClient == nil || namespace == "" {
 		return nil
 	}

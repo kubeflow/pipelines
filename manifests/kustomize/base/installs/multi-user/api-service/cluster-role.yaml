@@ -17,6 +17,12 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
   - configmaps
   - secrets
   verbs:

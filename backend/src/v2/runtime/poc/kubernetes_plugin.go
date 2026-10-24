@@ -282,8 +282,21 @@ func (k kubernetesExecutor) Cancel(ctx context.Context, reference ExecutionRefer
 	if err := checkReferencedPod(pod, reference, data); err != nil {
 		return err
 	}
-	uid := types.UID(data.PodUID)
-	err = client.Delete(ctx, data.PodName, metav1.DeleteOptions{Preconditions: &metav1.Preconditions{UID: &uid}})
+	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+		return nil
+	}
+	if pod.Spec.NodeName == "" && pod.Status.StartTime == nil {
+		uid := types.UID(data.PodUID)
+		err = client.Delete(ctx, data.PodName, metav1.DeleteOptions{
+			Preconditions: &metav1.Preconditions{UID: &uid, ResourceVersion: &pod.ResourceVersion},
+		})
+	} else if pod.Spec.ActiveDeadlineSeconds == nil || *pod.Spec.ActiveDeadlineSeconds > 1 {
+		// Stop the workload without deleting its log source. Another replica
+		// must still be able to publish canceled-attempt logs after takeover.
+		deadline := int64(1)
+		pod.Spec.ActiveDeadlineSeconds = &deadline
+		_, err = client.Update(ctx, pod, metav1.UpdateOptions{})
+	}
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
@@ -299,6 +312,9 @@ func (k kubernetesExecutor) Cancel(ctx context.Context, reference ExecutionRefer
 			return err
 		}
 		if pod != nil && string(pod.UID) != data.PodUID {
+			return nil
+		}
+		if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
 			return nil
 		}
 		if err := waitForPluginPoll(ctx); err != nil {

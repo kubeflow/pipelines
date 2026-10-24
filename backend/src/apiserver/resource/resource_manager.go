@@ -1297,13 +1297,6 @@ func (r *ResourceManager) createManagedV2Run(
 	if err := r.authorizeServiceAccount(ctx, run.ServiceAccount, run.Namespace); err != nil {
 		return nil, util.Wrap(err, "Failed to create a coordinator-managed run due to service account authorization error")
 	}
-	for _, tick := range ticks {
-		if tick != nil {
-			if err := r.claimRecurringRunTick(run, tick); err != nil {
-				return nil, err
-			}
-		}
-	}
 	run.State = model.RuntimeStatePending
 	run.Conditions = string(run.State.ToExecutionPhase())
 	run.PipelineSpecManifest = model.LargeText(manifest)
@@ -1317,16 +1310,29 @@ func (r *ResourceManager) createManagedV2Run(
 	if run.ScheduledAtInSec == 0 {
 		run.ScheduledAtInSec = run.CreatedAtInSec
 	}
+	prepared, err := r.pocCoordinator.PrepareRunSubmission(run, job, kubernetesSpec)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to initialize a coordinator-managed run before persistence")
+	}
+	for _, tick := range ticks {
+		if tick != nil {
+			if err := r.claimRecurringRunTick(run, tick); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	newRun, err := r.runStore.CreateRun(run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a run")
 	}
-	if err := r.pocCoordinator.SubmitRun(ctx, newRun, job, kubernetesSpec); err != nil {
-		if deleteErr := r.runStore.DeleteRun(newRun.UUID); deleteErr != nil {
-			glog.Warningf("Failed to cleanup managed run %s after submit error: %v", newRun.UUID, deleteErr)
+	if !prepared {
+		if err := r.pocCoordinator.SubmitRun(ctx, newRun, job, kubernetesSpec); err != nil {
+			if deleteErr := r.runStore.DeleteRun(newRun.UUID); deleteErr != nil {
+				glog.Warningf("Failed to cleanup managed run %s after submit error: %v", newRun.UUID, deleteErr)
+			}
+			return nil, util.Wrap(err, "Failed to enqueue run into the coordinator proof-of-concept runtime")
 		}
-		return nil, util.Wrap(err, "Failed to enqueue run into the coordinator proof-of-concept runtime")
 	}
 	if err := r.experimentStore.SetLastRunTimestamp(newRun); err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("Failed to set last run timestamp on experiment %s for run %s", newRun.ExperimentId, newRun.UUID))
@@ -1554,7 +1560,7 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 			return util.Wrapf(err, "Failed to stop managed run %s before deletion", runId)
 		}
 		if cleanupErr := r.pocCoordinator.CleanupManagedRun(ctx, run); cleanupErr != nil {
-			glog.Warningf("Failed to cleanup managed run %v: %v", runId, cleanupErr)
+			return util.Wrapf(cleanupErr, "Failed to clean up managed run %s before deleting its recovery metadata", runId)
 		}
 		err = r.runStore.DeleteRun(runId)
 		if err != nil {

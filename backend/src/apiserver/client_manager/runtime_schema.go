@@ -67,14 +67,20 @@ func autoMigrate(db *gorm.DB) error {
 		}
 		models := make([]any, 0, len(model.AllModels())-1)
 		for _, candidate := range model.AllModels() {
-			if _, runtime := candidate.(*model.RuntimeTask); !runtime {
+			switch candidate.(type) {
+			case *model.RuntimeTask, *model.RunLease:
+				continue
+			default:
 				models = append(models, candidate)
 			}
 		}
 		if err := locked.AutoMigrate(models...); err != nil {
 			return fmt.Errorf("AutoMigrate failed: %w", err)
 		}
-		return createRuntimeTaskTable(locked)
+		if err := createRuntimeTaskTable(locked); err != nil {
+			return err
+		}
+		return createRunLeaseSchema(locked)
 	})
 }
 
@@ -405,6 +411,13 @@ type runtimeForeignKey struct {
 }
 
 func validateRuntimeForeignKeys(db *gorm.DB) error {
+	return validateRuntimeTableForeignKeys(db, "runtime_tasks", []runtimeForeignKey{
+		{Columns: "TaskUUID,RunUUID", ReferenceTable: "tasks", ReferenceColumns: "UUID,RunUUID", DeleteRule: "CASCADE", UpdateRule: "CASCADE"},
+		{Columns: "RunUUID", ReferenceTable: "run_details", ReferenceColumns: "UUID", DeleteRule: "CASCADE", UpdateRule: "CASCADE"},
+	})
+}
+
+func validateRuntimeTableForeignKeys(db *gorm.DB, table string, expectedKeys []runtimeForeignKey) error {
 	var keys []runtimeForeignKey
 	switch db.Name() {
 	case "postgres":
@@ -423,20 +436,20 @@ func validateRuntimeForeignKeys(db *gorm.DB) error {
 			JOIN pg_class rt ON rt.oid = c.confrelid
 			JOIN pg_namespace rn ON rn.oid = rt.relnamespace
 			WHERE c.contype = 'f' AND c.convalidated AND n.nspname = current_schema()
-			 AND rn.nspname = current_schema() AND t.relname = 'runtime_tasks'`).Scan(&keys).Error; err != nil {
+			 AND rn.nspname = current_schema() AND t.relname = ?`, table).Scan(&keys).Error; err != nil {
 			return err
 		}
 	case "mysql":
 		if err := db.Raw(`SELECT
-			GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ',') AS ` + "`Columns`" + `,
+			GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ',') AS `+"`Columns`"+`,
 			k.REFERENCED_TABLE_NAME AS ReferenceTable,
 			GROUP_CONCAT(k.REFERENCED_COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ',') AS ReferenceColumns,
 			r.DELETE_RULE AS DeleteRule, r.UPDATE_RULE AS UpdateRule
 			FROM information_schema.KEY_COLUMN_USAGE k
 			JOIN information_schema.REFERENTIAL_CONSTRAINTS r ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
 			 AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME AND r.TABLE_NAME = k.TABLE_NAME
-			WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = 'runtime_tasks'
-			GROUP BY k.CONSTRAINT_NAME, k.REFERENCED_TABLE_NAME, r.DELETE_RULE, r.UPDATE_RULE`).Scan(&keys).Error; err != nil {
+			WHERE k.TABLE_SCHEMA = DATABASE() AND k.REFERENCED_TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = ?
+			GROUP BY k.CONSTRAINT_NAME, k.REFERENCED_TABLE_NAME, r.DELETE_RULE, r.UPDATE_RULE`, table).Scan(&keys).Error; err != nil {
 			return err
 		}
 	case "sqlite":
@@ -449,7 +462,7 @@ func validateRuntimeForeignKeys(db *gorm.DB) error {
 			OnUpdate string
 			OnDelete string
 		}
-		if err := db.Raw("PRAGMA foreign_key_list('runtime_tasks')").Scan(&rows).Error; err != nil {
+		if err := db.Raw("PRAGMA foreign_key_list(" + runtimeSchemaQuote(db, table) + ")").Scan(&rows).Error; err != nil {
 			return err
 		}
 		sort.Slice(rows, func(i, j int) bool {
@@ -468,16 +481,13 @@ func validateRuntimeForeignKeys(db *gorm.DB) error {
 			key.ReferenceColumns += row.To
 		}
 	}
-	for _, expected := range []runtimeForeignKey{
-		{Columns: "TaskUUID,RunUUID", ReferenceTable: "tasks", ReferenceColumns: "UUID,RunUUID", DeleteRule: "CASCADE", UpdateRule: "CASCADE"},
-		{Columns: "RunUUID", ReferenceTable: "run_details", ReferenceColumns: "UUID", DeleteRule: "CASCADE", UpdateRule: "CASCADE"},
-	} {
+	for _, expected := range expectedKeys {
 		found := false
 		for _, actual := range keys {
 			found = found || actual == expected
 		}
 		if !found {
-			return fmt.Errorf("runtime_tasks foreign key (%s) to %s must cascade; refusing implicit schema repair", expected.Columns, expected.ReferenceTable)
+			return fmt.Errorf("%s foreign key (%s) to %s must cascade; refusing implicit schema repair", table, expected.Columns, expected.ReferenceTable)
 		}
 	}
 	return nil
