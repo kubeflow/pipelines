@@ -38,6 +38,40 @@ def source(name):
 
 
 class CacheFixtureImageTest(unittest.TestCase):
+    def test_sdk_source_changes_trigger_fixture_consumers(self):
+        paths = [
+            'sdk/python/kfp/__init__.py',
+            'sdk/python/kfp/version.py',
+            'sdk/python/kfp/dsl/__init__.py',
+            'sdk/python/kfp/dsl/executor.py',
+            'sdk/python/kfp/dsl/executor_main.py',
+            'sdk/python/kfp/dsl/types/type_annotations.py',
+        ]
+        script = """
+const gate = require('./.github/resources/scripts/ci_expected_workflows.js');
+const {inventory} = gate.loadLocalInventory(process.cwd());
+const paths = JSON.parse(process.argv[1]);
+console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow =>
+  workflow.pull_request !== null && gate.applicable(workflow.pull_request,
+    'master', [path])).map(workflow => workflow.path))));
+"""
+        result = subprocess.run(
+            ['node', '-e', script, json.dumps(paths)],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        consumers = {
+            '.github/workflows/api-server-tests.yml',
+            '.github/workflows/ci-scripts-tests.yml',
+        }
+        for path, selected in zip(
+            paths, json.loads(result.stdout), strict=True
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(consumers.issubset(selected), selected)
+
     def test_only_image_and_installer_prefix_change(self):
         for name in prepare.FIXTURES:
             with self.subTest(name=name):

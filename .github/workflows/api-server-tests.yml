@@ -35,6 +35,8 @@ on:
 
   pull_request:
     paths:
+      # The offline cache fixture image copies this SDK source tree.
+      - 'sdk/python/kfp/**'
       - '**/pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/api-server-tests.yml'
