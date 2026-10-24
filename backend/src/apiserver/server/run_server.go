@@ -504,7 +504,7 @@ func (s *RunServer) CreateTask(ctx context.Context, request *apiv2.CreateTaskReq
 	if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
 		return nil, util.Wrap(err, "Failed to validate parent task")
 	}
-	createdTask, err := s.resourceManager.CreateTask(modelTask)
+	createdTask, err := s.resourceManager.ReportCreateTask(modelTask)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create task")
 	}
@@ -562,10 +562,15 @@ func (s *RunServer) UpdateTask(ctx context.Context, request *apiv2.UpdateTaskReq
 	if err := s.validateParentTaskOwnership(modelTask.ParentTaskUUID, modelTask.RunUUID); err != nil {
 		return nil, util.Wrap(err, "Failed to validate parent task")
 	}
-	updatedTask, err := s.resourceManager.UpdateTask(modelTask)
+	identity, err := taskReportIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	updatedTasks, err := s.resourceManager.ReportTasks(identity, []*model.Task{modelTask})
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to update task")
 	}
+	updatedTask := updatedTasks[0]
 
 	taskChildren, err := s.resourceManager.GetTaskChildren(updatedTask.UUID)
 	if err != nil {
@@ -626,6 +631,7 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2.UpdateTa
 		Tasks: make(map[string]*apiv2.PipelineTask),
 	}
 
+	modelTasks := make([]*model.Task, 0, len(taskIDs))
 	for _, taskID := range taskIDs {
 		task := request.GetTasks()[taskID]
 		modelTask, err := toModelTask(task)
@@ -638,10 +644,18 @@ func (s *RunServer) UpdateTasksBulk(ctx context.Context, request *apiv2.UpdateTa
 			return nil, util.Wrapf(err, "Failed to validate parent task for task %s", taskID)
 		}
 
-		updatedTask, err := s.resourceManager.UpdateTask(modelTask)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to update task %s", taskID)
-		}
+		modelTasks = append(modelTasks, modelTask)
+	}
+	identity, err := taskReportIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	updatedTasks, err := s.resourceManager.ReportTasks(identity, modelTasks)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to update task batch")
+	}
+	for i, taskID := range taskIDs {
+		updatedTask := updatedTasks[i]
 
 		taskChildren, err := s.resourceManager.GetTaskChildren(updatedTask.UUID)
 		if err != nil {

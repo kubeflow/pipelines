@@ -24,6 +24,7 @@ import (
 	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
@@ -49,7 +50,8 @@ type TaskConfig struct {
 }
 
 func isReservedRuntimeEnvVar(name string) bool {
-	return name == component.EnvPodName || name == component.EnvPodUID || name == component.EnvNamespace
+	return name == component.EnvPodName || name == component.EnvPodUID || name == component.EnvNamespace ||
+		name == apiclient.KFPTaskIDEnvVar || name == apiclient.KFPTaskAttemptIDEnvVar
 }
 
 func validateReservedRuntimeEnvVar(name string) error {
@@ -456,7 +458,7 @@ func initPodSpecPatch(
 	}
 	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), modelcarEnvVar, podSpec)
 
-	if needsWorkspaceMount(executorInput) {
+	if NeedsWorkspaceMount(executorInput) {
 		// Validate that no user volume mounts conflict with the workspace
 		if err := validateVolumeMounts(podSpec); err != nil {
 			return nil, fmt.Errorf("failed to validate volume mounts: %w", err)
@@ -484,6 +486,54 @@ func initPodSpecPatch(
 	return podSpec, nil
 }
 
+// BuildLauncherPodSpec builds the launcher-backed pod spec used for runtime task execution.
+func BuildLauncherPodSpec(
+	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
+	componentSpec *pipelinespec.ComponentSpec,
+	executorInput *pipelinespec.ExecutorInput,
+	taskID string,
+	parentTaskID string,
+	pipelineName string,
+	runID string,
+	runName string,
+	pipelineLogLevel string,
+	publishLogs string,
+	cacheDisabled string,
+	taskConfig *TaskConfig,
+	fingerPrint string,
+	iterationIndex *int,
+	taskName string,
+	mlPipelineTLSEnabled bool,
+	caCertPath string,
+	mlPipelineServerAddress string,
+	mlPipelineServerPort string,
+	proxyConfig proxy.Config,
+) (*k8score.PodSpec, error) {
+	return initPodSpecPatch(
+		container,
+		componentSpec,
+		executorInput,
+		taskID,
+		parentTaskID,
+		pipelineName,
+		runID,
+		runName,
+		pipelineLogLevel,
+		publishLogs,
+		cacheDisabled,
+		taskConfig,
+		fingerPrint,
+		iterationIndex,
+		taskName,
+		mlPipelineTLSEnabled,
+		caCertPath,
+		mlPipelineServerAddress,
+		mlPipelineServerPort,
+		nil,
+		proxyConfig,
+	)
+}
+
 func resolveContainerCommandAndArgs(
 	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
 	componentSpec *pipelinespec.ComponentSpec,
@@ -508,8 +558,8 @@ func resolveContainerCommandAndArgs(
 	return append(userCmdArgs, resolvedArgs...), nil
 }
 
-// needsWorkspaceMount checks if the component needs workspace mounting based on input parameters and artifacts.
-func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
+// NeedsWorkspaceMount reports whether resolved inputs require the run workspace.
+func NeedsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 	// Check if any input parameter is the workspace path placeholder
 	for _, param := range executorInput.GetInputs().GetParameterValues() {
 		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
@@ -780,6 +830,17 @@ func provisionOutputs(
 		outputs.OutputFile = component.OutputMetadataFilepath
 	}
 	return outputs
+}
+
+// BuildProvisionedOutputs prepares ExecutorInput output locations for a task.
+func BuildProvisionedOutputs(
+	pipelineRoot,
+	taskName string,
+	outputsSpec *pipelinespec.ComponentOutputsSpec,
+	outputURISalt string,
+	publishOutput string,
+) *pipelinespec.ExecutorInput_Outputs {
+	return provisionOutputs(pipelineRoot, taskName, outputsSpec, outputURISalt, publishOutput)
 }
 
 func validateVolumeMounts(podSpec *k8score.PodSpec) error {

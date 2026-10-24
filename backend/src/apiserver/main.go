@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc/credentials"
@@ -318,13 +319,16 @@ func main() {
 		}
 	}
 
-	wg.Add(1)
-	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	if clientManager.SwfClient() != nil {
+		wg.Add(1)
+		go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+	}
 
 	// Start run GC when a retention window is configured. The collector
 	// re-validates the required database index on every tick and skips
 	// collection until the operator has applied the index migration.
-	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+	if clientManager.KubernetesCoreClient() != nil &&
+		(common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) {
 		runGC := gc.NewRunGarbageCollector(
 			clientManager.RunStore(),
 			clientManager.KubernetesCoreClient().GetClientSet(),
@@ -338,6 +342,23 @@ func main() {
 		}()
 	}
 
+	if resourceManager.CoordinatorRuntimeEnabled() {
+		if err := resourceManager.StartCoordinatorRuntime(backgroundCtx); err != nil {
+			glog.Fatalf("Failed to start coordinator runtime: %v", err)
+		}
+		if common.GetBoolConfigWithDefault(common.V2RuntimeAutoExecute, true) {
+			if err := resourceManager.ReconcileManagedRuns(backgroundCtx); err != nil {
+				glog.Fatalf("Failed to reconcile coordinator runtime: %v", err)
+			}
+		}
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := resourceManager.ShutdownCoordinatorRuntime(ctx); err != nil {
+				glog.Errorf("Failed to shut down coordinator runtime: %v", err)
+			}
+		}()
+	}
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)
@@ -691,7 +712,15 @@ func resolveWebhookTLSPaths(webhookCert, webhookKey, serverCert, serverKey strin
 }
 
 func registerHTTPHandlerFromEndpoint(ctx context.Context, handler RegisterHttpHandlerFromEndpoint, serviceName string, mux *runtime.ServeMux, tlsCfg *tls.Config) error {
-	endpoint := "localhost" + *rpcPortFlag
+	host, port, err := net.SplitHostPort(*rpcPortFlag)
+	if err != nil {
+		return fmt.Errorf("invalid RPC listener address: %w", err)
+	}
+	ip := net.ParseIP(host)
+	if host == "" || (ip != nil && ip.IsUnspecified()) {
+		host = "localhost"
+	}
+	endpoint := net.JoinHostPort(host, port)
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),

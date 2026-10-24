@@ -327,6 +327,34 @@ describe('RunDetailsV2', () => {
     expect(navigateSpy).not.toHaveBeenCalled();
   });
 
+  it.each(['docker', 'kubernetes'])(
+    'routes selected managed %s tasks without Pods to task UUID logs',
+    async (executorType) => {
+      vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+        tasks: loopTasks.map((task) => ({ ...task, pods: undefined })),
+      });
+      const taskLogs = vi.spyOn(Apis, 'getTaskLogs').mockResolvedValue('live task output');
+      const podLogs = vi.spyOn(Apis, 'getPodLogs');
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            {...generateProps()}
+            location={{ pathname: `/runs/details/${RUN_ID}`, search: '?task=train-1' } as any}
+            parsedPipelineSpec={loopSpec}
+            pipeline_job={JSON.stringify(PipelineSpec.toJSON(loopSpec))}
+            run={{ ...TEST_RUN, state: V2RuntimeState.RUNNING, executor_type: executorType }}
+          />
+        </CommonTestWrapper>,
+      );
+
+      fireEvent.click(await screen.findByText('Logs'));
+
+      await waitFor(() => expect(taskLogs).toHaveBeenCalledWith(RUN_ID, 'train-1'));
+      expect(podLogs).not.toHaveBeenCalled();
+      expect(await screen.findByTestId('logs-view-window')).toBeInTheDocument();
+    },
+  );
+
   it('reveals a deep-linked iteration beyond the default limit without leaving the root graph', async () => {
     const tasks = loopTasks.map((task) =>
       task.task_id === 'sweep'
@@ -1528,6 +1556,70 @@ describe('RunDetailsV2', () => {
       screen.getByText('9/6/2018, 4:03:02 AM'); // 'Started at'
       screen.getByText('9/7/2018, 4:03:02 AM'); // 'Finished at'
       screen.getByText('48:00:00'); // 'Duration'
+    });
+
+    it.each([
+      ['docker', 'host-path'],
+      ['kubernetes', 'pvc'],
+    ])('shows %s executor and safe %s workspace metadata', async (executor, provisioner) => {
+      const run = {
+        ...TEST_RUN,
+        executor_type: executor,
+        workspace_provisioner: provisioner,
+        workspace_description: `Pipeline run workspace (${provisioner})`,
+        workspace_reference: {
+          path: '/private/workspaces/run-1',
+          secret: 'workspace-credential',
+        },
+      };
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={run} {...generateProps()} />
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.getByText('Executor')).toBeInTheDocument();
+      expect(screen.getByText(executor)).toBeInTheDocument();
+      expect(screen.getByText('Workspace provisioner')).toBeInTheDocument();
+      expect(screen.getByText(provisioner)).toBeInTheDocument();
+      expect(screen.getByText('Workspace')).toBeInTheDocument();
+      expect(screen.getByText(run.workspace_description)).toBeInTheDocument();
+      expect(screen.queryByText('/private/workspaces/run-1')).not.toBeInTheDocument();
+      expect(screen.queryByText('workspace-credential')).not.toBeInTheDocument();
+    });
+
+    it('keeps executor metadata without inventing an unprovisioned workspace', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={{ ...TEST_RUN, executor_type: 'docker' }}
+            {...generateProps()}
+          />
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.getByText('docker')).toBeInTheDocument();
+      expect(screen.queryByText('Workspace provisioner')).not.toBeInTheDocument();
+      expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
+    });
+
+    it('omits runtime metadata for legacy Argo runs', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+        </CommonTestWrapper>,
+      );
+
+      await userEvent.click(screen.getByText('Detail'));
+
+      expect(screen.queryByText('Executor')).not.toBeInTheDocument();
+      expect(screen.queryByText('Workspace provisioner')).not.toBeInTheDocument();
+      expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
     });
 
     it('handles no creation time', async () => {

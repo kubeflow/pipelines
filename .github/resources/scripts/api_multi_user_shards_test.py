@@ -28,8 +28,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = ROOT / '.github/workflows/api-server-tests.yml'
 BASE_FILTERS = {
-    'true': 'ApiServerTests && (PipelineUpload || PipelineCacheEnabled)',
-    'false': 'ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)',
+    'true': 'ApiServerTests && !CoordinatorRuntime && (PipelineUpload || PipelineCacheEnabled)',
+    'false': 'ApiServerTests && !CoordinatorRuntime && !(PipelineUpload || PipelineCacheEnabled)',
 }
 CONFIGURATIONS = {('mysql', 'true'), ('mysql', 'false'), ('pgx', 'true')}
 SHARD_FILTERS = {
@@ -65,6 +65,14 @@ class ApiMultiUserShardsTest(unittest.TestCase):
         self.assertIn(
             'backend/test/constants/**', workflow['on']['pull_request']['paths']
         )
+
+    def test_argo_lanes_exclude_coordinator_only_specs(self):
+        self.assertIn(
+            '!CoordinatorRuntime', self.workflow['env']['TESTS_LABEL']
+        )
+        for row in self.matrix_rows('pull_request'):
+            with self.subTest(row=row):
+                self.assertIn('!CoordinatorRuntime', row['test_label'])
 
     def matrix_rows(self, event):
         matrix = self.job['strategy']['matrix']

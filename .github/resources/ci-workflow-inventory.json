@@ -120,7 +120,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "c70e586db7dc9c84c6dbbbbb73eecc09522478e5d023456fa8c735d45150811d",
+      "header_sha256": "46642c978bca3d99b70b10cc801cf60821babbab815e22b6f06bbb182ab4ebf5",
       "pull_request": null
     },
     {
@@ -301,6 +301,22 @@
           "sdk/python/kfp/**",
           ".readthedocs.yml",
           ".github/workflows/docs.yml"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/e2e-test-coordinator-local-docker.yml",
+      "name": "Coordinator Runtime Local Docker E2E",
+      "header_sha256": "7887463140164f948196b9a1e021db0bdb4c40e1cf023be5d398847ddecd6863",
+      "pull_request": {
+        "paths": [
+          ".github/workflows/e2e-test-coordinator-local-docker.yml",
+          "backend/Makefile",
+          "backend/src/**",
+          "backend/test/**",
+          ".github/resources/tinyproxy/**",
+          "!**/*.md",
+          "!**/OWNERS"
         ]
       }
     },
@@ -511,13 +527,14 @@
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
       "name": "KFP SDK Unit Tests",
-      "header_sha256": "831442d8a0b8cdf53fd4da52dc6d754874cfd840256036ddcd8c78055afb65b4",
+      "header_sha256": "b06807357ffa2a534fa8e24f9aefbf492f249a33c2324182ffcfde7c833e30f9",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           "api/**",
           "sdk/**",
+          "local/**",
           "kubernetes_platform/**",
           "backend/api/**",
           ".github/actions/protobuf/**",

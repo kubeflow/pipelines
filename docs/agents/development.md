@@ -15,6 +15,12 @@ The only distributable workspace member is `sdk/python` (`kfp`); regenerate
 `uv.lock` with `uv lock` after dependency changes. Workspace requirements exports are not committed; see
 [dependency artifacts](dependabot.md) for optional pip consumers.
 
+The independent [local packaging proof](../../local/README.md) builds an optional
+native `kfp-local` wheel from the same checkout. It is not installed by root
+`uv sync`; its SDK commands load it only when explicitly invoked. Build and
+install both proof wheels together. Runtime users need Docker and, for the UI,
+Node.js, but do not need the checkout, Go, npm, or frontend build tooling.
+
 Install Ginkgo into the repository when running its suites:
 
 ```bash
@@ -61,6 +67,37 @@ Both targets wait for cluster components to become ready with configurable timeo
 | `ARCHIVED_RUNS_RETENTION_TIME` | Auto-delete archived runs this Go duration after they were archived (e.g., `2160h`); pre-upgrade archived rows fall back to completion time; empty disables |
 | `RUNS_GC_INTERVAL` | Poll interval for the run garbage collector; defaults to `6h` |
 | `RUNS_GC_BATCH_SIZE` | Maximum rows per GC batch; defaults to `100` |
+| `KFP_V2_RUNTIME_MODE` | Opt into the direct-DAG runtime with `coordinator-poc`; unset keeps Argo |
+| `KFP_V2_RUNTIME_EXECUTOR` | Deployment-selected `kubernetes` or standalone `docker` workload executor |
+| `KFP_V2_RUNTIME_WORKSPACE_ROOT` | Docker installation lock and local run workspace/staging root |
+| `KFP_V2_RUNTIME_AUTO_EXECUTE` | Set `false` for API-only operation without an embedded worker |
+
+## Coordinator runtime schema
+
+See the [runtime guide](../../backend/src/v2/runtime/poc/README.md) for Kubernetes
+multi-replica ownership and the single-worker Docker deployment boundary.
+
+The runtime adds nullable executor/workspace columns to `run_details` and the
+`runtime_tasks` coordination table, plus `run_leases` for Kubernetes ownership.
+Existing Argo rows remain null; no data backfill
+is needed. Runtime-owned upgrade DDL uses an installation-scoped database lock and
+one physical connection. Lock acquisition is bounded to five seconds, work to
+30 seconds, and session cleanup to a separate five seconds. MySQL additions require
+`ALGORITHM=INSTANT`; unsupported instant DDL fails instead of falling back to a
+table copy. PostgreSQL uses nullable column additions with bounded lock and statement
+timeouts.
+
+The composite task/run foreign key requires the existing unique
+`idx_tasks_uuid_run` index on `tasks(UUID, RunUUID)`. If an older installation lacks
+that candidate index, startup refuses implicit index repair: establish a separately
+verified online index migration before upgrading. Fresh installations create the
+required schema directly.
+
+Live runtime migration tests exercise populated MySQL and PostgreSQL schemas,
+concurrent reads/writes, lock contention, interruption, and competing replicas.
+They certify the runtime-owned additions, not every inherited core-schema
+reconciliation operation; in particular, legacy PostgreSQL import-column
+reconciliation remains outside this evidence.
 
 ## Run garbage collection database migration
 

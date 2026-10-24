@@ -24,6 +24,7 @@ from kfp.cli import (
     diagnose_me_cli,
     dsl,
     experiment,
+    local,
     pipeline,
     recurring_run,
     run,
@@ -44,6 +45,7 @@ COMMANDS = {
         component.component,
         dsl.dsl,
         visualize.visualize,
+        local.local,
     },
 }
 

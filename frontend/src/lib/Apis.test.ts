@@ -65,6 +65,21 @@ describe('Apis', () => {
     }
   });
 
+  it('gets task logs through the run-scoped proxy with encoded identifiers', async () => {
+    const spy = fetchSpy('task output');
+    expect(await Apis.getTaskLogs('run/id', 'task?id')).toBe('task output');
+    expect(spy).toHaveBeenCalledWith('k8s/pod/logs?taskid=task%3Fid&runid=run%2Fid', {
+      credentials: 'same-origin',
+    });
+  });
+
+  it('propagates task log authorization errors without another log request', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const spy = failedFetchSpy('Access denied');
+    await expect(Apis.getTaskLogs('run-id', 'task-id')).rejects.toThrow('Access denied');
+    expect(spy).toHaveBeenCalledOnce();
+  });
+
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');
     expect(await Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns', '')).toEqual(

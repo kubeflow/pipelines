@@ -118,6 +118,7 @@ interface RuntimeNodeDetailsV2Props {
   layers: string[];
   pipelineJobString?: string;
   runId?: string;
+  executorType?: string;
   element?: PipelineFlowElement | null;
   elementRuntimeInfo?: NodeRuntimeInfo | null;
   namespace?: string;
@@ -128,6 +129,7 @@ export function RuntimeNodeDetailsV2({
   layers,
   pipelineJobString,
   runId,
+  executorType,
   element,
   elementRuntimeInfo,
   namespace,
@@ -141,6 +143,7 @@ export function RuntimeNodeDetailsV2({
       <TaskNodeDetail
         pipelineJobString={pipelineJobString}
         runId={runId}
+        executorType={executorType}
         element={element}
         task={elementRuntimeInfo?.task}
         layers={layers}
@@ -175,6 +178,7 @@ export function RuntimeNodeDetailsV2({
 interface TaskNodeDetailProps {
   pipelineJobString?: string;
   runId?: string;
+  executorType?: string;
   element?: PipelineFlowElement | null;
   task?: V2PipelineTask;
   layers: string[];
@@ -198,6 +202,7 @@ function getLatestTaskPod(
 function TaskNodeDetail({
   pipelineJobString,
   runId,
+  executorType,
   element,
   task,
   layers,
@@ -211,6 +216,8 @@ function TaskNodeDetail({
     ? getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY)
     : undefined;
   const logsSourceIdentity = [
+    runId,
+    executorType,
     executorPod?.name,
     driverPod?.name,
     executorLogsArtifact?.artifact_id,
@@ -232,7 +239,7 @@ function TaskNodeDetail({
       if (!task) {
         throw new Error('No task is found.');
       }
-      return getLogsInfo(task, runId, namespace);
+      return getLogsInfo(task, runId, namespace, executorType);
     },
     enabled: !!task && selectedTab === 2,
     // Pod/artifact identity changes identify a new attempt or a newly available log source. Keep
@@ -548,14 +555,29 @@ export async function getDriverLogsInfo(
   return logsInfo;
 }
 
+/** Read managed task logs through the API server, retaining Pod/archive fallbacks for Argo. */
 export async function getLogsInfo(
   task: V2PipelineTask,
   runId?: string,
   namespace?: string,
+  executorType?: string,
 ): Promise<Map<string, string>> {
   const logsInfo = new Map<string, string>();
   if (task.state === PipelineTaskTaskState.CACHED) {
     logsInfo.set(LOGS_DETAILS, 'This step output is taken from cache.');
+    return logsInfo;
+  }
+
+  if (executorType === 'docker' || executorType === 'kubernetes') {
+    try {
+      if (!runId || !task.task_id) {
+        throw new Error('Run and task IDs are required to retrieve task logs.');
+      }
+      logsInfo.set(LOGS_DETAILS, await Apis.getTaskLogs(runId, task.task_id));
+    } catch (error) {
+      logsInfo.set(LOGS_BANNER_MESSAGE, 'Failed to retrieve task logs.');
+      logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, `Error response: ${await errorToMessage(error)}`);
+    }
     return logsInfo;
   }
 

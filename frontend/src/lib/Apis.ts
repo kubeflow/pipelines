@@ -72,6 +72,13 @@ const crossBrowserFetch: FetchAPI = (url, init) =>
   fetch(url, { credentials: 'same-origin', ...init });
 
 export class Apis {
+  /** Read coordinator-managed task logs through the run-scoped API server proxy. */
+  public static getTaskLogs(runId: string, taskId: string): Promise<string> {
+    return this._fetch(
+      `k8s/pod/logs?taskid=${encodeURIComponent(taskId)}&runid=${encodeURIComponent(runId)}`,
+    );
+  }
+
   /**
    * Get pod logs
    */
@@ -302,6 +309,8 @@ export class Apis {
     let platform: string = source;
     if (source === StorageService.GCS) {
       platform = 'gs'; // GCS link starts with gs://
+    } else if (source === StorageService.FILE) {
+      return `file:///${bucket}/${key}`;
     }
     return `${platform}://${bucket}/${key}`;
   }

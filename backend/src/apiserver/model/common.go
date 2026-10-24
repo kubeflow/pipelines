@@ -87,6 +87,8 @@ func AllModels() []any {
 		&Run{},
 		&RunMetricV1{},
 		&Task{},
+		&RuntimeTask{},
+		&RunLease{},
 		&Artifact{},
 		&ArtifactTask{},
 		&ResourceReference{},

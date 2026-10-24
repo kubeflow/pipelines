@@ -95,9 +95,12 @@ export class UIServer {
       throw new Error('UIServer already started.');
     }
     port = port ?? this.options.server.port;
-    this.httpServer = this.app.listen(port, () => {
+    const onListening = () => {
       console.log('Server listening at http://localhost:' + port);
-    });
+    };
+    this.httpServer = this.options.server.host
+      ? this.app.listen(Number(port), this.options.server.host, onListening)
+      : this.app.listen(port, onListening);
     return this.httpServer;
   }
 
@@ -292,40 +295,46 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
   registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
-  /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
-  if (options.artifacts.streamLogsFromServerApi) {
-    app.all(
-      ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
-      hardenPodLogsProxyRequest,
-      (req, res, next) => {
-        for (const key of ['runid', 'podname']) {
-          const value = req.query[key];
-          if (typeof value !== 'string' || !value || value === '.' || value === '..') {
-            res.status(400).send(`${key} must be a non-empty path segment`);
-            return;
-          }
+  /** Managed tasks always use the API server; Argo retains its configured Pod/archive path. */
+  app.all(
+    ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
+    (req, _res, next) => {
+      if (!options.artifacts.streamLogsFromServerApi && req.query.taskid === undefined) {
+        next('route');
+        return;
+      }
+      next();
+    },
+    hardenPodLogsProxyRequest,
+    (req, res, next) => {
+      const nodeKey = req.query.taskid === undefined ? 'podname' : 'taskid';
+      for (const key of ['runid', nodeKey]) {
+        const value = req.query[key];
+        if (typeof value !== 'string' || !value || value === '.' || value === '..') {
+          res.status(400).send(`${key} must be a non-empty path segment`);
+          return;
         }
-        next();
+      }
+      next();
+    },
+    createProxyMiddleware({
+      changeOrigin: true,
+      on: {
+        proxyReq: (proxyReq) => {
+          console.log('Proxied log request: ', proxyReq.path);
+        },
+        proxyRes: hardenPodLogsProxyResponse,
       },
-      createProxyMiddleware({
-        changeOrigin: true,
-        on: {
-          proxyReq: (proxyReq) => {
-            console.log('Proxied log request: ', proxyReq.path);
-          },
-          proxyRes: hardenPodLogsProxyResponse,
-        },
-        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-        pathRewrite: (pathStr: string, req: any) => {
-          /** Argo nodeId is just POD name */
-          const nodeId = encodeURIComponent(req.query.podname as string);
-          const runId = encodeURIComponent(req.query.runid as string);
-          return `/${apiVersion2Prefix}/runs/${runId}/nodes/${nodeId}/log`;
-        },
-        target: apiServerAddress,
-      }),
-    );
-  } else {
+      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+      pathRewrite: (pathStr: string, req: any) => {
+        const nodeId = encodeURIComponent((req.query.taskid ?? req.query.podname) as string);
+        const runId = encodeURIComponent(req.query.runid as string);
+        return `/${apiVersion2Prefix}/runs/${runId}/nodes/${nodeId}/log`;
+      },
+      target: apiServerAddress,
+    }),
+  );
+  if (!options.artifacts.streamLogsFromServerApi) {
     registerHandler(
       app.get,
       '/k8s/pod/logs',

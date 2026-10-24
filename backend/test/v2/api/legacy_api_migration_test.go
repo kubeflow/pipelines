@@ -91,6 +91,10 @@ var _ = Describe("Legacy API coverage migration", Label(constants.APIServerTests
 			PluginsOutput: terminated.PluginsOutput, ExperimentID: experiment.ExperimentID,
 			PipelineVersionReference: payload.PipelineVersionReference,
 			CreatedAt:                terminated.CreatedAt, ScheduledAt: terminated.ScheduledAt, FinishedAt: terminated.FinishedAt,
+			ExecutorType:         run.ExecutorType,
+			WorkspaceProvisioner: run.WorkspaceProvisioner,
+			WorkspaceDescription: run.WorkspaceDescription,
+			RuntimeConfig:        run.RuntimeConfig,
 		}
 		Expect(terminated).To(Equal(expected))
 	})
@@ -236,11 +240,17 @@ var _ = Describe("Legacy API coverage migration", Label(constants.APIServerTests
 		testContext.PipelineRun.CreatedRunIds = append(testContext.PipelineRun.CreatedRunIds, run.RunID)
 		fetched, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: run.RunID})
 		Expect(err).NotTo(HaveOccurred())
+		expectedRuntimeConfig := *payload.RuntimeConfig
+		if run.ExecutorType == "kubernetes" && expectedRuntimeConfig.PipelineRoot == "" {
+			Expect(run.RuntimeConfig).NotTo(BeNil())
+			Expect(run.RuntimeConfig.PipelineRoot).NotTo(BeEmpty())
+			expectedRuntimeConfig.PipelineRoot = run.RuntimeConfig.PipelineRoot
+		}
 		for _, actual := range []*run_model.V2beta1Run{run, fetched} {
 			Expect(actual.DisplayName).To(Equal(payload.DisplayName))
 			Expect(actual.Description).To(Equal(payload.Description))
 			Expect(actual.ExperimentID).To(Equal(experiment.ExperimentID))
-			Expect(actual.RuntimeConfig).To(Equal(payload.RuntimeConfig))
+			Expect(actual.RuntimeConfig).To(Equal(&expectedRuntimeConfig))
 			Expect(actual.ServiceAccount).To(Equal(payload.ServiceAccount))
 			Expect(actual.PipelineVersionReference).To(BeNil())
 			actualJSON, err := json.Marshal(actual.PipelineSpec)

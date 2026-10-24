@@ -2,6 +2,8 @@
 
 Scheduled Dependabot updates target the root and SDK Python workspace through uv.
 Independent Python projects retain normal pip version and security updates.
+This includes the optional `local/` native-wheel proof, which is not a root uv
+workspace member.
 The workspace tracks `pyproject.toml` manifests and `uv.lock`; root and SDK
 `requirements.txt` exports are no longer committed. Dependency fixes must update
 the source constraints and lockfile, including the vulnerable locked version.

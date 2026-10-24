@@ -87,9 +87,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
     );
   }
   const parsedPath = parseStoragePath(uriWithoutQuery);
-  const schemeEnd = uriWithoutQuery.indexOf('://');
-  const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
-  const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
+  const uriKey = parsedPath.key;
   const isLauncherArtifact = isLauncherArtifactSource(parsedPath.source);
   if (query && !isLauncherArtifact) {
     throw new Error(

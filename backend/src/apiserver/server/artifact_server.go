@@ -101,17 +101,16 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2.Crea
 		return nil, util.Wrap(err, "Failed to convert artifact_task")
 	}
 
-	var artifact *model.Artifact
-	if request.GetReuseIfExists() {
-		artifact, _, err = s.resourceManager.FindOrCreateArtifactWithTask(modelArtifact, modelAT)
-	} else {
-		artifact, _, err = s.resourceManager.CreateArtifactWithTask(modelArtifact, modelAT)
+	identity, err := taskReportIdentity(ctx)
+	if err != nil {
+		return nil, err
 	}
+	created, _, err := s.resourceManager.ReportArtifacts(identity, []*model.Artifact{modelArtifact}, []*model.ArtifactTask{modelAT}, request.GetReuseIfExists())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact and artifact-task")
 	}
 
-	return toAPIArtifact(artifact)
+	return toAPIArtifact(created[0])
 }
 
 // CreateArtifactsBulk creates multiple artifacts in bulk.
@@ -223,7 +222,11 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		modelArtifactTasks = append(modelArtifactTasks, modelAT)
 	}
 
-	createdArtifacts, _, err := s.resourceManager.CreateArtifactsWithTasks(modelArtifacts, modelArtifactTasks)
+	identity, err := taskReportIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	createdArtifacts, _, err := s.resourceManager.ReportArtifacts(identity, modelArtifacts, modelArtifactTasks, false)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
 	}
@@ -471,11 +474,15 @@ func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2.
 	}
 	modelAT.RunUUID = task.RunUUID
 
-	created, err := s.resourceManager.CreateArtifactTask(modelAT)
+	identity, err := taskReportIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_, created, err := s.resourceManager.ReportArtifacts(identity, nil, []*model.ArtifactTask{modelAT}, false)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact-task")
 	}
-	return toAPIArtifactTask(created), nil
+	return toAPIArtifactTask(created[0]), nil
 }
 
 // ListArtifactTasks lists artifact-task relationships.
@@ -615,7 +622,11 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 	}
 
 	// Create all artifact tasks in bulk
-	createdArtifactTasks, err := s.resourceManager.CreateArtifactTasks(modelArtifactTasks)
+	identity, err := taskReportIdentity(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_, createdArtifactTasks, err := s.resourceManager.ReportArtifacts(identity, nil, modelArtifactTasks, false)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact-tasks in bulk")
 	}

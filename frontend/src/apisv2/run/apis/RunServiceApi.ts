@@ -55,7 +55,7 @@ export interface CachedTaskRequest {
 }
 
 export interface CreateRunRequest {
-  run: V2Run;
+  run: Omit<V2Run, 'executor_type' | 'workspace_provisioner' | 'workspace_description'>;
   experiment_id?: string;
   namespace?: string;
 }

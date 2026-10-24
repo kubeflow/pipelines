@@ -56,7 +56,7 @@ func CreatePipelineRunPayload(runName string, runDescription string, pipelineID 
 			PipelineVersionID: testutil.ParsePointersToString(pipelineVersionID),
 		},
 		RuntimeConfig: &run_model.V2RuntimeConfig{
-			Parameters: inputParams,
+			Parameters: testutil.MaybeWithCoordinatorRuntimeSelector(inputParams),
 		},
 	}
 }
@@ -66,13 +66,33 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Cli
 	logger.Log("Create run for pipeline with id: '%s' and name: '%s'", pipelineID, pipelineDisplayName)
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
-	timeout := time.Duration(maxPipelineWaitTime)
+	timeout := runWaitTimeout(maxPipelineWaitTime)
 	var checks []func() error
 	if k8Client != nil {
 		checks = append(checks, testutil.NewRunImagePullCheck(k8Client, testutil.GetNamespace(), uploadedPipelineRun.RunID))
 	}
 	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2RuntimeState{run_model.V2RuntimeStateSUCCEEDED, run_model.V2RuntimeStateSKIPPED, run_model.V2RuntimeStateFAILED, run_model.V2RuntimeStateCANCELED}, &timeout, checks...)
 	return uploadedPipelineRun.RunID
+}
+
+func runWaitTimeout(maxPipelineWaitTime int) time.Duration {
+	return time.Duration(maxPipelineWaitTime) * time.Second
+}
+
+// CreateCoordinatorPipelineRunAndWaitForItToFinish creates a run that explicitly
+// opts into the coordinator-managed runtime and waits for it to finish.
+func CreateCoordinatorPipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, k8Client kubernetes.Interface, testContext *apitests.TestContext, pipelineID string, pipelineDisplayName string, pipelineVersionID *string, experimentID *string, runTimeParams map[string]interface{}, maxPipelineWaitTime int) string {
+	return CreatePipelineRunAndWaitForItToFinish(
+		runClient,
+		k8Client,
+		testContext,
+		pipelineID,
+		pipelineDisplayName,
+		pipelineVersionID,
+		experimentID,
+		testutil.WithCoordinatorRuntimeSelector(runTimeParams),
+		maxPipelineWaitTime,
+	)
 }
 
 // ValidateComponentStatuses - Validate that all the components of a pipeline run ran successfully
