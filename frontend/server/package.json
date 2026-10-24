@@ -28,11 +28,11 @@
     "@types/supertest": "^2.0.8",
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.12",
     "prettier": "^3.8.1",
     "supertest": "^4.0.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "path-to-regexp": "0.1.13",
@@ -47,7 +47,7 @@
     "form-data@>=4.0.0 <4.0.6": "4.0.6",
     "xmlbuilder": "15.1.1",
     "minio": {
-      "stream-json": "3.6.0",
+      "stream-json": "3.7.0",
       "query-string": {
         "decode-uri-component": "0.5.0"
       }

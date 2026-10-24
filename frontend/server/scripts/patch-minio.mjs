@@ -25,7 +25,7 @@ const queryStringPath = minioRequire.resolve('query-string');
 const versions = [
   [join(minioRoot, 'package.json'), '8.0.7'],
   [join(dirname(queryStringPath), 'package.json'), '7.1.3'],
-  [join(dirname(minioRequire.resolve('stream-json')), '../package.json'), '3.6.0'],
+  [join(dirname(minioRequire.resolve('stream-json')), '../package.json'), '3.7.0'],
   [
     join(dirname(createRequire(queryStringPath).resolve('decode-uri-component')), 'package.json'),
     '0.5.0',
