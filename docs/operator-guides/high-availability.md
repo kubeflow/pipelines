@@ -49,6 +49,12 @@ the `kfp-scheduledworkflow` Lease starts scheduled runs. If it stops renewing th
 Lease, another replica takes over once the Lease expires, 15 seconds after the last
 renewal.
 
+Leader election does not guarantee that only one replica acts at a time: a replica
+that pauses and then resumes can still send a request it had in progress. Duplicate
+runs are rejected: in multi-user mode, the API server refuses a second claim of the
+same scheduled run, and in single-user mode, a second `Create` of the same Workflow
+fails with `AlreadyExists`.
+
 A rolling update can briefly run an old Pod without leader election next to a new
 leader, so stop all replicas while you change the setting:
 
@@ -171,7 +177,7 @@ be evicted at any replica count, or don't define a PDB for single-replica compon
 
 ## Components that must stay at one replica
 
-The persistence agent and viewer controller don't use leader election, so every
+The persistence agent and viewer controller do not use leader election, so every
 replica would process the same objects:
 
 - **Persistence agent**
@@ -183,7 +189,7 @@ replica would process the same objects:
 
 Keep these at one replica. If one of their Pods stops, Kubernetes recreates it.
 Pipeline runs that are already executing continue in the meantime, but run status
-isn't updated and new TensorBoard viewers aren't created until the corresponding Pod
+is not updated and new TensorBoard viewers are not created until the corresponding Pod
 is back.
 
 ## Dependencies

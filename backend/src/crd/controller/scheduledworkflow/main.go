@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,7 +58,6 @@ var (
 	userIdentityHeader                string
 	userIdentityValue                 string
 	multiUser                         bool
-	leaderElect                       bool
 )
 
 const (
@@ -74,9 +74,14 @@ const (
 func main() {
 	flag.Parse()
 
+	leaderElect, err := leaderElectionEnabled(os.Getenv("LEADER_ELECT"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// set up signals so we handle the first shutdown signal gracefully
-	ctx := signals.SetupSignalHandler()
-	stopCh := ctx.Done()
+	shutdownContext := signals.SetupSignalHandler()
+	stopCh := shutdownContext.Done()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
@@ -147,54 +152,70 @@ func main() {
 
 	log.Info("Successfully connected to the API server")
 
-	controller, err := NewController(
-		kubeClient,
-		scheduleClient,
-		execClient,
-		runClient,
-		scheduleInformerFactory,
-		execInformer,
-		commonutil.NewRealTime(),
-		location,
-		tokenSrc,
-		userIdentityHeader,
-		userIdentityValue,
-		multiUser,
-	)
-	if err != nil {
-		log.Fatalf("Failed to instantiate the controller: %v", err)
+	newController := func() *Controller {
+		controller, controllerError := NewController(
+			kubeClient,
+			scheduleClient,
+			execClient,
+			runClient,
+			scheduleInformerFactory,
+			execInformer,
+			commonutil.NewRealTime(),
+			location,
+			tokenSrc,
+			userIdentityHeader,
+			userIdentityValue,
+			multiUser,
+		)
+		if controllerError != nil {
+			log.Fatalf("Failed to instantiate the controller: %v", controllerError)
+		}
+		return controller
 	}
 
-	go scheduleInformerFactory.Start(stopCh)
-	go execInformer.InformerFactoryStart(stopCh)
-
-	go startMetricsServer()
-
 	if !leaderElect {
+		controller := newController()
+
+		go scheduleInformerFactory.Start(stopCh)
+		go execInformer.InformerFactoryStart(stopCh)
+
+		go startMetricsServer()
+
 		if err = controller.Run(2, stopCh); err != nil {
 			log.Fatalf("Error running controller: %s", err.Error())
 		}
 		return
 	}
 
-	// Every replica keeps its informers warm; only the lease holder runs the
-	// workers.
+	// A standby keeps its informers in sync but creates no controller, so it
+	// queues no work. Request both informers so that the factories start them
+	// before the controller exists.
+	scheduleInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows().Informer()
+	execInformer.HasSynced()
+
+	go scheduleInformerFactory.Start(stopCh)
+	go execInformer.InformerFactoryStart(stopCh)
+
+	go startMetricsServer()
+
 	identity, err := commonutil.LeaderElectionIdentity()
 	if err != nil {
 		log.Fatalf("Error getting the leader election identity: %v", err)
 	}
-	err = commonutil.RunWithLeaderElection(ctx, kubeClient, commonutil.LeaderElectionConfig{
+	err = commonutil.RunWithLeaderElection(shutdownContext, kubeClient, commonutil.LeaderElectionConfig{
 		LeaseName: leaseName,
 		Namespace: os.Getenv("POD_NAMESPACE"),
 		Identity:  identity,
-		Run: func(leaderCtx context.Context) {
-			if err := controller.Run(2, leaderCtx.Done()); err != nil {
-				log.Fatalf("Error running controller: %s", err.Error())
+		Run: func(leaderContext context.Context) {
+			// Adding the event handlers to the running informers replays every
+			// current object, so the new leader starts with all schedules queued.
+			if runError := newController().Run(2, leaderContext.Done()); runError != nil {
+				log.Fatalf("Error running controller: %s", runError.Error())
 			}
 		},
 		OnLost: func() {
 			// Exit so that Kubernetes restarts the container as a standby. The
-			// work queue has been shut down and can't be reused, and workers
+			// work queue has been shut down and cannot be reused, and workers
 			// may still have requests in flight.
 			log.Fatal("Lost the leader lease, exiting")
 		},
@@ -202,6 +223,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error running leader election: %v", err)
 	}
+}
+
+// leaderElectionEnabled parses the LEADER_ELECT environment variable. It is
+// read from the environment instead of a flag so that it also applies when a
+// deployment overrides the image command, as the TLS install does.
+func leaderElectionEnabled(value string) (bool, error) {
+	if value == "" {
+		return false, nil
+	}
+	enabled, parseError := strconv.ParseBool(value)
+	if parseError != nil {
+		return false, fmt.Errorf("invalid LEADER_ELECT value %q: set it to \"true\" or \"false\"", value)
+	}
+	return enabled, nil
 }
 
 func startMetricsServer() {
@@ -247,7 +282,6 @@ func init() {
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	flag.IntVar(&recurringRunResyncIntervalSeconds, "recurringRunResyncIntervalSeconds", 30, "The full resync interval in seconds for recurring run reconciliations.")
 	flag.BoolVar(&multiUser, "multiUser", false, "Submit all scheduled runs through the API server using persisted recurring-run inputs.")
-	flag.BoolVar(&leaderElect, "leaderElect", false, "Run the controller only on the replica that holds the "+leaseName+" Lease in the POD_NAMESPACE namespace, so that more than one replica can run.")
 	flag.StringVar(&userIdentityHeader, "userIdentityHeader", "", "User identity metadata key for multi-user mode (e.g. kubeflow-userid). If set, the controller injects this key into the outgoing gRPC metadata when calling the API server. The key is normalized to lowercase and must be a valid gRPC metadata key.")
 	flag.StringVar(&userIdentityValue, "userIdentityValue", "", "Value for the user identity gRPC metadata key (e.g. system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow).")
 	var err error

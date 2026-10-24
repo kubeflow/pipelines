@@ -38,10 +38,10 @@ type LeaderElectionConfig struct {
 	Identity string
 	// Run is called only on the replica that holds the lease. Its context is
 	// canceled when the lease is lost or the parent context is done.
-	Run func(ctx context.Context)
+	Run func(leaderContext context.Context)
 	// OnLost is called when the lease is lost before the parent context is
 	// done. Callers exit the process here, because a replica that lost the
-	// lease can't safely keep or reuse its work queue.
+	// lease cannot safely keep or reuse its work queue.
 	OnLost func()
 }
 
@@ -68,18 +68,18 @@ func LeaderElectionIdentity() (string, error) {
 	return os.Hostname()
 }
 
-// RunWithLeaderElection blocks until ctx is done. Only the replica holding
+// RunWithLeaderElection blocks until electionContext is done. Only the replica holding
 // the lease calls config.Run; losing the lease calls config.OnLost.
 //
 // ReleaseOnCancel is false: on shutdown, the lease is kept until it expires,
-// so another replica doesn't start while requests sent by this one may still
+// so another replica does not start while requests sent by this one may still
 // be in flight.
-func RunWithLeaderElection(ctx context.Context, client kubernetes.Interface, config LeaderElectionConfig) error {
-	return runWithLeaderElection(ctx, client, config, defaultLeaderElectionTimings)
+func RunWithLeaderElection(electionContext context.Context, client kubernetes.Interface, config LeaderElectionConfig) error {
+	return runWithLeaderElection(electionContext, client, config, defaultLeaderElectionTimings)
 }
 
 func runWithLeaderElection(
-	ctx context.Context,
+	electionContext context.Context,
 	client kubernetes.Interface,
 	config LeaderElectionConfig,
 	timings leaderElectionTimings,
@@ -92,15 +92,15 @@ func runWithLeaderElection(
 		return fmt.Errorf("leader election for lease %q requires Run and OnLost callbacks", config.LeaseName)
 	}
 
-	// client-go calls OnStartedLeading in a goroutine and doesn't wait for it,
+	// client-go calls OnStartedLeading in a goroutine and does not wait for it,
 	// so track it to return only after config.Run has returned. stopped keeps
 	// a goroutine that starts after elector.Run returned from calling Run.
 	var (
-		mu      sync.Mutex
-		stopped bool
-		running sync.WaitGroup
+		mutex            sync.Mutex
+		stopped          bool
+		runningCallbacks sync.WaitGroup
 	)
-	elector, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
+	elector, electorError := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock: &resourcelock.LeaseLock{
 			LeaseMeta: metav1.ObjectMeta{
 				Name:      config.LeaseName,
@@ -117,20 +117,20 @@ func runWithLeaderElection(
 		RetryPeriod:     timings.retryPeriod,
 		ReleaseOnCancel: false,
 		Callbacks: leaderelection.LeaderCallbacks{
-			OnStartedLeading: func(leaderCtx context.Context) {
-				mu.Lock()
+			OnStartedLeading: func(leaderContext context.Context) {
+				mutex.Lock()
 				if stopped {
-					mu.Unlock()
+					mutex.Unlock()
 					return
 				}
-				running.Add(1)
-				mu.Unlock()
-				defer running.Done()
+				runningCallbacks.Add(1)
+				mutex.Unlock()
+				defer runningCallbacks.Done()
 				glog.Infof("Leader election: %s acquired lease %s/%s", config.Identity, config.Namespace, config.LeaseName)
-				config.Run(leaderCtx)
+				config.Run(leaderContext)
 			},
 			OnStoppedLeading: func() {
-				if ctx.Err() != nil {
+				if electionContext.Err() != nil {
 					glog.Infof("Leader election: %s stopped leading lease %s/%s for shutdown", config.Identity, config.Namespace, config.LeaseName)
 					return
 				}
@@ -144,15 +144,15 @@ func runWithLeaderElection(
 			},
 		},
 	})
-	if err != nil {
-		return fmt.Errorf("invalid leader election config for lease %q: %w", config.LeaseName, err)
+	if electorError != nil {
+		return fmt.Errorf("invalid leader election config for lease %q: %w", config.LeaseName, electorError)
 	}
 
 	glog.Infof("Leader election: %s is waiting for lease %s/%s", config.Identity, config.Namespace, config.LeaseName)
-	elector.Run(ctx)
-	mu.Lock()
+	elector.Run(electionContext)
+	mutex.Lock()
 	stopped = true
-	mu.Unlock()
-	running.Wait()
+	mutex.Unlock()
+	runningCallbacks.Wait()
 	return nil
 }
