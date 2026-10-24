@@ -1,6 +1,6 @@
 # CI and Workflows
 
-Legacy v2 integration migration is tracked in #14950. Keep the legacy workflow until assertion parity and repeated cluster runs are recorded in `backend/test/v2/api/legacy-migration.md`. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. Webhook tests still use the integration package.
+Legacy v2 integration migration is tracked in #14950. Existing assertion parity and CI evidence are recorded in `backend/test/v2/api/legacy-migration.md`; retire the legacy workflow after the trusted publisher replacement is deployed. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. Webhook tests still use the integration package.
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
@@ -165,6 +165,17 @@ projects. CI uses a temporary directory and separately validates the built SDK w
 `hack/update-all-requirements.sh` updates the lock without generating tracked files.
 Modern release preparation builds from metadata; older source checkouts retain their
 legacy exports. See [Dependency updates](dependabot.md) for usage.
+
+## Legacy v2 retirement
+
+Use existing CI logs and reports to verify the assertion ledger in
+`backend/test/v2/api/legacy-migration.md`; record results and failures in #14950.
+There is no additional artifact-retention or repeated-comparison prerequisite.
+
+The cache-enabled multi-user shard B provisions an isolated custom scheduling
+service account and requires both pinned and follow-latest authorization
+scenarios to pass. Its manifest verifier rejects missing or skipped cases.
+Keep fixture grants scoped to that account and namespace and authorization enabled.
 
 ## Common CI failures
 

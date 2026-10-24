@@ -55,6 +55,8 @@ def verify(
     pr_records=None,
     fallback_failure=False,
     record_failure=False,
+    base_ref='master',
+    workflow_triggers=None,
 ):
     if runs is None:
         runs = [good_run()]
@@ -75,7 +77,7 @@ def verify(
                 'ref': 'dependency',
                 'repo': {'full_name': 'owner/repo'},
             },
-            'base': {'ref': 'master', 'sha': 'base'},
+            'base': {'ref': base_ref, 'sha': 'base'},
         },
         'inventory': {
             'version': 1,
@@ -83,7 +85,9 @@ def verify(
                 {
                     'path': path,
                     'header_sha256': 'header',
-                    'pull_request': trigger,
+                    'pull_request': (workflow_triggers or {}).get(
+                        path, trigger
+                    ),
                 }
                 for path in workflow_paths
             ],
@@ -1038,6 +1042,128 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
         result = verify(files=[{'filename': 'README.md'}])
         self.assertFalse(result['passed'])
         self.assertEqual(result['state'], 'failure')
+
+    def test_legacy_deletion_requires_successful_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for replacement_run in [
+            None,
+            good_run(path=replacement, conclusion='failure'),
+            good_run(path=replacement, status='in_progress', conclusion=None),
+            good_run(path=replacement, head_sha='old'),
+            good_run(path=replacement),
+        ]:
+            with self.subTest(run=replacement_run):
+                result = verify(
+                    workflow_paths=[legacy, replacement],
+                    trigger={'paths': ['.github/**']},
+                    files=[{'filename': legacy, 'status': 'removed'}],
+                    runs=[good_run(path=legacy)]
+                    + ([replacement_run] if replacement_run else []),
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertEqual(
+                    result['passed'],
+                    replacement_run == good_run(path=replacement),
+                )
+                self.assertEqual(result['disabled'][0]['path'], legacy)
+
+    def test_legacy_replacement_rejects_stale_success(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for freshness in [
+            {'fresh_after': '2026-09-07T13:00:00Z'},
+            {'base_sha': 'a' * 40},
+        ]:
+            with self.subTest(freshness=freshness):
+                result = verify(
+                    workflow_paths=[legacy, replacement],
+                    trigger={'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=[good_run(path=replacement)],
+                    **freshness,
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertFalse(result['passed'])
+
+    def test_legacy_replacement_must_exist_and_apply_in_trusted_base(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for paths, triggers in [
+            ([legacy], {}),
+            ([legacy, replacement], {replacement: None}),
+            ([legacy, replacement], {replacement: {'paths': ['frontend/**']}}),
+        ]:
+            with self.subTest(paths=paths, triggers=triggers):
+                result = verify(
+                    workflow_paths=paths,
+                    workflow_triggers=triggers,
+                    trigger={'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=[
+                        good_run(path=legacy),
+                        good_run(id=101, path=replacement),
+                    ],
+                )
+                self.assertEqual(result['state'], 'failure')
+                self.assertIn('replacement', ' '.join(result['reasons']))
+
+    def test_release_branches_still_require_legacy(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        result = verify(
+            base_ref='release-2.18',
+            workflow_paths=[legacy, replacement],
+            trigger={'paths': ['backend/**']},
+            files=[{'filename': 'backend/test/v2/api/cache_api_test.go'}],
+            runs=[good_run(path=replacement)],
+        )
+        self.assertEqual(result['state'], 'pending')
+        self.assertEqual(result['missing'], [legacy])
+        self.assertCountEqual(result['expected'], [legacy, replacement])
+        self.assertEqual(result['disabled'], [])
+
+    def test_real_api_trigger_covers_legacy_workflow_deletion(self):
+        result = node("""
+const {inventory} = gate.loadLocalInventory(process.cwd());
+const replacement = inventory.workflows.find(workflow =>
+  workflow.path === '.github/workflows/api-server-tests.yml');
+console.log(JSON.stringify(gate.applicable(replacement.pull_request, 'master',
+  ['.github/workflows/legacy-v2-api-integration-tests.yml'])));
+""")
+        self.assertTrue(result)
+
+    def test_retired_base_still_requires_successful_replacement(self):
+        # Model the final trusted base, not an exemption supplied by a PR head.
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for conclusion in [None, 'failure', 'success']:
+            with self.subTest(conclusion=conclusion):
+                runs = [good_run(path=legacy)]
+                if conclusion is not None:
+                    runs.append(
+                        good_run(
+                            id=101, path=replacement, conclusion=conclusion
+                        )
+                    )
+                result = verify(
+                    workflow_paths=[replacement],
+                    trigger={'branches': ['master'], 'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=runs,
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertEqual(result['passed'], conclusion == 'success')
+                self.assertEqual(
+                    result['missing'],
+                    [replacement] if conclusion is None else [],
+                )
 
     def test_real_inventory_uses_current_frontend_coverage(self):
         result = node("""

@@ -43,6 +43,10 @@ inputs:
     required: false
     description: "Number of ginkgo nodes to run in parallel"
     default: "10"
+  required_service_account_specs:
+    description: "Require both custom service-account recurring-run cases to pass"
+    required: false
+    default: 'false'
   required_migration_specs:
     description: "Require the legacy migration manifest specs to pass in the API JSON report"
     required: false
@@ -444,12 +448,19 @@ runs:
       id: verify-migration
       # Preserve diagnostics/report uploads, then enforce the outcome below.
       continue-on-error: true
-      if: ${{ !cancelled() && inputs.required_migration_specs == 'true' }}
+      if: ${{ !cancelled() && (inputs.required_migration_specs == 'true' || inputs.required_service_account_specs == 'true') }}
       shell: bash
-      run: >-
-        python3 .github/resources/scripts/verify_migrated_specs.py
-        "${{ inputs.test_directory }}/reports/api.json"
-        .github/resources/legacy-v2-migration-specs.json
+      env:
+        REQUIRE_MIGRATION: ${{ inputs.required_migration_specs }}
+        REQUIRE_SERVICE_ACCOUNT: ${{ inputs.required_service_account_specs }}
+        REPORT: ${{ inputs.test_directory }}/reports/api.json
+      run: |
+        if [[ "$REQUIRE_MIGRATION" == 'true' ]]; then
+          python3 .github/resources/scripts/verify_migrated_specs.py "$REPORT" .github/resources/legacy-v2-migration-specs.json
+        fi
+        if [[ "$REQUIRE_SERVICE_ACCOUNT" == 'true' ]]; then
+          python3 .github/resources/scripts/verify_migrated_specs.py "$REPORT" .github/resources/legacy-v2-service-account-specs.json
+        fi
 
     - name: Report test-window network observability
       shell: bash

@@ -208,8 +208,21 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     workflow.path === '.github/workflows/upgrade-test.yml' &&
     workflow.disabled_for_migration === true)
     .map(workflow => ({path: workflow.path, reason: 'Upgrade workflow is paused in the trusted base pending #14029'}));
-  const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
   const failures = [];
+  // This policy runs only from the trusted publisher revision. Keep the legacy
+  // workflow running until this change lands, then delete it in a follow-up PR.
+  // Release branches still require their own legacy coverage. The replacement
+  // must apply in the trusted base, and uses the same run/freshness checks below.
+  const legacyPath = '.github/workflows/legacy-v2-api-integration-tests.yml';
+  const replacementPath = '.github/workflows/api-server-tests.yml';
+  if (pullRequest.base.ref === 'master' && applicableWorkflows.some(workflow => workflow.path === legacyPath)) {
+    if (applicableWorkflows.some(workflow => workflow.path === replacementPath)) {
+      disabled.push({path: legacyPath, reason: `Legacy coverage is required through ${replacementPath} (#14950)`});
+    } else {
+      failures.push(`${legacyPath}: replacement ${replacementPath} is absent or not applicable in the trusted base`);
+    }
+  }
+  const expected = applicableWorkflows.filter(workflow => !disabled.some(item => item.path === workflow.path));
   const pending = [];
   const missing = [];
   let documentation = null;
