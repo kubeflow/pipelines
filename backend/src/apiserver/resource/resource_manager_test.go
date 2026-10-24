@@ -9138,3 +9138,914 @@ func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.
 	require.NoError(t, err, "a concurrent create must not fail an otherwise valid request")
 	assert.Equal(t, winner.UUID, got, "the loser must adopt the winner's experiment")
 }
+
+func getTestPodNames(pods model.JSONSlice) []string {
+	var names []string
+	for _, p := range pods {
+		if m, ok := p.(map[string]interface{}); ok {
+			if n, ok := m["name"].(string); ok {
+				names = append(names, n)
+			}
+		}
+	}
+	return names
+}
+
+func initWithOneTimeRunWithUUID(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
+	initEnvVars()
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
+	require.NoError(t, err)
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+		ExperimentId: experiment.UUID,
+	}
+	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	require.NoError(t, err)
+	return store, manager, runDetail
+}
+
+func TestReconcileStrandedTasks_DriverOnly_ExecutorCrashes_FailsClosed(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "train-driver", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "train",
+		ScopePath:   "root.train",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-train",
+		Pods:        driverPods,
+	})
+	require.NoError(t, err)
+
+	// Driver succeeded, but no executor ran, and the workflow terminated as Failed.
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"train-driver": {
+					ID:          "train-driver",
+					Name:        "train-driver",
+					DisplayName: "train-driver",
+					Phase:       v1alpha1.NodeSucceeded,
+					Children:    nil,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	reconciled, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), reconciled.State, "stranded task with crashed executor must fail closed")
+	assert.NotNil(t, reconciled.LifecycleMessage)
+	assert.Contains(t, reconciled.LifecycleMessage.String(), "Executor failed to start or crashed")
+}
+
+func TestReconcileStrandedTasks_DriverSucceeded_ExecutorFailed(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "step-driver", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "step",
+		ScopePath:   "root.step",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-step",
+		Pods:        driverPods,
+	})
+	require.NoError(t, err)
+
+	// Driver succeeded, executor child ran and failed with OOMKilled
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"step-driver": {
+					ID:          "step-driver",
+					Name:        "step-driver",
+					DisplayName: "step-driver",
+					Phase:       v1alpha1.NodeSucceeded,
+					Children:    []string{"step-executor"},
+				},
+				"step-executor": {
+					ID:          "step-executor",
+					Name:        "step-executor",
+					DisplayName: "step-executor",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "OOMKilled",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	reconciled, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), reconciled.State, "task must be marked FAILED from executor, avoiding false success")
+	assert.NotNil(t, reconciled.LifecycleMessage)
+	assert.Contains(t, reconciled.LifecycleMessage.String(), "OOMKilled")
+	podNames := getTestPodNames(reconciled.Pods)
+	assert.Contains(t, podNames, "step-executor")
+}
+
+func TestReconcileStrandedTasks_StructuralTaskTypes_NotTakingDriverStatus(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "my-dag",
+		ScopePath:   "root.my-dag",
+		Type:        model.TaskType(apiv2.PipelineTask_DAG),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-dag",
+	})
+	require.NoError(t, err)
+
+	_, err = store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "child-running",
+		ScopePath:      "root.my-dag.child-running",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:    "fp-child",
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"my-dag": {
+					ID:          "my-dag",
+					Name:        "my-dag",
+					DisplayName: "my-dag",
+					Phase:       v1alpha1.NodeFailed,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	reconciledDag, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), reconciledDag.State)
+}
+
+func TestReconcileStrandedTasks_AllStructuralTaskTypes_SuccessfulDriverCannotOverrideFailedChild(t *testing.T) {
+	structuralTypes := []struct {
+		name     string
+		taskType apiv2.PipelineTask_TaskType
+	}{
+		{"root", apiv2.PipelineTask_ROOT},
+		{"dag", apiv2.PipelineTask_DAG},
+		{"loop", apiv2.PipelineTask_LOOP},
+		{"condition", apiv2.PipelineTask_CONDITION},
+		{"condition-branch", apiv2.PipelineTask_CONDITION_BRANCH},
+	}
+
+	for _, tc := range structuralTypes {
+		t.Run(tc.name, func(t *testing.T) {
+			store, manager, run := initWithOneTimeRunWithUUID(t)
+			defer store.Close()
+			ctx := context.Background()
+
+			driverPodName := fmt.Sprintf("driver-%s-pod", tc.name)
+			driverPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+				Name: driverPodName, Type: apiv2.PipelineTask_DRIVER,
+			}})
+			require.NoError(t, err)
+
+			structuralTask, err := store.TaskStore().CreateTask(&model.Task{
+				Namespace:   "ns1",
+				RunUUID:     run.UUID,
+				Name:        fmt.Sprintf("structural-%s", tc.name),
+				ScopePath:   fmt.Sprintf("root.%s", tc.name),
+				Type:        model.TaskType(tc.taskType),
+				State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+				Fingerprint: fmt.Sprintf("fp-%s", tc.name),
+				Pods:        driverPods,
+			})
+			require.NoError(t, err)
+
+			childTask, err := store.TaskStore().CreateTask(&model.Task{
+				Namespace:      "ns1",
+				RunUUID:        run.UUID,
+				ParentTaskUUID: &structuralTask.UUID,
+				Name:           fmt.Sprintf("child-%s", tc.name),
+				ScopePath:      fmt.Sprintf("root.%s.child", tc.name),
+				Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+				State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+				Fingerprint:    fmt.Sprintf("fp-child-%s", tc.name),
+				FinishedInSec:  10,
+			})
+			require.NoError(t, err)
+
+			// The live Argo workflow has driver pod Succeeded, but workflow failed due to child
+			workflow := util.NewWorkflow(&v1alpha1.Workflow{
+				TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+				ObjectMeta: v1.ObjectMeta{
+					Name:        run.K8SName,
+					UID:         types.UID(run.UUID),
+					Namespace:   "ns1",
+					Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+					Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+				},
+				Status: v1alpha1.WorkflowStatus{
+					Phase: v1alpha1.WorkflowFailed,
+					Nodes: map[string]v1alpha1.NodeStatus{
+						driverPodName: {
+							ID:          driverPodName,
+							Name:        driverPodName,
+							DisplayName: structuralTask.Name,
+							Phase:       v1alpha1.NodeSucceeded, // Driver succeeded!
+						},
+						fmt.Sprintf("child-%s-node", tc.name): {
+							ID:          fmt.Sprintf("child-%s-node", tc.name),
+							Name:        fmt.Sprintf("child-%s-node", tc.name),
+							DisplayName: childTask.Name,
+							Phase:       v1alpha1.NodeFailed,
+							Message:     "Child task execution failed",
+						},
+					},
+				},
+			})
+			syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+			_, err = manager.ReportWorkflowResource(ctx, workflow)
+			require.NoError(t, err)
+
+			reconciled, err := manager.GetTask(structuralTask.UUID)
+			require.NoError(t, err)
+			assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), reconciled.State,
+				"Structural task %s must be FAILED because child failed, despite driver pod succeeding", tc.name)
+		})
+	}
+}
+
+func TestReconcileStrandedTasks_PodNameFormat_V1AndV2(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	podsV1, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "node-v1-pod", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	taskV1, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "task-v1",
+		ScopePath:   "root.task-v1",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-v1",
+		Pods:        podsV1,
+	})
+	require.NoError(t, err)
+
+	taskV2, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "task-v2",
+		DisplayName: "task-v2-display",
+		ScopePath:   "root.task-v2",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-v2",
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"node-v1-pod": {
+					ID:          "node-v1-pod",
+					Name:        "node-v1-pod",
+					DisplayName: "task-v1",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Failed v1",
+				},
+				"random-node-id-12345": {
+					ID:          "random-node-id-12345",
+					Name:        "pod-v2-name",
+					DisplayName: "task-v2-display",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Failed v2",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	r1, err := manager.GetTask(taskV1.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), r1.State)
+
+	r2, err := manager.GetTask(taskV2.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), r2.State)
+}
+
+func TestReconcileStrandedTasks_PaginationOver200Tasks(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "root-dag",
+		ScopePath:   "root",
+		Type:        model.TaskType(apiv2.PipelineTask_ROOT),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-root",
+	})
+	require.NoError(t, err)
+
+	totalChildren := 205
+	for i := 0; i < totalChildren; i++ {
+		state := apiv2.PipelineTask_SUCCEEDED
+		if i == 204 {
+			state = apiv2.PipelineTask_RUNNING
+		}
+		pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+			Name: fmt.Sprintf("pod-child-%d", i), Type: apiv2.PipelineTask_EXECUTOR,
+		}})
+		require.NoError(t, err)
+
+		_, err = store.TaskStore().CreateTask(&model.Task{
+			Namespace:      "ns1",
+			RunUUID:        run.UUID,
+			ParentTaskUUID: &dagTask.UUID,
+			Name:           fmt.Sprintf("child-%d", i),
+			ScopePath:      fmt.Sprintf("root.child-%d", i),
+			Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+			State:          model.TaskStatus(state),
+			Fingerprint:    fmt.Sprintf("fp-%d", i),
+			Pods:           pods,
+		})
+		require.NoError(t, err)
+	}
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"pod-child-204": {
+					ID:          "pod-child-204",
+					Name:        "pod-child-204",
+					DisplayName: "child-204",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Task on second page failed",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	allTasks, err := fetchAllTasksForRun(manager, run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, 206, len(allTasks), "must fetch all 206 tasks across pages")
+
+	var rootTask *model.Task
+	var child204 *model.Task
+	for _, tsk := range allTasks {
+		switch tsk.Name {
+		case "root-dag":
+			rootTask = tsk
+		case "child-204":
+			child204 = tsk
+		}
+	}
+	require.NotNil(t, rootTask)
+	require.NotNil(t, child204)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), child204.State, "child-204 on page 2 must be reconciled to FAILED")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), rootTask.State, "root DAG must be aggregated to FAILED")
+}
+
+func TestReconcileStrandedTasks_PaginationOver200Tasks_SiblingDeferral(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "root-dag",
+		ScopePath:   "root",
+		Type:        model.TaskType(apiv2.PipelineTask_ROOT),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-root-defer",
+	})
+	require.NoError(t, err)
+
+	// Child 0 is FAILED
+	pods0, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-child-0", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	_, err = store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "child-0",
+		ScopePath:      "root.child-0",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Fingerprint:    "fp-0",
+		Pods:           pods0,
+		FinishedInSec:  10,
+	})
+	require.NoError(t, err)
+
+	// Children 1..203 are SUCCEEDED
+	for i := 1; i < 204; i++ {
+		pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+			Name: fmt.Sprintf("pod-child-%d", i), Type: apiv2.PipelineTask_EXECUTOR,
+		}})
+		require.NoError(t, err)
+		_, err = store.TaskStore().CreateTask(&model.Task{
+			Namespace:      "ns1",
+			RunUUID:        run.UUID,
+			ParentTaskUUID: &dagTask.UUID,
+			Name:           fmt.Sprintf("child-%d", i),
+			ScopePath:      fmt.Sprintf("root.child-%d", i),
+			Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+			State:          model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+			Fingerprint:    fmt.Sprintf("fp-%d", i),
+			Pods:           pods,
+			FinishedInSec:  10,
+		})
+		require.NoError(t, err)
+	}
+
+	// Child 204 (on page 2) is still RUNNING
+	pods204, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-child-204", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+	task204, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "child-204",
+		ScopePath:      "root.child-204",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:    "fp-204",
+		Pods:           pods204,
+	})
+	require.NoError(t, err)
+
+	// Workflow is still running because child 204 is running
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"pod-child-204": {
+					ID:          "pod-child-204",
+					Name:        "pod-child-204",
+					DisplayName: "child-204",
+					Phase:       v1alpha1.NodeRunning,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	// Root DAG must still be RUNNING because child 204 on page 2 is still running (sibling deferral)
+	rootAfterReport, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), rootAfterReport.State, "DAG must remain RUNNING while sibling on page 2 is running")
+
+	// Now child 204 finishes as SUCCEEDED
+	_, err = store.TaskStore().UpdateTask(&model.Task{
+		UUID:          task204.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		FinishedInSec: manager.time.Now().Unix() + 10,
+	})
+	require.NoError(t, err)
+
+	// Re-run aggregation
+	_, err = manager.aggregateDAGTaskStatuses(run.UUID, -1, true)
+	require.NoError(t, err)
+
+	// Now that no sibling is running, root DAG propagates FAILED (from child 0)
+	rootFinal, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), rootFinal.State, "DAG must propagate FAILED once all siblings finish")
+}
+
+func TestReconcileStrandedTasks_PartialFailureRecovery(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "parent-dag",
+		ScopePath:   "root.parent-dag",
+		Type:        model.TaskType(apiv2.PipelineTask_DAG),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-parent",
+	})
+	require.NoError(t, err)
+
+	leafPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "leaf-failed-pod", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	// Simulate injected partial-write failure:
+	// A prior reconciliation cycle or driver execution successfully persisted the leaf task as FAILED,
+	// but crashed/failed before updating the parent DAG task (leaving parent-dag RUNNING in DB).
+	_, err = store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "leaf-failed",
+		ScopePath:      "root.parent-dag.leaf-failed",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Fingerprint:    "fp-leaf",
+		Pods:           leafPods,
+		FinishedInSec:  10,
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"leaf-failed-pod": {
+					ID:          "leaf-failed-pod",
+					Name:        "leaf-failed-pod",
+					DisplayName: "leaf-failed",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Task failed",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	// In the second invocation, ReportWorkflowResource is called.
+	// Because the leaf is already terminal (FAILED) in DB, leaf reconciliation loop skips it.
+	// But aggregateDAGTaskStatuses MUST still inspect the database child records and converge parent-dag to FAILED.
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	updatedDag, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), updatedDag.State,
+		"parent DAG must converge to FAILED on second invocation even when leaf is already terminal")
+}
+
+func TestSynchronousExitHandlerBarrier_GetRunWithHydration(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "worker-executor", Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "dag",
+		ScopePath:   "root.dag",
+		Type:        model.TaskType(apiv2.PipelineTask_DAG),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-dag-barrier",
+	})
+	require.NoError(t, err)
+
+	workerTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "worker",
+		ScopePath:      "root.dag.worker",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint:    "fp-worker-barrier",
+		Pods:           pods,
+	})
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-executor": {
+					ID:          "worker-executor",
+					Name:        "worker-executor",
+					DisplayName: "worker",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Process crashed with exit code 137",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	hydratedRun, err := manager.GetRunWithHydrationContext(authCtx, run.UUID, true)
+	require.NoError(t, err)
+	require.NotNil(t, hydratedRun)
+
+	var foundWorker *model.Task
+	var foundDag *model.Task
+	for _, tsk := range hydratedRun.Tasks {
+		switch tsk.UUID {
+		case workerTask.UUID:
+			foundWorker = tsk
+		case dagTask.UUID:
+			foundDag = tsk
+		}
+	}
+	require.NotNil(t, foundWorker)
+	require.NotNil(t, foundDag)
+
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), foundWorker.State, "exit handler must see worker FAILED")
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), foundDag.State, "exit handler must see parent DAG FAILED")
+
+	dbWorker, err := manager.GetTask(workerTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), dbWorker.State)
+
+	dbDag, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), dbDag.State)
+}
+
+func TestGetRunWithHydration_OrdinaryRead_PreservesRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	// Simulate that the run was claimed for retry: RetryGeneration = 2, State = PENDING
+	_, err := store.DB().Exec("UPDATE run_details SET RetryGeneration = 2, State = 'PENDING', Conditions = 'PENDING' WHERE UUID = ?", run.UUID)
+	require.NoError(t, err)
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "worker-driver", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "worker",
+		ScopePath:   "root.worker",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-worker-retry",
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	// Live workflow in the cluster is from older generation 1 and in Failed state
+	oldWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+				util.AnnotationKeyRetryGeneration:       "1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-driver": {
+					ID:          "worker-driver",
+					Name:        "worker-driver",
+					DisplayName: "worker",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "OOM killed",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, oldWorkflow)
+
+	// 1. Ordinary hydrated read (common.IsAuthoritativeFinalStatusRequired is false):
+	// Must remain strictly read-only from DB and must NOT trigger live workflow synchronization.
+	ordinaryRead, err := manager.GetRunWithHydrationContext(context.Background(), run.UUID, true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, ordinaryRead.State.ToV2(), "ordinary read must not undo retry claim")
+
+	dbRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, dbRun.State.ToV2(), "run in database must remain PENDING")
+
+	dbTask, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTask.State, "task in database must remain RUNNING")
+
+	// 2. Authoritative read (e.g. exit handler input resolution):
+	// Must inspect reported retry generation against run.RetryGeneration (1 < 2)
+	// and reject the older generation observation without marking the run FAILED.
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	authRead, err := manager.GetRunWithHydrationContext(authCtx, run.UUID, true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, authRead.State.ToV2(), "authoritative read must reject older retry generation")
+
+	dbRunAfterAuth, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, dbRunAfterAuth.State.ToV2(), "run in database must not be marked FAILED by older generation")
+
+	dbTaskAfterAuth, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTaskAfterAuth.State, "task must remain RUNNING")
+}
+
+func TestSynchronizeRunFromLiveWorkflow_TaskLevelRejectionPreventsRunLevelFailure(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "worker-driver", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     run.UUID,
+		Name:        "worker",
+		ScopePath:   "root.worker",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-worker-fenced",
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	// In-memory run observation believes RetryGeneration is 1
+	run.RetryGeneration = 1
+	run.State = model.RuntimeStateRunning
+	run.Conditions = string(model.RuntimeStateRunning)
+
+	// Concurrently in the database, a retry claim already advanced to RetryGeneration = 2
+	_, err = store.DB().Exec("UPDATE run_details SET RetryGeneration = 2, State = 'PENDING', Conditions = 'PENDING' WHERE UUID = ?", run.UUID)
+	require.NoError(t, err)
+
+	// Live workflow reports generation 1 and is in Failed state
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				"workflows.argoproj.io/pod-name-format": "v1",
+				util.AnnotationKeyRetryGeneration:       "1",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowFailed,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-driver": {
+					ID:          "worker-driver",
+					Name:        "worker-driver",
+					DisplayName: "worker",
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "Failed node",
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	performed, err := manager.synchronizeRunFromLiveWorkflow(authCtx, run)
+	require.NoError(t, err)
+	assert.False(t, performed, "synchronization must not perform update when tasks are rejected")
+
+	dbRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, dbRun.State.ToV2(), "run in database must not be marked FAILED")
+	assert.Equal(t, int64(2), dbRun.RetryGeneration)
+
+	dbTask, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTask.State, "task in database must remain RUNNING")
+}

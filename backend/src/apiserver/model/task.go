@@ -374,3 +374,22 @@ func JSONDataToProtoMessage[T proto.Message](data JSONData, newT func() T) (T, e
 	}
 	return msg, nil
 }
+
+// JSONDataToProtoMessageAllowUnknown is like JSONDataToProtoMessage, but ignores unknown fields.
+// Used when hydrating extensible database columns (such as TypeAttrs) that contain internal metadata.
+func JSONDataToProtoMessageAllowUnknown[T proto.Message](data JSONData, newT func() T) (T, error) {
+	var zero T
+	if data == nil {
+		return zero, nil
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return zero, err
+	}
+	msg := newT()
+	opts := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err := opts.Unmarshal(b, msg); err != nil {
+		return zero, err
+	}
+	return msg, nil
+}

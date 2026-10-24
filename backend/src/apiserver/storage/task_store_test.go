@@ -1910,3 +1910,215 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateTaskWithRetryFence_StaleGenerationRejected(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	_, err := db.Exec("UPDATE run_details SET RetryGeneration = 2 WHERE UUID = 'run-1'")
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "fence-task-1",
+		Fingerprint: "fp-fence-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, 1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	updated, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, 2)
+	require.NoError(t, err)
+	assert.NotNil(t, updated)
+}
+
+func TestUpdateTaskWithRetryFence_RetiredPodUIDRejected(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-gen0",
+		Uid:  "uid-retired-123",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "retire-task-1",
+		Fingerprint: "fp-retire-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	err = taskStore.ResetTasksForRetry([]string{task.UUID})
+	require.NoError(t, err)
+
+	incomingPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-gen0",
+		Uid:  "uid-retired-123",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		Pods:  incomingPods,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+	assert.Contains(t, userErr.Error(), "retired pod")
+}
+
+func TestUpdateTaskWithRetryFence_IntraAttemptTerminalProtection(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "terminal-task-1",
+		Fingerprint: "fp-term-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok = err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
+
+func TestUpdateTaskWithRetryFence_RetryGapProtection(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-1",
+		Uid:  "uid-1",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "gap-task-1",
+		Fingerprint: "fp-gap-1",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	err = taskStore.ResetTasksForRetry([]string{task.UUID})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:          task.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		FinishedInSec: 100,
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+	assert.Contains(t, userErr.Error(), "waiting for retry pod to register")
+
+	// Establishing the new attempt in RUNNING state with active pod succeeds and clears the gap.
+	activePods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-2",
+		Uid:  "uid-2",
+		Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+	registered, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:  activePods,
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), registered.State)
+
+	// Subsequent terminal update (e.g. CACHED or SUCCEEDED) carrying the active pod identity is now accepted.
+	cached, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:          task.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_CACHED),
+		FinishedInSec: 100,
+		Pods:          activePods,
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_CACHED), cached.State)
+}
+
+func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {
+	db, taskStore, runStore := initializeTaskStore()
+	defer db.Close()
+
+	_, err := db.Exec("UPDATE run_details SET State = 'Failed', Conditions = 'Failed', FinishedAtInSec = 10 WHERE UUID = 'run-1'")
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "race-task-1",
+		Fingerprint: "fp-race-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	})
+	require.NoError(t, err)
+
+	_, _, _, claimGen, err := runStore.ClaimRunForRetry("run-1", false)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), claimGen)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, 0)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	// Inspect final persisted task and run state
+	persistedTask, err := taskStore.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), persistedTask.State)
+	assert.Equal(t, int64(0), persistedTask.FinishedInSec)
+	assert.Empty(t, persistedTask.Pods)
+	assert.NotEmpty(t, persistedTask.StateHistory)
+
+	run, err := runStore.GetRun("run-1", false)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), run.RetryGeneration)
+}
