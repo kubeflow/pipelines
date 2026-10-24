@@ -87,6 +87,26 @@ class ArgoVersionConsistencyTest(unittest.TestCase):
             with self.subTest(path=relative_path):
                 self.assert_version_matches(relative_path, pattern)
 
+    def test_public_compatibility_notice_matches_supported_versions(self):
+        compatibility_version = (
+            (REPOSITORY_ROOT / 'third_party/argo/COMPATIBILITY_VERSION')
+            .read_text(encoding='utf-8')
+            .strip()
+        )
+        readme = (REPOSITORY_ROOT / 'README.md').read_text(encoding='utf-8')
+        self.assertEqual(
+            re.findall(
+                r'tested at (\d+\.\d+\.\d+) and (\d+\.\d+\.\d+) respectively',
+                readme,
+            ),
+            [
+                (
+                    compatibility_version.removeprefix('v'),
+                    self.current_version.removeprefix('v'),
+                )
+            ],
+        )
+
     def test_backend_dockerfile_derives_argo_cli_from_go_module(self):
         contents = (REPOSITORY_ROOT / 'backend/Dockerfile').read_text(
             encoding='utf-8'

@@ -8,5 +8,5 @@ registry.access.redhat.com/ubi9/python-311:1-1779945715@sha256:a0bdb55576fc5b8d6
 docker.io/library/mysql:8.4.11@sha256:24989179f58856db763f418010c1169fecc944e3ec1ea7e921572d83eb070f70
 quay.io/argoproj/workflow-controller:v4.0.13
 quay.io/argoproj/argoexec:v4.0.13
-quay.io/argoproj/workflow-controller:v4.1.5
-quay.io/argoproj/argoexec:v4.1.5
+quay.io/argoproj/workflow-controller:v4.1.6
+quay.io/argoproj/argoexec:v4.1.6
