@@ -27,13 +27,19 @@ RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /go/bin/proxy-forwarding-a
     && CGO_ENABLED=0 go build -mod=readonly -trimpath -o /go/bin/inverting-proxy ./server \
     && go test -mod=readonly -count=1 ./agent/...
 
-# Preserve the runtime defaults used by the GCP registration script.
-FROM gcr.io/inverting-proxy/agent@sha256:432f609b1e98793723807f62a0a5b900deec491322a73330a9c844210fe70385
-
-# We need --allow-releaseinfo-change, because of https://github.com/kubeflow/pipelines/issues/6311#issuecomment-899224137.
-RUN apt-get update --allow-releaseinfo-change && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends curl jq python3-venv \
+# Keep only the runtime tools needed by registration and the Cloud SDK.
+FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends bash ca-certificates curl jq python3-venv wget \
     && rm -rf /var/lib/apt/lists/*
+
+# These defaults were previously inherited from the upstream agent image.
+ENV DEBUG=false \
+    PROXY_TIMEOUT=60s \
+    HEALTH_CHECK_PATH=/ \
+    HEALTH_CHECK_INTERVAL_SECONDS=0 \
+    HEALTH_CHECK_UNHEALTHY_THRESHOLD=2
+WORKDIR /opt/proxy
 ENV VIRTUAL_ENV=/opt/proxy-venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 COPY requirements.txt .
@@ -62,6 +68,7 @@ RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kub
     && chmod +x /usr/local/bin/kubectl
 
 COPY --from=builder /go/bin/proxy-forwarding-agent /opt/bin/proxy-forwarding-agent
+COPY --from=builder /src/LICENSE /usr/share/doc/inverting-proxy/LICENSE
 
 COPY ./ /opt/proxy
 # These run in every CI qualification build of the final runtime image.

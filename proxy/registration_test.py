@@ -13,13 +13,16 @@
 # limitations under the License.
 """Exercise proxy registration and restart contracts without network access."""
 
+import http.server
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 
 
@@ -67,10 +70,16 @@ elif name == 'curl':
         print('projects/test/zones/us-central1-a')
     elif any('instance/service-accounts/default/identity?' in arg for arg in args):
         print('test-vm-identity')
-    elif args[-1] == 'https://registration.invalid/request-service-account-endpoint':
+    elif args[-1] == os.environ.get('EXPECTED_PROXY_URL', 'https://registration.invalid') + '/request-service-account-endpoint':
         print(json.dumps({'hostname': 'public.invalid', 'backendID': 'fresh-backend'}))
     else:
         sys.exit('Unexpected curl invocation')
+elif name == 'wget':
+    if args != ['https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json']:
+        sys.exit('Unexpected config URL')
+    pathlib.Path('proxy-agent-config.json').write_text(json.dumps({
+        'agent-docker-containers': {'latest': {'proxy-urls': {
+            'us-central1': [os.environ['EXPECTED_PROXY_URL']]}}}}))
 elif name == 'sleep':
     if args != ['20']:
         sys.exit('Unexpected retry delay')
@@ -219,6 +228,66 @@ elif name != 'proxy-forwarding-agent':
         self.assertEqual(calls[first + 1]["name"], "sleep")
         self.assertEqual(calls[second]["name"], "kubectl")
         self.assertFalse(any(call["name"] == "wget" for call in calls))
+
+    def test_fresh_registration_discovers_regional_url_with_real_requests(self):
+        received = []
+
+        class Proxy(http.server.BaseHTTPRequestHandler):
+
+            def do_HEAD(self):
+                received.append(self.path)
+                self.send_response(307)
+                self.end_headers()
+
+            def log_message(self, *args):
+                pass
+
+        server = http.server.HTTPServer(('127.0.0.1', 0), Proxy)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(thread.join, 2)
+        self.addCleanup(server.shutdown)
+        proxy = 'http://127.0.0.1:' + str(server.server_port)
+        self.environment['PROXY_URL'] = ''
+        self.environment['EXPECTED_PROXY_URL'] = proxy
+        self.environment['NO_PROXY'] = '127.0.0.1'
+        shutil.copyfile(
+            Path(__file__).with_name('get_proxy_url.py'),
+            self.root / 'get_proxy_url.py')
+        python = self.bin / 'python3'
+        python.write_text('#!/bin/sh\nexec ' + shlex.quote(sys.executable) +
+                          ' "$@"\n')
+        python.chmod(0o755)
+
+        calls = self.run_registration()
+
+        self.assertEqual(received, ['/'])
+        self.assert_agent(calls, proxy, 'fresh-backend')
+        self.assertEqual([
+            call['args'] for call in calls if call['name'] == 'wget'
+        ], [[
+            'https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json'
+        ]])
+        patches = [
+            call for call in calls
+            if call['name'] == 'kubectl' and call['args'][0] == 'patch'
+        ]
+        self.assertEqual(len(patches), 2)
+        for patch in patches:
+            self.assertEqual(
+                json.loads(patch['args'][5])['data'], {
+                    'Hostname': 'public.invalid',
+                    'ProxyUrl': proxy,
+                    'BackendId': 'fresh-backend'
+                })
+        registration = [call for call in calls if call['name'] == 'curl']
+        self.assertEqual(registration[-1]['args'][-1],
+                         proxy + '/request-service-account-endpoint')
+        self.assertIn(
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?format=full&audience='
+            + proxy + '/request-service-account-endpoint',
+            registration[1]['args'])
 
 
 if __name__ == "__main__":
