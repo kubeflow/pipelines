@@ -46,6 +46,17 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             workflow['jobs']['inventory']['if'],
         )
 
+    def test_candidate_dispatch_can_validate_but_cannot_upload(self):
+        workflow = self.workflow()
+        self.assertIn(
+            "github.event_name == 'workflow_dispatch'",
+            workflow['jobs']['inventory']['if'],
+        )
+        self.assertEqual(
+            workflow['jobs']['upload']['if'],
+            "github.ref == 'refs/heads/master'",
+        )
+
     def test_concurrency_keeps_valid_scans_separate_from_untrusted_wakeups(
         self,
     ):
@@ -58,7 +69,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             "path == '.github/workflows/pre-commit.yml'",
             "head_branch == 'release-2.18'",
             "head_repository.full_name == 'kubeflow/pipelines'",
-            "'images' || 'ignored'",
+            "github.ref || 'ignored'",
         ):
             self.assertIn(guard, group)
 
@@ -72,7 +83,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             self.assertEqual(job['permissions'], permissions)
         upload = workflow['jobs']['upload']
         self.assertEqual(upload['needs'], ['inventory', 'aggregate'])
-        self.assertNotIn('if', upload)
+        self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
         scripts = [step for step in upload['steps'] if 'run' in step]
         self.assertEqual(len(scripts), 1)
         self.assertEqual(scripts[0]['name'], 'Verify exact release source')
@@ -166,6 +177,9 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             if 'ci_images_runner lane' in step.get('run', '')
         )
         self.assertIn('--source source', build['run'])
+        self.assertIn('--scanner osv', build['run'])
+        self.assertIn('setup-osv-scanner', str(images))
+        self.assertNotIn('setup-trivy', str(self.workflow()))
         evidence = images['steps'][-1]
         self.assertEqual(evidence['if'], '${{ always() }}')
         self.assertIn('${{ github.run_attempt }}', evidence['with']['name'])
@@ -184,6 +198,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             if 'branch_scan convert' in step.get('run', '')
         )
         publish = len(steps) - 1
+        self.assertIn('--scanner osv', steps[aggregate]['run'])
         self.assertLess(aggregate, convert)
         self.assertLess(convert, publish)
         self.assertNotIn('if', steps[publish])

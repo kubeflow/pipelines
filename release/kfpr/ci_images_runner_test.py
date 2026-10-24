@@ -12,6 +12,7 @@ from unittest import mock
 import yaml
 
 from kfpr import ci_images_runner as runner
+from kfpr.osv_image_scan_test import envelope
 
 IMAGE_ID = 'sha256:' + 'a' * 64
 
@@ -121,6 +122,64 @@ class CiImagesRunnerTest(unittest.TestCase):
         }
         (directory / 'lane.json').write_text(json.dumps(report))
         return directory
+
+    def test_osv_aggregate_requires_complete_matching_scanner_evidence(self):
+        for arch in ('amd64', 'arm64'):
+            directory = self.write_lane(arch)
+            scan = directory / 'scan.json'
+            scan.write_text(json.dumps(envelope(IMAGE_ID, findings=True)))
+            lane_path = directory / 'lane.json'
+            lane = json.loads(lane_path.read_text())
+            lane['scanner'] = runner.scanner_identity('osv')
+            lane['scan_sha256'] = hashlib.sha256(scan.read_bytes()).hexdigest()
+            lane_path.write_text(json.dumps(lane))
+        result = runner.aggregate(
+            self.source,
+            self.root / 'lanes',
+            self.root / 'final',
+            self.release,
+            scanner='osv',
+        )
+        self.assertEqual(result['scanner'], runner.scanner_identity('osv'))
+        self.assertEqual(len(result['images']), 2)
+        for record in result['images']:
+            runner._verify_scan(
+                self.root / 'final' / record['scan_file'],
+                IMAGE_ID,
+                scanner='osv',
+            )
+        lane_path = self.root / 'lanes/arm64/lane.json'
+        lane = json.loads(lane_path.read_text())
+        lane['scanner'] = runner.scanner_identity('trivy')
+        lane_path.write_text(json.dumps(lane))
+        with self.assertRaisesRegex(ValueError, 'scanner'):
+            runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                self.root / 'mixed',
+                self.release,
+                scanner='osv',
+            )
+        lane_path.unlink()
+        with self.assertRaises(ValueError):
+            runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                self.root / 'missing',
+                self.release,
+                scanner='osv',
+            )
+
+    def test_unsupported_scanner_rejected_before_output_creation(self):
+        with self.assertRaisesRegex(ValueError, 'scanner'):
+            runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                self.root / 'bad',
+                self.release,
+                scanner='unknown',
+            )
+        self.assertFalse((self.root / 'bad').exists())
 
     def test_matrix_uses_source_inventory_and_native_runners(self):
         entries = runner.matrix(self.source, self.release)['include']

@@ -110,76 +110,98 @@ class BranchScanTest(unittest.TestCase):
         self.assertEqual(len(files), 4)
         self.assertIn(f'kfpr-lane-{"a" * 32}-2-image-a-arm64/scan.json', files)
 
-    def qualified(self):
-        self.write_lane('amd64')
-        self.write_lane('arm64')
+    def qualified(self, clean=False):
+        for arch in ('amd64', 'arm64'):
+            directory = self.write_lane(arch)
+            sarif = {
+                'version': '2.1.0',
+                'runs': [
+                    {
+                        'tool': {
+                            'driver': {
+                                'name': 'osv-scanner',
+                                'version': '2.5.0',
+                                'rules': [] if clean else [{'id': 'CVE-test'}],
+                            }
+                        },
+                        'results': []
+                        if clean
+                        else [
+                            {
+                                'ruleId': 'CVE-test',
+                                'message': {'text': 'Vulnerable package'},
+                                'locations': [
+                                    {
+                                        'physicalLocation': {
+                                            'artifactLocation': {
+                                                'uri': 'file:///usr/bin/app'
+                                            }
+                                        }
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+            report = {
+                'schema': 1,
+                'scanner': scan.SCANNER,
+                'image_id': fixtures.IMAGE_ID,
+                'archive_sha256': 'd' * 64,
+                'exit_code': 0 if clean else 1,
+                'sarif': sarif,
+            }
+            path = directory / 'scan.json'
+            path.write_text(json.dumps(report))
+            lane_path = directory / 'lane.json'
+            lane = json.loads(lane_path.read_text())
+            lane.update(
+                scanner=scan.SCANNER,
+                scan_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            )
+            lane_path.write_text(json.dumps(lane))
         directory = self.root / 'qualified'
         runner.aggregate(
-            self.source, self.root / 'lanes', directory, self.release
+            self.source,
+            self.root / 'lanes',
+            directory,
+            self.release,
+            scanner='osv',
         )
         return directory
 
-    def fake_convert(self, report, destination):
-        results = [
-            {
-                'ruleId': vuln['VulnerabilityID'],
-                'locations': [{'uri': result['Target']}],
-            }
-            for result in report['Results']
-            for vuln in (result.get('Vulnerabilities') or [])
-        ]
-        destination.write_text(
-            json.dumps({'version': '2.1.0', 'runs': [{'results': results}]})
-        )
-
-    @mock.patch('kfpr.branch_scan.convert_report')
-    def test_conversion_preserves_findings_and_raw_scan_bytes(self, run):
+    def test_preserves_all_osv_findings_locations_and_raw_evidence(self):
         directory = self.qualified()
         before = {
             path.name: path.read_bytes()
             for path in (directory / 'scans').iterdir()
         }
-        run.side_effect = self.fake_convert
         scan.convert_scans(self.source, directory, self.release)
-        self.assertEqual(run.call_count, 2)
         self.assertEqual(len(list((directory / 'sarif').glob('*.sarif'))), 2)
-        self.assertEqual(
-            before,
-            {
-                path.name: path.read_bytes()
-                for path in (directory / 'scans').iterdir()
-            },
-        )
+        for name, content in before.items():
+            self.assertEqual((directory / 'scans' / name).read_bytes(), content)
+            expected = json.loads(content)['sarif']
+            actual = json.loads(
+                (
+                    directory / 'sarif' / name.replace('.json', '.sarif')
+                ).read_text()
+            )
+            self.assertEqual(actual, expected)
 
-    @mock.patch('kfpr.branch_scan.convert_report')
-    def test_clean_null_vulnerability_reports_produce_empty_results(self, run):
-        directory = self.qualified()
-        manifest_path = directory / 'manifest.json'
-        manifest = json.loads(manifest_path.read_text())
-        for record in manifest['images']:
-            path = directory / record['scan_file']
-            report = json.loads(path.read_text())
-            report['Results'][0]['Vulnerabilities'] = None
-            path.write_text(json.dumps(report))
-            record['scan_sha256'] = hashlib.sha256(
-                path.read_bytes()
-            ).hexdigest()
-        manifest_path.write_text(json.dumps(manifest))
-        run.side_effect = self.fake_convert
+    def test_clean_reports_produce_valid_empty_sarif(self):
+        directory = self.qualified(clean=True)
         scan.convert_scans(self.source, directory, self.release)
         for path in (directory / 'sarif').iterdir():
             self.assertEqual(
                 json.loads(path.read_text())['runs'][0]['results'], []
             )
 
-    @mock.patch('kfpr.branch_scan.convert_report')
-    def test_conversion_rejects_incomplete_or_wrong_attempt_before_running_trivy(
-        self, run
-    ):
+    def test_rejects_incomplete_wrong_attempt_or_scanner_before_output(self):
         directory = self.qualified()
         manifest_path = directory / 'manifest.json'
         manifest = json.loads(manifest_path.read_text())
-        for mutation in ('missing', 'attempt', 'duplicate'):
+        for mutation in ('missing', 'attempt', 'duplicate', 'scanner'):
             changed = copy.deepcopy(manifest)
             if mutation == 'missing':
                 changed['images'].pop()
@@ -187,83 +209,34 @@ class BranchScanTest(unittest.TestCase):
                 changed['run_attempt'] += 1
             if mutation == 'duplicate':
                 changed['images'][1] = changed['images'][0]
+            if mutation == 'scanner':
+                changed['scanner'] = {'name': 'trivy', 'version': '0.76.0'}
             manifest_path.write_text(json.dumps(changed))
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                 scan.convert_scans(self.source, directory, self.release)
-        run.assert_not_called()
+            self.assertFalse((directory / 'sarif').exists())
 
-    @mock.patch('kfpr.branch_scan.convert_report')
-    def test_conversion_rejects_raw_scan_tampering(self, run):
+    def test_rejects_raw_scan_tampering_before_output(self):
         directory = self.qualified()
         path = directory / 'scans/image-a-amd64.json'
         path.write_text(path.read_text() + ' ')
         with self.assertRaisesRegex(ValueError, 'checksum'):
             scan.convert_scans(self.source, directory, self.release)
-        run.assert_not_called()
+        self.assertFalse((directory / 'sarif').exists())
 
-    @mock.patch('kfpr.branch_scan.convert_report')
-    def test_conversion_rejects_dropped_findings(self, run):
+    def test_rejects_trivy_report_even_with_matching_checksum(self):
         directory = self.qualified()
-
-        def drop_findings(report, destination):
-            destination.write_text(
-                json.dumps({'version': '2.1.0', 'runs': [{'results': []}]})
-            )
-
-        run.side_effect = drop_findings
-        with self.assertRaisesRegex(ValueError, 'every vulnerability'):
-            scan.convert_scans(self.source, directory, self.release)
-
-    @mock.patch('kfpr.branch_scan.convert_report')
-    def test_os_locations_stay_stable_across_image_ids_without_changing_binary_paths(
-        self, run
-    ):
-        directory = self.qualified()
+        path = directory / 'scans/image-a-amd64.json'
+        path.write_text(json.dumps(self.scan()))
         manifest_path = directory / 'manifest.json'
         manifest = json.loads(manifest_path.read_text())
-        for index, record in enumerate(manifest['images']):
-            image_id = 'sha256:' + str(index + 1) * 64
-            record['image_id'] = image_id
-            report = self.scan()
-            report['ArtifactName'] = image_id
-            report['Metadata']['ImageID'] = image_id
-            report['Results'][0]['Class'] = 'os-pkgs'
-            report['Results'][0]['Target'] = image_id + ' (debian 12)'
-            report['Results'].append(
-                {
-                    'Class': 'lang-pkgs',
-                    'Target': 'usr/bin/app',
-                    'Vulnerabilities': [
-                        {
-                            'VulnerabilityID': 'CVE-binary',
-                            'PkgName': 'binary',
-                            'InstalledVersion': '1',
-                        }
-                    ],
-                }
-            )
-            path = directory / record['scan_file']
-            path.write_text(json.dumps(report))
-            record['scan_sha256'] = hashlib.sha256(
-                path.read_bytes()
-            ).hexdigest()
+        manifest['images'][0]['scan_sha256'] = hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
         manifest_path.write_text(json.dumps(manifest))
-        run.side_effect = self.fake_convert
-        scan.convert_scans(self.source, directory, self.release)
-        locations = []
-        for path in sorted((directory / 'sarif').iterdir()):
-            locations.append(
-                [
-                    item['locations']
-                    for item in json.loads(path.read_text())['runs'][0][
-                        'results'
-                    ]
-                ]
-            )
-        self.assertEqual(locations[0], locations[1])
-        self.assertEqual(
-            locations[0], [[{'uri': 'image-a'}], [{'uri': 'usr/bin/app'}]]
-        )
+        with self.assertRaises(ValueError):
+            scan.convert_scans(self.source, directory, self.release)
+        self.assertFalse((directory / 'sarif').exists())
 
 
 if __name__ == '__main__':
