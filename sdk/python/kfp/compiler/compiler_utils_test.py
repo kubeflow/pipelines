@@ -17,6 +17,7 @@ import unittest
 from absl.testing import parameterized
 
 from kfp.compiler import compiler_utils
+from kfp.dsl import for_loop
 from kfp.dsl import pipeline_channel
 
 
@@ -189,6 +190,39 @@ class TestMemoryToFloat(parameterized.TestCase):
         self.assertAlmostEqual(
             compiler_utils._memory_to_float(memory), expected
         )
+
+
+class TestMakeNewChannelForCollectedOutputs(unittest.TestCase):
+
+    def test_parameter_channel_returns_list_channel(self):
+        starting = pipeline_channel.PipelineParameterChannel(
+            name='output', channel_type='String', task_name='task')
+        result = compiler_utils.make_new_channel_for_collected_outputs(
+            channel_name='output', starting_channel=starting, task_name='task')
+        self.assertIsInstance(result, pipeline_channel.PipelineParameterChannel)
+        self.assertEqual(result.channel_type, 'LIST')
+
+    def test_artifact_channel_returns_artifact_list_channel(self):
+        starting = pipeline_channel.PipelineArtifactChannel(
+            name='output',
+            channel_type='system.Artifact@0.0.1',
+            task_name='task',
+            is_artifact_list=False)
+        result = compiler_utils.make_new_channel_for_collected_outputs(
+            channel_name='output', starting_channel=starting, task_name='task')
+        self.assertIsInstance(result, pipeline_channel.PipelineArtifactChannel)
+        self.assertTrue(result.is_artifact_list)
+        self.assertEqual(result.channel_type, 'system.Artifact@0.0.1')
+
+    def test_unknown_channel_raises_value_error(self):
+        inner = pipeline_channel.PipelineParameterChannel(
+            name='output', channel_type='String', task_name='task')
+        nested = for_loop.Collected(output=inner)
+        with self.assertRaisesRegex(ValueError, 'Got unknown PipelineChannel'):
+            compiler_utils.make_new_channel_for_collected_outputs(
+                channel_name='output',
+                starting_channel=nested,
+                task_name='task')
 
 
 if __name__ == '__main__':
