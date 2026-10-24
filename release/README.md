@@ -1,11 +1,51 @@
 # kfpr release CLI
 
 `kfpr` is the Kubeflow Pipelines release automation CLI. It can run the full checkpointed release
-flow or any individual release step.
+flow or any individual release step. This is the canonical maintainer runbook for
+backend, Python SDK, and Kubernetes integration releases. For published notes and
+upgrade guidance, start at [Releases](../RELEASE.md).
+
+## Prerequisites and access
+
+Use a clean, dedicated checkout with the intended release branch and comparison
+tags available locally. The flow switches branches and creates version commits;
+keep unrelated work in another checkout. Configure your Git name and email for
+DCO sign-offs before preparing a release.
+
+Install Python 3.11 or newer, Git, GitHub CLI (`gh`), Docker, and `sed`. SDK
+preparation also requires `uv` on branches with `uv.lock`, or `pip-compile` on
+older branches. Generated API and documentation build steps can require the
+branch's Node.js, Go, Java, `jq`, and `yq` tools; follow the
+[development guide](../developer_guide.md) for the selected branch. Image
+publication and qualification run in GitHub Actions.
+
+Authenticate with `gh auth login`, then check `gh auth status`. The release manager
+needs access to push release branches/tags and create GitHub releases in
+`kubeflow/pipelines`, dispatch and inspect publication workflows, and push the
+version/cherry-pick branches to their fork. Package and image publication use
+workflow-managed credentials. Read the Docs activation requires project access
+and an API token (or the manual checklist); do not put tokens in checkpoint files.
+
+The CLI uses a remote named `upstream` for the canonical repository. Inspect
+existing remotes before adding one:
+
+```bash
+git remote -v
+# Only when the upstream remote is absent:
+git remote add upstream https://github.com/kubeflow/pipelines.git
+git fetch upstream --tags
+gh auth status
+```
+
+`--fork-remote USER` means `https://github.com/USER/pipelines.git`; it is not a
+Git remote alias. A full fork URL is also accepted. Fetch the selected branch
+and tags before previewing notes, and run `kfpr doctor` after installation.
+The doctor checks local tools, authentication, and checkout cleanliness; it does
+not prove that every remote publishing permission is available.
 
 ## Quick start
 
-From the repository root:
+Use Python 3.11 or newer. From the repository root:
 
 ```bash
 python3 -m pip install -e release
@@ -20,37 +60,129 @@ Without installing, run from source:
 PYTHONPATH=release python3 -m kfpr.cli --help
 ```
 
-## Full release flow
+## Choose the release scope
+
+Backend and SDK versions are independent. In the examples below, replace `USER`,
+versions, and patch PR numbers with the intended release values. Use a separate
+checkpoint file for each release. First append `--dry-run` to inspect the selected
+flow; remove it to execute the release and follow its review checkpoints.
+A dry run does not create branches, merge PRs, or publish artifacts.
+The full-flow `kfpr run --dry-run` plans every remaining step and defers release
+note previews until the release refs and contents exist. Use the individual
+[preview commands](#review-release-notes-before-publishing) afterward to generate
+and review Markdown from the actual release range.
+
+| Release artifact | Version/tag | Branch |
+| --- | --- | --- |
+| Backend images and GitHub release | `MAJOR.MINOR.PATCH` | `release-MAJOR.MINOR` |
+| Python packages and SDK GitHub release | `sdk-MAJOR.MINOR.PATCH` tag; packages use `MAJOR.MINOR.PATCH` | `release-MAJOR.MINOR` for the SDK version |
+| Kubernetes integration docs | Included in the unified SDK; separate for split-package maintenance releases | SDK docs, or legacy `kfp-kubernetes-MAJOR.MINOR` |
+
+For major releases the release branch is `release-MAJOR.0`. Current SDK releases
+publish the unified `kfp` distribution. Split-package maintenance branches publish
+`kfp`, `kfp-pipeline-spec`, `kfp-server-api`, and `kfp-kubernetes` at the SDK version. A combined run uses one version for both backend and SDK;
+when the versions differ, use separate runs and checkpoints.
+
+### Backend-only release
 
 ```bash
 kfpr run \
-  --release-type patch \
-  --version 3.2.1 \
-  --fork-remote USER \
+  --release-type patch --version 3.2.1 --fork-remote USER \
   --patch-prs 12345,12346 \
-  --include-backend \
-  --include-sdk
+  --include-backend --no-include-sdk \
+  --previous-release 3.2.0 \
+  --state-file /tmp/kfp-backend-3.2.1.json
 ```
 
-`run` stores prompt answers and completed steps in `release-state.json` by default. Pass
-`--state-file` to use a different checkpoint file. If the checkpoint already exists, `run` prints
-the saved status and asks before resuming; pass `--force` to resume without that prompt.
-For major and minor releases, pass `--release-source-branch BRANCH` to skip the source
-branch prompt.
+This selects backend version preparation, image publication and qualification,
+backend GitHub notes, and the applicable website/announcement checkpoints.
+
+### SDK-only release
+
+```bash
+kfpr run \
+  --release-type patch --version 3.2.1 --fork-remote USER \
+  --patch-prs 12345,12346 \
+  --no-include-backend --include-sdk \
+  --previous-sdk-release sdk-3.2.0 \
+  --state-file /tmp/kfp-sdk-3.2.1.json
+```
+
+This selects Python package preparation, SDK tagging, package publication,
+Read the Docs updates, and the SDK GitHub release. It does not publish backend
+images or change the backend `VERSION`.
 
 Patch releases update the persistent `release-<major>.<minor>` documentation
 branch. Unified SDK releases include Kubernetes API documentation in the SDK
 docs. Split-package releases also create or reuse
 `kfp-kubernetes-<major>.<minor>` and update the separate ReadTheDocs project.
 
-For `--fork-remote`, you can pass either a full remote URL or just your GitHub username. `kfpr`
-expands `droctothorpe` to `https://github.com/droctothorpe/pipelines.git`.
+### Combined backend and SDK release
+
+```bash
+kfpr run \
+  --release-type patch --version 3.2.1 --fork-remote USER \
+  --patch-prs 12345,12346 \
+  --include-backend --include-sdk \
+  --previous-release 3.2.0 --previous-sdk-release sdk-3.2.0 \
+  --state-file /tmp/kfp-combined-3.2.1.json
+```
+
+`run` stores prompt answers and completed steps in `release-state.json` by default.
+If the checkpoint already exists, it prints the saved status and asks before
+resuming; pass `--force` to resume without that prompt. Review notes again at
+publication even when resuming a checkpoint.
+
+For major or minor releases, change `--release-type`, omit `--patch-prs`, and
+pass `--release-source-branch BRANCH` to skip the source branch prompt. For patch
+releases, list the PRs to cherry-pick or follow the prompt when the desired changes
+are already merged. Patch releases also update the persistent SDK documentation branch; split-package
+releases additionally update the Kubernetes documentation branch.
+
+## Select explicit release-note ranges
+
+Supply `--previous-release` for the backend comparison tag and
+`--previous-sdk-release` for the SDK comparison tag. The two bases can differ;
+only the selected release components need a base. If a required base is omitted,
+the CLI asks for it. The answer is persisted when a full run saves its checkpoint
+or an individual step completes with `--done`. It never selects the globally
+newest SDK tag. Choose the previous published version on the release line you are
+preparing, including when a newer minor version has already shipped.
+
+Before generating notes in an individual step, fetch the intended release branch
+and its tags:
+
+```bash
+git fetch upstream --tags
+```
+
+During preparation, generation defaults to
+`refs/heads/<version>-update-version-tags`, the version branch checked out by
+`kfpr`. Before editing version files, the CLI verifies that the selected target
+matches the checked-out commit. At publication it uses the local release tag
+when available, otherwise `refs/remotes/upstream/release-<major>.<minor>`.
+
+Use `--release-target REF` to explicitly select another local ref. For preparation,
+that ref must resolve to the checked-out commit. For publication, its resolved SHA
+must match the authoritative GitHub release tag if that tag already exists. SDK
+publication also requires that the SDK tag already exists on GitHub; complete
+`create-sdk-tag` first. The target must also match the qualified release commit recorded in the checkpoint.
+A mismatch stops publication. This flag controls the
+note-generation and GitHub-release target; it does not select the source branch
+for release preparation (`--release-source-branch` does that).
+
+The CLI resolves each base and target to immutable commit SHAs, validates the
+range, and includes the resolved comparison link in the notes. Divergent release
+branches are supported when they share history; reversed and unrelated histories
+are rejected. Review that link
+and the selected target before publishing. Git errors and invalid ranges stop
+generation rather than silently producing an empty changelog.
 
 ## Preparing generated release artifacts
 
-`update-version-tags` supports ordinary clones and linked Git worktrees. For
-worktrees, it mounts Git metadata read-only into the release container so
-changelog generation can resolve the previous release.
+`update-version-tags` supports ordinary clones and linked Git worktrees. Changelog
+generation reads Git history in the host CLI; generated artifacts use the release
+container.
 
 Backend preparation regenerates the API versions present on the release branch,
 pipeline-spec/cache-key Go bindings, and Kubernetes extension Go bindings. For
@@ -62,8 +194,8 @@ modules to catch successful builds with missing generated sources.
 Legacy dependency resolution reuses the existing `requirements.txt` pins with
 `pip-compile --output-file`; it does not truncate the lockfile before resolving.
 Review the resulting lockfile diff, including environment markers, on each
-supported Python version. If changelog filtering produces an empty release
-section, kfpr includes commit subjects from the release range for review.
+supported Python version. If changelog filtering produces no user-facing entries, preparation stops with
+an actionable error so the maintainer can verify the selected range.
 
 ## Qualification and publication gates
 
@@ -280,7 +412,7 @@ VM used by Docker on Apple Silicon. No architecture-specific tag or forced
 
 Tool versions are identical on both architectures. CI runs native API/client and
 Python-package generation with both images, then exercises manifest versioning
-and changelog preparation in a disposable repository. It compares generated
+in a disposable repository; release-note generation is tested in the host CLI. It compares generated
 source bytes across architectures before publishing the shared tooling tags;
 PR builds do not publish. The release image uses the generator built in the
 same job, so a stale registry tag cannot supply its parent image.
@@ -290,6 +422,128 @@ of a KFP installation. Existing 2.x branches are not changed or backported, and
 the remaining 2.x release does not acquire ARM runtime support. The AMD64 tools
 retain their pinned versions. These image changes do not dispatch a release or
 alter the release CLI's existing image-tag and branch-selection behavior.
+
+## Review release notes before publishing
+
+Write user-facing SDK changes and upgrade instructions under `Current Version
+(in development)` in `sdk/RELEASE.md`. During version preparation, `kfpr` moves
+that text into the versioned release section and appends commit-derived entries
+under `Generated changes`. Handwritten text is preserved; the new development
+section starts with an empty template. Review the version PR for duplicate
+entries and accuracy before merging it.
+
+Both `create-backend-release` and `create-sdk-release` write an editable Markdown
+preview before creating a GitHub release. With the default checkpoint, previews
+are `release-state-notes/<version>.md` and
+`release-state-notes/sdk-<version>.md`. With a custom checkpoint, the directory is
+`<state-file-stem>-notes` beside that file. The default directory is Git-ignored;
+keep custom checkpoint files and previews outside the checkout.
+
+To prepare previews without publishing, run these commands with the intended
+release version and previous backend/SDK tags available in your local clone:
+
+```bash
+kfpr run create-backend-release \
+  --release-type patch --version 3.2.1 --fork-remote USER \
+  --previous-release 3.2.0 \
+  --state-file /tmp/kfp-release-state.json --dry-run
+
+kfpr run create-sdk-release \
+  --release-type patch --version 3.2.1 --fork-remote USER \
+  --previous-sdk-release sdk-3.2.0 \
+  --state-file /tmp/kfp-release-state.json --dry-run
+```
+
+These dry runs write local preview files and print their contents, but do not
+publish or ask for publication approval. Note generation reads local Git history;
+fetch the intended release branch and tags after the release changes are merged.
+The [explicit range options](#select-explicit-release-note-ranges) select each
+component's previous tag and the intended target commit.
+
+Edit the printed files, then repeat the command without `--dry-run`, adding
+`--done` to checkpoint successful completion. The step displays the file again
+and asks for review confirmation. You may also edit it while the prompt is
+waiting. Answering no stops publication and retains the preview. Empty files
+cannot be published. GitHub receives the reviewed file through `--notes-file`.
+Backend architecture qualification still applies, and SDK release replacement
+does not delete an existing release until the notes review is accepted.
+
+Existing previews are reused without regeneration so retries preserve your
+edits. A `<tag>.json` sidecar beside each `<tag>.md` preview records the resolved
+range; when the base or target commit changes, the CLI refuses to reuse the stale
+preview. A missing or invalid sidecar also blocks reuse. Full-flow dry runs defer
+note generation; individual preview commands require existing release refs.
+
+To refresh an existing preview while preserving edits, run:
+
+```bash
+kfpr regenerate-notes --product backend --version 3.2.1 \
+  --previous-release 3.2.0 --release-target refs/tags/3.2.1 \
+  --state-file /tmp/kfp-release-state.json
+
+kfpr regenerate-notes --product sdk --version 3.2.1 \
+  --previous-sdk-release sdk-3.2.0 --release-target refs/tags/sdk-3.2.1 \
+  --state-file /tmp/kfp-release-state.json
+```
+
+Version and range options default to the saved checkpoint when available. This
+command changes only local preview files; it does not publish, create tags, or
+mark release steps complete. Targets must still match any qualified commit in
+the checkpoint.
+
+Each new preview stores its generated baseline in the JSON sidecar. Regeneration
+merges your edited Markdown with fresh generated notes using that baseline, and
+backs up the existing preview and sidecar in a uniquely named directory beside
+them. Non-overlapping edits are retained. Overlapping edits produce conflict
+markers and a nonzero exit status; edit the preview to resolve them. Publication
+and further regeneration reject unresolved markers. Then rerun the individual
+preview command to review the result before publishing.
+
+Older previews without a stored baseline cannot be merged safely. The command
+leaves them untouched: preserve their handwritten edits, move both files aside,
+create a fresh individual preview, and reapply the edits once. Subsequent
+regenerations use the saved baseline.
+Compare the notes with the final release contents before approving publication.
+Clearing a checkpoint does not delete previews.
+
+New previews begin with an editorial scaffold for highlights, required actions,
+compatibility, and known issues. Replace its TODO comments with reviewed prose,
+or remove sections that do not apply. Describe breaking changes as before →
+after → required action; record deprecation replacements and planned removal
+versions when known. Compatibility notes must distinguish tested combinations
+from supported-by-policy combinations and unevaluated configurations. Do not
+infer compatibility or claim there are no known issues from an empty change list.
+
+Validate any local Markdown preview without publishing or changing files:
+
+```bash
+kfpr validate-notes /tmp/kfp-release-state-notes/3.2.1.md
+```
+
+Validation also runs when previewing or regenerating notes. It warns about
+unfinished editorial prompts, empty editorial sections, duplicate bullet entries,
+and breaking/deprecation entries without explanatory guidance or migration links.
+These checks are heuristics, not a substitute for review. Editorial warnings are
+advisory and return success; unreadable input fails. Existing empty-note, stale
+range, qualification, and merge-conflict gates still block publication. Resolve
+warnings and review the actual file before accepting the publication prompt.
+Removing or completing the scaffold is preserved by preview regeneration.
+
+Use the preview to explain what users need to know, in this order where relevant:
+
+1. **Highlights:** the most important changes and their user impact.
+2. **Upgrade actions and breaking changes:** affected users, required steps,
+   and migration links.
+3. **Security fixes:** affected components, qualification scope, and exceptions.
+4. **Changes by component:** SDK, backend, UI, and Kubernetes integration.
+5. **Compatibility and known issues:** supported versions and workarounds.
+6. **Install/upgrade links and full changelog.**
+
+Omit empty sections. The [release-note policy](../CONTRIBUTING.md#release-note-policy)
+uses the same commit parser for the detailed changelog, SDK entries, and release
+previews. Routine maintenance is omitted unless it carries breaking, security,
+or deprecation impact. Add concise highlights and migration guidance to the
+generated entries; preserve the link to the versioned `sdk/RELEASE.md`.
 
 ## Recovery helpers
 

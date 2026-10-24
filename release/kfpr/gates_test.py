@@ -474,7 +474,7 @@ class ReleaseGatesTest(unittest.TestCase):
             commit + ['fix(backend): unrelated checkout change'], check=True
         )
         notes = steps._generate_backend_release_notes(
-            self.root, '2.17.2', end_ref=sha
+            self.root, steps.resolve_range(self.root, '2.17.2', sha)
         )
         self.assertIn('approved change', notes)
         self.assertNotIn('unrelated checkout change', notes)

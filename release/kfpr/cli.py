@@ -1,5 +1,6 @@
 """Typer CLI for Kubeflow Pipelines release automation."""
 
+import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -20,9 +21,22 @@ from .core import (
     validate_state,
     watch_latest_workflow_run,
 )
-from .steps import STEP_HANDLERS, Step, build_steps, manual_checklist, run_steps
+from .editorial import validate_notes
+from .steps import (
+    STEP_HANDLERS,
+    Step,
+    build_steps,
+    manual_checklist,
+    regenerate_release_notes,
+    run_steps,
+)
 
 HELP_OPTION_NAMES = ['-h', '--help']
+
+
+class NotesProduct(str, Enum):
+    backend = 'backend'
+    sdk = 'sdk'
 
 
 class ImageQualification(str, Enum):
@@ -62,6 +76,8 @@ def _context(
     release_source_branch: Optional[str] = None,
     skip_local_review: bool = False,
     previous_release: Optional[str] = None,
+    previous_sdk_release: Optional[str] = None,
+    release_target: Optional[str] = None,
     save_state: bool = True,
     require_previous_release: bool = True,
     qualification_pythons: Optional[str] = None,
@@ -83,6 +99,8 @@ def _context(
     if skip_local_review:
         state.answers['skip_local_review'] = True
     _set_answer(state, 'previous_release', previous_release)
+    _set_answer(state, 'previous_sdk_release', previous_sdk_release)
+    _set_answer(state, 'release_target', release_target)
     if qualification_pythons:
         raise typer.BadParameter(
             'CI selects Python versions from the release source',
@@ -272,6 +290,16 @@ def run(
         '--previous-release',
         help='Previous release tag for changelog generation.',
     ),
+    previous_sdk_release: Optional[str] = typer.Option(
+        None,
+        '--previous-sdk-release',
+        help='Previous SDK release tag for SDK notes.',
+    ),
+    release_target: Optional[str] = typer.Option(
+        None,
+        '--release-target',
+        help='Explicit Git ref for release contents; resolved to a commit SHA.',
+    ),
     qualification_pythons: Optional[str] = typer.Option(
         None,
         help='Deprecated: CI selects every supported Python minor from the release source.',
@@ -313,6 +341,8 @@ def run(
         release_source_branch=release_source_branch,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        previous_sdk_release=previous_sdk_release,
+        release_target=release_target,
         qualification_pythons=qualification_pythons,
         security_policy=security_policy,
         security_exceptions=security_exceptions,
@@ -338,6 +368,99 @@ def promote_latest(
     from .promotion import dispatch
 
     dispatch(version, dry_run=dry_run)
+
+
+@app.command(
+    'validate-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def validate_notes_command(
+    path: Path = typer.Argument(..., help='Markdown release notes to review.'),
+) -> None:
+    """Report advisory editorial warnings without changing release notes."""
+    try:
+        notes = path.read_text(encoding='utf-8')
+    except (OSError, UnicodeError) as error:
+        raise typer.BadParameter(
+            f'Cannot read release notes: {error}', param_hint='PATH'
+        ) from error
+    warnings = validate_notes(notes)
+    if warnings:
+        for warning in warnings:
+            typer.echo(f'Warning: {warning}')
+    else:
+        typer.echo('No editorial warnings found.')
+
+
+@app.command(
+    'regenerate-notes',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
+def regenerate_notes(
+    product: NotesProduct = typer.Option(
+        ..., help='Release notes to regenerate: backend or sdk.'
+    ),
+    state_file: Path = typer.Option(
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
+    version: Optional[str] = typer.Option(None, help='Release version.'),
+    previous_release: Optional[str] = typer.Option(
+        None, help='Previous backend release tag.'
+    ),
+    previous_sdk_release: Optional[str] = typer.Option(
+        None, help='Previous SDK release tag.'
+    ),
+    release_target: Optional[str] = typer.Option(
+        None, help='Git ref for release contents.'
+    ),
+) -> None:
+    """Regenerate a local notes preview while preserving handwritten edits."""
+    state = _load_state(state_file)
+    answers = state.answers
+    selected_version = (
+        version if version is not None else answers.get('version')
+    )
+    if not selected_version:
+        raise typer.BadParameter(
+            'Provide a release version or an existing checkpoint.',
+            param_hint='--version',
+        )
+    try:
+        metadata = ReleaseMetadata.from_version(
+            str(answers.get('release_type', 'patch')), str(selected_version)
+        )
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint='--version') from error
+    root = Path(
+        subprocess.check_output(
+            ['git', 'rev-parse', '--show-toplevel'], text=True
+        ).strip()
+    )
+    context = ReleaseContext(
+        root=root,
+        state=state,
+        runner=CommandRunner(dry_run=True),
+        metadata=metadata,
+        fork_remote=str(answers.get('fork_remote', '')),
+        include_backend=product == NotesProduct.backend,
+        include_sdk=product == NotesProduct.sdk,
+        previous_release=previous_release
+        if previous_release is not None
+        else str(answers.get('previous_release', '')),
+        previous_sdk_release=previous_sdk_release
+        if previous_sdk_release is not None
+        else str(answers.get('previous_sdk_release', '')),
+        release_target=release_target
+        if release_target is not None
+        else str(answers.get('release_target', '')),
+    )
+    if not regenerate_release_notes(context, product.value):
+        typer.echo(
+            'Resolve the conflict markers in the preview, then review it with the individual release preview command before publishing.'
+        )
+        raise typer.Exit(1)
+    typer.echo(
+        'Release notes preview regenerated. Review it before publication.'
+    )
 
 
 @app.command('steps', context_settings={'help_option_names': HELP_OPTION_NAMES})
@@ -389,6 +512,16 @@ def next_command(
         '--previous-release',
         help='Previous release tag for changelog generation.',
     ),
+    previous_sdk_release: Optional[str] = typer.Option(
+        None,
+        '--previous-sdk-release',
+        help='Previous SDK release tag for SDK notes.',
+    ),
+    release_target: Optional[str] = typer.Option(
+        None,
+        '--release-target',
+        help='Explicit Git ref for release contents; resolved to a commit SHA.',
+    ),
 ) -> None:
     """Run the next incomplete checkpoint step."""
     state = _load_state(state_file)
@@ -414,6 +547,8 @@ def next_command(
         None,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        previous_sdk_release=previous_sdk_release,
+        release_target=release_target,
         save_state=True,
     )
     typer.echo(f'Running step: {next_step.description}')
@@ -609,6 +744,16 @@ def _make_step_command(step_id: str):
             '--previous-release',
             help='Previous release tag for changelog generation.',
         ),
+        previous_sdk_release: Optional[str] = typer.Option(
+            None,
+            '--previous-sdk-release',
+            help='Previous SDK release tag for SDK notes.',
+        ),
+        release_target: Optional[str] = typer.Option(
+            None,
+            '--release-target',
+            help='Explicit Git ref for release contents; resolved to a commit SHA.',
+        ),
         qualification_pythons: Optional[str] = typer.Option(
             None,
             help='Deprecated: CI selects every supported Python minor from the release source.',
@@ -643,6 +788,8 @@ def _make_step_command(step_id: str):
             include_sdk,
             skip_local_review=skip_local_review,
             previous_release=previous_release,
+            previous_sdk_release=previous_sdk_release,
+            release_target=release_target,
             qualification_pythons=qualification_pythons,
             security_policy=security_policy,
             security_exceptions=security_exceptions,

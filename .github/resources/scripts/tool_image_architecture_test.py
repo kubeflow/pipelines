@@ -50,7 +50,6 @@ class ToolImageArchitectureTest(unittest.TestCase):
                 **os.environ,
                 'TARGETARCH': architecture,
                 'PROTOC_VERSION': '31.1',
-                'GIT_CLIFF_VERSION': '2.10.0',
                 'CURL_EXIT_CODE': str(curl_exit_code),
             },
             capture_output=True,
@@ -59,9 +58,9 @@ class ToolImageArchitectureTest(unittest.TestCase):
         )
 
     def test_downloads_correct_assets_for_each_architecture(self):
-        for arch, protoc_arch, cliff_arch in (
-            ('amd64', 'x86_64', 'x86_64'),
-            ('arm64', 'aarch_64', 'aarch64'),
+        for arch, protoc_arch in (
+            ('amd64', 'x86_64'),
+            ('arm64', 'aarch_64'),
         ):
             downloads = (
                 (
@@ -75,12 +74,6 @@ class ToolImageArchitectureTest(unittest.TestCase):
                     'swagger_linux_',
                     'go-swagger/go-swagger/releases/download/v0.36.4/'
                     f'swagger_linux_{arch}',
-                ),
-                (
-                    RELEASE_DOCKERFILE,
-                    'git_cliff_arch=',
-                    'orhun/git-cliff/releases/download/v2.10.0/'
-                    f'git-cliff-2.10.0-{cliff_arch}-unknown-linux-gnu.tar.gz',
                 ),
             )
             for path, marker, asset in downloads:
@@ -96,7 +89,6 @@ class ToolImageArchitectureTest(unittest.TestCase):
         for path, marker in (
             (API_DOCKERFILE, 'protoc_arch='),
             (RELEASE_DOCKERFILE, 'amd64|arm64'),
-            (RELEASE_DOCKERFILE, 'git_cliff_arch='),
         ):
             for arch in ('', 's390x', 'arm'):
                 with self.subTest(path=path, marker=marker, architecture=arch):
@@ -105,12 +97,11 @@ class ToolImageArchitectureTest(unittest.TestCase):
                     self.assertIn('Unsupported TARGETARCH:', result.stderr)
                     self.assertEqual(result.stdout, '')
 
-    def test_download_failure_stops_archive_extraction(self):
+    def test_download_failure_fails_build_instruction(self):
         result = self.run_download(
-            RELEASE_DOCKERFILE, 'git_cliff_arch=', 'arm64', curl_exit_code=22
+            API_DOCKERFILE, 'protoc_arch=', 'arm64', curl_exit_code=22
         )
         self.assertEqual(result.returncode, 22, result.stderr)
-        self.assertNotIn('extracted', result.stdout)
 
     def test_target_arch_is_declared_in_each_build_stage(self):
         for path in (API_DOCKERFILE, RELEASE_DOCKERFILE):
