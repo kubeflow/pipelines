@@ -20,7 +20,12 @@ import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { AsyncLocalStorage } from 'async_hooks';
-import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  type S3ClientConfig,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { isAWSS3Endpoint } from './aws-helper.js';
 import type { S3ProviderInfo } from './handlers/artifacts.js';
@@ -460,12 +465,26 @@ function createConfiguredS3Store(
     : sharedS3Transport;
   const anonymous = !credentialProvider && !(config.accessKey && config.secretKey);
   let resolvedRegion = config.region || 'us-east-1';
+  const genericSpecializedBucket =
+    !isAWSS3Endpoint(origin) && (bucket.endsWith('--x-s3') || bucket.endsWith('--op-s3'));
+  const genericS3Auth: S3ClientConfig['httpAuthSchemeProvider'] = () => [
+    {
+      schemeId: 'aws.auth#sigv4',
+      signingProperties: { name: 's3', region: resolvedRegion },
+      propertiesExtractor: (config, context) => ({ signingProperties: { config, context } }),
+    },
+  ];
   const client = new S3Client({
     endpoint:
       !config.endpointAuthority && config.endPoint === 's3.amazonaws.com' && !config.port
         ? undefined
         : origin,
     region: resolvedRegion,
+    ...(genericSpecializedBucket ? { httpAuthSchemeProvider: genericS3Auth } : {}),
+    // Endpoint authorization owns routing; ambient AWS profiles must not replace it.
+    ignoreConfiguredEndpointUrls: true,
+    useDualstackEndpoint: false,
+    useFipsEndpoint: false,
     // Region corrections must share the same budget as transport and service retries.
     followRegionRedirects: false,
     forcePathStyle: config.pathStyle ?? !isAwsS3Endpoint(config.endPoint),
@@ -510,6 +529,31 @@ function createConfiguredS3Store(
     // Override the SDK's normalized providers for both initial and discovered regions.
     client.config.region = async () => resolvedRegion;
     client.config.useFipsEndpoint = async () => false;
+    if (genericSpecializedBucket) {
+      // These suffixes are ordinary names on compatible stores. The SDK otherwise infers
+      // AWS Express/Outposts routing and authentication, even with an explicit custom endpoint.
+      client.config.endpointProvider = (params) => {
+        const url = new URL(origin);
+        const usePathStyle =
+          (config.pathStyle ?? true) || (url.protocol === 'https:' && bucket.includes('.'));
+        if (usePathStyle) url.pathname = `/${bucket}`;
+        else url.hostname = `${bucket}.${url.hostname}`;
+        return {
+          url,
+          properties: {
+            authSchemes: [
+              {
+                name: 'sigv4',
+                signingName: 's3',
+                signingRegion: params.Region ?? resolvedRegion,
+                properties: {},
+                disableDoubleEncoding: true,
+              },
+            ],
+          },
+        };
+      };
+    }
   }
   if (config.useSSL === false) {
     // S3 endpoint rules choose HTTPS even when the generic SDK tls option is false.
@@ -591,8 +635,23 @@ function createConfiguredS3Store(
       }
     }, context);
   };
+  const validateBucket = () => {
+    // Keep the MinIO client's bucket contract. SDK ARN support must not select a new authority.
+    if (
+      bucket.length < 3 ||
+      bucket.length > 63 ||
+      bucket.includes('..') ||
+      /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(bucket) ||
+      !/^[a-z0-9][a-z0-9.-]+[a-z0-9]$/.test(bucket)
+    ) {
+      throw Object.assign(new Error(`Invalid bucket name: ${bucket}`), {
+        name: 'InvalidBucketNameError',
+      });
+    }
+  };
   return {
     async openRead(key, options) {
+      validateBucket();
       const signal = operationSignal(options?.signal);
       const response = await send(
         () =>
@@ -605,6 +664,7 @@ function createConfiguredS3Store(
       return response.Body;
     },
     async *list(prefix, options) {
+      validateBucket();
       const signal = operationSignal(options?.signal);
       let token: string | undefined;
       do {
@@ -614,6 +674,7 @@ function createConfiguredS3Store(
               new ListObjectsV2Command({
                 Bucket: bucket,
                 Prefix: prefix,
+                EncodingType: 'url',
                 ContinuationToken: token,
                 MaxKeys: options?.pageSize ?? 300,
               }),
@@ -623,7 +684,14 @@ function createConfiguredS3Store(
         );
         for (const object of page.Contents ?? []) {
           throwIfS3RequestAborted(signal);
-          if (object.Key) yield { key: object.Key, size: object.Size ?? 0 };
+          if (object.Key) {
+            // MinIO URL-encodes spaces as '+'. Decode keys once, never continuation tokens.
+            const key =
+              page.EncodingType === 'url'
+                ? decodeURIComponent(object.Key.replace(/\+/g, ' '))
+                : object.Key;
+            yield { key, size: object.Size ?? 0 };
+          }
         }
         if (!page.IsTruncated) return;
         if (!page.NextContinuationToken || page.NextContinuationToken === token)

@@ -83,3 +83,35 @@ KFP_MINIO_ENDPOINT=http://127.0.0.1:19000 \
 Direct invocation skips real-service suites whose endpoint variable is absent.
 Only use disposable services: the tests create and delete buckets and install a
 public-read policy on each test bucket.
+
+## Compatibility checks against MinIO JS
+
+The migration preserves the old client's endpoint authority and generic S3 bucket
+semantics. AWS endpoint URL overrides from environment variables or shared profiles,
+ambient FIPS/dual-stack settings, and ARN bucket addressing must not introduce a
+new destination. Existing AWS endpoint routing remains covered separately from
+custom endpoints.
+
+The focused compatibility suites cover:
+
+| Behavior | Coverage |
+| --- | --- |
+| Endpoint authority | Environment/profile overrides, ambient endpoint flags, invalid/ARN buckets |
+| Region/signing | Initial and discovered regions, custom names, refreshable/session credentials, anonymous reads |
+| Retry/cancellation | Exact request budgets, cached regions, concurrent correction, stream errors, aborts |
+| Listing keys | URL encoding, whitespace-only names, spaces/plus/percent/Unicode, opaque pagination tokens |
+| Consumers | Artifact previews, compressed objects, directory summaries/archives, archived logs, native GCS |
+
+Listing keys are URL-decoded exactly once only when the response declares URL
+encoding; continuation tokens remain opaque. This retains whitespace-only object
+keys that an unencoded XML response can otherwise normalize away.
+
+Two intentional differences remain: expiring credential providers refresh within
+an artifact request, and directory summaries read at most 51 entries to distinguish
+an exact count from `50+` (short pages can require another request). Region
+correction is included in retry accounting; `maxAttempts: 1` requires a known
+correct region if the server rejects the initial signing region.
+
+The runner accepts `KFP_STORAGE_TEST_TMPDIR` to select a disposable fixture volume;
+it does not change either service's storage safeguards. Cloud protocol fixtures
+remain mocked; passing them is not live cloud-provider certification.

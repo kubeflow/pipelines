@@ -10,7 +10,7 @@ if [[ ! -x "$MINIO_BINARY" ]]; then
 fi
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 server_dir="$script_dir/../server"
-test_dir="$(mktemp -d)"
+test_dir="$(mktemp -d "${KFP_STORAGE_TEST_TMPDIR:-${TMPDIR:-/tmp}}/kfp-artifact-store.XXXXXX")"
 seaweed_container=""
 minio_pid=""
 cleanup() {
