@@ -253,6 +253,17 @@ across all severities. Findings without a published fix remain in the report. Mi
 scanner errors, incomplete dependency coverage and unrecognized reports block
 publication. A scanner-reported fix requiring a newer Python still blocks; kfpr
 does not silently waive an advisory or change supported Python versions.
+Ubuntu Pro-only fixes are labeled separately from standard Ubuntu fixes: those
+findings remain visible residuals requiring support-channel review, and do not
+claim an available fix in the image's standard package channel.
+
+Backend qualification also renders the single-user and multi-user
+platform-agnostic manifests at the exact release commit and scans their
+third-party images, including the configured Argo executor, on Linux AMD64.
+These findings use the same fixable-vulnerability policy as first-party images.
+Missing third-party coverage blocks qualification; older receipts must be
+regenerated. Scheduled image-comparison reports cannot substitute for this
+candidate-bound evidence.
 
 For explicitly accepted findings, select `--security-exceptions /path/to/exceptions.json`.
 The [exception file](SECURITY_POLICY.md) identifies each exact artifact, advisory,

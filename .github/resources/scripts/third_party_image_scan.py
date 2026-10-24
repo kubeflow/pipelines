@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Collect branch-pinned third-party inventories and scan immutable images."""
 
 import argparse
@@ -22,9 +21,9 @@ import os
 import subprocess
 from pathlib import Path
 
+from kfpr.third_party import extract_images
 from osv_manifest_images import (
     create_image_map,
-    extract_images,
     is_first_party,
     render_overlay,
 )

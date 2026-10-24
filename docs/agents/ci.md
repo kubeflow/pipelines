@@ -257,3 +257,35 @@ The frontend qualification reliability reporter supports `--collect --repository
 - API cache scenarios use Ginkgo priority to start their long-running work before ordinary parallel specs. Cache-enabled standalone/Kubernetes-native jobs and multi-user shard B prepare offline fixture images with the original released SDK/Python matrix: kfp 2.13.0 on Python 3.12 and kfp 2.14.2 on Python 3.11. SDK wheels are prepared once per job (2.13.0 is built from its published sdist) then installed with --no-deps into preloaded bases without network access. Only fixture installer prefixes and images change; component source, arguments, outputs and PVC configuration remain intact. These cache fixtures do not consume checked-out SDK sources. Other API fixtures retain normal SDK installation. Include wheel and image preparation in wall-time comparisons; required migration labels and cache assertions remain unchanged.
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
+## Third-party image security evidence
+
+`third-party-image-scanning.yml` is called by the master OSV workflow and the
+release-2.18 branch scan workflow. It resolves both branch heads, renders the
+single-user and multi-user platform-agnostic overlays, and scans each distinct
+third-party image once on Linux AMD64. The seven published master KFP images
+continue to upload to their existing GitHub code-scanning categories; third-party
+images upload no SARIF.
+
+Each run retains rendered inventories, source commits, immutable Docker image
+IDs and registry digests, complete OSV JSON, and scanner diagnostics for seven days (the repository artifact-retention cap).
+The aggregate job fails on missing lanes, extraction errors, or inconsistent
+reports. A successful evidence job means scanning completed, not that images
+have no vulnerabilities or are authorized for release.
+
+The image-level summary compares release pins with different pins already used
+on master in the same image repository. It lists advisories removed and added,
+using advisory aliases to avoid counting renamed advisories as fixes. These are
+scanned candidates, not compatibility-approved upgrades. Other findings remain
+upstream/applicability work; a package fixed version alone is not evidence that a
+replacement image exists. The JSON report retains all packages and findings.
+
+Backend release qualification additionally scans third-party images rendered from
+the exact candidate commit. Their raw findings enter the existing zero-fixable
+policy; approved exceptions remain exact to image ID, package, installed version
+and advisory, require a justification and expiry, and are rechecked at
+publication. Missing, stale or inconsistent third-party evidence blocks release.
+SDK-only qualification does not require backend images. Scheduled comparison
+reports are supplemental and cannot authorize publication.
+Retire old third-party GitHub configurations only after the replacement workflow
+is merged and complete branch coverage has been verified; archive the old
+analyses before deletion. Keep first-party and source configurations intact.

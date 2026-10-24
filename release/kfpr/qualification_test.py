@@ -36,6 +36,9 @@ class QualificationTest(unittest.TestCase):
         )
 
     def setUp(self):
+        third_party = patch.object(q, '_require_third_party')
+        self.third_party_check = third_party.start()
+        self.addCleanup(third_party.stop)
         self.ci = SimpleNamespace(qualify_ci=Mock(), verify_run=Mock())
         client = patch.dict(
             sys.modules, {'kfpr.ci_qualification_client': self.ci}
@@ -46,7 +49,10 @@ class QualificationTest(unittest.TestCase):
             q,
             'release_coverage',
             create=True,
-            return_value=({('kfp-api-server', 'linux/amd64')}, {'3.9', '3.11'}),
+            return_value=(
+                {('kfp-api-server', 'linux/amd64')},
+                {'3.9', '3.11'},
+            ),
         )
         self.coverage_patcher = patcher
         patcher.start()
@@ -345,9 +351,8 @@ class QualificationTest(unittest.TestCase):
         (root / 'frontend').mkdir()
         (root / 'frontend/.nvmrc').write_text('v24.1.0\n')
         (root / 'Dockerfile').write_text('FROM scratch\n')
-        (
-            root / '.github/workflows/image-builds-release.yml'
-        ).write_text("""jobs:
+        (root / '.github/workflows/image-builds-release.yml').write_text(
+            """jobs:
   build-images-for-release:
     strategy:
       matrix:
@@ -360,7 +365,8 @@ class QualificationTest(unittest.TestCase):
         exclude:
           - image: {name: kfp-writer}
             arch: {arch_name: arm64}
-""")
+"""
+        )
 
     def test_new_approved_commit_is_available_without_moving_caller_checkout(
         self,
@@ -536,7 +542,7 @@ class QualificationTest(unittest.TestCase):
                 Path(context.state.answers['qualification_path']).read_text()
             )
             self.assertEqual(report['security_ci'], {'id': 123})
-            self.assertEqual(report['schema'], 2)
+            self.assertEqual(report['schema'], 3)
 
     def test_publication_rechecks_ci_run(self):
         with (
@@ -589,6 +595,85 @@ class QualificationTest(unittest.TestCase):
             run.assert_not_called()
             self.ci.qualify_ci.assert_not_called()
             self.assertEqual(list(Path(tmp).iterdir()), [])
+
+
+class ThirdPartyPublicationTest(unittest.TestCase):
+    def setUp(self):
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.directory = Path(temporary.name)
+        manifest = self.directory / 'third-party.json'
+        manifest.write_text('{"schema": 1}')
+        self.scan = {
+            'name': 'third-party-abc',
+            'target': 'sha256:' + 'c' * 64,
+            'findings': [],
+            'raw_report': 'third-party/scans/abc/scan.json',
+        }
+        self.verified = {
+            'images': [
+                {'image': 'example/tool:1', 'image_id': self.scan['target']}
+            ],
+            'scans': [self.scan],
+            'inventory': {'first_party_names': ['api']},
+        }
+        self.identity = {
+            'source_sha': SHA,
+            'workflow_sha': 'b' * 40,
+            'version': '2.17.3',
+            'request_id': 'c' * 32,
+            'run_id': '123',
+            'run_attempt': 1,
+        }
+        self.report = {
+            'images': [{'name': 'api'}],
+            'security': {'scans': [self.scan]},
+            'security_ci': self.identity,
+            'third_party': {
+                **self.verified,
+                'evidence_directory': str(self.directory),
+                'manifest_sha256': hashlib.sha256(
+                    manifest.read_bytes()
+                ).hexdigest(),
+            },
+        }
+        patcher = patch('kfpr.third_party.verify', return_value=self.verified)
+        self.verify = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_publication_rechecks_raw_evidence_and_run_provenance(self):
+        q._require_third_party(self.report, True, SHA)
+        self.verify.assert_called_once_with(
+            self.directory, {'schema': 1, **self.identity}
+        )
+        (self.directory / 'third-party.json').write_text('{}')
+        with self.assertRaisesRegex(ValueError, 'checksum'):
+            q._require_third_party(self.report, True, SHA)
+
+    def test_missing_coverage_changed_subject_or_old_source_blocks(self):
+        import copy
+
+        for mutation in ('missing', 'subject', 'source', 'coverage'):
+            report = copy.deepcopy(self.report)
+            if mutation == 'missing':
+                report.pop('third_party')
+            elif mutation == 'subject':
+                report['security']['scans'][0]['target'] = 'sha256:' + 'd' * 64
+            elif mutation == 'source':
+                report['security_ci']['source_sha'] = 'e' * 40
+            else:
+                report['security']['scans'] = []
+            with (
+                self.subTest(mutation=mutation),
+                self.assertRaises(ValueError),
+            ):
+                q._require_third_party(report, True, SHA)
+
+    def test_sdk_only_does_not_require_third_party_scans(self):
+        q._require_third_party({'security': {'scans': []}}, False, SHA)
+        self.verify.assert_not_called()
+        with self.assertRaisesRegex(ValueError, 'Unexpected'):
+            q._require_third_party(self.report, False, SHA)
 
 
 if __name__ == '__main__':

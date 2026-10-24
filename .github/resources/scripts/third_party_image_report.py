@@ -209,7 +209,12 @@ def aggregate(document, evidence):
             'packages': [
                 dict(
                     zip(
-                        ('target', 'ecosystem', 'package', 'installed_version'),
+                        (
+                            'target',
+                            'ecosystem',
+                            'package',
+                            'installed_version',
+                        ),
                         package,
                     )
                 )
@@ -223,6 +228,9 @@ def aggregate(document, evidence):
             {canonical[f['id']] for f in scan['findings']}
         )
         scan['raw_finding_count'] = len(scan['findings'])
+        scan['support_channel_review_count'] = sum(
+            bool(f.get('support_channel_evidence')) for f in scan['findings']
+        )
         scan['unique_advisory_count'] = len(scan['advisories'])
         scan['package_fix_count'] = len(
             {
@@ -283,6 +291,11 @@ def markdown(summary):
         if 'candidate_comparison' in row:
             candidate = row['candidate_comparison']
             action = f'Review `{candidate["image"]}`: {len(candidate["resolved"])} advisories absent, {len(candidate["added"])} added; compatibility unverified'
+        if row['support_channel_review_count']:
+            action += (
+                f'; {row["support_channel_review_count"]} findings need support-channel review'
+                ' (Ubuntu Pro evidence is not a standard-channel fix)'
+            )
         values = [
             row['image'],
             ', '.join(row['branches']),
