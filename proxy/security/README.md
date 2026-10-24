@@ -54,7 +54,7 @@ Registration uses curl for both metadata requests and endpoint-config download,
 so wget is unnecessary. The runtime explicitly keeps Python and the installed
 requests environment. Pip and Debian's venv-creation/seed-wheel packages are
 removed after installation; no package metadata is deleted to hide findings.
-The Cloud SDK and its bundled interpreter are retained. Image builds rerun
-registration, real endpoint discovery, upstream agent tests, and binary smoke
-checks after cleanup, plus tests of this review tool. Test sources and this tool
+The Cloud SDK and its bundled interpreter are retained. Image builds run upstream agent tests in the builder stage, then rerun
+registration, real endpoint discovery, binary smoke checks, and tests of this
+review tool after runtime cleanup. Test sources and this tool
 are not retained in the final runtime filesystem.
