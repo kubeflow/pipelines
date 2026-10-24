@@ -37,6 +37,13 @@ _SDK_SCOPES = {
 }
 _BACKEND_SCOPES = {'backend', 'runtime', 'frontend', 'manifests'}
 _SHARED_SCOPES = {'api', 'pipeline-spec', 'kfp-pipeline-spec'}
+_SCOPE_ALIASES = {
+    'deployment': 'manifests',
+    'cache': 'backend/cache',
+    'metadata': 'backend/metadata',
+    'swf': 'backend/scheduled-workflow',
+    'viewer': 'frontend/viewer',
+}
 _GROUPS = (
     'Breaking changes',
     'Security fixes',
@@ -53,6 +60,19 @@ class Commit:
 
     sha: str
     message: str
+
+
+def _normalize_scope(scope: str) -> str:
+    groups = []
+    for group in scope.split(','):
+        parts = []
+        for part in group.split('/'):
+            token = part.strip().lower()
+            if token:
+                parts.extend(_SCOPE_ALIASES.get(token, token).split('/'))
+        if parts:
+            groups.append('/'.join(dict.fromkeys(parts)))
+    return ', '.join(groups)
 
 
 def _applies_to_product(scope: str, product: str) -> bool:
@@ -114,7 +134,7 @@ def render_notes(
         match = _SUBJECT.match(subject)
         if not match:
             continue
-        scope = match.group('scope') or ''
+        scope = _normalize_scope(match.group('scope') or '')
         if not _applies_to_product(scope, product):
             continue
         commit_type = match.group('type').lower()

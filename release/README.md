@@ -506,6 +506,29 @@ regenerations use the saved baseline.
 Compare the notes with the final release contents before approving publication.
 Clearing a checkpoint does not delete previews.
 
+New previews begin with an editorial scaffold for highlights, required actions,
+compatibility, and known issues. Replace its TODO comments with reviewed prose,
+or remove sections that do not apply. Describe breaking changes as before →
+after → required action; record deprecation replacements and planned removal
+versions when known. Compatibility notes must distinguish tested combinations
+from supported-by-policy combinations and unevaluated configurations. Do not
+infer compatibility or claim there are no known issues from an empty change list.
+
+Validate any local Markdown preview without publishing or changing files:
+
+```bash
+kfpr validate-notes /tmp/kfp-release-state-notes/3.2.1.md
+```
+
+Validation also runs when previewing or regenerating notes. It warns about
+unfinished editorial prompts, empty editorial sections, duplicate bullet entries,
+and breaking/deprecation entries without explanatory guidance or migration links.
+These checks are heuristics, not a substitute for review. Editorial warnings are
+advisory and return success; unreadable input fails. Existing empty-note, stale
+range, qualification, and merge-conflict gates still block publication. Resolve
+warnings and review the actual file before accepting the publication prompt.
+Removing or completing the scaffold is preserved by preview regeneration.
+
 Use the preview to explain what users need to know, in this order where relevant:
 
 1. **Highlights:** the most important changes and their user impact.

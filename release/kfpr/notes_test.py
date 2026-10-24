@@ -230,6 +230,71 @@ class TestRenderNotes(unittest.TestCase):
                         ),
                     )
 
+    def test_documented_component_aliases_route_only_to_backend(self):
+        aliases = {
+            'deployment': 'manifests',
+            'cache': 'backend/cache',
+            'metadata': 'backend/metadata',
+            'swf': 'backend/scheduled-workflow',
+            'viewer': 'frontend/viewer',
+        }
+        for scope, canonical in aliases.items():
+            for spelling in (scope, scope.upper()):
+                with self.subTest(scope=spelling):
+                    commits = [
+                        Commit(
+                            'abc123456', f'fix({spelling}): correct behavior'
+                        )
+                    ]
+                    self.assertEqual(render_notes(commits, 'sdk'), '')
+                    for product in ('backend', 'all'):
+                        self.assertIn(
+                            f'**{canonical}**: correct behavior',
+                            render_notes(commits, product),
+                        )
+
+    def test_aliases_preserve_cross_product_and_shared_scope_routing(self):
+        for scope, canonical in (
+            ('sdk/client, deployment', 'sdk/client, manifests'),
+            ('sdk/cache', 'sdk/backend/cache'),
+            ('viewer/api', 'frontend/viewer/api'),
+        ):
+            with self.subTest(scope=scope):
+                commits = [
+                    Commit('abc123456', f'fix({scope}): repair behavior')
+                ]
+                for product in ('sdk', 'backend', 'all'):
+                    self.assertIn(
+                        f'**{canonical}**: repair behavior',
+                        render_notes(commits, product),
+                    )
+
+    def test_existing_canonical_scope_paths_do_not_duplicate_components(self):
+        for scope in ('backend/cache', 'backend/metadata', 'frontend/viewer'):
+            with self.subTest(scope=scope):
+                commits = [
+                    Commit('abc123456', f'fix({scope}): repair behavior')
+                ]
+                self.assertIn(f'**{scope}**:', render_notes(commits, 'backend'))
+                self.assertEqual(render_notes(commits, 'sdk'), '')
+
+    def test_alias_matching_does_not_classify_unknown_substrings(self):
+        for scope in (
+            'cacheutils',
+            'metadata-writer',
+            'swf-extra',
+            'viewer-ui',
+            'not-deployment',
+        ):
+            with self.subTest(scope=scope):
+                commits = [
+                    Commit('abc123456', f'fix({scope}): repair behavior')
+                ]
+                for product in ('sdk', 'backend'):
+                    self.assertIn(
+                        f'**{scope}**:', render_notes(commits, product)
+                    )
+
     def test_scope_matching_is_not_substring_matching(self):
         commits = [Commit('abc123456', 'fix(not-sdk): correct behavior')]
         self.assertIn('correct behavior', render_notes(commits, 'backend'))

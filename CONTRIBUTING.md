@@ -274,8 +274,11 @@ Scopes identify affected components. SDK scopes include `sdk`, `sdk/client`,
 (`api`, `pipeline-spec`, `kfp-pipeline-spec`) appear in both streams. For a change
 that affects multiple components, use comma-separated scopes (for example,
 `fix(sdk,backend): preserve optional input values`) or describe each impact in
-the curated notes. Unscoped or entirely unrecognized scopes apply to both release
-streams. Release tooling fixes with user impact remain `fix(release)`; do not hide them as housekeeping.
+the curated notes. Aliases are normalized for display and routing: `deployment` becomes `manifests`,
+`cache` and `metadata` become `backend/cache` and `backend/metadata`, `swf` becomes
+`backend/scheduled-workflow`, and `viewer` becomes `frontend/viewer`. These scopes
+appear in backend notes, not SDK-only notes. Unscoped or entirely unrecognized
+scopes apply to both release streams. Release tooling fixes with user impact remain `fix(release)`; do not hide them as housekeeping.
 
 Keep detailed SDK migration instructions under `Current Version (in development)`
 in [sdk/RELEASE.md](sdk/RELEASE.md). Release preparation preserves that handwritten

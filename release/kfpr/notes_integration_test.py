@@ -13,6 +13,7 @@ from typer.testing import CliRunner
 
 from kfpr import core, steps
 from kfpr.cli import app
+from kfpr.editorial import editorial_scaffold
 
 
 class ReleaseNotesIntegrationTest(unittest.TestCase):
@@ -205,7 +206,10 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             json.loads(sidecar.read_text())['generated_notes'], original
         )
         path.write_text(
-            '## Highlights\n\nHandwritten upgrade advice.\n\n' + original
+            original.replace(
+                editorial_scaffold(),
+                '## Highlights\n\nHandwritten upgrade advice.\n\n',
+            )
         )
         self.context.release_target = 'HEAD'
         with contextlib.chdir(self.root):
@@ -229,6 +233,7 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         self.assertIn('preview regenerated', result.output)
         self.assertIn('Handwritten upgrade advice.', path.read_text())
         self.assertIn('unrelated future fix', path.read_text())
+        self.assertNotIn('<!-- TODO:', path.read_text())
         self.assertEqual(
             json.loads(sidecar.read_text())['target_sha'],
             self.git('rev-parse', 'HEAD'),
@@ -241,6 +246,38 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         self.assertEqual(
             path.read_text().count('Handwritten upgrade advice.'), 1
         )
+
+    def test_preview_scaffold_is_shared_and_editorial_warnings_are_advisory(
+        self,
+    ):
+        for product, render in (
+            ('sdk', steps._sdk_release_body),
+            ('backend', steps._backend_release_body),
+        ):
+            selected = steps._notes_range(self.context, product)
+            body = render(self.context, selected)
+            self.assertTrue(body.startswith(editorial_scaffold()))
+            self.assertLess(
+                body.index('## Action required'),
+                body.index("## What's Changed"),
+            )
+        selected = steps._notes_range(self.context, 'backend')
+        self.context.runner.dry_run = False
+        with (
+            contextlib.redirect_stdout(io.StringIO()) as output,
+            mock.patch.object(steps, 'confirm') as confirm,
+        ):
+            path = steps._release_notes_preview(
+                self.context,
+                '2.1.1',
+                lambda: (
+                    editorial_scaffold() + '## Features\n\n* Added retries\n'
+                ),
+                selected,
+            )
+        confirm.assert_called_once()
+        self.assertIn('Release notes warning:', output.getvalue())
+        self.assertTrue(path.exists())
 
     def test_unresolved_conflicts_block_publication_before_review(self):
         selected = steps._notes_range(self.context, 'backend')

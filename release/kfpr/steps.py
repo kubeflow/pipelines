@@ -34,6 +34,7 @@ from .core import (
     watch_latest_workflow_run,
     watch_pr_ci,
 )
+from .editorial import editorial_scaffold, validate_notes
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
 from .previews import has_conflicts, regenerate_preview
@@ -1300,7 +1301,14 @@ def regenerate_release_notes(context: ReleaseContext, product: str) -> bool:
     path = _release_preview_path(context, tag)
     clean = regenerate_preview(path, selected, render(context, selected))
     print(f'Release notes preview: {path}')
+    if clean:
+        _print_notes_warnings(path.read_text())
     return clean
+
+
+def _print_notes_warnings(notes: str) -> None:
+    for warning in validate_notes(notes):
+        print(f'Release notes warning: {warning}')
 
 
 def _release_notes_preview(
@@ -1342,13 +1350,17 @@ def _release_notes_preview(
             + '\n'
         )
     print(f'Release notes preview: {path}')
-    print(path.read_text())
-    if has_conflicts(path.read_text()):
+    reviewed_text = path.read_text()
+    print(reviewed_text)
+    _print_notes_warnings(reviewed_text)
+    if has_conflicts(reviewed_text):
         raise ValueError(
             f'Resolve merge conflict markers in {path} before publishing.'
         )
     if not context.runner.dry_run:
         confirm(f'Review and edit {path}, then publish these release notes?')
+        if path.read_text() != reviewed_text:
+            _print_notes_warnings(path.read_text())
     if has_conflicts(path.read_text()):
         raise ValueError(
             f'Resolve merge conflict markers in {path} before publishing.'
@@ -1421,7 +1433,12 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
     changes = _generate_sdk_release_notes(context.root, selected)
     if changes:
         notes += f"\n## What's Changed\n\n{changes}\n"
-    return notes + f'\n**Full changelog:** {selected.compare_url}\n'
+    return (
+        editorial_scaffold()
+        + '## Installation\n\n'
+        + notes
+        + f'\n**Full changelog:** {selected.compare_url}\n'
+    )
 
 
 def step_create_sdk_release(context: ReleaseContext) -> None:
@@ -1749,7 +1766,7 @@ Linux AMD64 and ARM64 are supported starting with KFP 3.0. Standard manifests us
 the container runtime selects the matching architecture. Pipeline component images must support
 the architecture of their execution nodes. See the [supported-platforms policy](https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md).
 """
-    return notes
+    return editorial_scaffold() + notes
 
 
 def step_create_backend_release(context: ReleaseContext) -> None:

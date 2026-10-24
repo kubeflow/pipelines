@@ -21,6 +21,7 @@ from .core import (
     validate_state,
     watch_latest_workflow_run,
 )
+from .editorial import validate_notes
 from .steps import (
     STEP_HANDLERS,
     Step,
@@ -367,6 +368,27 @@ def promote_latest(
     from .promotion import dispatch
 
     dispatch(version, dry_run=dry_run)
+
+
+@app.command(
+    'validate-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
+)
+def validate_notes_command(
+    path: Path = typer.Argument(..., help='Markdown release notes to review.'),
+) -> None:
+    """Report advisory editorial warnings without changing release notes."""
+    try:
+        notes = path.read_text(encoding='utf-8')
+    except (OSError, UnicodeError) as error:
+        raise typer.BadParameter(
+            f'Cannot read release notes: {error}', param_hint='PATH'
+        ) from error
+    warnings = validate_notes(notes)
+    if warnings:
+        for warning in warnings:
+            typer.echo(f'Warning: {warning}')
+    else:
+        typer.echo('No editorial warnings found.')
 
 
 @app.command(
