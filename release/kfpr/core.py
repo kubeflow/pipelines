@@ -5,7 +5,6 @@ import datetime
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import time
@@ -279,6 +278,8 @@ class ReleaseContext:
     include_sdk: bool
     skip_local_review: bool = False
     previous_release: str = ''
+    previous_sdk_release: str = ''
+    release_target: str = ''
 
 
 def image_workflow_command(
@@ -416,7 +417,6 @@ def _release_git_mounts(root: Path) -> list[str]:
 def release_version_bump_command(
     root: Path,
     release_branch: str,
-    previous_release: str,
     image_tag: str | None = None,
 ) -> list[str]:
     """Build command that runs release version updates in the release
@@ -426,7 +426,6 @@ def release_version_bump_command(
     script = f"""
 set -e
 REPO_ROOT={repo_path}
-PREVIOUS_RELEASE={shlex.quote(previous_release)}
 TAG_NAME="$(cat "$REPO_ROOT/VERSION")"
 if [ -z "$TAG_NAME" ]; then
   echo "ERROR: $REPO_ROOT/VERSION is empty" >&2
@@ -461,7 +460,6 @@ go_path=$(go env GOPATH)
 echo "$PATH" | grep "${{go_path}}/bin" >/dev/null || (echo "\\$GOPATH/bin: ${{go_path}}/bin should be in PATH" && exit 1)
 echo "All tools installed"
 cd "$REPO_ROOT"
-git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
 if compgen -G "$REPO_ROOT/backend/api/v1beta1/*.proto" >/dev/null; then
   API_VERSION=v1beta1 "$REPO_ROOT/backend/api/hack/generator.sh"
@@ -1067,6 +1065,7 @@ def collect_context(
     )
     if (
         getattr(args, 'require_previous_release', True)
+        and answers.get('include_backend', True)
         and 'previous_release' not in answers
     ):
         answers['previous_release'] = prompt_required('Previous release tag')
@@ -1082,4 +1081,6 @@ def collect_context(
         include_sdk=bool(answers['include_sdk']),
         skip_local_review=bool(answers.get('skip_local_review', False)),
         previous_release=str(answers.get('previous_release', '')),
+        previous_sdk_release=str(answers.get('previous_sdk_release', '')),
+        release_target=str(answers.get('release_target', '')),
     )

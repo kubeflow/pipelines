@@ -38,7 +38,6 @@ RUN mkdir -p $NVM_DIR && \
     nvm use default
 ENV NODE_PATH=$NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
-ENV GIT_CLIFF_VERSION=2.10.0
 
 # Build the manifest-pinned yq with the image's patched Go compiler. Downloaded
 # upstream binaries retain the compiler and dependencies used at release time.
@@ -63,14 +62,3 @@ RUN npm install --global "npm@${NPM_VERSION}" && \
     npm config set cache /tmp/.npm --global && \
     npm cache clean --force && \
     rm -rf /tmp/.npm /root/.npm
-
-RUN set -eu; \
-    case "${TARGETARCH}" in \
-        amd64) git_cliff_arch=x86_64 ;; \
-        arm64) git_cliff_arch=aarch64 ;; \
-        *) echo "Unsupported TARGETARCH: ${TARGETARCH}. Use amd64 or arm64." >&2; exit 1 ;; \
-    esac; \
-    curl -fL -o /tmp/git-cliff.tar.gz -H "Accept: application/octet-stream" \
-        "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-${git_cliff_arch}-unknown-linux-gnu.tar.gz"; \
-    tar -xzf /tmp/git-cliff.tar.gz --strip-components=1 -C /usr/local/bin git-cliff-${GIT_CLIFF_VERSION}/git-cliff; \
-    rm /tmp/git-cliff.tar.gz

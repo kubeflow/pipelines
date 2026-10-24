@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 import subprocess
 import sys
 import unittest
@@ -11,6 +12,123 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 from kfpr import core, steps
+from kfpr.notes import Commit
+from kfpr.ranges import ReleaseRange
+
+SELECTED_RANGE = ReleaseRange(
+    'previous', 'release-candidate', 'a' * 40, 'b' * 40
+)
+
+
+class SdkReleaseNotesTest(unittest.TestCase):
+    def test_preserves_custom_heading_only_warning(self):
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            warning = '## Upgrade the backend before installing this SDK'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + warning
+                + '\n\n# 3.1.0\n\nPrevious notes.\n'
+            )
+            steps._update_sdk_release_notes(
+                path, '3.2.0', '## Features\n\n* New SDK feature'
+            )
+            self.assertIn(warning, path.read_text().split('\n# 3.2.0\n')[1])
+
+    def test_template_only_notes_use_generated_content(self):
+        template = (
+            '## Features\n\n## Breaking changes\n\n'
+            '## Deprecations\n\n## Bug fixes and other changes'
+        )
+        generated = '## Features\n\n* New SDK feature'
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + template
+                + '\n\n# 3.1.0\n\nPrevious notes.\n'
+            )
+
+            steps._update_sdk_release_notes(path, '3.2.0', generated)
+
+            text = path.read_text()
+            development, released = text.split('\n# 3.2.0\n', 1)
+            self.assertIn(template, development)
+            self.assertIn(generated, released)
+            self.assertNotIn('## Generated changes', released)
+            self.assertNotIn('## Deprecations', released)
+
+    def test_preserves_handwritten_notes_alongside_generated_changes(self):
+        handwritten = (
+            '## Breaking changes\n\n'
+            'Upgrade the backend before installing this SDK.\n\n'
+            '### Migration\n\n'
+            '1. Export existing configuration.\n'
+            '2. Follow the [upgrade guide](https://example.com/upgrade).'
+        )
+        historical = '\n# 3.1.0\n\n## Features\n\nPrevious release notes.\n'
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + handwritten
+                + '\n'
+                + historical
+            )
+
+            steps._update_sdk_release_notes(
+                path, '3.2.0', '## Bug fixes and other changes\n\n* Fix retries'
+            )
+
+            text = path.read_text()
+            development, released = text.split('\n# 3.2.0\n', 1)
+            self.assertNotIn('Upgrade the backend', development)
+            self.assertIn(handwritten, released)
+            self.assertIn(
+                '## Generated changes\n\n'
+                '### Bug fixes and other changes\n\n* Fix retries',
+                released,
+            )
+            self.assertTrue(text.endswith(historical))
+            self.assertEqual(text.count(handwritten), 1)
+
+    def test_repeating_release_update_is_idempotent(self):
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                'Handwritten migration guidance.\n\n'
+                '# 3.1.0\n\nPrevious release notes.\n'
+            )
+            generated = '## Features\n\n* New SDK feature'
+
+            steps._update_sdk_release_notes(path, '3.2.0', generated)
+            first_update = path.read_text()
+            steps._update_sdk_release_notes(path, '3.2.0', generated)
+
+            self.assertEqual(path.read_text(), first_update)
+            self.assertEqual(first_update.count('# 3.2.0\n'), 1)
+            self.assertEqual(first_update.count('* New SDK feature'), 1)
+
+    def test_empty_generated_notes_preserve_handwritten_notes(self):
+        handwritten = '## Breaking changes\n\nKeep this migration guidance.'
+        historical = '\n# 3.1.0\n\nPrevious release notes.\n'
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + handwritten
+                + '\n'
+                + historical
+            )
+
+            steps._update_sdk_release_notes(path, '3.2.0', '')
+
+            text = path.read_text()
+            released = text.split('\n# 3.2.0\n', 1)[1]
+            self.assertIn(handwritten, released)
+            self.assertNotIn('## Generated changes', released)
+            self.assertTrue(text.endswith(historical))
 
 
 class QualifiedPublicationTest(unittest.TestCase):
@@ -120,6 +238,17 @@ class ReleaseLayoutTest(QualifiedPublicationTest):
     def setUp(self) -> None:
         super().setUp()
         """Mock external operations without changing the current checkout."""
+        for name, value in (
+            ('_notes_range', SELECTED_RANGE),
+            ('read_commits', []),
+            ('_remote_release_sha', 'b' * 40),
+        ):
+            patcher = mock.patch.object(steps, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        approval = mock.patch('builtins.input', return_value='y')
+        approval.start()
+        self.addCleanup(approval.stop)
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
@@ -164,7 +293,10 @@ class ReleaseLayoutTest(QualifiedPublicationTest):
                     self.select_layout(consolidated)
                     steps.step_create_sdk_release(self.context)
                     command = self.runner.run.call_args.args[0]
-                    notes = command[command.index('--notes') + 1]
+                    notes = Path(
+                        command[command.index('--notes-file') + 1]
+                    ).read_text()
+                    Path(command[command.index('--notes-file') + 1]).unlink()
                     self.assertIn(f'pip install kfp=={version}', notes)
                     if consolidated:
                         self.assertIn('unified KFP SDK', notes)
@@ -447,7 +579,9 @@ class ReleaseLayoutTest(QualifiedPublicationTest):
                 self.assertEqual(
                     command[:4], ['gh', 'release', 'create', f'sdk-{version}']
                 )
-                notes = command[command.index('--notes') + 1]
+                notes = Path(
+                    command[command.index('--notes-file') + 1]
+                ).read_text()
                 self.assertEqual('pip uninstall' in notes, consolidated)
                 self.assertEqual(
                     any(
@@ -464,6 +598,9 @@ class ReleaseLayoutTest(QualifiedPublicationTest):
         self.runner.dry_run = True
         with (
             mock.patch.object(steps, 'watch_latest_workflow_run'),
+            mock.patch.object(
+                steps.subprocess, 'check_output', return_value='version.py\n'
+            ),
             mock.patch.object(steps.rtd, 'ReadTheDocsClient') as client,
             mock.patch.object(steps, '_wait_for_pypi_packages') as wait,
             contextlib.redirect_stdout(io.StringIO()) as output,
@@ -759,6 +896,23 @@ class CreateSdkReleaseStepTest(QualifiedPublicationTest):
 
 
 class CreateBackendReleaseStepTest(QualifiedPublicationTest):
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.object(
+            steps,
+            'resolve_range',
+            side_effect=lambda root, base, target: ReleaseRange(
+                base, target, 'a' * 40, 'b' * 40
+            ),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        patcher = mock.patch.object(
+            steps, '_remote_release_sha', return_value='b' * 40
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_architecture_checkpoint_and_communication_begin_with_backend_3(
         self,
     ):
@@ -828,7 +982,7 @@ class CreateBackendReleaseStepTest(QualifiedPublicationTest):
             )
             with (
                 mock.patch(
-                    'builtins.input', return_value='2.17.0'
+                    'builtins.input', side_effect=['2.17.0', 'y']
                 ) as input_mock,
                 mock.patch.object(
                     steps,
@@ -837,9 +991,16 @@ class CreateBackendReleaseStepTest(QualifiedPublicationTest):
                 ),
             ):
                 steps.step_create_backend_release(context)
-            input_mock.assert_called_once()
+            self.assertEqual(input_mock.call_count, 2)
+            self.assertFalse(
+                any(
+                    'architecture checks' in call.args[0]
+                    for call in input_mock.call_args_list
+                )
+            )
             command = runner.run.call_args.args[0]
-            self.assertNotIn('ARM64', command[command.index('--notes') + 1])
+            notes_path = Path(command[command.index('--notes-file') + 1])
+            self.assertNotIn('ARM64', notes_path.read_text())
 
     def test_create_backend_release_prompts_for_previous_tag_and_generates_notes(
         self,
@@ -868,7 +1029,7 @@ class CreateBackendReleaseStepTest(QualifiedPublicationTest):
 
             with (
                 mock.patch(
-                    'builtins.input', side_effect=['y', '3.1.0']
+                    'builtins.input', side_effect=['y', '3.1.0', 'y']
                 ) as input_mock,
                 mock.patch.object(
                     steps,
@@ -878,21 +1039,23 @@ class CreateBackendReleaseStepTest(QualifiedPublicationTest):
             ):
                 steps.step_create_backend_release(context)
 
-            self.assertEqual(input_mock.call_count, 2)
-            notes_mock.assert_called_once_with(
-                Path(tmpdir), '3.1.0', end_ref='HEAD'
-            )
+            self.assertEqual(input_mock.call_count, 3)
+            self.assertEqual(notes_mock.call_args.args[0], Path(tmpdir))
+            self.assertEqual(notes_mock.call_args.args[1].base_ref, '3.1.0')
             release_command = context.runner.commands[-1]
             self.assertEqual(
                 release_command[:4], ['gh', 'release', 'create', '3.2.0']
             )
-            release_notes = release_command[
-                release_command.index('--notes') + 1
-            ]
+            release_notes = Path(
+                release_command[release_command.index('--notes-file') + 1]
+            ).read_text()
             self.assertIn('## Features\n\n* add pipelines (#1)', release_notes)
             self.assertIn('Linux AMD64 and ARM64 are supported', release_notes)
             self.assertIn(
-                'https://github.com/kubeflow/pipelines/compare/3.1.0...3.2.0',
+                'https://github.com/kubeflow/pipelines/compare/'
+                + 'a' * 40
+                + '...'
+                + 'b' * 40,
                 release_notes,
             )
 
@@ -1693,6 +1856,16 @@ class StepPRCreationTest(unittest.TestCase):
 
 
 class StepSdkVersionFilesTest(unittest.TestCase):
+    def setUp(self):
+        for name, value in (
+            ('_preparation_range', SELECTED_RANGE),
+            ('_update_changelog', None),
+            ('read_commits', []),
+        ):
+            patcher = mock.patch.object(steps, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
     def test_backend_notes_include_release_fixes_but_not_version_bumps(self):
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -1704,96 +1877,45 @@ class StepSdkVersionFilesTest(unittest.TestCase):
                 'fix(release): prepare 2.17.3 security backports (#15026)\n'
                 'fix(sdk): SDK-only correction (#99999)\n'
             )
-            with mock.patch(
-                'subprocess.check_output', return_value=subjects
-            ) as log:
+            with mock.patch.object(
+                steps,
+                'read_commits',
+                return_value=[
+                    Commit('c' * 40, subject)
+                    for subject in subjects.splitlines()
+                ],
+            ):
                 notes = steps._generate_backend_release_notes(
-                    root, '2.17.2', end_ref='a' * 40
+                    root, SELECTED_RANGE
                 )
-            log.assert_called_once_with(
-                ['git', 'log', '2.17.2..' + 'a' * 40, '--pretty=%s'],
-                cwd=root,
-                text=True,
-            )
             for number in (15041, 15040, 15036, 15026):
-                self.assertIn(f'(#{number})', notes)
+                self.assertIn(f'/pull/{number}', notes)
             self.assertNotIn('15034', notes)
             self.assertNotIn('99999', notes)
 
-    def test_generate_sdk_release_notes_from_sdk_conventional_commits(self):
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-
-            def fake_check_output(command, cwd=None, text=True):
-                self.assertEqual(cwd, root)
-                if command[:3] == ['git', 'tag', '--list']:
-                    return 'sdk-1.2.3\nsdk-1.2.2\n'
-                if command[:2] == ['git', 'log']:
-                    self.assertEqual(command[2], 'sdk-1.2.3..HEAD')
-                    return (
-                        'feat(sdk): add local execution support (#123)\n'
-                        'fix(backend): ignore non-SDK change (#124)\n'
-                        'fix(backend/sdk): repair compiler output (#125)\n'
-                        'chore(CI/SDK): update sdk test image (#126)\n'
-                        'feat(frontend): ignore frontend change (#127)\n'
-                        'feat(sdk)!: remove old runtime (#128)\n'
-                    )
-                raise AssertionError(f'unexpected command: {command}')
-
-            with mock.patch(
-                'subprocess.check_output', side_effect=fake_check_output
-            ):
-                notes = steps._generate_sdk_release_notes(root)
-
-            self.assertEqual(
-                notes,
-                '## Features\n\n'
-                '* add local execution support (#123)\n\n'
-                '## Breaking changes\n\n'
-                '* remove old runtime (#128)\n\n'
-                '## Deprecations\n\n'
-                '## Bug fixes and other changes\n\n'
-                '* repair compiler output (#125)\n'
-                '* update sdk test image (#126)',
+    def test_sdk_and_backend_use_the_shared_classification(self):
+        commits = [
+            Commit('a' * 40, 'fix(backend/sdk): fix shared API (#1)'),
+            Commit('b' * 40, 'chore(sdk): update test tools (#2)'),
+            Commit('c' * 40, 'feat(frontend): show logs (#3)'),
+            Commit(
+                'd' * 40,
+                'chore(sdk): new interface\n\nBREAKING CHANGE: migrate now',
+            ),
+        ]
+        with mock.patch.object(steps, 'read_commits', return_value=commits):
+            sdk = steps._generate_sdk_release_notes(
+                Path('/repo'), SELECTED_RANGE
             )
-
-    def test_generate_backend_release_notes_from_non_sdk_conventional_commits(
-        self,
-    ):
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-
-            def fake_check_output(command, cwd=None, text=True):
-                self.assertEqual(cwd, root)
-                if command[:3] == ['git', 'tag', '--list']:
-                    return '1.2.3\n1.2.2\n'
-                if command[:2] == ['git', 'log']:
-                    self.assertEqual(command[2], '1.2.3..HEAD')
-                    return (
-                        'feat(backend): add recurring run support (#123)\n'
-                        'fix(api): repair run filter parsing (#124)\n'
-                        'fix(sdk): ignore SDK-only change (#125)\n'
-                        'chore(frontend): update table copy (#126)\n'
-                        'feat(backend)!: remove old endpoint (#127)\n'
-                    )
-                raise AssertionError(f'unexpected command: {command}')
-
-            with mock.patch(
-                'subprocess.check_output', side_effect=fake_check_output
-            ):
-                notes = steps._generate_backend_release_notes(root, '1.2.3')
-
-            self.assertEqual(
-                notes,
-                '## Features\n\n'
-                '* add recurring run support (#123)\n\n'
-                '## Breaking changes\n\n'
-                '* remove old endpoint (#127)\n\n'
-                '## Deprecations\n\n'
-                '## Bug fixes and other changes\n\n'
-                '* repair run filter parsing (#124)\n'
-                '* update table copy (#126)',
+            backend = steps._generate_backend_release_notes(
+                Path('/repo'), SELECTED_RANGE
             )
+        self.assertIn('Breaking changes', sdk)
+        self.assertNotIn('update test tools', sdk + backend)
+        self.assertIn('fix shared API', sdk)
+        self.assertIn('fix shared API', backend)
+        self.assertNotIn('show logs', sdk)
+        self.assertIn('show logs', backend)
 
     def test_update_sdk_version_files_replaces_version_without_trailing_garbage(
         self,
@@ -2345,6 +2467,12 @@ class DryRunOutputTest(unittest.TestCase):
         )
         layout.start()
         self.addCleanup(layout.stop)
+        for name in ('_preparation_range', '_update_changelog'):
+            patcher = mock.patch.object(
+                steps, name, return_value=SELECTED_RANGE
+            )
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def test_update_version_tags_cuts_update_branch_from_release_branch(self):
 
@@ -3155,28 +3283,177 @@ class DryRunOutputTest(unittest.TestCase):
             self.assertNotIn('Waiting for PR merge:', output)
 
 
-class EmptyChangelogTest(unittest.TestCase):
-    def test_filtered_release_commits_are_not_silently_omitted(self):
-        with TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            path = root / 'CHANGELOG.md'
-            path.write_text(
-                'Changelog\n\n## 2.17.3 (2026-10-21)\n\n\n## 2.17.2 (2026-09-04)\n\nOld notes.\n'
-            )
-            with mock.patch.object(
-                steps.subprocess,
-                'check_output',
-                return_value='chore(release): prepare security fixes (#15026)\n',
+class ReleaseNotesPreviewTest(QualifiedPublicationTest):
+    def setUp(self):
+        super().setUp()
+        layout = mock.patch.object(
+            steps, '_sdk_release_is_consolidated', return_value=True
+        )
+        layout.start()
+        self.addCleanup(layout.stop)
+        for name, value in (
+            ('_notes_range', SELECTED_RANGE),
+            ('read_commits', [Commit('c' * 40, 'fix(sdk): repair logs')]),
+            ('_remote_release_sha', 'b' * 40),
+        ):
+            patcher = mock.patch.object(steps, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def context(self, root, dry_run=False):
+        runner = mock.Mock(dry_run=dry_run)
+        runner.run.return_value = subprocess.CompletedProcess([], 1)
+        return core.ReleaseContext(
+            root=root,
+            state=core.ReleaseState(root / 'state.json'),
+            runner=runner,
+            metadata=core.ReleaseMetadata.from_version('patch', '2.17.3'),
+            fork_remote='origin',
+            include_backend=True,
+            include_sdk=True,
+            previous_release='2.17.2',
+        )
+
+    def test_dry_run_writes_backend_and_sdk_previews_without_publishing(self):
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            context = self.context(root, dry_run=True)
+            with (
+                mock.patch.object(
+                    steps.subprocess,
+                    'check_output',
+                    return_value='version.py\n',
+                ),
+                mock.patch.object(
+                    steps,
+                    '_generate_backend_release_notes',
+                    return_value='## Bug fixes\n\n* Repair logs.',
+                ),
+                mock.patch('builtins.input') as input_mock,
             ):
-                steps._fill_empty_backend_changelog(root, '2.17.3', '2.17.2')
+                steps.step_create_backend_release(context)
+                steps.step_create_sdk_release(context)
             self.assertIn(
-                '- chore(release): prepare security fixes (#15026)',
-                path.read_text(),
+                'Repair logs.', (root / 'state-notes/2.17.3.md').read_text()
             )
-            self.assertTrue(path.read_text().endswith('Old notes.\n'))
-            with mock.patch.object(steps.subprocess, 'check_output') as log:
-                steps._fill_empty_backend_changelog(root, '2.17.3', '2.17.2')
-                log.assert_not_called()
+            self.assertIn(
+                'pip install kfp==2.17.3',
+                (root / 'state-notes/sdk-2.17.3.md').read_text(),
+            )
+            context.runner.run.assert_not_called()
+            input_mock.assert_not_called()
+
+    def test_retry_publishes_edited_preview_without_regenerating(self):
+        for sdk in (False, True):
+            with self.subTest(sdk=sdk), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                context = self.context(root)
+                tag = 'sdk-2.17.3' if sdk else '2.17.3'
+                preview = root / 'state-notes' / f'{tag}.md'
+                preview.parent.mkdir()
+                preview.with_suffix('.json').write_text(
+                    json.dumps(SELECTED_RANGE.as_dict())
+                )
+                preview.write_text(
+                    '## Upgrade\n\nRetain this reviewed guidance.\n'
+                )
+                handler = (
+                    steps.step_create_sdk_release
+                    if sdk
+                    else steps.step_create_backend_release
+                )
+
+                def edit_preview(_):
+                    preview.write_text(
+                        preview.read_text() + 'Final review edit.\n'
+                    )
+                    return 'y'
+
+                with (
+                    mock.patch('builtins.input', side_effect=edit_preview),
+                    mock.patch.object(
+                        steps, '_generate_backend_release_notes'
+                    ) as generate,
+                ):
+                    handler(context)
+                generate.assert_not_called()
+                command = context.runner.run.call_args.args[0]
+                self.assertEqual(command[:4], ['gh', 'release', 'create', tag])
+                self.assertEqual(
+                    Path(command[command.index('--notes-file') + 1]),
+                    preview.resolve(),
+                )
+                self.assertIn(
+                    'Retain this reviewed guidance.', preview.read_text()
+                )
+                self.assertIn('Final review edit.', preview.read_text())
+
+    def test_declined_preview_does_not_publish_or_delete_existing_release(self):
+        for sdk in (False, True):
+            with self.subTest(sdk=sdk), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                context = self.context(root)
+                context.runner.run.return_value.returncode = 0
+                handler = (
+                    steps.step_create_sdk_release
+                    if sdk
+                    else steps.step_create_backend_release
+                )
+                with (
+                    mock.patch(
+                        'builtins.input',
+                        side_effect=['r', 'n'] if sdk else ['n'],
+                    ),
+                    mock.patch.object(
+                        steps,
+                        '_generate_backend_release_notes',
+                        return_value='## Fixes\n\n* Fix logs.',
+                    ),
+                ):
+                    with self.assertRaises(SystemExit):
+                        handler(context)
+                for call in context.runner.run.call_args_list:
+                    self.assertNotIn(call.args[0][2], ('create', 'delete'))
+
+    def test_empty_edited_preview_cannot_be_published(self):
+        for sdk in (False, True):
+            with self.subTest(sdk=sdk), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                context = self.context(root)
+                tag = 'sdk-2.17.3' if sdk else '2.17.3'
+                preview = root / 'state-notes' / f'{tag}.md'
+                preview.parent.mkdir()
+                preview.with_suffix('.json').write_text(
+                    json.dumps(SELECTED_RANGE.as_dict())
+                )
+                preview.write_text('Reviewed notes')
+
+                def clear_preview(_):
+                    preview.write_text('   \n')
+                    return 'y'
+
+                handler = (
+                    steps.step_create_sdk_release
+                    if sdk
+                    else steps.step_create_backend_release
+                )
+                with mock.patch('builtins.input', side_effect=clear_preview):
+                    with self.assertRaisesRegex(ValueError, 'empty'):
+                        handler(context)
+                for call in context.runner.run.call_args_list:
+                    self.assertNotIn(call.args[0][2], ('create', 'delete'))
+
+    def test_empty_generated_backend_notes_stop_before_publication(self):
+        with TemporaryDirectory() as tmpdir:
+            context = self.context(Path(tmpdir))
+            with mock.patch.object(
+                steps, '_generate_backend_release_notes', return_value=''
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, 'No backend release notes'
+                ):
+                    steps.step_create_backend_release(context)
+            context.runner.run.assert_not_called()
 
 
 if __name__ == '__main__':

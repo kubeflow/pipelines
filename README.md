@@ -40,6 +40,8 @@ The Kubeflow pipelines service has the following goals:
 
 ## Documentation
 
+See [Releases](RELEASE.md) for what changed, upgrade guidance, compatibility, and the maintainer release runbook.
+
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/components/pipelines/overview/).
 
 See the various ways you can [use the Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/en/stable/).

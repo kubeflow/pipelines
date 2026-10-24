@@ -14,6 +14,7 @@
 
 import hashlib
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -245,6 +246,37 @@ fi
                 )
 
 
+class ChangelogSmokeTests(unittest.TestCase):
+    def test_host_renderer_is_deterministic_and_preserves_history_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(
+                SCRIPT.parents[3] / 'release/kfpr', root / 'release/kfpr'
+            )
+            history = b'Changelog\r\n\r\n## 1.0.0\r\nhandwritten history\r\n'
+            (root / 'CHANGELOG.md').write_bytes(history)
+            output = root / 'notes.md'
+            command = [
+                'bash',
+                '-c',
+                'source "$1"; render_changelog_smoke "$2" "$3"',
+                'test',
+                str(SCRIPT),
+                str(root),
+                str(output),
+            ]
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            first = output.read_bytes()
+            self.assertIn(b'### Features', first)
+            self.assertIn(b'native maintainer tooling smoke', first)
+            self.assertIn(b'### Breaking changes', first)
+            self.assertIn(b'Update the fixture client before deploying.', first)
+            self.assertTrue(first.endswith(history))
+            self.assertEqual((root / 'CHANGELOG.md').read_bytes(), history)
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            self.assertEqual(output.read_bytes(), first)
+
+
 class ScriptContractTests(unittest.TestCase):
     def test_shell_syntax(self):
         subprocess.run(['bash', '-n', str(SCRIPT)], check=True)
@@ -269,8 +301,8 @@ class ScriptContractTests(unittest.TestCase):
             'backend/api/build_kfp_server_api_python_package.sh', script
         )
         self.assertIn('manifests/kustomize/hack/release.sh 3.0.0-smoke', script)
-        self.assertIn('git-cliff -c cliff.toml', script)
-        self.assertIn('git init -q', script)
+        self.assertIn('render_changelog_smoke', script)
+        self.assertNotIn('git-cliff', script)
         self.assertIn('--user "$(id -u):$(id -g)"', script)
         self.assertIn('--env HOME=/tmp/kfp-smoke-home', script)
         self.assertNotIn('--platform', script)

@@ -595,7 +595,41 @@ class CliTest(unittest.TestCase):
                 '3.1.1',
             )
 
-    def test_next_prompts_for_previous_release_and_stores_it(self):
+    def test_next_saves_separate_sdk_base_and_target_options(self):
+        with TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / 'state.json'
+            state = ReleaseState(state_file)
+            state.answers.update(
+                {
+                    'release_type': 'patch',
+                    'version': '3.2.1',
+                    'fork_remote': 'https://github.com/testuser/pipelines.git',
+                    'patch_prs': 'not-needed',
+                    'include_backend': False,
+                    'include_sdk': True,
+                }
+            )
+            state.save()
+            result = CliRunner().invoke(
+                app,
+                [
+                    'next',
+                    '--state-file',
+                    str(state_file),
+                    '--dry-run',
+                    '--previous-sdk-release',
+                    'sdk-3.2.0',
+                    '--release-target',
+                    'release-candidate',
+                ],
+            )
+            self.assertEqual(result.exit_code, 0, result.stdout)
+            answers = ReleaseState.load(state_file).answers
+            self.assertEqual(answers['previous_sdk_release'], 'sdk-3.2.0')
+            self.assertEqual(answers['release_target'], 'release-candidate')
+            self.assertNotIn('previous_release', answers)
+
+    def test_next_without_backend_does_not_prompt_for_backend_base(self):
         with TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / 'state.json'
             state = ReleaseState(state_file)
@@ -617,9 +651,8 @@ class CliTest(unittest.TestCase):
             )
 
             self.assertEqual(result.exit_code, 0, result.stdout)
-            self.assertEqual(
-                ReleaseState.load(state_file).answers['previous_release'],
-                '3.1.1',
+            self.assertNotIn(
+                'previous_release', ReleaseState.load(state_file).answers
             )
 
     def test_status_prints_state_next_step_resume_command_and_manual_checklist(

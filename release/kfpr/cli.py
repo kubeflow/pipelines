@@ -62,6 +62,8 @@ def _context(
     release_source_branch: Optional[str] = None,
     skip_local_review: bool = False,
     previous_release: Optional[str] = None,
+    previous_sdk_release: Optional[str] = None,
+    release_target: Optional[str] = None,
     save_state: bool = True,
     require_previous_release: bool = True,
     qualification_pythons: Optional[str] = None,
@@ -83,6 +85,8 @@ def _context(
     if skip_local_review:
         state.answers['skip_local_review'] = True
     _set_answer(state, 'previous_release', previous_release)
+    _set_answer(state, 'previous_sdk_release', previous_sdk_release)
+    _set_answer(state, 'release_target', release_target)
     if qualification_pythons:
         raise typer.BadParameter(
             'CI selects Python versions from the release source',
@@ -272,6 +276,16 @@ def run(
         '--previous-release',
         help='Previous release tag for changelog generation.',
     ),
+    previous_sdk_release: Optional[str] = typer.Option(
+        None,
+        '--previous-sdk-release',
+        help='Previous SDK release tag for SDK notes.',
+    ),
+    release_target: Optional[str] = typer.Option(
+        None,
+        '--release-target',
+        help='Explicit Git ref for release contents; resolved to a commit SHA.',
+    ),
     qualification_pythons: Optional[str] = typer.Option(
         None,
         help='Deprecated: CI selects every supported Python minor from the release source.',
@@ -313,6 +327,8 @@ def run(
         release_source_branch=release_source_branch,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        previous_sdk_release=previous_sdk_release,
+        release_target=release_target,
         qualification_pythons=qualification_pythons,
         security_policy=security_policy,
         security_exceptions=security_exceptions,
@@ -389,6 +405,16 @@ def next_command(
         '--previous-release',
         help='Previous release tag for changelog generation.',
     ),
+    previous_sdk_release: Optional[str] = typer.Option(
+        None,
+        '--previous-sdk-release',
+        help='Previous SDK release tag for SDK notes.',
+    ),
+    release_target: Optional[str] = typer.Option(
+        None,
+        '--release-target',
+        help='Explicit Git ref for release contents; resolved to a commit SHA.',
+    ),
 ) -> None:
     """Run the next incomplete checkpoint step."""
     state = _load_state(state_file)
@@ -414,6 +440,8 @@ def next_command(
         None,
         skip_local_review=skip_local_review,
         previous_release=previous_release,
+        previous_sdk_release=previous_sdk_release,
+        release_target=release_target,
         save_state=True,
     )
     typer.echo(f'Running step: {next_step.description}')
@@ -609,6 +637,16 @@ def _make_step_command(step_id: str):
             '--previous-release',
             help='Previous release tag for changelog generation.',
         ),
+        previous_sdk_release: Optional[str] = typer.Option(
+            None,
+            '--previous-sdk-release',
+            help='Previous SDK release tag for SDK notes.',
+        ),
+        release_target: Optional[str] = typer.Option(
+            None,
+            '--release-target',
+            help='Explicit Git ref for release contents; resolved to a commit SHA.',
+        ),
         qualification_pythons: Optional[str] = typer.Option(
             None,
             help='Deprecated: CI selects every supported Python minor from the release source.',
@@ -643,6 +681,8 @@ def _make_step_command(step_id: str):
             include_sdk,
             skip_local_review=skip_local_review,
             previous_release=previous_release,
+            previous_sdk_release=previous_sdk_release,
+            release_target=release_target,
             qualification_pythons=qualification_pythons,
             security_policy=security_policy,
             security_exceptions=security_exceptions,

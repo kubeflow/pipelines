@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 from kfpr import core, steps
+from kfpr.ranges import ReleaseRange
 
 
 class PatchPublicationTest(unittest.TestCase):
@@ -26,6 +27,22 @@ class PatchPublicationTest(unittest.TestCase):
             include_backend=True,
             include_sdk=True,
         )
+        self.context.previous_release = '2.17.2'
+        self.context.previous_sdk_release = 'sdk-2.17.2'
+        self.context.release_target = 'release-candidate'
+        self.context.state.answers['release_sha'] = 'a' * 40
+        for target, result in (
+            (
+                'resolve_range',
+                ReleaseRange('2.17.2', 'release-candidate', 'b' * 40, 'a' * 40),
+            ),
+            ('read_commits', []),
+            ('_remote_release_sha', 'a' * 40),
+            ('confirm', None),
+        ):
+            patcher = mock.patch('kfpr.steps.' + target, return_value=result)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         for target in (
             'qualification.require_qualification',
             '_ensure_release_tag',

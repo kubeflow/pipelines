@@ -34,7 +34,9 @@ from .core import (
     watch_latest_workflow_run,
     watch_pr_ci,
 )
+from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
+from .ranges import ReleaseRange, commit_date, read_commits, resolve_range
 
 
 @dataclass(frozen=True)
@@ -314,7 +316,15 @@ def step_update_version_tags(context: ReleaseContext) -> None:
                 ['git', 'checkout', '-b', version_branch], cwd=root
             )
 
+    backend_range = sdk_range = None
+    if not context.runner.dry_run:
+        if context.include_backend:
+            backend_range = _preparation_range(context, 'backend')
+        if context.include_sdk:
+            sdk_range = _preparation_range(context, 'sdk')
+
     if context.include_backend:
+        _update_changelog(context, backend_range)
         context.runner.run(
             [
                 'sed',
@@ -336,17 +346,10 @@ def step_update_version_tags(context: ReleaseContext) -> None:
         )
         context.runner.run(
             release_version_bump_command(
-                root,
-                metadata.release_branch,
-                context.previous_release,
-                release_image_tag,
+                root, metadata.release_branch, release_image_tag
             ),
             cwd=root,
         )
-        if not context.runner.dry_run:
-            _fill_empty_backend_changelog(
-                root, metadata.tag, context.previous_release
-            )
         for path, expression in [
             (
                 'backend/api/Makefile',
@@ -392,7 +395,7 @@ def step_update_version_tags(context: ReleaseContext) -> None:
     ]:
         context.runner.run(['sed', '-i.bak', '-E', expression, path], cwd=root)
     if context.include_sdk:
-        _update_sdk_version_files(context)
+        _update_sdk_version_files(context, sdk_range)
 
     # Commit preparation; tags are created only after merged-source qualification.
     context.runner.run(['git', 'add', '--all'], cwd=root)
@@ -858,135 +861,146 @@ def _update_kfp_kubernetes_docs_versions(path: Path, version: str) -> None:
     )
 
 
-def _sdk_release_note_section(title: str, items: list[str]) -> str:
-    body = '\n'.join(f'* {item}' for item in items)
-    return f'## {title}\n\n{body}'.rstrip()
+def _notes_range(
+    context: ReleaseContext, product: str, publishing: bool = False
+) -> ReleaseRange:
+    key = 'previous_sdk_release' if product == 'sdk' else 'previous_release'
+    base = getattr(context, key)
+    if not base:
+        base = prompt_required(f'Previous {product} release tag')
+        setattr(context, key, base)
+        context.state.answers[key] = base
+    target = context.release_target
+    tag = context.metadata.sdk_tag if product == 'sdk' else context.metadata.tag
+    if not target:
+        tag_ref = f'refs/tags/{tag}'
+        tag_exists = (
+            publishing
+            and subprocess.run(
+                ['git', 'show-ref', '--verify', '--quiet', tag_ref],
+                cwd=context.root,
+                check=False,
+            ).returncode
+            == 0
+        )
+        if publishing:
+            target = (
+                tag_ref
+                if tag_exists
+                else (
+                    f'refs/remotes/upstream/{context.metadata.release_branch}'
+                )
+            )
+        else:
+            target = f'refs/heads/{context.metadata.tag}-update-version-tags'
+    selected = resolve_range(context.root, base, target)
+    qualified_sha = context.state.answers.get('release_sha')
+    if publishing and qualified_sha and selected.target_sha != qualified_sha:
+        raise ValueError(
+            'Release notes target differs from the qualified release commit.'
+        )
+    print(
+        f'{product} release range: {base} ({selected.base_sha}) '
+        f'.. {target} ({selected.target_sha})'
+    )
+    return selected
 
 
-def _generate_conventional_release_notes(
-    root: Path,
-    tag_pattern: str,
-    include_commit: Callable[[str, str], bool],
-    base_ref: str = '',
-    end_ref: str = 'HEAD',
-) -> tuple[str, str]:
-    if base_ref:
-        last_tag = base_ref
-    else:
-        try:
-            tags = subprocess.check_output(
-                [
-                    'git',
-                    'tag',
-                    '--list',
-                    tag_pattern,
-                    '--sort=-version:refname',
-                ],
-                cwd=root,
-                text=True,
-            ).splitlines()
-        except subprocess.CalledProcessError:
-            return '', ''
-        if not tags:
-            return '', ''
-        last_tag = tags[0]
+def _preparation_range(context: ReleaseContext, product: str) -> ReleaseRange:
+    selected = _notes_range(context, product)
+    checkout = resolve_range(context.root, selected.target_sha, 'HEAD')
+    if checkout.target_sha != selected.target_sha:
+        raise ValueError(
+            'Release preparation target differs from the checked-out version branch. '
+            'Select its current commit with --release-target before preparing notes.'
+        )
+    return selected
 
+
+def _remote_release_sha(root: Path, tag: str) -> str:
+    ref = f'refs/tags/{tag}'
     try:
-        subjects = subprocess.check_output(
-            ['git', 'log', f'{last_tag}..{end_ref}', '--pretty=%s'],
+        output = subprocess.check_output(
+            [
+                'git',
+                'ls-remote',
+                '--tags',
+                f'https://github.com/{REPO}.git',
+                ref,
+                ref + '^{}',
+            ],
             cwd=root,
             text=True,
-        ).splitlines()
-    except subprocess.CalledProcessError:
-        return last_tag, ''
-    groups: dict[str, list[str]] = {
-        'Features': [],
-        'Breaking changes': [],
-        'Deprecations': [],
-        'Bug fixes and other changes': [],
-    }
-    pattern = re.compile(
-        r'^(?P<type>[A-Za-z]+)(?:\((?P<scope>[^)]*)\))?(?P<breaking>!)?:\s*(?P<description>.+)$'
-    )
-    for subject in subjects:
-        match = pattern.match(subject)
-        if not match:
-            continue
-        commit_type = match.group('type').lower()
-        if not include_commit(
-            (match.group('scope') or '').lower(), commit_type
-        ):
-            continue
-        description = match.group('description')
-        if match.group('breaking') or commit_type in {'break', 'breaking'}:
-            groups['Breaking changes'].append(description)
-        elif commit_type == 'feat':
-            groups['Features'].append(description)
-        elif commit_type.startswith('deprecat'):
-            groups['Deprecations'].append(description)
-        else:
-            groups['Bug fixes and other changes'].append(description)
-
-    if not any(groups.values()):
-        return last_tag, ''
-    return last_tag, '\n\n'.join(
-        _sdk_release_note_section(title, groups[title]) for title in groups
-    )
-
-
-def _generate_sdk_release_notes(root: Path) -> str:
-    _, notes = _generate_conventional_release_notes(
-        root, 'sdk-*', lambda scope, commit_type: 'sdk' in scope
-    )
-    return notes
-
-
-def _generate_backend_release_notes(
-    root: Path, last_release: str, end_ref: str = 'HEAD'
-) -> str:
-    _, notes = _generate_conventional_release_notes(
-        root,
-        '[0-9]*',
-        lambda scope, commit_type: (
-            'sdk' not in scope
-            and not (scope == 'release' and commit_type == 'chore')
-        ),
-        base_ref=last_release,
-        end_ref=end_ref,
-    )
-    return notes
-
-
-def _fill_empty_backend_changelog(
-    root: Path, version: str, previous_release: str
-) -> None:
-    """Retain commit subjects when git-cliff filters out every release
-    change."""
-    path = root / 'CHANGELOG.md'
-    if not path.exists():
-        return
-    text = path.read_text()
-    section = re.search(
-        rf'(?m)^(## {re.escape(version)}(?: [^\n]*)?\n)([\s\S]*?)(?=^## \d|\Z)',
-        text,
-    )
-    if not section or section.group(2).strip():
-        return
-    subjects = subprocess.check_output(
-        ['git', 'log', f'{previous_release}..HEAD', '--pretty=%s'],
-        cwd=root,
-        text=True,
-    ).splitlines()
-    if not subjects:
-        raise ValueError(
-            'No release changes found; check the previous release reference'
         )
-    body = (
-        '\n### Changes\n\n'
-        + '\n'.join(f'- {subject}' for subject in subjects)
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError(
+            'Cannot verify the published release tag. Check GitHub '
+            'access and retry before publishing.'
+        ) from error
+    refs = dict(line.split()[::-1] for line in output.splitlines())
+    sha = refs.get(ref + '^{}', refs.get(ref, ''))
+    if sha and not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', sha):
+        raise ValueError('GitHub returned an invalid release tag commit.')
+    return sha
+
+
+def _verify_release_target(
+    context: ReleaseContext, tag: str, selected: ReleaseRange
+) -> None:
+    remote_sha = _remote_release_sha(context.root, tag)
+    if remote_sha and remote_sha != selected.target_sha:
+        raise ValueError(
+            f'Published tag {tag} differs from the reviewed release target. '
+            'Fetch the tag and regenerate notes for its commit before publishing.'
+        )
+    if not remote_sha and tag.startswith('sdk-'):
+        raise ValueError(
+            f'SDK tag {tag} is not published. Complete create-sdk-tag first.'
+        )
+
+
+def _generate_sdk_release_notes(root: Path, selected: ReleaseRange) -> str:
+    return render_notes(read_commits(root, selected), product='sdk')
+
+
+def _generate_backend_release_notes(root: Path, selected: ReleaseRange) -> str:
+    return render_notes(read_commits(root, selected), product='backend')
+
+
+def _update_changelog(
+    context: ReleaseContext, selected: ReleaseRange | None = None
+) -> None:
+    if context.runner.dry_run:
+        print(
+            '[dry-run] would update CHANGELOG.md from the explicit backend range'
+        )
+        return
+    selected = selected or _preparation_range(context, 'backend')
+    body = render_notes(read_commits(context.root, selected))
+    if not body:
+        raise ValueError(
+            'No user-facing changelog entries in the release range. '
+            'Check the base and target before preparing the release.'
+        )
+    path = context.root / 'CHANGELOG.md'
+    text = path.read_text() if path.exists() else 'Changelog\n'
+    version = context.metadata.tag
+    heading = f'## {version} ({commit_date(context.root, selected.target_sha)})'
+    entry = (
+        heading
         + '\n\n'
+        + re.sub(r'(?m)^## ', '### ', body)
+        + f'\n\n**Full changelog:** {selected.compare_url}\n'
     )
-    path.write_text(text[: section.start(2)] + body + text[section.end(2) :])
+    existing = re.search(rf'(?m)^## {re.escape(version)}(?:[ \n]|$)', text)
+    if existing:
+        end = re.search(r'(?m)^## ', text[existing.end() :])
+        suffix = text[existing.end() + end.start() :] if end else ''
+        text = text[: existing.start()] + entry + '\n' + suffix
+    else:
+        header, separator, history = text.partition('\n')
+        text = header + '\n\n' + entry + '\n' + history.lstrip('\n')
+    path.write_text(text)
 
 
 def _update_sdk_release_notes(
@@ -1007,7 +1021,19 @@ def _update_sdk_release_notes(
     )
     if not match:
         return
-    release_body = release_body or match.group(2).strip() or default_body
+    authored_body = match.group(2).strip()
+    template_headings = set(default_body.splitlines())
+    has_authored_notes = any(
+        line.strip() and line.strip() not in template_headings
+        for line in authored_body.splitlines()
+    )
+    if release_body and has_authored_notes:
+        generated_body = re.sub(r'(?m)^## ', '### ', release_body.strip())
+        release_body = (
+            f'{authored_body}\n\n## Generated changes\n\n{generated_body}'
+        )
+    else:
+        release_body = release_body or authored_body or default_body
     path.write_text(
         f'{match.group(1)}{default_body}\n\n# {version}\n\n{release_body}\n{match.group(3)}{text[match.end() :]}'
     )
@@ -1115,13 +1141,20 @@ def _refresh_uv_release_packages(context: ReleaseContext) -> None:
         )
 
 
-def _update_sdk_version_files(context: ReleaseContext) -> None:
+def _update_sdk_version_files(
+    context: ReleaseContext, selected: ReleaseRange | None = None
+) -> None:
     """Update SDK release metadata and regenerate the matching package
     artifacts."""
     metadata = context.metadata
     root = context.root
     uses_uv = (root / 'uv.lock').exists()
     consolidated = (root / 'sdk/python/kfp/server_api/__init__.py').is_file()
+    generated_notes = ''
+    if not context.runner.dry_run and (root / 'sdk/RELEASE.md').exists():
+        generated_notes = _generate_sdk_release_notes(
+            root, selected or _preparation_range(context, 'sdk')
+        )
 
     # Update SDK version files
     if context.runner.dry_run:
@@ -1181,7 +1214,7 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
         _update_sdk_release_notes(
             root / 'sdk/RELEASE.md',
             metadata.tag,
-            _generate_sdk_release_notes(root),
+            generated_notes,
         )
 
     if uses_uv:
@@ -1250,18 +1283,73 @@ def _sdk_release_is_consolidated(context: ReleaseContext) -> bool:
     return 'server_api' in contents
 
 
-def step_create_sdk_release(context: ReleaseContext) -> None:
-    """Create SDK release notes for the target tag's packaging layout."""
-    qualification.require_qualification(context)
-    _ensure_release_tag(context, context.metadata.sdk_tag)
-    metadata = context.metadata
-    if context.runner.dry_run:
-        print(f'[dry-run] would create SDK GitHub release: {metadata.sdk_tag}')
-        print(
-            '[dry-run] installation instructions will follow the SDK tag layout'
+def _release_notes_preview(
+    context: ReleaseContext,
+    tag: str,
+    render: Callable[[], str],
+    selected: ReleaseRange,
+) -> Path:
+    """Create or reuse editable notes, then review them before publication."""
+    state_path = context.state.path.resolve()
+    path = state_path.parent / f'{state_path.stem}-notes' / f'{tag}.md'
+    provenance_path = path.with_suffix('.json')
+    if path.exists():
+        try:
+            provenance = json.loads(provenance_path.read_text())
+        except (OSError, ValueError) as error:
+            raise ValueError(
+                f'Preview provenance is missing or invalid: {provenance_path}. '
+                'Move the preview and sidecar aside, regenerate, and reapply reviewed edits.'
+            ) from error
+        if not isinstance(provenance, dict) or any(
+            provenance.get(key) != selected.as_dict()[key]
+            for key in ('base_sha', 'target_sha')
+        ):
+            raise ValueError(
+                f'Release range changed for {path}. Move the preview and sidecar aside, '
+                'regenerate, and review the new range before publishing.'
+            )
+    else:
+        notes = render()
+        if not notes.strip():
+            raise ValueError(f'Release notes for {tag} are empty.')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(notes.rstrip() + '\n')
+        provenance_path.write_text(
+            json.dumps(selected.as_dict(), indent=2) + '\n'
         )
-        return
-    if _sdk_release_is_consolidated(context):
+    print(f'Release notes preview: {path}')
+    print(path.read_text())
+    if not context.runner.dry_run:
+        confirm(f'Review and edit {path}, then publish these release notes?')
+    if not path.read_text().strip():
+        raise ValueError(
+            f'Release notes are empty: {path}. Edit them before retrying.'
+        )
+    return path
+
+
+def _sdk_release_body(
+    context: ReleaseContext,
+    selected: ReleaseRange,
+    consolidated: bool | None = None,
+) -> str:
+    metadata = context.metadata
+    if consolidated is None and context.runner.dry_run:
+        contents = subprocess.check_output(
+            [
+                'git',
+                'ls-tree',
+                '--name-only',
+                selected.target_sha + ':sdk/python/kfp',
+            ],
+            cwd=context.root,
+            text=True,
+        ).splitlines()
+        consolidated = 'server_api' in contents
+    elif consolidated is None:
+        consolidated = _sdk_release_is_consolidated(context)
+    if consolidated:
         notes = f"""Release of the unified KFP SDK, including Kubernetes configuration,
 the server API client, and pipeline-spec bindings.
 
@@ -1299,6 +1387,28 @@ pip install kfp-kubernetes=={metadata.tag}
     notes += f"""
 For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}/sdk/RELEASE.md.
 """
+    changes = _generate_sdk_release_notes(context.root, selected)
+    if changes:
+        notes += f"\n## What's Changed\n\n{changes}\n"
+    return notes + f'\n**Full changelog:** {selected.compare_url}\n'
+
+
+def step_create_sdk_release(context: ReleaseContext) -> None:
+    """Create the SDK GitHub release after packages are published."""
+    qualification.require_qualification(context)
+    _ensure_release_tag(context, context.metadata.sdk_tag)
+    metadata = context.metadata
+    if context.runner.dry_run:
+        selected = _notes_range(context, 'sdk', publishing=True)
+        _release_notes_preview(
+            context,
+            metadata.sdk_tag,
+            lambda: _sdk_release_body(context, selected),
+            selected,
+        )
+        print(f'[dry-run] would create SDK GitHub release: {metadata.sdk_tag}')
+        return
+    consolidated = _sdk_release_is_consolidated(context)
     existing_release = context.runner.run(
         ['gh', 'release', 'view', metadata.sdk_tag, '--repo', REPO], check=False
     )
@@ -1310,6 +1420,15 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
         )
         if choice == 'u':
             return
+    selected = _notes_range(context, 'sdk', publishing=True)
+    notes_path = _release_notes_preview(
+        context,
+        metadata.sdk_tag,
+        lambda: _sdk_release_body(context, selected, consolidated),
+        selected,
+    )
+    _verify_release_target(context, metadata.sdk_tag, selected)
+    if existing_release.returncode == 0:
         context.runner.run(
             [
                 'gh',
@@ -1329,13 +1448,12 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
         '--repo',
         REPO,
         '--target',
-        str(context.state.answers.get('release_sha', '')),
+        selected.target_sha,
         '--title',
         f'KFP SDK v{metadata.tag}',
-        '--notes',
-        notes,
+        '--notes-file',
+        str(notes_path),
     ]
-    # GitHub's latest release is shared with backend releases, including SDK-only runs.
     create_command.append('--latest=false')
     create_command.append('--verify-tag')
     context.runner.run(create_command)
@@ -1577,44 +1695,20 @@ def step_confirm_rtd(context: ReleaseContext) -> None:
         )
 
 
-def step_create_backend_release(context: ReleaseContext) -> None:
-    """Create backend GitHub release.
-
-    Args:
-      context: Release context with runner, metadata, and state.
-    """
-    qualification.require_qualification(context)
-    set_latest = _should_set_backend_latest(context)
-    _ensure_release_tag(context, context.metadata.tag)
+def _backend_release_body(
+    context: ReleaseContext, selected: ReleaseRange
+) -> str:
     metadata = context.metadata
-    checklist = manual_checklist('create-backend-release', metadata)
-    if checklist:
-        print(checklist)
-
-    if context.runner.dry_run:
-        print(f'[dry-run] would create backend GitHub release: {metadata.tag}')
-        return
-
-    if checklist:
-        confirm(
-            'Have the release-image architecture checks succeeded and their evidence been reviewed?'
+    changed = _generate_backend_release_notes(context.root, selected)
+    if not changed.strip():
+        raise ValueError(
+            f'No backend release notes found after {selected.base_ref}. '
+            'Check the previous release tag and commit history before retrying.'
         )
-
-    last_release = prompt_required(
-        'Last backend release tag for changelog comparison'
-    )
-    changed = _generate_backend_release_notes(
-        context.root,
-        last_release,
-        end_ref=str(context.state.answers.get('release_sha', 'HEAD')),
-    )
-    print(f'Last backend release tag for changelog comparison: {last_release}')
-    print(f'Backend release notes body after "What Changed": {changed}')
-
     notes = f"""## What's Changed
 {changed}
 
-**Full Changelog**: https://github.com/kubeflow/pipelines/compare/{last_release}...{metadata.tag}
+**Full Changelog**: {selected.compare_url}
 """
     if metadata.major >= 3:
         notes += f"""
@@ -1624,7 +1718,35 @@ Linux AMD64 and ARM64 are supported starting with KFP 3.0. Standard manifests us
 the container runtime selects the matching architecture. Pipeline component images must support
 the architecture of their execution nodes. See the [supported-platforms policy](https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md).
 """
+    return notes
 
+
+def step_create_backend_release(context: ReleaseContext) -> None:
+    """Review Markdown notes and create the backend GitHub release."""
+    qualification.require_qualification(context)
+    set_latest = _should_set_backend_latest(context)
+    _ensure_release_tag(context, context.metadata.tag)
+    metadata = context.metadata
+    checklist = manual_checklist('create-backend-release', metadata)
+    if checklist:
+        print(checklist)
+        if not context.runner.dry_run:
+            confirm(
+                'Have the release-image architecture checks succeeded and their evidence been reviewed?'
+            )
+
+    selected = _notes_range(context, 'backend', publishing=True)
+    notes_path = _release_notes_preview(
+        context,
+        metadata.tag,
+        lambda: _backend_release_body(context, selected),
+        selected,
+    )
+    if context.runner.dry_run:
+        print(f'[dry-run] would create backend GitHub release: {metadata.tag}')
+        return
+
+    _verify_release_target(context, metadata.tag, selected)
     context.runner.run(
         [
             'gh',
@@ -1634,13 +1756,14 @@ the architecture of their execution nodes. See the [supported-platforms policy](
             '--repo',
             REPO,
             '--target',
-            str(context.state.answers.get('release_sha', '')),
+            selected.target_sha,
             '--title',
             f'Version {metadata.tag}',
-            '--notes',
-            notes,
+            '--notes-file',
+            str(notes_path),
+            f'--latest={str(set_latest).lower()}',
+            '--verify-tag',
         ]
-        + [f'--latest={str(set_latest).lower()}']
     )
 
 
@@ -1678,10 +1801,7 @@ def step_sync_master(context: ReleaseContext) -> None:
     )
     context.runner.run(
         release_version_bump_command(
-            root,
-            metadata.release_branch,
-            context.previous_release,
-            release_image_tag,
+            root, metadata.release_branch, release_image_tag
         ),
         cwd=root,
     )
