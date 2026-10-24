@@ -140,3 +140,77 @@ class QualificationRunnerTest(unittest.TestCase):
                     False,
                 )
         self.assertFalse((self.root / 'qualified/manifest.json').exists())
+
+    def test_backend_aggregate_requires_third_party_and_binds_raw_manifest(
+        self,
+    ):
+        security = self.security()
+        output = self.root / 'qualified'
+        external = self.root / 'third-party'
+        external.mkdir()
+        (external / 'third-party.json').write_text('{"raw":true}')
+        verified = {'inventory': {'first_party_names': ['image-a']}}
+
+        def aggregate(*args, **kwargs):
+            output.mkdir()
+            return {**self.release, 'images': []}
+
+        with (
+            mock.patch.object(runner, 'verify_security'),
+            mock.patch.object(
+                runner.images, 'aggregate', side_effect=aggregate
+            ),
+            mock.patch.object(
+                runner.external, 'verify', return_value=verified
+            ) as verify,
+        ):
+            result = runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                security,
+                output,
+                self.release,
+                False,
+                True,
+                third_party=external,
+            )
+        verify.assert_called_once_with(external, self.release)
+        self.assertEqual(
+            result['third_party_manifest_sha256'],
+            hashlib.sha256(
+                (external / 'third-party.json').read_bytes()
+            ).hexdigest(),
+        )
+        self.assertEqual(
+            (output / 'third-party/third-party.json').read_bytes(),
+            (external / 'third-party.json').read_bytes(),
+        )
+
+    def test_backend_aggregate_rejects_missing_third_party_and_wrong_ownership(
+        self,
+    ):
+        security = self.security()
+        for supplied, names, error in (
+            (None, ['image-a'], 'Missing third-party'),
+            (self.root / 'external', ['other'], 'ownership'),
+        ):
+            with (
+                mock.patch.object(runner, 'verify_security'),
+                mock.patch.object(runner.images, 'aggregate', return_value={}),
+                mock.patch.object(
+                    runner.external,
+                    'verify',
+                    return_value={'inventory': {'first_party_names': names}},
+                ),
+                self.assertRaisesRegex(ValueError, error),
+            ):
+                runner.aggregate(
+                    self.source,
+                    self.root / 'lanes',
+                    security,
+                    self.root / 'qualified',
+                    self.release,
+                    False,
+                    True,
+                    third_party=supplied,
+                )

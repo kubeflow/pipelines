@@ -42,6 +42,9 @@ CALLERS = [
     ('.github/workflows/image-builds.yml', 'runtime-base-images'),
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Images
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Source/SDK
+    ('.github/workflows/release-qualification.yml', 'aggregate'),  # Third-party
+    ('.github/workflows/third-party-image-scanning.yml', 'report'),  # Inventory
+    ('.github/workflows/third-party-image-scanning.yml', 'report'),  # Scans
     ('.github/workflows/release-branch-image-scanning.yml', 'aggregate'),
     ('.github/workflows/release-branch-image-scanning.yml', 'upload'),
     ('.github/workflows/osv-scanner.yml', 'discover-images'),

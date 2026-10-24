@@ -78,6 +78,8 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         self.assertEqual(workflow['permissions'], {})
         for name, job in workflow['jobs'].items():
             permissions = {'contents': 'read'}
+            if name == 'third-party-evidence':
+                permissions['actions'] = 'read'
             if name == 'upload':
                 permissions['security-events'] = 'write'
             self.assertEqual(job['permissions'], permissions)
@@ -92,6 +94,13 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
     def test_source_and_tool_checkouts_are_separate_and_immutable(self):
         workflow = self.workflow()
         for name, job in workflow['jobs'].items():
+            if name == 'third-party-evidence':
+                self.assertEqual(job['needs'], 'inventory')
+                self.assertEqual(
+                    job['uses'],
+                    './.github/workflows/third-party-image-scanning.yml',
+                )
+                continue
             checkouts = [
                 step['with']
                 for step in job['steps']
@@ -149,6 +158,8 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
                 text=True,
             ).strip()
             for name, job in self.workflow()['jobs'].items():
+                if name == 'third-party-evidence':
+                    continue
                 guard = next(
                     step
                     for step in job['steps']
