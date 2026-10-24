@@ -849,6 +849,48 @@ class CliTest(unittest.TestCase):
             self.assertIn('Cannot parse fork_remote', result.stdout)
             self.assertFalse(state_file.exists())
 
+    def test_new_release_full_dry_run_completes_without_release_refs(self):
+        for release_type, version in (('major', '4.0.0'), ('minor', '3.3.0')):
+            with (
+                self.subTest(release_type=release_type),
+                TemporaryDirectory() as tmpdir,
+            ):
+                root = Path(tmpdir)
+                state_file = root / 'state.json'
+                with mock.patch.object(
+                    core.subprocess, 'check_output', return_value=str(root)
+                ) as git_read:
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'run',
+                            '--dry-run',
+                            '--release-type',
+                            release_type,
+                            '--version',
+                            version,
+                            '--fork-remote',
+                            'testuser',
+                            '--release-source-branch',
+                            'master',
+                            '--previous-release',
+                            '3.2.0',
+                            '--previous-sdk-release',
+                            'sdk-3.2.0',
+                            '--state-file',
+                            str(state_file),
+                        ],
+                    )
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertIn(
+                    f'Release flow complete for {version}', result.output
+                )
+                git_read.assert_called_once_with(
+                    ['git', 'rev-parse', '--show-toplevel'], text=True
+                )
+                self.assertFalse((root / 'state-notes').exists())
+                self.assertFalse(ReleaseState.load(state_file).completed_steps)
+
     def test_run_with_existing_state_prints_status_and_aborts_when_user_declines(
         self,
     ):

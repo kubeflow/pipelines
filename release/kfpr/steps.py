@@ -2006,6 +2006,17 @@ def run_steps(context: ReleaseContext) -> None:
             print(f'Skipping completed step: {step.step_id}')
             continue
         print(f'Running step: {step.description}')
+        if context.runner.dry_run and step.step_id in (
+            'create-sdk-release',
+            'create-backend-release',
+        ):
+            # Earlier simulated steps do not create the release refs or contents.
+            print(
+                '[dry-run] release notes preview deferred until release refs '
+                'and contents exist. Then run '
+                f'kfpr run {step.step_id} --dry-run to review the notes.'
+            )
+            continue
         handlers[step.handler](context)
         if not context.runner.dry_run:
             context.state.mark_done(step.step_id)

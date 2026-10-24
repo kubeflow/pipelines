@@ -112,6 +112,17 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             self.assertNotIn('unrelated future fix', notes)
             self.assertNotIn('contributor instructions', notes)
 
+    def test_individual_preview_requires_existing_target(self):
+        self.context.release_target = 'refs/heads/not-created-yet'
+        for handler in (
+            steps.step_create_sdk_release,
+            steps.step_create_backend_release,
+        ):
+            with self.subTest(handler=handler.__name__):
+                with self.assertRaisesRegex(ValueError, 'resolve'):
+                    handler(self.context)
+        self.assertFalse((self.root / 'release-state-notes').exists())
+
     def test_publication_rejects_range_different_from_qualified_commit(self):
         self.context.state.answers['release_sha'] = self.git(
             'rev-parse', 'HEAD'

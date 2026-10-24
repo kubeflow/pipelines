@@ -1368,6 +1368,57 @@ class PrepareReleaseBranchStepTest(unittest.TestCase):
 
 
 class OrchestrationTest(unittest.TestCase):
+    def test_full_dry_run_reaches_end_without_simulated_release_refs(self):
+        for release_type, version in (('major', '4.0.0'), ('minor', '3.3.0')):
+            with (
+                self.subTest(release_type=release_type),
+                TemporaryDirectory() as tmpdir,
+            ):
+                root = Path(tmpdir)
+                state = core.ReleaseState(root / 'state.json')
+                context = core.ReleaseContext(
+                    root=root,
+                    state=state,
+                    runner=core.CommandRunner(dry_run=True),
+                    metadata=core.ReleaseMetadata.from_version(
+                        release_type, version
+                    ),
+                    fork_remote='git@github.com:testuser/pipelines.git',
+                    include_backend=True,
+                    include_sdk=True,
+                    previous_release='3.2.0',
+                    previous_sdk_release='sdk-3.2.0',
+                )
+                with (
+                    contextlib.redirect_stdout(io.StringIO()) as output,
+                    mock.patch.object(steps, '_notes_range') as notes_range,
+                    mock.patch.object(
+                        subprocess,
+                        'run',
+                        side_effect=AssertionError('unexpected live command'),
+                    ),
+                    mock.patch.object(
+                        subprocess,
+                        'check_output',
+                        side_effect=AssertionError('unexpected live command'),
+                    ),
+                ):
+                    steps.run_steps(context)
+                notes_range.assert_not_called()
+                self.assertIn(
+                    'Confirm website PR and Slack announcement',
+                    output.getvalue(),
+                )
+                self.assertIn(
+                    'kfpr run create-sdk-release --dry-run', output.getvalue()
+                )
+                self.assertIn(
+                    'kfpr run create-backend-release --dry-run',
+                    output.getvalue(),
+                )
+                self.assertEqual(list(root.iterdir()), [])
+                self.assertFalse(state.completed_steps)
+
     def test_run_steps_skips_completed_steps(self):
         with TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / 'state.json'

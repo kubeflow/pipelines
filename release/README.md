@@ -67,6 +67,10 @@ versions, and patch PR numbers with the intended release values. Use a separate
 checkpoint file for each release. First append `--dry-run` to inspect the selected
 flow; remove it to execute the release and follow its review checkpoints.
 A dry run does not create branches, merge PRs, or publish artifacts.
+The full-flow `kfpr run --dry-run` plans every remaining step and defers release
+note previews until the release refs and contents exist. Use the individual
+[preview commands](#review-release-notes-before-publishing) afterward to generate
+and review Markdown from the actual release range.
 
 | Release artifact | Version/tag | Branch |
 | --- | --- | --- |
@@ -469,8 +473,8 @@ edits. A `<tag>.json` sidecar beside each `<tag>.md` preview records the resolve
 range; when the base or target commit changes, the CLI refuses to reuse the stale
 preview. A missing or invalid sidecar also blocks reuse. Preserve any handwritten
 edits, move both the preview and its sidecar aside, and rerun the dry run to
-generate fresh notes before reapplying the edits. Regenerate previews made by a
-full-flow dry run before cherry-picks or version preparation actually ran.
+generate fresh notes before reapplying the edits. Full-flow dry runs defer note
+generation; individual preview commands require existing release refs.
 Compare the notes with the final release contents before approving publication.
 Clearing a checkpoint does not delete previews.
 

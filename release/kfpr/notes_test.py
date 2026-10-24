@@ -90,6 +90,66 @@ class TestRenderNotes(unittest.TestCase):
         self.assertNotIn('person@example.com', notes)
         self.assertNotIn('Refs:', notes)
 
+    def test_migration_url_and_following_paragraph_are_retained(self):
+        notes = render_notes(
+            [
+                Commit(
+                    'abc123456',
+                    'fix(sdk)!: update configuration\n\n'
+                    'BREAKING CHANGE: Follow this migration guide:\n'
+                    'https://example.com/migration\n\n'
+                    'Restart the service after migrating.\n\n'
+                    'Signed-off-by: Contributor <person@example.com>',
+                )
+            ]
+        )
+        self.assertIn('https://example.com/migration', notes)
+        self.assertIn('Restart the service after migrating.', notes)
+        self.assertNotIn('Signed-off-by', notes)
+
+    def test_fenced_migration_examples_do_not_end_guidance(self):
+        for opening, closing in (('```yaml', '```'), ('~~~~yaml', '~~~~')):
+            with self.subTest(opening=opening):
+                notes = render_notes(
+                    [
+                        Commit(
+                            'abc123456',
+                            'fix(sdk)!: update configuration\n\n'
+                            'BREAKING CHANGE: Use the following configuration:\n'
+                            f'{opening}\n'
+                            'apiVersion: pipelines.kubeflow.org/v2\n'
+                            'Signed-off-by: this is example data\n'
+                            '~~~\n'
+                            f'{closing}\n\n'
+                            'Apply the configuration, then restart the service.\n\n'
+                            'Signed-off-by: Contributor <person@example.com>',
+                        )
+                    ]
+                )
+                self.assertIn('apiVersion: pipelines.kubeflow.org/v2', notes)
+                self.assertIn('Signed-off-by: this is example data', notes)
+                self.assertIn(f'  {closing}\n\n', notes)
+                self.assertIn(
+                    'Apply the configuration, then restart the service.', notes
+                )
+                self.assertNotIn('Contributor <person@example.com>', notes)
+
+    def test_empty_trailer_line_supports_continued_guidance(self):
+        notes = render_notes(
+            [
+                Commit(
+                    'abc123456',
+                    'fix(sdk)!: update configuration\n\n'
+                    'BREAKING CHANGE:\n'
+                    'Follow the migration guide.\n\n'
+                    'Signed-off-by:\nContributor <person@example.com>',
+                )
+            ]
+        )
+        self.assertIn('Follow the migration guide.', notes)
+        self.assertNotIn('Signed-off-by', notes)
+        self.assertNotIn('Contributor <person@example.com>', notes)
+
     def test_deprecation_guidance_is_retained(self):
         notes = render_notes(
             [

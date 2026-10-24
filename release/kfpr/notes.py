@@ -14,9 +14,11 @@ _DEPRECATION_FOOTER = re.compile(
     r'^(?:DEPRECATED|DEPRECATION):\s*\S', re.MULTILINE
 )
 _TRAILER = re.compile(
-    r'^(?P<token>BREAKING CHANGE|[A-Za-z][A-Za-z0-9-]*)(?::[ \t]*|[ \t]+#)',
+    r'^(?P<token>BREAKING CHANGE|[A-Za-z][A-Za-z0-9-]*)'
+    r'(?::(?:[ \t]+|(?=\r?$))|[ \t]+#)',
     re.MULTILINE,
 )
+_FENCE = re.compile(r'^ {0,3}(`{3,}|~{3,})(.*)$')
 _GUIDANCE_TRAILERS = {
     'BREAKING CHANGE',
     'BREAKING-CHANGE',
@@ -62,7 +64,26 @@ def _applies_to_product(scope: str, product: str) -> bool:
 
 
 def _footer_guidance(body: str) -> list[str]:
-    trailers = list(_TRAILER.finditer(body))
+    trailers = []
+    fence_marker = ''
+    offset = 0
+    for line in body.splitlines(keepends=True):
+        fence = _FENCE.match(line.rstrip('\r\n'))
+        if fence_marker:
+            if (
+                fence
+                and fence[1][0] == fence_marker[0]
+                and len(fence[1]) >= len(fence_marker)
+                and not fence[2].strip()
+            ):
+                fence_marker = ''
+        elif fence and (fence[1][0] == '~' or '`' not in fence[2]):
+            fence_marker = fence[1]
+        else:
+            trailer = _TRAILER.match(body, offset)
+            if trailer:
+                trailers.append(trailer)
+        offset += len(line)
     guidance = []
     for index, trailer in enumerate(trailers):
         if trailer.group('token') not in _GUIDANCE_TRAILERS:
