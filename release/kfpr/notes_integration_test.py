@@ -2,13 +2,17 @@
 
 import contextlib
 import io
+import json
 import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
+from typer.testing import CliRunner
+
 from kfpr import core, steps
+from kfpr.cli import app
 
 
 class ReleaseNotesIntegrationTest(unittest.TestCase):
@@ -191,6 +195,90 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                 self.context, 'sdk-2.1.1', lambda: 'Replacement notes', changed
             )
         self.assertEqual(path.read_text(), 'Reviewed migration instructions.\n')
+
+    def test_regeneration_keeps_edits_and_refreshes_real_sdk_history(self):
+        steps.step_create_sdk_release(self.context)
+        path = self.root / 'release-state-notes/sdk-2.1.1.md'
+        original = path.read_text()
+        sidecar = path.with_suffix('.json')
+        self.assertEqual(
+            json.loads(sidecar.read_text())['generated_notes'], original
+        )
+        path.write_text(
+            '## Highlights\n\nHandwritten upgrade advice.\n\n' + original
+        )
+        self.context.release_target = 'HEAD'
+        with contextlib.chdir(self.root):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'regenerate-notes',
+                    '--product',
+                    'sdk',
+                    '--version',
+                    '2.1.1',
+                    '--previous-sdk-release',
+                    'sdk-2.1.0',
+                    '--release-target',
+                    'HEAD',
+                    '--state-file',
+                    str(self.context.state.path),
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn('preview regenerated', result.output)
+        self.assertIn('Handwritten upgrade advice.', path.read_text())
+        self.assertIn('unrelated future fix', path.read_text())
+        self.assertEqual(
+            json.loads(sidecar.read_text())['target_sha'],
+            self.git('rev-parse', 'HEAD'),
+        )
+        with mock.patch.object(self.context.runner, 'run') as run:
+            steps.step_create_sdk_release(self.context)
+        run.assert_not_called()
+        self.assertFalse(self.context.state.path.exists())
+        self.assertTrue(steps.regenerate_release_notes(self.context, 'sdk'))
+        self.assertEqual(
+            path.read_text().count('Handwritten upgrade advice.'), 1
+        )
+
+    def test_unresolved_conflicts_block_publication_before_review(self):
+        selected = steps._notes_range(self.context, 'backend')
+        path = steps._release_notes_preview(
+            self.context, '2.1.1', lambda: 'Generated', selected
+        )
+        path.write_text(
+            '<<<<<<< edited\nMy text\n=======\nNew text\n>>>>>>> generated\n'
+        )
+        self.context.runner.dry_run = False
+        with mock.patch.object(steps, 'confirm') as confirm:
+            with self.assertRaisesRegex(ValueError, 'conflict markers'):
+                steps._release_notes_preview(
+                    self.context, '2.1.1', lambda: '', selected
+                )
+        confirm.assert_not_called()
+        path.write_text('Resolved heading\n=======\n\nResolved text\n')
+        with mock.patch.object(steps, 'confirm') as confirm:
+            steps._release_notes_preview(
+                self.context, '2.1.1', lambda: '', selected
+            )
+        confirm.assert_called_once()
+
+    def test_conflicts_added_during_review_block_publication(self):
+        selected = steps._notes_range(self.context, 'backend')
+        path = steps._release_notes_preview(
+            self.context, '2.1.1', lambda: 'Generated', selected
+        )
+        self.context.runner.dry_run = False
+        with mock.patch.object(
+            steps,
+            'confirm',
+            side_effect=lambda _: path.write_text('<<<<<<< edited\n'),
+        ):
+            with self.assertRaisesRegex(ValueError, 'conflict markers'):
+                steps._release_notes_preview(
+                    self.context, '2.1.1', lambda: '', selected
+                )
 
     def test_missing_provenance_rejects_existing_notes(self):
         selected = steps._notes_range(self.context, 'sdk')

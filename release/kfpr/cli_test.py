@@ -1093,3 +1093,141 @@ class CliTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RegenerateNotesTest(unittest.TestCase):
+    def test_saved_context_and_overrides_do_not_write_checkpoint(self):
+        for product in ('backend', 'sdk'):
+            with (
+                self.subTest(product=product),
+                TemporaryDirectory() as directory,
+            ):
+                state_file = Path(directory) / 'state.json'
+                state = ReleaseState(state_file)
+                state.answers.update(
+                    {
+                        'version': '2.17.3',
+                        'release_type': 'patch',
+                        'previous_release': '2.17.2',
+                        'previous_sdk_release': 'sdk-2.17.2',
+                        'release_target': 'old-target',
+                        'fork_remote': 'origin',
+                    }
+                )
+                state.save()
+                original = state_file.read_bytes()
+                with (
+                    mock.patch(
+                        'kfpr.cli.regenerate_release_notes', return_value=True
+                    ) as regenerate,
+                    mock.patch(
+                        'kfpr.cli.subprocess.check_output',
+                        return_value=directory + '\n',
+                    ) as git,
+                    mock.patch.object(ReleaseState, 'save') as save,
+                ):
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'regenerate-notes',
+                            '--product',
+                            product,
+                            '--state-file',
+                            str(state_file),
+                            '--version',
+                            '2.17.4',
+                            '--previous-release',
+                            '2.17.3',
+                            '--release-target',
+                            'candidate',
+                        ],
+                    )
+                self.assertEqual(result.exit_code, 0, result.output)
+                context, selected_product = regenerate.call_args.args
+                self.assertEqual(selected_product, product)
+                self.assertEqual(context.metadata.tag, '2.17.4')
+                self.assertEqual(context.previous_release, '2.17.3')
+                self.assertEqual(context.previous_sdk_release, 'sdk-2.17.2')
+                self.assertEqual(context.release_target, 'candidate')
+                self.assertEqual(context.root, Path(directory))
+                self.assertEqual(context.include_backend, product == 'backend')
+                self.assertEqual(context.include_sdk, product == 'sdk')
+                self.assertTrue(context.runner.dry_run)
+                self.assertEqual(context.runner.commands, [])
+                git.assert_called_once_with(
+                    ['git', 'rev-parse', '--show-toplevel'], text=True
+                )
+                save.assert_not_called()
+                self.assertEqual(state_file.read_bytes(), original)
+
+    def test_new_preview_without_checkpoint_and_conflict_status(self):
+        for clean in (True, False):
+            with self.subTest(clean=clean), TemporaryDirectory() as directory:
+                state_file = Path(directory) / 'missing.json'
+                with (
+                    mock.patch(
+                        'kfpr.cli.regenerate_release_notes', return_value=clean
+                    ) as regenerate,
+                    mock.patch(
+                        'kfpr.cli.subprocess.check_output',
+                        return_value=directory,
+                    ),
+                ):
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'regenerate-notes',
+                            '--product',
+                            'sdk',
+                            '--state-file',
+                            str(state_file),
+                            '--version',
+                            '2.17.3',
+                            '--previous-sdk-release',
+                            'sdk-2.17.2',
+                            '--release-target',
+                            'candidate',
+                        ],
+                    )
+                self.assertEqual(
+                    result.exit_code, 0 if clean else 1, result.output
+                )
+                context = regenerate.call_args.args[0]
+                self.assertEqual(context.metadata.release_type, 'patch')
+                self.assertEqual(context.fork_remote, '')
+                self.assertEqual(context.previous_sdk_release, 'sdk-2.17.2')
+                self.assertFalse(state_file.exists())
+                self.assertIn(
+                    'Review' if clean else 'conflict markers', result.output
+                )
+
+    def test_invalid_or_missing_inputs_never_regenerate(self):
+        for options in (
+            [],
+            ['--version', 'invalid'],
+            ['--version', '2.17.3', '--product', 'unknown'],
+        ):
+            with (
+                self.subTest(options=options),
+                TemporaryDirectory() as directory,
+            ):
+                with (
+                    mock.patch(
+                        'kfpr.cli.regenerate_release_notes'
+                    ) as regenerate,
+                    mock.patch.object(ReleaseState, 'save') as save,
+                ):
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'regenerate-notes',
+                            '--product',
+                            'backend',
+                            '--state-file',
+                            str(Path(directory) / 'missing.json'),
+                            *options,
+                        ],
+                    )
+                self.assertEqual(result.exit_code, 2, result.output)
+                regenerate.assert_not_called()
+                save.assert_not_called()

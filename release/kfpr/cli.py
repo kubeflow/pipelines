@@ -1,5 +1,6 @@
 """Typer CLI for Kubeflow Pipelines release automation."""
 
+import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -20,9 +21,21 @@ from .core import (
     validate_state,
     watch_latest_workflow_run,
 )
-from .steps import STEP_HANDLERS, Step, build_steps, manual_checklist, run_steps
+from .steps import (
+    STEP_HANDLERS,
+    Step,
+    build_steps,
+    manual_checklist,
+    regenerate_release_notes,
+    run_steps,
+)
 
 HELP_OPTION_NAMES = ['-h', '--help']
+
+
+class NotesProduct(str, Enum):
+    backend = 'backend'
+    sdk = 'sdk'
 
 
 class ImageQualification(str, Enum):
@@ -354,6 +367,78 @@ def promote_latest(
     from .promotion import dispatch
 
     dispatch(version, dry_run=dry_run)
+
+
+@app.command(
+    'regenerate-notes',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
+def regenerate_notes(
+    product: NotesProduct = typer.Option(
+        ..., help='Release notes to regenerate: backend or sdk.'
+    ),
+    state_file: Path = typer.Option(
+        Path(STATE_FILE), help='Path to checkpoint state file.'
+    ),
+    version: Optional[str] = typer.Option(None, help='Release version.'),
+    previous_release: Optional[str] = typer.Option(
+        None, help='Previous backend release tag.'
+    ),
+    previous_sdk_release: Optional[str] = typer.Option(
+        None, help='Previous SDK release tag.'
+    ),
+    release_target: Optional[str] = typer.Option(
+        None, help='Git ref for release contents.'
+    ),
+) -> None:
+    """Regenerate a local notes preview while preserving handwritten edits."""
+    state = _load_state(state_file)
+    answers = state.answers
+    selected_version = (
+        version if version is not None else answers.get('version')
+    )
+    if not selected_version:
+        raise typer.BadParameter(
+            'Provide a release version or an existing checkpoint.',
+            param_hint='--version',
+        )
+    try:
+        metadata = ReleaseMetadata.from_version(
+            str(answers.get('release_type', 'patch')), str(selected_version)
+        )
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint='--version') from error
+    root = Path(
+        subprocess.check_output(
+            ['git', 'rev-parse', '--show-toplevel'], text=True
+        ).strip()
+    )
+    context = ReleaseContext(
+        root=root,
+        state=state,
+        runner=CommandRunner(dry_run=True),
+        metadata=metadata,
+        fork_remote=str(answers.get('fork_remote', '')),
+        include_backend=product == NotesProduct.backend,
+        include_sdk=product == NotesProduct.sdk,
+        previous_release=previous_release
+        if previous_release is not None
+        else str(answers.get('previous_release', '')),
+        previous_sdk_release=previous_sdk_release
+        if previous_sdk_release is not None
+        else str(answers.get('previous_sdk_release', '')),
+        release_target=release_target
+        if release_target is not None
+        else str(answers.get('release_target', '')),
+    )
+    if not regenerate_release_notes(context, product.value):
+        typer.echo(
+            'Resolve the conflict markers in the preview, then review it with the individual release preview command before publishing.'
+        )
+        raise typer.Exit(1)
+    typer.echo(
+        'Release notes preview regenerated. Review it before publication.'
+    )
 
 
 @app.command('steps', context_settings={'help_option_names': HELP_OPTION_NAMES})

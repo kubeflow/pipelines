@@ -36,6 +36,7 @@ from .core import (
 )
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
+from .previews import has_conflicts, regenerate_preview
 from .ranges import ReleaseRange, commit_date, read_commits, resolve_range
 
 
@@ -1283,6 +1284,25 @@ def _sdk_release_is_consolidated(context: ReleaseContext) -> bool:
     return 'server_api' in contents
 
 
+def _release_preview_path(context: ReleaseContext, tag: str) -> Path:
+    state_path = context.state.path.resolve()
+    return state_path.parent / f'{state_path.stem}-notes' / f'{tag}.md'
+
+
+def regenerate_release_notes(context: ReleaseContext, product: str) -> bool:
+    """Refresh an existing preview without publishing or changing
+    checkpoints."""
+    if product not in ('backend', 'sdk'):
+        raise ValueError('Choose backend or sdk for preview regeneration.')
+    selected = _notes_range(context, product, publishing=True)
+    tag = context.metadata.sdk_tag if product == 'sdk' else context.metadata.tag
+    render = _sdk_release_body if product == 'sdk' else _backend_release_body
+    path = _release_preview_path(context, tag)
+    clean = regenerate_preview(path, selected, render(context, selected))
+    print(f'Release notes preview: {path}')
+    return clean
+
+
 def _release_notes_preview(
     context: ReleaseContext,
     tag: str,
@@ -1290,8 +1310,7 @@ def _release_notes_preview(
     selected: ReleaseRange,
 ) -> Path:
     """Create or reuse editable notes, then review them before publication."""
-    state_path = context.state.path.resolve()
-    path = state_path.parent / f'{state_path.stem}-notes' / f'{tag}.md'
+    path = _release_preview_path(context, tag)
     provenance_path = path.with_suffix('.json')
     if path.exists():
         try:
@@ -1306,22 +1325,34 @@ def _release_notes_preview(
             for key in ('base_sha', 'target_sha')
         ):
             raise ValueError(
-                f'Release range changed for {path}. Move the preview and sidecar aside, '
-                'regenerate, and review the new range before publishing.'
+                f'Release range changed for {path}. Run kfpr regenerate-notes '
+                'with the selected range, then review the merged preview before publishing.'
             )
     else:
         notes = render()
         if not notes.strip():
             raise ValueError(f'Release notes for {tag} are empty.')
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(notes.rstrip() + '\n')
+        notes = notes.rstrip() + '\n'
+        path.write_text(notes)
         provenance_path.write_text(
-            json.dumps(selected.as_dict(), indent=2) + '\n'
+            json.dumps(
+                {**selected.as_dict(), 'generated_notes': notes}, indent=2
+            )
+            + '\n'
         )
     print(f'Release notes preview: {path}')
     print(path.read_text())
+    if has_conflicts(path.read_text()):
+        raise ValueError(
+            f'Resolve merge conflict markers in {path} before publishing.'
+        )
     if not context.runner.dry_run:
         confirm(f'Review and edit {path}, then publish these release notes?')
+    if has_conflicts(path.read_text()):
+        raise ValueError(
+            f'Resolve merge conflict markers in {path} before publishing.'
+        )
     if not path.read_text().strip():
         raise ValueError(
             f'Release notes are empty: {path}. Edit them before retrying.'

@@ -471,10 +471,38 @@ does not delete an existing release until the notes review is accepted.
 Existing previews are reused without regeneration so retries preserve your
 edits. A `<tag>.json` sidecar beside each `<tag>.md` preview records the resolved
 range; when the base or target commit changes, the CLI refuses to reuse the stale
-preview. A missing or invalid sidecar also blocks reuse. Preserve any handwritten
-edits, move both the preview and its sidecar aside, and rerun the dry run to
-generate fresh notes before reapplying the edits. Full-flow dry runs defer note
-generation; individual preview commands require existing release refs.
+preview. A missing or invalid sidecar also blocks reuse. Full-flow dry runs defer
+note generation; individual preview commands require existing release refs.
+
+To refresh an existing preview while preserving edits, run:
+
+```bash
+kfpr regenerate-notes --product backend --version 3.2.1 \
+  --previous-release 3.2.0 --release-target refs/tags/3.2.1 \
+  --state-file /tmp/kfp-release-state.json
+
+kfpr regenerate-notes --product sdk --version 3.2.1 \
+  --previous-sdk-release sdk-3.2.0 --release-target refs/tags/sdk-3.2.1 \
+  --state-file /tmp/kfp-release-state.json
+```
+
+Version and range options default to the saved checkpoint when available. This
+command changes only local preview files; it does not publish, create tags, or
+mark release steps complete. Targets must still match any qualified commit in
+the checkpoint.
+
+Each new preview stores its generated baseline in the JSON sidecar. Regeneration
+merges your edited Markdown with fresh generated notes using that baseline, and
+backs up the existing preview and sidecar in a uniquely named directory beside
+them. Non-overlapping edits are retained. Overlapping edits produce conflict
+markers and a nonzero exit status; edit the preview to resolve them. Publication
+and further regeneration reject unresolved markers. Then rerun the individual
+preview command to review the result before publishing.
+
+Older previews without a stored baseline cannot be merged safely. The command
+leaves them untouched: preserve their handwritten edits, move both files aside,
+create a fresh individual preview, and reapply the edits once. Subsequent
+regenerations use the saved baseline.
 Compare the notes with the final release contents before approving publication.
 Clearing a checkpoint does not delete previews.
 
