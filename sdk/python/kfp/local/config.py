@@ -225,6 +225,7 @@ class LocalExecutionConfig:
         raise_on_error: bool,
         enable_caching: bool = False,
         cache_root: Optional[str] = None,
+        workspace_is_temporary: bool = False,
     ) -> 'LocalExecutionConfig':
         # singleton pattern
         cls.instance = super(LocalExecutionConfig, cls).__new__(cls)
@@ -238,6 +239,7 @@ class LocalExecutionConfig:
         raise_on_error: bool,
         enable_caching: bool = False,
         cache_root: Optional[str] = None,
+        workspace_is_temporary: bool = False,
     ) -> None:
         permitted_runners = (SubprocessRunner, DockerRunner)
         if not isinstance(runner, permitted_runners):
@@ -256,6 +258,8 @@ class LocalExecutionConfig:
         self.raise_on_error = raise_on_error
         self.enable_caching = enable_caching
         self.cache_root = cache_root
+        # Only a workspace KFP created itself may be deleted after a run.
+        self.workspace_is_temporary = workspace_is_temporary
 
     @classmethod
     def validate(cls):
@@ -281,15 +285,18 @@ def init(
     Args:
         runner: The runner to use. Supported runners: kfp.local.SubprocessRunner and kfp.local.DockerRunner.
         pipeline_root: Destination for task outputs.
-        workspace_root: Directory to use as workspace. If None, a temporary directory will be created.
+        workspace_root: Directory to use as workspace. If None, a temporary directory will be created and removed once a pipeline run finishes. A directory provided here is left in place.
         raise_on_error: If True, raises an exception when a local task execution fails. If False, fails gracefully and does not terminate the current program.
         enable_caching: If True, enables local task output caching (off by default). Tasks with `set_caching_options(enable_caching=False)` still bypass the cache.
         cache_root: Directory used to store cache entries. If None, defaults to `{pipeline_root}/.kfp_cache`.
     """
     # updates a global config
     pipeline_root = os.path.abspath(pipeline_root)
-    if workspace_root is None:
+    workspace_is_temporary = workspace_root is None
+    if workspace_is_temporary:
         workspace_root = tempfile.mkdtemp(prefix='kfp-workspace-')
+    else:
+        workspace_root = os.path.abspath(workspace_root)
     if cache_root is not None:
         cache_root = os.path.abspath(cache_root)
 
@@ -300,6 +307,7 @@ def init(
         raise_on_error=raise_on_error,
         enable_caching=enable_caching,
         cache_root=cache_root,
+        workspace_is_temporary=workspace_is_temporary,
     )
 
     # Reset the local cache singleton so a new LocalCache is created against
