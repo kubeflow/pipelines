@@ -212,7 +212,10 @@ describe('RuntimeArtifactUtils', () => {
     ] as const) {
       expect(getArtifactContentPreviewKind({ type })).toBe(kind);
       expect(hasArtifactContentPreview({ type })).toBe(false);
-      const artifact = { type, metadata: { _kfp_preview: { version: 1, path: 'preview.json' } } };
+      const artifact = {
+        type,
+        metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+      };
       expect(hasArtifactContentPreview(artifact)).toBe(true);
       expect(isVisualizableArtifact(artifact)).toBe(true);
       expect(isVisualizableArtifact({ type, metadata: { _kfp_preview: { version: 99 } } })).toBe(

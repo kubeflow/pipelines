@@ -31,10 +31,38 @@ export class ArtifactPreviewError extends Error {
   }
 }
 
+/** Preview stored inside the artifact directory (v1, manual producers). */
+export const IN_DIRECTORY_PREVIEW_SUFFIX = '/_kfp_preview.json';
+/** Preview stored beside the artifact directory (v2 sibling, SDK default). */
+export const SIBLING_PREVIEW_SUFFIX = '.kfp-preview.json';
+export type ArtifactPreviewObjectSuffix =
+  typeof IN_DIRECTORY_PREVIEW_SUFFIX | typeof SIBLING_PREVIEW_SUFFIX;
+export const MISSING_PREVIEW_MESSAGE =
+  'The preview file is missing. Regenerate the artifact with its preview.';
+
 export interface ArtifactContentPreviewRequest {
   parent: ArtifactCoordinates<LauncherArtifactSource>;
   namespace: string;
   signal: AbortSignal;
+  /** Appended to the parent key to locate the preview object. */
+  objectSuffix: ArtifactPreviewObjectSuffix;
+}
+
+/** Maps a trusted `_kfp_preview` metadata descriptor to its storage location. */
+export function getPreviewObjectSuffix(descriptor: unknown): ArtifactPreviewObjectSuffix {
+  if (descriptor && typeof descriptor === 'object' && !Array.isArray(descriptor)) {
+    const fields = descriptor as Record<string, unknown>;
+    if (fields.version === 1 && fields.path === '_kfp_preview.json') {
+      return IN_DIRECTORY_PREVIEW_SUFFIX;
+    }
+    if (fields.version === 2 && fields.storage === 'sibling') {
+      return SIBLING_PREVIEW_SUFFIX;
+    }
+  }
+  throw new ArtifactPreviewError(
+    422,
+    'Invalid preview descriptor. Use version 1 with path "_kfp_preview.json", or version 2 with storage "sibling".',
+  );
 }
 
 /** Resolves persisted identity without URL normalization changing the object or its owner. */
@@ -71,7 +99,7 @@ export function parsePreviewParentUri(uri: string): ArtifactCoordinates<Launcher
     !isLauncherArtifactSource(coordinates.source) ||
     !key ||
     key.includes('*') ||
-    key.length + '/preview.json'.length > 1024
+    key.length + IN_DIRECTORY_PREVIEW_SUFFIX.length > 1024
   ) {
     throw new ArtifactPreviewError(
       422,
@@ -106,7 +134,7 @@ export async function readArtifactPreviewBytes(
       if (size > MAX_ARTIFACT_PREVIEW_BYTES) {
         throw new ArtifactPreviewError(
           413,
-          'Preview exceeds 64 KiB. Regenerate a smaller preview.json.',
+          'Preview exceeds 64 KiB. Regenerate a smaller _kfp_preview.json.',
         );
       }
     }
@@ -117,7 +145,7 @@ export async function readArtifactPreviewBytes(
     } catch {
       throw new ArtifactPreviewError(
         422,
-        'Preview is not valid UTF-8. Regenerate preview.json as UTF-8 JSON.',
+        'Preview is not valid UTF-8. Regenerate _kfp_preview.json as UTF-8 JSON.',
       );
     }
     return result;
