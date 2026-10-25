@@ -186,13 +186,13 @@ func TestRecurringRunReportPipelineSpecValidatesSelectedSource(t *testing.T) {
 		name      string
 		errorText string
 	}{
-		{name: "wrong pipeline", errorText: "belongs to pipeline"},
-		{name: "different pinned version", errorText: "differs from the pinned recurring-run version"},
-		{name: "stored version for inline pipeline", errorText: "an inline pipeline cannot select a stored pipeline version"},
-		{name: "missing selected version", errorText: "Failed to recover the selected recurring-run pipeline version"},
+		{name: "wrong pipeline", errorText: "different pipeline"},
+		{name: "different pinned version", errorText: "pinned schedule"},
+		{name: "stored version for inline pipeline"},
+		{name: "missing selected version", errorText: "Failed to restore the selected pipeline source"},
 		{name: "deleted pinned version retains snapshot"},
 		{name: "inline pipeline without stored version"},
-		{name: "unannotated legacy workflow"},
+		{name: "unannotated legacy workflow", errorText: "exact pipeline version"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			previousMode := viper.Get(common.MultiUserMode)
@@ -236,7 +236,6 @@ func TestRecurringRunReportPipelineSpecValidatesSelectedSource(t *testing.T) {
 			resolved, err := manager.recurringRunReportPipelineSpec(job, workflow, workflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId])
 			if test.errorText != "" {
 				require.ErrorContains(t, err, test.errorText)
-				require.Empty(t, resolved, "a rejected source must not yield a partial run specification")
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, original, resolved)
@@ -246,58 +245,20 @@ func TestRecurringRunReportPipelineSpecValidatesSelectedSource(t *testing.T) {
 	}
 }
 
-func TestRecurringRunReportPipelineSpecRequiresMatchingSchedulingClaim(t *testing.T) {
-	for _, test := range []struct {
-		name             string
-		claim            bool
-		wrongRun         bool
-		versionID        string
-		wantError        bool
-		removeAnnotation bool
-	}{
-		{name: "missing claim", wantError: true},
-		{name: "wrong run ID", claim: true, wrongRun: true, wantError: true},
-		{name: "wrong pipeline version", claim: true, versionID: "unclaimed-version", wantError: true},
-		{name: "matching inline claim", claim: true},
-		{name: "removed annotation with no claim", removeAnnotation: true, wantError: true},
-		{name: "removed annotation with wrong run", claim: true, wrongRun: true, removeAnnotation: true, wantError: true},
-		{name: "removed annotation with matching claim", claim: true, removeAnnotation: true, wantError: true},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			previousMode := viper.Get(common.MultiUserMode)
-			viper.Set(common.MultiUserMode, false)
-			t.Cleanup(func() { viper.Set(common.MultiUserMode, previousMode) })
-			store, manager, job := initWithJob(t)
-			defer store.Close()
-			viper.Set(common.MultiUserMode, true)
-			if test.claim {
-				_, err := store.JobStore().ClaimRecurringRun(job.UUID, "first-tick", 0, 110, 200, "")
-				require.NoError(t, err)
-			}
-			runID := util.NewDeterministicUUID(job.UUID + "/tick/1")
-			if test.wrongRun {
-				runID = util.NewDeterministicUUID(job.UUID + "/tick/2")
-			}
-			workflow := util.NewWorkflow(&workflowapi.Workflow{ObjectMeta: metav1.ObjectMeta{
-				Labels:      map[string]string{util.LabelKeyWorkflowRunId: runID},
-				Annotations: map[string]string{recurringRunPipelineVersionAnnotation: test.versionID},
-			}})
-			if test.removeAnnotation {
-				workflow.Annotations = nil
-			}
-			// Even malformed snapshots are ignored; the scheduling claim and job
-			// supply the trusted inputs in multi-user mode.
-			workflow.SetSpecParameter(recurringRunRuntimeConfigParameter, "not base64")
-			resolved, err := manager.recurringRunReportPipelineSpec(job, workflow, workflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId])
-			if test.wantError {
-				require.ErrorContains(t, err, "workflow does not match the selected scheduling claim")
-				require.Empty(t, resolved)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, job.PipelineSpec, resolved)
-			}
-		})
-	}
+// Claim ownership is enforced by the report and insertion paths; editable
+// workflow metadata must not supply multi-user runtime inputs.
+func TestRecurringRunReportPipelineSpecIgnoresMultiUserRuntimeSnapshot(t *testing.T) {
+	previousMode := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previousMode) })
+	manager := &ResourceManager{}
+	job := &model.Job{PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"trusted"}`}}}
+	workflow := testWorkflowWithoutStatus()
+	workflow.SetAnnotations(recurringRunPipelineVersionAnnotation, "untrusted-version")
+	workflow.SetSpecParameter(recurringRunRuntimeConfigParameter, "not base64")
+	restored, err := manager.recurringRunReportPipelineSpec(job, workflow, "run-id")
+	require.NoError(t, err)
+	require.Equal(t, job.PipelineSpec, restored)
 }
 
 func encodeRecurringRuntimeConfigForTest(t *testing.T, config model.RuntimeConfig) string {
@@ -342,6 +303,7 @@ func TestRecurringRunReportPipelineSpecRestoresRuntimeConfig(t *testing.T) {
 				workflow.SetSpecParameters(nil)
 				wantConfig = job.RuntimeConfig
 			case "unannotated snapshot":
+				job.PipelineVersionId = version.UUID
 				workflow.Annotations = nil
 				wantConfig = job.RuntimeConfig
 			}

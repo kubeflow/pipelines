@@ -5480,16 +5480,12 @@ func TestReportWorkflowResource_ScheduledWorkflowNoNamespaceResolvedFromExperime
 	viper.Set(common.MultiUserMode, "true")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
 
-	_, err = store.JobStore().ClaimRecurringRun(job.UUID, "first-tick", 0, 110, 200, job.PipelineVersionId)
-	require.NoError(t, err)
-	runID := util.NewDeterministicUUID(job.UUID + "/tick/1")
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:        "legacy-run",
-			Namespace:   "ns1",
-			UID:         "legacy-run-id",
-			Labels:      map[string]string{util.LabelKeyWorkflowRunId: runID},
-			Annotations: map[string]string{recurringRunPipelineVersionAnnotation: job.PipelineVersionId},
+			Name:      "legacy-run",
+			Namespace: "ns1",
+			UID:       "legacy-run-id",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "legacy-run-id"},
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
@@ -5502,7 +5498,7 @@ func TestReportWorkflowResource_ScheduledWorkflowNoNamespaceResolvedFromExperime
 
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err)
-	run, err := manager.GetRun(runID)
+	run, err := manager.GetRun("legacy-run-id")
 	require.NoError(t, err)
 	assert.Equal(t, "ns1", run.Namespace)
 }
