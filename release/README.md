@@ -5,6 +5,24 @@ flow or any individual release step. This is the canonical maintainer runbook fo
 backend, Python SDK, and Kubernetes integration releases. For published notes and
 upgrade guidance, start at [Releases](../RELEASE.md).
 
+## Contents
+
+- [Prerequisites and access](#prerequisites-and-access)
+- [Quick start](#quick-start)
+- [Choose the release scope](#choose-the-release-scope)
+- [Select explicit release-note ranges](#select-explicit-release-note-ranges)
+- [Preparing generated release artifacts](#preparing-generated-release-artifacts)
+- [Qualification and publication gates](#qualification-and-publication-gates)
+- [Individual steps](#individual-steps)
+- [Maintainer container architectures](#maintainer-container-architectures)
+- [Review release notes before publishing](#review-release-notes-before-publishing)
+  - [Preserve backend changelog guidance](#preserve-backend-changelog-guidance)
+  - [Generate and edit a preview](#generate-and-edit-a-preview)
+  - [Worked editorial example](#worked-editorial-example)
+  - [Final release-note review checklist](#final-release-note-review-checklist)
+- [Recovery helpers](#recovery-helpers)
+- [Commands](#commands)
+
 ## Prerequisites and access
 
 Use a clean, dedicated checkout with the intended release branch and comparison
@@ -432,6 +450,19 @@ under `Generated changes`. Handwritten text is preserved; the new development
 section starts with an empty template. Review the version PR for duplicate
 entries and accuracy before merging it.
 
+### Preserve backend changelog guidance
+
+Backend preparation moves handwritten `## Unreleased` notes into the new version
+section and leaves an empty `Unreleased` heading for future work. Historical
+sections remain unchanged. Repeating preparation is a no-op only when the existing
+version section exactly matches generated output. A section containing authored
+notes or later edits is left untouched and preparation stops for manual review;
+keep those notes and resume after verifying the release preparation changes.
+SDK-only notes require an SDK or shared API scope; unknown and unscoped commits
+are included only in backend notes.
+
+### Generate and edit a preview
+
 Both `create-backend-release` and `create-sdk-release` write an editable Markdown
 preview before creating a GitHub release. With the default checkpoint, previews
 are `release-state-notes/<version>.md` and
@@ -545,6 +576,96 @@ previews. Routine maintenance is omitted unless it carries breaking, security,
 or deprecation impact. Add concise highlights and migration guidance to the
 generated entries; preserve the link to the versioned `sdk/RELEASE.md`.
 
+### Worked editorial example
+
+This fictional SDK release illustrates editing technique, not actual KFP behavior,
+API changes, compatibility, or release evidence. The excerpts omit generated PR
+links, installation instructions, and the comparison footer for brevity; retain
+those links and instructions in the real preview.
+
+Suppose the generated entries read:
+
+```markdown
+### Breaking changes
+
+- **sdk**: reject duplicate output names
+  Duplicate output names now cause a compilation error.
+
+### Features
+
+- **sdk**: report the task name in compilation errors
+
+### Bug fixes
+
+- **sdk**: preserve zero-valued defaults
+```
+
+Before editing, the release manager checks the changes and confirms the migration
+steps with their authors. In this scenario, qualification tested the SDK with the
+matching backend; no evidence covers older backends. A tracked limitation also
+confirms that nested-task errors still omit the parent task name. Those facts
+support the following editorial additions:
+
+```markdown
+## Highlights
+
+Compilation errors now identify the failing task, making pipeline problems easier
+to locate. Zero-valued defaults are preserved instead of being treated as missing.
+
+## Action required
+
+If a component declares duplicate output names, rename them and update downstream
+references before recompiling. Previously these declarations compiled; this SDK
+rejects them with a compilation error. Recompile affected pipelines before
+submitting them with the upgraded SDK.
+
+## Compatibility
+
+Qualification tested this SDK with the matching backend release. Older backend
+combinations were not evaluated; this result does not establish support for them.
+
+## Known issues
+
+Compilation errors in nested tasks omit the parent task name. Use the task name
+and pipeline source to locate the failing task while this limitation is open.
+```
+
+For a real release, replace relative terms such as "this SDK" and "matching
+backend" with exact versions. Link qualification evidence and the supported-version
+policy separately, and link the known issue and any longer migration guide.
+Keep categorized changes and their PR links below the editorial summary; remove
+accidental duplicate bullets, but retain detailed breaking-change guidance.
+A highlight can summarize an entry without copying its wording. Omit unused
+sections only after review, rather than inferring that no known issues exist.
+
+### Final release-note review checklist
+
+Complete this check on the actual Markdown file immediately before accepting the
+publication prompt, including when resuming a release:
+
+- [ ] Confirm the product, version, previous tag, target SHA, and comparison link
+  match the intended release line and qualified artifacts.
+- [ ] Preserve handwritten SDK/backend guidance and review regenerated edits;
+  remove accidental duplicates and unresolved merge markers.
+- [ ] Explain who is affected by each breaking change or deprecation, the old and
+  new behavior, required actions, and replacements. State removal dates or
+  versions only when confirmed.
+- [ ] Verify compatibility claims against exact-version evidence and policy;
+  distinguish tested, supported, and unevaluated combinations. Check known issues
+  and workarounds with their owners.
+- [ ] Open migration, installation, issue, PR, and comparison links. Check that
+  versioned SDK notes and installation instructions match the artifacts being
+  published; preserve generated provenance links.
+- [ ] Run `kfpr validate-notes PATH`, review every warning, and finish or remove
+  editorial prompts and empty sections. A successful exit alone is not approval:
+  editorial warnings are advisory.
+- [ ] Read the final file as an upgrading user, then accept the publication prompt
+  only after the release qualification and publication gates are satisfied.
+
+On the next release, record unclear instructions or missing evidence encountered
+during preparation and publication, then update this runbook from that experience.
+A documentation example is not a substitute for a completed release rehearsal.
+
 ## Recovery helpers
 
 ```bash
@@ -636,14 +757,3 @@ index by digest to `latest`, and verifies the result and unchanged versioned tag
 It never rebuilds images or uploads SDK packages. Evidence includes previous and
 promoted digests, including partial progress if a registry operation fails.
 Only releases without a newer published stable backend release may be promoted.
-
-### Preserve backend changelog guidance
-
-Backend preparation moves handwritten `## Unreleased` notes into the new version
-section and leaves an empty `Unreleased` heading for future work. Historical
-sections remain unchanged. Repeating preparation is a no-op only when the existing
-version section exactly matches generated output. A section containing authored
-notes or later edits is left untouched and preparation stops for manual review;
-keep those notes and resume after verifying the release preparation changes.
-SDK-only notes require an SDK or shared API scope; unknown and unscoped commits
-are included only in backend notes.
