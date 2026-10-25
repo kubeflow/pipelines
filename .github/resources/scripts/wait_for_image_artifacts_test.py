@@ -36,11 +36,17 @@ ARTIFACTS = (
 
 
 class WaitForImageArtifactsTest(unittest.TestCase):
+    def test_requires_explicit_artifact_selection(self):
+        result, polls = self._run(ready_after=1, requested_artifacts=())
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('Specify at least one', result.stderr)
+        self.assertEqual(polls, 0)
+
     def _run(
         self,
         *,
         ready_after: int,
-        requested_artifacts: tuple[str, ...] = (),
+        requested_artifacts: tuple[str, ...] = ARTIFACTS,
         available_artifacts: tuple[str, ...] = ARTIFACTS,
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),

@@ -48,18 +48,6 @@ tool_output_files() {
 ci_artifact_files() {
   local kind="${1:?Expected artifact inventory command}" architecture image file attempt
   case "$kind" in
-    deploy-image-files)
-      case "${2:-false}" in
-        true|false) ;;
-        *) echo "Expected true or false for Modelcar fixture" >&2; return 1 ;;
-      esac
-      for image in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
-        printf '%s/%s.tar\n' "$image" "$image"
-      done
-      if [[ "${2:-false}" == true ]]; then
-        printf '%s\n' 'runtime-base-images/modelcar.tar'
-      fi
-      ;;
     branch-image-files)
       for image in "${BRANCH_CI_IMAGE_ARTIFACTS[@]}"; do
         printf '%s/%s.tar\n' "$image" "$image"

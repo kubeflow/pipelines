@@ -52,7 +52,7 @@ inputs:
     required: false
     default: 'false'
   prepare_cache_fixtures:
-    description: "Build offline current-SDK fixtures for API cache scenarios"
+    description: "Build offline released-SDK fixtures for API cache scenarios"
     required: false
     default: 'false'
   required_migration_specs:

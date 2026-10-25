@@ -144,17 +144,22 @@ class RuntimeImageCacheTest(unittest.TestCase):
         self.assertEqual(restore['with']['path'], producer_paths)
         self.assertEqual(restore['uses'], producer_restore['uses'])
         self.assertNotIn('restore-keys', restore['with'])
-        for path in (
-            '.github/resources/runtime-base-images.txt',
-            '.github/resources/scripts/helper-functions.sh',
-            '.github/resources/scripts/build-runtime-base-images.sh',
-            '.github/workflows/runtime-base-images.yml',
-            'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile',
-        ):
-            self.assertIn(path, configure['run'])
-        self.assertIn(
-            'runtime-base-images-${archive_fingerprint}-$(date -u +%F)',
-            configure['run'],
+        producer_configure = next(
+            step
+            for step in producer['steps']
+            if step.get('id') == 'configure-runtime-base-images'
+        )
+        identity_command = 'python3 .github/resources/scripts/runtime_base_image_artifacts.py identity >> "$GITHUB_OUTPUT"'
+        self.assertIn(identity_command, configure['run'])
+        self.assertIn(identity_command, producer_configure['run'])
+        stage = next(
+            step
+            for step in steps
+            if step.get('id') == 'runtime-image-cache-files'
+        )
+        self.assertEqual(
+            stage['env']['IMAGE_DIRECTORY'],
+            '${{ inputs.image_path }}/runtime-base-images',
         )
         self.assertFalse(
             any('actions/cache/save@' in step.get('uses', '') for step in steps)

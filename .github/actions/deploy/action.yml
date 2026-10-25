@@ -66,14 +66,7 @@ runs:
       id: runtime-image-cache-key
       shell: bash
       run: |
-        archive_fingerprint=$(python3 \
-          .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
-          .github/resources/runtime-base-images.txt \
-          .github/resources/scripts/helper-functions.sh \
-          .github/resources/scripts/build-runtime-base-images.sh \
-          .github/workflows/runtime-base-images.yml \
-          test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
-        echo "cache-key=runtime-base-images-${archive_fingerprint}-$(date -u +%F)" >> "$GITHUB_OUTPUT"
+        python3 .github/resources/scripts/runtime_base_image_artifacts.py identity >> "$GITHUB_OUTPUT"
 
     - name: Restore runtime base image cache
       id: runtime-image-cache
@@ -92,7 +85,7 @@ runs:
         CACHE_OUTCOME: ${{ steps.runtime-image-cache.outcome }}
         CACHE_HIT: ${{ steps.runtime-image-cache.outputs.cache-hit }}
         CACHE_DIRECTORY: runtime-base-images-cache
-        IMAGE_DIRECTORY: images_${{ github.run_id }}/runtime-base-images
+        IMAGE_DIRECTORY: ${{ inputs.image_path }}/runtime-base-images
       run: bash .github/resources/scripts/stage-runtime-image-cache.sh
 
     # Start the largest transfer while the branch images are still building.
@@ -113,7 +106,7 @@ runs:
       uses: ./.github/actions/download-artifact-with-retry
       with:
         name: runtime-base-images
-        path: "images_${{ github.run_id }}/runtime-base-images"
+        path: "${{ inputs.image_path }}/runtime-base-images"
         required-files: ${{ steps.runtime-image-artifacts.outputs.required-files }}
 
     - name: Load Runtime Base Images Into Kind
@@ -161,7 +154,7 @@ runs:
     - name: Download Docker Images
       uses: ./.github/actions/download-artifact-with-retry
       with:
-        path: "images_${{ github.run_id }}"
+        path: "${{ inputs.image_path }}"
         pattern: ${{ steps.image-artifacts.outputs.artifact-pattern }}
         required-files: ${{ steps.image-artifacts.outputs.required-files }}
 

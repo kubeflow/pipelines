@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Build the checked-out SDK runtime once for the cache scenarios in this cluster.
+# Preinstall each released SDK on its original Python base for cache scenarios.
 set -euo pipefail
 
 cluster_name=${1:?Usage: build-cache-fixture-image.sh CLUSTER_NAME OUTPUT_DIRECTORY}
@@ -29,19 +29,26 @@ node=${nodes%%$'\n'*}
 # Deployment already verified this exact preloaded base. Export it back to the
 # host so preparing the fixture cannot introduce another registry dependency.
 build_context=$(mktemp -d)
-archive="$build_context/base.tar"
 trap 'rm -rf "$build_context"' EXIT
-docker exec "$node" ctr --namespace=k8s.io images export --platform linux/amd64 - docker.io/library/python:3.12 > "$archive"
-docker load --input "$archive"
-rm "$archive"
-mkdir -p "$build_context/sdk/python"
-cp -R sdk/python/kfp "$build_context/sdk/python/"
 cp backend/test/v2/resources/cache-image/Dockerfile "$build_context/Dockerfile"
-# Legacy Docker uses the daemon's loaded image instead of BuildKit resolving
-# the FROM tag against a registry. No package installation is needed.
-DOCKER_BUILDKIT=0 docker build --network=none --pull=false \
-  --file "$build_context/Dockerfile" \
-  --tag kfp-cache-fixture:ci "$build_context"
-kind load docker-image --name "$cluster_name" kfp-cache-fixture:ci
+# Prepare released wheels once here, never in executor pods. Version 2.13.0
+# is published only as an sdist; pip builds that wheel without repository sources.
+# Keep the fixture's --no-deps installation behavior and exact released version.
+matrix=$(python .github/resources/scripts/prepare_cache_fixtures.py --image-matrix)
+while read -r base version image; do
+  archive="$build_context/base.tar"
+  docker exec "$node" ctr --namespace=k8s.io images export --platform linux/amd64 - "docker.io/library/$base" > "$archive"
+  docker load --input "$archive"
+  rm "$archive"
+  mkdir -p "$build_context/wheels"
+  python -m pip wheel --disable-pip-version-check --retries 3 --timeout 30 \
+    --no-deps --wheel-dir "$build_context/wheels" "kfp==$version"
+  # Use the daemon's preloaded image; installation itself stays offline.
+  DOCKER_BUILDKIT=0 docker build --network=none --pull=false \
+    --build-arg "PYTHON_BASE=$base" --build-arg "KFP_VERSION=$version" \
+    --file "$build_context/Dockerfile" --tag "$image" "$build_context"
+  kind load docker-image --name "$cluster_name" "$image"
+  rm -rf "$build_context/wheels"
+done <<< "$matrix"
 # Reuse the readiness helper interpreter: its Kubernetes client installs PyYAML.
 python .github/resources/scripts/prepare_cache_fixtures.py "$output_directory"

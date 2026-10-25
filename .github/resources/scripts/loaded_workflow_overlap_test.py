@@ -174,7 +174,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         )
         self.assertEqual(
             runtime_download['with']['path'],
-            'images_${{ github.run_id }}/runtime-base-images',
+            '${{ inputs.image_path }}/runtime-base-images',
         )
         self.assertNotIn('pattern', runtime_download['with'])
         self.assertEqual(
@@ -182,7 +182,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             '${{ steps.image-artifacts.outputs.artifact-pattern }}',
         )
         self.assertEqual(
-            branch_download['with']['path'], 'images_${{ github.run_id }}'
+            branch_download['with']['path'], '${{ inputs.image_path }}'
         )
         runtime_load = next(
             step

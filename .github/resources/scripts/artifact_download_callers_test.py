@@ -294,21 +294,10 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                         f'runtime-base-images/{name}' for name in runtime
                     }
                     self.assertFalse(runtime_paths & branch)
-                    # Splitting the downloads must retain the original complete
-                    # deployment inventory, including the optional fixture.
-                    result = subprocess.run(
-                        [
-                            'bash',
-                            str(inventory),
-                            'deploy-image-files',
-                            modelcar,
-                        ],
-                        text=True,
-                        capture_output=True,
-                        check=True,
-                    )
                     self.assertEqual(
-                        runtime_paths | branch, set(result.stdout.splitlines())
+                        runtime_paths | branch,
+                        {f'{name}/{name}.tar' for name in built_images}
+                        | runtime_paths,
                     )
 
     def test_branch_download_pattern_selects_only_branch_image_artifacts(self):

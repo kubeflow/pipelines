@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # This base is exported from the existing Kind preload, never pulled here.
-FROM python:3.12
-COPY sdk/python/kfp /opt/kfp-sdk/kfp
-ENV PYTHONPATH=/opt/kfp-sdk
-# Runtime components use only the standard library; compile-time imports are disabled.
-RUN _KFP_RUNTIME=true python3 -S -c "from kfp.dsl.executor_main import executor_main"
+ARG PYTHON_BASE
+FROM ${PYTHON_BASE}
+ARG KFP_VERSION
+COPY wheels /wheels
+RUN python3 -m pip install --no-index --no-deps /wheels/kfp-${KFP_VERSION}-*.whl && rm -rf /wheels
+ENV _KFP_RUNTIME=true
+RUN python3 -c "from kfp.dsl.executor_main import executor_main"

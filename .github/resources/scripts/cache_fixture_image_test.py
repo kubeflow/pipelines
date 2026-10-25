@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Cache fixture optimization preserves the IR and executes the current SDK."""
+"""Cache fixture optimization preserves the IR and retains released SDK
+runtimes."""
 
 import copy
 import json
@@ -21,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 import prepare_cache_fixtures as prepare
@@ -38,39 +40,31 @@ def source(name):
 
 
 class CacheFixtureImageTest(unittest.TestCase):
-    def test_sdk_source_changes_trigger_fixture_consumers(self):
-        paths = [
-            'sdk/python/kfp/__init__.py',
-            'sdk/python/kfp/version.py',
-            'sdk/python/kfp/dsl/__init__.py',
-            'sdk/python/kfp/dsl/executor.py',
-            'sdk/python/kfp/dsl/executor_main.py',
-            'sdk/python/kfp/dsl/types/type_annotations.py',
-        ]
-        script = """
-const gate = require('./.github/resources/scripts/ci_expected_workflows.js');
-const {inventory} = gate.loadLocalInventory(process.cwd());
-const paths = JSON.parse(process.argv[1]);
-console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow =>
-  workflow.pull_request !== null && gate.applicable(workflow.pull_request,
-    'master', [path])).map(workflow => workflow.path))));
-"""
-        result = subprocess.run(
-            ['node', '-e', script, json.dumps(paths)],
-            cwd=ROOT,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        consumers = {
-            '.github/workflows/api-server-tests.yml',
-            '.github/workflows/ci-scripts-tests.yml',
-        }
-        for path, selected in zip(
-            paths, json.loads(result.stdout), strict=True
-        ):
-            with self.subTest(path=path):
-                self.assertTrue(consumers.issubset(selected), selected)
+    def test_preserves_released_sdk_and_python_matrix(self):
+        with tempfile.TemporaryDirectory() as directory:
+            subprocess.run(
+                [sys.executable, str(Path(prepare.__file__)), directory],
+                check=True,
+            )
+            images = set()
+            for name, executors in prepare.FIXTURES.items():
+                prepared = list(
+                    yaml.safe_load_all((Path(directory) / name).read_text())
+                )
+                for executor, (base, version) in executors.items():
+                    expected = f'kfp-cache-fixture:{version}-python{base.split(":")[1]}'
+                    actual = prepared[0]['deploymentSpec']['executors'][
+                        executor
+                    ]['container']['image']
+                    self.assertEqual(expected, actual)
+                    images.add(actual)
+            self.assertEqual(
+                images,
+                {
+                    'kfp-cache-fixture:2.13.0-python3.12',
+                    'kfp-cache-fixture:2.14.2-python3.11',
+                },
+            )
 
     def test_only_image_and_installer_prefix_change(self):
         for name in prepare.FIXTURES:
@@ -121,14 +115,30 @@ console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow
                 'unknown.yaml', source(name), 'kfp-cache-fixture:ci'
             )
 
+    @unittest.skipUnless(
+        os.environ.get('KFP_CACHE_WHEELHOUSE'),
+        'requires prepared released wheels and original Python interpreters',
+    )
     def test_compiled_components_execute_without_installed_packages(self):
-        # -S excludes site packages, proving the copied current SDK needs no pip.
+        # Unpack the same released wheels installed in the offline images; -S excludes site packages.
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)
             for name in prepare.FIXTURES:
                 documents = prepare.transform(
                     name, source(name), 'kfp-cache-fixture:ci'
                 )
+                base, version = next(iter(prepare.FIXTURES[name].values()))
+                wheel = next(
+                    Path(os.environ['KFP_CACHE_WHEELHOUSE']).glob(
+                        f'kfp-{version}-*.whl'
+                    )
+                )
+                sdk = work / version
+                with zipfile.ZipFile(wheel) as archive:
+                    archive.extractall(sdk)
+                interpreter = os.environ[
+                    'KFP_CACHE_PYTHON_' + base.split(':')[1].replace('.', '')
+                ]
                 executors = documents[0]['deploymentSpec']['executors']
                 # The consumer must run after the producer, as in the PVC DAG.
                 for key in sorted(executors, reverse=True):
@@ -151,7 +161,7 @@ console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow
                     }
                     result = subprocess.run(
                         [
-                            sys.executable,
+                            interpreter,
                             '-S',
                             '-m',
                             'kfp.dsl.executor_main',
@@ -164,7 +174,7 @@ console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow
                         ],
                         env={
                             **os.environ,
-                            'PYTHONPATH': str(ROOT / 'sdk/python'),
+                            'PYTHONPATH': str(sdk),
                             '_KFP_RUNTIME': 'true',
                         },
                         capture_output=True,
@@ -205,9 +215,10 @@ console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow
                     '  echo test-control-plane\n'
                     'fi\n'
                     'if [[ "$(basename "$0") $*" == *"$FAIL_COMMAND"* ]]; then exit 1; fi\n'
+                    'if [[ "$*" == *--image-matrix* ]]; then echo "python:3.12 2.13.0 kfp-cache-fixture:2.13.0-python3.12"; fi\n'
                 )
                 stub.chmod(0o755)
-            for failure in ('docker exec', 'kind load'):
+            for failure in ('docker exec', 'python -m pip wheel', 'kind load'):
                 with self.subTest(failure=failure):
                     log = work / 'commands'
                     log.write_text('')
@@ -234,7 +245,10 @@ console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow
                         text=True,
                     )
                     self.assertNotEqual(0, result.returncode)
-                    self.assertNotIn('python ', log.read_text())
+                    self.assertNotIn(
+                        'prepare_cache_fixtures.py ' + str(work / 'output'),
+                        log.read_text(),
+                    )
                     if failure == 'docker exec':
                         self.assertNotIn('docker build', log.read_text())
 
@@ -246,19 +260,25 @@ console.log(JSON.stringify(paths.map(path => inventory.workflows.filter(workflow
             ROOT / 'backend/test/v2/resources/cache-image/Dockerfile'
         ).read_text()
         self.assertIn(
-            'images export --platform linux/amd64 - docker.io/library/python:3.12',
+            'images export --platform linux/amd64 - "docker.io/library/$base"',
             script,
         )
         self.assertIn(
             'DOCKER_BUILDKIT=0 docker build --network=none --pull=false', script
         )
         self.assertIn(
-            'kind load docker-image --name "$cluster_name" kfp-cache-fixture:ci',
+            'kind load docker-image --name "$cluster_name" "$image"', script
+        )
+        self.assertIn(
+            '--build-arg "PYTHON_BASE=$base" --build-arg "KFP_VERSION=$version"',
             script,
         )
-        self.assertIn('COPY sdk/python/kfp /opt/kfp-sdk/kfp', dockerfile)
-        self.assertIn('ENV PYTHONPATH=/opt/kfp-sdk', dockerfile)
-        self.assertNotIn('pip install', dockerfile)
+        self.assertIn('FROM ${PYTHON_BASE}', dockerfile)
+        self.assertIn(
+            'pip install --no-index --no-deps /wheels/kfp-${KFP_VERSION}-*.whl',
+            dockerfile,
+        )
+        self.assertNotIn('sdk/python', script + dockerfile)
 
 
 if __name__ == '__main__':

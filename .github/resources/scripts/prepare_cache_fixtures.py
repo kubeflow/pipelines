@@ -44,7 +44,11 @@ def installer(version):
     )
 
 
-def transform(name, documents, image):
+def fixture_image(base, version):
+    return f'kfp-cache-fixture:{version}-python{base.split(":")[1]}'
+
+
+def transform(name, documents, image=None):
     """Change only the image and SDK installer prefix."""
     if name not in FIXTURES or not documents:
         raise ValueError(f'Unsupported cache fixture: {name}')
@@ -66,21 +70,33 @@ def transform(name, documents, image):
             raise ValueError(
                 f'Unexpected SDK installer or executor command in {name}'
             )
-        container['image'] = image
+        container['image'] = image or fixture_image(base, version)
         container['command'] = command[3:]
     return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('output', type=Path)
-    parser.add_argument('--image', default='kfp-cache-fixture:ci')
+    parser.add_argument('output', type=Path, nargs='?')
+    parser.add_argument('--image-matrix', action='store_true')
     args = parser.parse_args()
+    if args.image_matrix:
+        for base, version in sorted(
+            {
+                pair
+                for executors in FIXTURES.values()
+                for pair in executors.values()
+            }
+        ):
+            print(base, version, fixture_image(base, version))
+        return
+    if args.output is None:
+        parser.error('output is required unless --image-matrix is used')
     prepared = {}
     for name in FIXTURES:
         source = ROOT / 'backend/test/v2/resources' / name
         documents = list(yaml.safe_load_all(source.read_text()))
-        prepared[name] = transform(name, documents, args.image)
+        prepared[name] = transform(name, documents)
     args.output.mkdir(parents=True, exist_ok=True)
     for name, documents in prepared.items():
         (args.output / name).write_text(
