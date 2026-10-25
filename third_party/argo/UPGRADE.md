@@ -28,13 +28,13 @@ Track the broader migration work in
 From the repository root, select an exact stable tag:
 
 ```bash
-ARGO_TAG=v4.1.5
+ARGO_TAG=v4.1.6
 make -C third_party/argo update ARGO_VERSION="${ARGO_TAG}"
 ```
 
-The command updates `VERSION` and every maintained reference, including `go.mod`
-and `go.sum` through `go mod tidy`. It validates the complete edit plan and resolves
-Go dependencies before writing tracked files; failed validation or dependency
+The command updates `VERSION` and the maintained runtime, CI, and upgrade-guide
+references, including `go.mod` and `go.sum` through `go mod tidy`. It validates the
+complete edit plan and resolves Go dependencies before writing tracked files; failed validation or dependency
 resolution leaves them unchanged. It uses the installed Go compiler and rejects
 an implicit compiler or Argo module-major change. Handle major migrations and
 compiler upgrades explicitly before using this command.
@@ -53,7 +53,12 @@ remain enabled.
 
 ## Verify the upgrade
 
-1. Check the synchronized references and review the full diff:
+1. Refresh the tested patch versions in the public [compatibility notice](../../README.md)
+   for every upgrade; this notice is checked by the consistency tests and is not
+   rewritten by the update command. Update the compatibility matrix when either
+   supported release line changes. Review upstream release notes and migration
+   requirements; pin synchronization does not establish compatibility.
+2. Check the synchronized references and review the full diff:
 
    ```bash
    python3 .github/resources/scripts/sync_argo_versions.py --scope all --check
@@ -62,9 +67,6 @@ remain enabled.
    git diff
    ```
 
-2. Update the minor versions in the public [compatibility matrix](../../README.md)
-   when either supported release line changes. Review upstream release notes and
-   migration requirements; pin synchronization does not establish compatibility.
 3. Build the backend images with `make -C backend image_all` and render the Argo
    Kustomize overlays. CRDs are referenced from the upstream release rather than
    vendored, so their Git refs must be included in the upgrade.
