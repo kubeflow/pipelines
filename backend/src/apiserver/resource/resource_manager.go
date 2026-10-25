@@ -1206,29 +1206,41 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	if err := importedRunMutationError(run); err != nil {
 		return nil, err
 	}
-	if run.ExperimentId == "" {
-		defaultExperimentId, err := r.GetDefaultExperimentId()
+	if common.IsMultiUserMode() {
+		// Use the same persisted ownership that authorizes this run, so a task
+		// cannot be stored (and become a cache hit) in another namespace. The
+		// experiment is deliberately not consulted unless the run has no owner.
+		namespace, err := r.getNamespaceFromRun(run)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunUUID)
+			return nil, util.Wrapf(err, "Failed to resolve task namespace for run %v", t.RunUUID)
 		}
-		run.ExperimentId = defaultExperimentId
-	}
-
-	// Validate namespace
-	if t.Namespace == "" {
-		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+		if r.IsEmptyNamespace(namespace) {
+			return nil, util.NewInvalidInputError("Run %v has no owning namespace in multi-user mode; set the namespace of the run or its experiment", t.RunUUID)
+		}
+		if t.Namespace != "" && t.Namespace != namespace {
+			return nil, util.NewInvalidInputError("Task namespace %q does not match run namespace %q; omit the task namespace or use the run namespace", t.Namespace, namespace)
 		}
 		t.Namespace = namespace
-	}
-	if common.IsMultiUserMode() {
-		if t.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunUUID)
+	} else {
+		// Single-user task namespaces retain their experiment-based meaning;
+		// the execution namespace is not a tenant ownership boundary.
+		if run.ExperimentId == "" {
+			defaultExperimentID, err := r.GetDefaultExperimentId()
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunUUID)
+			}
+			run.ExperimentId = defaultExperimentID
 		}
-	}
-	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+		if t.Namespace == "" {
+			namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+			}
+			t.Namespace = namespace
+		}
+		if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+		}
 	}
 
 	newTask, err := r.taskStore.CreateTask(t)
@@ -3955,12 +3967,17 @@ func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
 	if err != nil {
 		return "", util.Wrapf(err, "Failed to fetch namespace from run %v due to fetching error", runId)
 	}
+	return r.getNamespaceFromRun(run)
+}
+
+// getNamespaceFromRun uses persisted run ownership, falling back to legacy experiment references.
+func (r *ResourceManager) getNamespaceFromRun(run *model.Run) (string, error) {
 	if !r.IsEmptyNamespace(run.Namespace) {
 		return run.Namespace, nil
 	}
 	namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 	if err != nil {
-		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", runId)
+		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", run.UUID)
 	}
 	return namespace, nil
 }
