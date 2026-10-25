@@ -15,11 +15,10 @@
 # Build the upstream agent from immutable source with patched, locked dependencies.
 FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS builder
 ARG AGENT_COMMIT=6264998ae706281fd068e8f3eeb3cbd42046c5b6
-ARG AGENT_SHA256=d915c04e75836b5a31dda457ff8ad9d235230e4e483f1d2fdb6d42154fb5ea3a
 WORKDIR /src
-RUN curl -fsSL "https://github.com/google/inverting-proxy/archive/${AGENT_COMMIT}.tar.gz" -o /tmp/agent.tar.gz \
-    && echo "${AGENT_SHA256}  /tmp/agent.tar.gz" | sha256sum -c - \
-    && tar -xzf /tmp/agent.tar.gz --strip-components=1 -C /src
+RUN git clone https://github.com/google/inverting-proxy.git . \
+    && git checkout --detach "${AGENT_COMMIT}" \
+    && test "$(git rev-parse HEAD)" = "${AGENT_COMMIT}"
 COPY agent.go.mod go.mod
 COPY agent.go.sum go.sum
 ENV GOTOOLCHAIN=local
@@ -42,6 +41,15 @@ RUN git clone --depth=1 --branch "${KUBECTL_VERSION}" https://github.com/kuberne
     && GOFLAGS=-mod=mod go get golang.org/x/net@v0.60.0 \
       golang.org/x/sys@v0.48.0 golang.org/x/text@v0.42.0 \
       go.opentelemetry.io/otel@v1.44.0 \
+      go.opentelemetry.io/otel/trace@v1.44.0 \
+      go.opentelemetry.io/otel/metric@v1.44.0 \
+      go.opentelemetry.io/otel/sdk@v1.44.0 \
+      go.opentelemetry.io/otel/sdk/metric@v1.44.0 \
+      go.opentelemetry.io/otel/exporters/otlp/otlptrace@v1.44.0 \
+      go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc@v1.44.0 \
+    && go list -mod=mod -m all > /out-modules.txt \
+    && awk '$1 ~ /^go.opentelemetry.io\/otel(\/|$)/ { count++; if ($2 != "v1.44.0") bad = 1 } \
+      END { exit (bad || count != 7) }' /out-modules.txt \
     && CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildvcs=true \
       -ldflags="-X k8s.io/component-base/version.gitVersion=${KUBECTL_VERSION}" \
       -o /out/kubectl ./cmd/kubectl \
@@ -98,7 +106,6 @@ COPY --from=builder /go/bin/proxy-forwarding-agent /opt/bin/proxy-forwarding-age
 COPY --from=builder /src/LICENSE /usr/share/doc/inverting-proxy/LICENSE
 
 COPY attempt-register-vm-on-proxy.sh get_proxy_url.py get_proxy_url_test.py registration_test.py /opt/proxy/
-COPY security /tmp/proxy-security
 # These run in every CI qualification build of the final runtime image.
 RUN /opt/bin/proxy-forwarding-agent --help \
     && kubectl version --client=true --output=json \
@@ -110,7 +117,6 @@ RUN /opt/bin/proxy-forwarding-agent --help \
     && test ! -e /usr/local/gcloud/google-cloud-sdk/bin/gcloud-crc32c \
     && python3 -c 'import importlib.util; import requests; assert importlib.util.find_spec("pip") is None' \
     && python3 -m unittest discover -s /opt/proxy -p '*_test.py' \
-    && python3 -m unittest discover -s /tmp/proxy-security -p '*_test.py' \
-    && rm -rf /tmp/proxy-security /opt/proxy/get_proxy_url_test.py /opt/proxy/registration_test.py
+    && rm -f /opt/proxy/get_proxy_url_test.py /opt/proxy/registration_test.py
 
 CMD ["/bin/sh", "-c", "/opt/proxy/attempt-register-vm-on-proxy.sh"]

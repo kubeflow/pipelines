@@ -57,9 +57,10 @@ removed after installation; no package metadata is deleted to hide findings.
 The Cloud SDK uses system Python; its bundled interpreter and unused
 `gcloud-crc32c` are removed. Image builds run upstream agent tests in the builder
 stage, then rerun
-registration, real endpoint discovery, binary smoke checks, and tests of this
-review tool after runtime cleanup. Test sources and this tool
-are not retained in the final runtime filesystem.
+registration, real endpoint discovery, and binary smoke checks after runtime
+cleanup. The reporting-only triage tests run separately in CI Scripts Tests,
+so they do not couple production image construction to report rendering.
+Neither registration test sources nor this tool remain in the final image.
 
 
 ## kubectl applicability review
