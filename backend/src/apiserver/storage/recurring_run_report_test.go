@@ -57,7 +57,7 @@ func TestRecurringRunReportGenerationOrdering(t *testing.T) {
 			same := reportedJob(2, enabled)
 			same.Spec.MaxConcurrency = util.Int64Pointer(5)
 			same.Spec.Workflow = &swfapi.WorkflowResource{Parameters: []swfapi.Parameter{{Name: "input", Value: "new"}}}
-			same.Spec.Trigger.PeriodicSchedule = &swfapi.PeriodicSchedule{IntervalSecond: 20}
+			same.Spec.PeriodicSchedule = &swfapi.PeriodicSchedule{IntervalSecond: 20}
 			require.NoError(t, store.UpdateJob(same))
 			stored, err = store.GetJob("1")
 			require.NoError(t, err)
