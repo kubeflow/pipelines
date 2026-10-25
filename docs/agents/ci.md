@@ -223,3 +223,24 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+## PostgreSQL image patch acceptance
+
+`postgresql-image-upgrade.yml` is an isolated image-compatibility check for the
+shipped PostgreSQL manifests. It does not enable PostgreSQL deployment in the
+2.18 release matrices or resolve the MLMD concurrency limitation in #14353.
+The path-filtered PR workflow and manual dispatch use Kind, render the candidate
+manifests, and retain their PVC, PGDATA, service-account and security settings.
+The only initial deployment override is the old same-major database image:
+18.3 for the default database and 14.7 for the legacy metadata overlay.
+
+Each lane retains the same PVC and database identity while replacing the image
+with the digest-pinned candidate from the manifest. It checks records, JSONB
+queries, indexes, a subsequent write and a further pod restart. The 18 lane calls
+KFP's real database initialization/migration code and preserves an experiment;
+the 14 lane uses the actual MLMD deployment and verifies a metadata artifact
+through gRPC before and after the database replacement and restart. This checks
+single-client persistence, not concurrent MLMD type creation. Both lanes upload
+rendered manifests, a success receipt, pod logs and volume events. Command or
+application failures cannot create a passing receipt, and pipeline `pipefail`
+preserves errors when saving console output.
