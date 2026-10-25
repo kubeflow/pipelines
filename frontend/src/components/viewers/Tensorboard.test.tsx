@@ -133,7 +133,8 @@ describe('Tensorboard', () => {
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: expect.stringContaining('tensorflow/tensorflow:'),
+      image:
+        'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a',
       podTemplateSpec: undefined,
     });
   });
@@ -162,7 +163,8 @@ describe('Tensorboard', () => {
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: expect.stringContaining('tensorflow/tensorflow:'),
+      image:
+        'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a',
       podTemplateSpec: undefined,
     });
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/new-token/');
@@ -187,7 +189,8 @@ describe('Tensorboard', () => {
     const expectedUrl = `Series1:${config.url},Series2:${config2.url}`;
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: expectedUrl,
-      image: expect.stringContaining('tensorflow/tensorflow:'),
+      image:
+        'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a',
       namespace: config.namespace,
       podTemplateSpec: undefined,
     });
@@ -201,29 +204,25 @@ describe('Tensorboard', () => {
     expect(TensorboardViewer.prototype.isAggregatable()).toBeTruthy();
   });
 
-  it('selects a version, then starts a tensorboard of the corresponding version', async () => {
-    const config = { ...DEFAULT_CONFIG };
-
+  it('preserves a configured custom image and offers only the maintained default', async () => {
+    const config = { ...DEFAULT_CONFIG, image: 'example.com/custom-tensorboard:stable' };
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
-    const startAppMock = vi.fn(() => Promise.resolve(''));
-    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
-
-    const ref = React.createRef<TensorboardViewer>();
-    render(<TensorboardViewer ref={ref} configs={[config]} />);
+    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('');
+    render(<TensorboardViewer configs={[config]} />);
     await flushPromisesInAct();
 
-    act(() => {
-      ref.current?.handleImageSelect({
-        target: { value: 'tensorflow/tensorflow:1.15.5' },
-      } as React.ChangeEvent<{ name?: string; value: unknown }>);
-    });
-
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      config.image,
+      'TensorFlow 2.21.0',
+    ]);
+    fireEvent.click(screen.getByRole('option', { name: config.image }));
     await invokeAndFlush(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
     });
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
-      image: 'tensorflow/tensorflow:1.15.5',
+      image: config.image,
       namespace: config.namespace,
       podTemplateSpec: undefined,
     });
