@@ -111,10 +111,14 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
 
   private _rootRef: ListImperativeAPI | null = null;
 
+  private _scrollTop = 0;
+
   private _setRootRef = (root: ListImperativeAPI | null): void => {
     this._rootRef = root;
     // AutoSizer measures asynchronously, so the list can mount after LogViewer.
-    this._scrollToEnd();
+    if (this.state.followNewLogs) {
+      this._scrollToEnd();
+    }
   };
 
   public componentDidUpdate(): void {
@@ -127,9 +131,10 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     return (
       <AutoSizer
         renderProp={({ height, width }) =>
-          height === undefined || width === undefined ? null : (
+          !height || !width ? null : (
             <List
               id='logViewer'
+              initialScrollTop={this._scrollTop}
               containerStyle={listContainerStyleOverride}
               width={width}
               height={height}
@@ -155,6 +160,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     scrollHeight: number;
     scrollTop: number;
   }) => {
+    this._scrollTop = info.scrollTop;
     const offsetTolerance = 20; // pixels
     const isScrolledToBottom =
       info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;

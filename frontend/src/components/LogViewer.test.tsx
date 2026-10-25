@@ -85,6 +85,28 @@ describe('LogViewer resizing and scrolling', () => {
     expect(list).toHaveStyle({ width: '800px', height: '300px' });
   });
 
+  it.each([
+    [0, 0],
+    [0, 150],
+    [640, 0],
+  ])('follows the tail when a %ix%i viewport becomes visible', (initialWidth, initialHeight) => {
+    width = initialWidth;
+    height = initialHeight;
+    const lines = Array.from({ length: 100 }, (_, index) => `log line ${index + 1}`);
+    const { rerender } = render(<LogViewer logLines={lines} />);
+    resize();
+
+    width = 640;
+    height = 150;
+    resize();
+    const list = screen.getByRole('list');
+    expect(list.scrollTop).toBe(1350);
+    expect(screen.getByText('log line 100')).toBeInTheDocument();
+
+    rerender(<LogViewer logLines={[...lines, 'new log line']} />);
+    expect(list.scrollTop).toBe(1365);
+  });
+
   it('handles an empty stream before logs arrive and after they are cleared', () => {
     const { rerender } = render(<LogViewer logLines={[]} />);
     resize();
@@ -113,9 +135,18 @@ describe('LogViewer resizing and scrolling', () => {
     rerender(<LogViewer logLines={[...lines, 'new log line']} />);
     expect(list.scrollTop).toBe(7500);
 
-    fireEvent.scroll(list, { target: { scrollTop: 14865 } });
+    width = 0;
+    height = 0;
+    resize();
+    width = 640;
+    height = 150;
+    resize();
+    const visibleList = screen.getByRole('list');
+    expect(visibleList.scrollTop).toBe(7500);
+
+    fireEvent.scroll(visibleList, { target: { scrollTop: 14865 } });
     rerender(<LogViewer logLines={[...lines, 'new log line', 'another new log line']} />);
-    expect(list.scrollTop).toBe(14880);
+    expect(visibleList.scrollTop).toBe(14880);
   });
 });
 
