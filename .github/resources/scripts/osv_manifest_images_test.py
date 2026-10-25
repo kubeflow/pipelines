@@ -205,6 +205,7 @@ spec:
             'ghcr.io/kubeflow/kfp-api-server:2.18.0',
             'ghcr.io/kubeflow/kfp-metadata-writer:2.18.0',
             'ghcr.io/kubeflow/kfp-visualization-server:2.18.0',
+            'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
             'ghcr.io/kubeflow/kfp-inverse-proxy-agent:2.18.0',
             'gcr.io/ml-pipeline/api-server:2.17.1',
             'gcr.io/ml-pipeline/frontend:2.17.1',

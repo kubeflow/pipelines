@@ -28,6 +28,7 @@ from osv_master_images import merge_published_images, repository_name
 # legacy aliases are the previously published gcr.io/ml-pipeline names.
 RELEASE_IMAGES = {
     'kfp-visualization-server': 'visualization-server',
+    'kfp-tensorboard': 'tensorboard',
     'kfp-cache-deployer': 'cache-deployer',
     'kfp-cache-server': 'cache-server',
     'kfp-metadata-envoy': 'metadata-envoy',
