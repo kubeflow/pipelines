@@ -81,15 +81,15 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         producer = RUNTIME_IMAGES_WORKFLOW.read_text(encoding='utf-8')
         consumer = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
 
-        self.assertGreaterEqual(producer.count(MODELCAR_DOCKERFILE), 3)
-        self.assertIn(MODELCAR_DOCKERFILE, consumer)
-        helper = '.github/resources/scripts/build-runtime-base-images.sh'
+        from runtime_base_image_artifacts import RUNTIME_INPUTS
+
+        self.assertIn(Path(MODELCAR_DOCKERFILE), RUNTIME_INPUTS)
+        self.assertIn(
+            Path('.github/resources/scripts/build-runtime-base-images.sh'),
+            RUNTIME_INPUTS,
+        )
         for workflow in (producer, consumer):
-            fingerprint = workflow.split('archive_fingerprint=$(', 1)[1].split(
-                ')', 1
-            )[0]
-            self.assertIn(helper, fingerprint)
-            self.assertIn(MODELCAR_DOCKERFILE, fingerprint)
+            self.assertIn('runtime_base_image_artifacts.py identity', workflow)
         self.assertIn('path: ${{ env.ARTIFACTS_PATH }}', producer)
         self.assertIn('path: ${{ env.ARTIFACTS_PATH }}', consumer)
 

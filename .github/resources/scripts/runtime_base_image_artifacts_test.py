@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import runtime_base_image_artifacts as artifacts
 
@@ -34,6 +35,19 @@ def artifact(
 
 
 class FingerprintTest(unittest.TestCase):
+    def test_identity_shares_fingerprint_and_utc_day(self):
+        with patch.object(
+            artifacts, 'fingerprint_files', return_value='source'
+        ) as fingerprint:
+            self.assertEqual(
+                artifacts.runtime_identity('2026-10-25'),
+                {
+                    'artifact-name': 'runtime-base-images-source',
+                    'cache-key': 'runtime-base-images-source-2026-10-25',
+                },
+            )
+            fingerprint.assert_called_once_with(artifacts.RUNTIME_INPUTS)
+
     def test_changes_when_any_generation_input_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             paths = [

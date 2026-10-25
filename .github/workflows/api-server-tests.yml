@@ -35,6 +35,7 @@ on:
 
   pull_request:
     paths:
+      # The offline cache fixture image copies this SDK source tree.
       - '**/pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/api-server-tests.yml'
@@ -243,6 +244,8 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' }}
           proxy: ${{ matrix.proxy }}
           test_directory: ${{ env.API_TESTS_DIR }}
           required_migration_specs: ${{ github.event_name != 'workflow_dispatch' && matrix.cache_enabled == 'true' }}
@@ -304,6 +307,8 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' }}
           upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
           required_migration_specs: 'true'
@@ -422,6 +427,8 @@ jobs:
         with:
           required_service_account_specs: ${{ steps.schedule-account.outcome == 'success' }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' && (github.event_name == 'workflow_dispatch' || matrix.test_shard == 'B') }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}

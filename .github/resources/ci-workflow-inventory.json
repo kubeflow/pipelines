@@ -10,7 +10,7 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "d5b052c2abca8947d8b6b24909c5cf7328bff40d8a64e91c430f24531f400965",
+      "header_sha256": "d83b638a2820371882d09f870c10ff5d58d8b1dbcaafad5110b4c5f717decd67",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -138,7 +138,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "f37cdbc4f943ff80f2e53f333fe4af452fc6808aa5dbad10eb9f240b5ba1e42a",
+      "header_sha256": "e58434025cfdd63212dedf319c2fafb2f232a2c1fd39aabd256b963c1aee00bc",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
