@@ -1,0 +1,82 @@
+source_package,reported_version,advisory_id,raw_occurrences_per_image_arch,trixie_status,trixie_fixed_version,trixie_urgency,trixie_nodsa_reason,tracker_url
+acl,2.3.2-2+b1,DEBIAN-CVE-2026-54369,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-54369
+acl,2.3.2-2+b1,DEBIAN-CVE-2026-54370,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-54370
+apt,3.0.3,DEBIAN-CVE-2011-3374,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2011-3374
+attr,1:2.5.2-3,DEBIAN-CVE-2026-54371,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-54371
+bzip2,1.0.8-6,DEBIAN-CVE-2026-42250,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-42250
+coreutils,9.7-3,DEBIAN-CVE-2017-18018,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2017-18018
+coreutils,9.7-3,DEBIAN-CVE-2025-5278,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2025-5278
+coreutils,9.7-3,DEBIAN-CVE-2026-56391,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2026-56391
+coreutils,9.7-3,DEBIAN-CVE-2026-56392,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2026-56392
+dash,0.5.12-12,DEBIAN-CVE-2026-102473,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2026-102473
+dash,0.5.12-12,DEBIAN-CVE-2026-102474,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2026-102474
+diffutils,1:3.10-4,DEBIAN-CVE-2026-53910,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2026-53910
+gcc-14,14.2.0-19,DEBIAN-CVE-2026-102010,3,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-102010
+gcc-14,14.2.0-19,DEBIAN-CVE-2026-95619,3,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-95619
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2010-4756,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2010-4756
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2018-20796,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2018-20796
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2019-1010022,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2019-1010022
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2019-1010023,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2019-1010023
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2019-1010024,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2019-1010024
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2019-1010025,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2019-1010025
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2019-9192,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2019-9192
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-18374,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-18374
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-19499,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-19499
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-19542,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-19542
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-5435,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-5435
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-6238,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-6238
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-6368,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-6368
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-6791,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-6791
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-77117,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-77117
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-80489,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-80489
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-8674,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-8674
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-86805,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-86805
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-89092,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-89092
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-95818,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-95818
+glibc,2.41-12+deb13u4,DEBIAN-CVE-2026-97399,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-97399
+ncurses,6.5+20250216-2,DEBIAN-CVE-2025-6141,4,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2025-6141
+ncurses,6.5+20250216-2,DEBIAN-CVE-2025-69720,4,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2025-69720
+pam,1.7.0-5,DEBIAN-CVE-2025-8941,4,undetermined,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2025-8941
+pam,1.7.0-5,DEBIAN-CVE-2026-54411,4,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-54411
+perl,5.40.1-6+deb13u1,DEBIAN-CVE-2011-4116,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2011-4116
+perl,5.40.1-6+deb13u1,DEBIAN-CVE-2026-15534,1,open,,not yet assigned,postponed,https://security-tracker.debian.org/tracker/CVE-2026-15534
+perl,5.40.1-6+deb13u1,DEBIAN-CVE-2026-82560,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-82560
+perl,5.40.1-6+deb13u1,DEBIAN-CVE-2026-9538,1,open,,not yet assigned,postponed,https://security-tracker.debian.org/tracker/CVE-2026-9538
+shadow,1:4.17.4-2,DEBIAN-CVE-2007-5686,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2007-5686
+shadow,1:4.17.4-2,DEBIAN-CVE-2024-56433,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2024-56433
+sqlite3,3.46.1-7+deb13u2,DEBIAN-CVE-2021-45346,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2021-45346
+sqlite3,3.46.1-7+deb13u2,DEBIAN-CVE-2025-70873,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2025-70873
+sqlite3,3.46.1-7+deb13u2,DEBIAN-CVE-2026-39113,1,resolved,0,unimportant,,https://security-tracker.debian.org/tracker/CVE-2026-39113
+sqlite3,3.46.1-7+deb13u2,DEBIAN-CVE-2026-50812,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-50812
+sqlite3,3.46.1-7+deb13u2,DEBIAN-CVE-2026-50813,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-50813
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2013-4392,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2013-4392
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2023-31437,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2023-31437
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2023-31438,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2023-31438
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2023-31439,2,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2023-31439
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2026-15059,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-15059
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2026-16742,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-16742
+systemd,257.13-1~deb13u1,DEBIAN-CVE-2026-40228,2,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-40228
+tar,1.35+dfsg-3.1,DEBIAN-CVE-2005-2541,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2005-2541
+tar,1.35+dfsg-3.1,DEBIAN-CVE-2026-18477,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-18477
+tar,1.35+dfsg-3.1,DEBIAN-CVE-2026-18508,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-18508
+tar,1.35+dfsg-3.1,DEBIAN-CVE-2026-5704,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-5704
+util-linux,1:2.41.5-0+deb13u1,DEBIAN-CVE-2022-0563,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2022-0563
+util-linux,1:2.41.5-0+deb13u1,DEBIAN-CVE-2026-3184,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-3184
+util-linux,1:2.41.5-0+deb13u1,DEBIAN-CVE-2026-76642,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-76642
+util-linux,1:2.41.5-0+deb13u1,DEBIAN-CVE-2026-78408,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78408
+util-linux,1:2.41.5-0+deb13u1,DEBIAN-CVE-2026-78409,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78409
+util-linux,1:2.41.5-0+deb13u1,DEBIAN-CVE-2026-78410,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78410
+util-linux,1:4.16.0-2+really2.41.5-0+deb13u1,DEBIAN-CVE-2022-0563,1,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2022-0563
+util-linux,1:4.16.0-2+really2.41.5-0+deb13u1,DEBIAN-CVE-2026-3184,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-3184
+util-linux,1:4.16.0-2+really2.41.5-0+deb13u1,DEBIAN-CVE-2026-76642,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-76642
+util-linux,1:4.16.0-2+really2.41.5-0+deb13u1,DEBIAN-CVE-2026-78408,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78408
+util-linux,1:4.16.0-2+really2.41.5-0+deb13u1,DEBIAN-CVE-2026-78409,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78409
+util-linux,1:4.16.0-2+really2.41.5-0+deb13u1,DEBIAN-CVE-2026-78410,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78410
+util-linux,2.41.5-0+deb13u1,DEBIAN-CVE-2022-0563,7,open,,unimportant,,https://security-tracker.debian.org/tracker/CVE-2022-0563
+util-linux,2.41.5-0+deb13u1,DEBIAN-CVE-2026-3184,7,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-3184
+util-linux,2.41.5-0+deb13u1,DEBIAN-CVE-2026-76642,7,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-76642
+util-linux,2.41.5-0+deb13u1,DEBIAN-CVE-2026-78408,7,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78408
+util-linux,2.41.5-0+deb13u1,DEBIAN-CVE-2026-78409,7,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78409
+util-linux,2.41.5-0+deb13u1,DEBIAN-CVE-2026-78410,7,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-78410
+zlib,1:1.3.dfsg+really1.3.1-1+b1,DEBIAN-CVE-2026-27171,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-27171
+zlib,1:1.3.dfsg+really1.3.1-1+b1,DEBIAN-CVE-2026-85091,1,open,,not yet assigned,,https://security-tracker.debian.org/tracker/CVE-2026-85091

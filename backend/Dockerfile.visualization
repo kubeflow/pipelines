@@ -28,10 +28,16 @@ WORKDIR /src
 
 COPY backend/src/apiserver/visualization/requirements.txt /src
 
+# These services do not install packages or bootstrap virtualenvs at runtime.
 RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
   && python3 -m pip install -r requirements.txt --no-cache-dir \
-  && python3 -m pip uninstall --yes pip
+  && python3 -m pip uninstall --yes pip \
+  && rm -rf /usr/local/lib/python3.11/ensurepip \
+  && python3 -c "import importlib.util; assert importlib.util.find_spec('pip') is None; assert importlib.util.find_spec('ensurepip') is None"
 
 COPY backend/src/apiserver/visualization /src
+
+# Exercise kernel execution and HTML export after removing bootstrap tooling.
+RUN python3 runtime_image_test.py
 
 ENTRYPOINT [ "python3", "server.py" ]
