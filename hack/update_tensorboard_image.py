@@ -26,6 +26,8 @@ REQUIRED_PATHS = (
     'frontend/src/components/viewers/Tensorboard.tsx',
     'frontend/src/components/viewers/Tensorboard.test.tsx',
     'frontend/src/components/viewers/__snapshots__/Tensorboard.test.tsx.snap',
+    'frontend/src/components/viewers/__snapshots__/ViewerContainer.test.tsx.snap',
+    'frontend/src/pages/__snapshots__/CompareV1.test.tsx.snap',
 )
 
 

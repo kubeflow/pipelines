@@ -105,6 +105,14 @@ runs:
           docker image rm "${{ inputs.image_registry }}/$app:ci"
         done
 
+    - name: Load TensorBoard Default Image Into Kind
+      shell: bash
+      run: |
+        ./.github/resources/scripts/load-tensorboard-image.sh \
+          "${{ inputs.image_path }}/tensorboard/tensorboard.tar" \
+          "${{ inputs.image_registry }}/tensorboard:${{ inputs.image_tag }}" \
+          "${{ inputs.cluster_name }}" VERSION
+
     - name: Load Runtime Base Images Into Kind
       shell: bash
       run: |
