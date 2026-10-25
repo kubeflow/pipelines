@@ -36,7 +36,41 @@ func TestRepoRawURLUsesQueuedCommit(t *testing.T) {
 	)
 }
 
+func TestPackagePathUsesCheckedOutCommit(t *testing.T) {
+	const sha = "abcdef0123456789abcdef0123456789abcdef0123"
+	previousPull, previousBranch := *config.PULL_NUMBER, *config.BRANCH_NAME
+	t.Cleanup(func() { *config.PULL_NUMBER = previousPull; *config.BRANCH_NAME = previousBranch })
+	for _, event := range []string{"pull_request", "workflow_dispatch", "push", "merge_group"} {
+		t.Run(event, func(t *testing.T) {
+			t.Setenv("KFP_TEST_SOURCE_SHA", sha)
+			t.Setenv("GITHUB_EVENT_NAME", event)
+			t.Setenv("GITHUB_SHA", "different-event-sha")
+			*config.PULL_NUMBER = ""
+			if event == "pull_request" {
+				*config.PULL_NUMBER = "15102"
+			}
+			*config.BRANCH_NAME = "master"
+			for _, subdir := range []string{"sdk/python", "kubernetes_platform/python"} {
+				assert.Equal(t, fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", *config.REPO_NAME, sha, subdir), getPackagePath(subdir))
+			}
+		})
+	}
+}
+
+func TestPackagePathPreservesLocalOverrides(t *testing.T) {
+	t.Setenv("KFP_TEST_SOURCE_SHA", "")
+	t.Setenv("GITHUB_EVENT_NAME", "")
+	previousPull, previousBranch := *config.PULL_NUMBER, *config.BRANCH_NAME
+	t.Cleanup(func() { *config.PULL_NUMBER = previousPull; *config.BRANCH_NAME = previousBranch })
+	*config.PULL_NUMBER = ""
+	*config.BRANCH_NAME = "release-2.18"
+	assert.Contains(t, getPackagePath("sdk/python"), "@release-2.18#")
+	*config.PULL_NUMBER = "123"
+	assert.Contains(t, getPackagePath("sdk/python"), "@refs/pull/123/merge#")
+}
+
 func TestMergeGroupPackagePathUsesQueuedCommit(t *testing.T) {
+	t.Setenv("KFP_TEST_SOURCE_SHA", "")
 	const sha = "0123456789abcdef0123456789abcdef01234567"
 	t.Setenv("GITHUB_EVENT_NAME", "merge_group")
 	t.Setenv("GITHUB_SHA", sha)
@@ -48,6 +82,7 @@ func TestMergeGroupPackagePathUsesQueuedCommit(t *testing.T) {
 }
 
 func TestMergeGroupURLsRequireQueuedCommit(t *testing.T) {
+	t.Setenv("KFP_TEST_SOURCE_SHA", "")
 	t.Setenv("KFP_TEST_FIXTURE_BASE_URL", "")
 	t.Setenv("GITHUB_EVENT_NAME", "merge_group")
 	t.Setenv("GITHUB_SHA", "")

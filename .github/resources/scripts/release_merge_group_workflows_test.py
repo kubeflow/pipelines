@@ -30,6 +30,34 @@ def workflow(name: str) -> str:
 
 class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
 
+    def test_e2e_sdk_source_uses_checkout_not_event_sha(self):
+        action = (REPOSITORY_ROOT /
+                  '.github/actions/test-and-report/action.yml').read_text()
+        assignment = next(line.strip()
+                          for line in action.splitlines()
+                          if line.strip().startswith('KFP_TEST_SOURCE_SHA='))
+        export = next(line.strip()
+                      for line in action.splitlines()
+                      if line.strip() == 'export KFP_TEST_SOURCE_SHA')
+        expected = subprocess.check_output(['git', 'rev-parse', 'HEAD'],
+                                           cwd=REPOSITORY_ROOT,
+                                           text=True).strip()
+        with tempfile.TemporaryDirectory() as outside_checkout:
+            result = subprocess.run(
+                [
+                    'bash', '-eu', '-c', assignment + '\n' + export +
+                    '\nprintenv KFP_TEST_SOURCE_SHA'
+                ],
+                cwd=outside_checkout,
+                env={
+                    **os.environ, 'WORKSPACE_ROOT': str(REPOSITORY_ROOT),
+                    'GITHUB_SHA': 'wrong-event-sha'
+                },
+                text=True,
+                capture_output=True,
+                check=True)
+        self.assertEqual(result.stdout.strip(), expected)
+
     def test_e2e_workflows_run_for_release_queue_with_read_only_tokens(self):
         for name in ('e2e-test.yml', 'e2e-test-frontend.yml'):
             with self.subTest(workflow=name):

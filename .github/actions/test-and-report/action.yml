@@ -300,6 +300,9 @@ runs:
         AUTH_TOKEN="${{ steps.configure-api.outputs.API_TOKEN }}"
         SERVICE_ACCOUNT_NAME="${{ steps.configure-api.outputs.SERVICE_ACCOUNT_NAME }}"
         WORKSPACE_ROOT="${GITHUB_WORKSPACE:-$(git rev-parse --show-toplevel)}"
+        # PR merge refs can disappear while components are still installing the SDK.
+        KFP_TEST_SOURCE_SHA="$(git -C "$WORKSPACE_ROOT" rev-parse HEAD)"
+        export KFP_TEST_SOURCE_SHA
         export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
         PORT_FORWARD_PIDS=()
         BASE_IMAGE_FLAG=""
