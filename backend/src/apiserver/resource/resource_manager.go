@@ -1241,29 +1241,44 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	if err := validateRunRuntimeUpdate(run); err != nil {
 		return nil, err
 	}
-	if run.ExperimentId == "" {
-		defaultExperimentId, err := r.GetDefaultExperimentId()
+	if common.IsMultiUserMode() {
+		// Use the same persisted ownership that authorizes this run. A task
+		// cannot select an experiment's different namespace or its own owner.
+		// Consult the experiment only for legacy runs without a stored owner.
+		namespace, err := r.GetNamespaceFromRun(run)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunID)
+			return nil, util.Wrapf(err, "Failed to resolve task namespace for run %v", t.RunID)
 		}
-		run.ExperimentId = defaultExperimentId
-	}
-
-	// Validate namespace
-	if t.Namespace == "" {
-		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+		if r.IsEmptyNamespace(namespace) {
+			return nil, util.NewInvalidInputError("Task run has no owning namespace in multi-user mode")
+		}
+		if t.Namespace != "" && t.Namespace != namespace {
+			return nil, util.NewInvalidInputError("Task namespace %q does not match run namespace %q", t.Namespace, namespace)
 		}
 		t.Namespace = namespace
-	}
-	if common.IsMultiUserMode() {
-		if t.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunID)
+		if err := util.ValidateTaskPipelineNamespace(t.PipelineName, namespace); err != nil {
+			return nil, err
 		}
-	}
-	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+	} else {
+		// Single-user task namespaces retain their existing experiment-based
+		// meaning; the execution namespace is not a tenant ownership boundary.
+		if run.ExperimentId == "" {
+			defaultExperimentID, err := r.GetDefaultExperimentId()
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunID)
+			}
+			run.ExperimentId = defaultExperimentID
+		}
+		if t.Namespace == "" {
+			namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+			}
+			t.Namespace = namespace
+		}
+		if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
+		}
 	}
 
 	newTask, err := r.taskStore.CreateTask(t)
