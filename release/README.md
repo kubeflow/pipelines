@@ -636,3 +636,14 @@ index by digest to `latest`, and verifies the result and unchanged versioned tag
 It never rebuilds images or uploads SDK packages. Evidence includes previous and
 promoted digests, including partial progress if a registry operation fails.
 Only releases without a newer published stable backend release may be promoted.
+
+### Preserve backend changelog guidance
+
+Backend preparation moves handwritten `## Unreleased` notes into the new version
+section and leaves an empty `Unreleased` heading for future work. Historical
+sections remain unchanged. Repeating preparation is a no-op only when the existing
+version section exactly matches generated output. A section containing authored
+notes or later edits is left untouched and preparation stops for manual review;
+keep those notes and resume after verifying the release preparation changes.
+SDK-only notes require an SDK or shared API scope; unknown and unscoped commits
+are included only in backend notes.

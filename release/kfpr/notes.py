@@ -25,6 +25,20 @@ _GUIDANCE_TRAILERS = {
     'DEPRECATED',
     'DEPRECATION',
 }
+# Only known metadata trailers end guidance; prose labels such as Before: do not.
+_METADATA_TRAILERS = {
+    'signed-off-by',
+    'co-authored-by',
+    'reviewed-by',
+    'acked-by',
+    'tested-by',
+    'reported-by',
+    'suggested-by',
+    'refs',
+    'fixes',
+    'closes',
+    'resolves',
+}
 _SDK_SCOPES = {
     'sdk',
     'kfp',
@@ -78,8 +92,10 @@ def _normalize_scope(scope: str) -> str:
 def _applies_to_product(scope: str, product: str) -> bool:
     scopes = {part.strip().lower() for part in re.split(r'[/,]', scope)}
     known = scopes & (_SDK_SCOPES | _BACKEND_SCOPES | _SHARED_SCOPES)
-    if product == 'all' or not known or scopes & _SHARED_SCOPES:
+    if product == 'all' or scopes & _SHARED_SCOPES:
         return True
+    if not known:
+        return product == 'backend'
     return bool(scopes & (_SDK_SCOPES if product == 'sdk' else _BACKEND_SCOPES))
 
 
@@ -101,7 +117,10 @@ def _footer_guidance(body: str) -> list[str]:
             fence_marker = fence[1]
         else:
             trailer = _TRAILER.match(body, offset)
-            if trailer:
+            if trailer and (
+                trailer.group('token') in _GUIDANCE_TRAILERS
+                or trailer.group('token').lower() in _METADATA_TRAILERS
+            ):
                 trailers.append(trailer)
         offset += len(line)
     guidance = []

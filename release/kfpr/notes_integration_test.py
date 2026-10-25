@@ -183,6 +183,44 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             self.assertNotIn('contributor instructions', text)
         self.assertIn(selected.compare_url, changelog)
 
+    def test_backend_unreleased_guidance_enters_version_and_history_survives(
+        self,
+    ):
+        path = self.root / 'CHANGELOG.md'
+        history = '## 2.1.0 (2026-01-01)\n\nOriginal history.\n'
+        path.write_text(
+            'Changelog\n\n## Unreleased\n\n### Upgrade notes\n\n'
+            'Back up the database.\n\n' + history
+        )
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        steps._update_changelog(self.context, selected)
+        text = path.read_text()
+        self.assertEqual(
+            text.split('## 2.1.1', 1)[0], 'Changelog\n\n## Unreleased\n\n'
+        )
+        self.assertIn('Back up the database.', text.split('## 2.1.1', 1)[1])
+        self.assertTrue(text.endswith(history))
+        with self.assertRaisesRegex(ValueError, 'reviewed|edited'):
+            steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), text)
+
+    def test_backend_retry_refuses_to_overwrite_edited_version(self):
+        path = self.root / 'CHANGELOG.md'
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        steps._update_changelog(self.context, selected)
+        original = path.read_text()
+        steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), original)
+        edited = original.replace(
+            'support retries', 'support retries with required migration'
+        )
+        path.write_text(edited)
+        with self.assertRaisesRegex(ValueError, 'reviewed|edited'):
+            steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), edited)
+
     def test_changed_target_rejects_preview_without_losing_edits(self):
         selected = steps._notes_range(self.context, 'sdk')
         path = steps._release_notes_preview(

@@ -278,7 +278,7 @@ the curated notes. Aliases are normalized for display and routing: `deployment` 
 `cache` and `metadata` become `backend/cache` and `backend/metadata`, `swf` becomes
 `backend/scheduled-workflow`, and `viewer` becomes `frontend/viewer`. These scopes
 appear in backend notes, not SDK-only notes. Unscoped or entirely unrecognized
-scopes apply to both release streams. Release tooling fixes with user impact remain `fix(release)`; do not hide them as housekeeping.
+scopes appear only in backend notes; SDK notes require an SDK or shared scope. Release tooling fixes with user impact remain `fix(release)`; do not hide them as housekeeping.
 
 Keep detailed SDK migration instructions under `Current Version (in development)`
 in [sdk/RELEASE.md](sdk/RELEASE.md). Release preparation preserves that handwritten

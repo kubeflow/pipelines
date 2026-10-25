@@ -150,6 +150,46 @@ class TestRenderNotes(unittest.TestCase):
         self.assertNotIn('Signed-off-by', notes)
         self.assertNotIn('Contributor <person@example.com>', notes)
 
+    def test_migration_prose_labels_do_not_end_guidance(self):
+        guidance = 'Before: old config\nAfter: new config\nNote: restart\nMigration: back up first'
+        notes = render_notes(
+            [
+                Commit(
+                    'abc123',
+                    'fix(sdk)!: migrate\n\n'
+                    'BREAKING CHANGE: Follow these steps.\n'
+                    + guidance
+                    + '\nSigned-off-by: Author <a@example.com>',
+                )
+            ],
+            'sdk',
+        )
+        for line in guidance.splitlines():
+            self.assertIn(line, notes)
+        self.assertNotIn('Signed-off-by', notes)
+
+    def test_unknown_and_infrastructure_scopes_do_not_enter_sdk_notes(self):
+        for scope in (
+            'ci',
+            'test',
+            'tooling',
+            'docs',
+            'release',
+            'new-component',
+            '',
+        ):
+            with self.subTest(scope=scope):
+                subject = (
+                    f'fix({scope}): repair tooling'
+                    if scope
+                    else 'fix: repair tooling'
+                )
+                commits = [Commit('abc123', subject)]
+                self.assertEqual(render_notes(commits, 'sdk'), '')
+                self.assertIn(
+                    'repair tooling', render_notes(commits, 'backend')
+                )
+
     def test_deprecation_guidance_is_retained(self):
         notes = render_notes(
             [
@@ -203,16 +243,14 @@ class TestRenderNotes(unittest.TestCase):
                     'correct behavior', render_notes(commits, 'backend')
                 )
 
-    def test_shared_cross_product_unknown_and_unscoped_changes_reach_both(self):
+    def test_shared_and_cross_product_changes_reach_both(self):
         for scope in (
             'api',
             'pipeline-spec',
             'kfp-pipeline-spec',
             'backend/sdk',
             'sdk, frontend',
-            'new-component',
             'SDK/RUNTIME',
-            '',
         ):
             for product in ('sdk', 'backend', 'all'):
                 with self.subTest(scope=scope, product=product):
@@ -290,10 +328,8 @@ class TestRenderNotes(unittest.TestCase):
                 commits = [
                     Commit('abc123456', f'fix({scope}): repair behavior')
                 ]
-                for product in ('sdk', 'backend'):
-                    self.assertIn(
-                        f'**{scope}**:', render_notes(commits, product)
-                    )
+                self.assertIn(f'**{scope}**:', render_notes(commits, 'backend'))
+                self.assertEqual(render_notes(commits, 'sdk'), '')
 
     def test_scope_matching_is_not_substring_matching(self):
         commits = [Commit('abc123456', 'fix(not-sdk): correct behavior')]

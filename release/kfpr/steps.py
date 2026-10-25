@@ -997,8 +997,27 @@ def _update_changelog(
     existing = re.search(rf'(?m)^## {re.escape(version)}(?:[ \n]|$)', text)
     if existing:
         end = re.search(r'(?m)^## ', text[existing.end() :])
-        suffix = text[existing.end() + end.start() :] if end else ''
-        text = text[: existing.start()] + entry + '\n' + suffix
+        stop = existing.end() + end.start() if end else len(text)
+        if text[existing.start() : stop].strip() != entry.strip():
+            raise ValueError(
+                f'CHANGELOG.md already contains reviewed or edited notes for {version}. '
+                'Review that section manually; release preparation will not overwrite it.'
+            )
+        return
+    unreleased = re.search(r'(?m)^## Unreleased[ \t]*$', text)
+    if unreleased:
+        end = re.search(r'(?m)^## ', text[unreleased.end() :])
+        stop = unreleased.end() + end.start() if end else len(text)
+        authored = text[unreleased.end() : stop].strip()
+        if authored:
+            entry = (
+                heading
+                + '\n\n'
+                + authored
+                + '\n\n'
+                + entry[len(heading) :].lstrip('\n')
+            )
+        text = text[: unreleased.end()] + '\n\n' + entry + '\n' + text[stop:]
     else:
         header, separator, history = text.partition('\n')
         text = header + '\n\n' + entry + '\n' + history.lstrip('\n')
