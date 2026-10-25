@@ -9,7 +9,7 @@ jupyter-client==8.6.3
 markupsafe>=2.1.1
 nbconvert==7.17.1
 nbformat==5.10.4
-pyarrow==14.0.1
+pyarrow==23.0.1
 scikit-learn==1.5.0
 tensorflow==2.21.0
 tensorflow-metadata==1.21.0
@@ -21,3 +21,8 @@ oauthlib>=4.0.0,<5
 urllib3>=2.8.0,<3
 multidict>=6.9.1
 soupsieve>=2.9.0
+
+# Security floors for runtime dependencies also pulled in transitively.
+Pillow>=13.0.0,<14
+aiohttp>=3.14.4,<4
+certifi>=2026.10.19
