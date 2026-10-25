@@ -6,6 +6,14 @@ and GCS through gcsfs. `S3_ENDPOINT`, AWS credentials, and Google application
 default credentials retain their normal storage-client meanings. The viewer
 controller supplies the log directory, scoped URL prefix, and bind address.
 
+The image disables GCS directory-listing caching so viewers discover event files
+created or updated by training jobs while the viewer is running. It selects the
+established gcsfs reader with `GCSFS_EXPERIMENTAL_ZB_HNS_SUPPORT=false`; standard
+GCS buckets are supported without experimental zonal/HNS storage-layout probes.
+The filesystem defaults apply to both `gs://` and `gcs://` paths. Acceptance
+checks must retain these image defaults and verify growing and rotated event
+objects without restarting the viewer.
+
 Scalar, image, and graph event viewers are supported. TensorFlow-dependent
 plugins and arbitrary training code are not included. Pipelines that require
 additional plugins can continue to supply their own viewer image. Existing

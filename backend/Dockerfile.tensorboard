@@ -22,7 +22,11 @@ RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements.t
     && mkdir /home/tensorboard \
     && chown 1000:1000 /home/tensorboard
 
-ENV HOME=/home/tensorboard
+# Training jobs update event objects outside this process; refresh GCS listings.
+# Use the established GCS reader without experimental bucket-layout probes.
+ENV FSSPEC_GS='{"use_listings_cache":false}' \
+    GCSFS_EXPERIMENTAL_ZB_HNS_SUPPORT=false \
+    HOME=/home/tensorboard
 USER 1000:1000
 EXPOSE 6006
 # The viewer controller supplies the tensorboard command and its scoped options.
