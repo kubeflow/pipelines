@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { Readable, Transform, PassThrough, pipeline } from 'stream';
-import type { Agent as HttpAgent } from 'http';
-import type { Agent as HttpsAgent } from 'https';
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import { isIP } from 'node:net';
 import * as tar from 'tar-stream';
 import peek from 'peek-stream';
@@ -443,7 +443,11 @@ async function createS3ArtifactStoreWithProviderInfo(
   );
 }
 
-const sharedS3Transport = new NodeHttpHandler();
+// Match the previous global agents: slow downloads must not exhaust a shared endpoint quota.
+const sharedS3Transport = new NodeHttpHandler({
+  httpAgent: new HttpAgent({ keepAlive: true, maxSockets: Infinity }),
+  httpsAgent: new HttpsAgent({ keepAlive: true, maxSockets: Infinity }),
+});
 
 function createConfiguredS3Store(
   config: ArtifactStoreOptions,

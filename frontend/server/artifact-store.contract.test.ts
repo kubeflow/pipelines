@@ -25,6 +25,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createS3ArtifactStore } from './artifact-store.js';
 
@@ -122,6 +123,60 @@ describe('S3 artifact store wire contract', () => {
     );
     expect(requests[0].headers.authorization).toContain(`/` + region + '/s3/aws4_request');
     expect(requests[0].headers['x-amz-security-token']).toBe('temporary-session-token');
+  });
+
+  it('serves new reads and listings while 50 downloads remain open', async () => {
+    const handle = vi.spyOn(NodeHttpHandler.prototype, 'handle');
+    cleanup.push(() => handle.mockRestore());
+    const port = await wireServer((req, res) => {
+      if (req.url!.includes('slow-')) {
+        res.writeHead(200, { 'content-length': '1000000' });
+        res.write('partial');
+      } else if (req.url!.includes('list-type=2')) {
+        res.setHeader('content-type', 'application/xml');
+        res.end('<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>');
+      } else {
+        res.end('preview');
+      }
+    });
+    const store = await createS3ArtifactStore(
+      {
+        endPoint: '127.0.0.1',
+        port,
+        useSSL: false,
+        region: 'us-east-1',
+        accessKey: credentials.accessKeyId,
+        secretKey: credentials.secretAccessKey,
+      },
+      's3',
+      'bucket',
+    );
+    const streams = await Promise.all(
+      Array.from({ length: 50 }, (_, index) => store.openRead(`slow-${index}`)),
+    );
+    cleanup.push(() => streams.forEach((stream) => stream.destroy()));
+    // HTTPS uses one shared agent; HTTP must also reuse an explicitly uncapped agent.
+    const transport = handle.mock.instances[0];
+    const agents = transport.httpHandlerConfigs();
+    expect(agents.httpAgent.maxSockets).toBe(Infinity);
+    expect(agents.httpsAgent.maxSockets).toBe(Infinity);
+    expect(agents.httpAgent.keepAlive).toBe(true);
+    expect(agents.httpsAgent.keepAlive).toBe(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    try {
+      expect(
+        await streamToString(await store.openRead('preview', { signal: controller.signal })),
+      ).toBe('preview');
+      const objects = [];
+      for await (const object of store.list('', { signal: controller.signal }))
+        objects.push(object);
+      expect(objects).toEqual([]);
+      expect(streams.every((stream) => !stream.destroyed)).toBe(true);
+    } finally {
+      clearTimeout(timeout);
+      controller.abort();
+    }
   });
 
   it('refreshes expiring default-chain credentials between actual signed requests', async () => {
