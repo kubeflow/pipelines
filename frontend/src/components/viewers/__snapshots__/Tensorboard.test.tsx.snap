@@ -28,7 +28,7 @@ exports[`Tensorboard > base component snapshot 1`] = `
               role="combobox"
               tabindex="0"
             >
-              TensorFlow 2.21.0
+              TensorBoard 2.21.0
             </div>
             <input
               aria-hidden="true"
@@ -36,7 +36,7 @@ exports[`Tensorboard > base component snapshot 1`] = `
               class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               id="viewer-tb-image-select"
               tabindex="-1"
-              value="tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a"
+              value="ghcr.io/kubeflow/kfp-tensorboard:2.17.1"
             />
             <svg
               aria-hidden="true"

@@ -1,0 +1,28 @@
+# Copyright 2026 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FROM python:3.12-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70
+
+COPY backend/src/tensorboard/requirements.txt /tmp/requirements.txt
+RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt \
+    && python -m pip uninstall --yes pip \
+    && rm /tmp/requirements.txt \
+    && mkdir /home/tensorboard \
+    && chown 1000:1000 /home/tensorboard
+
+ENV HOME=/home/tensorboard
+USER 1000:1000
+EXPOSE 6006
+# The viewer controller supplies the tensorboard command and its scoped options.
+CMD ["tensorboard", "--bind_all"]

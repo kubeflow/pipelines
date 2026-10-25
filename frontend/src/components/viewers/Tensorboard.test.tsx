@@ -133,8 +133,7 @@ describe('Tensorboard', () => {
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image:
-        'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a',
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1',
       podTemplateSpec: undefined,
     });
   });
@@ -163,8 +162,7 @@ describe('Tensorboard', () => {
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image:
-        'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a',
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1',
       podTemplateSpec: undefined,
     });
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/new-token/');
@@ -189,8 +187,7 @@ describe('Tensorboard', () => {
     const expectedUrl = `Series1:${config.url},Series2:${config2.url}`;
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: expectedUrl,
-      image:
-        'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a',
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1',
       namespace: config.namespace,
       podTemplateSpec: undefined,
     });
@@ -214,7 +211,7 @@ describe('Tensorboard', () => {
     fireEvent.mouseDown(screen.getByRole('combobox'));
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
       config.image,
-      'TensorFlow 2.21.0',
+      'TensorBoard 2.21.0',
     ]);
     fireEvent.click(screen.getByRole('option', { name: config.image }));
     await invokeAndFlush(() => {

@@ -81,8 +81,7 @@ interface TensorboardViewerState {
   errorMessage?: string;
 }
 
-const DEFAULT_TF_IMAGE =
-  'tensorflow/tensorflow:2.21.0@sha256:f325279f01a3e742a1285d8d736b7e600f72ccf8b55cc19ee0a90b8cbfce4c7a';
+const DEFAULT_TF_IMAGE = 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;
@@ -220,7 +219,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   {this._image() && this._image() !== DEFAULT_TF_IMAGE && (
                     <MenuItem value={this._image()}>{this._image()}</MenuItem>
                   )}
-                  <MenuItem value={DEFAULT_TF_IMAGE}>TensorFlow 2.21.0</MenuItem>
+                  <MenuItem value={DEFAULT_TF_IMAGE}>TensorBoard 2.21.0</MenuItem>
                 </Select>
               </FormControl>
             </div>
