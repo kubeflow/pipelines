@@ -45,12 +45,15 @@ RUN git clone --depth=1 --branch "${KUBECTL_VERSION}" https://github.com/kuberne
       go.opentelemetry.io/otel/metric@v1.44.0 \
       go.opentelemetry.io/otel/sdk@v1.44.0 \
       go.opentelemetry.io/otel/sdk/metric@v1.44.0 \
+      go.opentelemetry.io/otel/exporters/stdout/stdouttrace@v1.44.0 \
       go.opentelemetry.io/otel/exporters/otlp/otlptrace@v1.44.0 \
       go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc@v1.44.0 \
     && go list -mod=mod -m all > /out-modules.txt \
-    && awk '$1 ~ /^go.opentelemetry.io\/otel(\/|$)/ { count++; if ($2 != "v1.44.0") bad = 1 } \
-      END { exit (bad || count != 7) }' /out-modules.txt \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildvcs=true \
+    && awk '$1 == "go.opentelemetry.io/otel/metric/x" { experimental++; if ($2 != "v0.66.0") bad = 1; next } \
+      $1 ~ /^go.opentelemetry.io\/otel(\/|$)/ { stable++; if ($2 != "v1.44.0") bad = 1 } \
+      END { exit (bad || stable != 8 || experimental != 1) }' /out-modules.txt \
+      || { cat /out-modules.txt; exit 1; }
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildvcs=true \
       -ldflags="-X k8s.io/component-base/version.gitVersion=${KUBECTL_VERSION}" \
       -o /out/kubectl ./cmd/kubectl \
     && go version -m /out/kubectl > /out/kubectl.buildinfo \

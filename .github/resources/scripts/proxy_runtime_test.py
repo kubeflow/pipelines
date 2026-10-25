@@ -2,6 +2,7 @@
 
 import pathlib
 import re
+import subprocess
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -30,11 +31,40 @@ class ProxyRuntimeTest(unittest.TestCase):
             "go.opentelemetry.io/otel/metric",
             "go.opentelemetry.io/otel/sdk",
             "go.opentelemetry.io/otel/sdk/metric",
+            "go.opentelemetry.io/otel/exporters/stdout/stdouttrace",
             "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
             "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc",
         }
         self.assertEqual(set(versions), expected)
         self.assertEqual(len(set(versions.values())), 1)
+
+    def test_resolved_otel_graph_checks_stable_and_experimental_versions(self):
+        dockerfile = (ROOT / "proxy/Dockerfile").read_text()
+        check = re.search(r"awk '(.*?)' /out-modules.txt", dockerfile,
+                          re.DOTALL).group(1).replace("\\\n", "")
+        modules = dict(
+            re.findall(r"(go\.opentelemetry\.io/otel(?:/[\w/]+)?)@(v[\d.]+)",
+                       dockerfile))
+        modules["go.opentelemetry.io/otel/metric/x"] = "v0.66.0"
+
+        def validate(graph):
+            return subprocess.run(
+                ["awk", check],
+                input="\n".join(
+                    f"{name} {version}" for name, version in graph.items()),
+                text=True,
+                check=False).returncode
+
+        self.assertEqual(validate(modules), 0)
+        for name in modules:
+            with self.subTest(module=name):
+                self.assertNotEqual(validate({**modules, name: "v0.0.0"}), 0)
+                self.assertNotEqual(
+                    validate({
+                        key: value
+                        for key, value in modules.items()
+                        if key != name
+                    }), 0)
 
     def test_reporting_tests_run_outside_production_image(self):
         dockerfile = (ROOT / "proxy/Dockerfile").read_text()
