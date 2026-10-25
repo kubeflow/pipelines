@@ -9,6 +9,7 @@ on:
     branches: [release-2.18]
   pull_request:
     paths:
+      - 'proxy/**'
       - '.github/dependabot.yml'
       - '**/go.mod'
       - 'backend/api/hack/uv.sh'
@@ -94,3 +95,6 @@ jobs:
       - name: Run JUnit summary action unit tests
         working-directory: .github/actions/junit-summary
         run: python3 -m unittest discover -v -p '*_test.py'
+
+      - name: Run reporting-only proxy security tests
+        run: python3 -m unittest discover -s proxy/security -p '*_test.py'

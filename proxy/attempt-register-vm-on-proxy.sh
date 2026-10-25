@@ -60,7 +60,7 @@ INSTANCE_ZONE="${INSTANCE_ZONE##/*/}"
 # Allow providing PROXY_URL from env, so we can specify staging inverse proxy url.
 if [[ -z "${PROXY_URL}" ]]; then
   # Get latest Proxy server URL
-  wget https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json
+  curl -fsSL https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json -o proxy-agent-config.json
   PROXY_URL=$(python3 ${DIR}/get_proxy_url.py --config-file-path "proxy-agent-config.json" --location "${INSTANCE_ZONE}" --version "latest")
 fi
 if [[ -z "${PROXY_URL}" ]]; then
