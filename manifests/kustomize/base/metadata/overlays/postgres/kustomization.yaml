@@ -40,5 +40,5 @@ replacements:
     fieldPaths:
     - spec.template.spec.containers.0.args.2
     options:
-      delimiter: =
+      delimiter: "="
       index: 1
