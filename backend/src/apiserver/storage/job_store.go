@@ -72,6 +72,9 @@ type JobStoreInterface interface {
 	// Enable or disables a recurring run in the database.
 	ChangeJobMode(id string, enabled bool) error
 
+	// Change mode only if its ScheduledWorkflow generation has not been superseded.
+	ChangeJobModeAtGeneration(id string, enabled bool, generation int64) error
+
 	// Update a recurring run entry in the database.
 	UpdateJob(swf *util.ScheduledWorkflow) error
 
@@ -364,6 +367,13 @@ func (s *JobStore) DeleteJob(id string) error {
 	if _, err = tx.Exec(stateSQL, stateArgs...); err != nil {
 		return util.NewInternalServerError(err, "Failed to delete scheduling state for recurring run %s", id)
 	}
+	reportSQL, reportArgs, err := qb.Delete(q("recurring_run_report_states")).Where(sq.Eq{q("JobUUID"): id}).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build report-state deletion for recurring run %s", id)
+	}
+	if _, err = tx.Exec(reportSQL, reportArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete report state for recurring run %s", id)
+	}
 	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
 	if err != nil {
 		tx.Rollback()
@@ -451,25 +461,12 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	return j, nil
 }
 
+// ChangeJobMode retains generation-zero compatibility for callers without a
+// ScheduledWorkflow snapshot. It cannot override a recorded Kubernetes generation.
 func (s *JobStore) ChangeJobMode(id string, enabled bool) error {
-	now := s.time.Now().Unix()
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	sql, args, err := qb.
-		Update(q("jobs")).
-		SetMap(sq.Eq{
-			q("Enabled"):        enabled,
-			q("UpdatedAtInSec"): now,
-		}).
-		Where(sq.Eq{q("UUID"): id}).
-		Where(sq.Eq{q("Enabled"): !enabled}).
-		ToSql()
+	err := s.ChangeJobModeAtGeneration(id, enabled, 0)
 	if err != nil {
-		return util.NewInternalServerError(err, "Error when creating query to enable job %v to %v", id, enabled)
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		return util.NewInternalServerError(err, "Error when enabling job %v to %v", id, enabled)
+		return util.Wrapf(err, "Error when enabling job %v to %v", id, enabled)
 	}
 	return nil
 }
@@ -509,7 +506,10 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 			return util.NewInternalServerError(util.NewInvalidInputError("ScheduledWorkflow has an invalid version: %v", swf.GetVersion()), "Failed to update job %v", swf.UID)
 		}
 	}
-	return s.updateJob(swf, updateSQL)
+	if swf.Generation < 0 {
+		return util.NewInvalidInputError("ScheduledWorkflow generation must not be negative")
+	}
+	return s.updateJobAtGeneration(string(swf.UID), swf.Generation, updateSQL)
 }
 
 // UpdateJobStatus keeps the API-created job specification authoritative when
