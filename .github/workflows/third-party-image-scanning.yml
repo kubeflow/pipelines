@@ -1,4 +1,4 @@
-name: Third-party Image Evidence
+name: Third-party Image Security
 on:
   workflow_call:
 permissions:
@@ -9,6 +9,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       matrix: ${{ steps.inventory.outputs.matrix }}
+      uploads: ${{ steps.inventory.outputs.uploads }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
@@ -143,3 +144,73 @@ jobs:
           path: report
           if-no-files-found: error
           retention-days: 7
+
+
+  upload:
+    needs: [inventory, scan, report]
+    # Candidate runs validate evidence without changing production alert state.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.inventory.outputs.uploads) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: third-party-scan-${{ matrix.key }}-${{ github.run_attempt }}
+          path: evidence
+          required-files: |
+            ${{ matrix.key }}/subject.json
+            ${{ matrix.key }}/github/scan.json
+            ${{ matrix.key }}/github/scan.sarif
+      - name: Validate immutable image evidence and retain every finding
+        env:
+          IMAGE: ${{ matrix.image }}
+          IMAGE_KEY: ${{ matrix.key }}
+          PYTHONPATH: release
+        run: |
+          python - <<'PYCODE'
+          import json
+          import os
+          from pathlib import Path
+          from kfpr.osv_image_scan import validate_report
+          root = Path('evidence') / os.environ['IMAGE_KEY']
+          subject = json.loads((root / 'subject.json').read_text())
+          if subject['image'] != os.environ['IMAGE']:
+              raise ValueError('Scan image differs from inventory')
+          envelope = json.loads((root / 'github/scan.json').read_text())
+          validate_report(envelope, subject['image_id'], 'sarif')
+          raw = json.loads((root / 'github/scan.sarif').read_text())
+          if raw != envelope['sarif']:
+              raise ValueError('Raw SARIF differs from verified scan envelope')
+          PYCODE
+          python .github/resources/scripts/deduplicate_sarif.py \
+            --input "evidence/$IMAGE_KEY/github/scan.sarif" \
+            --output findings.sarif
+      - name: Checkout scanned source for attribution only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ matrix.sha }}
+          path: source
+          persist-credentials: false
+      - name: Publish third-party findings to GitHub Security
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: findings.sarif
+          category: ${{ matrix.category }}
+          sha: ${{ matrix.sha }}
+          ref: refs/heads/${{ matrix.branch }}
+          checkout_path: source

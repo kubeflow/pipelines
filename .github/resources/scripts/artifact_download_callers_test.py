@@ -46,6 +46,7 @@ CALLERS = [
     ('.github/workflows/release-qualification.yml', 'aggregate'),  # Third-party
     ('.github/workflows/third-party-image-scanning.yml', 'report'),  # Inventory
     ('.github/workflows/third-party-image-scanning.yml', 'report'),  # Scans
+    ('.github/workflows/third-party-image-scanning.yml', 'upload'),  # SARIF
     ('.github/workflows/release-branch-image-scanning.yml', 'aggregate'),
     ('.github/workflows/release-branch-image-scanning.yml', 'upload'),
     ('.github/workflows/osv-scanner.yml', 'discover-images'),

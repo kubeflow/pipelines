@@ -758,8 +758,8 @@
     },
     {
       "path": ".github/workflows/third-party-image-scanning.yml",
-      "name": "Third-party Image Evidence",
-      "header_sha256": "f858a4b6b34287e00e9c472ab748f47104cd0e7c2c17ef1b14bdbbc744a0a07e",
+      "name": "Third-party Image Security",
+      "header_sha256": "9162eb1ecd0c71c55eae7338c45999a6905ed50e1a9a41ff71b884173bda77c1",
       "pull_request": null
     },
     {

@@ -55,6 +55,46 @@ class ThirdPartyInventoryTest(unittest.TestCase):
             {row['image'] for row in result['scans']}, {common, old, new}
         )
 
+    def test_uploads_keep_branch_commits_and_share_exact_ref_evidence(self):
+        image = 'mysql:8.4@sha256:' + 'c' * 64
+        result = scanner.create_inventory(
+            self.sources, {branch: {image} for branch in scanner.BRANCHES}
+        )
+        self.assertEqual(len(result['scans']), 1)
+        self.assertEqual(len(result['uploads']), 2)
+        category = next(iter(scanner.create_image_map({image})))
+        for row in result['uploads']:
+            self.assertEqual(row['image'], image)
+            self.assertEqual(row['key'], result['scans'][0]['key'])
+            self.assertEqual(row['sha'], self.sources[row['branch']])
+            expected = (
+                f'kubeflow-pipelines-osv-image-{category}'
+                if row['branch'] == 'master'
+                else f'release-2.18-third-party-image-{category}-amd64'
+            )
+            self.assertEqual(row['category'], expected)
+        self.assertEqual(
+            {row['branch'] for row in result['uploads']}, set(scanner.BRANCHES)
+        )
+
+    def test_upload_categories_survive_tag_digest_and_commit_changes(self):
+        previous = None
+        keys = set()
+        for version in ('4', '5', '5@sha256:' + 'd' * 64):
+            image = 'registry.example:5000/object:' + version
+            result = scanner.create_inventory(
+                {branch: version for branch in scanner.BRANCHES},
+                {branch: {image} for branch in scanner.BRANCHES},
+            )
+            categories = {
+                row['branch']: row['category'] for row in result['uploads']
+            }
+            if previous is not None:
+                self.assertEqual(categories, previous)
+            previous = categories
+            keys.add(result['scans'][0]['key'])
+        self.assertEqual(len(keys), 3)
+
     def test_candidate_requires_same_repository(self):
         result = scanner.create_inventory(
             self.sources,
@@ -134,7 +174,17 @@ class ThirdPartyInventoryTest(unittest.TestCase):
                 ['ghcr.io/chrislusf/seaweedfs:4.34'],
             )
             self.assertEqual(len(list(output.glob('*.yaml'))), 4)
-            self.assertIn('matrix=', (output / 'outputs').read_text())
+            outputs = dict(
+                line.split('=', 1)
+                for line in (output / 'outputs').read_text().splitlines()
+            )
+            self.assertEqual(
+                json.loads(outputs['matrix']), {'include': inventory['scans']}
+            )
+            self.assertEqual(
+                json.loads(outputs['uploads']),
+                {'include': inventory['uploads']},
+            )
 
 
 class ThirdPartyScanTest(unittest.TestCase):
@@ -173,15 +223,63 @@ class ThirdPartyScanTest(unittest.TestCase):
             ],
             check=True,
         )
-        scan_image.assert_called_once_with(
-            self.metadata['Id'],
-            'linux/amd64',
-            self.output,
-            report_format='json',
+        self.assertEqual(
+            scan_image.call_args_list,
+            [
+                mock.call(
+                    self.metadata['Id'],
+                    'linux/amd64',
+                    self.output,
+                    report_format='json',
+                ),
+                mock.call(
+                    self.metadata['Id'],
+                    'linux/amd64',
+                    self.output / 'github',
+                    report_format='sarif',
+                ),
+            ],
         )
         subject = json.loads((self.output / 'subject.json').read_text())
         self.assertEqual(subject['image'], self.image)
         self.assertEqual(subject['repo_digests'], self.metadata['RepoDigests'])
+
+    def test_sarif_scan_preserves_raw_json_and_its_logs(self):
+        def write_report(image_id, platform, output, report_format):
+            self.assertEqual(image_id, self.metadata['Id'])
+            self.assertEqual(platform, 'linux/amd64')
+            self.assertTrue(output.is_dir())
+            (output / 'scan.json').write_text(report_format)
+            (output / 'scan.stderr.log').write_text(report_format + ' log')
+            report = (
+                'osv-report.json' if report_format == 'json' else 'scan.sarif'
+            )
+            (output / report).write_text(report_format + ' raw')
+
+        with (
+            mock.patch.object(scanner.subprocess, 'run'),
+            mock.patch.object(
+                scanner.subprocess,
+                'check_output',
+                return_value=json.dumps([self.metadata]),
+            ),
+            mock.patch(
+                'kfpr.osv_image_scan.scan_image', side_effect=write_report
+            ),
+        ):
+            scanner.scan(self.image, self.output)
+        for directory, format_name, report in (
+            (self.output, 'json', 'osv-report.json'),
+            (self.output / 'github', 'sarif', 'scan.sarif'),
+        ):
+            self.assertEqual((directory / 'scan.json').read_text(), format_name)
+            self.assertEqual(
+                (directory / 'scan.stderr.log').read_text(),
+                format_name + ' log',
+            )
+            self.assertEqual(
+                (directory / report).read_text(), format_name + ' raw'
+            )
 
     def test_foreign_platform_fails_before_scanning(self):
         self.metadata['Architecture'] = 'arm64'
@@ -214,22 +312,152 @@ class ThirdPartyWorkflowTest(unittest.TestCase):
         self.text = self.path.read_text()
         self.workflow = yaml.safe_load(self.text)
 
-    def test_artifact_only_workflow_has_no_security_write_or_sarif_upload(self):
-        self.assertNotIn('security-events', self.text)
-        self.assertNotIn('upload-sarif', self.text)
+    def test_only_production_upload_has_security_write(self):
         self.assertEqual(self.workflow['permissions'], {'contents': 'read'})
-        for job in self.workflow['jobs'].values():
-            self.assertFalse(
-                any(
-                    value == 'write'
-                    for value in job.get('permissions', {}).values()
-                )
+        for name, job in self.workflow['jobs'].items():
+            writes = {
+                permission
+                for permission, value in job.get('permissions', {}).items()
+                if value == 'write'
+            }
+            self.assertEqual(
+                writes, {'security-events'} if name == 'upload' else set()
             )
             for step in job['steps']:
                 if step.get('uses', '').startswith('actions/checkout@'):
                     self.assertFalse(step['with']['persist-credentials'])
+                    if step['with'].get('path') == 'source':
+                        self.assertEqual(name, 'upload')
+                        self.assertEqual(
+                            step['with']['ref'], '${{ matrix.sha }}'
+                        )
+                    else:
+                        self.assertEqual(
+                            step['with']['ref'], '${{ github.workflow_sha }}'
+                        )
+        upload = self.workflow['jobs']['upload']
+        self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
+        self.assertEqual(set(upload['needs']), {'inventory', 'scan', 'report'})
+        self.assertEqual(
+            upload['strategy']['matrix'],
+            '${{ fromJSON(needs.inventory.outputs.uploads) }}',
+        )
+        publish = [
+            step
+            for step in upload['steps']
+            if step.get('uses', '').startswith(
+                'github/codeql-action/upload-sarif@'
+            )
+        ]
+        self.assertEqual(len(publish), 1)
+        self.assertEqual(
+            publish[0]['with'],
+            {
+                'sarif_file': 'findings.sarif',
+                'category': '${{ matrix.category }}',
+                'sha': '${{ matrix.sha }}',
+                'ref': 'refs/heads/${{ matrix.branch }}',
+                'checkout_path': 'source',
+            },
+        )
+
+    def test_upload_validates_raw_evidence_and_only_removes_exact_duplicates(
+        self,
+    ):
+        from kfpr.osv_image_scan import SCANNER
+
+        steps = self.workflow['jobs']['upload']['steps']
+        validation = next(
+            step for step in steps if 'validate_report' in step.get('run', '')
+        )
+        self.assertEqual(validation['env']['IMAGE'], '${{ matrix.image }}')
+        self.assertEqual(validation['env']['IMAGE_KEY'], '${{ matrix.key }}')
+        download = next(
+            step
+            for step in steps
+            if 'download-artifact-with-retry' in step.get('uses', '')
+        )
+        self.assertEqual(download['with']['path'], 'evidence')
+        self.assertIn(
+            '${{ matrix.key }}/github/scan.sarif',
+            download['with']['required-files'],
+        )
+        result = {
+            'ruleId': 'CVE-2026-1234',
+            'message': {'text': 'Vulnerable package'},
+        }
+        distinct = {**result, 'message': {'text': 'Another vulnerable package'}}
+        sarif = {
+            'version': '2.1.0',
+            'runs': [
+                {
+                    'tool': {
+                        'driver': {
+                            **SCANNER,
+                            'rules': [{'id': result['ruleId']}],
+                        }
+                    },
+                    'results': [result, result, distinct],
+                }
+            ],
+        }
+        image, image_id = 'example/image:1', 'sha256:' + 'a' * 64
+        envelope = {
+            'schema': 1,
+            'scanner': SCANNER,
+            'image_id': image_id,
+            'archive_sha256': 'b' * 64,
+            'exit_code': 1,
+            'report_format': 'sarif',
+            'sarif': sarif,
+        }
+        for mismatch in (None, 'image', 'image_id', 'sarif'):
+            with (
+                self.subTest(mismatch=mismatch),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                directory = Path(temporary)
+                root = directory / 'evidence/key'
+                (root / 'github').mkdir(parents=True)
+                subject = {'image': image, 'image_id': image_id}
+                if mismatch in ('image', 'image_id'):
+                    subject[mismatch] = 'wrong'
+                (root / 'subject.json').write_text(json.dumps(subject))
+                (root / 'github/scan.json').write_text(json.dumps(envelope))
+                raw = json.dumps({} if mismatch == 'sarif' else sarif)
+                (root / 'github/scan.sarif').write_text(raw)
+                scripts = directory / '.github/resources/scripts'
+                scripts.parent.mkdir(parents=True)
+                scripts.symlink_to(
+                    ROOT / '.github/resources/scripts', target_is_directory=True
+                )
+                env = {
+                    **os.environ,
+                    'PATH': str(Path(sys.executable).parent)
+                    + os.pathsep
+                    + os.environ['PATH'],
+                    'PYTHONPATH': str(ROOT / 'release'),
+                    'IMAGE': image,
+                    'IMAGE_KEY': 'key',
+                }
+                process = subprocess.run(
+                    ['bash', '-e', '-o', 'pipefail', '-c', validation['run']],
+                    cwd=directory,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual((root / 'github/scan.sarif').read_text(), raw)
+                if mismatch:
+                    self.assertNotEqual(process.returncode, 0)
+                    self.assertFalse((directory / 'findings.sarif').exists())
+                else:
+                    self.assertEqual(process.returncode, 0, process.stderr)
+                    uploaded = json.loads(
+                        (directory / 'findings.sarif').read_text()
+                    )
                     self.assertEqual(
-                        step['with']['ref'], '${{ github.workflow_sha }}'
+                        uploaded['runs'][0]['results'], [result, distinct]
                     )
 
     def test_raw_failure_evidence_retained_and_report_requires_success(self):
@@ -263,7 +491,7 @@ class ThirdPartyWorkflowTest(unittest.TestCase):
                 job['uses'],
                 './.github/workflows/third-party-image-scanning.yml',
             )
-            self.assertNotIn('security-events', job['permissions'])
+            self.assertEqual(job['permissions']['security-events'], 'write')
 
 
 if __name__ == '__main__':

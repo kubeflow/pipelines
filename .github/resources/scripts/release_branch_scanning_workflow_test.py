@@ -80,6 +80,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             permissions = {'contents': 'read'}
             if name == 'third-party-evidence':
                 permissions['actions'] = 'read'
+                permissions['security-events'] = 'write'
             if name == 'upload':
                 permissions['security-events'] = 'write'
             self.assertEqual(job['permissions'], permissions)

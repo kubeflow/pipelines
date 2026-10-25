@@ -35,12 +35,13 @@ BRANCHES = ('master', 'release-2.18')
 
 def create_inventory(sources, branch_images):
     rows = {}
+    uploads = []
     for branch in BRANCHES:
         images = branch_images[branch]
         if not images:
             raise ValueError(f'No third-party images found for {branch}')
-        create_image_map(images)  # Reject ambiguous versions within a branch.
-        for image in sorted(images):
+        image_map = create_image_map(images)
+        for category, image in image_map.items():
             key = hashlib.sha256(image.encode()).hexdigest()[:16]
             row = rows.setdefault(
                 key, {'key': key, 'image': image, 'branches': []}
@@ -48,6 +49,19 @@ def create_inventory(sources, branch_images):
             if row['image'] != image:
                 raise ValueError('Image key collision')
             row['branches'].append(branch)
+            uploads.append(
+                {
+                    'key': key,
+                    'image': image,
+                    'branch': branch,
+                    'sha': sources[branch],
+                    'category': (
+                        f'kubeflow-pipelines-osv-image-{category}'
+                        if branch == 'master'
+                        else f'{branch}-third-party-image-{category}-amd64'
+                    ),
+                }
+            )
     master = {
         repository_name(r['image']): r
         for r in rows.values()
@@ -61,6 +75,7 @@ def create_inventory(sources, branch_images):
         'schema': 1,
         'sources': sources,
         'images': list(rows.values()),
+        'uploads': uploads,
         'scans': [
             {'key': r['key'], 'image': r['image']} for r in rows.values()
         ],
@@ -95,6 +110,9 @@ def discover(repository, kustomize, output):
         stream.write(
             'matrix=' + json.dumps({'include': inventory['scans']}) + '\n'
         )
+        stream.write(
+            'uploads=' + json.dumps({'include': inventory['uploads']}) + '\n'
+        )
 
 
 def scan(image, output):
@@ -124,6 +142,9 @@ def scan(image, output):
     }
     (output / 'subject.json').write_text(json.dumps(subject, indent=2) + '\n')
     scan_image(item['Id'], platform, output, report_format='json')
+    github_output = output / 'github'
+    github_output.mkdir()
+    scan_image(item['Id'], platform, github_output, report_format='sarif')
 
 
 def main():

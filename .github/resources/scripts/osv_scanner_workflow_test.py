@@ -87,7 +87,7 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         self.assertIn('  workflow_dispatch:', self.workflow)
         self.assertIn('  contents: read', self.workflow)
         self.assertIn('  security-events: write', self.workflow)
-        self.assertEqual(self.workflow.count('      security-events: write'), 2)
+        self.assertEqual(self.workflow.count('      security-events: write'), 3)
         self.assertIn('          persist-credentials: false', self.workflow)
         self.assertNotIn('contents: write', self.workflow)
         self.assertNotIn('pull-requests: write', self.workflow)
