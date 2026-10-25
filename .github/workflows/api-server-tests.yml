@@ -102,6 +102,8 @@ jobs:
           pipeline_store: database
           cache_enabled: 'true'
           db_type: mysql
+          # The test action forwards after URL fixture setup rolls the API pod.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

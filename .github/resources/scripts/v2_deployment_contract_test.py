@@ -202,6 +202,35 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertIn('constants.APIServerTests', specs)
         self.assertNotIn('config.UseLegacyAPIPrefix', specs)
 
+    def test_api_fixture_jobs_defer_port_forwarding(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text()
+        )
+        fixture_jobs = {
+            name: job
+            for name, job in workflow['jobs'].items()
+            if any(
+                step.get('uses') == './.github/actions/test-and-report'
+                for step in job.get('steps', [])
+            )
+        }
+        self.assertTrue(fixture_jobs)
+        for name, job in fixture_jobs.items():
+            with self.subTest(job=name):
+                deployments = [
+                    step
+                    for step in job['steps']
+                    if step.get('uses') == './.github/actions/deploy'
+                ]
+                self.assertTrue(deployments)
+                for deployment in deployments:
+                    self.assertEqual(
+                        deployment.get('with', {}).get('forward_port'),
+                        'false',
+                        'test-and-report must own the API port-forward '
+                        'after its fixture setup rolls the API pod',
+                    )
+
     def test_full_api_version_matrix_is_master_only(self):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/api-server-tests.yml').read_text()
