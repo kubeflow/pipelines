@@ -106,6 +106,7 @@ updates:
       - "/backend"
       - "/backend/metadata_writer"
       - "/backend/src/apiserver/visualization"
+      - "/backend/src/tensorboard"
       - "/backend/src/v2/test"
       - "/components/google-cloud"
       - "/docs"

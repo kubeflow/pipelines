@@ -22,6 +22,7 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "metadata-writer"
   "viewer-crd-controller"
   "visualization-server"
+  "tensorboard"
   "cache-deployer"
   "cache-server"
   "metadata-envoy"

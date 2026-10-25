@@ -226,3 +226,6 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+- The TensorBoard runtime is a separate KFP image built by the CI and release matrices. Its hash-locked standalone dependencies include S3 and GCS readers; do not replace it with a TensorFlow image without verifying that TensorBoard and both readers are present. `manifests/kustomize/hack/release.sh` stamps the UI/controller image defaults through `hack/update_tensorboard_image.py`. Its regression tests require both paths in the CI Scripts Tests filter.
+- `tensorboard-acceptance.yml` builds the candidate runtime explicitly on AMD64 and ARM64. The AMD64 lane reads event files through S3/GCS protocol emulators and tests scalar/image/graph navigation under the scoped proxy prefix in Chromium. This bypasses published default-image tags so presubmit exercises the candidate build. It does not establish cloud IAM integration or Kubernetes proxy authorization; those remain covered by their respective integration suites.
