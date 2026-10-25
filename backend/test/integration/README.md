@@ -1,9 +1,9 @@
 ## Shared backend integration tests
 
-The v2 API integration suites are in [../v2/integration](../v2/integration).
-This directory retains database initialization checks that are independent of
-the removed KFP v1 API. Kubernetes pipeline-webhook coverage lives alongside
-the v2 API integration suites.
+The API suites run in [../v2/api](../v2/api). The retired legacy API harness
+has been removed; [../v2/integration](../v2/integration) retains only Kubernetes
+pipeline-webhook tests and their Makefile. This directory retains independent
+database initialization checks.
 
 ### Webhook integration tests
 
