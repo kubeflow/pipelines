@@ -242,6 +242,35 @@ describe('Tensorboard', () => {
     expect(screen.getByRole('button', { name: 'Start Tensorboard' })).toBeInTheDocument();
   });
 
+  it.each([
+    [undefined, 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1'],
+    ['example.com/custom-tensorboard:stable', 'example.com/custom-tensorboard:stable'],
+  ])('restarts an existing viewer using the configured image %s', async (image, expectedImage) => {
+    vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);
+    vi.spyOn(Apis, 'deleteTensorboardApp').mockResolvedValue('');
+    const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockResolvedValue('');
+    const config = { ...DEFAULT_CONFIG, image };
+    render(<TensorboardViewer configs={[config]} />);
+    await flushPromisesInAct();
+    expect(
+      screen.getByText('Tensorboard tensorflow/tensorflow:1.14.0 is running for this output.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Stop Tensorboard'));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    });
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    });
+    expect(startAppSpy).toHaveBeenCalledWith({
+      logdir: config.url,
+      image: expectedImage,
+      namespace: config.namespace,
+      podTemplateSpec: undefined,
+    });
+  });
+
   it('shows version info in delete confirming dialog if a tensorboard instance exists', async () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);
     const config = DEFAULT_CONFIG;

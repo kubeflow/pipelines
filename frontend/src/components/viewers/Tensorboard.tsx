@@ -331,6 +331,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           busy: false,
           deleteDialogOpen: false,
           proxyPath: '',
+          tfImage: this._image() || DEFAULT_TF_IMAGE,
           tensorboardReady: false,
         });
       } catch (err) {
