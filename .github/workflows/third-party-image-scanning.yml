@@ -117,7 +117,7 @@ jobs:
           inventory = json.load(open('inventory/inventory.json'))
           print('required<<EOF')
           for scan in inventory['scans']:
-              for filename in ('subject.json', 'scan.json', 'osv-report.json'):
+              for filename in ('subject.json', 'coverage.json'):
                   print(scan['key'] + '/' + filename)
           print('EOF')
           PYCODE
@@ -127,14 +127,13 @@ jobs:
           pattern: third-party-scan-*-${{ github.run_attempt }}
           path: evidence
           merge-multiple: 'true'
-      - name: Require complete coverage and report image-level actions
+      - name: Report verified counts and explicit coverage gaps
         env:
           PYTHONPATH: release
           INVENTORY_RESULT: ${{ needs.inventory.result }}
           SCAN_RESULT: ${{ needs.scan.result }}
         run: |
           test "$INVENTORY_RESULT" = success
-          test "$SCAN_RESULT" = success
           python .github/resources/scripts/third_party_image_report.py \
             --inventory inventory/inventory.json --evidence evidence --output report
           cat report/summary.md >> "$GITHUB_STEP_SUMMARY"
@@ -145,6 +144,16 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Require complete coverage before Security uploads
+        env:
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          test "$SCAN_RESULT" = success
+          python - <<'PYCODE'
+          import json
+          if not json.load(open('report/summary.json'))['coverage_complete']:
+              raise SystemExit('Incomplete image coverage; all Security uploads blocked. See retained report and scanner diagnostics.')
+          PYCODE
 
   upload:
     needs: [inventory, scan, report]

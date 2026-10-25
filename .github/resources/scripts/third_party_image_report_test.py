@@ -47,6 +47,33 @@ class ImageReportTest(unittest.TestCase):
             [('GHSA-one', ['CVE-2026-1'])],
         )
 
+    def test_unknown_lane_retains_other_counts_and_blocks_coverage(self):
+        second = 'c' * 16
+        image = 'example/unknown:latest'
+        self.document['scans'].append({'key': second, 'image': image})
+        self.document['images'].append(
+            {'key': second, 'image': image, 'branches': ['release-2.18']}
+        )
+        self.write_scan(second, image, [])
+        lane = self.evidence / second
+        (lane / 'scan.json').unlink()
+        (lane / 'osv-report.json').unlink()
+        (lane / 'coverage.json').write_text(
+            json.dumps(
+                {
+                    'status': 'unknown',
+                    'image_id': 'sha256:' + second * 4,
+                    'reason': 'No package metadata',
+                }
+            )
+        )
+        summary = aggregate(self.document, self.evidence)
+        self.assertFalse(summary['coverage_complete'])
+        self.assertEqual(summary['scans'][self.key]['raw_finding_count'], 1)
+        self.assertIsNone(summary['scans'][second]['raw_finding_count'])
+        self.assertIn('Unknown', markdown(summary))
+        self.assertIn('uploads blocked', markdown(summary))
+
     def write_scan(self, key, image, advisories, duplicate=False):
         lane = self.evidence / key
         lane.mkdir(exist_ok=True)

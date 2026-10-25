@@ -260,24 +260,35 @@ The frontend qualification reliability reporter supports `--collect --repository
 ## Third-party image security alerts and evidence
 
 `third-party-image-scanning.yml` is called by the master OSV workflow and the
-release-2.18 branch scan workflow. It resolves both branch heads, renders the
-single-user and multi-user platform-agnostic overlays, and scans each distinct
-third-party image on Linux AMD64, retaining both JSON and SARIF reports from
+release-2.18 branch scan workflow. It resolves both branch heads and uses the
+shared source-derived inventory: all Kustomize environment and legacy metadata
+profiles, configured executor/cache images, both TensorBoard defaults, and pinned
+cluster prerequisites. Prerequisites and legacy/runtime roles remain separately
+identified. Arbitrary workloads, operator overrides and non-default TensorBoard
+menu choices are outside this inventory. It scans each distinct external image
+on Linux AMD64, retaining both JSON and SARIF reports from
 the same immutable image ID. The seven published master KFP images
 continue to upload to their existing GitHub code-scanning categories. Third-party
 findings also remain in GitHub: the upload matrix binds each image to its branch
 and exact source SHA. Master retains `kubeflow-pipelines-osv-image-<repository hash>`;
 release-2.18 uses `release-2.18-third-party-image-<repository hash>-amd64`.
 Tags, digests and source commits do not affect category identity. The hash is of
-the normalized repository name. Only exact duplicate SARIF results are removed
+the normalized repository name for existing standard deployments. Additional
+legacy, runtime and prerequisite targets include their stable logical role in
+the hash, so different versions of one repository do not overwrite each other.
+Only exact duplicate SARIF results are removed
 from the uploaded copy; raw evidence and release-policy inputs are unchanged.
 Only the post-report upload job receives security-events write permission.
 Candidate branch runs retain and validate evidence but do not publish alerts.
 
 Each run retains rendered inventories, source commits, immutable Docker image
 IDs and registry digests, complete OSV JSON and raw SARIF, and scanner diagnostics for seven days (the repository artifact-retention cap).
-The aggregate job fails on missing lanes, extraction errors, or inconsistent
-reports. A successful evidence job means scanning completed, not that images
+The aggregate job preserves verified counts alongside explicit unknown coverage
+when a scanner cannot identify packages, then fails the coverage gate. Unknown
+is never zero; all production SARIF uploads remain blocked until coverage is
+complete, preserving existing alerts. Missing lanes or inconsistent reports
+also fail. Qualification preserves scan failures and continues collecting the
+remaining image scans before failing; incomplete evidence cannot authorize release. A successful evidence job means scanning completed, not that images
 have no vulnerabilities or are authorized for release.
 
 The image-level summary compares release pins with different pins already used
@@ -287,8 +298,11 @@ scanned candidates, not compatibility-approved upgrades. Other findings remain
 upstream/applicability work; a package fixed version alone is not evidence that a
 replacement image exists. The JSON report retains all packages and findings.
 
-Backend release qualification additionally scans third-party images rendered from
-the exact candidate commit. Their raw findings enter the existing zero-fixable
+Backend release qualification uses the same complete inventory from the exact
+candidate commit. Preserved source inputs, profile catalogs, rendered YAML and
+pinned prerequisite manifests are checksummed and revalidated with the receipt.
+The trusted checkout and workflow provenance bind those inputs to the candidate;
+input checksums alone do not attest to source authenticity. Their raw findings enter the existing zero-fixable
 policy; approved exceptions remain exact to image ID, package, installed version
 and advisory, require a justification and expiry, and are rechecked at
 publication. Missing, stale or inconsistent third-party evidence blocks release.

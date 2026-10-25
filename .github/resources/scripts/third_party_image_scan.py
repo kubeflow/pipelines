@@ -21,11 +21,10 @@ import os
 import subprocess
 from pathlib import Path
 
-from kfpr.third_party import extract_images
+from kfpr.deployed_images import SOURCE_PATHS, capture
 from osv_manifest_images import (
     create_image_map,
     is_first_party,
-    render_overlay,
 )
 from osv_manifest_source import download_manifests
 from osv_master_images import github_api, repository_name
@@ -40,15 +39,36 @@ def create_inventory(sources, branch_images):
         images = branch_images[branch]
         if not images:
             raise ValueError(f'No third-party images found for {branch}')
-        image_map = create_image_map(images)
-        for category, image in image_map.items():
+        if isinstance(images, set):
+            targets = [
+                {
+                    'target': repository_name(image),
+                    'image': image,
+                    'scope': 'standard',
+                    'profiles': [],
+                }
+                for image in create_image_map(images).values()
+            ]
+        else:
+            targets = images
+        categories = set()
+        for target in targets:
+            image = target['image']
+            category = hashlib.sha256(target['target'].encode()).hexdigest()[
+                :16
+            ]
+            if category in categories:
+                raise ValueError('Duplicate stable scan target in ' + branch)
+            categories.add(category)
             key = hashlib.sha256(image.encode()).hexdigest()[:16]
             row = rows.setdefault(
-                key, {'key': key, 'image': image, 'branches': []}
+                key, {'key': key, 'image': image, 'branches': [], 'targets': []}
             )
             if row['image'] != image:
                 raise ValueError('Image key collision')
-            row['branches'].append(branch)
+            if branch not in row['branches']:
+                row['branches'].append(branch)
+            row['targets'].append({'branch': branch, **target})
             uploads.append(
                 {
                     'key': key,
@@ -63,12 +83,20 @@ def create_inventory(sources, branch_images):
                 }
             )
     master = {
-        repository_name(r['image']): r
+        target['target']: r
         for r in rows.values()
-        if 'master' in r['branches']
+        for target in r['targets']
+        if target['branch'] == 'master'
     }
     for row in rows.values():
-        candidate = master.get(repository_name(row['image']))
+        candidates = {
+            master[target['target']]['key']
+            for target in row['targets']
+            if target['branch'] == 'release-2.18' and target['target'] in master
+        }
+        candidate = (
+            rows[next(iter(candidates))] if len(candidates) == 1 else None
+        )
         if candidate and candidate['key'] != row['key']:
             row['candidate_key'] = candidate['key']
     return {
@@ -88,17 +116,17 @@ def discover(repository, kustomize, output):
         sha = github_api(f'repos/{repository}/commits/{branch}')['sha']
         sources[branch] = sha
         destination = output / branch
-        download_manifests(repository, sha, destination)
-        deployed = set()
-        for profile in ('platform-agnostic', 'platform-agnostic-multi-user'):
-            rendered = render_overlay(
-                kustomize, destination / 'manifests/kustomize/env' / profile
-            )
-            (output / f'{branch}-{profile}.yaml').write_text(rendered)
-            deployed.update(extract_images(rendered))
-        images[branch] = {
-            image for image in deployed if not is_first_party(image)
-        }
+        download_manifests(
+            repository, sha, destination, extra_paths=SOURCE_PATHS
+        )
+        captured = capture(
+            destination, kustomize, output / f'{branch}-deployed'
+        )
+        images[branch] = [
+            target
+            for target in captured['targets']
+            if not is_first_party(target['image'])
+        ]
     inventory = create_inventory(sources, images)
     inventory['workflow_sha'] = os.environ['GITHUB_WORKFLOW_SHA']
     inventory['run_id'] = os.environ['GITHUB_RUN_ID']
@@ -141,10 +169,34 @@ def scan(image, output):
         'repo_digests': item['RepoDigests'],
     }
     (output / 'subject.json').write_text(json.dumps(subject, indent=2) + '\n')
-    scan_image(item['Id'], platform, output, report_format='json')
-    github_output = output / 'github'
-    github_output.mkdir()
-    scan_image(item['Id'], platform, github_output, report_format='sarif')
+    try:
+        scan_image(item['Id'], platform, output, report_format='json')
+        github_output = output / 'github'
+        github_output.mkdir()
+        scan_image(item['Id'], platform, github_output, report_format='sarif')
+    except (ValueError, subprocess.CalledProcessError) as error:
+        (output / 'coverage.json').write_text(
+            json.dumps(
+                {
+                    'status': 'unknown',
+                    'image_id': item['Id'],
+                    'reason': str(error),
+                },
+                indent=2,
+            )
+            + '\n'
+        )
+        raise
+    (output / 'coverage.json').write_text(
+        json.dumps(
+            {
+                'status': 'complete',
+                'image_id': item['Id'],
+            },
+            indent=2,
+        )
+        + '\n'
+    )
 
 
 def main():

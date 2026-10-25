@@ -107,6 +107,51 @@ class ThirdPartyInventoryTest(unittest.TestCase):
             all('candidate_key' not in row for row in result['images'])
         )
 
+    def test_logical_targets_allow_multiple_versions_and_share_scans(self):
+        targets = [
+            {
+                'target': 'mysql',
+                'image': 'mysql:8.4',
+                'scope': 'standard',
+                'profiles': ['normal'],
+            },
+            {
+                'target': 'legacy:mysql',
+                'image': 'mysql:8.0',
+                'scope': 'legacy',
+                'profiles': ['legacy'],
+            },
+            {
+                'target': 'runtime:cache:mysql',
+                'image': 'mysql:8.4',
+                'scope': 'runtime',
+                'profiles': [],
+            },
+        ]
+        result = scanner.create_inventory(
+            self.sources, {branch: targets for branch in scanner.BRANCHES}
+        )
+        self.assertEqual(len(result['scans']), 2)
+        self.assertEqual(len(result['uploads']), 6)
+        self.assertEqual(len({row['category'] for row in result['uploads']}), 6)
+        prior = {row['category'] for row in result['uploads']}
+        for target in targets:
+            target['image'] += '-patched'
+        changed = scanner.create_inventory(
+            self.sources, {branch: targets for branch in scanner.BRANCHES}
+        )
+        self.assertEqual(prior, {row['category'] for row in changed['uploads']})
+
+    def test_scoped_duplicate_target_fails_before_uploads(self):
+        targets = [
+            {'target': 'mysql', 'image': 'mysql:8.4'},
+            {'target': 'mysql', 'image': 'mysql:8.0'},
+        ]
+        with self.assertRaisesRegex(ValueError, 'Duplicate stable scan target'):
+            scanner.create_inventory(
+                self.sources, {branch: targets for branch in scanner.BRANCHES}
+            )
+
     def test_empty_or_ambiguous_branch_coverage_fails(self):
         for images in (set(), {'mysql:8.0', 'mysql:8.4'}):
             with self.subTest(images=images), self.assertRaises(ValueError):
@@ -143,7 +188,18 @@ class ThirdPartyInventoryTest(unittest.TestCase):
                 ) as api,
                 mock.patch.object(scanner, 'download_manifests') as download,
                 mock.patch.object(
-                    scanner, 'render_overlay', return_value=manifest
+                    scanner,
+                    'capture',
+                    return_value={
+                        'targets': [
+                            {
+                                'image': 'ghcr.io/chrislusf/seaweedfs:4.34',
+                                'target': 'ghcr.io/chrislusf/seaweedfs',
+                                'scope': 'standard',
+                                'profiles': ['platform-agnostic'],
+                            }
+                        ]
+                    },
                 ) as render,
             ):
                 scanner.discover(
@@ -159,11 +215,16 @@ class ThirdPartyInventoryTest(unittest.TestCase):
             self.assertEqual(
                 download.call_args_list,
                 [
-                    mock.call('kubeflow/pipelines', sha, output / branch)
+                    mock.call(
+                        'kubeflow/pipelines',
+                        sha,
+                        output / branch,
+                        extra_paths=scanner.SOURCE_PATHS,
+                    )
                     for branch, sha in self.sources.items()
                 ],
             )
-            self.assertEqual(render.call_count, 4)
+            self.assertEqual(render.call_count, 2)
             inventory = json.loads((output / 'inventory.json').read_text())
             self.assertEqual(inventory['sources'], self.sources)
             self.assertEqual(
@@ -173,7 +234,6 @@ class ThirdPartyInventoryTest(unittest.TestCase):
                 [row['image'] for row in inventory['scans']],
                 ['ghcr.io/chrislusf/seaweedfs:4.34'],
             )
-            self.assertEqual(len(list(output.glob('*.yaml'))), 4)
             outputs = dict(
                 line.split('=', 1)
                 for line in (output / 'outputs').read_text().splitlines()
@@ -280,6 +340,26 @@ class ThirdPartyScanTest(unittest.TestCase):
             self.assertEqual(
                 (directory / report).read_text(), format_name + ' raw'
             )
+
+    def test_unknown_scan_preserves_diagnostics_and_fails(self):
+        with (
+            mock.patch.object(scanner.subprocess, 'run'),
+            mock.patch.object(
+                scanner.subprocess,
+                'check_output',
+                return_value=json.dumps([self.metadata]),
+            ),
+            mock.patch(
+                'kfpr.osv_image_scan.scan_image',
+                side_effect=ValueError('No package metadata'),
+            ),
+            self.assertRaisesRegex(ValueError, 'No package metadata'),
+        ):
+            scanner.scan(self.image, self.output)
+        coverage = json.loads((self.output / 'coverage.json').read_text())
+        self.assertEqual(coverage['status'], 'unknown')
+        self.assertEqual(coverage['image_id'], self.metadata['Id'])
+        self.assertFalse((self.output / 'github').exists())
 
     def test_foreign_platform_fails_before_scanning(self):
         self.metadata['Architecture'] = 'arm64'

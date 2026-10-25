@@ -257,10 +257,17 @@ Ubuntu Pro-only fixes are labeled separately from standard Ubuntu fixes: those
 findings remain visible residuals requiring support-channel review, and do not
 claim an available fix in the image's standard package channel.
 
-Backend qualification also renders the single-user and multi-user
-platform-agnostic manifests at the exact release commit and scans their
-third-party images, including the configured Argo executor, on Linux AMD64.
-These findings use the same fixable-vulnerability policy as first-party images.
+Backend qualification derives its external-image inventory from the exact
+release commit: all environment and legacy metadata profiles, configured Argo
+executor and cache helper, both TensorBoard defaults, and separately identified
+pinned cluster prerequisites. It preserves source inputs and rendered manifests,
+scans each distinct image on Linux AMD64, and revalidates complete coverage with
+the receipt. Arbitrary workloads, operator overrides and non-default TensorBoard
+menu selections are outside this inventory. Findings use the same
+fixable-vulnerability policy as first-party images. A scanner with no recognizable
+package inventory produces unknown coverage, never a zero-vulnerability result.
+Collection retains failed-scan diagnostics and attempts the remaining images;
+any incomplete coverage still blocks qualification and publication.
 Missing third-party coverage blocks qualification; older receipts must be
 regenerated. Scheduled image-comparison reports cannot substitute for this
 candidate-bound evidence.

@@ -193,6 +193,34 @@ def aggregate(document, evidence):
             r'sha256:[0-9a-f]{64}', image_id
         ):
             raise ValueError('Scan subject requires an immutable image ID')
+        coverage_path = lane / 'coverage.json'
+        if coverage_path.exists():
+            coverage = read_json(coverage_path)
+            if coverage.get('image_id') != image_id or coverage.get(
+                'status'
+            ) not in ('complete', 'unknown'):
+                raise ValueError('Invalid scan coverage identity or status')
+            if coverage['status'] == 'unknown':
+                if (
+                    not isinstance(coverage.get('reason'), str)
+                    or not coverage['reason']
+                ):
+                    raise ValueError(
+                        'Unknown scan coverage requires diagnostics'
+                    )
+                scans[key] = {
+                    'image': entry['image'],
+                    'image_id': image_id,
+                    'coverage': 'unknown',
+                    'reason': coverage['reason'],
+                    'findings': [],
+                    'packages': [],
+                    'evidence_sha256': {
+                        name: sha256(lane / name)
+                        for name in ('subject.json', 'coverage.json')
+                    },
+                }
+                continue
         envelope = read_json(lane / 'scan.json')
         raw = read_json(lane / 'osv-report.json')
         validate_report(envelope, image_id, 'json')
@@ -200,6 +228,7 @@ def aggregate(document, evidence):
             raise ValueError('Raw OSV report does not match scan envelope')
         scans[key] = {
             'image': entry['image'],
+            'coverage': 'complete',
             'image_id': image_id,
             'archive_sha256': envelope['archive_sha256'],
             'evidence_sha256': {
@@ -224,6 +253,15 @@ def aggregate(document, evidence):
         }
     canonical, groups = alias_groups(scans)
     for scan in scans.values():
+        if scan['coverage'] == 'unknown':
+            scan.update(
+                advisories=[],
+                raw_finding_count=None,
+                unique_advisory_count=None,
+                package_fix_count=None,
+                support_channel_review_count=0,
+            )
+            continue
         scan['advisories'] = sorted(
             {canonical[f['id']] for f in scan['findings']}
         )
@@ -247,7 +285,16 @@ def aggregate(document, evidence):
             **current,
             'action': 'Review applicability or seek an upstream image update; no candidate image verified.',
         }
-        if image.get('candidate_key'):
+        if current['coverage'] == 'unknown':
+            row['action'] = (
+                'Unknown: '
+                + current['reason']
+                + '; coverage and all Security uploads blocked.'
+            )
+        elif (
+            image.get('candidate_key')
+            and scans[image['candidate_key']]['coverage'] == 'complete'
+        ):
             candidate = scans[image['candidate_key']]
             current_ids, candidate_ids = (
                 set(current['advisories']),
@@ -271,6 +318,9 @@ def aggregate(document, evidence):
         'schema': 1,
         'sources': document['sources'],
         'platform': 'linux/amd64',
+        'coverage_complete': all(
+            scan['coverage'] == 'complete' for scan in scans.values()
+        ),
         'images': rows,
         'scans': scans,
         'advisory_aliases': groups,
@@ -283,8 +333,8 @@ def markdown(summary):
         '',
         'Raw OSV evidence is retained. Package fix versions do not establish an available image upgrade. Candidate comparisons require compatibility and applicability review. No findings are suppressed. Release qualification evaluates its candidate-bound evidence separately; this report does not authorize release.',
         '',
-        '| Image | Branches | Raw findings | Unique advisories | Packages with fix versions | Image action |',
-        '| --- | --- | ---: | ---: | ---: | --- |',
+        '| Image | Branches | Deployment scopes | Raw findings | Unique advisories | Packages with fix versions | Image action |',
+        '| --- | --- | --- | ---: | ---: | ---: | --- |',
     ]
     for row in summary['images']:
         action = row['action']
@@ -299,9 +349,24 @@ def markdown(summary):
         values = [
             row['image'],
             ', '.join(row['branches']),
-            row['raw_finding_count'],
-            row['unique_advisory_count'],
-            row['package_fix_count'],
+            ', '.join(
+                sorted(
+                    {
+                        target.get('scope', 'standard')
+                        for target in row.get('targets', [])
+                    }
+                )
+            )
+            or 'Not recorded',
+            row['raw_finding_count']
+            if row['coverage'] == 'complete'
+            else 'Unknown',
+            row['unique_advisory_count']
+            if row['coverage'] == 'complete'
+            else 'Unknown',
+            row['package_fix_count']
+            if row['coverage'] == 'complete'
+            else 'Unknown',
             action,
         ]
         lines.append(

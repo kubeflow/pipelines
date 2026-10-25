@@ -8,13 +8,11 @@ import re
 import subprocess
 from pathlib import Path
 
-import yaml
-
-from . import ci_images_runner
+from . import ci_images_runner, deployed_images
+from .deployed_images import extract_images as extract_images
 from .osv_image_scan import SCANNER, scan_image, validate_report
 from .osv_reports import findings
 
-PROFILES = ('platform-agnostic', 'platform-agnostic-multi-user')
 PLATFORM = 'linux/amd64'
 RAW_FILES = ('osv-report.json', 'subject.json', 'scan.stderr.log')
 IDENTITY_FIELDS = (
@@ -39,60 +37,6 @@ def repository_name(image):
     if ':' in repository.rsplit('/', 1)[-1]:
         repository = repository.rsplit(':', 1)[0]
     return repository
-
-
-def extract_images(rendered):
-    """Read real containers and Argo's explicitly configured executor image."""
-    images = set()
-
-    def visit(node):
-        if isinstance(node, dict):
-            for key, value in node.items():
-                if key in ('containers', 'initContainers') and isinstance(
-                    value, list
-                ):
-                    for container in value:
-                        if not isinstance(container, dict):
-                            continue
-                        image = container.get('image')
-                        if isinstance(image, str) and image:
-                            images.add(image)
-                        args = container.get('args', [])
-                        if not isinstance(args, list):
-                            raise ValueError(
-                                'Container arguments must be a list'
-                            )
-                        for index, argument in enumerate(args):
-                            if argument == '--executor-image':
-                                if (
-                                    index + 1 == len(args)
-                                    or not isinstance(args[index + 1], str)
-                                    or not args[index + 1]
-                                    or args[index + 1].startswith('-')
-                                ):
-                                    raise ValueError(
-                                        'Missing explicit Argo executor image'
-                                    )
-                                images.add(args[index + 1])
-                            elif isinstance(
-                                argument, str
-                            ) and argument.startswith('--executor-image='):
-                                image = argument.split('=', 1)[1]
-                                if not image:
-                                    raise ValueError(
-                                        'Missing explicit Argo executor image'
-                                    )
-                                images.add(image)
-                visit(value)
-        elif isinstance(node, list):
-            for item in node:
-                visit(item)
-
-    for document in yaml.safe_load_all(rendered):
-        visit(document)
-    if not images:
-        raise ValueError('Rendered profile contains no image coverage')
-    return images
 
 
 def external_images(images, native_names):
@@ -130,8 +74,7 @@ def _read(path):
 
 
 def verify(directory, identity):
-    """Require raw evidence for every external image in both rendered
-    profiles."""
+    """Require raw evidence for every source-derived deployment target."""
     directory = Path(directory)
     if directory.is_symlink() or any(
         path.is_symlink() for path in directory.rglob('*')
@@ -146,6 +89,10 @@ def verify(directory, identity):
         or manifest.get('report_format') != 'json'
     ):
         raise ValueError('Invalid third-party scanner or platform')
+    if manifest.get('coverage_failures'):
+        raise ValueError(
+            'Incomplete third-party scan coverage; resolve failed image scans'
+        )
     native_names = manifest.get('first_party_names')
     if (
         not isinstance(native_names, list)
@@ -158,27 +105,18 @@ def verify(directory, identity):
         or native_names != sorted(set(native_names))
     ):
         raise ValueError('Invalid native image inventory')
-    rendered_files = manifest.get('rendered_files')
-    if not isinstance(rendered_files, dict) or set(rendered_files) != set(
-        PROFILES
-    ):
-        raise ValueError('Incomplete third-party rendered profile coverage')
-    deployed, profiles = set(), {}
-    for profile in PROFILES:
-        record = rendered_files[profile]
-        filename = f'rendered/{profile}.yaml'
-        if not isinstance(record, dict) or record.get('file') != filename:
-            raise ValueError('Invalid rendered profile path')
-        path = directory / filename
-        if not path.is_file() or _sha(path) != record.get('sha256'):
-            raise ValueError('Rendered profile checksum mismatch')
-        images = extract_images(path.read_text())
-        deployed.update(images)
-        profiles[profile] = {
-            'sha256': record['sha256'],
-            'images': sorted(images),
-        }
-    expected = external_images(deployed, native_names)
+    if 'inventory' not in manifest:
+        raise ValueError(
+            'Missing complete deployment inventory; collect fresh evidence'
+        )
+    inventory = deployed_images.discover(directory / 'inventory')
+    if manifest['inventory'] != inventory:
+        raise ValueError(
+            'Deployment inventory checksum or target mismatch; recollect evidence'
+        )
+    expected = external_images(
+        {target['image'] for target in inventory['targets']}, native_names
+    )
     records = manifest.get('images')
     if (
         not isinstance(records, list)
@@ -258,7 +196,7 @@ def verify(directory, identity):
         'platform': PLATFORM,
         'images': records,
         'scans': scans,
-        'inventory': {'profiles': profiles, 'first_party_names': native_names},
+        'inventory': {**inventory, 'first_party_names': native_names},
     }
 
 
@@ -274,37 +212,24 @@ def collect(source, kustomize, output, identity):
         raise ValueError('Third-party source VERSION does not match request')
     names = sorted({record['name'] for record in image_matrix(source)})
     output.mkdir(parents=True, exist_ok=False)
-    (output / 'rendered').mkdir()
+    inventory = deployed_images.capture(source, kustomize, output / 'inventory')
     manifest = {
         **identity,
         'scanner': SCANNER,
         'report_format': 'json',
         'platform': PLATFORM,
         'first_party_names': names,
-        'rendered_files': {},
+        'inventory': inventory,
         'images': [],
     }
-    images = set()
-    for profile in PROFILES:
-        rendered = subprocess.check_output(
-            [
-                str(kustomize),
-                'build',
-                '--load-restrictor',
-                'LoadRestrictionsNone',
-                str(source / 'manifests/kustomize/env' / profile),
-            ],
-            text=True,
-        )
-        path = output / 'rendered' / f'{profile}.yaml'
-        path.write_text(rendered)
-        manifest['rendered_files'][profile] = {
-            'file': f'rendered/{profile}.yaml',
-            'sha256': _sha(path),
-        }
-        images.update(extract_images(rendered))
-    images = external_images(images, names)
+    images = external_images(
+        {target['image'] for target in inventory['targets']}, names
+    )
+    (output / 'third-party.json').write_text(
+        json.dumps(manifest, indent=2) + '\n'
+    )
     tooling = Path(__file__).resolve().parents[2]
+    failures = []
     for image in sorted(images):
         key = hashlib.sha256(image.encode()).hexdigest()[:16]
         lane = output / 'scans' / key
@@ -337,7 +262,17 @@ def collect(source, kustomize, output, identity):
             'repo_digests': item.get('RepoDigests', []),
         }
         (lane / 'subject.json').write_text(json.dumps(subject, indent=2) + '\n')
-        scan_image(item['Id'], PLATFORM, lane, report_format='json')
+        try:
+            scan_image(item['Id'], PLATFORM, lane, report_format='json')
+        except (subprocess.CalledProcessError, ValueError) as error:
+            failures.append(
+                {'image': image, 'image_id': item['Id'], 'error': str(error)}
+            )
+            manifest['coverage_failures'] = failures
+            (output / 'third-party.json').write_text(
+                json.dumps(manifest, indent=2) + '\n'
+            )
+            continue
         manifest['images'].append(
             {
                 'key': key,
@@ -353,6 +288,10 @@ def collect(source, kustomize, output, identity):
         # Preserve progress as evidence even if a subsequent image fails.
         (output / 'third-party.json').write_text(
             json.dumps(manifest, indent=2) + '\n'
+        )
+    if failures:
+        raise ValueError(
+            'Incomplete third-party scan coverage; inspect retained diagnostics and resolve failed image scans'
         )
     verify(output, identity)
     return manifest
