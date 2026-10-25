@@ -47,7 +47,10 @@ jobs:
         uses: ./.github/actions/kfp-k8s
 
       - name: Test release automation
-        run: uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
+        run: |
+          git config user.name "$(git log -1 --format=%an)"
+          git config user.email "$(git log -1 --format=%ae)"
+          uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test release.kfpr.notes_test release.kfpr.ranges_test release.kfpr.notes_integration_test release.kfpr.previews_test release.kfpr.editorial_test
 
       - name: Build KFP SDK Docs
         working-directory: docs/sdk

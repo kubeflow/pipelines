@@ -216,27 +216,13 @@ class GithubCommandTest(unittest.TestCase):
         self.assertIn('tag=sdk-3.2.0', command)
         self.assertIn('packages=all', command)
 
-    def test_release_version_bump_command_uses_explicit_changelog_range(self):
-        with TemporaryDirectory() as tmpdir:
-            command = core.release_version_bump_command(
-                Path(tmpdir), 'release-3.2', '3.1.1'
-            )
-
-        script = command[-1]
-        self.assertIn('PREVIOUS_RELEASE=3.1.1', script)
-        self.assertIn(
-            'git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"',
-            script,
-        )
-        self.assertNotIn('--unreleased', script)
-        self.assertNotIn('manifests/gcp_marketplace/hack/release.sh', script)
-
-    def test_release_version_bump_command_quotes_previous_release(self):
+    def test_release_container_does_not_run_a_second_changelog_generator(self):
         command = core.release_version_bump_command(
-            Path('/repo'), 'release-3.2', '3.1.1; echo unsafe'
+            Path('/repo'), 'release-3.2'
         )
-
-        self.assertIn("PREVIOUS_RELEASE='3.1.1; echo unsafe'", command[-1])
+        self.assertNotIn('git-cliff', command[-1])
+        self.assertNotIn('CHANGELOG.md', command[-1])
+        self.assertIn('manifests/kustomize/hack/release.sh', command[-1])
 
     def test_wait_for_pr_merge_dry_run_returns_immediately(self):
         runner = core.CommandRunner(dry_run=True)
@@ -682,9 +668,7 @@ class InlineCommandTest(unittest.TestCase):
                 check=True,
                 capture_output=True,
             )
-            command = core.release_version_bump_command(
-                linked, 'release-2.17', '2.17.2'
-            )
+            command = core.release_version_bump_command(linked, 'release-2.17')
             mounts = [
                 command[i + 1]
                 for i, arg in enumerate(command)
@@ -721,7 +705,7 @@ class InlineCommandTest(unittest.TestCase):
 
     def test_release_version_bump_command_runs_container_directly(self):
         command = core.release_version_bump_command(
-            Path('/repo'), 'release-3.2', '3.1.1'
+            Path('/repo'), 'release-3.2'
         )
         self.assertEqual(command[:3], ['docker', 'run', '--rm'])
         self.assertIn('ghcr.io/kubeflow/kfp-release:release-3.2', command)
@@ -729,10 +713,7 @@ class InlineCommandTest(unittest.TestCase):
         self.assertIn('-c', command)
         self.assertNotIn('-lc', command)
         script = command[-1]
-        self.assertIn(
-            'git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"',
-            script,
-        )
+        self.assertNotIn('git-cliff', script)
         self.assertNotIn('manifests/gcp_marketplace/hack/release.sh', script)
         self.assertIn(
             '"$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"',
@@ -792,9 +773,7 @@ class InlineCommandTest(unittest.TestCase):
                     (build_dir / 'Makefile').write_text(
                         f'{target}:\n\t@echo {directory}-{target}\n'
                     )
-                command = core.release_version_bump_command(
-                    root, 'release-3.2', '3.1.1'
-                )
+                command = core.release_version_bump_command(root, 'release-3.2')
                 script = command[-1]
                 selection = script[
                     script.index(
@@ -829,7 +808,7 @@ class InlineCommandTest(unittest.TestCase):
 
     def test_release_yq_matches_target_checkout(self):
         script = core.release_version_bump_command(
-            Path('/repo'), 'release-2.17', '2.17.0'
+            Path('/repo'), 'release-2.17'
         )[-1]
         prerequisites = script[
             script.index('which yq') : script.index('echo "java')
@@ -945,7 +924,7 @@ class InlineCommandTest(unittest.TestCase):
 
     def test_release_version_bump_command_can_use_master_image(self):
         command = core.release_version_bump_command(
-            Path('/repo'), 'release-3.2', '3.1.1', 'master'
+            Path('/repo'), 'release-3.2', 'master'
         )
 
         self.assertIn('ghcr.io/kubeflow/kfp-release:master', command)
