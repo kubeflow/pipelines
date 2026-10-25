@@ -132,10 +132,12 @@ func GetNamespace() string {
 	return *config.Namespace
 }
 
-// getPackagePath generates the package path based on environment variables
-// Equivalent to the Python function get_package_path
+// getPackagePath pins CI component SDK installs to the checkout being tested.
 func getPackagePath(subdir string) string {
 	repoName := *config.REPO_NAME
+	if sha := os.Getenv("KFP_TEST_SOURCE_SHA"); sha != "" {
+		return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, sha, subdir)
+	}
 	if os.Getenv("GITHUB_EVENT_NAME") == "merge_group" {
 		sha := os.Getenv("GITHUB_SHA")
 		if sha == "" {
