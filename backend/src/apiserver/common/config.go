@@ -260,6 +260,12 @@ func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }
 
+// GetTaskTokenReviewAudience scopes compiler-projected credentials to task writes.
+// Deriving it keeps it distinct from a deployment's general API audience.
+func GetTaskTokenReviewAudience() string {
+	return GetTokenReviewAudience() + "/task-write"
+}
+
 func GetMetadataTLSEnabled() bool {
 	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }

@@ -1436,6 +1436,13 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrapf(err, "Failed to retry run %s due to service account authorization error", runId)
 	}
 
+	if common.IsMultiUserMode() && allowCompilerPodSpecPatch {
+		if err := template.PrepareTaskRuntimeCredentials(newExecSpec); err != nil {
+			glog.Warningf("Run %q cannot be retried with task authentication: %v. Create a new run with current runtime credentials; a new run may repeat completed work.", runId, err)
+			return util.NewFailedPreconditionError(err, "Cannot prepare task credentials for retry of run %q. Create a new run with current runtime credentials; a new run may repeat completed work", runId)
+		}
+	}
+
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
 	// from overwriting with a stale terminal state. The returned claimGeneration
 	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
@@ -3954,7 +3961,14 @@ func (r *ResourceManager) isAuthorized(ctx context.Context, resourceAttributes *
 	// based on the namespace field in the request.
 	errlist := make([]error, 0)
 	userIdentity := ""
-	for _, auth := range r.authenticators {
+	authenticators := r.authenticators
+	if resourceAttributes.Group == common.RbacPipelinesGroup && resourceAttributes.Resource == common.RbacResourceTypeRuns && resourceAttributes.Verb == common.RbacResourceVerbCreateTask {
+		// The projected runtime token must never authenticate another API operation.
+		// Retain normal authenticators for existing API clients and trusted proxies.
+		taskAuthenticator := kfpauth.NewTokenReviewAuthenticator(common.AuthorizationBearerTokenHeader, common.AuthorizationBearerTokenPrefix, []string{common.GetTaskTokenReviewAudience()}, r.tokenReviewClient)
+		authenticators = append([]kfpauth.Authenticator{taskAuthenticator}, authenticators...)
+	}
+	for _, auth := range authenticators {
 		identity, err := auth.GetUserIdentity(ctx)
 		if err == nil {
 			userIdentity = identity
@@ -4053,12 +4067,17 @@ func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
 	if err != nil {
 		return "", util.Wrapf(err, "Failed to fetch namespace from run %v due to fetching error", runId)
 	}
+	return r.GetNamespaceFromRun(run)
+}
+
+// GetNamespaceFromRun uses persisted run ownership, falling back to legacy experiment references.
+func (r *ResourceManager) GetNamespaceFromRun(run *model.Run) (string, error) {
 	if !r.IsEmptyNamespace(run.Namespace) {
 		return run.Namespace, nil
 	}
 	namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 	if err != nil {
-		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", runId)
+		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", run.UUID)
 	}
 	return namespace, nil
 }

@@ -224,6 +224,15 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 }
 
 func (c *ClientManager) init(options *Options) error {
+	var authClientParams util.ClientParameters
+	if common.IsMultiUserMode() && !options.GlobalKubernetesWebhookMode {
+		qps, burst, err := common.GetAuthorizationClientRateLimit()
+		if err != nil {
+			return err
+		}
+		authClientParams = util.ClientParameters{QPS: qps, Burst: burst}
+	}
+
 	// time
 	c.time = util.NewRealTime()
 
@@ -353,9 +362,10 @@ func (c *ClientManager) init(options *Options) error {
 	c.logArchive = initLogArchive()
 
 	if common.IsMultiUserMode() {
-		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
-		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), authClientParams)
+		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), authClientParams)
 		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
+		glog.Infof("Authorization clients configured with QPS %g and burst %d per client", authClientParams.QPS, authClientParams.Burst)
 	}
 	glog.Infof("Client manager initialized successfully")
 

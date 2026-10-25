@@ -18,6 +18,12 @@ For a resource-by-resource assessment, use the
 [agent cluster-impact assessment guide](upgrade-2.18-agent-assessment.md). It is an
 optional review procedure, not an additional upgrade prerequisite.
 
+Task/cache-write authorization has an additional
+[credential-preparation and whole-workflow drain requirement](task-api-authentication.md).
+The enforcing API requires a separately delivered preparation build, tested
+credential-aware runtime images and the new `createTask` permission. Automatic
+schedule adoption does not retrofit credentials into already-created workflows.
+
 ## What happens during a normal upgrade
 
 | Area | Automatic behavior | What to expect |

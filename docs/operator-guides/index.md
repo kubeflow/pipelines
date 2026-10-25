@@ -12,6 +12,7 @@ server-config
 scheduled-service-accounts
 multi-user
 rbac-migration-2.18
+task-api-authentication
 pagination-recovery
 workflow-report-recovery
 configure-object-store

@@ -723,15 +723,11 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		if err != nil {
 			return util.Wrapf(err, "Failed to authorize with the run ID %v", runId)
 		}
-		if s.resourceManager.IsEmptyNamespace(run.Namespace) {
-			experiment, err := s.resourceManager.GetExperiment(run.ExperimentId)
-			if err != nil {
-				return util.NewInvalidInputError("run %v has an empty namespace and the parent experiment %v could not be fetched: %s", runId, run.ExperimentId, err.Error())
-			}
-			resourceAttributes.Namespace = experiment.Namespace
-		} else {
-			resourceAttributes.Namespace = run.Namespace
+		namespace, err := s.resourceManager.GetNamespaceFromRun(run)
+		if err != nil {
+			return util.Wrapf(err, "Failed to resolve namespace for run %s", runId)
 		}
+		resourceAttributes.Namespace = namespace
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = run.K8SName
 		}

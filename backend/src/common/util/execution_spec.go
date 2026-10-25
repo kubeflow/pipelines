@@ -100,6 +100,9 @@ type ExecutionSpec interface {
 	// ServiceAccounts returns every service account the execution can use.
 	ServiceAccounts(allowCompilerPodSpecPatch bool) ([]string, error)
 
+	// EnsureTaskRuntimeCredentials prepares only recognized credential-aware task runtimes.
+	EnsureTaskRuntimeCredentials(config TaskRuntimeAuthConfig) error
+
 	// Get ExecutionStatus which can be used to
 	// access status related information
 	ExecutionStatus() ExecutionStatus

@@ -152,6 +152,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			// so the compiler itself stays free of any dependency on API server state.
 			DriverPodConfig: common.GetDriverPodConfig(),
 		}
+		if common.IsMultiUserMode() {
+			opts.TaskTokenAudience = common.GetTaskTokenReviewAudience()
+		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
@@ -391,6 +394,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			// so the compiler itself stays free of any dependency on API server state.
 			DriverPodConfig: common.GetDriverPodConfig(),
 		}
+		if common.IsMultiUserMode() {
+			opts.TaskTokenAudience = common.GetTaskTokenReviewAudience()
+		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
@@ -565,4 +571,16 @@ func formatParameterMacros(value *structpb.Value, formatter *util.ParameterForma
 			formatParameterMacros(item, formatter)
 		}
 	}
+}
+
+// PrepareTaskRuntimeCredentials preserves saved runtime images and supplies only
+// missing credentials for the configured workload clients in multi-user mode.
+func PrepareTaskRuntimeCredentials(execution util.ExecutionSpec) error {
+	if !common.IsMultiUserMode() {
+		return nil
+	}
+	return execution.EnsureTaskRuntimeCredentials(util.TaskRuntimeAuthConfig{
+		Audience: common.GetTaskTokenReviewAudience(), DriverImage: argocompiler.GetDriverImage(), LauncherImage: argocompiler.GetLauncherImage(),
+		DriverCommand: argocompiler.GetDriverCommand(), LauncherCommand: argocompiler.GetLauncherCommand(),
+	})
 }

@@ -94,3 +94,9 @@ rules:
   - list
   - create
   - update
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - runs
+  verbs:
+  - createTask

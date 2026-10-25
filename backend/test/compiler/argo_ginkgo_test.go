@@ -139,6 +139,13 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, Workfl
 
 					matcher.CompareWorkflows(compiledWorkflow, expectedWorkflow)
 
+					// Exercise credential recognition against every compiler fixture,
+					// including importer, nested DAG, loop and workspace templates.
+					authOptions := param.compilerOptions
+					authOptions.TaskTokenAudience = "pipelines.kubeflow.org/task-write"
+					authWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &authOptions)
+					Expect(util.NewWorkflow(authWorkflow).ValidateTaskRuntimeCredentials(authOptions.TaskTokenAudience)).To(Succeed())
+
 				})
 			}
 		})

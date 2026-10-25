@@ -38,6 +38,8 @@ import (
 )
 
 type Options struct {
+	// TaskTokenAudience enables workload credentials; empty preserves standalone compilation.
+	TaskTokenAudience string
 	// optional, use official image if not provided
 	LauncherImage string
 	// optional
@@ -256,12 +258,25 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		neutralizeDAGRetries(c.wf)
 	}
 
+	if opts != nil && opts.TaskTokenAudience != "" {
+		if err := util.NewWorkflow(c.wf).EnsureTaskRuntimeCredentials(util.TaskRuntimeAuthConfig{
+			Audience: opts.TaskTokenAudience, DriverImage: c.driverImage, LauncherImage: c.launcherImage,
+			DriverCommand: c.driverCommand, LauncherCommand: c.launcherCommand,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to configure task credentials: %w", err)
+		}
+	}
 	// Apply any workflow spec patches from environment variable
 	patchJSON := common.GetCompiledPipelineSpecPatch()
 	if err := c.ApplyWorkflowSpecPatch(patchJSON); err != nil {
 		return nil, fmt.Errorf("failed to apply workflow spec patch: %w", err)
 	}
 
+	if opts != nil {
+		if err := util.NewWorkflow(c.wf).ValidateTaskRuntimeCredentials(opts.TaskTokenAudience); err != nil {
+			return nil, fmt.Errorf("workflow patch conflicts with task credentials: %w", err)
+		}
+	}
 	return c.wf, nil
 }
 

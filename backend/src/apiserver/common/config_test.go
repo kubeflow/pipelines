@@ -373,6 +373,11 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			expected: DefaultTokenReviewAudience,
 		},
 		{
+			name:     "GetTaskTokenReviewAudience defaults to task-only audience",
+			getter:   func() interface{} { return GetTaskTokenReviewAudience() },
+			expected: "pipelines.kubeflow.org/task-write",
+		},
+		{
 			name:     "GetMetadataTLSEnabled defaults to false",
 			getter:   func() interface{} { return GetMetadataTLSEnabled() },
 			expected: false,
@@ -495,6 +500,13 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "custom.audience.org",
 			getter:   func() interface{} { return GetTokenReviewAudience() },
 			expected: "custom.audience.org",
+		},
+		{
+			name:     "GetTaskTokenReviewAudience keeps a custom audience separate",
+			envKey:   TokenReviewAudience,
+			envValue: "custom.audience.org",
+			getter:   func() interface{} { return GetTaskTokenReviewAudience() },
+			expected: "custom.audience.org/task-write",
 		},
 		{
 			name:     "GetMetadataTLSEnabled with custom true",

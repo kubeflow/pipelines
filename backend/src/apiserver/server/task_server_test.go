@@ -27,7 +27,7 @@ import (
 )
 
 func createTaskServer(resourceManager *resource.ResourceManager) *TaskServer {
-	return &TaskServer{resourceManager: resourceManager}
+	return NewTaskServer(resourceManager)
 }
 
 func TestNewTaskServer(t *testing.T) {
@@ -35,7 +35,7 @@ func TestNewTaskServer(t *testing.T) {
 	defer clients.Close()
 	server := NewTaskServer(manager)
 	assert.NotNil(t, server)
-	assert.Equal(t, manager, server.resourceManager)
+	assert.Equal(t, manager, server.runServer.resourceManager)
 }
 
 func TestCreateTaskV1_NilRequest(t *testing.T) {

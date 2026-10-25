@@ -7,6 +7,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/grpc/metadata"
+	"k8s.io/client-go/transport"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -72,7 +77,8 @@ func (d disabledCacheClient) CreateExecutionCache(context.Context, *api.Task) er
 
 // Client is an KFP service client.
 type client struct {
-	svc api.TaskServiceClient
+	svc         api.TaskServiceClient
+	tokenSource transport.ResettableTokenSource
 }
 
 var _ Client = &client{}
@@ -99,9 +105,11 @@ func NewClient(mlPipelineServerAddress string, mlPipelineServerPort string, cach
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}
 
-	return &client{
-		svc: api.NewTaskServiceClient(conn),
-	}, nil
+	result := &client{svc: api.NewTaskServiceClient(conn)}
+	if tokenPath := os.Getenv(util.TaskTokenPathEnv); tokenPath != "" {
+		result.tokenSource = transport.NewCachedFileTokenSource(tokenPath)
+	}
+	return result, nil
 }
 
 func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
@@ -140,6 +148,17 @@ func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) 
 }
 
 func (c *client) CreateExecutionCache(ctx context.Context, task *api.Task) error {
+	if c.tokenSource != nil {
+		token, err := c.tokenSource.Token()
+		if err != nil {
+			return fmt.Errorf("failed to read task API credential: %w", err)
+		}
+		md, _ := metadata.FromOutgoingContext(ctx)
+		md = md.Copy()
+		md.Set("authorization", "Bearer "+token.AccessToken)
+		ctx = metadata.NewOutgoingContext(ctx, md)
+	}
+
 	req := &api.CreateTaskRequest{
 		Task: task,
 	}

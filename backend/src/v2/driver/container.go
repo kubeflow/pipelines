@@ -19,11 +19,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"os"
 	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
@@ -31,6 +33,7 @@ import (
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func validateContainer(opts Options) (err error) {
@@ -356,10 +359,19 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		execution.ExecutorInput = executorInput
 	}
 
-	podSpecPatchBytes, err := json.Marshal(podSpec)
+	podSpecPatchBytes, err := marshalTaskPodSpecPatch(podSpec)
 	if err != nil {
 		return execution, fmt.Errorf("JSON marshaling pod spec patch: %w", err)
 	}
 	execution.PodSpecPatch = string(podSpecPatchBytes)
 	return execution, nil
+}
+
+func marshalTaskPodSpecPatch(podSpec *corev1.PodSpec) ([]byte, error) {
+	if os.Getenv(util.TaskTokenPathEnv) != "" {
+		if err := util.ValidateTaskRuntimePodPatch(podSpec); err != nil {
+			return nil, err
+		}
+	}
+	return json.Marshal(podSpec)
 }

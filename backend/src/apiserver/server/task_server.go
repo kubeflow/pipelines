@@ -18,17 +18,17 @@ import (
 	"context"
 	"strings"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 type TaskServer struct {
-	resourceManager *resource.ResourceManager
-	apiv1beta1.UnimplementedTaskServiceServer
+	runServer *BaseRunServer
+	api.UnimplementedTaskServiceServer
 }
 
 // Creates a task.
@@ -39,12 +39,15 @@ func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRe
 		return nil, util.Wrap(err, "Failed to create a new task due to validation error")
 	}
 
+	if err := s.runServer.canAccessRun(ctx, request.GetTask().GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbCreateTask}); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize task creation")
+	}
 	modelTask, err := toModelTask(request.GetTask())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new task due to conversion error")
 	}
 
-	task, err := s.resourceManager.CreateTask(modelTask)
+	task, err := s.runServer.resourceManager.CreateTask(modelTask)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new task")
 	}
@@ -106,18 +109,18 @@ func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequ
 		return nil, util.Wrap(err, "Validating filter failed")
 	}
 
-	tasks, total_size, nextPageToken, err := s.resourceManager.ListTasks(filterContext, opts)
+	tasks, totalSize, nextPageToken, err := s.runServer.resourceManager.ListTasks(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List tasks failed")
 	}
 	return &api.ListTasksResponse{
 			Tasks:         toApiTasksV1(tasks),
-			TotalSize:     int32(total_size),
+			TotalSize:     int32(totalSize),
 			NextPageToken: nextPageToken,
 		},
 		nil
 }
 
 func NewTaskServer(resourceManager *resource.ResourceManager) *TaskServer {
-	return &TaskServer{resourceManager: resourceManager}
+	return &TaskServer{runServer: &BaseRunServer{resourceManager: resourceManager}}
 }
