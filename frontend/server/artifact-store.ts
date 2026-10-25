@@ -11,25 +11,32 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Transform, PassThrough, pipeline } from 'stream';
-import { AsyncLocalStorage } from 'async_hooks';
+import { Readable, Transform, PassThrough, pipeline } from 'stream';
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import { isIP } from 'node:net';
 import * as tar from 'tar-stream';
 import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
-import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
+import { AsyncLocalStorage } from 'async_hooks';
+import {
+  S3Client,
+  type S3ClientConfig,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { isAWSS3Endpoint } from './aws-helper.js';
 import type { S3ProviderInfo } from './handlers/artifacts.js';
 import { getK8sSecret } from './k8s-helper.js';
 import { parseJSONString } from './utils.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { parseGoBoolean } from './helpers/provider-options.js';
-/** MinioRequestConfig describes the info required to retrieve an artifact. */
-export interface MinioRequestConfig {
-  bucket: string;
+/** ArtifactReadRequest describes the info required to retrieve an artifact. */
+export interface ArtifactReadRequest {
   key: string;
-  client: MinioClient;
+  store: ArtifactStore;
   signal?: AbortSignal;
   tryExtract?: boolean;
   /** Receives asynchronous storage or transformation failures from the returned stream. */
@@ -37,8 +44,24 @@ export interface MinioRequestConfig {
   onTransformationDetermined?: (transformed: boolean) => void;
 }
 
-/** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
-export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
+/** Bucket-bound object reads and recursive listings, independent of the storage SDK. */
+export interface ArtifactStore {
+  openRead(key: string, options?: { signal?: AbortSignal }): Promise<Readable>;
+  list(
+    prefix: string,
+    options?: { signal?: AbortSignal; pageSize?: number },
+  ): AsyncIterable<{ key: string; size: number }>;
+}
+
+export interface ArtifactStoreOptions {
+  accessKey?: string;
+  secretKey?: string;
+  sessionToken?: string;
+  region?: string;
+  port?: number;
+  useSSL?: boolean;
+  pathStyle?: boolean;
+  transportAgent?: HttpAgent | HttpsAgent;
   endPoint: string;
   endpointBasePath?: string;
   endpointAuthority?: string;
@@ -52,6 +75,7 @@ export interface Credentials {
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken?: string;
+  expiration?: Date;
 }
 
 export interface ArtifactStoreEndpoint {
@@ -69,7 +93,7 @@ export type ArtifactStoreEndpointPolicy = (
 
 /** Captures the operator's effective destination using the same rewrite as client creation. */
 export function getArtifactStoreOriginAfterRewrite(
-  config: MinioClientOptionsWithOptionalSecrets,
+  config: ArtifactStoreOptions,
 ): string | undefined {
   return getArtifactStoreOrigin(applyEndpointRewrite({ ...config }));
 }
@@ -108,7 +132,7 @@ export function getArtifactStoreOrigin({
   endPoint,
   port,
   useSSL,
-}: Pick<MinioClientOptions, 'endPoint' | 'port' | 'useSSL'>): string | undefined {
+}: Pick<ArtifactStoreOptions, 'endPoint' | 'port' | 'useSSL'>): string | undefined {
   if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
     return undefined;
   }
@@ -234,34 +258,14 @@ function validateNeutralS3Option(
 }
 
 /**
- * Create minio client for s3 compatible storage
- *
- * If providerInfoString is available, use these over defaultConfigs.
- *
- * If providerInfo is not provided or, if credentials are sourced fromEnv,
- * then, if using aws s3 (via provider chain or instance profile), create a
- * minio client backed by aws s3 client.
- *
- * Otherwise, assume s3 compatible credentials have been provided via configs
- * (defaultConfigs or ProviderInfo), and return a minio client configured
- * respectively.
- *
- * Security: By default, credentials are injected via environment variables
- * (MINIO_ACCESS_KEY, MINIO_SECRET_KEY) from the deployment spec. When
- * providerInfo indicates that credentials should not come from the environment
- * (fromEnv === 'false'), this helper may read namespace-scoped Kubernetes
- * secrets via getK8sSecret. See: https://github.com/kubeflow/pipelines/issues/12373
- *
- * @param config minio client options where `accessKey` and `secretKey` are optional.
- * @param providerType provider type ('s3' or 'minio')
- * @param providerInfoString
- * @param namespace
- * @param customCredentialProvider An optional function which can be added to resolve credentials from a non-standard source. Useful
- * for enterprises who may have bespoke credential retrieval processes or for refreshing short-lived tokens.
+ * Resolves deployment/provider configuration before constructing an S3-compatible store.
+ * Endpoint authorization precedes credential resolution and namespace-scoped Secret reads.
+ * Provider Secret credentials take precedence over custom and default credential providers.
  */
-export async function createMinioClient(
-  config: MinioClientOptionsWithOptionalSecrets,
+export async function createS3ArtifactStore(
+  config: ArtifactStoreOptions,
   providerType: string,
+  bucket: string,
   providerInfoString?: string,
   namespace?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
@@ -269,9 +273,10 @@ export async function createMinioClient(
   authorizeEndpoint?: ArtifactStoreEndpointPolicy,
 ) {
   const providerInfo = parseS3ProviderInfo(providerInfoString);
-  return createMinioClientWithProviderInfo(
+  return createS3ArtifactStoreWithProviderInfo(
     config,
     providerType,
+    bucket,
     providerInfo,
     namespace,
     customCredentialProvider,
@@ -282,20 +287,22 @@ export async function createMinioClient(
 
 export async function createArtifactStoreClient(
   configs: {
-    minio: MinioClientOptionsWithOptionalSecrets;
-    s3: MinioClientOptionsWithOptionalSecrets;
+    minio: ArtifactStoreOptions;
+    s3: ArtifactStoreOptions;
   },
   source: 'minio' | 's3',
+  bucket: string,
   providerInfoString?: string,
   namespace?: string,
   retrySignal?: AbortSignal,
   authorizeEndpoint?: ArtifactStoreEndpointPolicy,
-): Promise<MinioClient> {
+): Promise<ArtifactStore> {
   const providerInfo = parseS3ProviderInfo(providerInfoString);
   const providerType = providerInfo?.Provider === 's3' ? 's3' : source;
-  return createMinioClientWithProviderInfo(
+  return createS3ArtifactStoreWithProviderInfo(
     configs[providerType],
     providerType,
+    bucket,
     providerInfo,
     namespace,
     undefined,
@@ -338,19 +345,21 @@ function parseS3ProviderInfo(providerInfoString?: string): S3ProviderInfo | unde
   }
 }
 
-async function createMinioClientWithProviderInfo(
-  config: MinioClientOptionsWithOptionalSecrets,
+async function createS3ArtifactStoreWithProviderInfo(
+  config: ArtifactStoreOptions,
   providerType: string,
+  bucket: string,
   providerInfo: S3ProviderInfo | undefined,
   namespace?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
   retrySignal?: AbortSignal,
   authorizeEndpoint?: ArtifactStoreEndpointPolicy,
-): Promise<MinioClient> {
+): Promise<ArtifactStore> {
   // Handler configuration is shared by every request. Provider resolution below adds credentials
   // and endpoint overrides, so always work on a request-local copy.
   config = { ...config, retrySignal };
   let anonymous = false;
+  let resolvedCredentialProvider: (() => Promise<Credentials>) | undefined;
 
   try {
     if (providerInfo?.Params.anonymous !== undefined) {
@@ -383,6 +392,7 @@ async function createMinioClientWithProviderInfo(
       const creds = await customCredentialProvider();
 
       if (creds && creds.accessKeyId && creds.secretAccessKey) {
+        resolvedCredentialProvider = async () => customCredentialProvider();
         config = {
           ...config,
           accessKey: creds.accessKeyId,
@@ -417,13 +427,7 @@ async function createMinioClientWithProviderInfo(
       const credentials = fromNodeProviderChain({ ignoreCache: true });
       const awsCredentials = await credentials();
       if (awsCredentials) {
-        const { accessKeyId: accessKey, secretAccessKey: secretKey, sessionToken } = awsCredentials;
-        return createConfiguredMinioClient({
-          ...config,
-          accessKey,
-          secretKey,
-          sessionToken,
-        } as MinioClientOptions);
+        return createConfiguredS3Store(config, bucket, credentials);
       }
     } catch (error) {
       throw new Error('Unable to resolve AWS credentials for the S3 artifact store.', {
@@ -432,89 +436,276 @@ async function createMinioClientWithProviderInfo(
     }
   }
 
-  // If using any AWS or S3 compatible store (e.g. minio, aws s3 when using manual creds, ceph, etc.)
-  let mc: MinioClient;
-  try {
-    mc = createConfiguredMinioClient(config);
-  } catch (err) {
-    throw new Error(`Failed to create MinioClient: ${err}`, { cause: err });
-  }
-  return mc;
+  return createConfiguredS3Store(
+    config,
+    bucket,
+    providerInfo?.Params.fromEnv === 'false' ? undefined : resolvedCredentialProvider,
+  );
 }
 
-function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecrets): MinioClient {
-  const {
-    endpointAuthority,
-    endpointBasePath,
-    endpointTruncatesAtDelimiter,
-    maxAttempts,
-    retrySignal,
-    ...clientOptions
-  } = config;
-  const client = new MinioClient(clientOptions as MinioClientOptions);
-  const retryContext = createS3RetryContext(maxAttempts ?? 3, retrySignal);
-  const retryClient = client as unknown as {
-    retryOptions: { maximumRetryCount?: number };
-  };
-  retryClient.retryOptions = {
-    ...retryClient.retryOptions,
-    // One outer controller owns both the per-operation compatibility budget and the independent
-    // ten-attempt request ceiling. Leaving MinIO's narrower loop enabled would hide transport
-    // attempts from that aggregate ceiling and multiply mixed failures.
-    maximumRetryCount: 0,
-  };
-  exposeParsedS3Errors(client, retryContext);
-  if (endpointBasePath || endpointAuthority) {
-    // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path
-    // before MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
-    const requestOptionsClient = client as unknown as {
-      getRequestOptions: (options: { bucketName?: string }) => {
-        headers: Record<string, string>;
-        host: string;
-        path: string;
-        [key: string]: unknown;
+// Match the previous global agents: slow downloads must not exhaust a shared endpoint quota.
+const sharedS3Transport = new NodeHttpHandler({
+  httpAgent: new HttpAgent({ keepAlive: true, maxSockets: Infinity }),
+  httpsAgent: new HttpsAgent({ keepAlive: true, maxSockets: Infinity }),
+});
+
+function createConfiguredS3Store(
+  config: ArtifactStoreOptions,
+  bucket: string,
+  credentialProvider?: () => Promise<Credentials>,
+): ArtifactStore {
+  const origin = getArtifactStoreOrigin(config);
+  if (!origin)
+    throw new ArtifactStoreConfigurationError(
+      'Artifact store endpoint must be a valid HTTP(S) origin.',
+    );
+  const retryContext = createS3RetryContext(config.maxAttempts ?? 3, config.retrySignal);
+  const transport = config.transportAgent
+    ? new NodeHttpHandler(
+        config.useSSL === false
+          ? { httpAgent: config.transportAgent as HttpAgent }
+          : { httpsAgent: config.transportAgent as HttpsAgent },
+      )
+    : sharedS3Transport;
+  const anonymous = !credentialProvider && !(config.accessKey && config.secretKey);
+  let resolvedRegion = config.region || 'us-east-1';
+  const genericSpecializedBucket =
+    !isAWSS3Endpoint(origin) && (bucket.endsWith('--x-s3') || bucket.endsWith('--op-s3'));
+  const genericS3Auth: S3ClientConfig['httpAuthSchemeProvider'] = () => [
+    {
+      schemeId: 'aws.auth#sigv4',
+      signingProperties: { name: 's3', region: resolvedRegion },
+      propertiesExtractor: (config, context) => ({ signingProperties: { config, context } }),
+    },
+  ];
+  const client = new S3Client({
+    endpoint:
+      !config.endpointAuthority && config.endPoint === 's3.amazonaws.com' && !config.port
+        ? undefined
+        : origin,
+    region: resolvedRegion,
+    ...(genericSpecializedBucket ? { httpAuthSchemeProvider: genericS3Auth } : {}),
+    // Endpoint authorization owns routing; ambient AWS profiles must not replace it.
+    ignoreConfiguredEndpointUrls: true,
+    useDualstackEndpoint: false,
+    useFipsEndpoint: false,
+    // Region corrections must share the same budget as transport and service retries.
+    followRegionRedirects: false,
+    forcePathStyle: config.pathStyle ?? !isAwsS3Endpoint(config.endPoint),
+    maxAttempts: 1,
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
+    credentials: credentialProvider ?? {
+      accessKeyId: config.accessKey || '',
+      secretAccessKey: config.secretKey || '',
+      sessionToken: config.sessionToken,
+    },
+    ...(anonymous
+      ? { signer: { sign: async (request: Parameters<NodeHttpHandler['handle']>[0]) => request } }
+      : {}),
+    requestHandler: {
+      handle: async (
+        request: Parameters<NodeHttpHandler['handle']>[0],
+        options: Parameters<NodeHttpHandler['handle']>[1],
+      ) => {
+        const attempt = retryContext.attemptStorage.getStore();
+        try {
+          const result = await transport.handle(request, options);
+          if (attempt) {
+            attempt.transportStatus = result.response.statusCode;
+            attempt.bucketRegion = result.response.headers['x-amz-bucket-region'];
+            if (result.response.body instanceof Readable) {
+              result.response.body.once('error', () => {
+                attempt.transportFailure = true;
+              });
+            }
+          }
+          return result;
+        } catch (error) {
+          if (attempt) attempt.transportFailure = true;
+          throw error;
+        }
+      },
+    },
+  });
+  if (!isAWSS3Endpoint(origin)) {
+    // Custom endpoints use opaque signing regions, not AWS hostname/FIPS selectors.
+    // Override the SDK's normalized providers for both initial and discovered regions.
+    client.config.region = async () => resolvedRegion;
+    client.config.useFipsEndpoint = async () => false;
+    if (genericSpecializedBucket) {
+      // These suffixes are ordinary names on compatible stores. The SDK otherwise infers
+      // AWS Express/Outposts routing and authentication, even with an explicit custom endpoint.
+      client.config.endpointProvider = (params) => {
+        const url = new URL(origin);
+        const usePathStyle =
+          (config.pathStyle ?? true) || (url.protocol === 'https:' && bucket.includes('.'));
+        if (usePathStyle) url.pathname = `/${bucket}`;
+        else url.hostname = `${bucket}.${url.hostname}`;
+        return {
+          url,
+          properties: {
+            authSchemes: [
+              {
+                name: 'sigv4',
+                signingName: 's3',
+                signingRegion: params.Region ?? resolvedRegion,
+                properties: {},
+                disableDoubleEncoding: true,
+              },
+            ],
+          },
+        };
       };
-    };
-    const getRequestOptions = requestOptionsClient.getRequestOptions.bind(client);
-    requestOptionsClient.getRequestOptions = (options) => {
-      const requestOptions = getRequestOptions(options);
-      const storagePath = requestOptions.path;
-      const usesVirtualHostStyle =
-        clientOptions.pathStyle !== true &&
-        !!options.bucketName &&
-        requestOptions.host.startsWith(`${options.bucketName}.`);
-      if (endpointAuthority) {
-        // Preserve MinIO's addressing decision (not merely the configured preference). In
-        // particular, MinIO deliberately uses path style for dotted buckets over HTTPS.
-        // MinIO has already selected the addressing mode in the generated host. Do not infer it
-        // from the object path: a virtual-host request may legitimately have a key whose first
-        // segment equals the bucket name.
-        const host = usesVirtualHostStyle
-          ? `${options.bucketName}.${endpointAuthority}`
-          : endpointAuthority;
-        requestOptions.host = host;
-        const defaultPort = clientOptions.useSSL === false ? 80 : 443;
-        requestOptions.headers.host =
-          clientOptions.port && clientOptions.port !== defaultPort
-            ? `${host}:${clientOptions.port}`
-            : host;
-      }
-      if (endpointBasePath) {
-        const bucketPath = options.bucketName ? `/${options.bucketName}` : undefined;
-        const pathAfterDelimiter =
-          endpointTruncatesAtDelimiter &&
-          !usesVirtualHostStyle &&
-          bucketPath &&
-          (storagePath === bucketPath || storagePath.startsWith(`${bucketPath}/`))
-            ? storagePath.slice(bucketPath.length) || '/'
-            : storagePath;
-        requestOptions.path = `${endpointBasePath}${pathAfterDelimiter}`;
-      }
-      return requestOptions;
-    };
+    }
   }
-  wrapRetryableS3Methods(client, retryContext);
-  return client;
+  if (config.useSSL === false) {
+    // S3 endpoint rules choose HTTPS even when the generic SDK tls option is false.
+    // Apply the already-authorized transport scheme before signing, retaining regional routing.
+    client.middlewareStack.add(
+      (next) => async (args) => {
+        (args.request as { protocol: string }).protocol = 'http:';
+        return next(args);
+      },
+      { step: 'build', name: 'artifactEndpointProtocol' },
+    );
+  }
+  if (config.endpointBasePath) {
+    client.middlewareStack.add(
+      (next) => async (args) => {
+        const request = args.request as { path: string; hostname: string };
+        const bucketPath = `/${bucket}`;
+        const virtualHost = request.hostname.startsWith(`${bucket}.`);
+        const path =
+          config.endpointTruncatesAtDelimiter &&
+          !virtualHost &&
+          (request.path === bucketPath || request.path.startsWith(`${bucketPath}/`))
+            ? request.path.slice(bucketPath.length) || '/'
+            : request.path;
+        request.path = `${config.endpointBasePath}${path}`;
+        return next(args);
+      },
+      { step: 'build', name: 'artifactEndpointBasePath' },
+    );
+  }
+  const operationSignal = (signal?: AbortSignal) =>
+    signal && config.retrySignal
+      ? AbortSignal.any([signal, config.retrySignal])
+      : (signal ?? config.retrySignal);
+  const send = async <T>(operation: () => Promise<T>, signal?: AbortSignal): Promise<T> => {
+    const context =
+      signal === retryContext.signal
+        ? retryContext
+        : {
+            ...retryContext,
+            signal,
+            get remainingRetryAttempts() {
+              return retryContext.remainingRetryAttempts;
+            },
+            set remainingRetryAttempts(value) {
+              retryContext.remainingRetryAttempts = value;
+            },
+          };
+    return retryS3Operation(async () => {
+      const requestedRegion = resolvedRegion;
+      try {
+        return await operation();
+      } catch (error) {
+        if (error instanceof Error) {
+          const failure = error as Error & {
+            code?: string;
+            Region?: string;
+          };
+          if (!failure.code) failure.code = failure.name;
+          const attempt = retryContext.attemptStorage.getStore();
+          const region = attempt?.bucketRegion || failure.Region;
+          if (
+            attempt &&
+            ((attempt.transportStatus === 301 && failure.code === 'PermanentRedirect') ||
+              (attempt.transportStatus === 400 &&
+                failure.code === 'AuthorizationHeaderMalformed')) &&
+            typeof region === 'string' &&
+            // Custom S3 regions may contain uppercase letters and underscores without a length cap.
+            /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(region) &&
+            region !== requestedRegion
+          ) {
+            // Cache only the signing region on this bucket-bound client. Never follow Location.
+            resolvedRegion = region;
+            client.config.region = async () => resolvedRegion;
+            attempt.regionCorrection = true;
+          }
+        }
+        throw error;
+      }
+    }, context);
+  };
+  const validateBucket = () => {
+    // Keep the MinIO client's bucket contract. SDK ARN support must not select a new authority.
+    if (
+      bucket.length < 3 ||
+      bucket.length > 63 ||
+      bucket.includes('..') ||
+      /[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(bucket) ||
+      !/^[a-z0-9][a-z0-9.-]+[a-z0-9]$/.test(bucket)
+    ) {
+      throw Object.assign(new Error(`Invalid bucket name: ${bucket}`), {
+        name: 'InvalidBucketNameError',
+      });
+    }
+  };
+  return {
+    async openRead(key, options) {
+      validateBucket();
+      const signal = operationSignal(options?.signal);
+      const response = await send(
+        () =>
+          client.send(new GetObjectCommand({ Bucket: bucket, Key: key }), { abortSignal: signal }),
+        signal,
+      );
+      if (!(response.Body instanceof Readable))
+        throw new Error('Artifact store returned no readable object body.');
+      bindS3Abort(response.Body, signal, true);
+      return response.Body;
+    },
+    async *list(prefix, options) {
+      validateBucket();
+      const signal = operationSignal(options?.signal);
+      let token: string | undefined;
+      do {
+        const page = await send(
+          () =>
+            client.send(
+              new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: prefix,
+                EncodingType: 'url',
+                ContinuationToken: token,
+                MaxKeys: options?.pageSize ?? 300,
+              }),
+              { abortSignal: signal },
+            ),
+          signal,
+        );
+        for (const object of page.Contents ?? []) {
+          throwIfS3RequestAborted(signal);
+          if (object.Key) {
+            // MinIO URL-encodes spaces as '+'. Decode keys once, never continuation tokens.
+            const key =
+              page.EncodingType === 'url'
+                ? decodeURIComponent(object.Key.replace(/\+/g, ' '))
+                : object.Key;
+            yield { key, size: object.Size ?? 0 };
+          }
+        }
+        if (!page.IsTruncated) return;
+        if (!page.NextContinuationToken || page.NextContinuationToken === token)
+          throw new Error(
+            'Artifact store returned a truncated listing without a new continuation token.',
+          );
+        token = page.NextContinuationToken;
+      } while (token);
+    },
+  };
 }
 
 const RETRYABLE_NETWORK_ERROR_CODES = new Set([
@@ -586,8 +777,7 @@ function isRetryableS3Error(
     return true;
   }
   if (code !== undefined && RETRYABLE_NETWORK_ERROR_CODES.has(code) && hasTransportProvenance) {
-    // Only the raw request's error event establishes transport provenance. MinIO copies arbitrary
-    // XML fields onto parsed errors, so errno/syscall-shaped service data is not trustworthy.
+    // Only the HTTP handler establishes transport provenance; service error fields are untrusted.
     return true;
   }
   if (hasTransportProvenance && candidate.errno !== undefined && candidate.syscall === 'connect') {
@@ -595,64 +785,19 @@ function isRetryableS3Error(
     // Go's retryable dial class without also retrying permanent DNS failures such as ENOTFOUND.
     return true;
   }
-  // The status captured from the raw response is authoritative. MinIO copies arbitrary XML fields
-  // onto parsed errors, so service-controlled Status/statusCode values cannot override the wire.
+  // The wire status takes precedence over service-controlled error fields.
   const status = transportStatus ?? candidate.statusCode ?? candidate.status;
   if (status !== undefined) {
     return RETRYABLE_S3_HTTP_STATUSES.has(status);
   }
   if (hasParsedCode) {
     // A parsed non-retryable S3 code is authoritative when status metadata is unavailable. Do not
-    // let service-controlled error text impersonate the exact MinIO wrapper after AccessDenied.
+    // let service-controlled error text override AccessDenied.
     return false;
   }
-  // The transport records the original status before MinIO rewrites or wraps the response. Never
+  // The transport records the original status before SDK deserialization. Never
   // infer retryability from service-controlled error text.
   return transportStatus !== undefined && RETRYABLE_S3_HTTP_STATUSES.has(transportStatus);
-}
-
-function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext): void {
-  const statusOnlyResponses = new Set([408, 429, 499, 520]);
-  type Destroyable = {
-    destroy: (error?: Error) => void;
-    once: (event: string, listener: (...args: unknown[]) => void) => unknown;
-  };
-  type RetryResponse = Destroyable & { statusCode?: number };
-  type RetryTransport = {
-    request: (options: unknown, callback: (response: RetryResponse) => void) => Destroyable;
-  };
-  const transportClient = client as unknown as { transport?: RetryTransport };
-  const originalTransport = transportClient.transport;
-  if (!originalTransport?.request) {
-    // Unit-test doubles do not expose MinIO's protected transport. Production clients always do.
-    return;
-  }
-  const originalRequest = originalTransport.request.bind(originalTransport);
-  transportClient.transport = {
-    ...originalTransport,
-    request: (options: unknown, callback: (response: RetryResponse) => void) => {
-      const attemptContext = retryContext.attemptStorage.getStore();
-      const request = originalRequest(options, (response) => {
-        if (attemptContext) attemptContext.transportStatus = response.statusCode;
-        response.once('error', () => {
-          if (attemptContext) attemptContext.transportFailure = true;
-        });
-        bindS3Abort(response, retryContext.signal, true);
-        if (response.statusCode !== undefined && statusOnlyResponses.has(response.statusCode)) {
-          // MinIO retries these statuses before reading their S3 XML body. Present them to its
-          // parser as a generic client error so the outer AWS-compatible controller can decide
-          // from SlowDown/RequestTimeout/Throttling rather than status alone.
-          response.statusCode = 400;
-        }
-        callback(response);
-      });
-      request.once('error', () => {
-        if (attemptContext) attemptContext.transportFailure = true;
-      });
-      bindS3Abort(request, retryContext.signal);
-      return request;
-    },
-  };
 }
 
 interface S3RetryContext {
@@ -665,6 +810,8 @@ interface S3RetryContext {
 interface S3AttemptContext {
   transportFailure: boolean;
   transportStatus?: number;
+  bucketRegion?: string;
+  regionCorrection?: boolean;
 }
 
 function createS3RetryContext(maxAttempts: number, signal?: AbortSignal): S3RetryContext {
@@ -765,11 +912,16 @@ async function retryS3Operation<T>(
       if (
         operationAttempt >= retryContext.maxAttempts ||
         retryContext.remainingRetryAttempts <= 0 ||
-        !isRetryableS3Error(error, attemptContext.transportStatus, attemptContext.transportFailure)
+        (!attemptContext.regionCorrection &&
+          !isRetryableS3Error(
+            error,
+            attemptContext.transportStatus,
+            attemptContext.transportFailure,
+          ))
       ) {
         throw error;
       }
-      await delay(operationAttempt, retryContext.signal);
+      if (!attemptContext.regionCorrection) await delay(operationAttempt, retryContext.signal);
       operationAttempt += 1;
     }
   }
@@ -780,33 +932,7 @@ function getS3RetryDelayMs(attempt: number, random: () => number = Math.random):
   return exponentialDelay >= 20_000 ? 20_000 : random() * exponentialDelay;
 }
 
-function wrapRetryableS3Methods(client: MinioClient, retryContext: S3RetryContext): void {
-  const retryableMethods = ['getObject', 'listObjectsV2Query'] as const;
-  const mutableClient = client as unknown as Record<string, unknown>;
-  retryableMethods.forEach((method) => {
-    const candidate = mutableClient[method];
-    if (typeof candidate !== 'function') {
-      throw new Error(
-        `Minio client does not expose ${method}; the bundled minio version may be incompatible ` +
-          'with configured S3 retries.',
-      );
-    }
-    // getObject retries only failures reported before MinIO returns the response stream. Once body
-    // bytes have been consumed, replaying the request here would duplicate or corrupt the caller's
-    // stream; downstream failures therefore remain visible to the caller.
-    // Proxy the original callable rather than replacing it with a plain function. Besides keeping
-    // MinIO's method properties intact, this preserves instrumentation attached by tests and other
-    // consumers while the apply trap supplies retry behavior.
-    mutableClient[method] = new Proxy(candidate, {
-      apply: (target, _thisArg, args: unknown[]) =>
-        retryS3Operation(() => Reflect.apply(target, client, args), retryContext),
-    });
-  });
-}
-
-function applyEndpointRewrite(
-  config: MinioClientOptionsWithOptionalSecrets,
-): MinioClientOptionsWithOptionalSecrets {
+function applyEndpointRewrite(config: ArtifactStoreOptions): ArtifactStoreOptions {
   const { endpointRewrite, ...clientConfig } = config;
   const rewriteConfig = endpointRewrite || process.env.MINIO_ENDPOINT_REWRITE || '';
   if (!rewriteConfig) {
@@ -857,14 +983,16 @@ function parseEndpoint(
     const hasHttpScheme = /^https?:\/\//i.test(endpoint);
     const url = new URL(hasHttpScheme ? endpoint : `http://${endpoint}`);
     return {
-      // WHATWG URL retains brackets around IPv6 hostnames; MinIO expects the bare address.
+      // Store the bare IPv6 address; origin construction restores its brackets.
       host: url.hostname.replace(/^\[(.*)\]$/, '$1'),
       port: url.port ? Number(url.port) : undefined,
       useSSL: hasHttpScheme ? url.protocol.toLowerCase() === 'https:' : undefined,
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    console.warn(`Ignoring invalid MinIO endpoint rewrite endpoint "${endpoint}": ${reason}`);
+    console.warn(
+      `Ignoring invalid artifact store endpoint rewrite endpoint "${endpoint}": ${reason}`,
+    );
     return undefined;
   }
 }
@@ -999,10 +1127,10 @@ function normalizeGoEndpointPath(rawPath: string): string {
  * See: https://github.com/kubeflow/pipelines/pull/12860
  */
 async function applyS3ProviderCredentials(
-  config: MinioClientOptionsWithOptionalSecrets,
+  config: ArtifactStoreOptions,
   providerInfo: S3ProviderInfo,
   namespace?: string,
-): Promise<MinioClientOptionsWithOptionalSecrets> {
+): Promise<ArtifactStoreOptions> {
   if (providerInfo.Params.fromEnv === 'false') {
     if (!namespace) {
       throw new Error('Artifact Store provider given, but no namespace provided.');
@@ -1043,9 +1171,9 @@ async function applyS3ProviderCredentials(
 }
 
 function applyS3ProviderOptions(
-  config: MinioClientOptionsWithOptionalSecrets,
+  config: ArtifactStoreOptions,
   providerInfo: S3ProviderInfo,
-): MinioClientOptionsWithOptionalSecrets {
+): ArtifactStoreOptions {
   const disableSSLValue =
     providerInfo.Params.disableSSL === undefined
       ? undefined
@@ -1075,8 +1203,7 @@ function applyS3ProviderOptions(
     config.endPoint = endpoint.host;
     config.endpointBasePath = endpoint.basePath;
     config.endpointTruncatesAtDelimiter = endpoint.truncatesAtDelimiter;
-    // MinIO rewrites explicit AWS endpoints according to its own region table. Go Cloud keeps an
-    // explicit endpoint authoritative, so pin AWS-partition hosts after MinIO builds the request.
+    // Explicit AWS endpoints remain authoritative, even when a different signing region is set.
     config.endpointAuthority = isAwsS3Endpoint(endpoint.host) ? endpoint.host : undefined;
     config.port = endpoint.port;
     // AWS DisableHTTPS is asymmetric: true downgrades an explicit HTTPS endpoint, while false does
@@ -1130,15 +1257,6 @@ function isAwsS3Endpoint(host: string): boolean {
     /^s3[.-][a-z0-9-]+\.amazonaws\.com(?:\.cn)?$/.test(normalized)
   );
 }
-
-export const TEST_ONLY = {
-  createS3RetryContext,
-  markS3TransportError,
-  getS3RetryDelayMs,
-  isRetryableS3Error,
-  parseProviderEndpoint,
-  retryS3Operation,
-};
 
 /**
  * Checks the magic number of a buffer to see if the mime type is a uncompressed
@@ -1224,9 +1342,8 @@ function extractFirstTarRecordAsStream() {
  * is a tarball, only the content of the first record in the tarball will be
  * returned. For any other objects, the raw content will be returned.
  *
- * @param param.bucket Bucket name to retrieve the object from.
  * @param param.key Key of the object to retrieve.
- * @param param.client Minio client.
+ * @param param.store Bucket-bound artifact store.
  * @param param.tryExtract Whether we try to extract *.tar.gz, default to true.
  * @param param.onError Optional asynchronous error callback. The returned
  * stream also emits the same error; callers that omit this callback must
@@ -1234,15 +1351,14 @@ function extractFirstTarRecordAsStream() {
  *
  */
 export async function getObjectStream({
-  bucket,
   key,
-  client,
+  store,
   signal,
   tryExtract = true,
   onError,
   onTransformationDetermined,
-}: MinioRequestConfig): Promise<Transform> {
-  const source = await client.getObject(bucket, key);
+}: ArtifactReadRequest): Promise<Transform> {
+  const source = await store.openRead(key, { signal });
   let compressed = false;
   const output = tryExtract
     ? maybeTarball((extracted) => onTransformationDetermined?.(compressed || extracted))
@@ -1285,152 +1401,44 @@ export function isNoSuchKeyError(err: unknown): boolean {
   if (!err || typeof err !== 'object') {
     return false;
   }
-  const e = err as { code?: string; Code?: string; message?: string };
-  const code = e.code || e.Code;
+  const e = err as { code?: string; Code?: string; name?: string; message?: string };
+  const code = e.code || e.Code || e.name;
   if (code === 'NoSuchKey' || code === 'NotFound') {
     return true;
   }
   return typeof e.message === 'string' && e.message.includes('NoSuchKey');
 }
 
-type ListObjectsV2QueryResult = {
-  objects: Array<{ name?: string; size?: number }>;
-  isTruncated: boolean;
-  nextContinuationToken: string;
-};
-
-type ListObjectsV2Query = (
-  bucket: string,
-  prefix: string,
-  continuationToken: string,
-  delimiter: string,
-  maxKeys: number,
-  startAfter: string,
-) => Promise<ListObjectsV2QueryResult>;
-
-// `listObjectsV2Query` is an internal helper on the minio client and is not
-// declared in its public type definitions. We narrow to it via a runtime
-// check so a future minio upgrade that removes the method fails fast with a
-// clear message instead of throwing `undefined is not a function` deep inside
-// the listing loop.
-function getListObjectsV2Query(client: MinioClient): ListObjectsV2Query {
-  const candidate = (client as unknown as { listObjectsV2Query?: unknown }).listObjectsV2Query;
-  if (typeof candidate !== 'function') {
-    throw new Error(
-      'Minio client does not expose listObjectsV2Query; the bundled minio version may be incompatible with listObjectsUnderPrefix',
-    );
-  }
-  return (candidate as ListObjectsV2Query).bind(client);
-}
-
-/**
- * Yields all objects under a given prefix in an s3-compatible bucket,
- * recursively, along with their sizes. Implemented as an async generator so
- * callers can begin streaming the first object before the full listing
- * completes — important for large directory artifacts where buffering all
- * keys would delay the first byte and inflate memory use.
- *
- * Pages via the lower-level `listObjectsV2Query` instead of the public
- * `listObjectsV2` streaming API. The public API hard-codes maxKeys=1000 per
- * page, and minio's bundled fast-xml-parser caps entity expansions at 1000;
- * each Contents entry has ~2 `&quot;` entities in its ETag, so a full page
- * trips "Entity expansion limit exceeded" once a directory holds more than
- * ~500 objects. A smaller page size keeps each XML parse under the cap.
- */
+/** Streams a recursive directory listing without buffering its keys. */
 export async function* listObjectsUnderPrefix(
-  client: MinioClient,
-  bucket: string,
+  store: ArtifactStore,
   prefix: string,
   signal?: AbortSignal,
 ): AsyncGenerator<{ name: string; size: number }> {
-  const PAGE_SIZE = 300;
-  const listObjectsV2Query = getListObjectsV2Query(client);
-  let continuationToken = '';
-  let isTruncated = true;
-
-  while (isTruncated) {
-    if (signal?.aborted) {
-      throw getMinioAbortReason(signal);
-    }
-    const pageRequest = listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
-    const page = signal ? await waitForMinioOperation(pageRequest, signal) : await pageRequest;
-
-    for (const item of page.objects) {
-      if (item.name) {
-        yield { name: item.name, size: item.size ?? 0 };
-      }
-    }
-
-    isTruncated = page.isTruncated;
-    continuationToken = page.nextContinuationToken;
+  for await (const item of store.list(prefix, { signal })) {
+    yield { name: item.key, size: item.size };
   }
 }
 
-function getMinioAbortReason(signal: AbortSignal): Error {
-  return signal.reason instanceof Error ? signal.reason : new Error('MinIO operation was aborted');
-}
-
-function waitForMinioOperation<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const cleanup = () => signal.removeEventListener('abort', rejectOnAbort);
-    const rejectOnAbort = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      reject(getMinioAbortReason(signal));
-    };
-
-    if (signal.aborted) {
-      rejectOnAbort();
-    } else {
-      signal.addEventListener('abort', rejectOnAbort, { once: true });
-    }
-
-    void operation.then(
-      (value) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        cleanup();
-        resolve(value);
-      },
-      (error) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        cleanup();
-        reject(error);
-      },
-    );
-  });
-}
-
-/**
- * Returns a bounded summary of a prefix using a single capped
- * `listObjectsV2Query` call — does not paginate. Designed for preview-style
- * requests where the caller just needs to know "is there anything here, and
- * roughly how many files?" without paying for a full listing of a
- * potentially huge directory.
- *
- * Resolves to `null` for an empty prefix so callers can answer with a 404.
- * `truncated: true` means the directory has more than `maxKeys` files; the
- * caller should treat `count` as a lower bound.
- */
+/** Reads at most one extra entry to distinguish an exact count from a lower bound. */
 export async function summarizeDirectoryUnderPrefix(
-  client: MinioClient,
-  bucket: string,
+  store: ArtifactStore,
   prefix: string,
   maxKeys: number = 50,
 ): Promise<{ count: number; truncated: boolean } | null> {
-  const listObjectsV2Query = getListObjectsV2Query(client);
-  const page = await listObjectsV2Query(bucket, prefix, '', '', maxKeys, '');
-  if (page.objects.length === 0) {
-    return null;
+  let count = 0;
+  for await (const _item of store.list(prefix, { pageSize: maxKeys + 1 })) {
+    if (count === maxKeys) return { count, truncated: true };
+    count++;
   }
-  return { count: page.objects.length, truncated: page.isTruncated };
+  return count ? { count, truncated: false } : null;
 }
+
+export const TEST_ONLY = {
+  createS3RetryContext,
+  markS3TransportError,
+  getS3RetryDelayMs,
+  isRetryableS3Error,
+  retryS3Operation,
+  parseProviderEndpoint,
+};

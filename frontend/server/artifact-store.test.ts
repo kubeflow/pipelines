@@ -14,12 +14,18 @@
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
-import { Client as MinioClient } from 'minio';
+import { S3Client } from '@aws-sdk/client-s3';
+import {
+  MockS3Client,
+  expectedS3Options,
+  resolveS3TestCredentials,
+} from './integration-tests/s3-client-test-helper.js';
+import type { ArtifactStore } from './artifact-store.js';
 import {
   createArtifactStoreClient,
   ArtifactStoreConfigurationError,
   getArtifactStoreOriginAfterRewrite,
-  createMinioClient,
+  createS3ArtifactStore,
   isTarball,
   maybeTarball,
   getObjectStream,
@@ -27,23 +33,86 @@ import {
   isNoSuchKeyError,
   listObjectsUnderPrefix,
   summarizeDirectoryUnderPrefix,
-  MinioClientOptionsWithOptionalSecrets,
+  ArtifactStoreOptions,
   Credentials,
   TEST_ONLY,
-} from './minio-helper.js';
+} from './artifact-store.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { getK8sSecret } from './k8s-helper.js';
 
-vi.mock('minio');
+vi.mock('@aws-sdk/client-s3', async () => {
+  const actual = await vi.importActual<typeof import('@aws-sdk/client-s3')>('@aws-sdk/client-s3');
+  const { createS3Mock } = await import('./integration-tests/s3-client-test-helper.js');
+  return { ...actual, S3Client: createS3Mock(actual) };
+});
+const createTestArtifactStore = (
+  config: ArtifactStoreOptions,
+  providerType: string,
+  ...args: [
+    string?,
+    string?,
+    (() => Promise<Credentials> | Credentials)?,
+    AbortSignal?,
+    import('./artifact-store.js').ArtifactStoreEndpointPolicy?,
+  ]
+) => createS3ArtifactStore(config, providerType, 'bucket', ...args);
 vi.mock('@aws-sdk/credential-providers');
 vi.mock('./k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
-describe('minio-helper', () => {
-  const MockedMinioClient: Mock = MinioClient as any;
+async function serializedRequest(options: { bucketName?: string; method: string }) {
+  const actual = await vi.importActual<typeof import('@aws-sdk/client-s3')>('@aws-sdk/client-s3');
+  const config = vi.mocked(S3Client).mock.calls.at(-1)![0]!;
+  const fixture = MockS3Client.mock.results.at(-1)?.value as {
+    getRequestOptions?: () => { path: string };
+  };
+  const originalPath = fixture.getRequestOptions?.().path ?? '/object';
+  const bucket = options.bucketName ?? 'bucket';
+  const key = (
+    config.forcePathStyle || bucket.includes('.')
+      ? originalPath.replace(new RegExp('^/' + bucket + '/'), '/')
+      : originalPath
+  )
+    .replace(/^\//, '')
+    .split('?')[0];
+  let captured: { headers: { host: string }; host: string; path: string } | undefined;
+  const realClient = new actual.S3Client({
+    ...config,
+    requestHandler: {
+      handle: async (request: {
+        headers: Record<string, string>;
+        hostname: string;
+        path: string;
+        protocol: string;
+      }) => {
+        captured = {
+          headers: { host: request.headers.host },
+          host: request.hostname,
+          path: request.path,
+        };
+        Object.defineProperty(captured, 'protocol', { value: request.protocol });
+        return { response: { statusCode: 200, headers: {}, body: PassThrough.from(['artifact']) } };
+      },
+    },
+  });
+  const stack = vi.mocked(S3Client).mock.results.at(-1)!.value.middlewareStack;
+  for (const [middleware, options] of stack.add.mock.calls)
+    realClient.middlewareStack.add(middleware, options);
+  await realClient.send(new actual.GetObjectCommand({ Bucket: bucket, Key: key }));
+  return captured!;
+}
+async function storeForFixture(fixture: { listPage: Mock }) {
+  MockS3Client.mockImplementationOnce(() => ({ getObject: vi.fn(), ...fixture }));
+  return createTestArtifactStore(
+    { endPoint: 'store.example', accessKey: 'access', secretKey: 'secret' },
+    'minio',
+  );
+}
+describe('artifact-store', () => {
+  const MockedS3Client = MockS3Client;
   const MockedAuthorizeFn: Mock = vi.fn((x) => undefined);
-  const minioClientDouble = (overrides: Record<string, unknown>) => ({
+  const storageFixture = (overrides: Record<string, unknown>) => ({
     getObject: vi.fn(),
-    listObjectsV2Query: vi.fn(),
+    listPage: vi.fn(),
     retryOptions: {},
     ...overrides,
   });
@@ -85,7 +154,7 @@ describe('minio-helper', () => {
       'preserves port %s on endpoint-less structured TLS upgrades',
       async (port) => {
         const authorizeEndpoint = vi.fn();
-        await createMinioClient(
+        await createTestArtifactStore(
           {
             endPoint: 'store.example',
             useSSL: false,
@@ -107,15 +176,16 @@ describe('minio-helper', () => {
             hasEndpointOverride: false,
           }),
         );
-        expect(MockedMinioClient).toHaveBeenCalledWith(
-          expect.objectContaining({ endPoint: 'store.example', useSSL: true, port }),
+        await resolveS3TestCredentials();
+        expect(MockedS3Client).toHaveBeenCalledWith(
+          expectedS3Options({ endPoint: 'store.example', useSSL: true, port }),
         );
       },
     );
 
     it('authorizes native IPv6 origins without losing their client host or port', async () => {
       const authorizeEndpoint = vi.fn();
-      await createMinioClient(
+      await createTestArtifactStore(
         { endPoint: 'store.example', accessKey: 'access', secretKey: 'secret' },
         's3',
         JSON.stringify({
@@ -138,8 +208,9 @@ describe('minio-helper', () => {
           port: 9443,
         }),
       );
-      expect(MockedMinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({ endPoint: '2001:db8::1', port: 9443 }),
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({ endPoint: '2001:db8::1', port: 9443 }),
       );
     });
 
@@ -148,7 +219,7 @@ describe('minio-helper', () => {
       async (port) => {
         const customProvider = vi.fn();
         await expect(
-          createMinioClient(
+          createTestArtifactStore(
             { endPoint: 'store.example', port },
             's3',
             undefined,
@@ -159,7 +230,7 @@ describe('minio-helper', () => {
           ),
         ).rejects.toThrow(ArtifactStoreConfigurationError);
         expect(customProvider).not.toHaveBeenCalled();
-        expect(MockedMinioClient).not.toHaveBeenCalled();
+        expect(MockedS3Client).not.toHaveBeenCalled();
         expect(
           getArtifactStoreOriginAfterRewrite({ endPoint: 'store.example', port }),
         ).toBeUndefined();
@@ -169,7 +240,7 @@ describe('minio-helper', () => {
     it('classifies malformed anonymous options as configuration errors', async () => {
       const customProvider = vi.fn();
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 'store.example' },
           's3',
           JSON.stringify({ Provider: 's3', Params: { fromEnv: 'true', anonymous: 'invalid' } }),
@@ -181,7 +252,7 @@ describe('minio-helper', () => {
       ).rejects.toThrow(ArtifactStoreConfigurationError);
       expect(customProvider).not.toHaveBeenCalled();
       expect(fromNodeProviderChain).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it.each(['true', 'false'])(
@@ -192,7 +263,7 @@ describe('minio-helper', () => {
           throw new ArtifactStoreConfigurationError('untrusted origin');
         });
         await expect(
-          createMinioClient(
+          createTestArtifactStore(
             { endPoint: 'trusted.example', useSSL: true },
             's3',
             JSON.stringify({
@@ -222,7 +293,7 @@ describe('minio-helper', () => {
         expect(customProvider).not.toHaveBeenCalled();
         expect(getK8sSecret).not.toHaveBeenCalled();
         expect(fromNodeProviderChain).not.toHaveBeenCalled();
-        expect(MockedMinioClient).not.toHaveBeenCalled();
+        expect(MockedS3Client).not.toHaveBeenCalled();
       },
     );
 
@@ -239,6 +310,7 @@ describe('minio-helper', () => {
       await createArtifactStoreClient(
         { minio: { endPoint: 'minio.example' }, s3: defaults },
         'minio',
+        'bucket',
         JSON.stringify({
           Provider: 's3',
           Params: {
@@ -259,8 +331,9 @@ describe('minio-helper', () => {
           port: 9000,
         }),
       );
-      expect(MockedMinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
           endPoint: 'proxy.example',
           port: 9000,
           useSSL: false,
@@ -277,7 +350,7 @@ describe('minio-helper', () => {
         throw new ArtifactStoreConfigurationError('TLS downgrade');
       });
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 'store.example', useSSL: true },
           's3',
           JSON.stringify({
@@ -297,12 +370,12 @@ describe('minio-helper', () => {
         }),
       );
       expect(fromNodeProviderChain).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it('rejects endpoint credentials before resolving Secret credentials', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 'store.example' },
           's3',
           JSON.stringify({
@@ -319,39 +392,58 @@ describe('minio-helper', () => {
         ),
       ).rejects.toThrow(ArtifactStoreConfigurationError);
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
   });
 
-  describe('createMinioClient', () => {
+  describe('createTestArtifactStore', () => {
+    it('preserves a configured HTTP transport with regional AWS routing', async () => {
+      MockedS3Client.mockImplementationOnce(() =>
+        storageFixture({ getRequestOptions: () => ({ path: '/object' }) }),
+      );
+      await createTestArtifactStore(
+        {
+          endPoint: 's3.amazonaws.com',
+          region: 'us-west-2',
+          useSSL: false,
+          accessKey: 'access',
+          secretKey: 'secret',
+        },
+        's3',
+      );
+      const request = await serializedRequest({ bucketName: 'bucket', method: 'GET' });
+      expect(request.host).toBe('bucket.s3.us-west-2.amazonaws.com');
+      expect((request as { protocol?: string }).protocol).toBe('http:');
+    });
+
     it.each([
       ['missing Params', { Provider: 's3' }],
       ['null Params', { Params: null, Provider: 's3' }],
       ['array Params', { Params: [], Provider: 's3' }],
     ])('rejects provider info with %s', async (_name, providerInfo) => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify(providerInfo),
           'kubeflow',
         ),
       ).rejects.toThrow('Invalid provider info');
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it.each([undefined, null, false, 1, 'yes'])(
       'rejects invalid fromEnv value %j',
       async (fromEnv) => {
         await expect(
-          createMinioClient(
+          createTestArtifactStore(
             { endPoint: 's3.amazonaws.com' },
             's3',
             JSON.stringify({ Params: { fromEnv }, Provider: 's3' }),
             'kubeflow',
           ),
         ).rejects.toThrow('Provider info fromEnv must be true or false');
-        expect(MockedMinioClient).not.toHaveBeenCalled();
+        expect(MockedS3Client).not.toHaveBeenCalled();
       },
     );
 
@@ -364,7 +456,7 @@ describe('minio-helper', () => {
         vi.mocked(getK8sSecret).mockResolvedValueOnce(accessKey).mockResolvedValueOnce(secretKey);
 
         await expect(
-          createMinioClient(
+          createTestArtifactStore(
             { endPoint: 'central.example' },
             's3',
             JSON.stringify({
@@ -381,7 +473,7 @@ describe('minio-helper', () => {
         ).rejects.toThrow('Provider Secret contains an empty access key or secret key');
 
         expect(fromNodeProviderChain).not.toHaveBeenCalled();
-        expect(MockedMinioClient).not.toHaveBeenCalled();
+        expect(MockedS3Client).not.toHaveBeenCalled();
       },
     );
 
@@ -396,7 +488,7 @@ describe('minio-helper', () => {
       };
       (getK8sSecret as Mock).mockResolvedValue('request-secret');
 
-      await createMinioClient(
+      await createTestArtifactStore(
         defaults,
         's3',
         JSON.stringify({
@@ -423,8 +515,8 @@ describe('minio-helper', () => {
         useSSL: true,
       });
     });
-    it('creates a minio client with the provided configs.', async () => {
-      const client = await createMinioClient(
+    it('creates a S3 store with the provided configs.', async () => {
+      const client = await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'minio.kubeflow:80',
@@ -433,12 +525,15 @@ describe('minio-helper', () => {
         's3',
       );
 
-      expect(client).toBeInstanceOf(MinioClient);
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'minio.kubeflow:80',
-        secretKey: 'secretkey',
-      });
+      expect(client.openRead).toBeTypeOf('function');
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'minio.kubeflow:80',
+          secretKey: 'secretkey',
+        }),
+      );
     });
 
     it('Builds a client where credentials are resolved using a custom provider.', async () => {
@@ -450,7 +545,7 @@ describe('minio-helper', () => {
         };
       };
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         {
           endPoint: 'minio.kubeflow:80',
         },
@@ -460,25 +555,28 @@ describe('minio-helper', () => {
         provider,
       );
 
-      expect(client).toBeInstanceOf(MinioClient);
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'providedKey',
-        endPoint: 'minio.kubeflow:80',
-        secretKey: 'providedSecret',
-        sessionToken: 'providedToken',
-      });
+      expect(client.openRead).toBeTypeOf('function');
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'providedKey',
+          endPoint: 'minio.kubeflow:80',
+          secretKey: 'providedSecret',
+          sessionToken: 'providedToken',
+        }),
+      );
     });
 
     it('fails closed if authenticated S3 credentials are unavailable.', async () => {
-      await expect(createMinioClient({ endPoint: 'minio.kubeflow:80' }, 's3')).rejects.toThrow(
-        'Unable to resolve AWS credentials',
-      );
+      await expect(
+        createTestArtifactStore({ endPoint: 'minio.kubeflow:80' }, 's3'),
+      ).rejects.toThrow('Unable to resolve AWS credentials');
 
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it('applies endpoint and region settings when credentials come from the environment', async () => {
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         'minio',
         JSON.stringify({
@@ -492,18 +590,21 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'ceph.example',
-        port: 9443,
-        region: 'ceph',
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'ceph.example',
+          port: 9443,
+          region: 'ceph',
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it('uses standard AWS HTTPS for an explicitly empty structured S3 endpoint', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'central.example',
@@ -517,16 +618,19 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 's3.amazonaws.com',
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 's3.amazonaws.com',
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it('applies structured provider retry settings', async () => {
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
         JSON.stringify({
@@ -535,16 +639,19 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example',
-        secretKey: 'secretkey',
-      });
-      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          secretKey: 'secretkey',
+        }),
+      );
+      expect(vi.mocked(S3Client).mock.calls.at(-1)?.[0]?.maxAttempts).toBe(1);
     });
 
     it('uses an operation retry budget when structured maxRetries is zero', async () => {
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
         JSON.stringify({
@@ -553,31 +660,37 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example',
-        secretKey: 'secretkey',
-      });
-      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          secretKey: 'secretkey',
+        }),
+      );
+      expect(vi.mocked(S3Client).mock.calls.at(-1)?.[0]?.maxAttempts).toBe(1);
     });
 
     it('uses the Go default retry budget when maxRetries is omitted', async () => {
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
         JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true' } }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example',
-        secretKey: 'secretkey',
-      });
-      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          secretKey: 'secretkey',
+        }),
+      );
+      expect(vi.mocked(S3Client).mock.calls.at(-1)?.[0]?.maxAttempts).toBe(1);
     });
 
     it('accepts retry budgets above the frontend safety limit', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
         JSON.stringify({
@@ -586,12 +699,12 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledTimes(1);
+      expect(MockedS3Client).toHaveBeenCalledTimes(1);
     });
 
     it('rejects malformed native endpoint authorities instead of repairing them', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
           's3',
           JSON.stringify({
@@ -605,12 +718,12 @@ describe('minio-helper', () => {
         ),
       ).rejects.toThrow('must contain a valid authority');
 
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it('rejects backslashes in native endpoint authorities', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
           's3',
           JSON.stringify({
@@ -624,11 +737,11 @@ describe('minio-helper', () => {
         ),
       ).rejects.toThrow('must contain a valid authority');
 
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it('uses the secure default when provider info does not specify disableSSL', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'default-store',
@@ -645,17 +758,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'ceph.example',
-        port: 9443,
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'ceph.example',
+          port: 9443,
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it('preserves an explicit HTTP endpoint scheme when disableSSL is false', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'default-store',
@@ -673,17 +789,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'ceph.example',
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'ceph.example',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('retains the server TLS setting when provider info does not override transport', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'minio-service.kubeflow',
@@ -698,17 +817,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'minio-service.kubeflow',
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'minio-service.kubeflow',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('applies endpoint-less disableSSL=true while inheriting the server endpoint and region', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'minio-service.kubeflow',
@@ -723,17 +845,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'minio-service.kubeflow',
-        region: 'environment-region',
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'minio-service.kubeflow',
+          region: 'environment-region',
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('supports anonymous virtual-hosted S3 access without resolving credentials', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'environment-access',
           endPoint: 'default-store',
@@ -753,17 +878,20 @@ describe('minio-helper', () => {
       );
 
       expect(fromNodeProviderChain).not.toHaveBeenCalled();
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        endPoint: 's3.us-west-2.amazonaws.com',
-        pathStyle: false,
-        port: undefined,
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          endPoint: 's3.us-west-2.amazonaws.com',
+          pathStyle: false,
+          port: undefined,
+          useSSL: true,
+        }),
+      );
     });
 
     it('rejects unsupported S3 read options before resolving ambient credentials', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify({
@@ -778,11 +906,11 @@ describe('minio-helper', () => {
       ).rejects.toThrow('Unsupported S3 artifact read option: role');
 
       expect(fromNodeProviderChain).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it('accepts valid neutral S3 options that do not change read behavior', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -802,13 +930,16 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 's3.us-west-2.amazonaws.com',
-        port: undefined,
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 's3.us-west-2.amazonaws.com',
+          port: undefined,
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it.each([
@@ -817,7 +948,7 @@ describe('minio-helper', () => {
       ['response_checksum_validation', 'when_required'],
     ])('rejects unsupported non-neutral S3 option %s', async (option, value) => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify({
@@ -836,7 +967,7 @@ describe('minio-helper', () => {
       'rejects invalid request checksum calculation value %j',
       async (value) => {
         await expect(
-          createMinioClient(
+          createTestArtifactStore(
             { endPoint: 's3.amazonaws.com' },
             's3',
             JSON.stringify({
@@ -857,7 +988,7 @@ describe('minio-helper', () => {
       ['kmskeyid', ''],
     ])('rejects invalid native S3 write option %s=%j', async (option, value) => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify({
@@ -870,7 +1001,7 @@ describe('minio-helper', () => {
 
     it('rejects unsupported S3 behavior when its native boolean is enabled', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify({
@@ -885,11 +1016,11 @@ describe('minio-helper', () => {
       ).rejects.toThrow('Unsupported S3 artifact read option: accelerate');
 
       expect(fromNodeProviderChain).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
-    it('parses an explicit HTTP custom endpoint into Minio client options', async () => {
-      await createMinioClient(
+    it('parses an explicit HTTP custom endpoint into S3 configuration', async () => {
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -901,17 +1032,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example.com',
-        port: undefined,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example.com',
+          port: undefined,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('applies disableSSL to a scheme-less custom endpoint', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -924,17 +1058,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example.com',
-        port: undefined,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example.com',
+          port: undefined,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('applies runtime S3 query aliases', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -948,18 +1085,21 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'ceph.example',
-        pathStyle: false,
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'ceph.example',
+          pathStyle: false,
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('applies endpoint-less disable_https from a native S3 query', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'store.example.com',
@@ -973,17 +1113,20 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example.com',
-        pathStyle: false,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example.com',
+          pathStyle: false,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('defaults native custom S3 endpoints to virtual-host addressing', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -996,18 +1139,21 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example',
-        pathStyle: false,
-        port: undefined,
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          pathStyle: false,
+          port: undefined,
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it('parses uppercase native HTTPS endpoint schemes', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1020,19 +1166,22 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example',
-        pathStyle: false,
-        port: 9443,
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          pathStyle: false,
+          port: 9443,
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it('rejects scheme-less endpoints from native S3 queries', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify({
@@ -1047,7 +1196,7 @@ describe('minio-helper', () => {
       ).rejects.toThrow('absolute HTTP(S) URL');
 
       expect(fromNodeProviderChain).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -1058,7 +1207,7 @@ describe('minio-helper', () => {
     ])(
       'applies asymmetric TLS precedence for %s=%s and an explicit endpoint',
       async (option, value, endpoint, expectedUseSSL) => {
-        await createMinioClient(
+        await createTestArtifactStore(
           { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
           's3',
           JSON.stringify({
@@ -1071,13 +1220,16 @@ describe('minio-helper', () => {
           }),
         );
 
-        expect(MockedMinioClient).toHaveBeenCalledWith({
-          accessKey: 'accesskey',
-          endPoint: 'store.example',
-          port: 9000,
-          secretKey: 'secretkey',
-          useSSL: expectedUseSSL,
-        });
+        await resolveS3TestCredentials();
+        expect(MockedS3Client).toHaveBeenCalledWith(
+          expectedS3Options({
+            accessKey: 'accesskey',
+            endPoint: 'store.example',
+            port: 9000,
+            secretKey: 'secretkey',
+            useSSL: expectedUseSSL,
+          }),
+        );
       },
     );
 
@@ -1088,7 +1240,7 @@ describe('minio-helper', () => {
         sessionToken: 'irsa-session-token',
       }));
 
-      await createMinioClient(
+      await createTestArtifactStore(
         { endPoint: 's3.amazonaws.com' },
         's3',
         JSON.stringify({
@@ -1101,19 +1253,22 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'irsa-access-key',
-        endPoint: 'ceph.example',
-        pathStyle: false,
-        port: 9443,
-        secretKey: 'irsa-secret-key',
-        sessionToken: 'irsa-session-token',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'irsa-access-key',
+          endPoint: 'ceph.example',
+          pathStyle: false,
+          port: 9443,
+          secretKey: 'irsa-secret-key',
+          sessionToken: 'irsa-session-token',
+          useSSL: true,
+        }),
+      );
     });
 
-    it('passes bare IPv6 addresses from native endpoints to MinIO', async () => {
-      await createMinioClient(
+    it('passes bare IPv6 addresses from native endpoints to the S3 client', async () => {
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1126,23 +1281,26 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: '2001:db8::1',
-        pathStyle: false,
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: '2001:db8::1',
+          pathStyle: false,
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
-    it('preserves endpoint base paths in the path MinIO signs and requests', async () => {
+    it('preserves endpoint base paths in the signed path and requests', async () => {
       const getRequestOptions = vi.fn(() => ({ path: '/bucket/object?versionId=1' }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1154,35 +1312,38 @@ describe('minio-helper', () => {
         }),
       );
 
-      const requestOptions = (client as any).getRequestOptions({ method: 'GET' });
-      expect(requestOptions.path).toBe('/base/path/bucket/object?versionId=1');
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'store.example',
-        port: undefined,
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      const requestOptions = await serializedRequest({ method: 'GET' });
+      expect(requestOptions.path).toBe('/base/path/bucket/object');
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          port: undefined,
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it.each([
       ['https://store.example/root dir/café', '/root%20dir/caf%C3%A9/bucket/object'],
       ['https://store.example/base/%2e%2e/inner', '/base/../inner/bucket/object'],
-      ['https://store.example/base/%3F/discarded', '/base/bucket/object'],
-      ['https://store.example/base/%23/discarded', '/base/bucket/object'],
+      ['https://store.example/base/%3F/discarded', '/base/object'],
+      ['https://store.example/base/%23/discarded', '/base/object'],
     ])('preserves the Go request spelling for endpoint path %s', async (endpoint, expectedPath) => {
       const getRequestOptions = vi.fn(() => ({ path: '/bucket/object' }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({ Provider: 's3', Params: { endpoint, fromEnv: 'true' } }),
       );
 
-      expect((client as any).getRequestOptions({ method: 'GET' }).path).toBe(expectedPath);
+      expect((await serializedRequest({ method: 'GET' })).path).toBe(expectedPath);
     });
 
     it('preserves an explicitly selected global AWS endpoint authority', async () => {
@@ -1191,11 +1352,11 @@ describe('minio-helper', () => {
         host: 'bucket.s3.us-west-2.amazonaws.com',
         path: '/object',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1209,7 +1370,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+      expect(await serializedRequest({ bucketName: 'bucket', method: 'GET' })).toEqual(
         expect.objectContaining({
           headers: { host: 'bucket.s3.amazonaws.com' },
           host: 'bucket.s3.amazonaws.com',
@@ -1224,11 +1385,11 @@ describe('minio-helper', () => {
         host: 'mybucket.s3.us-west-2.amazonaws.com',
         path: '/mybucket/data.csv',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1241,7 +1402,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect((client as any).getRequestOptions({ bucketName: 'mybucket', method: 'GET' })).toEqual(
+      expect(await serializedRequest({ bucketName: 'mybucket', method: 'GET' })).toEqual(
         expect.objectContaining({
           headers: { host: 'mybucket.s3.us-west-2.amazonaws.com' },
           host: 'mybucket.s3.us-west-2.amazonaws.com',
@@ -1250,17 +1411,17 @@ describe('minio-helper', () => {
       );
     });
 
-    it('preserves MinIO path-style addressing for dotted HTTPS buckets', async () => {
+    it('preserves path-style addressing for dotted HTTPS buckets', async () => {
       const getRequestOptions = vi.fn(() => ({
         headers: { host: 's3.amazonaws.com' },
         host: 's3.amazonaws.com',
         path: '/bucket.with.dot/object',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1273,9 +1434,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(
-        (client as any).getRequestOptions({ bucketName: 'bucket.with.dot', method: 'GET' }),
-      ).toEqual(
+      expect(await serializedRequest({ bucketName: 'bucket.with.dot', method: 'GET' })).toEqual(
         expect.objectContaining({
           headers: { host: 's3.amazonaws.com' },
           host: 's3.amazonaws.com',
@@ -1290,7 +1449,7 @@ describe('minio-helper', () => {
     ])('preserves cross-scheme port in the signed Host for %s', async (endpoint, port) => {
       if (endpoint.startsWith('http:')) {
         await expect(
-          createMinioClient(
+          createTestArtifactStore(
             { endPoint: 's3.amazonaws.com' },
             's3',
             JSON.stringify({
@@ -1299,7 +1458,7 @@ describe('minio-helper', () => {
             }),
           ),
         ).rejects.toThrow('AWS S3 provider endpoints must use HTTPS');
-        expect(MockedMinioClient).not.toHaveBeenCalled();
+        expect(MockedS3Client).not.toHaveBeenCalled();
         expect(fromNodeProviderChain).not.toHaveBeenCalled();
         return;
       }
@@ -1308,11 +1467,11 @@ describe('minio-helper', () => {
         host: 'bucket.s3.amazonaws.com',
         path: '/object',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1321,7 +1480,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+      expect(await serializedRequest({ bucketName: 'bucket', method: 'GET' })).toEqual(
         expect.objectContaining({ headers: { host: `bucket.s3.amazonaws.com:${port}` } }),
       );
     });
@@ -1332,11 +1491,11 @@ describe('minio-helper', () => {
         host: 'bucket.s3.cn-northwest-1.amazonaws.com.cn',
         path: '/object',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1350,7 +1509,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+      expect(await serializedRequest({ bucketName: 'bucket', method: 'GET' })).toEqual(
         expect.objectContaining({
           headers: { host: 'bucket.s3.cn-north-1.amazonaws.com.cn' },
           host: 'bucket.s3.cn-north-1.amazonaws.com.cn',
@@ -1364,11 +1523,11 @@ describe('minio-helper', () => {
         host: 'bucket.s3.us-east-1.amazonaws.com',
         path: '/object',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1381,7 +1540,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+      expect(await serializedRequest({ bucketName: 'bucket', method: 'GET' })).toEqual(
         expect.objectContaining({
           headers: { host: 'bucket.s3.cn-north-1.amazonaws.com.cn' },
           host: 'bucket.s3.cn-north-1.amazonaws.com.cn',
@@ -1399,11 +1558,11 @@ describe('minio-helper', () => {
         host: 's3.s3.us-west-2.amazonaws.com',
         path: '/s3/hello.txt',
       }));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return minioClientDouble({ getRequestOptions });
+      MockedS3Client.mockImplementationOnce(function () {
+        return storageFixture({ getRequestOptions });
       });
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1417,7 +1576,7 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect((client as any).getRequestOptions({ bucketName: 's3', method: 'GET' })).toEqual(
+      expect(await serializedRequest({ bucketName: 's3', method: 'GET' })).toEqual(
         expect.objectContaining({
           headers: { host: 's3.us-west-2.amazonaws.com' },
           host: 's3.us-west-2.amazonaws.com',
@@ -1427,7 +1586,7 @@ describe('minio-helper', () => {
     });
 
     it('normalizes structured global AWS endpoints through the standard resolver', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1439,12 +1598,15 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 's3.amazonaws.com',
-        secretKey: 'secretkey',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 's3.amazonaws.com',
+          secretKey: 'secretkey',
+          useSSL: true,
+        }),
+      );
     });
 
     it('preserves escaped dot segments and encodes path backslashes without repairing them', () => {
@@ -1491,7 +1653,7 @@ describe('minio-helper', () => {
     );
 
     it('does not normalize a hostname that merely starts with the standard AWS name', async () => {
-      await createMinioClient(
+      await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
         's3',
         JSON.stringify({
@@ -1503,8 +1665,9 @@ describe('minio-helper', () => {
         }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({ endPoint: 's3.amazonaws.com.tenant.example' }),
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({ endPoint: 's3.amazonaws.com.tenant.example' }),
       );
     });
 
@@ -1532,7 +1695,7 @@ describe('minio-helper', () => {
         useSSL: false,
       };
 
-      await createMinioClient(
+      await createTestArtifactStore(
         sharedConfig,
         'minio',
         JSON.stringify({
@@ -1544,7 +1707,7 @@ describe('minio-helper', () => {
           },
         }),
       );
-      await createMinioClient(sharedConfig, 'minio');
+      await createTestArtifactStore(sharedConfig, 'minio');
 
       expect(sharedConfig).toEqual({
         accessKey: 'default-access-key',
@@ -1553,7 +1716,7 @@ describe('minio-helper', () => {
         secretKey: 'default-secret-key',
         useSSL: false,
       });
-      expect(MockedMinioClient).toHaveBeenNthCalledWith(2, sharedConfig);
+      expect(MockedS3Client).toHaveBeenNthCalledWith(2, expectedS3Options(sharedConfig));
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
@@ -1565,15 +1728,18 @@ describe('minio-helper', () => {
             sessionToken: 'SessionToken',
           }),
       );
-      const client = await createMinioClient({ endPoint: 's3.amazonaws.com' }, 's3');
-      expect(client).toBeInstanceOf(MinioClient);
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'AccessKeyId',
-        endPoint: 's3.amazonaws.com',
-        secretKey: 'SecretAccessKey',
-        sessionToken: 'SessionToken',
-      });
-      expect(MockedMinioClient).toBeCalledTimes(1);
+      const client = await createTestArtifactStore({ endPoint: 's3.amazonaws.com' }, 's3');
+      expect(client.openRead).toBeTypeOf('function');
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'AccessKeyId',
+          endPoint: 's3.amazonaws.com',
+          secretKey: 'SecretAccessKey',
+          sessionToken: 'SessionToken',
+        }),
+      );
+      expect(MockedS3Client).toBeCalledTimes(1);
     });
 
     it.each([
@@ -1589,18 +1755,21 @@ describe('minio-helper', () => {
       });
       (fromNodeProviderChain as Mock).mockReturnValue(credentialProvider);
 
-      await createMinioClient({ endPoint, region, useSSL: true }, 's3');
+      await createTestArtifactStore({ endPoint, region, useSSL: true }, 's3');
 
       expect(fromNodeProviderChain).toHaveBeenCalledExactlyOnceWith({ ignoreCache: true });
       expect(credentialProvider).toHaveBeenCalledTimes(1);
-      expect(MockedMinioClient).toHaveBeenCalledExactlyOnceWith({
-        accessKey: 'AccessKeyId',
-        endPoint,
-        region,
-        secretKey: 'SecretAccessKey',
-        sessionToken: 'SessionToken',
-        useSSL: true,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledExactlyOnceWith(
+        expectedS3Options({
+          accessKey: 'AccessKeyId',
+          endPoint,
+          region,
+          secretKey: 'SecretAccessKey',
+          sessionToken: 'SessionToken',
+          useSSL: true,
+        }),
+      );
     });
 
     it('uses the AWS credential chain for S3 acceleration endpoints.', async () => {
@@ -1613,11 +1782,12 @@ describe('minio-helper', () => {
           }),
       );
 
-      await createMinioClient({ endPoint: 's3-accelerate.amazonaws.com' }, 's3');
+      await createTestArtifactStore({ endPoint: 's3-accelerate.amazonaws.com' }, 's3');
 
       expect(fromNodeProviderChain).toHaveBeenCalledWith({ ignoreCache: true });
-      expect(MockedMinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
           accessKey: 'AccessKeyId',
           endPoint: 's3-accelerate.amazonaws.com',
           secretKey: 'SecretAccessKey',
@@ -1628,7 +1798,7 @@ describe('minio-helper', () => {
     it('preserves the configured AWS region when provider info omits a region.', async () => {
       (getK8sSecret as Mock).mockResolvedValue('request-secret');
 
-      await createMinioClient(
+      await createTestArtifactStore(
         { endPoint: 's3.amazonaws.com', region: 'eu-west-2' },
         's3',
         JSON.stringify({
@@ -1643,14 +1813,13 @@ describe('minio-helper', () => {
         'kubeflow',
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({ region: 'eu-west-2' }),
-      );
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(expectedS3Options({ region: 'eu-west-2' }));
     });
 
     it('rejects an insecure AWS provider endpoint before reading its Secret', async () => {
       await expect(
-        createMinioClient(
+        createTestArtifactStore(
           { endPoint: 's3.amazonaws.com' },
           's3',
           JSON.stringify({
@@ -1669,7 +1838,7 @@ describe('minio-helper', () => {
       ).rejects.toThrow('AWS S3 provider endpoints must use HTTPS');
 
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedS3Client).not.toHaveBeenCalled();
     });
 
     it('selects the S3 base configuration inside artifact client creation', async () => {
@@ -1684,15 +1853,17 @@ describe('minio-helper', () => {
           s3: { endPoint: 's3.amazonaws.com', useSSL: true },
         },
         'minio',
+        'bucket',
         JSON.stringify({ Provider: 's3', Params: { fromEnv: 'true' } }),
       );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({ endPoint: 's3.amazonaws.com', useSSL: true }),
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({ endPoint: 's3.amazonaws.com', useSSL: true }),
       );
     });
     it('rewrites configured in-cluster endpoints to local proxy endpoints.', async () => {
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'seaweedfs.kubeflow.svc',
@@ -1705,20 +1876,23 @@ describe('minio-helper', () => {
         's3',
       );
 
-      expect(client).toBeInstanceOf(MinioClient);
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'localhost',
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      expect(client.openRead).toBeTypeOf('function');
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'localhost',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
 
     it('skips invalid endpoint rewrite rules.', async () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         {
           accessKey: 'accesskey',
           endPoint: 'seaweedfs.kubeflow.svc',
@@ -1731,17 +1905,20 @@ describe('minio-helper', () => {
         's3',
       );
 
-      expect(client).toBeInstanceOf(MinioClient);
+      expect(client.openRead).toBeTypeOf('function');
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Ignoring invalid MinIO endpoint rewrite endpoint "::::"'),
+        expect.stringContaining('Ignoring invalid artifact store endpoint rewrite endpoint "::::"'),
       );
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'localhost',
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
+      await resolveS3TestCredentials();
+      expect(MockedS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
+          accessKey: 'accesskey',
+          endPoint: 'localhost',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        }),
+      );
     });
   });
 
@@ -1754,11 +1931,11 @@ describe('minio-helper', () => {
       vi.useFakeTimers();
       try {
         const getObject = vi.fn().mockRejectedValue(transportError('connection reset'));
-        const listObjectsV2Query = vi.fn();
-        MockedMinioClient.mockImplementationOnce(function () {
-          return { getObject, listObjectsV2Query };
+        const listPage = vi.fn();
+        MockedS3Client.mockImplementationOnce(function () {
+          return { getObject, listPage };
         });
-        const client = await createMinioClient(
+        const client = await createTestArtifactStore(
           { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
           'minio',
           JSON.stringify({
@@ -1767,9 +1944,7 @@ describe('minio-helper', () => {
           }),
         );
 
-        const request = expect(client.getObject('bucket', 'key')).rejects.toThrow(
-          'connection reset',
-        );
+        const request = expect(client.openRead('key')).rejects.toThrow('connection reset');
         await vi.runAllTimersAsync();
         await request;
         expect(getObject).toHaveBeenCalledTimes(attempts);
@@ -1802,21 +1977,16 @@ describe('minio-helper', () => {
       expect(TEST_ONLY.getS3RetryDelayMs(9, () => 0.75)).toBe(20_000);
     });
 
-    it('fails loudly when a required retryable method is unavailable', async () => {
-      MockedMinioClient.mockImplementationOnce(function () {
+    it('fails loudly when the SDK returns no readable body', async () => {
+      MockedS3Client.mockImplementationOnce(function () {
         return { getObject: vi.fn() };
       });
 
-      await expect(
-        createMinioClient(
-          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
-          'minio',
-          JSON.stringify({
-            Provider: 'minio',
-            Params: { fromEnv: 'true', maxRetries: '5' },
-          }),
-        ),
-      ).rejects.toThrow('does not expose listObjectsV2Query');
+      const store = await createTestArtifactStore(
+        { accessKey: 'accesskey', secretKey: 'secretkey', endPoint: 'store.example' },
+        'minio',
+      );
+      await expect(store.openRead('key')).rejects.toThrow('no readable object body');
     });
 
     it.each([
@@ -1941,11 +2111,11 @@ describe('minio-helper', () => {
         const getObject = vi
           .fn()
           .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
-        const listObjectsV2Query = vi.fn().mockRejectedValue(transportError('reset'));
-        MockedMinioClient.mockImplementationOnce(function () {
-          return { getObject, listObjectsV2Query };
+        const listPage = vi.fn().mockRejectedValue(transportError('reset'));
+        MockedS3Client.mockImplementationOnce(function () {
+          return { getObject, listPage };
         });
-        const client = await createMinioClient(
+        const client = await createTestArtifactStore(
           { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
           'minio',
           JSON.stringify({
@@ -1954,15 +2124,15 @@ describe('minio-helper', () => {
           }),
         );
 
-        await expect(client.getObject('bucket', 'key')).rejects.toThrow('missing');
-        const fallback = expect(
-          (client as any).listObjectsV2Query('bucket', 'key/', '', 1),
-        ).rejects.toThrow('reset');
+        await expect(client.openRead('key')).rejects.toThrow('missing');
+        const fallback = expect(client.list('key/')[Symbol.asyncIterator]().next()).rejects.toThrow(
+          'reset',
+        );
         await vi.runAllTimersAsync();
         await fallback;
 
         expect(getObject).toHaveBeenCalledTimes(1);
-        expect(listObjectsV2Query).toHaveBeenCalledTimes(3);
+        expect(listPage).toHaveBeenCalledTimes(3);
       } finally {
         vi.useRealTimers();
       }
@@ -1972,17 +2142,17 @@ describe('minio-helper', () => {
       const stream = new PassThrough();
       stream.end('artifact');
       const getObject = vi.fn().mockResolvedValue(stream);
-      MockedMinioClient.mockImplementationOnce(function () {
-        return { getObject, listObjectsV2Query: vi.fn() };
+      MockedS3Client.mockImplementationOnce(function () {
+        return { getObject, listPage: vi.fn() };
       });
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
       );
 
-      await expect(client.getObject('bucket', 'key')).resolves.toBe(stream);
-      expect(client.getObject).toHaveBeenCalledTimes(1);
-      expect(client.getObject).toHaveBeenCalledWith('bucket', 'key');
+      await expect(client.openRead('key')).resolves.toBe(stream);
+      expect(getObject).toHaveBeenCalledTimes(1);
+      expect(getObject).toHaveBeenCalledWith('bucket', 'key');
     });
 
     it('keeps retry classification local to concurrent operations', async () => {
@@ -2071,10 +2241,10 @@ describe('minio-helper', () => {
     it('passes request cancellation through a configured MinIO client', async () => {
       const abortController = new AbortController();
       const getObject = vi.fn().mockRejectedValue(transportError('reset'));
-      MockedMinioClient.mockImplementationOnce(function () {
-        return { getObject, listObjectsV2Query: vi.fn() };
+      MockedS3Client.mockImplementationOnce(function () {
+        return { getObject, listPage: vi.fn() };
       });
-      const client = await createMinioClient(
+      const client = await createTestArtifactStore(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
         JSON.stringify({
@@ -2086,7 +2256,7 @@ describe('minio-helper', () => {
         abortController.signal,
       );
 
-      const request = expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+      const request = expect(client.openRead('key')).rejects.toMatchObject({
         name: 'AbortError',
       });
       await vi.waitFor(() => expect(getObject).toHaveBeenCalledTimes(1));
@@ -2154,26 +2324,22 @@ describe('minio-helper', () => {
       'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==';
     const tarGzBuffer = Buffer.from(tarGzBase64, 'base64');
     const tarBuffer = zlib.gunzipSync(tarGzBuffer);
-    let minioClient: MinioClient;
-    let mockedMinioGetObject: Mock;
+    let store: ArtifactStore;
+    let mockedOpenRead: Mock;
 
     beforeEach(() => {
       vi.clearAllMocks();
-      minioClient = new MinioClient({
-        endPoint: 's3.amazonaws.com',
-        accessKey: '',
-        secretKey: '',
-      });
-      mockedMinioGetObject = minioClient.getObject as any;
+      mockedOpenRead = vi.fn();
+      store = { openRead: mockedOpenRead, list: async function* () {} };
     });
 
     it('unpacks a gzipped tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(tarGzBuffer);
-      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      mockedOpenRead.mockResolvedValueOnce(Promise.resolve(objStream));
 
-      const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
-      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
+      const stream = await getObjectStream({ key: 'key', store: store });
+      expect(mockedOpenRead).toBeCalledWith('key', { signal: undefined });
       const chunks: Buffer[] = [];
       for await (const chunk of stream) {
         chunks.push(Buffer.from(chunk));
@@ -2184,16 +2350,15 @@ describe('minio-helper', () => {
     it('unpacks a uncompressed tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(tarBuffer);
-      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      mockedOpenRead.mockResolvedValueOnce(Promise.resolve(objStream));
 
       const onTransformationDetermined = vi.fn();
       const stream = await getObjectStream({
-        bucket: 'bucket',
         key: 'key',
-        client: minioClient,
+        store: store,
         onTransformationDetermined,
       });
-      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
+      expect(mockedOpenRead).toBeCalledWith('key', { signal: undefined });
       const chunks: Buffer[] = [];
       for await (const chunk of stream) {
         chunks.push(Buffer.from(chunk));
@@ -2205,13 +2370,12 @@ describe('minio-helper', () => {
     it('reports decompression even when the decompressed object is not a tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(zlib.gzipSync(Buffer.from('hello world')));
-      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      mockedOpenRead.mockResolvedValueOnce(Promise.resolve(objStream));
       const onTransformationDetermined = vi.fn();
 
       const stream = await getObjectStream({
-        bucket: 'bucket',
         key: 'key',
-        client: minioClient,
+        store: store,
         onTransformationDetermined,
       });
       const chunks: Buffer[] = [];
@@ -2230,13 +2394,12 @@ describe('minio-helper', () => {
       async (level) => {
         const objStream = new PassThrough();
         objStream.end(zlib.deflateSync(Buffer.from('hello world'), { level }));
-        mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+        mockedOpenRead.mockResolvedValueOnce(Promise.resolve(objStream));
         const onTransformationDetermined = vi.fn();
 
         const stream = await getObjectStream({
-          bucket: 'bucket',
           key: 'key',
-          client: minioClient,
+          store: store,
           onTransformationDetermined,
         });
         const chunks: Buffer[] = [];
@@ -2252,10 +2415,10 @@ describe('minio-helper', () => {
     it('returns the content as a stream', async () => {
       const objStream = new PassThrough();
       objStream.end('hello world');
-      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      mockedOpenRead.mockResolvedValueOnce(Promise.resolve(objStream));
 
-      const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
-      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
+      const stream = await getObjectStream({ key: 'key', store: store });
+      expect(mockedOpenRead).toBeCalledWith('key', { signal: undefined });
       const chunks: Buffer[] = [];
       for await (const chunk of stream) {
         chunks.push(Buffer.from(chunk));
@@ -2265,11 +2428,10 @@ describe('minio-helper', () => {
 
     it('forwards errors from the underlying object stream', async () => {
       const objStream = new PassThrough();
-      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      mockedOpenRead.mockResolvedValueOnce(Promise.resolve(objStream));
       const stream = await getObjectStream({
-        bucket: 'bucket',
         key: 'key',
-        client: minioClient,
+        store: store,
         tryExtract: false,
       });
       const streamError = new Error('storage connection reset');
@@ -2283,7 +2445,7 @@ describe('minio-helper', () => {
 
     it('installs the supplied error handler before the source can fail', async () => {
       const streamError = new Error('immediate storage failure');
-      mockedMinioGetObject.mockImplementationOnce(async () => {
+      mockedOpenRead.mockImplementationOnce(async () => {
         const objStream = new PassThrough();
         setImmediate(() => objStream.destroy(streamError));
         return objStream;
@@ -2291,9 +2453,8 @@ describe('minio-helper', () => {
       const onError = vi.fn();
 
       await getObjectStream({
-        bucket: 'bucket',
         key: 'key',
-        client: minioClient,
+        store: store,
         onError,
       });
       await new Promise<void>((resolve) => setImmediate(resolve));
@@ -2305,12 +2466,11 @@ describe('minio-helper', () => {
       const abortController = new AbortController();
       const objStream = new PassThrough();
       const destroy = vi.spyOn(objStream, 'destroy');
-      mockedMinioGetObject.mockResolvedValueOnce(objStream);
+      mockedOpenRead.mockResolvedValueOnce(objStream);
 
       const onError = vi.fn();
       const output = await getObjectStream({
-        bucket: 'bucket',
-        client: minioClient,
+        store: store,
         key: 'key',
         signal: abortController.signal,
         onError,
@@ -2367,8 +2527,7 @@ describe('minio-helper', () => {
   // listObjectsUnderPrefix drives the directory-artifact download path. Its
   // pagination logic (continuation tokens) and result normalization (default
   // size, missing-name skip) are easy to break without coverage. Mocks
-  // mirror the real minio@8.x shape — `listObjectsV2Query` is async and
-  // resolves to a {objects, isTruncated, nextContinuationToken} record.
+  // describe SDK responses while the adapter owns pagination and normalization.
   describe('listObjectsUnderPrefix', () => {
     type Page = {
       objects: Array<{ name?: string; size?: number }>;
@@ -2385,8 +2544,8 @@ describe('minio-helper', () => {
     }
 
     it('yields a single page of objects with name and size', async () => {
-      const client = {
-        listObjectsV2Query: vi.fn(async (): Promise<Page> => ({
+      const fixture = {
+        listPage: vi.fn(async (): Promise<Page> => ({
           objects: [
             { name: 'a.txt', size: 10 },
             { name: 'b.txt', size: 20 },
@@ -2394,14 +2553,15 @@ describe('minio-helper', () => {
           isTruncated: false,
           nextContinuationToken: '',
         })),
-      } as unknown as MinioClient;
+      };
+      const client = await storeForFixture(fixture);
 
-      const results = await collect(listObjectsUnderPrefix(client, 'bucket', 'p/'));
+      const results = await collect(listObjectsUnderPrefix(client, 'p/'));
       expect(results).toEqual([
         { name: 'a.txt', size: 10 },
         { name: 'b.txt', size: 20 },
       ]);
-      expect((client as any).listObjectsV2Query).toHaveBeenCalledTimes(1);
+      expect(fixture.listPage).toHaveBeenCalledTimes(1);
     });
 
     it('paginates across multiple pages, threading continuation tokens', async () => {
@@ -2426,16 +2586,17 @@ describe('minio-helper', () => {
           nextContinuationToken: '',
         },
       };
-      const client = {
-        listObjectsV2Query: vi.fn(
+      const fixture = {
+        listPage: vi.fn(
           async (_bucket: string, _prefix: string, continuationToken: string): Promise<Page> => {
             seenTokens.push(continuationToken);
             return pagesByToken[continuationToken];
           },
         ),
-      } as unknown as MinioClient;
+      };
+      const client = await storeForFixture(fixture);
 
-      const results = await collect(listObjectsUnderPrefix(client, 'bucket', 'p/'));
+      const results = await collect(listObjectsUnderPrefix(client, 'p/'));
       expect(results.map((r) => r.name)).toEqual(['page1-a', 'page1-b', 'page2-a', 'page3-a']);
       // Pages are visited in order, with each call's token coming from the
       // previous response.
@@ -2443,30 +2604,35 @@ describe('minio-helper', () => {
     });
 
     it('defaults missing size to 0 and skips entries without a name', async () => {
-      const client = {
-        listObjectsV2Query: vi.fn(async (): Promise<Page> => ({
+      const fixture = {
+        listPage: vi.fn(async (): Promise<Page> => ({
           objects: [{ name: 'has-size', size: 42 }, { name: 'no-size' }, { size: 99 }],
           isTruncated: false,
           nextContinuationToken: '',
         })),
-      } as unknown as MinioClient;
+      };
+      const client = await storeForFixture(fixture);
 
-      const results = await collect(listObjectsUnderPrefix(client, 'bucket', 'p/'));
+      const results = await collect(listObjectsUnderPrefix(client, 'p/'));
       expect(results).toEqual([
         { name: 'has-size', size: 42 },
         { name: 'no-size', size: 0 },
       ]);
     });
 
-    it('throws a clear error if the client does not expose listObjectsV2Query', async () => {
-      const client = {} as unknown as MinioClient;
-      const iter = listObjectsUnderPrefix(client, 'bucket', 'p/');
-      await expect(iter.next()).rejects.toThrow(/listObjectsV2Query/);
+    it('rejects a truncated listing without a continuation token', async () => {
+      const client = await storeForFixture({
+        listPage: vi
+          .fn()
+          .mockResolvedValue({ objects: [], isTruncated: true, nextContinuationToken: '' }),
+      });
+      const iter = listObjectsUnderPrefix(client, 'p/');
+      await expect(iter.next()).rejects.toThrow(/continuation token/);
     });
 
     it('stops waiting for a paginated listing when its signal is aborted', async () => {
       const controller = new AbortController();
-      const listObjectsV2Query = vi
+      const listPage = vi
         .fn()
         .mockResolvedValueOnce({
           objects: [{ name: 'page1-a', size: 1 }],
@@ -2474,18 +2640,19 @@ describe('minio-helper', () => {
           nextContinuationToken: 'tok-1',
         })
         .mockImplementationOnce(() => new Promise(() => undefined));
-      const client = { listObjectsV2Query } as unknown as MinioClient;
-      const iter = listObjectsUnderPrefix(client, 'bucket', 'p/', controller.signal);
+      const fixture = { listPage };
+      const client = await storeForFixture(fixture);
+      const iter = listObjectsUnderPrefix(client, 'p/', controller.signal);
 
       await expect(iter.next()).resolves.toEqual({
         done: false,
         value: { name: 'page1-a', size: 1 },
       });
       const next = iter.next();
-      await vi.waitFor(() => expect(listObjectsV2Query).toHaveBeenCalledTimes(2));
+      await vi.waitFor(() => expect(listPage).toHaveBeenCalledTimes(2));
       controller.abort(new Error('response closed'));
 
-      await expect(next).rejects.toThrow('response closed');
+      await expect(next).rejects.toMatchObject({ name: 'AbortError' });
     });
   });
 
@@ -2494,7 +2661,7 @@ describe('minio-helper', () => {
   // trip, with `truncated: true` signalling there's more.
   describe('summarizeDirectoryUnderPrefix', () => {
     it('returns count and truncated=false for a small, complete listing', async () => {
-      const listObjectsV2Query = vi.fn(async () => ({
+      const listPage = vi.fn(async () => ({
         objects: [
           { name: 'a', size: 1 },
           { name: 'b', size: 2 },
@@ -2503,49 +2670,53 @@ describe('minio-helper', () => {
         isTruncated: false,
         nextContinuationToken: '',
       }));
-      const client = { listObjectsV2Query } as unknown as MinioClient;
+      const fixture = { listPage };
+      const client = await storeForFixture(fixture);
 
-      const summary = await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/');
+      const summary = await summarizeDirectoryUnderPrefix(client, 'p/');
       expect(summary).toEqual({ count: 3, truncated: false });
-      expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+      expect(listPage).toHaveBeenCalledTimes(1);
     });
 
-    it('returns truncated=true when minio reports more pages exist', async () => {
-      const listObjectsV2Query = vi.fn(async () => ({
-        objects: Array.from({ length: 50 }, (_, i) => ({ name: `f-${i}`, size: 1 })),
+    it('returns truncated=true when the listing exceeds the preview cap', async () => {
+      const listPage = vi.fn(async () => ({
+        objects: Array.from({ length: 51 }, (_, i) => ({ name: `f-${i}`, size: 1 })),
         isTruncated: true,
         nextContinuationToken: 'next',
       }));
-      const client = { listObjectsV2Query } as unknown as MinioClient;
+      const fixture = { listPage };
+      const client = await storeForFixture(fixture);
 
-      const summary = await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/');
+      const summary = await summarizeDirectoryUnderPrefix(client, 'p/');
       expect(summary).toEqual({ count: 50, truncated: true });
       // Bounded — does not loop on the continuation token.
-      expect(listObjectsV2Query).toHaveBeenCalledTimes(1);
+      expect(listPage).toHaveBeenCalledTimes(1);
     });
 
     it('returns null for an empty prefix so callers can answer 404', async () => {
-      const listObjectsV2Query = vi.fn(async () => ({
+      const listPage = vi.fn(async () => ({
         objects: [],
         isTruncated: false,
         nextContinuationToken: '',
       }));
-      const client = { listObjectsV2Query } as unknown as MinioClient;
+      const fixture = { listPage };
+      const client = await storeForFixture(fixture);
 
-      const summary = await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/');
+      const summary = await summarizeDirectoryUnderPrefix(client, 'p/');
       expect(summary).toBeNull();
     });
 
-    it('passes the configured maxKeys cap to listObjectsV2Query', async () => {
-      const listObjectsV2Query = vi.fn(async () => ({
+    it('passes the configured maxKeys cap to listPage', async () => {
+      const listPage = vi.fn(async () => ({
         objects: [{ name: 'a', size: 1 }],
         isTruncated: false,
         nextContinuationToken: '',
       }));
-      const client = { listObjectsV2Query } as unknown as MinioClient;
+      const fixture = { listPage };
+      const client = await storeForFixture(fixture);
 
-      await summarizeDirectoryUnderPrefix(client, 'bucket', 'p/', 25);
-      expect(listObjectsV2Query).toHaveBeenCalledWith('bucket', 'p/', '', '', 25, '');
+      await summarizeDirectoryUnderPrefix(client, 'p/', 25);
+      expect(listPage).toHaveBeenCalledWith('bucket', 'p/', '', '', 26);
     });
   });
 });

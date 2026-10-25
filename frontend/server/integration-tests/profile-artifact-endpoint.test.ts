@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import express from 'express';
-import { Client as MinioClient } from 'minio';
+
 import { execFile } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +29,12 @@ import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
 import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 import { setupLoopbackServers } from './test-helper.js';
 
-vi.mock('minio');
+import { MockS3Client, expectedS3Options } from './s3-client-test-helper.js';
+vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>();
+  const { createS3Mock } = await import('./s3-client-test-helper.js');
+  return { ...actual, S3Client: createS3Mock(actual) };
+});
 vi.mock('../k8s-helper.js', () => ({
   getConfigMap: vi.fn(),
   getK8sSecret: vi.fn(),
@@ -84,7 +89,9 @@ describe('profile-generated custom artifact endpoint configuration', () => {
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
     vi.mocked(getK8sSecret).mockImplementation(async (_name, key) => `tenant-${key}`);
     getObject.mockImplementation(async () => Readable.from(['custom store artifact']));
-    vi.mocked(MinioClient.prototype.getObject).mockImplementation(getObject);
+    vi.mocked(MockS3Client).mockImplementation(function () {
+      return { getObject, listPage: vi.fn() };
+    });
   });
 
   afterEach(() => {
@@ -131,7 +138,7 @@ describe('profile-generated custom artifact endpoint configuration', () => {
         expect(response.status).toBe(400);
         expect(response.text).toContain('ALLOWED_ARTIFACT_ENDPOINTS');
         expect(getK8sSecret).not.toHaveBeenCalled();
-        expect(MinioClient).not.toHaveBeenCalled();
+        expect(MockS3Client).not.toHaveBeenCalled();
         expect(getObject).not.toHaveBeenCalled();
         return;
       }
@@ -139,8 +146,8 @@ describe('profile-generated custom artifact endpoint configuration', () => {
       expect(response.text).toBe('custom store artifact');
       expect(getK8sSecret).toHaveBeenCalledWith('tenant-store', 'access-key', 'tenant');
       expect(getK8sSecret).toHaveBeenCalledWith('tenant-store', 'secret-key', 'tenant');
-      expect(MinioClient).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(MockS3Client).toHaveBeenCalledWith(
+        expectedS3Options({
           endPoint: 'objects.example.com',
           port: 9443,
           useSSL: true,
@@ -186,7 +193,9 @@ describe('profile-generated artifact preview identity', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
     getObject.mockImplementation(async () => Readable.from([JSON.stringify(preview)]));
-    vi.mocked(MinioClient.prototype.getObject).mockImplementation(getObject);
+    vi.mocked(MockS3Client).mockImplementation(function () {
+      return { getObject, listPage: vi.fn() };
+    });
   });
 
   afterEach(() => {

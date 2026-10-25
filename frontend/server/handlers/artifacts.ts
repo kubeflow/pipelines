@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs.js';
-import { Client as MinioClient } from 'minio';
 import {
   PreviewStream,
   findFileOnPodVolume,
@@ -22,15 +21,19 @@ import {
 } from '../utils.js';
 import {
   createArtifactStoreClient,
-  createMinioClient,
+  createS3ArtifactStore,
   getObjectStream,
   isNoSuchKeyError,
   listObjectsUnderPrefix,
   ArtifactStoreConfigurationError,
   getArtifactStoreOriginAfterRewrite,
   summarizeDirectoryUnderPrefix,
-} from '../minio-helper.js';
-import type { ArtifactStoreEndpointPolicy, MinioRequestConfig } from '../minio-helper.js';
+} from '../artifact-store.js';
+import type {
+  ArtifactStoreEndpointPolicy,
+  ArtifactReadRequest,
+  ArtifactStore,
+} from '../artifact-store.js';
 import { isAWSS3Endpoint, isOfficialAWSS3ServiceEndpoint } from '../aws-helper.js';
 import { parseGoBoolean } from '../helpers/provider-options.js';
 import * as tar from 'tar-stream';
@@ -870,7 +873,7 @@ export function getArtifactsHandler({
         cleanupRetryAbort();
       });
     }
-    let client: MinioClient;
+    let store: ArtifactStore;
     switch (source) {
       case 'gcs':
         await getGCSArtifactHandler(
@@ -885,10 +888,11 @@ export function getArtifactsHandler({
         break;
       case 'minio':
         try {
-          client = await waitForArtifactOperation(
+          store = await waitForArtifactOperation(
             createArtifactStoreClient(
               { minio, s3: aws },
               'minio',
+              bucket,
               effectiveProviderInfo,
               namespace,
               storageSignal,
@@ -901,14 +905,14 @@ export function getArtifactsHandler({
           sendArtifactError(
             res,
             e instanceof ArtifactStoreConfigurationError ? 400 : 500,
-            `Failed to initialize Minio Client for Minio Provider: ${e}`,
+            `Failed to initialize artifact store for Minio Provider: ${e}`,
           );
           return;
         }
-        await getMinioArtifactHandler(
+        await getArtifactStoreHandler(
           {
             bucket,
-            client,
+            store,
             key: objectKey,
             signal: storageSignal,
             tryExtract: tryExtract && !download,
@@ -920,10 +924,11 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await waitForArtifactOperation(
-            createMinioClient(
+          store = await waitForArtifactOperation(
+            createS3ArtifactStore(
               aws,
               's3',
+              bucket,
               effectiveProviderInfo,
               namespace,
               undefined,
@@ -937,14 +942,14 @@ export function getArtifactsHandler({
           sendArtifactError(
             res,
             e instanceof ArtifactStoreConfigurationError ? 400 : 500,
-            `Failed to initialize Minio Client for S3 Provider: ${e}`,
+            `Failed to initialize artifact store for S3 Provider: ${e}`,
           );
           return;
         }
-        await getMinioArtifactHandler(
+        await getArtifactStoreHandler(
           {
             bucket,
-            client,
+            store,
             key: objectKey,
             signal: storageSignal,
             tryExtract: tryExtract && !download,
@@ -1376,8 +1381,8 @@ function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string
   }
 }
 
-function getMinioArtifactHandler(
-  options: MinioRequestConfig,
+function getArtifactStoreHandler(
+  options: ArtifactReadRequest & { bucket: string },
   peek: number = 0,
   contentPreview = false,
 ) {
@@ -1386,7 +1391,7 @@ function getMinioArtifactHandler(
       const signal = options.signal || new AbortController().signal;
       try {
         const stream = await waitForArtifactOperation(
-          options.client.getObject(options.bucket, options.key),
+          options.store.openRead(options.key, { signal }),
           signal,
           (lateStream) => lateStream.destroy(),
         );
@@ -1458,13 +1463,13 @@ function isArtifactRequestCancelled(req: Request, res: Response, error: unknown)
 }
 
 async function previewDirectorySummary(
-  options: { bucket: string; key: string; client: MinioClient },
+  options: { bucket: string; key: string; store: ArtifactStore },
   res: Response,
 ) {
-  const { bucket, key, client } = options;
+  const { bucket, key, store } = options;
   // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
   const prefix = key.endsWith('/') ? key : `${key}/`;
-  const summary = await summarizeDirectoryUnderPrefix(client, bucket, prefix);
+  const summary = await summarizeDirectoryUnderPrefix(store, prefix);
   if (!summary) {
     sendArtifactError(res, 404, `No objects found at ${bucket}/${key}`);
     return;
@@ -1484,10 +1489,10 @@ class ArtifactResponseClosedError extends Error {
 }
 
 export async function streamDirectoryAsTarGz(
-  options: { bucket: string; key: string; client: MinioClient },
+  options: { bucket: string; key: string; store: ArtifactStore },
   res: Response,
 ) {
-  const { bucket, key, client } = options;
+  const { bucket, key, store } = options;
   // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
   const prefix = key.endsWith('/') ? key : `${key}/`;
   let pack: ReturnType<typeof tar.pack> | undefined;
@@ -1516,7 +1521,7 @@ export async function streamDirectoryAsTarGz(
   } else {
     res.once('close', abortOnPrematureClose);
   }
-  const iterator = listObjectsUnderPrefix(client, bucket, prefix, archiveAbort.signal);
+  const iterator = listObjectsUnderPrefix(store, prefix, archiveAbort.signal);
   const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
 
   const startArchiveResponse = () => {
@@ -1543,7 +1548,7 @@ export async function streamDirectoryAsTarGz(
   };
 
   const getObjectWhileResponseOpen = async (name: string) => {
-    const objectRequest = client.getObject(bucket, name);
+    const objectRequest = store.openRead(name, { signal: archiveAbort.signal });
     return waitForArtifactOperation(objectRequest, archiveAbort.signal, (lateStream) =>
       lateStream.destroy(),
     );
@@ -2257,5 +2262,5 @@ export function getArtifactServiceGetter({ serviceName, servicePort }: Artifacts
 }
 
 export const TEST_ONLY = {
-  getMinioArtifactHandler,
+  getArtifactStoreHandler,
 };
