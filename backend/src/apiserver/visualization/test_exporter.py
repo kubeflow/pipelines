@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import importlib
+import struct
 import unittest
+
 from nbformat.v4 import new_notebook
 import snapshottest
 
@@ -59,10 +62,7 @@ class TestExporterMethods(snapshottest.TestCase):
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_custom_code(self):
-        code = [
-            "x = 2",
-            "print(x)"
-        ]
+        code = ["x = 2", "print(x)"]
         cell = exporter.create_cell_from_custom_code(code)
         self.assertMatchSnapshot(cell.source)
 
@@ -75,6 +75,61 @@ class TestExporterMethods(snapshottest.TestCase):
         nb.cells.append(exporter.create_cell_from_custom_code(code))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
+
+    def test_custom_arrow_table_preserves_values_in_html(self):
+        nb = new_notebook()
+        nb.cells.append(
+            exporter.create_cell_from_custom_code([
+                "import pandas as pd",
+                "import pyarrow as pa",
+                "import pyarrow.parquet as pq",
+                "from IPython.display import display",
+                "original = pd.DataFrame({'label': ['positive', 'missing'], "
+                "'score': [0.75, None]})",
+                "buffer = pa.BufferOutputStream()",
+                "pq.write_table(pa.Table.from_pandas(original), buffer)",
+                "restored = pq.read_table(pa.BufferReader(buffer.getvalue())).to_pandas()",
+                "pd.testing.assert_frame_equal(restored, original)",
+                "display(restored)",
+            ]))
+
+        html = self.exporter.generate_html_from_notebook(nb)
+
+        outputs = nb.cells[0].outputs
+        self.assertFalse(
+            any(output.output_type == 'error' for output in outputs))
+        tables = [
+            output.get('data', {}).get('text/html', '') for output in outputs
+        ]
+        self.assertTrue(any('<table' in table for table in tables))
+        for value in ('positive', 'missing', '0.75', 'NaN'):
+            self.assertIn(value, ''.join(tables))
+            self.assertIn(value, html)
+
+    def test_custom_pillow_image_is_embedded_as_png(self):
+        nb = new_notebook()
+        nb.cells.append(
+            exporter.create_cell_from_custom_code([
+                "from PIL import Image",
+                "from IPython.display import display",
+                "display(Image.new('RGB', (2, 3), color=(255, 0, 0)))",
+            ]))
+
+        html = self.exporter.generate_html_from_notebook(nb)
+
+        outputs = nb.cells[0].outputs
+        self.assertFalse(
+            any(output.output_type == 'error' for output in outputs))
+        images = [
+            output['data']['image/png']
+            for output in outputs
+            if 'image/png' in output.get('data', {})
+        ]
+        self.assertEqual(len(images), 1)
+        png = base64.b64decode(images[0])
+        self.assertEqual(png[:8], b'\x89PNG\r\n\x1a\n')
+        self.assertEqual(struct.unpack('>II', png[16:24]), (2, 3))
+        self.assertIn('data:image/png;base64,', html)
 
 
 if __name__ == "__main__":
