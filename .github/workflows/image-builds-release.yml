@@ -61,6 +61,9 @@ jobs:
           - name: kfp-visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
+          - name: kfp-tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
@@ -129,6 +132,7 @@ jobs:
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
           - image: kfp-visualization-server
+          - image: kfp-tensorboard
           - image: kfp-launcher
           - image: kfp-driver
           - image: kfp-cache-deployer

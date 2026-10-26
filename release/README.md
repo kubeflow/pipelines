@@ -117,6 +117,38 @@ kfpr run --state-file release-state.json
 
 Use the exact step ID from `kfpr steps` or the list below.
 
+## TensorBoard image publication gate for 2.18
+
+Before announcing any 2.18 release candidate or final release:
+
+- Confirm the version-stamping PR updates the UI and controller TensorBoard
+  defaults to the release tag, and the image publication workflow publishes
+  `ghcr.io/kubeflow/kfp-tensorboard:<release-tag>` for Linux AMD64 and ARM64.
+- Set the GHCR package visibility to **Public** and verify anonymous manifest
+  access and pulls for both platforms from a clean runner. A successful push
+  under release credentials does not prove public availability.
+- Run deployed viewer acceptance using the published release reference, without
+  importing or retagging the candidate into Kind. The PR fixture's local image
+  import validates the candidate runtime but cannot validate GHCR publication.
+- Retain the image digest and acceptance evidence with the release checklist.
+
+For example, after publication, with `release_tag` set to the stamped tag:
+
+```bash
+anonymous_docker_config=$(mktemp -d)
+docker --config "$anonymous_docker_config" manifest inspect \
+  "ghcr.io/kubeflow/kfp-tensorboard:$release_tag"
+docker --config "$anonymous_docker_config" pull --platform linux/amd64 \
+  "ghcr.io/kubeflow/kfp-tensorboard:$release_tag"
+docker --config "$anonymous_docker_config" pull --platform linux/arm64 \
+  "ghcr.io/kubeflow/kfp-tensorboard:$release_tag"
+```
+
+An unstamped branch snapshot can still refer to an unpublished TensorBoard tag.
+Do not advertise that snapshot as an installable RC; publish and qualify the
+stamped images first. Existing custom viewer image selection remains available
+for development installations.
+
 ## Recovery helpers
 
 ```bash
