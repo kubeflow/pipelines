@@ -43,14 +43,17 @@ repos:
         require_serial: true
       - id: ruff-check
         name: ruff check
-        entry: uv run --frozen --extra lint ruff check
+        # The lint extra pins docformatter, whose untokenize dependency cannot
+        # build on Python >= 3.12, so pin the lint env to Python 3.11. The
+        # --isolated flag keeps this from repinning the project's .venv.
+        entry: uv run --python 3.11 --isolated --frozen --extra lint ruff check
         language: system
         args: [--fix]
         require_serial: true
         types_or: [python, pyi]
       - id: ruff-format
         name: ruff format
-        entry: uv run --frozen --extra lint ruff format
+        entry: uv run --python 3.11 --isolated --frozen --extra lint ruff format
         language: system
         require_serial: true
         types_or: [python, pyi]
