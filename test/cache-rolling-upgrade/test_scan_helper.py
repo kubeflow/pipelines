@@ -79,7 +79,7 @@ class CoverageTest(unittest.TestCase):
                              source).group(1)
         self.assertEqual(fallback, image)
         self.assertTrue(
-            image.startswith('public.ecr.aws/docker/library/alpine:'))
+            image.startswith('mirror.gcr.io/library/alpine:'))
 
     def test_scan_outage_does_not_gate_functional_upgrade(self):
         root = Path(__file__).resolve().parents[2]

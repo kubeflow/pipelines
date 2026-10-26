@@ -35,7 +35,7 @@ import (
 )
 
 // Avoid Docker Hub pull limits on new nodes: https://github.com/kubeflow/pipelines/issues/4099
-const defaultCacheImage = "public.ecr.aws/docker/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63"
+const defaultCacheImage = "mirror.gcr.io/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63"
 
 const (
 	KFPCacheEnabledLabelKey    string = "pipelines.kubeflow.org/cache_enabled"
