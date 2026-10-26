@@ -92,6 +92,45 @@ class PostgreSQLImageUpgradeTest(unittest.TestCase):
             self.assertNotIn('status', acceptance.receipt)
             self.assertFalse((Path(directory) / 'receipt.json').exists())
 
+    def test_missing_table_fails_before_application_can_recreate_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            acceptance = upgrade.Acceptance('18', Path(directory),
+                                            Path('/helper'))
+            with mock.patch.object(
+                    acceptance,
+                    'sql',
+                    side_effect=['digest', 'identity',
+                                 'experiments']), mock.patch.object(
+                                     acceptance, 'application') as application:
+                with self.assertRaisesRegex(RuntimeError, 'table set'):
+                    acceptance.verify_retained('digest', 'identity',
+                                               'experiments,run_details')
+                application.assert_not_called()
+
+    def test_failed_restart_never_publishes_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            acceptance = upgrade.Acceptance('18', Path(directory),
+                                            Path('/helper'))
+            with mock.patch.object(
+                    acceptance,
+                    'deploy_old',
+                    return_value=('postgres', 'candidate', 180006)
+            ), mock.patch.object(
+                    acceptance,
+                    'seed',
+                    return_value=(
+                        'digest', 'identity', 'tables')), mock.patch.object(
+                            acceptance, 'upgrade'), mock.patch.object(
+                                acceptance,
+                                'verify_retained'), mock.patch.object(
+                                    acceptance,
+                                    'restart_and_verify',
+                                    side_effect=RuntimeError('lost write')):
+                with self.assertRaisesRegex(RuntimeError, 'lost write'):
+                    acceptance.execute()
+                self.assertNotIn('status', acceptance.receipt)
+                self.assertFalse((Path(directory) / 'receipt.json').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

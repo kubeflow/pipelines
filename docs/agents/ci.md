@@ -232,7 +232,11 @@ shipped PostgreSQL manifests. It does not enable PostgreSQL deployment in the
 The path-filtered PR workflow and manual dispatch use Kind, render the candidate
 manifests, and retain their PVC, PGDATA, service-account and security settings.
 The only initial deployment override is the old same-major database image:
-18.3 for the default database and 14.7 for the legacy metadata overlay.
+18.3 for the default database and 14.7 for the legacy metadata overlay, both
+pinned by digest in `PROFILES`. For every later image bump, advance each affected
+baseline to the previously shipped manifest image and digest so this lane tests
+the immediately preceding supported image. Do not refresh baseline digests
+independently of that transition.
 
 Each lane retains the same PVC and database identity while replacing the image
 with the digest-pinned candidate from the manifest. It checks records, JSONB

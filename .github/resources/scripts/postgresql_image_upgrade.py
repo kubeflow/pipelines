@@ -7,6 +7,7 @@
 
 import argparse
 import copy
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
@@ -19,12 +20,38 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / '.github/resources/postgresql-upgrade'
+
+
+@dataclass(frozen=True)
+class Profile:
+    """Manifest and immutable predecessor qualified by an upgrade lane."""
+    kustomize_path: str
+    deployment: str
+    claim: str
+    db_user: str
+    old_image: str
+
+
 PROFILES = {
-    '18': ('third-party/postgresql/base', 'postgres', 'postgres-pvc', 'user',
-           'docker.io/postgres:18.3-alpine3.22'),
-    '14': ('base/metadata/overlays/postgres', 'metadata-postgres-db',
-           'metadata-postgres', 'root', 'docker.io/postgres:14.7-alpine3.17'),
+    '18':
+        Profile(
+            'third-party/postgresql/base', 'postgres', 'postgres-pvc', 'user',
+            'docker.io/postgres:18.3-alpine3.22@sha256:af27ebd3413839ccfdcdf88e91ca76ad82117e52192067b76de9bb5be7ea6e04'
+        ),
+    '14':
+        Profile(
+            'base/metadata/overlays/postgres', 'metadata-postgres-db',
+            'metadata-postgres', 'root',
+            'docker.io/postgres:14.7-alpine3.17@sha256:07985c5c5e01ee550b30c67a2cf806f8b08b32f74e3f24c4cbef31305ef5776d'
+        ),
 }
+
+DIGEST_QUERY = """SELECT md5(string_agg(id||name||payload::text||
+created::text,',' ORDER BY id)) FROM patch_acceptance.records"""
+SCHEMA_QUERY = """SELECT string_agg(table_name, ',' ORDER BY table_name)
+FROM information_schema.tables WHERE table_schema='public'
+AND table_type='BASE TABLE'"""
+SYSTEM_ID_QUERY = 'SELECT system_identifier FROM pg_control_system()'
 
 
 def run(args, **kwargs):
@@ -33,9 +60,11 @@ def run(args, **kwargs):
     return subprocess.run(args, check=True, text=True, **kwargs)
 
 
-def select_resources(documents, lane, namespace):
+def select_resources(documents, lane: str,
+                     namespace: str) -> tuple[list, str, int]:
     """Keep database dependencies and the actual legacy MLMD deployment."""
-    _, deployment, claim, _, _ = PROFILES[lane]
+    profile = PROFILES[lane]
+    deployment, claim = profile.deployment, profile.claim
     selected = []
     for original in documents:
         if not original:
@@ -68,17 +97,23 @@ def select_resources(documents, lane, namespace):
 class Acceptance:
     """Run on a disposable Kind cluster with its real provisioned volumes."""
 
-    def __init__(self, lane, output, schema):
+    def __init__(self, lane: str, output: Path, schema: Path):
         self.lane, self.output, self.schema = lane, output, schema
         self.namespace = 'postgres-upgrade-' + lane
-        _, self.deployment, self.claim, self.user, self.old = PROFILES[lane]
+        profile = PROFILES[lane]
+        self.deployment = profile.deployment
+        self.claim = profile.claim
+        self.user = profile.db_user
+        self.old = profile.old_image
         self.forwards = []
         self.receipt = {'lane': lane, 'old_image': self.old, 'phases': []}
 
-    def kubectl(self, *args, **kwargs):
+    def kubectl(self, *args: str, **kwargs) -> subprocess.CompletedProcess:
+        """Run kubectl within the disposable lane namespace."""
         return run(['kubectl', '-n', self.namespace, *args], **kwargs)
 
-    def sql(self, statement, database='postgres'):
+    def sql(self, statement: str, database: str = 'postgres') -> str:
+        """Execute SQL through the deployed database with errors enabled."""
         return self.kubectl(
             'exec',
             '-i',
@@ -95,7 +130,8 @@ class Acceptance:
             input=statement,
             capture_output=True).stdout.strip()
 
-    def wait_database(self):
+    def wait_database(self) -> None:
+        """Wait for deployment readiness and a successful database query."""
         self.kubectl('rollout', 'status', 'deployment/' + self.deployment,
                      '--timeout=240s')
         deadline = time.monotonic() + 120
@@ -109,7 +145,8 @@ class Acceptance:
         raise RuntimeError('Database failed readiness; inspect saved pod logs '
                            'and volume events before changing the fixture.')
 
-    def forward(self, deployment, local, remote):
+    def forward(self, deployment: str, local: int, remote: int) -> None:
+        """Start a bounded, logged application port-forward."""
         log = (self.output / f'forward-{local}.log').open('a')
         process = subprocess.Popen([
             'kubectl', '-n', self.namespace, 'port-forward',
@@ -129,17 +166,24 @@ class Acceptance:
         raise RuntimeError('Port forwarding failed; inspect the saved '
                            f'forward-{local}.log and deployment readiness.')
 
-    def stop_forwards(self):
+    def stop_forwards(self) -> None:
+        """Close port-forward processes before replacing or restarting pods."""
         for process, log in self.forwards:
             process.terminate()
             process.wait(timeout=15)
             log.close()
         self.forwards.clear()
 
-    def application(self, phase):
+    def application(self, phase: str) -> None:
+        """Check actual KFP or MLMD persistence for one upgrade phase."""
         if self.lane == '18':
             self.forward(self.deployment, 15432, 5432)
-            run([str(self.schema), 'seed' if phase == 'old' else 'verify'])
+            run([
+                str(self.schema), '--phase',
+                'seed' if phase == 'old' else 'verify', '--host', '127.0.0.1',
+                '--port', '15432', '--database', 'mlpipeline', '--user',
+                self.user, '--password', 'password'
+            ])
         else:
             self.kubectl('apply', '-f', str(self.output / 'mlmd.yaml'))
             self.kubectl('rollout', 'status',
@@ -148,22 +192,25 @@ class Acceptance:
             self.forward('metadata-grpc-deployment', 15433, 8080)
             run([
                 sys.executable,
-                str(FIXTURES / 'mlmd-client.py'),
-                'seed' if phase == 'old' else phase
+                str(FIXTURES / 'mlmd-client.py'), '--phase',
+                'seed' if phase == 'old' else phase, '--host', '127.0.0.1',
+                '--port', '15433'
             ])
         self.stop_forwards()
         self.receipt['phases'].append(phase)
         (self.output /
          'receipt.json').write_text(json.dumps(self.receipt, indent=2) + '\n')
 
-    def stop_mlmd(self):
+    def stop_mlmd(self) -> None:
+        """Stop the legacy client before changing its database image."""
         if self.lane == '14':
             self.kubectl('scale', 'deployment/metadata-grpc-deployment',
                          '--replicas=0')
             self.kubectl('wait', '--for=delete', 'pod', '-l',
                          'component=metadata-grpc-server', '--timeout=120s')
 
-    def diagnostic(self):
+    def diagnostic(self) -> None:
+        """Save deployment and volume diagnostics even after a failed phase."""
         self.stop_forwards()
         for resource in ('pods', 'pvc', 'events', 'deployments'):
             with (self.output / f'{resource}.yaml').open('w') as output:
@@ -184,8 +231,10 @@ class Acceptance:
                                stderr=subprocess.STDOUT,
                                check=False)
 
-    def execute(self):
-        source = ROOT / 'manifests/kustomize' / PROFILES[self.lane][0]
+    def deploy_old(self) -> tuple[str, str, int]:
+        """Render the candidate and deploy its immutable same-major predecessor."""
+        source = ROOT / 'manifests/kustomize' / PROFILES[
+            self.lane].kustomize_path
         rendered = run(
             ['kubectl', 'kustomize', str(source)], capture_output=True).stdout
         resources, candidate, expected_version = select_resources(
@@ -210,6 +259,12 @@ class Acceptance:
                 capture_output=True).stdout)
         self.receipt['pvc_uid'] = claim['metadata']['uid']
         self.receipt['pv_name'] = claim['spec']['volumeName']
+        container = database['spec']['template']['spec']['containers'][0][
+            'name']
+        return container, candidate, expected_version
+
+    def seed(self) -> tuple[str, str, str]:
+        """Seed application data and capture identity and the exact KFP schema."""
         self.sql('''CREATE SCHEMA patch_acceptance;
 CREATE TABLE patch_acceptance.records (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -221,14 +276,14 @@ INSERT INTO patch_acceptance.records(name,payload,created)
         if self.lane == '14':
             self.sql('CREATE DATABASE mlmdpostgres')
         self.application('old')
-        digest_query = """SELECT md5(string_agg(id||name||payload::text||
-created::text,',' ORDER BY id)) FROM patch_acceptance.records"""
-        before = self.sql(digest_query)
-        system_id = self.sql(
-            'SELECT system_identifier FROM pg_control_system()')
+        tables = self.sql(SCHEMA_QUERY,
+                          'mlpipeline') if self.lane == '18' else ''
+        return self.sql(DIGEST_QUERY), self.sql(SYSTEM_ID_QUERY), tables
+
+    def upgrade(self, container: str, candidate: str,
+                expected_version: int) -> None:
+        """Replace only the image and require the intended server version."""
         self.stop_mlmd()
-        container = database['spec']['template']['spec']['containers'][0][
-            'name']
         self.kubectl('set', 'image', 'deployment/' + self.deployment,
                      container + '=' + candidate)
         self.wait_database()
@@ -236,11 +291,16 @@ created::text,',' ORDER BY id)) FROM patch_acceptance.records"""
             raise RuntimeError(
                 'Wrong PostgreSQL version; inspect rendered image '
                 'and runtime image ID before accepting the pin.')
-        if self.sql(digest_query) != before or self.sql(
-                'SELECT system_identifier FROM pg_control_system()'
-        ) != system_id:
+
+    def verify_retained(self, before: str, system_id: str, tables: str) -> None:
+        """Check retained data before application startup can repair a schema."""
+        if (self.sql(DIGEST_QUERY) != before or
+                self.sql(SYSTEM_ID_QUERY) != system_id):
             raise RuntimeError('Upgrade changed retained data or database '
                                'identity; investigate the mounted PVC.')
+        if self.lane == '18' and self.sql(SCHEMA_QUERY, 'mlpipeline') != tables:
+            raise RuntimeError('Upgrade changed the KFP table set; inspect the '
+                               'retained database before running migrations.')
         self.sql('''DO $$ BEGIN
  IF (SELECT count(*) FROM patch_acceptance.records
      WHERE payload @> '{"value":500}'::jsonb) <> 1
@@ -252,6 +312,9 @@ END $$;
 INSERT INTO patch_acceptance.records(name,payload,created)
  VALUES ('after-upgrade','{"value":1001}',now());''')
         self.application('upgraded')
+
+    def restart_and_verify(self) -> None:
+        """Require post-upgrade writes and the original PVC after a restart."""
         self.stop_mlmd()
         self.kubectl('rollout', 'restart', 'deployment/' + self.deployment)
         self.wait_database()
@@ -267,6 +330,14 @@ INSERT INTO patch_acceptance.records(name,payload,created)
                 after['spec']['volumeName'] != self.receipt['pv_name']):
             raise RuntimeError('PVC changed during acceptance; repeat with the '
                                'original volume intact.')
+
+    def execute(self) -> None:
+        """Publish success only after every retained-volume phase passes."""
+        container, candidate, expected_version = self.deploy_old()
+        before, system_id, tables = self.seed()
+        self.upgrade(container, candidate, expected_version)
+        self.verify_retained(before, system_id, tables)
+        self.restart_and_verify()
         self.receipt['status'] = 'passed'
         (self.output /
          'receipt.json').write_text(json.dumps(self.receipt, indent=2) + '\n')

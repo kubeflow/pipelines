@@ -15,8 +15,8 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -25,19 +25,29 @@ import (
 )
 
 func main() {
+	phase := flag.String("phase", "", "seed or verify")
+	host := flag.String("host", "", "PostgreSQL host")
+	port := flag.Int("port", 0, "PostgreSQL port")
+	database := flag.String("database", "", "KFP database")
+	user := flag.String("user", "", "PostgreSQL user")
+	password := flag.String("password", "", "Disposable fixture password")
+	flag.Parse()
+	if (*phase != "seed" && *phase != "verify") || *host == "" || *port <= 0 || *database == "" || *user == "" || flag.NArg() != 0 {
+		panic("pass --phase seed|verify, --host, --port, --database, --user and --password for the disposable database")
+	}
 	viper.Set("DBDriverName", "pgx")
-	viper.Set("DBConfig.PostgreSQLConfig.DBName", "mlpipeline")
-	viper.Set("DBConfig.PostgreSQLConfig.Host", "127.0.0.1")
-	viper.Set("DBConfig.PostgreSQLConfig.Port", 15432)
-	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
-	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
+	viper.Set("DBConfig.PostgreSQLConfig.DBName", *database)
+	viper.Set("DBConfig.PostgreSQLConfig.Host", *host)
+	viper.Set("DBConfig.PostgreSQLConfig.Port", *port)
+	viper.Set("DBConfig.PostgreSQLConfig.User", *user)
+	viper.Set("DBConfig.PostgreSQLConfig.Password", *password)
 	viper.Set("DBConfig.PostgreSQLConfig.ExtraParams", map[string]string{"sslmode": "disable"})
 	db, dialect, _ := cm.InitDBClient(time.Minute)
 	defer db.Close()
 	if dialect.Name() != "pgx" {
 		panic("wrong dialect")
 	}
-	if os.Args[1] == "seed" {
+	if *phase == "seed" {
 		_, err := db.Exec(`INSERT INTO experiments ("UUID","Name","Description","CreatedAtInSec","LastRunCreatedAtInSec","Namespace","StorageState") VALUES ('upgrade-check','preserved experiment','before PostgreSQL patch',1,0,'kubeflow','AVAILABLE')`)
 		if err != nil {
 			panic(err)
@@ -57,8 +67,8 @@ func main() {
 	if err := db.QueryRow(`SELECT count(*) FROM information_schema.tables WHERE table_schema='public'`).Scan(&tables); err != nil {
 		panic(err)
 	}
-	if tables < 10 {
-		panic("KFP schema missing")
+	if tables != 17 {
+		panic(fmt.Sprintf("expected all 17 KFP tables, found %d; inspect the retained schema", tables))
 	}
 	fmt.Printf("KFP InitDBClient migration + persisted experiment read/write passed; %d tables\n", tables)
 }
