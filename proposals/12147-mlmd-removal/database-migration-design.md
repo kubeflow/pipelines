@@ -274,6 +274,7 @@ SELECT GET_LOCK('kfp_mlmd_migration_lock', 10);
 
 - CLI and API server acquire the same named lock before Phase 2/3. Whichever acquires it first proceeds, the other exits/skips with a clear "migration already in progress" outcome.
 - Locks are session-scoped and auto-release on connection loss or crash — no manual cleanup required.
+- The lock does not fence old API replicas; both entry points must complete the maintenance-mode writer fence below before Phase 2/3.
 
 #### Execution Modes
 
@@ -287,6 +288,7 @@ mlmd-migrate \
 
 - Runs in foreground, blocks until complete.
 - Exits 0 on success, non-zero on failure.
+- Refuses Phase 2/3 unless the no-in-flight-run and old-replica gates are satisfied.
 - Always idempotent on re-run: discovers the resume point via binary search.
 - Configuration via CLI flags.
 
@@ -300,7 +302,7 @@ env:
     value: "8080"
 ```
 
-- At startup, if the schema is out of date or a migration is in progress, always enter maintenance mode and run/resume Phase 2–3 (see [completion checklist](#migration-completion-checklist)).
+- At startup, if the schema is out of date or a migration is in progress, enter maintenance mode and run/resume Phase 2–3 only after the no-in-flight-run and old-replica gates pass (see [completion checklist](#migration-completion-checklist)).
 - If migration is required and MLMD connection config is missing, refuse to start.
 - Normal API traffic is not served until the [completion checklist](#migration-completion-checklist) passes.
 - On later restarts, if the schema is current and the checklist already passes, migration work is skipped and the API serves normally (MLMD env may still be present or already removed).
@@ -311,26 +313,23 @@ env:
 
 While migration is in progress, the API server enters maintenance mode: user facing APIs (creating/listing/starting runs, and similar control-plane operations) return a clear error such as "Kubeflow Pipelines is down for maintenance. Try again later." so users do not operate against half-migrated data.
 
-Internal runtime traffic from the persistence agent, driver, and launcher must still succeed so suspended in-flight steps can finish and report status before cancel and migrate.
+Internal runtime traffic from the persistence agent, driver, and launcher must still succeed while existing runs finish and report their final status.
 
 Health/readiness: the pod may be up for migration and that runtime traffic, but readiness should still signal that the service is not ready for normal user traffic.
 
 #### Handling In-Flight Runs
 
-Pipelines that are already running before the upgrade cannot safely keep going once the system switches to the new metadata path. Prefer finishing the current step, then canceling and retrying after migration.
+Do not start migration while any pipeline run or Argo Workflow is in flight. Let existing runs finish on the old runtime before the schema and metadata paths change.
 
-**Limitation:** Migration requires a maintenance window. Clients get a predictable maintenance response instead of partial failures, but new runs cannot be submitted until migration completes. In-flight runs are not resumed mid-pipeline, they are canceled after the current step finishes and retried after the upgrade.
+**Limitation:** Migration requires a maintenance window and may wait for long-running pipelines. Do not cancel or retry runs as part of the upgrade; if they cannot drain, postpone migration.
 
 Recommended upgrade flow:
 
-1. Enter maintenance mode (block new user submissions, keep persistence agent / driver / launcher working so the current step can still finish and report).
-2. Suspend in-flight Argo Workflow objects so the **current** step can finish.
-3. Once workflows are suspended, cancel those pipeline runs. Cancel + later retry is required so Argo Workflows are recompiled against the new driver and launcher images.
+1. Block new submissions and retries across all API replicas, and pause recurring-run triggers; keep internal runtime reporting available.
+2. Wait for all KFP runs and Argo Workflows to reach terminal state and confirm their final reports are stored. If any remain active, do not migrate.
+3. Drain and terminate every old API replica; verify none can still serve requests or write to the database, then recheck that no run or Workflow became active. Keep the upgraded API in maintenance mode.
 4. Run schema and data migration (Phases 2–3). Refuse startup only if migration cannot proceed.
-5. Exit maintenance mode after the [completion checklist](#migration-completion-checklist) passes.
-6. Retry the canceled pipeline runs after the upgrade.
-
-Wait until migration finishes successfully before retrying canceled runs.
+5. Exit maintenance mode and resume submissions and recurring-run triggers after the [completion checklist](#migration-completion-checklist) passes.
 
 #### Backup and Recovery
 
@@ -361,8 +360,8 @@ Recovery: restart the API server or re-run the CLI. Migration is always idempote
 | Risk | Severity | Mitigation |
 |---|---|---|
 | Long maintenance window while data migration runs | Medium | Operators may pre-run the CLI to shorten downtime; API stays in maintenance until the [completion checklist](#migration-completion-checklist) passes |
-| Retrying canceled runs before migration completes | High | Document and gate retries on the [completion checklist](#migration-completion-checklist) |
-| Canceling mid-step loses in-progress work | Medium | Suspend Argo Workflows first so the current step can finish, then cancel |
+| A run remains active when migration starts | High | Require zero in-flight KFP runs and Argo Workflows with final reports stored before Phase 2/3 |
+| A new run starts during the drain | High | Block submissions and retries across old replicas, pause recurring triggers, and recheck after draining replicas |
 | Opening traffic before migration is fully done | High | Leave maintenance mode only after the [completion checklist](#migration-completion-checklist) passes (inserts, parent fixup, temp-table cleanup) |
 
 ---
@@ -387,6 +386,7 @@ Recovery: restart the API server or re-run the CLI. Migration is always idempote
 - **Resume after crash:** Inject a failure mid-way through Phase 3. Restart migration. Assert binary search resumes at the first missing ID and the final state matches a clean run.
 - **Parent fixup resume:** Crash after execution inserts but before/during parent resolution. Restart. Assert unresolved parents are fixed via UUID v5.
 - **Completion checklist:** Assert maintenance mode remains until inserts, parent fixup, and temp-table cleanup all pass, assert migrate is attempted when schema is out of date or migration is in progress, assert startup fails when migration is required but MLMD connection config is missing, assert skip when schema is already current and checklist passes.
+- **Drain gate:** Assert CLI and API migration refuse to start while a KFP run or Argo Workflow is active, and proceed only after terminal reports are stored and old API replicas are gone.
 - **Large metrics artifacts:** Seed MLMD with multi-metric artifacts. Assert correct splitting and deterministic UUID v5 assignment. Assert artifact counts stay within an expected ratio vs MLMD when metrics are split.
 - **Orphaned MLMD contexts:** Include MLMD contexts without matching `run_details` rows. Assert they are skipped with a warning and remaining data is migrated correctly.
 
@@ -419,4 +419,4 @@ Run migration against large synthetic histories (including cases where the CLI r
 4. **Schema** — Create new tables (`artifacts`, `artifact_tasks`) via manual SQL, keep GORM models in sync, add a CI job that diffs manual-SQL and `AutoMigrate` schema dumps for those new-table schemas. Implement the `tasks` table-copy-and-rename path via manual SQL for upgrades from the pre-migration `tasks` shape, new installs continue to create `tasks` via `AutoMigrate` from the GORM model.
 5. **Unit tests** — Cover all transformation paths, UUID generation, and idempotency.
 6. **Integration tests** — Full migration, idempotent re-run, resume-after-crash via binary search, parent fixup resume, completion checklist / maintenance gating, post-success cleanup of temp tables.
-7. **Documentation** — Operator guide covering pre-upgrade DB backup, injecting MLMD connection settings for upgrade boots, maintenance mode, suspend → cancel → migrate → retry for in-flight runs, both execution modes, and restore-from-backup recovery.
+7. **Documentation** — Operator guide covering pre-upgrade DB backup, injecting MLMD connection settings for upgrade boots, maintenance mode, draining all runs before migration, both execution modes, and restore-from-backup recovery.

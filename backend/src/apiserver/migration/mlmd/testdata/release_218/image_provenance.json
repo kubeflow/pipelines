@@ -1,0 +1,82 @@
+[
+  {
+    "image": "docker.io/jetbrainsinfra/jq:latest",
+    "imageID": "docker.io/jetbrainsinfra/jq@sha256:bf917fad410a1f44759400299e0557513c7f1f51ca00e719c6607a81f2e5308d"
+  },
+  {
+    "image": "docker.io/library/alpine:3.23",
+    "imageID": "docker.io/library/alpine@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63"
+  },
+  {
+    "image": "docker.io/library/mysql:8.4",
+    "imageID": "docker.io/library/mysql@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902"
+  },
+  {
+    "image": "docker.io/library/python:3.11",
+    "imageID": "docker.io/library/python@sha256:390127d66a75154671aa02f62a49aa7f83c386f33cdc84a8e8f060650e2e19f8"
+  },
+  {
+    "image": "gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0",
+    "imageID": "gcr.io/tfx-oss-public/ml_metadata_store_server@sha256:51404ef4419c1426da80f3e14a83dcb55f65bb5a971371d36d14cec1e50af830"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-api-server:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-api-server@sha256:0d916fa808a4933df089a54b47195667b872cb84d18464e5bb444c5709cc3118"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-cache-deployer:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-cache-deployer@sha256:0aade7d0b265011083634d8c4c6d1a645a749b88c12a196b453822df20649541"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-cache-server:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-cache-server@sha256:ddb383f89ef9c791a5175aae71488c42f19fbd2bc679fe06785e41b050738e61"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-driver:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-driver@sha256:a9ff4ce7a58d93840dc1a671ae722ff2a0a2fb48a70ad8570f66e24df39283a3"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-frontend:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-frontend@sha256:46651fb039052e858e6ca99ae334521de8d093b0c0c87ae3698464659714b519"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-launcher:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-launcher@sha256:b032a560cc0d699e45ccc782f42d369197407b5b43ccbe6ce5e26271f047ab51"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-metadata-envoy:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-metadata-envoy@sha256:d4d65a5329e2d33f5f407f8ae6137ca360f43eb75241ca0ff3f84693fd9498b7"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-metadata-writer:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-metadata-writer@sha256:8643e735483ef3cf95f85c01bf7702074a52dc651958e1c2d50dd543b8a6ae0d"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-persistence-agent:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-persistence-agent@sha256:d840ff26cf6c7d45115055b16500b41b7765e081f87476cb2a57927aa7d2c16a"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-scheduled-workflow-controller:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-scheduled-workflow-controller@sha256:eef9558a33495f3dc5ef397eab013c2430dcf8e92bc0ba3885f2f48ba3a99181"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-viewer-crd-controller:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-viewer-crd-controller@sha256:ad36c71bfa8c1331deac257980107b7c7ebc2938e312aea94da49e13754961ba"
+  },
+  {
+    "image": "ghcr.io/kubeflow/kfp-visualization-server:2.18.0",
+    "imageID": "ghcr.io/kubeflow/kfp-visualization-server@sha256:09bc9589eb2310339a6c4633d376379c03580d19c2f2709fc077ef8557c5e878"
+  },
+  {
+    "image": "quay.io/argoproj/argoexec:v4.1.6",
+    "imageID": "quay.io/argoproj/argoexec@sha256:28432d912a716167709429b28e2755f49416eb4754c35ca3013863fb72717a00"
+  },
+  {
+    "image": "quay.io/argoproj/workflow-controller:v4.1.6",
+    "imageID": "quay.io/argoproj/workflow-controller@sha256:a012a639ead374a4a9306093d6b29dfdc7e6c4c1a85c684582cb961a6cc8bcf3"
+  },
+  {
+    "image": "sha256:e9535759e270021cc18782c39e1dcc7977ad801edc4e3676a3d2f6c29bf598b6",
+    "imageID": "ghcr.io/chrislusf/seaweedfs@sha256:f7a49e3f3972ebed5be2ed4befa4a0c68eb7bdddba6e692d42729ceb545134b8"
+  }
+]

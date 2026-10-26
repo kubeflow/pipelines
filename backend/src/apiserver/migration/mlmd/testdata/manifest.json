@@ -1,0 +1,25 @@
+{
+  "source_version": "2.17.3",
+  "source_commit": "a0733cb51b0484a6050cafee989ffe3312f808ad",
+  "mlmd_version": "1.14.0",
+  "mlmd_image": "gcr.io/tfx-oss-public/ml_metadata_store_server@sha256:51404ef4419c1426da80f3e14a83dcb55f65bb5a971371d36d14cec1e50af830",
+  "source_kind": "Unmodified legacy metadata writer against a disposable MLMD server with SQLite; not a cluster-executed pipeline.",
+  "sha256": {
+    "legacy_source.json": "76c57d6e9d55c2b28455daa1047fafdf2cb91efb70c32dd8f5040e57c46460b3",
+    "expected_native.json": "1cf63d0cea04f0a817d0d4301fb4a809f83b90c637256c1f34077a0381bcd457",
+    "generate_legacy.go": "7cf539fe0ca68be4dd2cdc2e37783d54cf9e67936e4a9c6bdcd3570cd44738da",
+    "generate_legacy_schema.go": "a049d2524e6339b11f6a252ef1ad0bbf7c0144e0e15ef32f229831903b0462d6",
+    "legacy_schema_mysql.json": "5491b237b98e3e80180e8db7febd7f920c898435c4689bcd1b5100974f257c8f",
+    "identity_vectors.json": "7d2ee630e5448553c1e8c6a66c7693ef2cd66d3c693f97a9944e06c24cebcb9f",
+    "merge_contract.json": "8ba890f9c4a64abff2846d15da960eb7f3de3848fec00e0b88df32e1f3914a41",
+    "runtime_source.json": "dfffbc6289decf206cf550ab9d682fa50321b3f7e7f61b8d4d43ff1d445472da",
+    "runtime_fixture_driver_test.go": "17d97bde8fee183f46fa71e62ebfac0f2a5c368012fd906f70310522257f96df",
+    "runtime_fixture_importer_test.go": "60659cbab994d52369854884ebdc8eb4d36ba83f4657714d25330571f60a72e5",
+    "export_runtime.go": "bbb046a694a59cfeaf5ca73b2241d9d05b29611e1612fcf0a227164cb9d6edad",
+    "legacy_partial_mysql.json": "231b8242ac1671d84c936a900bece84eaa68ce5600c5aa391179bfc24021dcfd",
+    "regenerate_catalogs.sh": "4240e91140e8d38aef09239bfa2317da50738b3db4ff5a5db1f6e56cc5b1cbb4"
+  },
+  "database_images": {
+    "mysql": "docker.io/library/mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b"
+  }
+}

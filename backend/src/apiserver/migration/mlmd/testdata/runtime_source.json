@@ -1,0 +1,243 @@
+{
+  "artifacts": {
+    "artifacts": [
+      {
+        "id": "1",
+        "typeId": "14",
+        "type": "system.Dataset",
+        "uri": "s3://fixture/runtime-dataset",
+        "customProperties": {
+          "store_session_info": {
+            "stringValue": "{\"Provider\":\"s3\",\"Params\":{\"fromEnv\":\"true\"}}"
+          }
+        },
+        "state": "LIVE",
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      }
+    ]
+  },
+  "contexts": {
+    "contexts": [
+      {
+        "id": "1",
+        "name": "pinned-runtime-fixture",
+        "typeId": "10",
+        "type": "system.Pipeline",
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "2",
+        "name": "22222222-2222-4222-8222-222222222222",
+        "typeId": "11",
+        "type": "system.PipelineRun",
+        "customProperties": {
+          "namespace": {
+            "stringValue": "migration-fixture"
+          },
+          "pipeline_root": {
+            "stringValue": "s3://fixture/pipelines/pinned-runtime-fixture/22222222-2222-4222-8222-222222222222"
+          },
+          "resource_name": {
+            "stringValue": "run-resource"
+          },
+          "store_session_info": {
+            "stringValue": "{\"Provider\":\"s3\",\"Params\":{\"fromEnv\":\"true\"}}"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      }
+    ]
+  },
+  "events": {
+    "events": [
+      {
+        "artifactId": "1",
+        "executionId": "3",
+        "path": {
+          "steps": [
+            {
+              "key": "dataset"
+            }
+          ]
+        },
+        "type": "OUTPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      }
+    ]
+  },
+  "execution_contexts": {
+    "1": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "pinned-runtime-fixture",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "22222222-2222-4222-8222-222222222222",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/pipelines/pinned-runtime-fixture/22222222-2222-4222-8222-222222222222"
+            },
+            "resource_name": {
+              "stringValue": "run-resource"
+            },
+            "store_session_info": {
+              "stringValue": "{\"Provider\":\"s3\",\"Params\":{\"fromEnv\":\"true\"}}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "2": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "pinned-runtime-fixture",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "22222222-2222-4222-8222-222222222222",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/pipelines/pinned-runtime-fixture/22222222-2222-4222-8222-222222222222"
+            },
+            "resource_name": {
+              "stringValue": "run-resource"
+            },
+            "store_session_info": {
+              "stringValue": "{\"Provider\":\"s3\",\"Params\":{\"fromEnv\":\"true\"}}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "3": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "pinned-runtime-fixture",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "22222222-2222-4222-8222-222222222222",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/pipelines/pinned-runtime-fixture/22222222-2222-4222-8222-222222222222"
+            },
+            "resource_name": {
+              "stringValue": "run-resource"
+            },
+            "store_session_info": {
+              "stringValue": "{\"Provider\":\"s3\",\"Params\":{\"fromEnv\":\"true\"}}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    }
+  },
+  "executions": {
+    "executions": [
+      {
+        "id": "1",
+        "name": "run/22222222-2222-4222-8222-222222222222",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "RUNNING",
+        "customProperties": {
+          "display_name": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": ""
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "2",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "CANCELED",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "skipped"
+          },
+          "inputs": {
+            "structValue": {}
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "task_name": {
+            "stringValue": "skipped"
+          },
+          "total_dag_tasks": {
+            "intValue": "0"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "3",
+        "typeId": "13",
+        "type": "system.ImporterExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": ""
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "task_name": {
+            "stringValue": "importer"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      }
+    ]
+  },
+  "run_uuid": "22222222-2222-4222-8222-222222222222",
+  "source_commit": "a0733cb51b0484a6050cafee989ffe3312f808ad",
+  "source_kind": "pinned driver.RootDAG, driver.DAG and component.ImportLauncher run locally against MLMD; no Argo workflow was submitted"
+}
