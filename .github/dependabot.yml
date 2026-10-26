@@ -103,6 +103,7 @@ updates:
     # TensorBoard stays in this release inventory; its effective scheduler is
     # the master entry with target-branch: release-2.18.
     directories:
+      - "/.github/resources/postgresql-upgrade"
       - "/.github/resources/scripts/kfp-readiness"
       - "/api/v2alpha1/python"
       - "/backend"

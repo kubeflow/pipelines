@@ -64,6 +64,7 @@ on:
       - 'manifests/kustomize/third-party/argo/installs/**'
       - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
       - 'backend/Dockerfile'
+      - 'backend/src/cache/deployer/Dockerfile'
       - 'backend/src/common/types.go'
       - 'go.mod'
       - 'go.sum'

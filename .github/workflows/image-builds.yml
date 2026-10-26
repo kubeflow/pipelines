@@ -137,7 +137,7 @@ jobs:
           retention-days: 1
 
   image-build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runs_on || 'ubuntu-latest' }}
     timeout-minutes: 30
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
@@ -178,6 +178,12 @@ jobs:
           - image: visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
+          # Exercise compiled Python wheels on the other published architecture.
+          - image: visualization-server
+            dockerfile: backend/Dockerfile.visualization
+            context: .
+            runs_on: ubuntu-24.04-arm
+            artifact_name: visualization-server-arm64
           - image: tensorboard
             dockerfile: backend/Dockerfile.tensorboard
             context: .
@@ -191,7 +197,7 @@ jobs:
             dockerfile: third_party/metadata_envoy/Dockerfile
             context: .
     env:
-      ARTIFACT_NAME: "${{ matrix.image }}"
+      ARTIFACT_NAME: "${{ matrix.artifact_name || matrix.image }}"
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
@@ -270,9 +276,25 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
+      - name: Verify Python runtime images
+        if: matrix.image == 'visualization-server' || matrix.image == 'metadata-writer'
+        env:
+          RUNTIME_IMAGE: ${{ matrix.image }}
+        run: |
+          docker load --input "${ARTIFACTS_PATH}/${ARTIFACT_NAME}.tar"
+          image="${REGISTRY}/${RUNTIME_IMAGE}:${IMAGE_TAG}"
+          docker run --rm --entrypoint python3 "$image" -c \
+            "import importlib.util; assert importlib.util.find_spec('pip') is None; assert importlib.util.find_spec('ensurepip') is None"
+          if [[ "$RUNTIME_IMAGE" == visualization-server ]]; then
+            docker run --rm --entrypoint python3 "$image" /src/test_runtime_image.py
+          else
+            docker run --rm --env PYTHONPATH=/kfp/metadata_writer --entrypoint python3 \
+              "$image" -m unittest discover -s /kfp/metadata_writer -p '*_test.py'
+          fi
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
-        if: ${{ steps.frontend-build.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        if: ${{ success() && (steps.frontend-build.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar

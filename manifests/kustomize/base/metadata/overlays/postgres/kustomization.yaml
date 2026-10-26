@@ -25,7 +25,8 @@ generatorOptions:
 images:
 - name: postgres
   newName: postgres
-  newTag: 14.7-alpine3.17
+  newTag: 14.24-alpine3.23
+  digest: sha256:836ff0855bffedade962df0e09ddcb897cc398d2283f1f45d0776cc40f203f37
 
 replacements:
 - source:
@@ -39,5 +40,5 @@ replacements:
     fieldPaths:
     - spec.template.spec.containers.0.args.2
     options:
-      delimiter: =
+      delimiter: "="
       index: 1
