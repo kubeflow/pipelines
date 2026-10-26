@@ -174,7 +174,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Synthetic Pods replace Argo's completion label, so this is cache component
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
-  failures remain failures and the disposable cluster is always deleted.
+  failures remain failures and the disposable cluster is always deleted. The
+  candidate removes the source CACHE_IMAGE override, verifies the default helper
+  completes a real cache-hit Pod, and records its image ID and log output. Helper
+  qualification retains its Alpine package database and pinned OSV JSON/SARIF
+  reports; missing package metadata or scanner errors fail coverage checks.
+  Advisory counts are evidence, not automatic release exceptions.
 - Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache
@@ -247,6 +252,10 @@ complete evidence, not zero findings, applicability exemptions or release approv
 Pinned upstream OSV tooling accepts classic Docker config IDs and containerd
 manifest/index IDs only when SHA-256-verified archived descriptors bind the
 selected native config. Missing, tampered, ambiguous or mismatched chains fail.
+
+- The legacy cache rolling-upgrade workflow runs helper-image OSV coverage in a separate job so a scanner outage does not skip functional upgrade validation. Keep its scanner version/checksum aligned with `osv-scanner.yml`; the CI-script test checks both. The helper uses the digest-identical Google-hosted Alpine mirror to avoid Docker Hub rate limits (#4099). Coverage derives the Alpine ecosystem from the inspected image and requires BusyBox and musl records.
+
+- Cache rolling-upgrade acceptance pulls published baseline and fixture images directly through the Kind node CRI runtime with bounded retries. Only the locally built candidate uses `kind load docker-image`; exporting published multi-platform images through host Docker can leave missing index content during containerd import.
 
 - The TensorBoard runtime is a separate KFP image built by the CI and release matrices. Its hash-locked standalone dependencies include S3 and GCS readers; do not replace it with a TensorFlow image without verifying that TensorBoard and both readers are present. `manifests/kustomize/hack/release.sh` stamps the UI/controller image defaults through `hack/update_tensorboard_image.py`. Its regression tests require both paths in the CI Scripts Tests filter.
 - `tensorboard-acceptance.yml` builds the candidate runtime explicitly on AMD64 and ARM64. The direct AMD64 runtime lane reads event files through S3/GCS protocol emulators and tests scalar/image/graph navigation under the scoped proxy prefix in Chromium. This bypasses published default-image tags so presubmit exercises the candidate build. The separate deployed lane below verifies Kubernetes proxy authorization; neither lane establishes real cloud IAM integration.
