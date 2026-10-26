@@ -76,8 +76,6 @@ export async function listGCSObjectNames(options: {
   return objectNames;
 }
 
-type GCSRequestSignal = NonNullable<Parameters<GCSClient['request']>[0]>['signal'];
-
 export async function downloadGCSObjectStream(options: {
   bucket: string;
   objectName: string;
@@ -90,8 +88,7 @@ export async function downloadGCSObjectStream(options: {
   const response = await resolvedClient.request<Readable>({
     responseType: 'stream',
     url: getDownloadObjectUrl(bucket, objectName),
-    // gaxios 4 types its polyfilled AbortSignal; node-fetch accepts the native one at runtime.
-    ...(signal ? { signal: signal as unknown as GCSRequestSignal } : {}),
+    ...(signal ? { signal } : {}),
   });
   return response.data;
 }
