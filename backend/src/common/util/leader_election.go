@@ -68,8 +68,10 @@ func LeaderElectionIdentity() (string, error) {
 	return os.Hostname()
 }
 
-// RunWithLeaderElection blocks until electionContext is done. Only the replica holding
-// the lease calls config.Run; losing the lease calls config.OnLost.
+// RunWithLeaderElection calls config.Run only while this replica holds the
+// lease. It returns when electionContext is done or the lease is lost, after
+// config.Run has returned. Losing the lease before electionContext is done
+// also calls config.OnLost.
 //
 // ReleaseOnCancel is false: on shutdown, the lease is kept until it expires,
 // so another replica does not start while requests sent by this one may still
@@ -85,16 +87,16 @@ func runWithLeaderElection(
 	timings leaderElectionTimings,
 ) error {
 	if config.LeaseName == "" || config.Namespace == "" || config.Identity == "" {
-		return fmt.Errorf("leader election requires a lease name, namespace and identity, got lease %q, namespace %q, identity %q",
+		return fmt.Errorf("leader election requires a lease name, namespace, and identity (got lease %q, namespace %q, identity %q): set the missing values",
 			config.LeaseName, config.Namespace, config.Identity)
 	}
 	if config.Run == nil || config.OnLost == nil {
-		return fmt.Errorf("leader election for lease %q requires Run and OnLost callbacks", config.LeaseName)
+		return fmt.Errorf("leader election for lease %q requires Run and OnLost callbacks: set both", config.LeaseName)
 	}
 
 	// client-go calls OnStartedLeading in a goroutine and does not wait for it,
-	// so track it to return only after config.Run has returned. stopped keeps
-	// a goroutine that starts after elector.Run returned from calling Run.
+	// so wait for config.Run to return before returning. stopped prevents
+	// config.Run from starting after elector.Run has returned.
 	var (
 		mutex            sync.Mutex
 		stopped          bool

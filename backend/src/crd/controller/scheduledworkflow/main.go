@@ -74,9 +74,9 @@ const (
 func main() {
 	flag.Parse()
 
-	leaderElect, err := leaderElectionEnabled(os.Getenv("LEADER_ELECT"))
-	if err != nil {
-		log.Fatal(err)
+	leaderElect, leaderElectError := leaderElectionEnabled(os.Getenv("LEADER_ELECT"))
+	if leaderElectError != nil {
+		log.Fatal(leaderElectError)
 	}
 
 	// set up signals so we handle the first shutdown signal gracefully
@@ -173,23 +173,8 @@ func main() {
 		return controller
 	}
 
-	if !leaderElect {
-		controller := newController()
-
-		go scheduleInformerFactory.Start(stopCh)
-		go execInformer.InformerFactoryStart(stopCh)
-
-		go startMetricsServer()
-
-		if err = controller.Run(2, stopCh); err != nil {
-			log.Fatalf("Error running controller: %s", err.Error())
-		}
-		return
-	}
-
-	// A standby keeps its informers in sync but creates no controller, so it
-	// queues no work. Request both informers so that the factories start them
-	// before the controller exists.
+	// Request both informers so that the factories start them now: with leader
+	// election, the controller is created only when this replica becomes leader.
 	scheduleInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows().Informer()
 	execInformer.HasSynced()
 
@@ -198,17 +183,29 @@ func main() {
 
 	go startMetricsServer()
 
-	identity, err := commonutil.LeaderElectionIdentity()
-	if err != nil {
-		log.Fatalf("Error getting the leader election identity: %v", err)
+	if !leaderElect {
+		if runError := newController().Run(2, stopCh); runError != nil {
+			log.Fatalf("Error running controller: %s", runError.Error())
+		}
+		return
 	}
-	err = commonutil.RunWithLeaderElection(shutdownContext, kubeClient, commonutil.LeaderElectionConfig{
+
+	leaseNamespace := os.Getenv("POD_NAMESPACE")
+	if leaseNamespace == "" {
+		log.Fatal("LEADER_ELECT is true but POD_NAMESPACE is not set: set POD_NAMESPACE from the Pod's metadata.namespace, or set LEADER_ELECT to false")
+	}
+	identity, identityError := commonutil.LeaderElectionIdentity()
+	if identityError != nil {
+		log.Fatalf("Error getting the leader election identity: %v", identityError)
+	}
+	electionError := commonutil.RunWithLeaderElection(shutdownContext, kubeClient, commonutil.LeaderElectionConfig{
 		LeaseName: leaseName,
-		Namespace: os.Getenv("POD_NAMESPACE"),
+		Namespace: leaseNamespace,
 		Identity:  identity,
 		Run: func(leaderContext context.Context) {
-			// Adding the event handlers to the running informers replays every
-			// current object, so the new leader starts with all schedules queued.
+			// A standby creates no controller, so it queues no work. Adding the
+			// event handlers to the running informers replays every current
+			// object, so the new leader starts with all schedules queued.
 			if runError := newController().Run(2, leaderContext.Done()); runError != nil {
 				log.Fatalf("Error running controller: %s", runError.Error())
 			}
@@ -220,8 +217,8 @@ func main() {
 			log.Fatal("Lost the leader lease, exiting")
 		},
 	})
-	if err != nil {
-		log.Fatalf("Error running leader election: %v", err)
+	if electionError != nil {
+		log.Fatalf("Error running leader election: %v", electionError)
 	}
 }
 

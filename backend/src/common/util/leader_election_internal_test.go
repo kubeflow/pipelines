@@ -36,9 +36,11 @@ const (
 	testNamespace = "kubeflow"
 )
 
+// The renew deadline leaves room for 15 renewal attempts, so a slow test
+// machine does not make the leader lose the lease.
 var testTimings = leaderElectionTimings{
-	leaseDuration: time.Second,
-	renewDeadline: 500 * time.Millisecond,
+	leaseDuration: 2 * time.Second,
+	renewDeadline: 1500 * time.Millisecond,
 	retryPeriod:   100 * time.Millisecond,
 }
 

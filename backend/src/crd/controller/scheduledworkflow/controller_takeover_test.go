@@ -135,8 +135,8 @@ func TestTakeoverQueuesOnlyCurrentScheduledWorkflows(t *testing.T) {
 	assert.Equal(t, 0, queuedKeys(controller, "deleted", churnCount), "the new leader must not queue deleted schedules")
 }
 
-// A controller that exists while schedules are created and deleted, as on a
-// standby before this change, keeps every deleted key queued.
+// A controller that exists while schedules are created and deleted, and has
+// no workers to drain its queue, keeps every deleted key queued.
 func TestControllerCreatedBeforeChurnQueuesDeletedScheduledWorkflows(t *testing.T) {
 	const liveCount, churnCount = 2, 100
 	scheduleSource := newScheduleSource(t)
