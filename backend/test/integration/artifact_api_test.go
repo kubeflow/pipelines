@@ -160,10 +160,18 @@ func (s *ArtifactAPITest) TestV1PipelineMetricsReportedByPersistenceAgent() {
 		return len(metrics) > 0
 	}, 2*time.Minute, 2*time.Second, "Persistence agent did not report the run metrics")
 
-	require.Len(t, metrics, 1)
-	require.Equal(t, "accuracy-score", metrics[0].Name)
-	require.Equal(t, 0.875, metrics[0].NumberValue)
-	require.Equal(t, nodeID, metrics[0].NodeID)
+	// Argo can copy the pod's outputs to parent nodes, so the same metric may
+	// also be reported under another node ID.
+	var reported *run_model.APIRunMetric
+	for _, metric := range metrics {
+		t.Logf("Reported metric %s=%v on node %s", metric.Name, metric.NumberValue, metric.NodeID)
+		require.Equal(t, "accuracy-score", metric.Name)
+		require.Equal(t, 0.875, metric.NumberValue)
+		if metric.NodeID == nodeID {
+			reported = metric
+		}
+	}
+	require.NotNil(t, reported, "Metric was not reported for the emit-metrics node %s", nodeID)
 }
 
 func (s *ArtifactAPITest) deleteAllPipelineVersions(pipelineID string) {
