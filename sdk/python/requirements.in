@@ -32,3 +32,5 @@ requests-toolbelt>=0.8.0,<2
 tabulate>=0.8.6,<1
 urllib3==2.8.0
 oauthlib>=4.0.0,<5
+
+certifi>=2026.10.19

@@ -2,3 +2,5 @@ kfp==2.16.0
 requests>=2.33.0,<3
 oauthlib>=4.0.0,<5
 urllib3>=2.8.0,<3
+
+certifi>=2026.10.19
