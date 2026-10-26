@@ -1,9 +1,11 @@
 """Deployment inventory coverage and evidence regressions."""
 
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from . import deployed_images as inventory
 
@@ -85,6 +87,38 @@ class InventoryTest(unittest.TestCase):
                 '/unused/kustomize',
                 self.path / 'output',
             )
+
+    def test_failed_render_preserves_partial_evidence_but_cannot_qualify(self):
+        inputs = json.loads((self.path / 'inputs.json').read_text())
+        source = self.path / 'source'
+        for relative, content in {
+            **inputs['sources'],
+            **inputs['kustomizations'],
+        }.items():
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+        output = self.path / 'partial'
+        rendered = 'kind: Deployment\n'
+        with mock.patch.object(
+            inventory.subprocess,
+            'check_output',
+            side_effect=[
+                rendered,
+                subprocess.CalledProcessError(1, 'kustomize'),
+            ],
+        ):
+            with self.assertRaises(subprocess.CalledProcessError):
+                inventory.capture(source, '/unused/kustomize', output)
+        self.assertEqual(
+            json.loads((output / 'inputs.json').read_text()), inputs
+        )
+        self.assertEqual(
+            json.loads((output / 'rendered.json').read_text()),
+            {inputs['profiles'][0]: rendered},
+        )
+        with self.assertRaisesRegex(ValueError, 'Incomplete'):
+            inventory.discover(output)
 
     def test_missing_cache_default_fails_closed(self):
         self.edit(

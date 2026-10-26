@@ -190,27 +190,32 @@ def capture(source, kustomize, output):
     }
     (output / 'inputs.json').write_text(json.dumps(catalog, sort_keys=True))
     renders = {}
-    for profile in profiles:
-        renders[profile] = subprocess.check_output(
-            [
-                str(kustomize),
-                'build',
-                '--load-restrictor',
-                'LoadRestrictionsNone',
-                str(source / profile),
-            ],
-            text=True,
-            timeout=300,
-        )
-    for name, url in catalog['prerequisites'].items():
-        if name == 'cert-manager':
-            with urllib.request.urlopen(url, timeout=60) as response:
-                renders['prerequisite/' + name] = response.read().decode()
-        else:
-            renders['prerequisite/' + name] = subprocess.check_output(
-                [str(kustomize), 'build', url], text=True, timeout=300
+    try:
+        for profile in profiles:
+            renders[profile] = subprocess.check_output(
+                [
+                    str(kustomize),
+                    'build',
+                    '--load-restrictor',
+                    'LoadRestrictionsNone',
+                    str(source / profile),
+                ],
+                text=True,
+                timeout=300,
             )
-    (output / 'rendered.json').write_text(json.dumps(renders, sort_keys=True))
+        for name, url in catalog['prerequisites'].items():
+            if name == 'cert-manager':
+                with urllib.request.urlopen(url, timeout=60) as response:
+                    renders['prerequisite/' + name] = response.read().decode()
+            else:
+                renders['prerequisite/' + name] = subprocess.check_output(
+                    [str(kustomize), 'build', url], text=True, timeout=300
+                )
+    finally:
+        # Failed collection retains completed renders without qualifying them.
+        (output / 'rendered.json').write_text(
+            json.dumps(renders, sort_keys=True)
+        )
     return discover(output)
 
 
