@@ -953,6 +953,27 @@ func TestCheckAndTerminate_RecoveredLivePodDoesNotTerminate(t *testing.T) {
 	checker.getPod = func(context.Context, string, string) (*corev1.Pod, error) { return recovered, nil }
 	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
+
+	// The live read proved the container recovered, so its expired clock must
+	// not survive: a restartable init sidecar can restart and fail to pull the
+	// same image again before the cache ever shows the healthy state.
+	assert.Empty(t, checker.failureStart, "a failure the live pod disproved is no longer tracked")
+
+	// One second later the same container of the same pod fails to pull the
+	// same image again, and the API server agrees with the cache. This is a new
+	// failure and must get its own grace period.
+	clock.advance(time.Second)
+	checker.getPod = indexerPodGetter(indexer)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "a failure after confirmed recovery starts a fresh grace period")
+
+	clock.advance(5*time.Minute - time.Second)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "the fresh grace period has not elapsed yet")
+
+	clock.advance(time.Second)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	assert.Equal(t, 1, fakeExecInterface.patchCount, "the new failure terminates once its own grace period elapses")
 }
 
 func TestCheckAndTerminate_LiveReadErrorIsReturned(t *testing.T) {

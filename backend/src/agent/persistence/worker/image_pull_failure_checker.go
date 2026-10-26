@@ -85,7 +85,9 @@ type ImagePullFailureChecker interface {
 	// the failing pod is re-read from the API server (bypassing the informer
 	// cache) and must still exist with the same UID and the same failure, so
 	// a stale cached pod from a previous attempt cannot fail the current one
-	// even with a zero grace period.
+	// even with a zero grace period. A live read showing the container has
+	// recovered also resets that failure's clock, so a later failure of the
+	// same image gets a full grace period of its own.
 	CheckAndTerminate(ctx context.Context, workflow *metav1.ObjectMeta) error
 	// Forget drops any failure tracking state held for the workflow. Callers
 	// should invoke it once a workflow reaches a final state or no longer exists
@@ -207,7 +209,7 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 		return nil
 	}
 
-	confirmed, err := c.confirmFailureLive(ctx, namespace, workflow.UID, expired)
+	confirmed, err := c.confirmFailureLive(ctx, workflow, expired)
 	if err != nil {
 		return err
 	}
@@ -238,10 +240,19 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 //
 // The pod must still exist with the same UID, still be controlled by the
 // workflow, still be non-terminal, and still report the same container and
-// image failing. A pod that was deleted or replaced, or that recovered, means
-// the decision is discarded; tracking state is kept so the cache catches up
-// and the next sync re-evaluates from current pods.
-func (c *imagePullFailureChecker) confirmFailureLive(ctx context.Context, namespace string, workflowUID types.UID, expired *expiredImagePullFailure) (bool, error) {
+// image failing. A pod that was deleted or replaced, or that became terminal,
+// means the decision is discarded; its tracking entry is kept, which is
+// harmless because that pod UID can never report a new failure, and the entry
+// is dropped as soon as the cache catches up and stops listing the pod.
+//
+// A pod that still exists but no longer reports the failure has recovered.
+// Its tracking entry is dropped right away: a restartable init sidecar can
+// restart and fail to pull the same image again before the cache ever shows
+// the healthy state, and such a new failure must start its own grace period
+// instead of inheriting the expired clock. Only a failed read keeps the entry,
+// since nothing was learned about the pod.
+func (c *imagePullFailureChecker) confirmFailureLive(ctx context.Context, workflow *metav1.ObjectMeta, expired *expiredImagePullFailure) (bool, error) {
+	namespace, workflowName, workflowUID := workflow.Namespace, workflow.Name, workflow.UID
 	if c.getPod == nil {
 		return false, fmt.Errorf("pod getter not configured, cannot confirm image pull failure of pod %s/%s", namespace, expired.podName)
 	}
@@ -258,7 +269,7 @@ func (c *imagePullFailureChecker) confirmFailureLive(ctx context.Context, namesp
 			namespace, expired.podName, expired.podUID, livePod.UID)
 		return false, nil
 	}
-	if !isOwnedByWorkflow(livePod, livePod.Labels[ArgoWorkflowLabelKey], workflowUID) || isPodTerminal(livePod) {
+	if !isOwnedByWorkflow(livePod, workflowName, workflowUID) || isPodTerminal(livePod) {
 		log.Infof("Discarding image pull failure decision for pod %s/%s: the live pod is terminal or no longer owned by the workflow",
 			namespace, expired.podName)
 		return false, nil
@@ -268,9 +279,28 @@ func (c *imagePullFailureChecker) confirmFailureLive(ctx context.Context, namesp
 			return true, nil
 		}
 	}
-	log.Infof("Discarding image pull failure decision for pod %s/%s: container %s no longer fails to pull %q",
+	log.Infof("Discarding image pull failure decision for pod %s/%s: container %s no longer fails to pull %q; resetting its failure clock",
 		namespace, expired.podName, expired.container, expired.failedImage)
+	c.forgetFailure(workflow, expired)
 	return false, nil
+}
+
+// forgetFailure drops the tracking entry of one image pull failure, so a later
+// failure of the same image in the same container of the same pod starts a
+// fresh grace period. The entry is only dropped if it still belongs to the
+// workflow attempt the decision was made for.
+func (c *imagePullFailureChecker) forgetFailure(workflow *metav1.ObjectMeta, expired *expiredImagePullFailure) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := workflowKey(workflow.Namespace, workflow.Name)
+	tracked := c.failureStart[key]
+	if tracked == nil || tracked.uid != workflow.UID || tracked.retryGeneration != workflow.Annotations[util.AnnotationKeyRetryGeneration] {
+		return
+	}
+	delete(tracked.failures, imagePullFailureKey{podUID: expired.podUID, container: expired.container, image: expired.failedImage})
+	if len(tracked.failures) == 0 {
+		delete(c.failureStart, key)
+	}
 }
 
 // listWorkflowPods returns the cached pods labeled for the workflow, using the

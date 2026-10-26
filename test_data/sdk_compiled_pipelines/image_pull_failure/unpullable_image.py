@@ -19,10 +19,11 @@ depending on an external registry. The persistence agent's image pull
 failure handling is expected to terminate the run after its grace period.
 """
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
-UNPULLABLE_IMAGE = 'registry.invalid/kubeflow/pipelines-unpullable:does-not-exist'
+UNPULLABLE_IMAGE = (
+    'registry.invalid/kubeflow/pipelines-unpullable:does-not-exist'
+)
 
 
 @dsl.container_component
