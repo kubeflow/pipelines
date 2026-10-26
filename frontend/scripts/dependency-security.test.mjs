@@ -25,6 +25,14 @@ const tooling = {
   '@vitest/coverage-v8': '>=4.1.12 <5',
 };
 const scopes = {
+  '../mock-backend/package-lock.json': {
+    'body-parser': '>=2.4.0 <3',
+    qs: '>=6.16.1 <7',
+  },
+  '../../test/frontend-integration-test/package-lock.json': {
+    undici: '>=6.29.1 <7 || >=7.30.1 <8',
+    'serialize-javascript': '>=7.1.3 <8',
+  },
   '../package-lock.json': {
     ...tooling,
     storybook: '>=10.6.2 <11',

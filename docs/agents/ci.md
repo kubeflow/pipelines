@@ -270,3 +270,15 @@ single-client persistence, not concurrent MLMD type creation. Both lanes upload
 rendered manifests, a success receipt, pod logs and volume events. Command or
 application failures cannot create a passing receipt, and pipeline `pipefail`
 preserves errors when saving console output.
+
+## JavaScript dependency security guards
+
+`frontend/scripts/dependency-security.test.mjs` checks patched dependency ranges in
+the frontend, UI server, mock backend and frontend integration-test lockfiles,
+including nested copies. Keep these guards aligned when regenerating locks; they
+supplement fresh advisory scans.
+
+The integration-test runner overrides Mocha 10.8.2's `serialize-javascript` 6.x
+requirement with 7.1.3 to address GHSA-m5mm-p8h7-m29v, which has no patched 6.x
+release. Retain the override until Mocha resolves a patched version itself, and
+verify runner compatibility when changing it.
