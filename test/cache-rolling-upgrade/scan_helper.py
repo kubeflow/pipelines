@@ -72,7 +72,14 @@ def main():
             str(args.output / ('osv.' + report_format)),
             str(archive)
         ],
-                                check=False)
+                                check=False,
+                                capture_output=True,
+                                text=True)
+        (args.output / (report_format + '.stderr.log')).write_text(
+            result.stderr)
+        if 'Error during extraction:' in result.stderr:
+            raise ValueError(
+                'Incomplete package extraction; inspect scanner diagnostics')
         if result.returncode not in (0, 1):
             raise RuntimeError(
                 'OSV image scan failed; retry before accepting package coverage'
