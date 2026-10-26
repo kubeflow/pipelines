@@ -19,6 +19,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -39,7 +40,7 @@ import (
 
 const (
 	// ArgoWorkflowLabelKey is the label Argo sets on pods to identify the parent workflow.
-	ArgoWorkflowLabelKey = "workflows.argoproj.io/workflow"
+	ArgoWorkflowLabelKey = argocommon.LabelKeyWorkflow
 	// WorkflowPodIndexName is the name of the pod informer index that maps a
 	// workflow (namespace/name) to the pods labeled for it. Looking pods up
 	// through the index keeps each check proportional to the workflow's own
@@ -240,17 +241,12 @@ func (c *imagePullFailureChecker) CheckAndTerminate(ctx context.Context, workflo
 //
 // The pod must still exist with the same UID, still be controlled by the
 // workflow, still be non-terminal, and still report the same container and
-// image failing. A pod that was deleted or replaced, or that became terminal,
-// means the decision is discarded; its tracking entry is kept, which is
-// harmless because that pod UID can never report a new failure, and the entry
-// is dropped as soon as the cache catches up and stops listing the pod.
-//
-// A pod that still exists but no longer reports the failure has recovered.
-// Its tracking entry is dropped right away: a restartable init sidecar can
-// restart and fail to pull the same image again before the cache ever shows
-// the healthy state, and such a new failure must start its own grace period
-// instead of inheriting the expired clock. Only a failed read keeps the entry,
-// since nothing was learned about the pod.
+// image failing. A deleted, replaced or terminal pod keeps its tracking entry
+// until the cache stops listing it, which is harmless since that pod UID can
+// never fail again. A pod that recovered has its entry dropped at once, so a
+// container that fails to pull the same image again (a restarted sidecar)
+// gets a fresh grace period even if the cache never showed it healthy. Only a
+// failed read, which proves nothing, keeps the entry.
 func (c *imagePullFailureChecker) confirmFailureLive(ctx context.Context, workflow *metav1.ObjectMeta, expired *expiredImagePullFailure) (bool, error) {
 	namespace, workflowName, workflowUID := workflow.Namespace, workflow.Name, workflow.UID
 	if c.getPod == nil {
@@ -535,7 +531,7 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflo
 
 	_, err = c.executionClient.Execution(namespace).Patch(
 		ctx, workflowName, types.MergePatchType, patchBytes, metav1.PatchOptions{})
-	if apierrors.IsConflict(err) || apierrors.IsInvalid(err) {
+	if apierrors.IsConflict(err) || isImmutableUIDError(err) {
 		// The workflow was updated, retried or recreated after it was inspected.
 		// Keep the tracking state so the next sync re-evaluates the refreshed
 		// workflow immediately instead of restarting the grace period.
@@ -549,4 +545,25 @@ func (c *imagePullFailureChecker) terminateWorkflow(ctx context.Context, workflo
 
 	log.Infof("Successfully terminated workflow %s/%s due to image pull failure", namespace, workflowName)
 	return true, nil
+}
+
+// isImmutableUIDError reports whether the API server rejected the patch
+// because its metadata.uid precondition did not match the live workflow, i.e.
+// the workflow was recreated. Any other validation failure is a real error:
+// treating it as a stale decision would retry the same doomed patch forever
+// while only logging at Info level.
+func isImmutableUIDError(err error) bool {
+	if !apierrors.IsInvalid(err) {
+		return false
+	}
+	var statusErr *apierrors.StatusError
+	if !errors.As(err, &statusErr) || statusErr.ErrStatus.Details == nil {
+		return false
+	}
+	for _, cause := range statusErr.ErrStatus.Details.Causes {
+		if cause.Field == "metadata.uid" {
+			return true
+		}
+	}
+	return false
 }

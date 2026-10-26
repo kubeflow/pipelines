@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"time"
@@ -90,7 +91,8 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	ctx := signals.SetupSignalHandler()
+	stopCh := ctx.Done()
 
 	// Use the util to store the ExecutionType
 	util.SetExecutionType(util.ExecutionType(executionType))
@@ -191,8 +193,20 @@ func main() {
 			log.Fatalf("Failed to register workflow pod index for image pull failure handling: %v", err)
 		}
 		go podInformerFactory.Start(stopCh)
-		if !cache.WaitForCacheSync(stopCh, podInformer.HasSynced) {
-			log.Fatalf("Failed to sync pod informer cache for image pull failure handling")
+		// Bound the initial sync. Without the opt-in RBAC the informer's list
+		// is forbidden forever; an unbounded wait would leave the agent alive
+		// but persisting nothing, with no crash to surface the misconfiguration.
+		syncCtx, cancelSync := context.WithTimeout(ctx, initializeTimeout)
+		synced := cache.WaitForCacheSync(syncCtx.Done(), podInformer.HasSynced)
+		cancelSync()
+		if !synced {
+			if ctx.Err() != nil {
+				log.Info("Shutdown requested before the pod informer cache synced")
+				return
+			}
+			log.Fatalf("Timed out after %v waiting for the pod informer to sync for image pull failure handling. "+
+				"Check that the persistence agent's service account may get, list and watch pods, "+
+				"which the image-pull-failure-handling kustomize components grant.", initializeTimeout)
 		}
 
 		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second

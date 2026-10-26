@@ -48,12 +48,17 @@ type fakeExecutionInterface struct {
 	liveResourceVersion string
 	// blockUntilCanceled makes Patch hang until the context is done.
 	blockUntilCanceled bool
+	// patchErr, when set, is returned by every Patch call.
+	patchErr error
 }
 
 func (f *fakeExecutionInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (util.ExecutionSpec, error) {
 	f.patchCount++
 	f.patchedName = name
 	f.patchData = data
+	if f.patchErr != nil {
+		return nil, f.patchErr
+	}
 	if f.blockUntilCanceled {
 		<-ctx.Done()
 		return nil, ctx.Err()
@@ -683,6 +688,28 @@ func TestCheckAndTerminate_RecreatedRunBetweenDetectionAndPatch(t *testing.T) {
 	require.NoError(t, checker.CheckAndTerminate(context.Background(), stale))
 	assert.Equal(t, 1, fakeExecInterface.patchCount)
 	assert.Len(t, checker.failureStart, 1)
+}
+
+func TestCheckAndTerminate_UnrelatedInvalidPatchErrorIsReturned(t *testing.T) {
+	// Only a metadata.uid immutable-field rejection means the workflow was
+	// recreated. Any other validation failure (an admission webhook rejecting
+	// the patch, say) is surfaced so it is logged as a warning on every sync
+	// instead of being mistaken for a stale decision.
+	podIndexer := newTestPodIndexer(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff"))
+	fakeExecInterface := &fakeExecutionInterface{
+		patchErr: apierrors.NewInvalid(workflowapi.SchemeGroupVersion.WithKind("Workflow").GroupKind(), "my-workflow",
+			field.ErrorList{field.Forbidden(field.NewPath("spec", "shutdown"), "denied by admission webhook")}),
+	}
+	checker, clock := newTestChecker(podIndexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	clock.advance(5 * time.Minute)
+
+	err := checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to patch workflow")
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
+	assert.Len(t, checker.failureStart, 1, "the failure is still tracked and retried on the next sync")
 }
 
 func TestCheckAndTerminate_StalledPatchIsCanceledByContext(t *testing.T) {
