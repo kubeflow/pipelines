@@ -2,7 +2,8 @@ docformatter==1.4
 isort==5.10.1
 mypy==0.941
 pre-commit==2.19.0
-pycln==2.1.1
+# Allow LibCST wheels on Python 3.13 without a Rust source build.
+pycln==2.6.0
 # pytest 9.0.3 contains the tmpdir handling fix.
 pytest==9.0.3
 pytest-xdist==3.8.0
