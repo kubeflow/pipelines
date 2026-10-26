@@ -6,6 +6,14 @@ and GCS through gcsfs. `S3_ENDPOINT`, AWS credentials, and Google application
 default credentials retain their normal storage-client meanings. The viewer
 controller supplies the log directory, scoped URL prefix, and bind address.
 
+The image's `tensorboard` command defaults to `--load_fast=false` so the server
+uses those Python filesystem clients for event ingestion too. TensorBoard's
+experimental Rust loader can otherwise select a separate GCS client with
+different credential and endpoint handling. The wrapper forwards all arguments
+to the original `tensorboard-cli` command; an explicit later `--load_fast` option
+can override the default. Custom viewer images retain their own commands and
+loader settings.
+
 The image disables GCS directory-listing caching so viewers discover event files
 created or updated by training jobs while the viewer is running. It selects the
 established gcsfs reader with `GCSFS_EXPERIMENTAL_ZB_HNS_SUPPORT=false`; standard

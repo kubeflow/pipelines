@@ -16,11 +16,14 @@ FROM python:3.12-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a
 
 COPY backend/src/tensorboard/requirements.txt /tmp/requirements.txt
 RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt \
+    && mv /usr/local/bin/tensorboard /usr/local/bin/tensorboard-cli \
     && python -m pip uninstall --yes pip \
     && rm -rf /usr/local/lib/python3.12/ensurepip \
     && rm /tmp/requirements.txt \
     && mkdir /home/tensorboard \
     && chown 1000:1000 /home/tensorboard
+
+COPY --chmod=755 backend/src/tensorboard/tensorboard.sh /usr/local/bin/tensorboard
 
 # Training jobs update event objects outside this process; refresh GCS listings.
 # Use the established GCS reader without experimental bucket-layout probes.
