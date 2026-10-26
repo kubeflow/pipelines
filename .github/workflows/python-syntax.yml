@@ -15,7 +15,10 @@ permissions:
 jobs:
   python-syntax:
     name: Check Python 3.9 syntax
-    runs-on: ubuntu-latest
+    # actions/setup-python publishes no Python 3.9 build for Ubuntu 26.04, which
+    # ubuntu-latest now selects. ast feature_version is best-effort, so keep
+    # checking with a real 3.9 interpreter.
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7

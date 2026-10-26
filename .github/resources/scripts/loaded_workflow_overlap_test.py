@@ -39,6 +39,7 @@ WORKFLOW_JOBS = {
     '.github/workflows/legacy-v2-api-integration-tests.yml':
         ('api-integration-tests-v2',),
     '.github/workflows/upgrade-test.yml': ('upgrade-test',),
+    '.github/workflows/tensorboard-acceptance.yml': ('deployed',),
 }
 
 

@@ -200,7 +200,7 @@ func TestDefaultImage(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
-	require.Equal(t, "ghcr.io/containerd/busybox", container.Image)
+	require.Equal(t, defaultCacheImage, container.Image)
 }
 
 func TestSetImage(t *testing.T) {

@@ -184,6 +184,9 @@ jobs:
             context: .
             runs_on: ubuntu-24.04-arm
             artifact_name: visualization-server-arm64
+          - image: tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - image: cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .

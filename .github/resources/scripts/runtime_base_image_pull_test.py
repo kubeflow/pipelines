@@ -53,13 +53,29 @@ if command == 'docker':
         sys.exit(1)
     if arguments[0] == 'save':
         Path(arguments[arguments.index('-o') + 1]).write_bytes(b'archive')
+    if arguments[0] == 'version':
+        print('linux/amd64')
+    if arguments[0] == 'inspect':
+        print('sha256:' + arguments[-1])
+    if arguments[:2] == ['image', 'inspect']:
+        platforms = json.loads(os.environ.get('NODE_PLATFORMS', '{}'))
+        print(platforms.get(arguments[-1], os.environ.get('NODE_PLATFORM', 'linux/arm64')))
+if command == 'kind':
+    if arguments[:2] == ['get', 'nodes']:
+        print(os.environ.get('KIND_NODES', 'test-cluster-control-plane'))
+    elif os.environ.get('FAIL_KIND_IMPORT') == 'true':
+        sys.exit(1)
 '''
         for command in ('docker', 'kind', 'sleep'):
             path = self.bin_directory / command
             path.write_text(command_stub, encoding='utf-8')
             path.chmod(0o755)
 
-    def run_consumer(self, consumer, image=PINNED_IMAGE, failed_command=''):
+    def run_consumer(self,
+                     consumer,
+                     image=PINNED_IMAGE,
+                     failed_command='',
+                     **environment):
         self.command_log.write_text('', encoding='utf-8')
         self.inventory.write_text(f'{image}\n', encoding='utf-8')
         if self.archive.exists():
@@ -71,7 +87,7 @@ if command == 'docker':
         target = str(self.archive) if consumer == 'archive' else 'test-cluster'
         result = subprocess.run(
             [
-                'bash', '-c', 'source "$1"; "$2" "$3" "$4"',
+                'bash', '-c', 'set -euo pipefail; source "$1"; "$2" "$3" "$4"',
                 'runtime-image-test',
                 str(HELPERS), functions[consumer],
                 str(self.inventory), target
@@ -85,6 +101,9 @@ if command == 'docker':
                     str(self.command_log),
                 'FAIL_DOCKER_COMMAND':
                     failed_command,
+                'TMPDIR':
+                    str(self.directory),
+                **environment,
             },
             capture_output=True,
             check=False,
@@ -97,17 +116,26 @@ if command == 'docker':
         ]
         return result, commands
 
-    def consumer_commands(self, consumer, image=IMAGE_TAG):
+    def assert_consumed(self, consumer, commands, image=IMAGE_TAG):
+        saves = [c for c in commands if c[:2] == ['docker', 'save']]
+        self.assertEqual(len(saves), 1)
+        platform = 'linux/amd64' if consumer == 'archive' else 'linux/arm64'
+        self.assertEqual(saves[0][2:5], [f'--platform={platform}', image, '-o'])
+        archive = Path(saves[0][5])
         if consumer == 'archive':
-            return [['docker', 'save', image, '-o', str(self.archive)]]
-        return [
-            ['kind', '--name', 'test-cluster', 'load', 'docker-image', image],
-            ['docker', 'image', 'rm', image],
-        ]
+            self.assertEqual(archive, self.archive)
+            self.assertEqual(archive.read_bytes(), b'archive')
+        else:
+            self.assertIn([
+                'kind', '--name', 'test-cluster', 'load', 'image-archive',
+                str(archive)
+            ], commands)
+            self.assertFalse(archive.exists())
+            self.assertIn(['docker', 'image', 'rm', image], commands)
 
     def assert_no_consumption(self, commands):
         self.assertFalse(self.archive.exists())
-        self.assertFalse(any(command[0] == 'kind' for command in commands))
+        self.assertFalse(any('load' in command for command in commands))
         self.assertFalse(
             any(command[:2] == ['docker', 'save'] for command in commands))
 
@@ -116,20 +144,23 @@ if command == 'docker':
             with self.subTest(consumer=consumer):
                 result, commands = self.run_consumer(consumer)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(commands, [
-                    ['docker', 'pull', PINNED_IMAGE],
-                    ['docker', 'tag', PINNED_IMAGE, IMAGE_TAG],
-                ] + self.consumer_commands(consumer))
-                if consumer == 'archive':
-                    self.assertEqual(self.archive.read_bytes(), b'archive')
+                platform = ('linux/amd64'
+                            if consumer == 'archive' else 'linux/arm64')
+                self.assertIn(
+                    ['docker', 'pull', f'--platform={platform}', PINNED_IMAGE],
+                    commands)
+                self.assertIn(['docker', 'tag', PINNED_IMAGE, IMAGE_TAG],
+                              commands)
+                self.assert_consumed(consumer, commands)
 
     def test_unpinned_images_do_not_require_retagging(self):
         for consumer in ('archive', 'kind'):
             with self.subTest(consumer=consumer):
                 result, commands = self.run_consumer(consumer, image=IMAGE_TAG)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(commands, [['docker', 'pull', IMAGE_TAG]] +
-                                 self.consumer_commands(consumer))
+                self.assertFalse(
+                    any(c[:2] == ['docker', 'tag'] for c in commands))
+                self.assert_consumed(consumer, commands)
 
     def test_pull_failure_stops_before_tagging_or_consumption(self):
         for consumer in ('archive', 'kind'):
@@ -141,7 +172,12 @@ if command == 'docker':
                     command for command in commands
                     if command[:2] == ['docker', 'pull']
                 ]
-                self.assertEqual(pulls, [['docker', 'pull', PINNED_IMAGE]] * 5)
+                platform = ('linux/amd64'
+                            if consumer == 'archive' else 'linux/arm64')
+                self.assertEqual(
+                    pulls,
+                    [['docker', 'pull', f'--platform={platform}', PINNED_IMAGE]
+                    ] * 5)
                 self.assertEqual([
                     command[1] for command in commands if command[0] == 'sleep'
                 ], ['20', '40', '60', '80'])
@@ -156,11 +192,65 @@ if command == 'docker':
                 result, commands = self.run_consumer(
                     consumer, failed_command='tag')
                 self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(commands, [
-                    ['docker', 'pull', PINNED_IMAGE],
-                    ['docker', 'tag', PINNED_IMAGE, IMAGE_TAG],
-                ])
+                self.assertIn(['docker', 'tag', PINNED_IMAGE, IMAGE_TAG],
+                              commands)
                 self.assert_no_consumption(commands)
+
+    def test_kind_uses_node_image_platform_even_with_other_docker_default(self):
+        result, commands = self.run_consumer(
+            'kind', DOCKER_DEFAULT_PLATFORM='linux/amd64')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn([
+            'docker', 'inspect', '--format', '{{.Image}}',
+            'test-cluster-control-plane'
+        ], commands)
+        inspections = [
+            c for c in commands if c[:3] == ['docker', 'image', 'inspect']
+        ]
+        self.assertEqual(len(inspections), 1)
+        self.assertEqual(inspections[0][-1],
+                         'sha256:test-cluster-control-plane')
+        self.assert_consumed('kind', commands)
+
+    def test_producer_ignores_other_docker_default_platform(self):
+        result, commands = self.run_consumer(
+            'archive', DOCKER_DEFAULT_PLATFORM='linux/arm64')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assert_consumed('archive', commands)
+
+    def test_kind_mixed_node_platforms_stop_before_pull(self):
+        result, commands = self.run_consumer(
+            'kind',
+            KIND_NODES='test-cluster-control-plane\ntest-cluster-worker',
+            NODE_PLATFORMS=json.dumps(
+                {'sha256:test-cluster-worker': 'linux/amd64'}))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('different platforms', result.stderr)
+        self.assertFalse(any(c[:2] == ['docker', 'pull'] for c in commands))
+        self.assert_no_consumption(commands)
+
+    def test_kind_missing_nodes_or_platform_stops_before_pull(self):
+        for environment in ({'KIND_NODES': ''}, {'NODE_PLATFORM': ''}):
+            with self.subTest(environment=environment):
+                result, commands = self.run_consumer('kind', **environment)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(
+                    any(c[:2] == ['docker', 'pull'] for c in commands))
+                self.assert_no_consumption(commands)
+
+    def test_kind_save_or_import_failure_removes_temporary_archive(self):
+        for environment in ({
+                'failed_command': 'save'
+        }, {
+                'FAIL_KIND_IMPORT': 'true'
+        }):
+            with self.subTest(environment=environment):
+                result, commands = self.run_consumer('kind', **environment)
+                self.assertNotEqual(result.returncode, 0)
+                saves = [c for c in commands if c[:2] == ['docker', 'save']]
+                self.assertEqual(len(saves), 1)
+                self.assertFalse(Path(saves[0][-1]).exists())
+                self.assertNotIn(['docker', 'image', 'rm', IMAGE_TAG], commands)
 
 
 if __name__ == '__main__':

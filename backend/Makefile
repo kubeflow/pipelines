@@ -47,6 +47,7 @@ IMG_TAG_CACHESERVER       ?= cache-server
 IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
 IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
 IMG_TAG_VISUALIZATION     ?= visualization
+IMG_TAG_TENSORBOARD       ?= tensorboard
 IMG_TAG_DRIVER            ?= kfp-driver
 IMG_TAG_LAUNCHER          ?= kfp-launcher
 IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
@@ -67,7 +68,7 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_tensorboard image_driver image_launcher
 
 .PHONY: image_apiserver
 image_apiserver:
@@ -87,6 +88,9 @@ image_viewer:
 .PHONY: image_visualization
 image_visualization:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
+.PHONY: image_tensorboard
+image_tensorboard:
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_TENSORBOARD} -f backend/Dockerfile.tensorboard .
 .PHONY: image_driver
 image_driver:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
