@@ -244,3 +244,28 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - TensorBoard deployed acceptance uses a disposable Kind cluster with candidate UI/API/controller images and the same candidate viewer reference requested by the UI. It uses real KFP AuthService and Kubernetes SubjectAccessReview through localhost trusted identity headers; it does not test ingress authentication. The fixture verifies mounted AWS credential discovery, S3/GCS event reads, growing and rotated event-object reload without pod or container restarts, proxy browser rendering, denied/reader/manager permissions, deletion/recreation and explicit custom-image selection. GCS uses an anonymous emulator, so real cloud IAM remains outside this lane. No production images are published.
 
 - Both TensorBoard Chromium acceptance lanes use Ubuntu 24.04, supported by their pinned Playwright 1.56.1. Keep these runner pins until the browser tooling is upgraded and validated on a newer Ubuntu image; `ubuntu-latest` can advance independently of Playwright support.
+
+## PostgreSQL image patch acceptance
+
+`postgresql-image-upgrade.yml` is an isolated image-compatibility check for the
+shipped PostgreSQL manifests. It does not enable PostgreSQL deployment in the
+2.18 release matrices or resolve the MLMD concurrency limitation in #14353.
+The path-filtered PR workflow and manual dispatch use Kind, render the candidate
+manifests, and retain their PVC, PGDATA, service-account and security settings.
+The only initial deployment override is the old same-major database image:
+18.3 for the default database and 14.7 for the legacy metadata overlay, both
+pinned by digest in `PROFILES`. For every later image bump, advance each affected
+baseline to the previously shipped manifest image and digest so this lane tests
+the immediately preceding supported image. Do not refresh baseline digests
+independently of that transition.
+
+Each lane retains the same PVC and database identity while replacing the image
+with the digest-pinned candidate from the manifest. It checks records, JSONB
+queries, indexes, a subsequent write and a further pod restart. The 18 lane calls
+KFP's real database initialization/migration code and preserves an experiment;
+the 14 lane uses the actual MLMD deployment and verifies a metadata artifact
+through gRPC before and after the database replacement and restart. This checks
+single-client persistence, not concurrent MLMD type creation. Both lanes upload
+rendered manifests, a success receipt, pod logs and volume events. Command or
+application failures cannot create a passing receipt, and pipeline `pipefail`
+preserves errors when saving console output.
