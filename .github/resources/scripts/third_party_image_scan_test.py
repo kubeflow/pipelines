@@ -361,6 +361,27 @@ class ThirdPartyScanTest(unittest.TestCase):
         self.assertEqual(coverage['image_id'], self.metadata['Id'])
         self.assertFalse((self.output / 'github').exists())
 
+    def test_sarif_failure_after_json_success_keeps_coverage_unknown(self):
+        with (
+            mock.patch.object(scanner.subprocess, 'run'),
+            mock.patch.object(
+                scanner.subprocess,
+                'check_output',
+                return_value=json.dumps([self.metadata]),
+            ),
+            mock.patch(
+                'kfpr.osv_image_scan.scan_image',
+                side_effect=[None, ValueError('incomplete package extraction')],
+            ) as scan_image,
+            self.assertRaisesRegex(ValueError, 'incomplete package extraction'),
+        ):
+            scanner.scan(self.image, self.output)
+        self.assertEqual(scan_image.call_count, 2)
+        coverage = json.loads((self.output / 'coverage.json').read_text())
+        self.assertEqual(coverage['status'], 'unknown')
+        self.assertEqual(coverage['image_id'], self.metadata['Id'])
+        self.assertEqual(coverage['reason'], 'incomplete package extraction')
+
     def test_foreign_platform_fails_before_scanning(self):
         self.metadata['Architecture'] = 'arm64'
         with self.assertRaisesRegex(ValueError, 'linux/amd64'):
