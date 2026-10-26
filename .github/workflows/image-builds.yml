@@ -178,6 +178,9 @@ jobs:
           - image: visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
+          - image: tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - image: cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .
