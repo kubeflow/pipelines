@@ -1,0 +1,191 @@
+# PIPELINE DEFINITION
+# Name: release-218-source-structure
+components:
+  comp-consume:
+    executorLabel: exec-consume
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-consume-2:
+    executorLabel: exec-consume-2
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-exit-handler-1:
+    dag:
+      tasks:
+        for-loop-3:
+          componentRef:
+            name: comp-for-loop-3
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-2
+            items:
+              raw: '["one", "two"]'
+          taskInfo:
+            name: for-loop-3
+        importer:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-importer
+          inputs:
+            parameters:
+              uri:
+                runtimeValue:
+                  constant: s3://release-218-fixture/input
+          taskInfo:
+            name: importer
+  comp-for-loop-3:
+    dag:
+      tasks:
+        release-218-source-inner:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-release-218-source-inner
+          inputs:
+            parameters:
+              value:
+                runtimeValue:
+                  constant: nested
+          taskInfo:
+            name: release-218-source-inner
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-2:
+          parameterType: STRING
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-release-218-source-inner:
+    dag:
+      tasks:
+        consume:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-consume
+          inputs:
+            parameters:
+              value:
+                componentInputParameter: value
+          taskInfo:
+            name: consume
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-consume:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume(value: str) -> str:\n    return value + \"-consumed\"\
+          \n\n"
+        image: python:3.11
+    exec-consume-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consume
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consume(value: str) -> str:\n    return value + \"-consumed\"\
+          \n\n"
+        image: python:3.11
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: s3://release-218-fixture/input
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+pipelineInfo:
+  name: release-218-source-structure
+root:
+  dag:
+    tasks:
+      consume:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-consume-2
+        dependentTasks:
+        - exit-handler-1
+        inputs:
+          parameters:
+            value:
+              runtimeValue:
+                constant: exit-handler
+        taskInfo:
+          name: consume
+        triggerPolicy:
+          strategy: ALL_UPSTREAM_TASKS_COMPLETED
+      exit-handler-1:
+        componentRef:
+          name: comp-exit-handler-1
+        taskInfo:
+          name: exit-handler-1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.18.0
