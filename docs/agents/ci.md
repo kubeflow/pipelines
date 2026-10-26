@@ -264,7 +264,8 @@ The frontend qualification reliability reporter supports `--collect --repository
 `third-party-image-scanning.yml` is called by the master OSV workflow and the
 release-2.18 branch scan workflow. It resolves both branch heads and uses the
 shared source-derived inventory: all Kustomize environment and legacy metadata
-profiles, configured executor/cache images, both TensorBoard defaults, and pinned
+profiles, configured executor/cache images where present, UI/controller
+TensorBoard defaults, and pinned
 cluster prerequisites. Prerequisites and legacy/runtime roles remain separately
 identified. Arbitrary workloads, operator overrides and non-default TensorBoard
 menu choices are outside this inventory. It scans each distinct external image
@@ -282,6 +283,16 @@ Only exact duplicate SARIF results are removed
 from the uploaded copy; raw evidence and release-policy inputs are unchanged.
 Only the post-report upload job receives security-events write permission.
 Candidate branch runs retain and validate evidence but do not publish alerts.
+
+Inventory size and native/external classification follow the selected source.
+Release 2.18's merged standalone TensorBoard runtime is a KFP-built image; require
+its matching native publication record rather than scanning an old default tag
+as an external TensorFlow image. Its merged Alpine cache helper has package
+metadata, replacing the old BusyBox coverage gap, but exact-image extraction and
+scanning remain required. Do not copy historical inventory totals or candidate
+scan results into a current release-readiness claim. The independent
+`third-party-image-upgrades.yml` workflow checks compatibility; it does not replace
+full-inventory security qualification or the approved-exceptions policy.
 
 Each run retains rendered inventories, source commits, immutable Docker image
 IDs and registry digests, complete OSV JSON and raw SARIF, and scanner diagnostics for seven days (the repository artifact-retention cap).
