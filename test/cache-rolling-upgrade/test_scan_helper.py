@@ -78,8 +78,7 @@ class CoverageTest(unittest.TestCase):
         fallback = re.search(r'const defaultCacheImage = "([^"]+)"',
                              source).group(1)
         self.assertEqual(fallback, image)
-        self.assertTrue(
-            image.startswith('mirror.gcr.io/library/alpine:'))
+        self.assertTrue(image.startswith('mirror.gcr.io/library/alpine:'))
 
     def test_scan_outage_does_not_gate_functional_upgrade(self):
         root = Path(__file__).resolve().parents[2]
@@ -87,6 +86,12 @@ class CoverageTest(unittest.TestCase):
             (root / '.github/workflows/cache-rolling-upgrade.yml').read_text())
         functional = workflow['jobs']['cache-rolling-upgrade']
         self.assertNotIn('needs', functional)
+        loads = next(
+            step['run']
+            for step in functional['steps']
+            if step.get('name') == 'Load source, target and fixture images')
+        self.assertNotIn('cache_image', loads)
+
         self.assertFalse(
             any('scan_helper.py' in step.get('run', '')
                 for step in functional['steps']))

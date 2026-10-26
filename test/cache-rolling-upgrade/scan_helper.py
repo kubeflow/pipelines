@@ -32,7 +32,7 @@ def load_cache_image() -> str:
 
 
 def read_image_file(image_id: str, path: str) -> str:
-    """Read package metadata from the inspected image without network access."""
+    """Read image metadata without network access."""
     return subprocess.check_output([
         'docker', 'run', '--rm', '--network=none', '--entrypoint=cat', image_id,
         path
@@ -65,7 +65,7 @@ def osv_alpine_package_names(report: dict, ecosystem: str) -> set[str]:
 
 
 def smoke_test_helper(image_id: str) -> None:
-    """Exercise the cache-hit command with the workload's restricted identity."""
+    """Exercise the cache-hit command as the restricted workload user."""
     expected = 'This step output is taken from cache.'
     output = subprocess.check_output([
         'docker', 'run', '--rm', '--network=none', '--user=1000:1000',
@@ -79,7 +79,7 @@ def smoke_test_helper(image_id: str) -> None:
 
 
 def run_osv_scan(archive: Path, output: Path) -> dict:
-    """Retain complete scanner evidence and reject extraction or execution errors."""
+    """Retain scanner evidence and reject extraction or execution errors."""
     config = output / 'empty.toml'
     config.write_text('')
     for report_format in ('json', 'sarif'):
@@ -106,7 +106,7 @@ def run_osv_scan(archive: Path, output: Path) -> dict:
 
 
 def main() -> None:
-    """Scan the inspected helper image and retain its package coverage evidence."""
+    """Scan the helper and retain package coverage evidence."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()

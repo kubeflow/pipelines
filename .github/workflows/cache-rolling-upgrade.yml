@@ -48,9 +48,8 @@ jobs:
             bash .github/resources/scripts/docker-pull-with-retry.sh "$image"
             kind load docker-image --name cache-rolling "$image"
           done
-          cache_image=$(python3 -c 'import json; print(json.load(open("backend/src/apiserver/config/config.json"))["CACHE_IMAGE"])')
-          bash .github/resources/scripts/docker-pull-with-retry.sh "$cache_image"
-          kind load docker-image --name cache-rolling "$cache_image"
+          # Let kubelet pull the digest-pinned helper. Docker-save imports lose
+          # its index identity and can leave containerd's temporary alias stale.
           kind load docker-image --name cache-rolling kfp-cache-server:rolling-candidate
       - name: Validate populated rolling upgrade and converged isolation
         run: python3 test/cache-rolling-upgrade/validate.py
