@@ -513,6 +513,47 @@ class SharedImageTests(unittest.TestCase):
         self.assertTrue((self.directory / 'frontend/frontend.tar').is_file())
         self.assertFalse((self.directory / 'frontend.tar').exists())
 
+    def test_optional_tensorboard_set_uses_same_producer_and_checksums(self):
+        for architecture in ('amd64', 'arm64'):
+            with self.subTest(architecture=architecture):
+                self.state_path.unlink(missing_ok=True)
+                self.api = FakeAPI(self.producer)
+                self.api.images(architecture, self.directory)
+                # Ordinary branch images must resolve before TensorBoard exists.
+                ordinary = self.resolve(architecture=architecture)
+                self.assertNotIn(
+                    'tensorboard',
+                    [r['image'] for r in ordinary['sets']['images']],
+                )
+                self.api.bundle('tensorboard', architecture, self.directory)
+                state = self.resolve('tensorboard', architecture)
+                self.assertEqual(state['identity'], ordinary['identity'])
+                self.assertEqual(
+                    [r['image'] for r in state['sets']['tensorboard']],
+                    ['tensorboard'],
+                )
+                shared.verify(
+                    self.api,
+                    state,
+                    self.consumer,
+                    self.directory,
+                    'flat',
+                    'tensorboard',
+                )
+                name = shared.filenames('tensorboard', architecture)[0]
+                (self.directory / name).write_bytes(b'tampered')
+                with self.assertRaisesRegex(
+                    shared.InvalidEvidence, 'Checksum mismatch'
+                ):
+                    shared.verify(
+                        self.api,
+                        state,
+                        self.consumer,
+                        self.directory,
+                        'flat',
+                        'tensorboard',
+                    )
+
     def test_arm_checksums_include_existing_identity_record(self):
         self.api.images('arm64', self.directory)
         state = self.resolve(architecture='arm64')

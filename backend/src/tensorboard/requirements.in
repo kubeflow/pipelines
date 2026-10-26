@@ -1,0 +1,5 @@
+# TensorBoard's standalone filesystem implementation uses boto3 for S3 and
+# fsspec/gcsfs for GCS; installing TensorFlow would replace those readers.
+tensorboard==2.21.0
+boto3==1.43.118
+gcsfs==2026.10.1

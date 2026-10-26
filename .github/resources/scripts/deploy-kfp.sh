@@ -139,7 +139,7 @@ fi
 
 # Pin kubeflow/community-distribution to a specific commit for reproducibility.
 # To upgrade: verify all four paths below exist at the new SHA before updating.
-KUBEFLOW_MANIFESTS_SHA="c5e3896566d52e02090f15b476f4528605a9c35f"
+KUBEFLOW_MANIFESTS_SHA="5f0edd216742560ba205775e17b6b522cee53ae2"
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
 # wait_for_pods_ready waits for pods to reach condition=Ready and, on timeout,

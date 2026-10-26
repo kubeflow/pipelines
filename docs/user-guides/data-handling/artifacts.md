@@ -349,7 +349,7 @@ from kfp import dsl
 
 
 @dsl.component(
-    packages_to_install=['pyarrow==21.0.0'],
+    packages_to_install=['pyarrow==23.0.1'],
 )
 def create_dataset(dataset: dsl.Output[dsl.Dataset]):
     from pathlib import Path
