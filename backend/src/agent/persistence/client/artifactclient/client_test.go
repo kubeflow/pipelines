@@ -426,7 +426,7 @@ func TestReadArtifact_MaxResponseBytes_ExactCapAcceptance(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
-	request := &ReadArtifactRequest{MaxResponseBytes: int64(len(content))}
+	request := &ReadArtifactRequest{RunID: "run", NodeID: "node", ArtifactName: "metrics", MaxResponseBytes: int64(len(content))}
 
 	resp, err := client.ReadArtifact(request)
 	require.NoError(t, err)
@@ -450,7 +450,7 @@ func TestReadArtifact_MaxResponseBytes_ChunkedLimitRejection(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
-	request := &ReadArtifactRequest{MaxResponseBytes: int64(len(content) - 1)}
+	request := &ReadArtifactRequest{RunID: "run", NodeID: "node", ArtifactName: "metrics", MaxResponseBytes: int64(len(content) - 1)}
 
 	_, err = client.ReadArtifact(request)
 	require.Error(t, err)
@@ -474,7 +474,7 @@ func TestReadArtifact_MaxResponseBytes_ZeroPreservesUnlimited(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
-	request := &ReadArtifactRequest{MaxResponseBytes: 0}
+	request := &ReadArtifactRequest{RunID: "run", NodeID: "node", ArtifactName: "metrics", MaxResponseBytes: 0}
 
 	resp, err := client.ReadArtifact(request)
 	require.NoError(t, err)
@@ -494,7 +494,7 @@ func TestReadArtifact_MaxResponseBytes_MaxInt64(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
-	request := &ReadArtifactRequest{MaxResponseBytes: math.MaxInt64}
+	request := &ReadArtifactRequest{RunID: "run", NodeID: "node", ArtifactName: "metrics", MaxResponseBytes: math.MaxInt64}
 
 	resp, err := client.ReadArtifact(request)
 	require.NoError(t, err)
