@@ -86,10 +86,10 @@ jobs:
           path: baseline
           persist-credentials: false
       # Release 2.18 does not contain the master release scanner package.
-      # Keep this backport blocked until the upstream harness merges.
+      # Pin the merged upstream harness and its matching scanner implementation.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: b567e85e1e298ea6adaecb8e27f14b1d257e02e9
+          ref: be5dc4591ef1583e4f1e0f801a6ef0108d42e84f
           path: tooling
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
