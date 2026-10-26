@@ -38,6 +38,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Frontend Vitest snapshots preserve rendered whitespace. The trailing-whitespace hook excludes `frontend/**/*.snap`; update snapshots through Vitest so formatting hooks do not alter expected UI text.
 - `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 4.54.1 (using its v4 command syntax); `manifests/kustomize/hack/presubmit.sh` installs pinned `kustomize` and builds pinned `yq` from `backend/api/tools` with the repository Go toolchain. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
 
+- Cache-deployer Dockerfile changes trigger the CI script suite. Its kubectl build must retain the verified Kubernetes Git tag and commit; build-time assertions reject missing or incorrect embedded module versions and revisions.
+
 ## Common CI failures
 
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
@@ -232,6 +234,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
 
+- `image-builds.yml` loads the built visualization-server and metadata-writer archives and runs their runtime smoke/helper tests in disposable containers before uploading them. It checks that pip and ensurepip are absent. Visualization runs on native AMD64 and ARM64 runners; the ARM64 build uses a separate artifact name. Tests do not run during production Docker builds or write test artifacts into published layers. `make test-backend-visualization` also exercises the dependency-light notebook smoke test.
 - The legacy cache rolling-upgrade workflow runs helper-image OSV coverage in a separate job so a scanner outage does not skip functional upgrade validation. Keep its scanner version/checksum aligned with `osv-scanner.yml`; the CI-script test checks both. The helper uses the digest-identical Google-hosted Alpine mirror to avoid Docker Hub rate limits (#4099). Coverage derives the Alpine ecosystem from the inspected image and requires BusyBox and musl records.
 
 - Cache rolling-upgrade acceptance pulls published baseline and fixture images directly through the Kind node CRI runtime with bounded retries. Only the locally built candidate uses `kind load docker-image`; exporting published multi-platform images through host Docker can leave missing index content during containerd import.
@@ -244,3 +247,40 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Both TensorBoard Chromium acceptance lanes use Ubuntu 24.04, supported by their pinned Playwright 1.56.1. Keep these runner pins until the browser tooling is upgraded and validated on a newer Ubuntu image; `ubuntu-latest` can advance independently of Playwright support.
 
 - SDK YAPF, isort and docformatter jobs retain Python 3.9 on Ubuntu 24.04. Do not move these lanes to `ubuntu-latest` without validating interpreter availability: setup-python provides no Python 3.9 build for Ubuntu 26.04.
+
+## PostgreSQL image patch acceptance
+
+`postgresql-image-upgrade.yml` is an isolated image-compatibility check for the
+shipped PostgreSQL manifests. It does not enable PostgreSQL deployment in the
+2.18 release matrices or resolve the MLMD concurrency limitation in #14353.
+The path-filtered PR workflow and manual dispatch use Kind, render the candidate
+manifests, and retain their PVC, PGDATA, service-account and security settings.
+The only initial deployment override is the old same-major database image:
+18.3 for the default database and 14.7 for the legacy metadata overlay, both
+pinned by digest in `PROFILES`. For every later image bump, advance each affected
+baseline to the previously shipped manifest image and digest so this lane tests
+the immediately preceding supported image. Do not refresh baseline digests
+independently of that transition.
+
+Each lane retains the same PVC and database identity while replacing the image
+with the digest-pinned candidate from the manifest. It checks records, JSONB
+queries, indexes, a subsequent write and a further pod restart. The 18 lane calls
+KFP's real database initialization/migration code and preserves an experiment;
+the 14 lane uses the actual MLMD deployment and verifies a metadata artifact
+through gRPC before and after the database replacement and restart. This checks
+single-client persistence, not concurrent MLMD type creation. Both lanes upload
+rendered manifests, a success receipt, pod logs and volume events. Command or
+application failures cannot create a passing receipt, and pipeline `pipefail`
+preserves errors when saving console output.
+
+## JavaScript dependency security guards
+
+`frontend/scripts/dependency-security.test.mjs` checks patched dependency ranges in
+the frontend, UI server, mock backend and frontend integration-test lockfiles,
+including nested copies. Keep these guards aligned when regenerating locks; they
+supplement fresh advisory scans.
+
+The integration-test runner overrides Mocha 10.8.2's `serialize-javascript` 6.x
+requirement with 7.1.3 to address GHSA-m5mm-p8h7-m29v, which has no patched 6.x
+release. Retain the override until Mocha resolves a patched version itself, and
+verify runner compatibility when changing it.
