@@ -137,7 +137,7 @@ jobs:
           retention-days: 1
 
   image-build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runs_on || 'ubuntu-latest' }}
     timeout-minutes: 30
     outputs:
       image_path: ${{ steps.configure.outputs.artifact_path }}
@@ -178,6 +178,12 @@ jobs:
           - image: visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
+          # Exercise compiled Python wheels on the other published architecture.
+          - image: visualization-server
+            dockerfile: backend/Dockerfile.visualization
+            context: .
+            runs_on: ubuntu-24.04-arm
+            artifact_name: visualization-server-arm64
           - image: cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .
@@ -188,7 +194,7 @@ jobs:
             dockerfile: third_party/metadata_envoy/Dockerfile
             context: .
     env:
-      ARTIFACT_NAME: "${{ matrix.image }}"
+      ARTIFACT_NAME: "${{ matrix.artifact_name || matrix.image }}"
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
