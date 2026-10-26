@@ -11,7 +11,7 @@ The controller supports the following command-line flags:
 | `--recurringRunResyncIntervalSeconds` | Full resync interval in seconds for recurring run reconciliations. | `30` |
 | `--metricsPort`                       | The port for the metrics endpoint. | `9090` |
 
-Set the `LEADER_ELECT` environment variable to `true` to run the controller only on the replica that holds the `kfp-scheduledworkflow` Lease in the `POD_NAMESPACE` namespace, so that more than one replica can run.
+When the `LEADER_ELECT` environment variable is `true`, as in the default manifests, only the replica that holds the `kfp-scheduledworkflow` Lease in the `POD_NAMESPACE` namespace runs the controller, so that more than one replica can run.
 
 ## Prometheus Metrics
 

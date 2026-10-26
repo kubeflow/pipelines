@@ -52,7 +52,6 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline-viewer-crd
-  - path: ../scheduledworkflow-leader-election.yaml
 replacements:
   - source:
       kind: ConfigMap

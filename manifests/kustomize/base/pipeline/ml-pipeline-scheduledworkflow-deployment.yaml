@@ -81,8 +81,11 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          # Leader election (LEADER_ELECT=true) creates its Lease in this
-          # namespace. Multi-user mode sets NAMESPACE to ''.
+          # Only the replica holding the kfp-scheduledworkflow Lease, in the
+          # POD_NAMESPACE namespace, starts scheduled runs. Multi-user mode sets
+          # NAMESPACE to ''.
+          - name: LEADER_ELECT
+            value: "true"
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:

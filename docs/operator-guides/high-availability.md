@@ -18,7 +18,7 @@ this guide doesn't change the default manifests.
 | API server | `ml-pipeline` | Yes | Serves requests statelessly. Each replica reconciles ScheduledWorkflow resources once at startup and [skips conflicting updates](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/resource/resource_manager.go#L1031). Garbage collection of expired runs, when enabled, uses [leader election](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/gc/run_gc.go#L216), so only one replica collects. See [API server installs and upgrades](#api-server-installs-and-upgrades). |
 | UI | `ml-pipeline-ui` | Yes | Serves requests statelessly. All replicas share the [TensorBoard proxy signing secret](server-config.md#tensorboard-proxy-signing-secret). The Deployment uses the `Recreate` strategy by default, so upgrades stop all UI Pods before starting new ones; to keep the UI available during upgrades, [enable rolling UI updates](server-config.md#enabling-rolling-ui-updates). |
 | Profile controller (multi-user) | `kubeflow-pipelines-profile-controller` | Yes | Stateless metacontroller webhook. Metacontroller never syncs the same namespace concurrently. Use a release that includes [kubeflow/pipelines#14809](https://github.com/kubeflow/pipelines/pull/14809) (2.18.0 or later), which adds [a health endpoint and a threaded server](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L619-L649). |
-| Scheduled workflow controller | `ml-pipeline-scheduledworkflow` | With leader election | Only the replica holding a Lease starts scheduled runs. See [scheduled workflow controller leader election](#scheduled-workflow-controller-leader-election). |
+| Scheduled workflow controller | `ml-pipeline-scheduledworkflow` | Yes | Uses leader election: only the replica holding a Lease starts scheduled runs. See [scheduled workflow controller leader election](#scheduled-workflow-controller-leader-election). |
 | Persistence agent | `ml-pipeline-persistenceagent` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 | Viewer controller | `ml-pipeline-viewer-crd` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 
@@ -42,26 +42,21 @@ the steps that keep recurring runs consistent, see
 
 ### Scheduled workflow controller leader election
 
-The scheduled workflow controller uses leader election only when its `LEADER_ELECT`
-environment variable is `"true"`; otherwise, keep it at one replica, because every
-replica would start each scheduled run. With leader election, only the replica holding
-the `kfp-scheduledworkflow` Lease starts scheduled runs. If it stops renewing the
-Lease, another replica takes over once the Lease expires, 15 seconds after the last
-renewal.
+Only the replica holding the `kfp-scheduledworkflow` Lease starts scheduled runs. If
+it stops renewing the Lease, another replica takes over once the Lease expires, 15
+seconds after the last renewal. After a restart, the new Pod also waits for the
+previous Lease to expire before it starts scheduled runs.
 
 Leader election does not guarantee that only one replica acts at a time: a replica
 that pauses and then resumes can still send a request it had in progress. Duplicate
 runs are rejected: in multi-user mode, the API server refuses a second claim of the
 same scheduled run, and in single-user mode, a second `Create` of the same Workflow
-fails with `AlreadyExists`.
+fails with `AlreadyExists`. These protections also cover the brief overlap when you
+upgrade from a release without leader election.
 
-A rolling update can briefly run an old Pod without leader election next to a new
-leader, so stop all replicas while you change the setting:
-
-1. Scale `ml-pipeline-scheduledworkflow` to 0.
-2. Set `LEADER_ELECT` to `"true"` (or remove it to disable leader election).
-3. Scale back up: to the number of replicas you want, or to 1 if you disabled leader
-   election.
+The default manifests set the `LEADER_ELECT` environment variable to `"true"`. To turn
+leader election off, scale the Deployment to one replica, then set `LEADER_ELECT` to
+`"false"`.
 
 ## Example overlay
 
@@ -92,28 +87,6 @@ patches:
 - path: spread-ml-pipeline-ui.yaml
 - path: spread-kubeflow-pipelines-profile-controller.yaml
 - path: spread-ml-pipeline-scheduledworkflow.yaml
-- path: scheduledworkflow-leader-election.yaml
-```
-
-`scheduledworkflow-leader-election.yaml` turns on
-[leader election](#scheduled-workflow-controller-leader-election) for the scheduled
-workflow controller. To add it to an existing install, follow the steps in that
-section.
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ml-pipeline-scheduledworkflow
-  namespace: kubeflow
-spec:
-  template:
-    spec:
-      containers:
-      - name: ml-pipeline-scheduledworkflow
-        env:
-        - name: LEADER_ELECT
-          value: "true"
 ```
 
 Each `spread-<deployment>.yaml` patch adds preferred pod anti-affinity, so the

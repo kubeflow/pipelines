@@ -13,19 +13,16 @@
 # limitations under the License.
 
 import json
-import os
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-GUIDE = REPO_ROOT / 'docs/operator-guides/high-availability.md'
 DEPLOYMENT = 'ml-pipeline-scheduledworkflow'
 LEASE = 'kfp-scheduledworkflow'
 # The scheduled workflow controller reads LEADER_ELECT from its environment,
-# so the setting must reach the container in every install, including the
-# standalone TLS install, which overrides the command and arguments.
+# so the base setting must reach the container in every install, including
+# the standalone TLS install, which overrides the command and arguments.
 INSTALLS = [
     'manifests/kustomize/env/platform-agnostic',
     'manifests/kustomize/env/platform-agnostic-multi-user',
@@ -36,7 +33,7 @@ INSTALLS = [
 def render(path):
     yaml = subprocess.check_output(['kustomize', 'build', str(path)], text=True)
     encoded = subprocess.check_output(
-        ['yq', 'r', '-d', '*', '-j', '-'], input=yaml, text=True
+        ['yq', 'eval', '-o=json', '.', '-'], input=yaml, text=True
     )
     decoder = json.JSONDecoder()
     resources = []
@@ -45,27 +42,6 @@ def render(path):
         resources.append(resource)
         encoded = encoded.lstrip()[end:]
     return resources
-
-
-def documented_patch():
-    guide = GUIDE.read_text()
-    blocks = [
-        block.split('```', 1)[0] for block in guide.split('```yaml\n')[1:]
-    ]
-    patches = [block for block in blocks if 'LEADER_ELECT' in block]
-    assert len(patches) == 1, len(patches)
-    return patches[0]
-
-
-def render_with_documented_patch(install):
-    with tempfile.TemporaryDirectory() as directory:
-        overlay = Path(directory).resolve()
-        (overlay / 'leader-election.yaml').write_text(documented_patch())
-        base = os.path.relpath(REPO_ROOT / install, overlay)
-        (overlay / 'kustomization.yaml').write_text(
-            f'resources: [{base}]\npatches:\n- path: leader-election.yaml\n'
-        )
-        return render(overlay)
 
 
 def controller_container(resources):
@@ -83,10 +59,10 @@ def controller_container(resources):
 
 
 class ScheduledWorkflowLeaderElectionTest(unittest.TestCase):
-    def test_documented_patch_enables_leader_election_in_every_install(self):
+    def test_every_install_enables_leader_election(self):
         for install in INSTALLS:
             with self.subTest(install=install):
-                resources = render_with_documented_patch(install)
+                resources = render(REPO_ROOT / install)
                 environment = {
                     variable['name']: variable
                     for variable in controller_container(resources).get(
