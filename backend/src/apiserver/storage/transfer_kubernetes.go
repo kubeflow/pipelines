@@ -91,3 +91,13 @@ func (k *PipelineStoreKubernetes) WalkTransferCatalog(ctx context.Context, names
 	}
 	return nil
 }
+
+// TransferDefaultPinned reports whether imports can preserve an explicit
+// destination default while adding versions with server-assigned timestamps.
+func (k *PipelineStoreKubernetes) TransferDefaultPinned(pipelineID string) (bool, error) {
+	pipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return false, err
+	}
+	return pipeline.Spec.DefaultVersionName != "", nil
+}

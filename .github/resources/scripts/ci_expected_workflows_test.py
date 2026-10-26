@@ -190,6 +190,42 @@ def good_run(**overrides):
 
 
 class ExpectedWorkflowsTest(unittest.TestCase):
+    def test_mlmd_updater_inputs_run_script_regressions(self):
+        paths = [
+            f'third_party/ml-metadata/{name}'
+            for name in ('update_version.sh', 'VERSION', 'Makefile')
+        ]
+        result = node(f"""
+const {{inventory}} = gate.loadLocalInventory(process.cwd());
+const workflow = inventory.workflows.find(w => w.path ===
+  '.github/workflows/ci-scripts-tests.yml');
+console.log(JSON.stringify({json.dumps(paths)}.map(path =>
+  gate.applicable(workflow.pull_request, 'master', [path]))));
+""")
+        self.assertEqual([True] * len(paths), result)
+
+    def test_legacy_transfer_qualification_tracks_decoder_and_runtime_inputs(
+        self,
+    ):
+        paths = [
+            'third_party/ml-metadata/go/ml_metadata/metadata_store.pb.go',
+            'third_party/ml-metadata/VERSION',
+            'backend/src/apiserver/model/runtime_status_json.go',
+            'backend/api/v2beta1/run.proto',
+            'go.mod',
+            'go.sum',
+            'manifests/kustomize/base/pipeline/ml-pipeline-apiserver-deployment.yaml',
+            'test_data/sdk_compiled_pipelines/valid/critical/two_step_pipeline_containerized.yaml',
+        ]
+        result = node(f"""
+const {{inventory}} = gate.loadLocalInventory(process.cwd());
+const workflow = inventory.workflows.find(w => w.path ===
+  '.github/workflows/legacy-native-transfer.yml');
+console.log(JSON.stringify({json.dumps(paths)}.map(path =>
+  gate.applicable(workflow.pull_request, 'master', [path]))));
+""")
+        self.assertEqual([True] * len(paths), result)
+
     def test_completion_selector_covers_master_and_release_workflows(self):
         inventory = json.loads(
             (ROOT / '.github/resources/ci-workflow-inventory.json').read_text()

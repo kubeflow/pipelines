@@ -16,8 +16,10 @@
 """Exercise agent container selection through collect-logs.sh, without a
 cluster."""
 
+import fnmatch
 import json
 import os
+import shlex
 import subprocess
 import tempfile
 import textwrap
@@ -30,6 +32,33 @@ SCRIPT = Path(__file__).with_name('collect-logs.sh')
 
 
 class CollectLogsTest(unittest.TestCase):
+    def test_migration_deployment_failure_retains_uploaded_diagnostics(self):
+        root = SCRIPT.resolve().parents[3]
+        workflow = yaml.safe_load(
+            (
+                root
+                / '.github/workflows/'
+                / 'kfp-kubernetes-native-migration-tests.yaml'
+            ).read_text()
+        )
+        steps = workflow['jobs']['kfp-kubernetes-native-migration-tests'][
+            'steps'
+        ]
+        collect = next(
+            step for step in steps if step.get('name') == 'Collect failed logs'
+        )
+        upload = next(
+            step for step in steps if step.get('name') == 'Collect test results'
+        )
+        # Without a status function GitHub implicitly requires success(), skipping
+        # collection when deployment fails before the test steps execute.
+        self.assertIn('!cancelled()', collect['if'])
+        self.assertIn("steps.deploy.outcome != 'success'", collect['if'])
+        command = shlex.split(collect['run'].splitlines()[0])
+        output = command[command.index('--output') + 1]
+        self.assertTrue(fnmatch.fnmatch(output, upload['with']['path']))
+        self.assertIn('failure()', upload['if'])
+
     def test_kubectl_failures_are_bounded_and_best_effort(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -89,7 +118,9 @@ class CollectLogsTest(unittest.TestCase):
             calls = root / 'calls.jsonl'
             stub = root / 'kubectl'
             stub.write_text("""#!/usr/bin/env python3
+import fnmatch
 import json
+import shlex
 import os
 import sys
 args = sys.argv[1:]
