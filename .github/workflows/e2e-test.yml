@@ -181,7 +181,18 @@ jobs:
             --component-filepattern dra_passthrough_check.py \
             --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
             --no-push-image
-          kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
+          platform=$(runtime_image_platform "${{ env.CLUSTER_NAME }}")
+          dra_archive=$(mktemp)
+          trap 'rm -f "${dra_archive}"' EXIT
+          # kfp component build uses Docker's classic builder. On the containerd
+          # image store its manifest records no platform, so neither docker save
+          # --platform nor an all-platforms import can load it. Re-export it
+          # through BuildKit for the Kind node platform first.
+          printf 'FROM kfp-dra-sdk:test\n' | docker buildx build --builder default \
+            --platform "${platform}" --provenance=false --sbom=false \
+            --load -t kfp-dra-sdk:test -
+          docker save "--platform=${platform}" kfp-dra-sdk:test -o "${dra_archive}"
+          kind --name "${{ env.CLUSTER_NAME }}" load image-archive "${dra_archive}"
 
       - name: Install DRA Example Driver
         uses: ./.github/actions/install-dra-driver
