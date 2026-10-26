@@ -117,10 +117,28 @@ func (c *fakeClock) advance(d time.Duration) {
 	c.current = c.current.Add(d)
 }
 
-// newTestChecker builds a checker on top of the given indexer with a fake clock.
+// indexerPodGetter serves live pod reads from the indexer, i.e. it emulates an
+// API server that agrees with the informer cache. Tests that need the cache to
+// lag behind the API server replace checker.getPod.
+func indexerPodGetter(indexer cache.Indexer) PodGetter {
+	return func(_ context.Context, namespace, name string) (*corev1.Pod, error) {
+		obj, exists, err := indexer.GetByKey(namespace + "/" + name)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, apierrors.NewNotFound(corev1.Resource("pods"), name)
+		}
+		return obj.(*corev1.Pod), nil
+	}
+}
+
+// newTestChecker builds a checker on top of the given indexer with a fake
+// clock. Live pod reads are served from the same indexer unless a test
+// overrides checker.getPod.
 func newTestChecker(podIndexer cache.Indexer, executionClient util.ExecutionClient, gracePeriod time.Duration) (*imagePullFailureChecker, *fakeClock) {
 	clock := &fakeClock{current: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)}
-	checker := NewImagePullFailureChecker(podIndexer, executionClient, gracePeriod).(*imagePullFailureChecker)
+	checker := NewImagePullFailureChecker(podIndexer, indexerPodGetter(podIndexer), executionClient, gracePeriod).(*imagePullFailureChecker)
 	checker.now = clock.now
 	return checker, clock
 }
@@ -862,4 +880,107 @@ func TestCheckAndTerminate_ImageChangeResetsClock(t *testing.T) {
 	require.NoError(t, indexer.Update(updated))
 	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
 	assert.Equal(t, 0, fakeExecInterface.patchCount)
+}
+
+func TestCheckAndTerminate_ZeroGraceStalePodDoesNotTerminateRetry(t *testing.T) {
+	// With a zero grace period the first observation of a failure is already
+	// expired. After the original attempt is terminated the user retries the
+	// run in place: KFP deletes the old pod and updates the workflow (new
+	// resource version and retry generation, same UID). The workflow informer
+	// delivers the retry while the pod informer still holds the deleted pod.
+	// Resetting tracking does not help at zero grace, so the live read of the
+	// pod must stop the stale decision.
+	stalePod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	indexer := newTestPodIndexer(stalePod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, _ := newTestChecker(indexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 0)
+
+	// Original attempt: the live pod agrees with the cache, so it terminates.
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	require.Equal(t, 1, fakeExecInterface.patchCount)
+
+	// Retry: the API server no longer has the pod, but the cache still does.
+	checker.getPod = func(_ context.Context, _, name string) (*corev1.Pod, error) {
+		return nil, apierrors.NewNotFound(corev1.Resource("pods"), name)
+	}
+	retried := testWorkflowMeta("my-workflow")
+	retried.ResourceVersion = "101"
+	retried.Annotations = map[string]string{util.AnnotationKeyRetryGeneration: "1"}
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), retried))
+	assert.Equal(t, 1, fakeExecInterface.patchCount, "a deleted pod must not terminate the retried attempt")
+
+	// The cache catches up: the old pod is gone and the new attempt's pod
+	// (same name, new UID) is healthy. Nothing is tracked or terminated.
+	newPod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "")
+	newPod.UID = "failing-pod-retry-uid"
+	require.NoError(t, indexer.Update(newPod))
+	checker.getPod = indexerPodGetter(indexer)
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), retried))
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
+	assert.Empty(t, checker.failureStart)
+}
+
+func TestCheckAndTerminate_ReplacedPodDoesNotTerminate(t *testing.T) {
+	// The API server already has the new attempt's pod under the same name
+	// (new UID) while the cache still holds the previous attempt's failing pod.
+	stalePod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	indexer := newTestPodIndexer(stalePod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(indexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	clock.advance(5 * time.Minute)
+
+	livePod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	livePod.UID = "failing-pod-retry-uid"
+	checker.getPod = func(context.Context, string, string) (*corev1.Pod, error) { return livePod, nil }
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "a pod with a different UID is a different attempt")
+	assert.Len(t, checker.failureStart, 1, "tracking is kept until the cache catches up")
+}
+
+func TestCheckAndTerminate_RecoveredLivePodDoesNotTerminate(t *testing.T) {
+	// The cached pod is still failing but the live pod has pulled its image.
+	pod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	indexer := newTestPodIndexer(pod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(indexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	clock.advance(5 * time.Minute)
+
+	recovered := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "")
+	checker.getPod = func(context.Context, string, string) (*corev1.Pod, error) { return recovered, nil }
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	assert.Equal(t, 0, fakeExecInterface.patchCount)
+}
+
+func TestCheckAndTerminate_LiveReadErrorIsReturned(t *testing.T) {
+	pod := newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ImagePullBackOff")
+	indexer := newTestPodIndexer(pod)
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, clock := newTestChecker(indexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 5*time.Minute)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	clock.advance(5 * time.Minute)
+
+	checker.getPod = func(context.Context, string, string) (*corev1.Pod, error) {
+		return nil, apierrors.NewServiceUnavailable("api server unavailable")
+	}
+	err := checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to confirm image pull failure")
+	assert.Equal(t, 0, fakeExecInterface.patchCount, "no termination on an unconfirmed failure")
+	assert.Len(t, checker.failureStart, 1, "the next sync retries the confirmation")
+}
+
+func TestCheckAndTerminate_ZeroGraceTerminatesConfirmedFailure(t *testing.T) {
+	// A zero grace period is a legitimate aggressive setting: a failure that
+	// the API server confirms is acted on at the first observation.
+	indexer := newTestPodIndexer(newWorkflowPod("failing-pod", "my-workflow", "bad-image:latest", "ErrImagePull"))
+	fakeExecInterface := &fakeExecutionInterface{}
+	checker, _ := newTestChecker(indexer, &fakeExecutionClient{executionInterface: fakeExecInterface}, 0)
+
+	require.NoError(t, checker.CheckAndTerminate(context.Background(), testWorkflowMeta("my-workflow")))
+	assert.Equal(t, 1, fakeExecInterface.patchCount)
 }

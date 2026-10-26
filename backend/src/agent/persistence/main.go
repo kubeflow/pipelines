@@ -197,7 +197,7 @@ func main() {
 
 		gracePeriod := time.Duration(imagePullFailureGracePeriodInSec) * time.Second
 		imagePullFailureChecker = worker.NewImagePullFailureChecker(
-			podInformer.GetIndexer(), executionClient, gracePeriod)
+			podInformer.GetIndexer(), worker.ClientsetPodGetter(kubeClient), executionClient, gracePeriod)
 		log.Infof("Image pull failure handling enabled (grace period: %v)", gracePeriod)
 	}
 
