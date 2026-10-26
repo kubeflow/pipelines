@@ -374,6 +374,51 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 	}
 }
 
+func TestCreateTask_CacheEntryStaysInAuthorizedRunNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clients, _, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+	require.Equal(t, "ns1", run.Namespace)
+	// The stored run owner, not the experiment, authorizes task writes.
+	_, err := clients.DB().Exec(`UPDATE experiments SET Namespace = ? WHERE UUID = ?`, "other-ns", run.ExperimentId)
+	require.NoError(t, err)
+
+	recorder := &taskRecordingSubjectAccessReviewClient{}
+	clients.SubjectAccessReviewClientFake = recorder
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	runSrv := createRunServer(manager)
+	ctx := ctxWithUser()
+
+	created, err := runSrv.CreateTask(ctx, &apiv2.CreateTaskRequest{
+		RunId: run.UUID,
+		Task: &apiv2.PipelineTask{
+			RunId:            run.UUID,
+			Name:             "producer",
+			State:            apiv2.PipelineTask_SUCCEEDED,
+			CacheFingerprint: "shared-fp",
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, recorder.lastReview)
+	require.Equal(t, run.Namespace, recorder.lastReview.Spec.ResourceAttributes.Namespace)
+
+	stored, err := manager.GetTask(created.GetTaskId())
+	require.NoError(t, err)
+	assert.Equal(t, run.Namespace, stored.Namespace)
+
+	otherNamespace, err := runSrv.FindCachedTask(ctx, &apiv2.FindCachedTaskRequest{Namespace: "other-ns", CacheFingerprint: "shared-fp"})
+	require.NoError(t, err)
+	assert.Nil(t, otherNamespace.GetTask(), "another namespace must not reuse this run's cache entry")
+
+	runNamespace, err := runSrv.FindCachedTask(ctx, &apiv2.FindCachedTaskRequest{Namespace: run.Namespace, CacheFingerprint: "shared-fp"})
+	require.NoError(t, err)
+	if assert.NotNil(t, runNamespace.GetTask()) {
+		assert.Equal(t, created.GetTaskId(), runNamespace.GetTask().GetTaskId())
+	}
+}
+
 func TestTask_RunHydration_WithInputsOutputs_ArtifactsAndMetrics(t *testing.T) {
 	// Multi-user on to exercise auth paths, but use helper ctx for headers.
 	viper.Set(common.MultiUserMode, "true")

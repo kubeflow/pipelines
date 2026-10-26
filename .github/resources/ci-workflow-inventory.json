@@ -10,12 +10,13 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "d34af02c14292366d5464618afc1e931569eb95a506d2e101be05fe5a9f0ea68",
+      "header_sha256": "d83b638a2820371882d09f870c10ff5d58d8b1dbcaafad5110b4c5f717decd67",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/api-server-tests.yml",
+          ".github/workflows/legacy-v2-api-integration-tests.yml",
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
@@ -23,11 +24,12 @@
           ".github/actions/test-and-report/**",
           ".github/actions/junit-summary/**",
           ".github/resources/**",
-          "backend/api/v2/**",
-          "backend/api/v2beta1/**",
-          "backend/src/**",
-          "backend/test/v2/api/**",
+          "api/**",
+          "go.mod",
+          "go.sum",
+          "backend/**",
           "backend/test/constants/**",
+          "test/**",
           "manifests/kustomize/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
@@ -118,7 +120,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "6df897d5f41127f359c4e63d5011b3a8b3506f0edf99664729bf83003ae715f6",
+      "header_sha256": "c70e586db7dc9c84c6dbbbbb73eecc09522478e5d023456fa8c735d45150811d",
       "pull_request": null
     },
     {
@@ -136,11 +138,12 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bb5c4e5ed6236b9864602b12420ebe0187960c59f1b4499940dbcc11a0c93309",
+      "header_sha256": "e58434025cfdd63212dedf319c2fafb2f232a2c1fd39aabd256b963c1aee00bc",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
           "**/go.mod",
+          "backend/api/hack/uv.sh",
           "**/package.json",
           "**/requirements*.txt",
           "**/setup.py",
@@ -159,6 +162,8 @@
           ".github/resources/scripts/*.py",
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
+          ".github/resources/legacy-v2-migration-specs.json",
+          ".github/resources/legacy-v2-service-account-specs.json",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",
@@ -198,13 +203,15 @@
           "Makefile",
           "api/Makefile",
           "backend/src/v2/Makefile",
-          "release/kfpr/core.py",
+          "release/kfpr/**",
+          "release/pyproject.toml",
+          ".github/workflows/release-branch-image-scanning.yml",
+          ".github/workflows/release-qualification.yml",
           "test_data/sdk_compiled_pipelines/valid/**",
           "backend/test/end2end/pipeline_e2e_test.go",
           "backend/test/v2/resources/env-var.yaml",
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
@@ -322,7 +329,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "593f38af09ca8065fdd48c3eba6004cd4724b5d672d36a5fcd856b70e90661fd",
+      "header_sha256": "ac2044ec016791a88b3e81f57b870619ee01d500d577addc737095a4fbb7a1fe",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -343,6 +350,7 @@
           "go.sum",
           "backend/**",
           "frontend/server/handlers/artifacts.ts",
+          "test/seaweedfs/**",
           "proxy/**",
           "manifests/kustomize/**",
           "test/artifact-proxy/**",
@@ -543,11 +551,14 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "11c6ddce6b7ab467eb789df790d1b9a1134e9d3514ad417e2a9466c019ddf83a",
+      "header_sha256": "1a43485f3a272e19b9b41b14baa47a3593af0f2a5d54f7fd6a4c09564bdea85e",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
+          "backend/api/tools/**",
+          "go.mod",
+          ".github/actions/setup-go/**",
           "!**/*.md",
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"
@@ -555,34 +566,9 @@
       }
     },
     {
-      "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
-      "name": "KFP API Integration V2 (Legacy)",
-      "header_sha256": "df0d9f1098b9e404e8e66229d84acafc1605f27757adc35176b63998d9ea99fc",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          "api/**",
-          "go.mod",
-          "go.sum",
-          "backend/**",
-          "manifests/kustomize/**",
-          "test/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      }
-    },
-    {
       "path": ".github/workflows/osv-scanner.yml",
       "name": "OSV-Scanner Vulnerability Scan",
-      "header_sha256": "1f4a31bf78499730b30cbc64047d44eead6a0e34390719c0439a5d777b6b6206",
+      "header_sha256": "81c9eb7e0e9bfbd12347d48f7377a913c525c0e13f76123e10641ba2393b2fdd",
       "pull_request": null
     },
     {
@@ -652,6 +638,24 @@
           ".readthedocs.yml"
         ]
       }
+    },
+    {
+      "path": ".github/workflows/release-branch-image-scanning.yml",
+      "name": "Release Branch Image Scanning",
+      "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/release-promote-latest.yml",
+      "name": "Promote Published Release Images",
+      "header_sha256": "9959b76421cf287b008dde6705e571752c118477dd39115f8fc33f2719c93539",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/release-qualification.yml",
+      "name": "Release Qualification",
+      "header_sha256": "ecf394b4eb4fee70bb811aeb30b78513ed1c6ec5cde0bedc3fbfac4c3eaf0298",
+      "pull_request": null
     },
     {
       "path": ".github/workflows/runtime-base-images.yml",

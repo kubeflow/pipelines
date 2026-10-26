@@ -25,6 +25,8 @@ WORKFLOWS = ROOT / '.github/workflows'
 # Each write grant must have an identified consumer. The generated analyzer's
 # issue output, cancellation, and inference grants stay in its source contract.
 WRITE_PERMISSIONS = {
+    'release-branch-image-scanning.yml': {'upload': {'security-events'}},
+    'release-promote-latest.yml': {'promote': {'packages'}},
     'ai-analyzer.lock.yml': {
         'activation': {'issues'},
         'agent': {'copilot-requests'},
@@ -291,11 +293,12 @@ class WorkflowPermissionsTest(unittest.TestCase):
     def test_fixture_backed_integration_tests_do_not_receive_a_github_token(
         self,
     ):
-        workflow = self.workflows['legacy-v2-api-integration-tests.yml']
+        action = yaml.safe_load(
+            (ROOT / '.github/actions/test-and-report/action.yml').read_text()
+        )
         fixture_steps = [
             step
-            for job in workflow['jobs'].values()
-            for step in job.get('steps', [])
+            for step in action['runs']['steps']
             if 'KFP_TEST_FIXTURE_BASE_URL' in step.get('env', {})
         ]
         self.assertTrue(fixture_steps)

@@ -24,13 +24,23 @@ HELPER = ROOT / '.github/resources/scripts/helper-functions.sh'
 
 
 class RuntimeImagePullsTest(unittest.TestCase):
-    def run_helper(self, body, scenario='success'):
+    def run_helper(self, body, scenario='success', **environment):
         with tempfile.TemporaryDirectory() as directory:
             script = (
                 r"""
 set -euo pipefail
 source "$HELPER"
 docker() {
+  # Platform discovery is not part of the recorded pull/save contract.
+  if [[ "$1" == version ]]; then echo "${DOCKER_PLATFORM:-linux/amd64}"; return; fi
+  if [[ "$1" == inspect ]]; then echo "image-of-${@: -1}"; return; fi
+  if [[ "$1 $2" == 'image inspect' ]]; then
+    case "${@: -1}" in
+      image-of-node2) echo "${NODE2_PLATFORM:-linux/amd64}";;
+      *) echo linux/amd64;;
+    esac
+    return
+  fi
   echo "docker $*" >> "$COMMANDS"
   if [[ "$1" == pull ]]; then
     local count
@@ -71,6 +81,7 @@ kind() {
                     'COMMANDS': str(commands),
                     'IMAGES': str(images),
                     'SCENARIO': scenario,
+                    **environment,
                 },
                 capture_output=True,
                 text=True,
@@ -136,19 +147,52 @@ kind() {
         self.assertEqual(
             commands,
             [
-                'docker pull example/image:ci@sha256:abc',
+                'docker pull --platform=linux/amd64 '
+                'example/image:ci@sha256:abc',
                 'docker tag example/image:ci@sha256:abc example/image:ci',
-                'docker pull plain/image:v1',
-                'docker save example/image:ci plain/image:v1 -o images.tar',
+                'docker pull --platform=linux/amd64 plain/image:v1',
+                'docker save --platform=linux/amd64 '
+                'example/image:ci plain/image:v1 -o images.tar',
             ],
         )
+
+    def test_archive_uses_the_docker_server_platform(self):
+        # Kind imports with --all-platforms; an unscoped containerd-store
+        # export would reference platforms whose content was never pulled.
+        result, commands = self.run_helper(
+            'pull_and_save_runtime_base_images "$IMAGES" images.tar',
+            DOCKER_PLATFORM='linux/arm64',
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(
+            all(
+                '--platform=linux/arm64' in command
+                for command in commands
+                if command.startswith(('docker pull', 'docker save'))
+            )
+        )
+
+    def test_kind_platform_comes_from_the_node_images(self):
+        result, _ = self.run_helper('runtime_image_platform test')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), 'linux/amd64')
+
+    def test_mixed_kind_node_platforms_are_rejected(self):
+        result, _ = self.run_helper(
+            'runtime_image_platform test', NODE2_PLATFORM='linux/arm64'
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Kind nodes use different platforms', result.stderr)
 
     def test_failed_pull_never_tags_or_saves_archive(self):
         result, commands = self.run_helper(
             'pull_and_save_runtime_base_images "$IMAGES" images.tar', 'quota'
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(commands, ['docker pull example/image:ci@sha256:abc'])
+        self.assertEqual(
+            commands,
+            ['docker pull --platform=linux/amd64 example/image:ci@sha256:abc'],
+        )
 
     def test_kind_verification_checks_every_node_without_registry_pulls(self):
         result, commands = self.run_helper(

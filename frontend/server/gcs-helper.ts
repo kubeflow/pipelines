@@ -113,13 +113,18 @@ export async function downloadGCSObjectStream(options: {
   credentials?: CredentialBody;
   client?: GCSClient;
   universeDomain?: string;
+  signal?: AbortSignal;
 }): Promise<Readable> {
-  const { anonymous, bucket, objectName, credentials, client, universeDomain } = options;
+  const { anonymous, bucket, objectName, credentials, client, universeDomain, signal } = options;
   const url = getDownloadObjectUrl(bucket, objectName, universeDomain);
   if (anonymous) {
-    const response = await fetch(url);
+    const response = await (signal ? fetch(url, { signal }) : fetch(url));
     if (!response.ok || !response.body) {
-      throw new Error(`Anonymous GCS download request failed with HTTP ${response.status}.`);
+      await response.body?.cancel();
+      throw Object.assign(
+        new Error(`Anonymous GCS download request failed with HTTP ${response.status}.`),
+        { status: response.status },
+      );
     }
     return Readable.fromWeb(response.body);
   }
@@ -127,6 +132,7 @@ export async function downloadGCSObjectStream(options: {
   const response = await resolvedClient.request<Readable>({
     responseType: 'stream',
     url,
+    ...(signal ? { signal } : {}),
   });
   return response.data;
 }

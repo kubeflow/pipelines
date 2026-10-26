@@ -63,7 +63,6 @@ API_ROOT = 'https://api.github.com'
 TARGET_WORKFLOWS = [
     'e2e-test.yml',
     'api-server-tests.yml',
-    'legacy-v2-api-integration-tests.yml',
     'kfp-sdk-client-tests.yml',
     'upgrade-test.yml',
     'kfp-webhooks.yml',

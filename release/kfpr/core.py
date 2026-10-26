@@ -5,7 +5,6 @@ import datetime
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import time
@@ -279,9 +278,16 @@ class ReleaseContext:
     include_sdk: bool
     skip_local_review: bool = False
     previous_release: str = ''
+    previous_sdk_release: str = ''
+    release_target: str = ''
 
 
-def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
+def image_workflow_command(
+    metadata: ReleaseMetadata,
+    source_sha: str | None = None,
+    workflow_ref: str | None = None,
+    set_latest: bool = False,
+) -> list[str]:
     """Build command to trigger image-builds-release.yml workflow.
 
     Args:
@@ -295,16 +301,18 @@ def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
         'workflow',
         'run',
         'image-builds-release.yml',
+        '--repo',
+        REPO,
         '--ref',
-        metadata.release_branch,
+        workflow_ref or metadata.release_branch,
         '-f',
-        f'src_branch={metadata.release_branch}',
+        f'src_branch={source_sha or metadata.release_branch}',
         '-f',
         f'target_tag={metadata.tag}',
         '-f',
         'overwrite_imgs=false',
         '-f',
-        'set_latest=true',
+        f'set_latest={str(set_latest).lower()}',
         '-f',
         'add_sha_tag=true',
         '-f',
@@ -313,7 +321,9 @@ def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
 
 
 def sdk_workflow_command(
-    metadata: ReleaseMetadata, packages: str = 'all'
+    metadata: ReleaseMetadata,
+    packages: str = 'all',
+    workflow_ref: str | None = None,
 ) -> list[str]:
     """Build command to trigger publish-packages.yml workflow.
 
@@ -328,8 +338,10 @@ def sdk_workflow_command(
         'workflow',
         'run',
         'publish-packages.yml',
+        '--repo',
+        REPO,
         '--ref',
-        metadata.release_branch,
+        workflow_ref or metadata.release_branch,
         '-f',
         f'tag={metadata.sdk_tag}',
         '-f',
@@ -352,7 +364,7 @@ def kfp_requirements_command() -> list[str]:
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in \
   --find-links="$GIT_ROOT/api/v2alpha1/python/dist" \
-  --find-links="$GIT_ROOT/backend/api/v2beta1/python_http_client/dist" > requirements.txt
+  --find-links="$GIT_ROOT/backend/api/v2beta1/python_http_client/dist" --output-file=requirements.txt
 """.strip(),
     ]
 
@@ -371,15 +383,40 @@ GIT_ROOT="$(git rev-parse --show-toplevel)"
 pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in \
   --find-links="$GIT_ROOT/sdk/python/dist" \
   --find-links="$GIT_ROOT/backend/api/v2beta1/python_http_client/dist" \
-  --find-links="$GIT_ROOT/api/v2alpha1/python/dist" > requirements.txt
+  --find-links="$GIT_ROOT/api/v2alpha1/python/dist" --output-file=requirements.txt
 """.strip(),
     ]
+
+
+def _release_git_mounts(root: Path) -> list[str]:
+    """Expose linked-worktree metadata at the paths recorded by Git."""
+    git_file = root / '.git'
+    if not git_file.is_file():
+        return []
+    prefix = 'gitdir: '
+    content = git_file.read_text().strip()
+    if not content.startswith(prefix):
+        raise ValueError(f'Invalid Git worktree metadata: {git_file}')
+    git_dir = (root / content[len(prefix) :]).resolve()
+    common_file = git_dir / 'commondir'
+    common_dir = (
+        (git_dir / common_file.read_text().strip()).resolve()
+        if common_file.is_file()
+        else git_dir
+    )
+    # Git's worktree backlink and common object directory use host paths.
+    # Both mounts are read-only; generated files use the canonical writable mount.
+    mounts = []
+    for path in dict.fromkeys((common_dir, root.resolve())):
+        mounts.extend(
+            ['--mount', f'type=bind,source={path},target={path},readonly']
+        )
+    return mounts
 
 
 def release_version_bump_command(
     root: Path,
     release_branch: str,
-    previous_release: str,
     image_tag: str | None = None,
 ) -> list[str]:
     """Build command that runs release version updates in the release
@@ -389,7 +426,6 @@ def release_version_bump_command(
     script = f"""
 set -e
 REPO_ROOT={repo_path}
-PREVIOUS_RELEASE={shlex.quote(previous_release)}
 TAG_NAME="$(cat "$REPO_ROOT/VERSION")"
 if [ -z "$TAG_NAME" ]; then
   echo "ERROR: $REPO_ROOT/VERSION is empty" >&2
@@ -406,9 +442,13 @@ ACTUAL_NODE_VERSION="$(normalize_node_version "$(node -v)")"
 test "${{ACTUAL_NODE_VERSION}}" = "${{REQUIRED_NODE_VERSION}}" || (echo "node version should match ${{REQUIRED_NODE_VERSION}}" && exit 1)
 echo "jq>=1.6"
 which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
-echo "yq>=3.3 <4.0"
 which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
-yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
+# The target checkout, not the release tool, determines the manifest syntax.
+if grep -Eq '^[[:space:]]*yq[[:space:]]+(w|write)[[:space:]]' "$REPO_ROOT/manifests/kustomize/hack/release.sh"; then
+  yq --version | grep -E '^yq version 3[.]' || (echo "Target release scripts require mikefarah/yq version 3.x" && exit 1)
+else
+  yq --version | grep -E '^yq [(]https://github.com/mikefarah/yq/[)] version v4[.]' || (echo "Target release scripts require mikefarah/yq version 4.x" && exit 1)
+fi
 echo "java>=11"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "python>3"
@@ -420,8 +460,10 @@ go_path=$(go env GOPATH)
 echo "$PATH" | grep "${{go_path}}/bin" >/dev/null || (echo "\\$GOPATH/bin: ${{go_path}}/bin should be in PATH" && exit 1)
 echo "All tools installed"
 cd "$REPO_ROOT"
-git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
+if compgen -G "$REPO_ROOT/backend/api/v1beta1/*.proto" >/dev/null; then
+  API_VERSION=v1beta1 "$REPO_ROOT/backend/api/hack/generator.sh"
+fi
 if [ -f "$REPO_ROOT/backend/api/v2/run.proto" ] && \\
     grep -Eq '^[[:space:]]*package[[:space:]]+kubeflow[.]pipelines[.]backend[.]api[.]v2[[:space:]]*;' "$REPO_ROOT/backend/api/v2/run.proto"; then
   export API_VERSION=v2
@@ -430,6 +472,12 @@ else
 fi
 "$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
+if [ -f "$REPO_ROOT/api/Makefile" ]; then
+  make -C "$REPO_ROOT/api" generate
+fi
+if [ -f "$REPO_ROOT/kubernetes_platform/Makefile" ]; then
+  make -C "$REPO_ROOT/kubernetes_platform" generate-go-in-container
+fi
 """.strip()
     return [
         'docker',
@@ -439,6 +487,7 @@ fi
         f'{os.getuid()}:{os.getgid()}',
         '--mount',
         f'type=bind,source={root},target={repo_path}',
+        *_release_git_mounts(root),
         f'ghcr.io/kubeflow/kfp-release:{image_tag}',
         '/bin/bash',
         '-c',
@@ -455,6 +504,12 @@ def kfp_kubernetes_docs_build_command(
     script = f'''
 set -e
 cd "{repo_path}"
+# Legacy release checkouts do not contain backend/api/hack/uv.sh.
+UV=uv
+if ! command -v "$UV" >/dev/null 2>&1; then
+  python3 -m pip install --user --break-system-packages uv==0.13.5
+  UV="$HOME/.local/bin/uv"
+fi
 rm -rf kubernetes_platform/python/build
 rm -rf kubernetes_platform/python/dist
 rm -rf kubernetes_platform/python/kfp_kubernetes.egg-info
@@ -468,12 +523,9 @@ cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
 if [ -f pyproject.toml ]; then
-  python3 -m pip install --user --break-system-packages uv==0.13.4
-  ~/.local/bin/uv build --package kfp-kubernetes --out-dir dist
+  "$UV" build --package kfp-kubernetes --out-dir dist
 else
-  python3 -m pip install --user --break-system-packages -r requirements.txt
-  python3 setup.py sdist
-  pip wheel --no-deps dist/*.tar.gz -w dist
+  "$UV" build --out-dir dist .
 fi
 '''.strip()
     return [
@@ -767,6 +819,7 @@ def watch_latest_workflow_run(
     workflow: str,
     branch: str,
     fresh_only: bool = True,
+    expected_sha: str | None = None,
 ) -> None:
     """Watch the latest workflow run for a given workflow and branch.
 
@@ -798,6 +851,10 @@ def watch_latest_workflow_run(
         '--jq',
         '.[0] | [.databaseId, .url, .createdAt] | @tsv',
     ]
+    if expected_sha:
+        index = command.index('--branch')
+        command[index : index + 2] = ['--commit', expected_sha]
+        command.extend(['--repo', REPO, '--event', 'workflow_dispatch'])
     run_info = ''
     for _ in range(12):
         candidate = runner.capture(command)
@@ -816,7 +873,34 @@ def watch_latest_workflow_run(
         )
     run_id, run_url, _ = run_info.split('\t', 2)
     print(underline_links(f'Workflow run: {run_url}'))
-    runner.run(['gh', 'run', 'watch', run_id, '--exit-status'])
+
+    def verify_source():
+        if expected_sha:
+            actual = runner.capture(
+                [
+                    'gh',
+                    'run',
+                    'view',
+                    run_id,
+                    '--repo',
+                    REPO,
+                    '--json',
+                    'headSha',
+                    '--jq',
+                    '.headSha',
+                ]
+            )
+            if actual.strip() != expected_sha:
+                raise RuntimeError(
+                    f'Workflow {run_id} does not use the qualified release commit.'
+                )
+
+    verify_source()
+    watch = ['gh', 'run', 'watch', run_id, '--exit-status']
+    if expected_sha:
+        watch.extend(['--repo', REPO])
+    runner.run(watch)
+    verify_source()
 
 
 def prompt_choice(
@@ -981,6 +1065,7 @@ def collect_context(
     )
     if (
         getattr(args, 'require_previous_release', True)
+        and answers.get('include_backend', True)
         and 'previous_release' not in answers
     ):
         answers['previous_release'] = prompt_required('Previous release tag')
@@ -996,4 +1081,6 @@ def collect_context(
         include_sdk=bool(answers['include_sdk']),
         skip_local_review=bool(answers.get('skip_local_review', False)),
         previous_release=str(answers.get('previous_release', '')),
+        previous_sdk_release=str(answers.get('previous_sdk_release', '')),
+        release_target=str(answers.get('release_target', '')),
     )

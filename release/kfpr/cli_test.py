@@ -47,6 +47,161 @@ class PackageImportTest(unittest.TestCase):
         )
         self.assertIn('run', result.stdout)
 
+    def test_qualification_command_exposes_python_matrix_configuration(self):
+        from kfpr import cli
+
+        with (
+            mock.patch.object(cli, '_context') as context,
+            mock.patch.dict(
+                cli.STEP_HANDLERS, {'qualify-release': mock.Mock()}
+            ),
+        ):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--qualification-pythons',
+                    '/python39,/python311',
+                    '--security-policy',
+                    '2.17.3-approved-exceptions-v1',
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.stdout)
+        self.assertEqual(
+            context.call_args.kwargs['qualification_pythons'],
+            '/python39,/python311',
+        )
+        self.assertEqual(
+            context.call_args.kwargs['security_policy'],
+            '2.17.3-approved-exceptions-v1',
+        )
+
+    def test_general_security_exception_file_option(self):
+        from kfpr import cli
+
+        with (
+            mock.patch.object(cli, '_context') as context,
+            mock.patch.dict(
+                cli.STEP_HANDLERS, {'qualify-release': mock.Mock()}
+            ),
+        ):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--security-exceptions',
+                    '/tmp/exceptions.json',
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.stdout)
+        self.assertEqual(
+            context.call_args.kwargs['security_exceptions'],
+            Path('/tmp/exceptions.json'),
+        )
+
+    def test_local_image_qualification_is_rejected(self):
+        from kfpr import cli
+
+        with (
+            mock.patch.object(cli, '_context') as context,
+            mock.patch.dict(
+                cli.STEP_HANDLERS, {'qualify-release': mock.Mock()}
+            ),
+        ):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--image-qualification',
+                    'local',
+                ],
+            )
+            self.assertNotEqual(result.exit_code, 0)
+            context.assert_not_called()
+            rejected = CliRunner().invoke(
+                app,
+                [
+                    'run',
+                    'qualify-release',
+                    '--dry-run',
+                    '--image-qualification',
+                    'automatic',
+                ],
+            )
+            self.assertNotEqual(rejected.exit_code, 0)
+
+    def test_image_mode_defaults_to_ci_and_rejects_saved_local(self):
+        from kfpr import cli
+
+        with TemporaryDirectory() as temporary:
+            state = ReleaseState(Path(temporary) / 'state.json')
+            with (
+                mock.patch.object(cli, '_load_state', return_value=state),
+                mock.patch.object(cli, 'collect_context'),
+            ):
+                args = [state.path, False, None, None, None, None, None, None]
+                cli._context(*args)
+                self.assertEqual(state.answers['image_qualification'], 'ci')
+                state.answers['image_qualification'] = 'local'
+                with self.assertRaises(cli.typer.BadParameter):
+                    cli._context(*args)
+                cli._context(*args, image_qualification='ci')
+                self.assertEqual(state.answers['image_qualification'], 'ci')
+                with self.assertRaises(cli.typer.BadParameter):
+                    cli._context(
+                        *args, qualification_pythons='/usr/bin/python3'
+                    )
+
+    def test_exception_selection_persists_and_strict_selection_clears_it(self):
+        from kfpr import cli
+
+        with TemporaryDirectory() as temporary:
+            state = ReleaseState(Path(temporary) / 'state.json')
+            exceptions = Path(temporary) / 'exceptions.json'
+            exceptions.write_text('{"schema": 1, "exceptions": []}')
+            with (
+                mock.patch.object(cli, '_load_state', return_value=state),
+                mock.patch.object(cli, 'collect_context'),
+            ):
+                args = [state.path, False, None, None, None, None, None, None]
+                cli._context(*args, security_exceptions=exceptions)
+                self.assertEqual(
+                    state.answers['security_policy'], 'approved-exceptions'
+                )
+                self.assertEqual(
+                    state.answers['security_exceptions'],
+                    str(exceptions.resolve()),
+                )
+                cli._context(*args)
+                self.assertEqual(
+                    state.answers['security_policy'], 'approved-exceptions'
+                )
+                cli._context(*args, security_policy='zero-fixable')
+                self.assertNotIn('security_exceptions', state.answers)
+                with self.assertRaises(cli.typer.BadParameter):
+                    cli._context(*args, security_policy='approved-exceptions')
+
+    def test_promote_latest_dispatches_ci_without_release_checkpoint(self):
+        promotion = mock.Mock()
+        with mock.patch.dict(sys.modules, {'kfpr.promotion': promotion}):
+            result = CliRunner().invoke(
+                app,
+                [
+                    'promote-latest',
+                    '--version',
+                    '2.17.3',
+                    '--dry-run',
+                ],
+            )
+        self.assertEqual(result.exit_code, 0, result.stdout)
+        promotion.dispatch.assert_called_once_with('2.17.3', dry_run=True)
+
     def test_kfpr_cli_has_module_entrypoint(self):
         result = subprocess.run(
             [sys.executable, '-m', 'kfpr.cli', '--help'],
@@ -440,7 +595,41 @@ class CliTest(unittest.TestCase):
                 '3.1.1',
             )
 
-    def test_next_prompts_for_previous_release_and_stores_it(self):
+    def test_next_saves_separate_sdk_base_and_target_options(self):
+        with TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / 'state.json'
+            state = ReleaseState(state_file)
+            state.answers.update(
+                {
+                    'release_type': 'patch',
+                    'version': '3.2.1',
+                    'fork_remote': 'https://github.com/testuser/pipelines.git',
+                    'patch_prs': 'not-needed',
+                    'include_backend': False,
+                    'include_sdk': True,
+                }
+            )
+            state.save()
+            result = CliRunner().invoke(
+                app,
+                [
+                    'next',
+                    '--state-file',
+                    str(state_file),
+                    '--dry-run',
+                    '--previous-sdk-release',
+                    'sdk-3.2.0',
+                    '--release-target',
+                    'release-candidate',
+                ],
+            )
+            self.assertEqual(result.exit_code, 0, result.stdout)
+            answers = ReleaseState.load(state_file).answers
+            self.assertEqual(answers['previous_sdk_release'], 'sdk-3.2.0')
+            self.assertEqual(answers['release_target'], 'release-candidate')
+            self.assertNotIn('previous_release', answers)
+
+    def test_next_without_backend_does_not_prompt_for_backend_base(self):
         with TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / 'state.json'
             state = ReleaseState(state_file)
@@ -462,9 +651,8 @@ class CliTest(unittest.TestCase):
             )
 
             self.assertEqual(result.exit_code, 0, result.stdout)
-            self.assertEqual(
-                ReleaseState.load(state_file).answers['previous_release'],
-                '3.1.1',
+            self.assertNotIn(
+                'previous_release', ReleaseState.load(state_file).answers
             )
 
     def test_status_prints_state_next_step_resume_command_and_manual_checklist(
@@ -660,6 +848,48 @@ class CliTest(unittest.TestCase):
             self.assertIn('minor release version must be X.Y.0', result.stdout)
             self.assertIn('Cannot parse fork_remote', result.stdout)
             self.assertFalse(state_file.exists())
+
+    def test_new_release_full_dry_run_completes_without_release_refs(self):
+        for release_type, version in (('major', '4.0.0'), ('minor', '3.3.0')):
+            with (
+                self.subTest(release_type=release_type),
+                TemporaryDirectory() as tmpdir,
+            ):
+                root = Path(tmpdir)
+                state_file = root / 'state.json'
+                with mock.patch.object(
+                    core.subprocess, 'check_output', return_value=str(root)
+                ) as git_read:
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'run',
+                            '--dry-run',
+                            '--release-type',
+                            release_type,
+                            '--version',
+                            version,
+                            '--fork-remote',
+                            'testuser',
+                            '--release-source-branch',
+                            'master',
+                            '--previous-release',
+                            '3.2.0',
+                            '--previous-sdk-release',
+                            'sdk-3.2.0',
+                            '--state-file',
+                            str(state_file),
+                        ],
+                    )
+                self.assertEqual(result.exit_code, 0, result.output)
+                self.assertIn(
+                    f'Release flow complete for {version}', result.output
+                )
+                git_read.assert_called_once_with(
+                    ['git', 'rev-parse', '--show-toplevel'], text=True
+                )
+                self.assertFalse((root / 'state-notes').exists())
+                self.assertFalse(ReleaseState.load(state_file).completed_steps)
 
     def test_run_with_existing_state_prints_status_and_aborts_when_user_declines(
         self,
@@ -863,3 +1093,192 @@ class CliTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RegenerateNotesTest(unittest.TestCase):
+    def test_saved_context_and_overrides_do_not_write_checkpoint(self):
+        for product in ('backend', 'sdk'):
+            with (
+                self.subTest(product=product),
+                TemporaryDirectory() as directory,
+            ):
+                state_file = Path(directory) / 'state.json'
+                state = ReleaseState(state_file)
+                state.answers.update(
+                    {
+                        'version': '2.17.3',
+                        'release_type': 'patch',
+                        'previous_release': '2.17.2',
+                        'previous_sdk_release': 'sdk-2.17.2',
+                        'release_target': 'old-target',
+                        'fork_remote': 'origin',
+                    }
+                )
+                state.save()
+                original = state_file.read_bytes()
+                with (
+                    mock.patch(
+                        'kfpr.cli.regenerate_release_notes', return_value=True
+                    ) as regenerate,
+                    mock.patch(
+                        'kfpr.cli.subprocess.check_output',
+                        return_value=directory + '\n',
+                    ) as git,
+                    mock.patch.object(ReleaseState, 'save') as save,
+                ):
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'regenerate-notes',
+                            '--product',
+                            product,
+                            '--state-file',
+                            str(state_file),
+                            '--version',
+                            '2.17.4',
+                            '--previous-release',
+                            '2.17.3',
+                            '--release-target',
+                            'candidate',
+                        ],
+                    )
+                self.assertEqual(result.exit_code, 0, result.output)
+                context, selected_product = regenerate.call_args.args
+                self.assertEqual(selected_product, product)
+                self.assertEqual(context.metadata.tag, '2.17.4')
+                self.assertEqual(context.previous_release, '2.17.3')
+                self.assertEqual(context.previous_sdk_release, 'sdk-2.17.2')
+                self.assertEqual(context.release_target, 'candidate')
+                self.assertEqual(context.root, Path(directory))
+                self.assertEqual(context.include_backend, product == 'backend')
+                self.assertEqual(context.include_sdk, product == 'sdk')
+                self.assertTrue(context.runner.dry_run)
+                self.assertEqual(context.runner.commands, [])
+                git.assert_called_once_with(
+                    ['git', 'rev-parse', '--show-toplevel'], text=True
+                )
+                save.assert_not_called()
+                self.assertEqual(state_file.read_bytes(), original)
+
+    def test_new_preview_without_checkpoint_and_conflict_status(self):
+        for clean in (True, False):
+            with self.subTest(clean=clean), TemporaryDirectory() as directory:
+                state_file = Path(directory) / 'missing.json'
+                with (
+                    mock.patch(
+                        'kfpr.cli.regenerate_release_notes', return_value=clean
+                    ) as regenerate,
+                    mock.patch(
+                        'kfpr.cli.subprocess.check_output',
+                        return_value=directory,
+                    ),
+                ):
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'regenerate-notes',
+                            '--product',
+                            'sdk',
+                            '--state-file',
+                            str(state_file),
+                            '--version',
+                            '2.17.3',
+                            '--previous-sdk-release',
+                            'sdk-2.17.2',
+                            '--release-target',
+                            'candidate',
+                        ],
+                    )
+                self.assertEqual(
+                    result.exit_code, 0 if clean else 1, result.output
+                )
+                context = regenerate.call_args.args[0]
+                self.assertEqual(context.metadata.release_type, 'patch')
+                self.assertEqual(context.fork_remote, '')
+                self.assertEqual(context.previous_sdk_release, 'sdk-2.17.2')
+                self.assertFalse(state_file.exists())
+                self.assertIn(
+                    'Review' if clean else 'conflict markers', result.output
+                )
+
+    def test_invalid_or_missing_inputs_never_regenerate(self):
+        for options in (
+            [],
+            ['--version', 'invalid'],
+            ['--version', '2.17.3', '--product', 'unknown'],
+        ):
+            with (
+                self.subTest(options=options),
+                TemporaryDirectory() as directory,
+            ):
+                with (
+                    mock.patch(
+                        'kfpr.cli.regenerate_release_notes'
+                    ) as regenerate,
+                    mock.patch.object(ReleaseState, 'save') as save,
+                ):
+                    result = CliRunner().invoke(
+                        app,
+                        [
+                            'regenerate-notes',
+                            '--product',
+                            'backend',
+                            '--state-file',
+                            str(Path(directory) / 'missing.json'),
+                            *options,
+                        ],
+                    )
+                self.assertEqual(result.exit_code, 2, result.output)
+                regenerate.assert_not_called()
+                save.assert_not_called()
+
+
+class ValidateNotesTest(unittest.TestCase):
+    def test_editorial_warnings_are_advisory_and_file_is_unchanged(self):
+        for warnings in (
+            [],
+            ['Explain the user impact.', 'Add migration instructions.'],
+        ):
+            with (
+                self.subTest(warnings=warnings),
+                TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / 'notes.md'
+                content = '# Release notes\n\nHandwritten notes.\n'
+                path.write_text(content)
+                with (
+                    mock.patch(
+                        'kfpr.cli.validate_notes', return_value=warnings
+                    ) as validate,
+                    mock.patch.object(ReleaseState, 'save') as save,
+                    mock.patch.object(core.CommandRunner, 'run') as run,
+                ):
+                    result = CliRunner().invoke(
+                        app, ['validate-notes', str(path)]
+                    )
+                self.assertEqual(result.exit_code, 0, result.output)
+                validate.assert_called_once_with(content)
+                for warning in warnings:
+                    self.assertIn(f'Warning: {warning}', result.output)
+                if not warnings:
+                    self.assertIn('No editorial warnings', result.output)
+                self.assertEqual(path.read_text(), content)
+                save.assert_not_called()
+                run.assert_not_called()
+
+    def test_missing_or_invalid_utf8_file_has_friendly_error(self):
+        for invalid_utf8 in (False, True):
+            with (
+                self.subTest(invalid_utf8=invalid_utf8),
+                TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / 'notes.md'
+                if invalid_utf8:
+                    path.write_bytes(b'\xff')
+                with mock.patch('kfpr.cli.validate_notes') as validate:
+                    result = CliRunner().invoke(
+                        app, ['validate-notes', str(path)]
+                    )
+                self.assertEqual(result.exit_code, 2, result.output)
+                self.assertIn('Cannot read release notes', result.output)
+                validate.assert_not_called()

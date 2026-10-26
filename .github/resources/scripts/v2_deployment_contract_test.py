@@ -16,6 +16,7 @@
 
 import os
 import re
+import runpy
 import subprocess
 import tempfile
 import unittest
@@ -41,16 +42,66 @@ class V2DeploymentContractTest(unittest.TestCase):
                 )
                 self.assertNotIn('/apis/v1beta1', manifest)
 
-    def test_generation_and_release_only_generate_v2_clients(self):
+    def test_modern_generation_only_generates_v2_clients(self):
         for path in (
             'Makefile',
-            'release/kfpr/core.py',
             '.github/workflows/validate-generated-files.yml',
         ):
             with self.subTest(path=path):
                 text = (ROOT / path).read_text()
                 self.assertIn('v2', text)
                 self.assertNotIn('v1beta1', text)
+
+    def test_release_generates_legacy_api_only_when_protos_exist(self):
+        release_command = runpy.run_path(str(ROOT / 'release/kfpr/core.py'))[
+            'release_version_bump_command'
+        ]
+        for legacy_protos in (False, True):
+            with (
+                self.subTest(legacy_protos=legacy_protos),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                api = root / 'backend/api'
+                (api / 'v1beta1').mkdir(parents=True)
+                (api / 'v2').mkdir()
+                (api / 'v2/run.proto').write_text(
+                    (ROOT / 'backend/api/v2/run.proto').read_text()
+                )
+                if legacy_protos:
+                    (api / 'v1beta1/run.proto').write_text('package legacy;')
+                for path in (
+                    'hack/generator.sh',
+                    'build_kfp_server_api_python_package.sh',
+                ):
+                    generator = api / path
+                    generator.parent.mkdir(parents=True, exist_ok=True)
+                    generator.write_text(
+                        '#!/bin/bash\nprintf "%s\\n" "$API_VERSION"\n'
+                    )
+                    generator.chmod(0o755)
+                script = release_command(root, 'release-3.0', '2.17.3')[-1]
+                # Exercise generation after the unrelated tool and manifest checks.
+                generation = script.split(
+                    '"$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"\n',
+                    1,
+                )[1]
+                result = subprocess.run(
+                    ['bash', '-ec', generation],
+                    env={
+                        **os.environ,
+                        'REPO_ROOT': str(root),
+                        'API_VERSION': 'stale',
+                    },
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                self.assertEqual(
+                    result.stdout.splitlines(),
+                    (['v1beta1'] if legacy_protos else []) + ['v2', 'v2'],
+                )
 
     def test_backend_dev_targets_submit_ir_from_existing_sources(self):
         makefile = (ROOT / 'backend/src/v2/Makefile').read_text()
@@ -67,25 +118,6 @@ class V2DeploymentContractTest(unittest.TestCase):
                     / (target + '.py')
                 )
                 self.assertTrue(source.is_file(), source)
-
-    def test_v2_integration_forwards_the_api_before_running_tests(self):
-        workflow = (
-            ROOT / '.github/workflows/legacy-v2-api-integration-tests.yml'
-        ).read_text()
-        forwarding = './.github/resources/scripts/forward-port.sh kubeflow ml-pipeline 8888 8888'
-        deploy = workflow.split('- name: Deploy\n', 1)[1].split(
-            '- name: Deploy pipeline URL test fixtures', 1
-        )[0]
-        self.assertIn("forward_port: 'false'", deploy)
-        self.assertEqual(workflow.count(forwarding), 1)
-        self.assertLess(
-            workflow.index('kubectl rollout status deployment/ml-pipeline'),
-            workflow.index(forwarding),
-        )
-        self.assertLess(
-            workflow.index(forwarding),
-            workflow.index('- name: API integration tests v2'),
-        )
 
     def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
         self,
@@ -351,11 +383,6 @@ class V2DeploymentContractTest(unittest.TestCase):
         ).read_text()
         self.assertIn('name: CACHEENABLED', overlay)
         self.assertIn('value: "false"', overlay)
-        self.assertTrue(
-            (
-                ROOT / '.github/workflows/legacy-v2-api-integration-tests.yml'
-            ).is_file()
-        )
 
 
 if __name__ == '__main__':

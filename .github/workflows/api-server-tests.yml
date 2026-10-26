@@ -35,9 +35,11 @@ on:
 
   pull_request:
     paths:
+      # The offline cache fixture image copies this SDK source tree.
       - '**/pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
@@ -45,11 +47,12 @@ on:
       - '.github/actions/test-and-report/**'
       - '.github/actions/junit-summary/**'
       - '.github/resources/**'
-      - 'backend/api/v2/**'
-      - 'backend/api/v2beta1/**'
-      - 'backend/src/**'
-      - 'backend/test/v2/api/**'
+      - 'api/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'backend/**'
       - 'backend/test/constants/**'
+      - 'test/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
       - '!**/*.md'
@@ -127,7 +130,7 @@ jobs:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v4.0.13", "v4.1.5" ]
+        argo_version: [ "v4.0.13", "v4.1.6" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         db_type: [ "mysql", "pgx" ]
@@ -138,7 +141,7 @@ jobs:
             db_type: "mysql"
           - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v4.1.5"
+            argo_version: "v4.1.6"
             db_type: "mysql"
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
@@ -183,6 +186,8 @@ jobs:
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           db_type: ${{ matrix.db_type }}
+          # The fixture rollout precedes the test action's supervised forward.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -213,6 +218,11 @@ jobs:
             NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
+          # Cache-hit assertions require caching enabled at the deployment level.
+          if [ "${{ matrix.cache_enabled }}" == "false" ]; then
+            TEST_LABEL="($TEST_LABEL) && !LegacyCache"
+          fi
+
           PROXY=${{ matrix.proxy }}
           if [ -z "${PROXY:-}" ]; then
             PROXY=false
@@ -230,12 +240,15 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
         env:
-          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.5' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
+          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.6' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' }}
           proxy: ${{ matrix.proxy }}
           test_directory: ${{ env.API_TESTS_DIR }}
+          required_migration_specs: ${{ github.event_name != 'workflow_dispatch' && matrix.cache_enabled == 'true' }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
@@ -255,7 +268,7 @@ jobs:
         k8s_version: [ "v1.36.1", "v1.33.12" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v4.0.13", "v4.1.5" ]
+        argo_version: [ "v4.0.13", "v4.1.6" ]
         pipeline_store: [ "kubernetes" ]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
@@ -281,6 +294,8 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
+          # The fixture rollout precedes the test action's supervised forward.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -292,8 +307,11 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' }}
           upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
+          required_migration_specs: 'true'
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
           default_namespace: ${{ env.NAMESPACE }}
@@ -348,9 +366,22 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
           db_type: ${{ matrix.db_type }}
+          # The fixture rollout precedes the test action's supervised forward.
+          forward_port: 'false'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+
+      - name: Prepare custom schedule service account
+        id: schedule-account
+        if: ${{ steps.deploy.outcome == 'success' && github.event_name != 'workflow_dispatch' && matrix.cache_enabled == 'true' && matrix.test_shard == 'B' }}
+        shell: bash
+        env:
+          USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
+          SYSTEM_NAMESPACE: ${{ env.NAMESPACE }}
+        run: >-
+          python3 .github/resources/scripts/prepare_schedule_service_account.py
+          --namespace "$USER_NAMESPACE" --system-namespace "$SYSTEM_NAMESPACE"
 
       - name: Configure Input Variables
         shell: bash
@@ -376,6 +407,10 @@ jobs:
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE
           fi
+          # Deployment constraints still apply after a manual label override.
+          if [ "${{ matrix.cache_enabled }}" == "false" ]; then
+            TEST_LABEL="($TEST_LABEL) && !LegacyCache"
+          fi
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
             echo "TEST_LABEL=$TEST_LABEL"
@@ -388,8 +423,12 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         env:
           LOCAL_API_SERVER: "true"
+          KFP_SCHEDULE_TEST_SERVICE_ACCOUNT: ${{ steps.schedule-account.outcome == 'success' && 'kfp-schedule-test' || '' }}
         with:
+          required_service_account_specs: ${{ steps.schedule-account.outcome == 'success' }}
           cache_enabled: ${{ matrix.cache_enabled }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' && (github.event_name == 'workflow_dispatch' || matrix.test_shard == 'B') }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}

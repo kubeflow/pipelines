@@ -26,7 +26,6 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / '.github/resources/scripts/download-go-modules.sh'
-WORKFLOW = ROOT / '.github/workflows/legacy-v2-api-integration-tests.yml'
 ACTION = ROOT / '.github/actions/test-and-report/action.yml'
 BACKEND_WORKFLOW = ROOT / '.github/workflows/presubmit-backend.yml'
 
@@ -230,17 +229,9 @@ class GoModuleDownloadRetryTest(unittest.TestCase):
                 self.assertEqual(self.events('sleep'), [])
 
     def test_callers_download_before_setup_and_keep_tests_outside_retries(self):
-        workflow = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))
         action = yaml.safe_load(ACTION.read_text(encoding='utf-8'))
         backend = yaml.safe_load(BACKEND_WORKFLOW.read_text(encoding='utf-8'))
         callers = (
-            (
-                WORKFLOW,
-                workflow['jobs']['api-integration-tests-v2']['steps'],
-                'Set up Go',
-                'Create KFP cluster',
-                'API integration tests v2',
-            ),
             (
                 BACKEND_WORKFLOW,
                 backend['jobs']['backend-tests']['steps'],

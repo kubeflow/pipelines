@@ -81,6 +81,7 @@ def artifact_server_environment(
     allowed_artifact_endpoints,
     allowed_gcs_universe_domains='googleapis.com',
     http_base_url='',
+    user_id_header: str | None = None,
 ):
     return [
         {
@@ -110,6 +111,16 @@ def artifact_server_environment(
             'name': 'FRONTEND_SERVER_NAMESPACE',
             'value': namespace,
         },
+        *(
+            [
+                {
+                    'name': 'KUBEFLOW_USERID_HEADER',
+                    'value': user_id_header,
+                }
+            ]
+            if user_id_header is not None
+            else []
+        ),
         {
             'name': 'CLUSTER_DOMAIN',
             'value': cluster_domain,
@@ -125,6 +136,12 @@ def artifact_server_environment(
         {
             'name': 'ALLOWED_GCS_UNIVERSE_DOMAINS',
             'value': allowed_gcs_universe_domains,
+        },
+        # The shared UI server limits each user before proxying. With auth
+        # disabled here, a second limit would key every user by its address.
+        {
+            'name': 'ARTIFACTS_RATE_LIMIT_DISABLED',
+            'value': 'true',
         },
     ]
 
@@ -161,6 +178,7 @@ def get_settings_from_env(
     object_store_host=None,
     http_base_url=None,
     driver_agent_ca_cert_path=None,
+    user_id_header: str | None = None,
 ):
     """Returns a dict of settings from environment variables relevant to the
     controller.
@@ -223,6 +241,12 @@ def get_settings_from_env(
         else os.environ.get('DRIVER_AGENT_CA_CERT_PATH', '')
     )
 
+    settings['user_id_header'] = (
+        user_id_header
+        if user_id_header is not None
+        else os.environ.get('USERID_HEADER')
+    )
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -255,6 +279,7 @@ def server_factory(
     controller_port=8080,
     http_base_url='',
     driver_agent_ca_cert_path='',
+    user_id_header: str | None = None,
 ):
     """Returns a ThreadingHTTPServer populated with Handler with customized
     settings."""
@@ -653,6 +678,7 @@ def server_factory(
                                                     allowed_artifact_endpoints,
                                                     allowed_gcs_universe_domains,
                                                     http_base_url,
+                                                    user_id_header,
                                                 ),
                                                 'resources': {
                                                     'requests': {

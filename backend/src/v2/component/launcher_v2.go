@@ -997,6 +997,7 @@ func (l *LauncherV2) uploadOutputArtifacts(
 						}
 						return fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", artifactKey, outputArtifact.Uri, err)
 					}
+					l.uploadArtifactPreviewSibling(ctx, artifactKey, localPath, outputArtifact.Uri, artifact.Metadata)
 					artifact.Uri = util.StringPointer(outputArtifact.Uri)
 				} else if strings.HasPrefix(outputArtifact.Uri, "oci://") {
 					artifact.Uri = util.StringPointer(outputArtifact.Uri)
@@ -1988,6 +1989,62 @@ func LocalPathForURI(uri string) (string, error) {
 		return fmt.Sprintf("%s/oci/", rootPath) + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
+}
+
+const (
+	artifactPreviewMetadataKey   = "_kfp_preview"
+	artifactPreviewSiblingSuffix = ".kfp-preview.json"
+	artifactPreviewMaxBytes      = 64 * 1024
+)
+
+// isSiblingArtifactPreview reports whether metadata advertises an SDK preview
+// stored beside, rather than inside, the artifact directory.
+func isSiblingArtifactPreview(metadata map[string]*structpb.Value) bool {
+	fields := metadata[artifactPreviewMetadataKey].GetStructValue().GetFields()
+	return fields["version"].GetNumberValue() == 2 && fields["storage"].GetStringValue() == "sibling"
+}
+
+// uploadArtifactPreviewSibling uploads <localPath>.kfp-preview.json to
+// <uri>.kfp-preview.json. Trailing slashes are removed first, matching the
+// SDK's local path and the UI server's object key. Keeping the preview outside
+// the artifact directory means directory readers such as Polars never see a
+// non-data file. Previews are optional: any failure drops the descriptor so
+// the UI reports no preview instead of a broken one, and the task still
+// succeeds.
+func (l *LauncherV2) uploadArtifactPreviewSibling(
+	ctx context.Context,
+	artifactKey, localPath, uri string,
+	metadata map[string]*structpb.Value,
+) {
+	if !isSiblingArtifactPreview(metadata) {
+		return
+	}
+	localPath = strings.TrimRight(localPath, "/")
+	uri = strings.TrimRight(uri, "/")
+	previewPath := localPath + artifactPreviewSiblingSuffix
+	stat := os.Stat
+	if l.fileSystem != nil {
+		stat = l.fileSystem.Stat
+	}
+	var err error
+	info, statErr := stat(previewPath)
+	switch {
+	case statErr != nil:
+		err = statErr
+	case !info.Mode().IsRegular():
+		err = fmt.Errorf("%q is not a regular file", previewPath)
+	case info.Size() > artifactPreviewMaxBytes:
+		err = fmt.Errorf("%q exceeds 64 KiB", previewPath)
+	default:
+		if uploadErr := l.objectStore.UploadArtifact(ctx, previewPath, uri+artifactPreviewSiblingSuffix, artifactKey); uploadErr != nil {
+			// Object store errors can carry credential details, so log only that the upload failed.
+			err = errors.New("the object store upload failed")
+		}
+	}
+	if err != nil {
+		glog.Warningf("Skipping the optional preview for output artifact %q; the artifact is unchanged: %v", artifactKey, err)
+		delete(metadata, artifactPreviewMetadataKey)
+	}
 }
 
 func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error) {

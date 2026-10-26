@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 import subprocess
 import sys
 import unittest
@@ -11,6 +12,144 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 from kfpr import core, steps
+from kfpr.notes import Commit
+from kfpr.ranges import ReleaseRange
+
+SELECTED_RANGE = ReleaseRange(
+    'previous', 'release-candidate', 'a' * 40, 'b' * 40
+)
+
+
+class SdkReleaseNotesTest(unittest.TestCase):
+    def test_preserves_custom_heading_only_warning(self):
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            warning = '## Upgrade the backend before installing this SDK'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + warning
+                + '\n\n# 3.1.0\n\nPrevious notes.\n'
+            )
+            steps._update_sdk_release_notes(
+                path, '3.2.0', '## Features\n\n* New SDK feature'
+            )
+            self.assertIn(warning, path.read_text().split('\n# 3.2.0\n')[1])
+
+    def test_template_only_notes_use_generated_content(self):
+        template = (
+            '## Features\n\n## Breaking changes\n\n'
+            '## Deprecations\n\n## Bug fixes and other changes'
+        )
+        generated = '## Features\n\n* New SDK feature'
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + template
+                + '\n\n# 3.1.0\n\nPrevious notes.\n'
+            )
+
+            steps._update_sdk_release_notes(path, '3.2.0', generated)
+
+            text = path.read_text()
+            development, released = text.split('\n# 3.2.0\n', 1)
+            self.assertIn(template, development)
+            self.assertIn(generated, released)
+            self.assertNotIn('## Generated changes', released)
+            self.assertNotIn('## Deprecations', released)
+
+    def test_preserves_handwritten_notes_alongside_generated_changes(self):
+        handwritten = (
+            '## Breaking changes\n\n'
+            'Upgrade the backend before installing this SDK.\n\n'
+            '### Migration\n\n'
+            '1. Export existing configuration.\n'
+            '2. Follow the [upgrade guide](https://example.com/upgrade).'
+        )
+        historical = '\n# 3.1.0\n\n## Features\n\nPrevious release notes.\n'
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + handwritten
+                + '\n'
+                + historical
+            )
+
+            steps._update_sdk_release_notes(
+                path, '3.2.0', '## Bug fixes and other changes\n\n* Fix retries'
+            )
+
+            text = path.read_text()
+            development, released = text.split('\n# 3.2.0\n', 1)
+            self.assertNotIn('Upgrade the backend', development)
+            self.assertIn(handwritten, released)
+            self.assertIn(
+                '## Generated changes\n\n'
+                '### Bug fixes and other changes\n\n* Fix retries',
+                released,
+            )
+            self.assertTrue(text.endswith(historical))
+            self.assertEqual(text.count(handwritten), 1)
+
+    def test_repeating_release_update_is_idempotent(self):
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                'Handwritten migration guidance.\n\n'
+                '# 3.1.0\n\nPrevious release notes.\n'
+            )
+            generated = '## Features\n\n* New SDK feature'
+
+            steps._update_sdk_release_notes(path, '3.2.0', generated)
+            first_update = path.read_text()
+            steps._update_sdk_release_notes(path, '3.2.0', generated)
+
+            self.assertEqual(path.read_text(), first_update)
+            self.assertEqual(first_update.count('# 3.2.0\n'), 1)
+            self.assertEqual(first_update.count('* New SDK feature'), 1)
+
+    def test_empty_generated_notes_preserve_handwritten_notes(self):
+        handwritten = '## Breaking changes\n\nKeep this migration guidance.'
+        historical = '\n# 3.1.0\n\nPrevious release notes.\n'
+        with TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / 'RELEASE.md'
+            path.write_text(
+                '# Current Version (in development)\n\n'
+                + handwritten
+                + '\n'
+                + historical
+            )
+
+            steps._update_sdk_release_notes(path, '3.2.0', '')
+
+            text = path.read_text()
+            released = text.split('\n# 3.2.0\n', 1)[1]
+            self.assertIn(handwritten, released)
+            self.assertNotIn('## Generated changes', released)
+            self.assertTrue(text.endswith(historical))
+
+
+class QualifiedPublicationTest(unittest.TestCase):
+    """Isolate existing layout/notes tests from the separately tested gates."""
+
+    def setUp(self):
+        for target in (
+            'qualification.require_qualification',
+            '_ensure_release_tag',
+            '_should_set_backend_latest',
+        ):
+            patch = mock.patch(
+                'kfpr.steps.' + target,
+                **(
+                    {'return_value': True}
+                    if target == '_should_set_backend_latest'
+                    else {}
+                ),
+            )
+            patch.start()
+            self.addCleanup(patch.stop)
 
 
 class StepSelectionTest(unittest.TestCase):
@@ -93,11 +232,23 @@ class StepRegistryTest(unittest.TestCase):
                 )
 
 
-class ReleaseLayoutTest(unittest.TestCase):
+class ReleaseLayoutTest(QualifiedPublicationTest):
     """Exercise the imported CLI against both target release layouts."""
 
     def setUp(self) -> None:
+        super().setUp()
         """Mock external operations without changing the current checkout."""
+        for name, value in (
+            ('_notes_range', SELECTED_RANGE),
+            ('read_commits', []),
+            ('_remote_release_sha', 'b' * 40),
+        ):
+            patcher = mock.patch.object(steps, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        approval = mock.patch('builtins.input', return_value='y')
+        approval.start()
+        self.addCleanup(approval.stop)
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
@@ -142,7 +293,10 @@ class ReleaseLayoutTest(unittest.TestCase):
                     self.select_layout(consolidated)
                     steps.step_create_sdk_release(self.context)
                     command = self.runner.run.call_args.args[0]
-                    notes = command[command.index('--notes') + 1]
+                    notes = Path(
+                        command[command.index('--notes-file') + 1]
+                    ).read_text()
+                    Path(command[command.index('--notes-file') + 1]).unlink()
                     self.assertIn(f'pip install kfp=={version}', notes)
                     if consolidated:
                         self.assertIn('unified KFP SDK', notes)
@@ -297,6 +451,7 @@ class ReleaseLayoutTest(unittest.TestCase):
                         '2.18.1',
                         'release-2.18',
                         consolidated=consolidated,
+                        set_defaults=False,
                     )
                     if fails:
                         self.assertIn(
@@ -334,34 +489,33 @@ class ReleaseLayoutTest(unittest.TestCase):
                     [mock.call(package, '2.18.1') for package in packages],
                 )
 
-    def test_legacy_kubernetes_publication_is_retried(self) -> None:
+    def test_legacy_kubernetes_publication_resumes_only_missing_package(
+        self,
+    ) -> None:
         """A missing optional distribution must not report release success."""
         self.select_layout(False)
         with (
+            mock.patch.object(
+                steps,
+                '_is_pypi_version_published',
+                side_effect=lambda package, version: (
+                    package != 'kfp-kubernetes'
+                ),
+            ),
             mock.patch.object(steps, 'watch_latest_workflow_run'),
             mock.patch.object(
                 steps,
                 '_wait_for_pypi_packages',
-                side_effect=[['kfp-kubernetes'], []],
+                return_value=[],
             ) as wait,
         ):
             steps.step_publish_sdks(self.context)
-        packages = [
-            'kfp-pipeline-spec',
-            'kfp-server-api',
-            'kfp',
-            'kfp-kubernetes',
-        ]
-        self.assertEqual(
-            wait.call_args_list,
-            [
-                mock.call('2.18.1', packages),
-                mock.call('2.18.1', packages),
-            ],
-        )
+        wait.assert_called_once_with('2.18.1', ['kfp-kubernetes'])
         self.runner.run.assert_any_call(
             core.sdk_workflow_command(
-                self.context.metadata, packages='kfp-kubernetes'
+                self.context.metadata,
+                packages='kfp-kubernetes',
+                workflow_ref=self.context.metadata.sdk_tag,
             )
         )
 
@@ -425,7 +579,9 @@ class ReleaseLayoutTest(unittest.TestCase):
                 self.assertEqual(
                     command[:4], ['gh', 'release', 'create', f'sdk-{version}']
                 )
-                notes = command[command.index('--notes') + 1]
+                notes = Path(
+                    command[command.index('--notes-file') + 1]
+                ).read_text()
                 self.assertEqual('pip uninstall' in notes, consolidated)
                 self.assertEqual(
                     any(
@@ -442,14 +598,15 @@ class ReleaseLayoutTest(unittest.TestCase):
         self.runner.dry_run = True
         with (
             mock.patch.object(steps, 'watch_latest_workflow_run'),
+            mock.patch.object(
+                steps.subprocess, 'check_output', return_value='version.py\n'
+            ),
             mock.patch.object(steps.rtd, 'ReadTheDocsClient') as client,
             mock.patch.object(steps, '_wait_for_pypi_packages') as wait,
             contextlib.redirect_stdout(io.StringIO()) as output,
         ):
             steps.step_publish_sdks(self.context)
-            self.runner.run.assert_called_once_with(
-                core.sdk_workflow_command(self.context.metadata)
-            )
+            self.runner.run.assert_not_called()
             self.runner.run.reset_mock()
             steps.step_create_kfp_kubernetes_docs_branch(self.context)
             steps.step_confirm_rtd(self.context)
@@ -588,7 +745,7 @@ class PreflightStepTest(unittest.TestCase):
                 steps.step_preflight(context)
 
 
-class PublishImagesStepTest(unittest.TestCase):
+class PublishImagesStepTest(QualifiedPublicationTest):
     def test_failed_publication_does_not_complete_checkpoint(self):
         for release_type, version in (
             ('minor', '2.18.0'),
@@ -683,8 +840,9 @@ class PublishImagesStepTest(unittest.TestCase):
             )
 
 
-class CreateSdkReleaseStepTest(unittest.TestCase):
+class CreateSdkReleaseStepTest(QualifiedPublicationTest):
     def setUp(self) -> None:
+        super().setUp()
         """Keep release-reuse tests independent of remote layout inspection."""
         layout = mock.patch.object(
             steps, '_sdk_release_is_consolidated', return_value=True
@@ -736,172 +894,25 @@ class CreateSdkReleaseStepTest(unittest.TestCase):
                 [command[:4] for command in context.runner.commands],
             )
 
-    def test_create_sdk_release_uses_existing_tag_when_user_accepts(self):
-        with TemporaryDirectory() as tmpdir:
 
-            class ExistingTagRunner:
-                dry_run = False
+class CreateBackendReleaseStepTest(QualifiedPublicationTest):
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.object(
+            steps,
+            'resolve_range',
+            side_effect=lambda root, base, target: ReleaseRange(
+                base, target, 'a' * 40, 'b' * 40
+            ),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        patcher = mock.patch.object(
+            steps, '_remote_release_sha', return_value='b' * 40
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
-                def __init__(self):
-                    self.commands = []
-
-                def run(self, command, cwd=None, check=True):
-                    self.commands.append(command)
-                    if command[:4] == ['gh', 'release', 'view', 'sdk-3.2.0']:
-                        return subprocess.CompletedProcess(command, 1, '', '')
-                    if command[:3] == ['gh', 'api', '--silent']:
-                        return subprocess.CompletedProcess(command, 0, '', '')
-                    return subprocess.CompletedProcess(command, 0, '', '')
-
-            context = core.ReleaseContext(
-                root=Path(tmpdir),
-                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
-                runner=ExistingTagRunner(),
-                metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
-                fork_remote='origin',
-                include_backend=True,
-                include_sdk=True,
-            )
-
-            with mock.patch('builtins.input', return_value='u'):
-                steps.step_create_sdk_tag(context)
-
-            self.assertIn(
-                [
-                    'gh',
-                    'api',
-                    '--silent',
-                    'repos/kubeflow/pipelines/git/ref/tags/sdk-3.2.0',
-                ],
-                context.runner.commands,
-            )
-            self.assertNotIn(
-                ['git', 'push', '--delete', 'origin', 'sdk-3.2.0'],
-                context.runner.commands,
-            )
-            self.assertNotIn(
-                ['gh', 'release', 'create', 'sdk-3.2.0'],
-                [command[:4] for command in context.runner.commands],
-            )
-
-    def test_create_sdk_release_recreates_existing_tag_when_requested(self):
-        with TemporaryDirectory() as tmpdir:
-
-            class ExistingTagRunner:
-                dry_run = False
-
-                def __init__(self):
-                    self.commands = []
-
-                def run(self, command, cwd=None, check=True):
-                    self.commands.append(command)
-                    if command[:4] == ['gh', 'release', 'view', 'sdk-3.2.0']:
-                        return subprocess.CompletedProcess(command, 1, '', '')
-                    if command[:3] == ['gh', 'api', '--silent']:
-                        return subprocess.CompletedProcess(command, 0, '', '')
-                    return subprocess.CompletedProcess(command, 0, '', '')
-
-            context = core.ReleaseContext(
-                root=Path(tmpdir),
-                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
-                runner=ExistingTagRunner(),
-                metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
-                fork_remote='origin',
-                include_backend=True,
-                include_sdk=True,
-            )
-
-            with mock.patch('builtins.input', return_value='r'):
-                steps.step_create_sdk_tag(context)
-
-            self.assertIn(
-                [
-                    'gh',
-                    'api',
-                    '--silent',
-                    'repos/kubeflow/pipelines/git/ref/tags/sdk-3.2.0',
-                ],
-                context.runner.commands,
-            )
-            self.assertIn(
-                ['git', 'fetch', 'upstream', 'release-3.2'],
-                context.runner.commands,
-            )
-            self.assertIn(
-                ['git', 'tag', '-f', 'sdk-3.2.0', 'upstream/release-3.2'],
-                context.runner.commands,
-            )
-            self.assertIn(
-                [
-                    'git',
-                    'push',
-                    '--force',
-                    'https://github.com/kubeflow/pipelines.git',
-                    'sdk-3.2.0',
-                ],
-                context.runner.commands,
-            )
-            self.assertNotIn(
-                ['gh', 'release', 'create', 'sdk-3.2.0'],
-                [command[:4] for command in context.runner.commands],
-            )
-
-    def test_create_sdk_release_pushes_missing_tag_before_creating_release(
-        self,
-    ):
-        with TemporaryDirectory() as tmpdir:
-
-            class MissingTagRunner:
-                dry_run = False
-
-                def __init__(self):
-                    self.commands = []
-
-                def run(self, command, cwd=None, check=True):
-                    self.commands.append(command)
-                    if command[:4] == ['gh', 'release', 'view', 'sdk-3.2.0']:
-                        return subprocess.CompletedProcess(command, 1, '', '')
-                    if command[:3] == ['gh', 'api', '--silent']:
-                        return subprocess.CompletedProcess(command, 1, '', '')
-                    return subprocess.CompletedProcess(command, 0, '', '')
-
-            context = core.ReleaseContext(
-                root=Path(tmpdir),
-                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
-                runner=MissingTagRunner(),
-                metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
-                fork_remote='origin',
-                include_backend=True,
-                include_sdk=True,
-            )
-
-            steps.step_create_sdk_tag(context)
-
-            self.assertIn(
-                ['git', 'fetch', 'upstream', 'release-3.2'],
-                context.runner.commands,
-            )
-            self.assertIn(
-                ['git', 'tag', '-f', 'sdk-3.2.0', 'upstream/release-3.2'],
-                context.runner.commands,
-            )
-            self.assertIn(
-                [
-                    'git',
-                    'push',
-                    '--force',
-                    'https://github.com/kubeflow/pipelines.git',
-                    'sdk-3.2.0',
-                ],
-                context.runner.commands,
-            )
-            self.assertNotIn(
-                ['gh', 'release', 'create', 'sdk-3.2.0'],
-                [command[:4] for command in context.runner.commands],
-            )
-
-
-class CreateBackendReleaseStepTest(unittest.TestCase):
     def test_architecture_checkpoint_and_communication_begin_with_backend_3(
         self,
     ):
@@ -971,7 +982,7 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
             )
             with (
                 mock.patch(
-                    'builtins.input', return_value='2.17.0'
+                    'builtins.input', side_effect=['2.17.0', 'y']
                 ) as input_mock,
                 mock.patch.object(
                     steps,
@@ -980,9 +991,16 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
                 ),
             ):
                 steps.step_create_backend_release(context)
-            input_mock.assert_called_once()
+            self.assertEqual(input_mock.call_count, 2)
+            self.assertFalse(
+                any(
+                    'architecture checks' in call.args[0]
+                    for call in input_mock.call_args_list
+                )
+            )
             command = runner.run.call_args.args[0]
-            self.assertNotIn('ARM64', command[command.index('--notes') + 1])
+            notes_path = Path(command[command.index('--notes-file') + 1])
+            self.assertNotIn('ARM64', notes_path.read_text())
 
     def test_create_backend_release_prompts_for_previous_tag_and_generates_notes(
         self,
@@ -1011,7 +1029,7 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
 
             with (
                 mock.patch(
-                    'builtins.input', side_effect=['y', '3.1.0']
+                    'builtins.input', side_effect=['y', '3.1.0', 'y']
                 ) as input_mock,
                 mock.patch.object(
                     steps,
@@ -1021,33 +1039,44 @@ class CreateBackendReleaseStepTest(unittest.TestCase):
             ):
                 steps.step_create_backend_release(context)
 
-            self.assertEqual(input_mock.call_count, 2)
-            notes_mock.assert_called_once_with(Path(tmpdir), '3.1.0')
+            self.assertEqual(input_mock.call_count, 3)
+            self.assertEqual(notes_mock.call_args.args[0], Path(tmpdir))
+            self.assertEqual(notes_mock.call_args.args[1].base_ref, '3.1.0')
             release_command = context.runner.commands[-1]
             self.assertEqual(
                 release_command[:4], ['gh', 'release', 'create', '3.2.0']
             )
-            release_notes = release_command[
-                release_command.index('--notes') + 1
-            ]
+            release_notes = Path(
+                release_command[release_command.index('--notes-file') + 1]
+            ).read_text()
             self.assertIn('## Features\n\n* add pipelines (#1)', release_notes)
             self.assertIn('Linux AMD64 and ARM64 are supported', release_notes)
             self.assertIn(
-                'https://github.com/kubeflow/pipelines/compare/3.1.0...3.2.0',
+                'https://github.com/kubeflow/pipelines/compare/'
+                + 'a' * 40
+                + '...'
+                + 'b' * 40,
                 release_notes,
             )
 
 
-class PublishSdksStepTest(unittest.TestCase):
+class PublishSdksStepTest(QualifiedPublicationTest):
     def setUp(self) -> None:
+        super().setUp()
         """Use unified tags for existing publication retry tests."""
         layout = mock.patch.object(
             steps, '_sdk_release_is_consolidated', return_value=True
         )
         layout.start()
         self.addCleanup(layout.stop)
+        published = mock.patch.object(
+            steps, '_is_pypi_version_published', return_value=False
+        )
+        self.published = published
+        published.start()
+        self.addCleanup(published.stop)
 
-    def test_publish_sdks_reruns_once_when_pypi_packages_are_missing(self):
+    def test_publish_sdks_publishes_missing_unified_package(self):
         with TemporaryDirectory() as tmpdir:
 
             class NoopRunner(core.CommandRunner):
@@ -1069,7 +1098,7 @@ class PublishSdksStepTest(unittest.TestCase):
             with (
                 mock.patch.object(steps, 'watch_latest_workflow_run'),
                 mock.patch.object(
-                    steps, '_wait_for_pypi_packages', side_effect=[['kfp'], []]
+                    steps, '_wait_for_pypi_packages', return_value=[]
                 ) as wait_mock,
             ):
                 steps.step_publish_sdks(context)
@@ -1080,12 +1109,11 @@ class PublishSdksStepTest(unittest.TestCase):
                 if command[:4]
                 == ['gh', 'workflow', 'run', 'publish-packages.yml']
             ]
-            self.assertEqual(len(workflow_commands), 2)
-            self.assertIn('packages=all', workflow_commands[0])
-            self.assertIn('packages=kfp', workflow_commands[1])
-            self.assertEqual(wait_mock.call_count, 2)
+            self.assertEqual(len(workflow_commands), 1)
+            self.assertIn('packages=kfp', workflow_commands[0])
+            wait_mock.assert_called_once_with('3.2.0', ['kfp'])
 
-    def test_publish_sdks_fails_when_pypi_packages_are_still_missing_after_retry(
+    def test_publish_sdks_fails_when_pypi_package_does_not_become_available(
         self,
     ):
         with TemporaryDirectory() as tmpdir:
@@ -1118,6 +1146,7 @@ class PublishSdksStepTest(unittest.TestCase):
                     steps.step_publish_sdks(context)
 
     def test_pypi_package_check_uses_package_version_json(self):
+        self.published.stop()
         opened_urls = []
 
         def fake_urlopen(request, timeout):
@@ -1130,7 +1159,7 @@ class PublishSdksStepTest(unittest.TestCase):
         self.assertEqual(opened_urls, ['https://pypi.org/pypi/kfp/3.2.0/json'])
 
 
-class SyncMasterStepTest(unittest.TestCase):
+class SyncMasterStepTest(QualifiedPublicationTest):
     def test_sync_master_opens_pr_and_waits_for_merge(self):
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -1339,6 +1368,57 @@ class PrepareReleaseBranchStepTest(unittest.TestCase):
 
 
 class OrchestrationTest(unittest.TestCase):
+    def test_full_dry_run_reaches_end_without_simulated_release_refs(self):
+        for release_type, version in (('major', '4.0.0'), ('minor', '3.3.0')):
+            with (
+                self.subTest(release_type=release_type),
+                TemporaryDirectory() as tmpdir,
+            ):
+                root = Path(tmpdir)
+                state = core.ReleaseState(root / 'state.json')
+                context = core.ReleaseContext(
+                    root=root,
+                    state=state,
+                    runner=core.CommandRunner(dry_run=True),
+                    metadata=core.ReleaseMetadata.from_version(
+                        release_type, version
+                    ),
+                    fork_remote='git@github.com:testuser/pipelines.git',
+                    include_backend=True,
+                    include_sdk=True,
+                    previous_release='3.2.0',
+                    previous_sdk_release='sdk-3.2.0',
+                )
+                with (
+                    contextlib.redirect_stdout(io.StringIO()) as output,
+                    mock.patch.object(steps, '_notes_range') as notes_range,
+                    mock.patch.object(
+                        subprocess,
+                        'run',
+                        side_effect=AssertionError('unexpected live command'),
+                    ),
+                    mock.patch.object(
+                        subprocess,
+                        'check_output',
+                        side_effect=AssertionError('unexpected live command'),
+                    ),
+                ):
+                    steps.run_steps(context)
+                notes_range.assert_not_called()
+                self.assertIn(
+                    'Confirm website PR and Slack announcement',
+                    output.getvalue(),
+                )
+                self.assertIn(
+                    'kfpr run create-sdk-release --dry-run', output.getvalue()
+                )
+                self.assertIn(
+                    'kfpr run create-backend-release --dry-run',
+                    output.getvalue(),
+                )
+                self.assertEqual(list(root.iterdir()), [])
+                self.assertFalse(state.completed_steps)
+
     def test_run_steps_skips_completed_steps(self):
         with TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / 'state.json'
@@ -1455,6 +1535,13 @@ class OrchestrationTest(unittest.TestCase):
 
 
 class StepPRCreationTest(unittest.TestCase):
+    def setUp(self):
+        patch = mock.patch(
+            'kfpr.steps.validate_release_pr', return_value='a' * 40
+        )
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def test_step_merge_version_pr_dry_run_uses_fork_head(self):
         with TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / 'state.json'
@@ -1485,6 +1572,8 @@ class StepPRCreationTest(unittest.TestCase):
                     return subprocess.CompletedProcess(command, 0, '', '')
 
                 def capture(self, command, cwd=None):
+                    if command[:3] == ['gh', 'pr', 'list']:
+                        return '[]'
                     self.commands.append(command)
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
@@ -1549,6 +1638,8 @@ class StepPRCreationTest(unittest.TestCase):
                     return subprocess.CompletedProcess(command, 0, '', '')
 
                 def capture(self, command, cwd=None):
+                    if command[:3] == ['gh', 'pr', 'list']:
+                        return '[]'
                     self.commands.append(command)
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
@@ -1622,6 +1713,8 @@ class StepPRCreationTest(unittest.TestCase):
                     return subprocess.CompletedProcess(command, 0, '', '')
 
                 def capture(self, command, cwd=None):
+                    if command[:3] == ['gh', 'pr', 'list']:
+                        return '[]'
                     self.commands.append(command)
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
@@ -1686,6 +1779,8 @@ class StepPRCreationTest(unittest.TestCase):
                     return subprocess.CompletedProcess(command, 0, '', '')
 
                 def capture(self, command, cwd=None):
+                    if command[:3] == ['gh', 'pr', 'list']:
+                        return '[]'
                     self.commands.append(command)
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
@@ -1762,6 +1857,8 @@ class StepPRCreationTest(unittest.TestCase):
                     return subprocess.CompletedProcess(command, 0, '', '')
 
                 def capture(self, command, cwd=None):
+                    if command[:3] == ['gh', 'pr', 'list']:
+                        return '[]'
                     self.commands.append(command)
                     if 'view' in command and any(
                         'statusCheckRollup' in part for part in command
@@ -1808,232 +1905,68 @@ class StepPRCreationTest(unittest.TestCase):
                 runner.commands,
             )
 
-    def test_step_merge_version_pr_uses_existing_remote_tag_when_requested(
-        self,
-    ):
-        with TemporaryDirectory() as tmpdir:
-
-            class ExistingRemoteTagRunner:
-                dry_run = False
-
-                def __init__(self):
-                    self.commands = []
-
-                def run(self, command, cwd=None, check=True):
-                    self.commands.append(command)
-                    if command[:4] == [
-                        'git',
-                        'ls-remote',
-                        '--exit-code',
-                        '--heads',
-                    ]:
-                        return subprocess.CompletedProcess(command, 1, '', '')
-                    if command[:4] == [
-                        'git',
-                        'ls-remote',
-                        '--exit-code',
-                        '--tags',
-                    ]:
-                        return subprocess.CompletedProcess(command, 0, '', '')
-                    return subprocess.CompletedProcess(command, 0, '', '')
-
-                def capture(self, command, cwd=None):
-                    self.commands.append(command)
-                    if 'view' in command and any(
-                        'statusCheckRollup' in part for part in command
-                    ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
-                    if 'view' in command and any(
-                        'mergeStateStatus' in part for part in command
-                    ):
-                        return 'MERGED CLEAN'
-                    return 'https://github.com/kubeflow/pipelines/pull/1'
-
-            runner = ExistingRemoteTagRunner()
-            context = core.ReleaseContext(
-                root=Path(tmpdir),
-                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
-                runner=runner,
-                metadata=core.ReleaseMetadata.from_version('minor', '1.3.0'),
-                fork_remote='git@github.com:testuser/pipelines.git',
-                include_backend=True,
-                include_sdk=True,
-            )
-
-            with mock.patch('builtins.input', return_value='u'):
-                steps.step_merge_version_pr(context)
-
-            self.assertNotIn(
-                [
-                    'git',
-                    'push',
-                    'git@github.com:testuser/pipelines.git',
-                    '1.3.0',
-                ],
-                runner.commands,
-            )
-            self.assertNotIn(
-                [
-                    'git',
-                    'push',
-                    '--delete',
-                    'git@github.com:testuser/pipelines.git',
-                    '1.3.0',
-                ],
-                runner.commands,
-            )
-
-    def test_step_merge_version_pr_recreates_existing_remote_tag_when_requested(
-        self,
-    ):
-        with TemporaryDirectory() as tmpdir:
-
-            class ExistingRemoteTagRunner:
-                dry_run = False
-
-                def __init__(self):
-                    self.commands = []
-
-                def run(self, command, cwd=None, check=True):
-                    self.commands.append(command)
-                    if command[:4] == [
-                        'git',
-                        'ls-remote',
-                        '--exit-code',
-                        '--heads',
-                    ]:
-                        return subprocess.CompletedProcess(command, 1, '', '')
-                    if command[:4] == [
-                        'git',
-                        'ls-remote',
-                        '--exit-code',
-                        '--tags',
-                    ]:
-                        return subprocess.CompletedProcess(command, 0, '', '')
-                    return subprocess.CompletedProcess(command, 0, '', '')
-
-                def capture(self, command, cwd=None):
-                    self.commands.append(command)
-                    if 'view' in command and any(
-                        'statusCheckRollup' in part for part in command
-                    ):
-                        return '[{"name":"ci","status":"COMPLETED","conclusion":"SUCCESS"}]'
-                    if 'view' in command and any(
-                        'mergeStateStatus' in part for part in command
-                    ):
-                        return 'MERGED CLEAN'
-                    return 'https://github.com/kubeflow/pipelines/pull/1'
-
-            runner = ExistingRemoteTagRunner()
-            context = core.ReleaseContext(
-                root=Path(tmpdir),
-                state=core.ReleaseState(Path(tmpdir) / 'state.json'),
-                runner=runner,
-                metadata=core.ReleaseMetadata.from_version('minor', '1.3.0'),
-                fork_remote='git@github.com:testuser/pipelines.git',
-                include_backend=True,
-                include_sdk=True,
-            )
-
-            with mock.patch('builtins.input', return_value='r'):
-                steps.step_merge_version_pr(context)
-
-            self.assertIn(
-                [
-                    'git',
-                    'push',
-                    '--delete',
-                    'git@github.com:testuser/pipelines.git',
-                    '1.3.0',
-                ],
-                runner.commands,
-            )
-            self.assertIn(
-                [
-                    'git',
-                    'push',
-                    'git@github.com:testuser/pipelines.git',
-                    '1.3.0',
-                ],
-                runner.commands,
-            )
-
 
 class StepSdkVersionFilesTest(unittest.TestCase):
-    def test_generate_sdk_release_notes_from_sdk_conventional_commits(self):
+    def setUp(self):
+        for name, value in (
+            ('_preparation_range', SELECTED_RANGE),
+            ('_update_changelog', None),
+            ('read_commits', []),
+        ):
+            patcher = mock.patch.object(steps, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_backend_notes_include_release_fixes_but_not_version_bumps(self):
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-
-            def fake_check_output(command, cwd=None, text=True):
-                self.assertEqual(cwd, root)
-                if command[:3] == ['git', 'tag', '--list']:
-                    return 'sdk-1.2.3\nsdk-1.2.2\n'
-                if command[:2] == ['git', 'log']:
-                    self.assertEqual(command[2], 'sdk-1.2.3..HEAD')
-                    return (
-                        'feat(sdk): add local execution support (#123)\n'
-                        'fix(backend): ignore non-SDK change (#124)\n'
-                        'fix(backend/sdk): repair compiler output (#125)\n'
-                        'chore(CI/SDK): update sdk test image (#126)\n'
-                        'feat(frontend): ignore frontend change (#127)\n'
-                        'feat(sdk)!: remove old runtime (#128)\n'
-                    )
-                raise AssertionError(f'unexpected command: {command}')
-
-            with mock.patch(
-                'subprocess.check_output', side_effect=fake_check_output
-            ):
-                notes = steps._generate_sdk_release_notes(root)
-
-            self.assertEqual(
-                notes,
-                '## Features\n\n'
-                '* add local execution support (#123)\n\n'
-                '## Breaking changes\n\n'
-                '* remove old runtime (#128)\n\n'
-                '## Deprecations\n\n'
-                '## Bug fixes and other changes\n\n'
-                '* repair compiler output (#125)\n'
-                '* update sdk test image (#126)',
+            subjects = (
+                'fix(ci): pin pipeline SDK installs to checked-out commit (#15041)\n'
+                'fix(frontend): prune development dependencies from release image (#15040)\n'
+                'fix(release): patch 2.17.3 proxy and cache-deployer images (#15036)\n'
+                'chore(release): bump version to 2.17.3 (#15034)\n'
+                'fix(release): prepare 2.17.3 security backports (#15026)\n'
+                'fix(sdk): SDK-only correction (#99999)\n'
             )
-
-    def test_generate_backend_release_notes_from_non_sdk_conventional_commits(
-        self,
-    ):
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-
-            def fake_check_output(command, cwd=None, text=True):
-                self.assertEqual(cwd, root)
-                if command[:3] == ['git', 'tag', '--list']:
-                    return '1.2.3\n1.2.2\n'
-                if command[:2] == ['git', 'log']:
-                    self.assertEqual(command[2], '1.2.3..HEAD')
-                    return (
-                        'feat(backend): add recurring run support (#123)\n'
-                        'fix(api): repair run filter parsing (#124)\n'
-                        'fix(sdk): ignore SDK-only change (#125)\n'
-                        'chore(frontend): update table copy (#126)\n'
-                        'feat(backend)!: remove old endpoint (#127)\n'
-                    )
-                raise AssertionError(f'unexpected command: {command}')
-
-            with mock.patch(
-                'subprocess.check_output', side_effect=fake_check_output
+            with mock.patch.object(
+                steps,
+                'read_commits',
+                return_value=[
+                    Commit('c' * 40, subject)
+                    for subject in subjects.splitlines()
+                ],
             ):
-                notes = steps._generate_backend_release_notes(root, '1.2.3')
+                notes = steps._generate_backend_release_notes(
+                    root, SELECTED_RANGE
+                )
+            for number in (15041, 15040, 15036, 15026):
+                self.assertIn(f'/pull/{number}', notes)
+            self.assertNotIn('15034', notes)
+            self.assertNotIn('99999', notes)
 
-            self.assertEqual(
-                notes,
-                '## Features\n\n'
-                '* add recurring run support (#123)\n\n'
-                '## Breaking changes\n\n'
-                '* remove old endpoint (#127)\n\n'
-                '## Deprecations\n\n'
-                '## Bug fixes and other changes\n\n'
-                '* repair run filter parsing (#124)\n'
-                '* update table copy (#126)',
+    def test_sdk_and_backend_use_the_shared_classification(self):
+        commits = [
+            Commit('a' * 40, 'fix(backend/sdk): fix shared API (#1)'),
+            Commit('b' * 40, 'chore(sdk): update test tools (#2)'),
+            Commit('c' * 40, 'feat(frontend): show logs (#3)'),
+            Commit(
+                'd' * 40,
+                'chore(sdk): new interface\n\nBREAKING CHANGE: migrate now',
+            ),
+        ]
+        with mock.patch.object(steps, 'read_commits', return_value=commits):
+            sdk = steps._generate_sdk_release_notes(
+                Path('/repo'), SELECTED_RANGE
             )
+            backend = steps._generate_backend_release_notes(
+                Path('/repo'), SELECTED_RANGE
+            )
+        self.assertIn('Breaking changes', sdk)
+        self.assertNotIn('update test tools', sdk + backend)
+        self.assertIn('fix shared API', sdk)
+        self.assertIn('fix shared API', backend)
+        self.assertNotIn('show logs', sdk)
+        self.assertIn('show logs', backend)
 
     def test_update_sdk_version_files_replaces_version_without_trailing_garbage(
         self,
@@ -2065,7 +1998,11 @@ class StepSdkVersionFilesTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            steps._update_sdk_version_files(context)
+            with (
+                mock.patch('kfpr.steps.clean_legacy_distributions'),
+                mock.patch('kfpr.steps.validate_legacy_wheels'),
+            ):
+                steps._update_sdk_version_files(context)
 
             self.assertEqual(
                 version_file.read_text(), "__version__ = '1.2.4'\n"
@@ -2158,7 +2095,46 @@ class StepSdkVersionFilesTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            steps.step_update_version_tags(context)
+            events = []
+            original_run = context.runner.run
+
+            def record_run(command, cwd=None, check=True):
+                events.append(('command', command))
+                return original_run(command, cwd=cwd, check=check)
+
+            context.runner.run = record_run
+            with (
+                mock.patch(
+                    'kfpr.steps.clean_legacy_distributions',
+                    side_effect=lambda path: events.append(('clean', path)),
+                ) as clean,
+                mock.patch(
+                    'kfpr.steps.validate_legacy_wheels',
+                    side_effect=lambda path, version: events.append(
+                        ('validate', path, version)
+                    ),
+                ) as validate,
+            ):
+                steps.step_update_version_tags(context)
+            clean.assert_called_once_with(root)
+            validate.assert_called_once_with(root, '1.3.0')
+            self.assertLess(
+                events.index(('clean', root)),
+                events.index(('command', ['make', 'python'])),
+            )
+            self.assertLess(
+                max(
+                    index
+                    for index, event in enumerate(events)
+                    if event
+                    == ('command', [sys.executable, '-m', 'build', '.'])
+                ),
+                events.index(('validate', root, '1.3.0')),
+            )
+            self.assertLess(
+                events.index(('validate', root, '1.3.0')),
+                events.index(('command', ['git', 'add', '--all'])),
+            )
 
             self.assertEqual(
                 (root / 'sdk/python/kfp/version.py').read_text(),
@@ -2231,6 +2207,32 @@ class StepSdkVersionFilesTest(unittest.TestCase):
                 ),
             )
             self.assertIn(['git', 'add', '--all'], commands)
+            invocations = [
+                (command, cwd) for command, cwd, _ in context.runner.commands
+            ]
+            self.assertLess(
+                invocations.index((['make', 'python'], root / 'api')),
+                invocations.index(
+                    (
+                        [sys.executable, '-m', 'build', '.'],
+                        root / 'api/v2alpha1/python',
+                    )
+                ),
+            )
+            self.assertLess(
+                invocations.index(
+                    (
+                        ['make', 'python', 'USE_FIND_LINKS=true'],
+                        root / 'kubernetes_platform',
+                    )
+                ),
+                invocations.index(
+                    (
+                        [sys.executable, '-m', 'build', '.'],
+                        root / 'kubernetes_platform/python',
+                    )
+                ),
+            )
 
 
 class UvReleasePackagesTest(unittest.TestCase):
@@ -2516,6 +2518,12 @@ class DryRunOutputTest(unittest.TestCase):
         )
         layout.start()
         self.addCleanup(layout.stop)
+        for name in ('_preparation_range', '_update_changelog'):
+            patcher = mock.patch.object(
+                steps, name, return_value=SELECTED_RANGE
+            )
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def test_update_version_tags_cuts_update_branch_from_release_branch(self):
 
@@ -2550,7 +2558,9 @@ class DryRunOutputTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            steps.step_update_version_tags(context)
+            # This runner records builds without producing wheel artifacts.
+            with mock.patch('kfpr.steps.validate_legacy_wheels'):
+                steps.step_update_version_tags(context)
 
             self.assertEqual(
                 context.runner.commands[0], ['git', 'checkout', 'release-3.2']
@@ -2604,7 +2614,9 @@ class DryRunOutputTest(unittest.TestCase):
                 include_sdk=True,
             )
 
-            steps.step_update_version_tags(context)
+            # This runner records builds without producing wheel artifacts.
+            with mock.patch('kfpr.steps.validate_legacy_wheels'):
+                steps.step_update_version_tags(context)
 
             self.assertIn(
                 ['git', 'checkout', 'release-3.2'], context.runner.commands
@@ -2653,7 +2665,9 @@ class DryRunOutputTest(unittest.TestCase):
             )
 
             with mock.patch('builtins.input', return_value='r'):
-                steps.step_update_version_tags(context)
+                # This runner records builds without producing wheel artifacts.
+                with mock.patch('kfpr.steps.validate_legacy_wheels'):
+                    steps.step_update_version_tags(context)
 
             self.assertIn(
                 ['git', 'branch', '-D', '3.2.0-update-version-tags'],
@@ -2700,7 +2714,9 @@ class DryRunOutputTest(unittest.TestCase):
             )
 
             with mock.patch('builtins.input', return_value='u'):
-                steps.step_update_version_tags(context)
+                # This runner records builds without producing wheel artifacts.
+                with mock.patch('kfpr.steps.validate_legacy_wheels'):
+                    steps.step_update_version_tags(context)
 
             self.assertIn(
                 ['git', 'checkout', '3.2.0-update-version-tags'],
@@ -2715,7 +2731,7 @@ class DryRunOutputTest(unittest.TestCase):
                 context.runner.commands,
             )
 
-    def test_update_version_tags_dry_run_prints_version_write_and_tag(self):
+    def test_update_version_tags_dry_run_does_not_tag(self):
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             context = core.ReleaseContext(
@@ -2735,7 +2751,7 @@ class DryRunOutputTest(unittest.TestCase):
                 str(call.args[0]) for call in print_mock.call_args_list
             )
             self.assertIn('[dry-run] would write VERSION: 3.2.0', output)
-            self.assertIn('[dry-run] would create tag: 3.2.0', output)
+            self.assertNotIn('would create tag', output)
 
     def test_update_version_tags_no_longer_edits_release_makefile(self):
         with TemporaryDirectory() as tmpdir:
@@ -2841,57 +2857,6 @@ class DryRunOutputTest(unittest.TestCase):
                 flattened_commands,
             )
 
-    def test_update_version_tags_recreates_existing_tag_when_requested(self):
-
-        class ExistingTagRunner(core.CommandRunner):
-            def run(self, command, cwd=None, check=True):
-                self.commands.append(command)
-                if command[:4] == [
-                    'git',
-                    'rev-parse',
-                    '--verify',
-                    'refs/heads/3.2.0-update-version-tags',
-                ]:
-                    return subprocess.CompletedProcess(command, 1, '', '')
-                if command[:4] == [
-                    'git',
-                    'rev-parse',
-                    '--verify',
-                    'refs/tags/3.2.0',
-                ]:
-                    return subprocess.CompletedProcess(command, 0, '', '')
-                return subprocess.CompletedProcess(command, 0, '', '')
-
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            context = core.ReleaseContext(
-                root=root,
-                state=core.ReleaseState(root / 'state.json'),
-                runner=ExistingTagRunner(dry_run=False),
-                metadata=core.ReleaseMetadata.from_version('minor', '3.2.0'),
-                fork_remote='git@github.com:testuser/pipelines.git',
-                include_backend=True,
-                include_sdk=True,
-            )
-
-            with mock.patch('builtins.input', return_value='r'):
-                steps.step_update_version_tags(context)
-
-            self.assertIn(
-                ['git', 'tag', '-d', '3.2.0'], context.runner.commands
-            )
-            self.assertIn(
-                [
-                    'git',
-                    'tag',
-                    '-a',
-                    '3.2.0',
-                    '-m',
-                    'Kubeflow Pipelines 3.2.0 release',
-                ],
-                context.runner.commands,
-            )
-
     def test_update_version_tags_uses_existing_tag_when_requested(self):
 
         class ExistingTagRunner(core.CommandRunner):
@@ -2926,7 +2891,9 @@ class DryRunOutputTest(unittest.TestCase):
             )
 
             with mock.patch('builtins.input', return_value='u'):
-                steps.step_update_version_tags(context)
+                # This runner records builds without producing wheel artifacts.
+                with mock.patch('kfpr.steps.validate_legacy_wheels'):
+                    steps.step_update_version_tags(context)
 
             self.assertNotIn(
                 ['git', 'tag', '-d', '3.2.0'], context.runner.commands
@@ -3078,6 +3045,7 @@ class DryRunOutputTest(unittest.TestCase):
                 '3.2.0',
                 'release-3.2',
                 consolidated=False,
+                set_defaults=True,
             )
             self.assertNotIn('rtd_token', context.state.answers)
             output = '\n'.join(
@@ -3115,6 +3083,7 @@ class DryRunOutputTest(unittest.TestCase):
                 '3.2.0',
                 'release-3.2',
                 consolidated=False,
+                set_defaults=True,
             )
 
     def test_confirm_rtd_reasks_for_empty_token(self):
@@ -3363,6 +3332,179 @@ class DryRunOutputTest(unittest.TestCase):
             )
             self.assertNotIn('Version PR:', output)
             self.assertNotIn('Waiting for PR merge:', output)
+
+
+class ReleaseNotesPreviewTest(QualifiedPublicationTest):
+    def setUp(self):
+        super().setUp()
+        layout = mock.patch.object(
+            steps, '_sdk_release_is_consolidated', return_value=True
+        )
+        layout.start()
+        self.addCleanup(layout.stop)
+        for name, value in (
+            ('_notes_range', SELECTED_RANGE),
+            ('read_commits', [Commit('c' * 40, 'fix(sdk): repair logs')]),
+            ('_remote_release_sha', 'b' * 40),
+        ):
+            patcher = mock.patch.object(steps, name, return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def context(self, root, dry_run=False):
+        runner = mock.Mock(dry_run=dry_run)
+        runner.run.return_value = subprocess.CompletedProcess([], 1)
+        return core.ReleaseContext(
+            root=root,
+            state=core.ReleaseState(root / 'state.json'),
+            runner=runner,
+            metadata=core.ReleaseMetadata.from_version('patch', '2.17.3'),
+            fork_remote='origin',
+            include_backend=True,
+            include_sdk=True,
+            previous_release='2.17.2',
+        )
+
+    def test_dry_run_writes_backend_and_sdk_previews_without_publishing(self):
+        with TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            context = self.context(root, dry_run=True)
+            with (
+                mock.patch.object(
+                    steps.subprocess,
+                    'check_output',
+                    return_value='version.py\n',
+                ),
+                mock.patch.object(
+                    steps,
+                    '_generate_backend_release_notes',
+                    return_value='## Bug fixes\n\n* Repair logs.',
+                ),
+                mock.patch('builtins.input') as input_mock,
+            ):
+                steps.step_create_backend_release(context)
+                steps.step_create_sdk_release(context)
+            self.assertIn(
+                'Repair logs.', (root / 'state-notes/2.17.3.md').read_text()
+            )
+            self.assertIn(
+                'pip install kfp==2.17.3',
+                (root / 'state-notes/sdk-2.17.3.md').read_text(),
+            )
+            context.runner.run.assert_not_called()
+            input_mock.assert_not_called()
+
+    def test_retry_publishes_edited_preview_without_regenerating(self):
+        for sdk in (False, True):
+            with self.subTest(sdk=sdk), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                context = self.context(root)
+                tag = 'sdk-2.17.3' if sdk else '2.17.3'
+                preview = root / 'state-notes' / f'{tag}.md'
+                preview.parent.mkdir()
+                preview.with_suffix('.json').write_text(
+                    json.dumps(SELECTED_RANGE.as_dict())
+                )
+                preview.write_text(
+                    '## Upgrade\n\nRetain this reviewed guidance.\n'
+                )
+                handler = (
+                    steps.step_create_sdk_release
+                    if sdk
+                    else steps.step_create_backend_release
+                )
+
+                def edit_preview(_):
+                    preview.write_text(
+                        preview.read_text() + 'Final review edit.\n'
+                    )
+                    return 'y'
+
+                with (
+                    mock.patch('builtins.input', side_effect=edit_preview),
+                    mock.patch.object(
+                        steps, '_generate_backend_release_notes'
+                    ) as generate,
+                ):
+                    handler(context)
+                generate.assert_not_called()
+                command = context.runner.run.call_args.args[0]
+                self.assertEqual(command[:4], ['gh', 'release', 'create', tag])
+                self.assertEqual(
+                    Path(command[command.index('--notes-file') + 1]),
+                    preview.resolve(),
+                )
+                self.assertIn(
+                    'Retain this reviewed guidance.', preview.read_text()
+                )
+                self.assertIn('Final review edit.', preview.read_text())
+
+    def test_declined_preview_does_not_publish_or_delete_existing_release(self):
+        for sdk in (False, True):
+            with self.subTest(sdk=sdk), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                context = self.context(root)
+                context.runner.run.return_value.returncode = 0
+                handler = (
+                    steps.step_create_sdk_release
+                    if sdk
+                    else steps.step_create_backend_release
+                )
+                with (
+                    mock.patch(
+                        'builtins.input',
+                        side_effect=['r', 'n'] if sdk else ['n'],
+                    ),
+                    mock.patch.object(
+                        steps,
+                        '_generate_backend_release_notes',
+                        return_value='## Fixes\n\n* Fix logs.',
+                    ),
+                ):
+                    with self.assertRaises(SystemExit):
+                        handler(context)
+                for call in context.runner.run.call_args_list:
+                    self.assertNotIn(call.args[0][2], ('create', 'delete'))
+
+    def test_empty_edited_preview_cannot_be_published(self):
+        for sdk in (False, True):
+            with self.subTest(sdk=sdk), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                context = self.context(root)
+                tag = 'sdk-2.17.3' if sdk else '2.17.3'
+                preview = root / 'state-notes' / f'{tag}.md'
+                preview.parent.mkdir()
+                preview.with_suffix('.json').write_text(
+                    json.dumps(SELECTED_RANGE.as_dict())
+                )
+                preview.write_text('Reviewed notes')
+
+                def clear_preview(_):
+                    preview.write_text('   \n')
+                    return 'y'
+
+                handler = (
+                    steps.step_create_sdk_release
+                    if sdk
+                    else steps.step_create_backend_release
+                )
+                with mock.patch('builtins.input', side_effect=clear_preview):
+                    with self.assertRaisesRegex(ValueError, 'empty'):
+                        handler(context)
+                for call in context.runner.run.call_args_list:
+                    self.assertNotIn(call.args[0][2], ('create', 'delete'))
+
+    def test_empty_generated_backend_notes_stop_before_publication(self):
+        with TemporaryDirectory() as tmpdir:
+            context = self.context(Path(tmpdir))
+            with mock.patch.object(
+                steps, '_generate_backend_release_notes', return_value=''
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, 'No backend release notes'
+                ):
+                    steps.step_create_backend_release(context)
+            context.runner.run.assert_not_called()
 
 
 if __name__ == '__main__':

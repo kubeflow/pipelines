@@ -217,6 +217,22 @@ maintainer decides the next step, such as merging a follow-up through a pull
 request to restore provenance. Do not weaken the freshness check to admit
 stale evidence.
 
+For stacked pull requests, retarget each dependent PR to `master` after its
+parent merges, then merge it through that PR. Merging into a staging branch and
+fast-forwarding `master` to the resulting commit does not create a merge record
+for `master`. The staging PR's timestamp proves arrival only on its own base
+branch and must not be reused as the arrival time on `master`.
+
+A recovery PR targeting `master` is subject to the same missing-base blocker.
+After reviewing its diff and available CI evidence, a maintainer must explicitly
+authorize any exceptional merge required to restore provenance. Keep required
+checks and the freshness validator intact; do not synthesize a successful
+`ci-passed` status. Verify the recovery PR's authoritative merged record names
+`master` and its merge SHA matches the new base tip. Then update affected PR
+branches to include that tip and trigger new CI executions. Rerunning executions
+created before the recovery merge does not establish freshness against the new
+base.
+
 ## Validation and coordinated rollout
 
 Publisher code always executes from the trusted base revision. A PR changing the

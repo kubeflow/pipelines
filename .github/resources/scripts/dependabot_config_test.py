@@ -438,8 +438,103 @@ class DependabotConfigTest(unittest.TestCase):
                 )
             self.assertEqual(matches, [expected_group] * 4)
 
+    def test_typescript_eslint_packages_share_update_groups(self):
+        npm = next(
+            update
+            for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == 'npm'
+        )
+        group_names = list(npm['groups'])
+        for applies_to, expected_group in (
+            ('version-updates', 'typescript-eslint-version'),
+            ('security-updates', 'typescript-eslint-security'),
+        ):
+            self.assertLess(
+                group_names.index(expected_group),
+                group_names.index('npm-dependencies'),
+            )
+            for dependency in (
+                '@typescript-eslint/parser',
+                '@typescript-eslint/eslint-plugin',
+                '@typescript-eslint/scope-manager',
+                '@typescript-eslint/typescript-estree',
+                '@typescript-eslint/utils',
+            ):
+                with self.subTest(applies_to=applies_to, dependency=dependency):
+                    matching_group = next(
+                        (
+                            name
+                            for name, group in npm['groups'].items()
+                            if group.get('applies-to', 'version-updates')
+                            == applies_to
+                            and any(
+                                fnmatchcase(dependency, pattern)
+                                for pattern in group.get('patterns', ['*'])
+                            )
+                            and not any(
+                                fnmatchcase(dependency, pattern)
+                                for pattern in group.get('exclude-patterns', [])
+                            )
+                        ),
+                        None,
+                    )
+                    self.assertEqual(matching_group, expected_group)
+
+    def test_frontend_typescript_eslint_versions_match(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        manifest = json.loads((frontend / 'package.json').read_text())
+        packages = json.loads((frontend / 'package-lock.json').read_text())[
+            'packages'
+        ]
+        expected_version = manifest['devDependencies'][
+            '@typescript-eslint/eslint-plugin'
+        ]
+        for dependency in (
+            '@typescript-eslint/eslint-plugin',
+            '@typescript-eslint/parser',
+        ):
+            with self.subTest(dependency=dependency):
+                self.assertEqual(
+                    manifest['devDependencies'][dependency], expected_version
+                )
+                self.assertEqual(
+                    packages['']['devDependencies'][dependency],
+                    expected_version,
+                )
+                self.assertEqual(
+                    packages[f'node_modules/{dependency}']['version'],
+                    expected_version,
+                )
+
     def test_frontend_vitest_coverage_matches_locked_runner(self):
         self.assert_vitest_coverage_matches_locked_runner('frontend')
+
+    def test_frontend_node_pins_and_engine_enforcement_agree(self):
+        frontend = REPOSITORY_ROOT / 'frontend'
+        version = (frontend / '.nvmrc').read_text().strip().removeprefix('v')
+        manifest = json.loads((frontend / 'package.json').read_text())
+        lock = json.loads((frontend / 'package-lock.json').read_text())
+        self.assertEqual(manifest['engines']['node'], version)
+        self.assertEqual(lock['packages']['']['engines']['node'], version)
+        self.assertIn('engine-strict=true', (frontend / '.npmrc').read_text())
+
+    def test_frontend_node_consumers_use_shared_pin(self):
+        for path in (
+            '.github/workflows/frontend.yml',
+            '.github/workflows/e2e-test-frontend.yml',
+            '.github/workflows/image-builds.yml',
+            '.github/workflows/build-and-push.yml',
+            '.github/actions/build-tools-images/action.yml',
+            'test/cloudbuild/frontend.yaml',
+            'test/cloudbuild/batch_build.yaml',
+        ):
+            with self.subTest(path=path):
+                self.assertIn(
+                    'frontend/.nvmrc', (REPOSITORY_ROOT / path).read_text()
+                )
+        dockerfile = (REPOSITORY_ROOT / 'frontend/Dockerfile').read_text()
+        self.assertIn('FROM node:${NODE_VERSION}-slim AS build', dockerfile)
+        self.assertIn('FROM node:${NODE_VERSION}-${BASE_IMAGE}', dockerfile)
 
     def test_server_vitest_coverage_matches_locked_runner(self):
         self.assert_vitest_coverage_matches_locked_runner('frontend/server')

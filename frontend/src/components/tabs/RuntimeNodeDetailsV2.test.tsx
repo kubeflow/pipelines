@@ -39,10 +39,12 @@ import {
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import { getNodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType } from 'src/components/viewers/Viewer';
+import datasetPreview from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 
 const V2_PVC_TEMPLATE_STRING = dump({
   pipeline_spec: loadAll(v2PvcYamlString)[0],
@@ -104,10 +106,24 @@ describe('RuntimeNodeDetailsV2', () => {
     const driverLogUri = 's3://pipeline-root/driver-logs.txt';
 
     beforeEach(() => {
-      // Give the real virtualized LogViewer a viewport in jsdom.
-      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
-      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(800);
+      // AutoSizer measures its parent after ResizeObserver reports a viewport.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 800, 600),
+      );
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(private callback: ResizeObserverCallback) {}
+          observe() {
+            this.callback([], this as unknown as ResizeObserver);
+          }
+          unobserve() {}
+          disconnect() {}
+        },
+      );
     });
+
+    afterEach(() => vi.unstubAllGlobals());
 
     function createSystemLogsTask(
       uri: unknown = driverLogUri,
@@ -249,6 +265,8 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(screen.getByText('Failed to retrieve system logs.')).toBeVisible();
 
       await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      // Flush AutoSizer's animation frame after the recovered log viewer mounts.
+      await act(async () => vi.advanceTimersByTimeAsync(20));
       expect(screen.getByText('live system logs')).toBeVisible();
       expect(screen.queryByText('Failed to retrieve system logs.')).not.toBeInTheDocument();
       expect(readFileSpy).toHaveBeenCalledTimes(2);
@@ -1020,6 +1038,104 @@ describe('RuntimeNodeDetailsV2', () => {
 
     expect(await screen.findByText('restored')).toBeVisible();
     expect(loadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('lazy-loads a Parquet Dataset preview only in its Visualization tab', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const rawRead = vi.spyOn(Apis, 'readFile');
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          element={{
+            data: { label: 'dataset' },
+            id: 'artifact.preprocess.dataset',
+            position: { x: 100, y: 100 },
+            type: 'ARTIFACT',
+          }}
+          elementRuntimeInfo={{
+            task: createTask(),
+            artifactGroup: {
+              artifact_key: 'dataset',
+              artifacts: [
+                {
+                  artifact_id: 'dataset-1',
+                  type: ArtifactArtifactType.Dataset,
+                  uri: 's3://bucket/dataset',
+                  metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+                },
+              ],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+    expect(read).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Visualization'));
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(screen.queryByText('There is no metrics artifact available in this step.')).toBeNull();
+    expect(read.mock.calls.filter(([, , signal]) => !signal?.aborted)).toEqual([
+      ['dataset-1', TEST_NAMESPACE, expect.objectContaining({ aborted: false })],
+    ]);
+    expect(rawRead).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Artifact Info' }));
+    expect(screen.queryByRole('table', { name: 'Dataset sample' })).toBeNull();
+  });
+
+  it('offers every collected member without fetching a preview before selection', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const root: V2PipelineTask = {
+      task_id: 'root-task',
+      name: 'root',
+      type: PipelineTaskTaskType.ROOT,
+    };
+    const task = createTask({
+      parent_task_id: root.task_id,
+      outputs: {
+        artifacts: [1, 2].map((index) => ({
+          artifact_key: 'datasets',
+          artifacts: [
+            {
+              artifact_id: `dataset-${index}`,
+              name: 'dataset',
+              type: ArtifactArtifactType.Dataset,
+              uri: `s3://bucket/dataset-${index}`,
+              metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+            },
+          ],
+        })),
+      },
+    });
+    const element = {
+      data: { label: 'datasets' },
+      id: 'artifact.preprocess.datasets',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          element={element}
+          elementRuntimeInfo={getNodeRuntimeInfo(element, [root, task], ['root'])}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+    expect(screen.getByText('Artifact Count')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Visualization' }));
+    expect(read).not.toHaveBeenCalled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Artifact preview' }));
+    fireEvent.click(screen.getByRole('option', { name: 'dataset (2)', exact: true }));
+    await screen.findByRole('table', { name: 'Dataset sample' });
+    expect(read.mock.calls.filter(([, , signal]) => !signal?.aborted)).toEqual([
+      ['dataset-2', TEST_NAMESPACE, expect.objectContaining({ aborted: false })],
+    ]);
   });
 
   it('refreshes an artifact visualization when the producing task finishes', async () => {

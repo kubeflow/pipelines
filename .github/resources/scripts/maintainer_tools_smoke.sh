@@ -45,6 +45,28 @@ for relative, path in sorted(paths):
 PY
 }
 
+# Release notes are generated on the host, independently of the tooling image.
+# Keep a deterministic artifact for the cross-architecture byte comparison.
+render_changelog_smoke() {
+  python3 - "$@" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+sys.path.insert(0, str(root / 'release'))
+from kfpr.notes import Commit, render_notes
+
+notes = render_notes([
+    Commit('1' * 40, 'feat: native maintainer tooling smoke'),
+    Commit('2' * 40, 'fix(sdk)!: upgrade fixture API\n\n'
+           'BREAKING CHANGE: Update the fixture client before deploying.'),
+])
+entry = ('## 3.0.0-smoke (2000-01-01)\n\n' +
+         notes.replace('## ', '### ') + '\n\n').encode()
+Path(sys.argv[2]).write_bytes(entry + (root / 'CHANGELOG.md').read_bytes())
+PY
+}
+
 validate_native_images() {
   local architecture=$1 machine
   case "$architecture" in
@@ -77,7 +99,9 @@ main() {
   output=$(cd "$2" && pwd)
   source_dir=$(mktemp -d "${TMPDIR:-/tmp}/kfp-maintainer-smoke.XXXXXX")
   # This directory is exclusively owned by this run; never modify the checkout.
-  trap 'rm -rf -- "$source_dir"' EXIT
+  local cleanup_command
+  printf -v cleanup_command 'rm -rf -- %q' "$source_dir"
+  trap "$cleanup_command" EXIT
   git -C "$root" archive HEAD | tar -x -C "$source_dir"
 
   for image in "${TOOL_IMAGE_ARTIFACTS[@]}"; do
@@ -99,7 +123,7 @@ backend/api/build_kfp_server_api_python_package.sh
 test -s backend/api/v2/go_client/run.pb.go
 test -s backend/api/v2/swagger/kfp_api_single_file.swagger.json
 test -s sdk/python/kfp/server_api/api_client.py
-python3 -m pip wheel --no-deps ./sdk/python --wheel-dir /tmp/kfp-smoke-dist
+uv build --wheel ./sdk/python --out-dir /tmp/kfp-smoke-dist
 compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl' >/dev/null
 CONTAINER
     snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}" \
@@ -115,37 +139,18 @@ CONTAINER
 set -euo pipefail
 mkdir -p "$HOME"
 test "$(node --version)" = "v$(tr -d 'v\r\n' < frontend/.nvmrc)"
-npm --version
-yq --version | grep -F '3.4.1'
-test "$(git-cliff --version)" = "git-cliff ${GIT_CLIFF_VERSION}"
+test "$(npm --version)" = "$NPM_VERSION"
+mkdir -p /tmp/kfp-npm-smoke
+printf '%s\n' '{"name":"kfp-tooling-smoke","version":"1.0.0"}' > /tmp/kfp-npm-smoke/package.json
+npm pack /tmp/kfp-npm-smoke --pack-destination /tmp
+test -s /tmp/kfp-tooling-smoke-1.0.0.tgz
+yq --version | grep -F 'v4.54.1'
+python3 manifests/kustomize/hack/yq_release_test.py
 manifests/kustomize/hack/release.sh 3.0.0-smoke
-test "$(yq r manifests/kustomize/base/installs/generic/pipeline-install-config.yaml data.appVersion)" = 3.0.0-smoke
-# Synthetic history exercises the project's real changelog configuration without
-# needing credentials, tags, or a writable clone of the contributor's repository.
-git init -q
-git config user.name 'KFP tooling smoke fixture'
-git config user.email 'smoke@example.invalid'
-git -c commit.gpgsign=false commit --allow-empty -qm 'chore: fixture baseline'
-previous=$(git rev-parse HEAD)
-git -c commit.gpgsign=false commit --allow-empty -qm 'feat: native maintainer tooling smoke'
-git-cliff -c cliff.toml --tag 3.0.0-smoke --prepend CHANGELOG.md "$previous..HEAD"
-grep -F 'native maintainer tooling smoke' CHANGELOG.md
+test "$(yq eval '.data.appVersion' manifests/kustomize/base/installs/generic/pipeline-install-config.yaml)" = 3.0.0-smoke
 CONTAINER
   snapshot_sources "$source_dir" manifests/kustomize > "$output/$TOOL_MANIFESTS_OUTPUT"
-  # Only the synthetic release heading contains a wall-clock date. Preserve
-  # every other byte, including the project's existing historical changelog.
-  python3 - "$source_dir/CHANGELOG.md" "$output/$TOOL_CHANGELOG_OUTPUT" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-text, count = re.subn(r'^(## 3\.0\.0-smoke) \(\d{4}-\d{2}-\d{2}\)$',
-                      r'\1 (<release-date>)', Path(sys.argv[1]).read_text(),
-                      count=1, flags=re.MULTILINE)
-if count != 1:
-    raise SystemExit('Expected one synthetic release heading')
-Path(sys.argv[2]).write_text(text)
-PY
+  render_changelog_smoke "$source_dir" "$output/$TOOL_CHANGELOG_OUTPUT"
   rm -rf -- "$source_dir"
   trap - EXIT
 }

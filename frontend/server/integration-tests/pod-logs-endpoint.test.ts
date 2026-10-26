@@ -14,7 +14,7 @@
 
 import express from 'express';
 import { load as loadYaml } from 'js-yaml';
-import { Client as MinioClient } from 'minio';
+
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { PassThrough } from 'node:stream';
@@ -27,7 +27,12 @@ import { getPodLogsHandler } from '../handlers/pod-logs.js';
 import { getArgoWorkflow, getK8sSecret, getPodLogs, getServerNamespace } from '../k8s-helper.js';
 import type { ArtifactRepository, PartialArgoWorkflow } from '../workflow-helper.js';
 
-vi.mock('minio');
+import { MockS3Client, expectedS3Options } from './s3-client-test-helper.js';
+vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>();
+  const { createS3Mock } = await import('./s3-client-test-helper.js');
+  return { ...actual, S3Client: createS3Mock(actual) };
+});
 vi.mock('../k8s-helper.js', () => ({
   getArgoWorkflow: vi.fn(),
   getK8sSecret: vi.fn(),
@@ -128,8 +133,8 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
       stream.end(logContent);
       return stream;
     });
-    vi.mocked(MinioClient).mockImplementation(function () {
-      return { getObject, listObjectsV2Query: vi.fn(), retryOptions: {} } as unknown as MinioClient;
+    vi.mocked(MockS3Client).mockImplementation(function () {
+      return { getObject, listPage: vi.fn(), retryOptions: {} };
     });
   });
 
@@ -158,7 +163,7 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
       expect(getPodLogs).toHaveBeenCalledWith(podName, namespace, 'main');
       expect(getArgoWorkflow).toHaveBeenCalledWith('workflow-1', namespace);
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MinioClient).not.toHaveBeenCalled();
+      expect(MockS3Client).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();
     },
   );
@@ -182,7 +187,7 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
 
       expect(response.text).toContain('Artifact store endpoint is not allowed');
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MinioClient).not.toHaveBeenCalled();
+      expect(MockS3Client).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();
     },
   );
@@ -221,13 +226,15 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
       expect(getK8sSecret).toHaveBeenCalledTimes(2);
       expect(getK8sSecret).toHaveBeenCalledWith('workflow-store', 'access-key', 'kubeflow');
       expect(getK8sSecret).toHaveBeenCalledWith('workflow-store', 'secret-key', 'kubeflow');
-      expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
-        accessKey: 'workflow-access-key',
-        secretKey: 'workflow-secret-key',
-        endPoint,
-        port,
-        useSSL: !insecure,
-      });
+      expect(MockS3Client).toHaveBeenCalledExactlyOnceWith(
+        expectedS3Options({
+          accessKey: 'workflow-access-key',
+          secretKey: 'workflow-secret-key',
+          endPoint,
+          port,
+          useSSL: !insecure,
+        }),
+      );
       expect(getObject).toHaveBeenCalledExactlyOnceWith('workflow-logs', 'tenant/task/main.log');
     },
   );
@@ -265,13 +272,15 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
       expect(repository.s3.endpoint).toBe(`seaweedfs.${installationNamespace}.svc:9000`);
       expect(logKey).toBe(`private-artifacts/tenant/workflow-1/2026/09/05/${podName}/main.log`);
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
-        accessKey: 'frontend-access-key',
-        secretKey: 'frontend-secret-key',
-        endPoint: `seaweedfs.${installationNamespace}.svc`,
-        port: 9000,
-        useSSL: false,
-      });
+      expect(MockS3Client).toHaveBeenCalledExactlyOnceWith(
+        expectedS3Options({
+          accessKey: 'frontend-access-key',
+          secretKey: 'frontend-secret-key',
+          endPoint: `seaweedfs.${installationNamespace}.svc`,
+          port: 9000,
+          useSSL: false,
+        }),
+      );
       expect(getObject).toHaveBeenCalledExactlyOnceWith('mlpipeline', logKey);
     },
   );
@@ -335,13 +344,15 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
           .expect(200, logContent);
 
         expect(getK8sSecret).not.toHaveBeenCalled();
-        expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
-          accessKey: 'frontend-access-key',
-          secretKey: 'frontend-secret-key',
-          endPoint,
-          port: 9000,
-          useSSL: false,
-        });
+        expect(MockS3Client).toHaveBeenCalledExactlyOnceWith(
+          expectedS3Options({
+            accessKey: 'frontend-access-key',
+            secretKey: 'frontend-secret-key',
+            endPoint,
+            port: 9000,
+            useSSL: false,
+          }),
+        );
         expect(logKey).toBe(`private-artifacts/tenant/workflow-1/2026/09/05/${podName}/main.log`);
         expect(getObject).toHaveBeenCalledExactlyOnceWith('mlpipeline', logKey);
       },
@@ -375,7 +386,7 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
 
       expect(response.text).toContain('Artifact store endpoint is not allowed');
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(MinioClient).not.toHaveBeenCalled();
+      expect(MockS3Client).not.toHaveBeenCalled();
       expect(getObject).not.toHaveBeenCalled();
     },
   );
@@ -391,13 +402,15 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
       .expect(200, logContent);
 
     expect(getK8sSecret).not.toHaveBeenCalled();
-    expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
-      accessKey: 'frontend-access-key',
-      secretKey: 'frontend-secret-key',
-      endPoint: 'operator-store.kubeflow',
-      port: 9000,
-      useSSL: false,
-    });
+    expect(MockS3Client).toHaveBeenCalledExactlyOnceWith(
+      expectedS3Options({
+        accessKey: 'frontend-access-key',
+        secretKey: 'frontend-secret-key',
+        endPoint: 'operator-store.kubeflow',
+        port: 9000,
+        useSSL: false,
+      }),
+    );
     expect(getObject).toHaveBeenCalledExactlyOnceWith('workflow-logs', 'tenant/task/main.log');
   });
 
@@ -418,13 +431,15 @@ describe('/k8s/pod/logs workflow artifact endpoints', () => {
 
     expect(getArgoWorkflow).toHaveBeenCalledWith('workflow-1', 'kubeflow');
     expect(getK8sSecret).not.toHaveBeenCalled();
-    expect(MinioClient).toHaveBeenCalledExactlyOnceWith({
-      accessKey: 'operator-access-key',
-      secretKey: 'operator-secret-key',
-      endPoint: 'operator-store.kubeflow',
-      port: 9000,
-      useSSL: false,
-    });
+    expect(MockS3Client).toHaveBeenCalledExactlyOnceWith(
+      expectedS3Options({
+        accessKey: 'operator-access-key',
+        secretKey: 'operator-secret-key',
+        endPoint: 'operator-store.kubeflow',
+        port: 9000,
+        useSSL: false,
+      }),
+    );
     expect(getObject).toHaveBeenCalledExactlyOnceWith(
       'operator-logs',
       `archive/kubeflow/${podName}/main.log`,

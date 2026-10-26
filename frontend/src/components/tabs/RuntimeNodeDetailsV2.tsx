@@ -671,6 +671,7 @@ function ArtifactNodeDetail({
           <div hidden={selectedTab !== 1}>
             <RuntimeMetricsVisualizations
               artifacts={artifacts}
+              active={selectedTab === 1}
               artifactKey={artifactGroup.artifact_key}
               namespace={namespace}
               sourceFinished={sourceFinished || isTaskFinished(task.state)}

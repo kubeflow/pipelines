@@ -204,6 +204,10 @@ from pathlib import Path
 import sys
 
 arguments = sys.argv[1:]
+if arguments[0] == 'version':
+    # Platform discovery is not part of the recorded build contract.
+    print('linux/amd64')
+    sys.exit(0)
 failed_cache = os.environ.get('EXPECTED_REMOVED_CACHE')
 if failed_cache and Path(failed_cache).exists():
     sys.exit('Failed cache still occupies disk before rebuild')
@@ -253,8 +257,10 @@ if arguments[0] == 'save':
             for line in inventory.splitlines()
             if line and not line.startswith('#')
         ]
-        pulls = [command[1] for command in commands if command[0] == 'pull']
-        self.assertEqual(pulls, images)
+        pulls = [command[1:] for command in commands if command[0] == 'pull']
+        self.assertEqual(
+            pulls, [['--platform=linux/amd64', image] for image in images]
+        )
         builds = [command for command in commands if command[0] == 'build']
         self.assertEqual(len(builds), 1)
         self.assertIn(

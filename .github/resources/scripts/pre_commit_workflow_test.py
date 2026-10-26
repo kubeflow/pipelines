@@ -71,6 +71,170 @@ class PreCommitWorkflowTest(unittest.TestCase):
             self.workflow,
         )
 
+    def test_whitespace_hooks_preserve_generated_viewer_bundles(self):
+        config = yaml.safe_load(self.config)
+        hooks = {
+            hook['id']: hook
+            for repo in config['repos']
+            for hook in repo['hooks']
+        }
+        for hook_id in ('end-of-file-fixer', 'trailing-whitespace'):
+            exclude = re.compile(hooks[hook_id].get('exclude', r'^$'))
+            for name in ('viewer.js', 'viewer.css'):
+                path = f'sdk/python/kfp/cli/viewer_assets/{name}'
+                with self.subTest(hook=hook_id, generated_file=path):
+                    self.assertRegex(path, exclude)
+                    self.assertNotRegex(path, config['exclude'])
+            for path in (
+                'frontend/src/standalone/Viewer.tsx',
+                'frontend/src/standalone/viewer.css',
+                'frontend/vite.viewer.config.mts',
+                'sdk/python/kfp/cli/visualize.py',
+                'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
+            ):
+                with self.subTest(hook=hook_id, checked_file=path):
+                    self.assertNotRegex(path, exclude)
+
+    def test_viewer_hook_rebuilds_shared_sources_and_bundled_assets(self):
+        hooks = {
+            hook['id']: hook
+            for repo in yaml.safe_load(self.config)['repos']
+            for hook in repo['hooks']
+        }
+        self.assertIn('sdk-viewer-assets', hooks)
+        hook = hooks['sdk-viewer-assets']
+        self.assertEqual(hook['language'], 'system')
+        self.assertEqual(
+            shlex.split(hook['entry']),
+            ['npm', '--prefix', 'frontend', 'run', 'build:viewer'],
+        )
+        self.assertFalse(hook['pass_filenames'])
+        self.assertTrue(hook['require_serial'])
+        for path in (
+            'frontend/src/components/graph/PipelineGraph.tsx',
+            'frontend/src/standalone/Viewer.tsx',
+            'frontend/src/tailwind.css',
+            'frontend/package-lock.json',
+            'frontend/.nvmrc',
+            'frontend/vite.viewer.config.mts',
+            'sdk/python/kfp/cli/viewer_assets/viewer.js',
+            'sdk/python/kfp/cli/viewer_assets/viewer.css',
+            'sdk/python/kfp/cli/viewer_assets/LICENSES.txt',
+            '.pre-commit-config.yaml',
+            '.github/workflows/pre-commit.yml',
+        ):
+            with self.subTest(path=path):
+                self.assertRegex(path, hook['files'])
+        for path in ('sdk/python/kfp/cli/visualize.py', 'backend/main.go'):
+            with self.subTest(path=path):
+                self.assertNotRegex(path, hook['files'])
+
+    def test_viewer_ci_installs_pinned_toolchain_before_hooks(self):
+        steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
+        node_steps = [
+            step
+            for step in steps
+            if step.get('uses', '').startswith('actions/setup-node@')
+        ]
+        self.assertEqual(len(node_steps), 1)
+        node = node_steps[0]
+        self.assertEqual(node['with']['node-version-file'], 'frontend/.nvmrc')
+        install = next(
+            step
+            for step in steps
+            if step.get('name') == 'Install viewer build dependencies'
+        )
+        self.assertEqual(install['working-directory'], 'frontend')
+        self.assertIn(
+            'require("./package.json").packageManager', install['run']
+        )
+        self.assertIn('npm ci', install['run'])
+        condition = "steps.pre-commit-range.outputs.viewer-required == 'true'"
+        self.assertEqual(node['if'], condition)
+        self.assertEqual(install['if'], condition)
+        self.assertLess(steps.index(node), steps.index(install))
+        self.assertLess(
+            steps.index(install),
+            next(
+                i
+                for i, step in enumerate(steps)
+                if step.get('uses', '').startswith('pre-commit/action@')
+            ),
+        )
+
+    def test_viewer_ci_setup_covers_hook_inputs_and_config_smoke(self):
+        steps = yaml.safe_load(self.workflow)['jobs']['pre-commit']['steps']
+        command = next(
+            step['run']
+            for step in steps
+            if step.get('id') == 'pre-commit-range'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def git(*args):
+                return subprocess.check_output(
+                    ['git', *args],
+                    cwd=root,
+                    text=True,
+                ).strip()
+
+            git('init', '-q')
+            git(
+                '-c',
+                'user.name=Test',
+                '-c',
+                'user.email=test@example.com',
+                'commit',
+                '-qm',
+                'base',
+                '--allow-empty',
+            )
+            for path, required in (
+                ('backend/main.go', False),
+                ('frontend/src/components/graph/PipelineGraph.tsx', True),
+                ('frontend/package-lock.json', True),
+                ('sdk/python/kfp/cli/viewer_assets/viewer.js', True),
+                ('.github/workflows/pre-commit.yml', True),
+                ('.pre-commit-config.yaml', True),
+                ('uv.lock', True),
+            ):
+                with self.subTest(path=path):
+                    base = git('rev-parse', 'HEAD')
+                    file = root / path
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    file.write_text('changed\n')
+                    git('add', path)
+                    git(
+                        '-c',
+                        'user.name=Test',
+                        '-c',
+                        'user.email=test@example.com',
+                        'commit',
+                        '-qm',
+                        'change',
+                    )
+                    output = root / 'output'
+                    output.write_text('')
+                    result = subprocess.run(
+                        ['bash', '-c', command],
+                        cwd=root,
+                        env={
+                            **os.environ,
+                            'EVENT_BASE_SHA': base,
+                            'GITHUB_OUTPUT': str(output),
+                            'GITHUB_ENV': str(root / 'env'),
+                        },
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn(
+                        f'viewer-required={str(required).lower()}',
+                        output.read_text().splitlines(),
+                    )
+
     def test_workflow_fails_closed_when_the_event_base_is_unavailable(self):
         self.assertIn('Unable to resolve the event base commit', self.workflow)
         self.assertNotIn('git rev-parse HEAD^', self.workflow)
@@ -119,6 +283,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 [
                     'uv',
                     'run',
+                    # The lint env is pinned to Python 3.11 because the
+                    # docformatter dependency untokenize cannot build on
+                    # Python >= 3.12, and isolated so the pin never rewrites
+                    # the project's .venv.
+                    '--python',
+                    '3.11',
+                    '--isolated',
                     '--frozen',
                     '--extra',
                     'lint',
