@@ -694,7 +694,7 @@ exports[`CompareV1 > creates a map of viewers 1`] = `
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
@@ -1666,7 +1666,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
@@ -1779,7 +1779,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
@@ -1892,7 +1892,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
@@ -6334,7 +6334,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
@@ -6447,7 +6447,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
@@ -6560,7 +6560,7 @@ exports[`CompareV1 > expands all sections if they were collapsed 1`] = `
                         role="combobox"
                         tabindex="0"
                       >
-                        TensorBoard 2.21.0
+                        KFP TensorBoard (default)
                       </div>
                       <input
                         aria-hidden="true"
