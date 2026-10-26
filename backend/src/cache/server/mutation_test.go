@@ -200,7 +200,7 @@ func TestDefaultImage(t *testing.T) {
 	patchOperation, err := MutatePodIfCached(&fakeAdmissionRequest, fakeClientManager)
 	assert.Nil(t, err)
 	container := patchOperation[0].Value.([]corev1.Container)[0]
-	require.Equal(t, "docker.io/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63", container.Image)
+	require.Equal(t, defaultCacheImage, container.Image)
 }
 
 func TestSetImage(t *testing.T) {

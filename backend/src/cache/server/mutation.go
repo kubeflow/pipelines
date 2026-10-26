@@ -34,6 +34,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Avoid Docker Hub pull limits on new nodes: https://github.com/kubeflow/pipelines/issues/4099
+const defaultCacheImage = "public.ecr.aws/docker/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63"
+
 const (
 	KFPCacheEnabledLabelKey    string = "pipelines.kubeflow.org/cache_enabled"
 	KFPCacheEnabledLabelValue  string = "true"
@@ -191,7 +194,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 		// Keep the echo-only helper pinned to an image with an Alpine package database
 		// so release vulnerability scans can identify its installed packages.
-		image := "docker.io/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63"
+		image := defaultCacheImage
 		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
 			image = v
 		}

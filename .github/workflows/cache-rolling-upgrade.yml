@@ -52,18 +52,6 @@ jobs:
           bash .github/resources/scripts/docker-pull-with-retry.sh "$cache_image"
           kind load docker-image --name cache-rolling "$cache_image"
           kind load docker-image --name cache-rolling kfp-cache-server:rolling-candidate
-      - name: Install pinned OSV scanner
-        env:
-          OSV_SCANNER_VERSION: '2.5.0'
-          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
-        run: |
-          curl -fsSL --retry 5 --retry-all-errors \
-            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
-            --output osv-scanner
-          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
-          chmod +x osv-scanner
-      - name: Verify cache helper package coverage
-        run: python3 test/cache-rolling-upgrade/scan_helper.py --output /tmp/cache-helper-scan
       - name: Validate populated rolling upgrade and converged isolation
         run: python3 test/cache-rolling-upgrade/validate.py
       - name: Diagnose failed fixture
@@ -81,7 +69,34 @@ jobs:
           name: cache-rolling-upgrade-${{ github.run_id }}
           path: |
             /tmp/cache-rolling-report.json
-            /tmp/cache-helper-scan/
       - name: Remove disposable cluster
         if: always()
         run: kind delete cluster --name cache-rolling
+
+  cache-helper-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Pull configured cache helper
+        run: |
+          cache_image=$(python3 -c 'import json; print(json.load(open("backend/src/apiserver/config/config.json"))["CACHE_IMAGE"])')
+          bash .github/resources/scripts/docker-pull-with-retry.sh "$cache_image"
+      - name: Install pinned OSV scanner
+        env:
+          OSV_SCANNER_VERSION: '2.5.0'
+          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            --output osv-scanner
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+      - name: Verify cache helper package coverage
+        run: python3 test/cache-rolling-upgrade/scan_helper.py --output /tmp/cache-helper-scan
+      - name: Retain package coverage evidence
+        if: always()
+        uses: ./.github/actions/upload-artifact-with-retry
+        with:
+          name: cache-helper-scan-${{ github.run_id }}
+          path: /tmp/cache-helper-scan/
