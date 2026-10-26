@@ -26,6 +26,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Workflows that deploy CI-built images overlap Kind setup with current-branch image builds. The shared deploy action waits for the complete artifact inventory; its normal window extends while a missing artifact's producer is queued or running, and completed producers receive a short publication grace.
 - CI Docker-sensitive paths use retry wrappers for image builds, BuildKit bootstrap, and runtime-image pulls. GitHub-hosted Docker jobs configure `mirror.gcr.io` as a Docker Hub pull-through cache, docker-container builders use the same mirror through `buildkitd.toml`, and uncached images still fall back to Docker Hub. Build jobs explicitly try and locally tag the mirrored BuildKit bootstrap image before falling back to Docker Hub within the shared retry budget.
 - `runtime-base-images.yml` refreshes the shared runtime-image artifact. `image-builds.yml` prefers a matching current-source or trusted-master artifact, but rebuilds locally after a bounded lookup miss or failed download. Both workflows use `build-runtime-base-images.sh` to archive test-task, MySQL, and supported Argo images plus the Modelcar fixture. This keeps release branches and older PR snapshots working after shared artifacts expire without permanent release-specific producer lanes. Generation failures stop the job before upload; opted-in E2E lanes still require the Modelcar archive during deployment.
+- Runtime base-image pulls and exports select the Docker server's platform in producers. The Kind fallback selects the actual node image platform and imports a temporary platform-scoped archive; its temporary file is removed on success or failure. This avoids incomplete multi-platform indexes that Kind imports with `--all-platforms`. Shared producers and consumers run on the same platform; heterogeneous Kind nodes are rejected. The generation fingerprint includes `helper-functions.sh`, so changes to this export logic invalidate old artifacts and caches.
+- The DRA E2E lane loads its locally built `kfp-dra-sdk:test` component image the same way: `docker save --platform` for the Kind node platform from `runtime_image_platform` to a temporary archive, then `kind load image-archive`; the archive is removed on exit. `kfp component build` uses Docker's classic builder, whose images record no platform on the containerd image store (the default from Docker 29, used by `ubuntu-26.04` runners), so the lane first re-exports the image through BuildKit for that platform.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
 - The KFP Manifests suite also checks the rendered profile-controller NetworkPolicy for the base multi-user install and the plain, platform-agnostic, and PostgreSQL multi-user overlays. These selector/namespace/port assertions run through `manifests/kustomize/hack/test.sh`; they do not verify live CNI enforcement or override additive allowances from other policies.
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
@@ -52,6 +54,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- Tinyproxy runs in the foreground under Kubernetes supervision. Keep its PID file disabled; health probes use its listening socket, and no fixture consumes a PID file. This avoids requiring a writable runtime path without changing its service identity or security profiles.
 
 ## Release 2.18 stabilization
 
@@ -173,7 +176,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Synthetic Pods replace Argo's completion label, so this is cache component
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
-  failures remain failures and the disposable cluster is always deleted.
+  failures remain failures and the disposable cluster is always deleted. The
+  candidate removes the source CACHE_IMAGE override, verifies the default helper
+  completes a real cache-hit Pod, and records its image ID and log output. Helper
+  qualification retains its Alpine package database and pinned OSV JSON/SARIF
+  reports; missing package metadata or scanner errors fail coverage checks.
+  Advisory counts are evidence, not automatic release exceptions.
 - Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache
@@ -225,3 +233,14 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+- The legacy cache rolling-upgrade workflow runs helper-image OSV coverage in a separate job so a scanner outage does not skip functional upgrade validation. Keep its scanner version/checksum aligned with `osv-scanner.yml`; the CI-script test checks both. The helper uses the digest-identical Google-hosted Alpine mirror to avoid Docker Hub rate limits (#4099). Coverage derives the Alpine ecosystem from the inspected image and requires BusyBox and musl records.
+
+- Cache rolling-upgrade acceptance pulls published baseline and fixture images directly through the Kind node CRI runtime with bounded retries. Only the locally built candidate uses `kind load docker-image`; exporting published multi-platform images through host Docker can leave missing index content during containerd import.
+
+- The TensorBoard runtime is a separate KFP image built by the CI and release matrices. Its hash-locked standalone dependencies include S3 and GCS readers; do not replace it with a TensorFlow image without verifying that TensorBoard and both readers are present. `manifests/kustomize/hack/release.sh` stamps the UI/controller image defaults through `hack/update_tensorboard_image.py`. Its regression tests require both paths in the CI Scripts Tests filter.
+- `tensorboard-acceptance.yml` builds the candidate runtime explicitly on AMD64 and ARM64. The direct AMD64 runtime lane reads event files through S3/GCS protocol emulators and tests scalar/image/graph navigation under the scoped proxy prefix in Chromium. This bypasses published default-image tags so presubmit exercises the candidate build. The separate deployed lane below verifies Kubernetes proxy authorization; neither lane establishes real cloud IAM integration.
+
+- TensorBoard deployed acceptance uses a disposable Kind cluster with candidate UI/API/controller images and the same candidate viewer reference requested by the UI. It uses real KFP AuthService and Kubernetes SubjectAccessReview through localhost trusted identity headers; it does not test ingress authentication. The fixture verifies mounted AWS credential discovery, S3/GCS event reads, growing and rotated event-object reload without pod or container restarts, proxy browser rendering, denied/reader/manager permissions, deletion/recreation and explicit custom-image selection. GCS uses an anonymous emulator, so real cloud IAM remains outside this lane. No production images are published.
+
+- Both TensorBoard Chromium acceptance lanes use Ubuntu 24.04, supported by their pinned Playwright 1.56.1. Keep these runner pins until the browser tooling is upgraded and validated on a newer Ubuntu image; `ubuntu-latest` can advance independently of Playwright support.

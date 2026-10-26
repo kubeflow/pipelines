@@ -265,6 +265,8 @@ with open(os.environ['DOCKER_LOG'], 'a') as log:
     log.write(json.dumps(arguments) + '\\n')
 if arguments[0] == os.environ.get('FAIL_DOCKER_COMMAND'):
     sys.exit(1)
+if arguments[0] == 'version':
+    print('linux/amd64')
 if arguments[0] == 'save':
     flag = '-o' if '-o' in arguments else '--output'
     Path(arguments[arguments.index(flag) + 1]).write_bytes(b'new archive')
@@ -304,8 +306,12 @@ if arguments[0] == 'save':
             line for line in inventory.splitlines()
             if line and not line.startswith('#')
         ]
-        pulls = [command[1] for command in commands if command[0] == 'pull']
+        pulls = [command[-1] for command in commands if command[0] == 'pull']
         self.assertEqual(pulls, images)
+        self.assertTrue(
+            all(command[1] == '--platform=linux/amd64'
+                for command in commands
+                if command[0] == 'pull'))
         builds = [command for command in commands if command[0] == 'build']
         self.assertEqual(len(builds), 1)
         self.assertIn(
@@ -314,6 +320,7 @@ if arguments[0] == 'save':
         self.assertIn(MODELCAR_IMAGE, builds[0])
         saves = [command for command in commands if command[0] == 'save']
         self.assertEqual(len(saves), 2)
+        self.assertEqual(saves[0][1], '--platform=linux/amd64')
         self.assertIn(MODELCAR_IMAGE, saves[1])
         self.assertEqual(self.sleeps(), [])
 
@@ -321,8 +328,8 @@ if arguments[0] == 'save':
         result, commands = self.run_build('pull')
 
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(len(commands), 5)
-        self.assertTrue(all(command[0] == 'pull' for command in commands))
+        pulls = [command for command in commands if command[0] == 'pull']
+        self.assertEqual(len(pulls), 5)
         self.assertEqual(len(self.sleeps()), 4)
         self.assertFalse(
             (self.output_directory / 'runtime-base-images.tar').exists())
@@ -343,6 +350,16 @@ if arguments[0] == 'save':
 
 
 class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
+
+    def test_export_helper_changes_invalidate_producer_and_consumer_artifacts(
+            self):
+        queue_producer = ROOT / '.github/workflows/runtime-base-images-merge-group.yml'
+        for workflow in (CONSUMER, PRODUCER, queue_producer):
+            with self.subTest(workflow=workflow.name):
+                fingerprint = workflow.read_text().split(
+                    'archive_fingerprint=$(', 1)[1].split(')', 1)[0]
+                self.assertIn('.github/resources/scripts/helper-functions.sh',
+                              fingerprint)
 
     def test_missing_or_failed_download_rebuilds_before_upload(self):
         job = runtime_job_text()

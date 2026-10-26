@@ -20,6 +20,8 @@ COMPLETE = 'workflows.argoproj.io/completed'
 OLD = 'ghcr.io/kubeflow/kfp-cache-server:2.17.2'
 NEW = 'kfp-cache-server:rolling-candidate'
 TASK = 'busybox:1.37'
+CACHE_IMAGE = json.loads(
+    Path('backend/src/apiserver/config/config.json').read_text())['CACHE_IMAGE']
 REPORT = {
     'source_version': '2.17.2',
     'source_revision': '2511cdbd74cd531c6633f2e094d235082a32917d',
@@ -548,7 +550,11 @@ def validate():
                     'spec': {
                         'containers': [{
                             'name': 'server',
-                            'image': NEW
+                            'image': NEW,
+                            'env': [{
+                                'name': 'CACHE_IMAGE',
+                                '$patch': 'delete'
+                            }]
                         }]
                     }
                 }
@@ -627,6 +633,16 @@ def validate():
     complete('scoped-populate')
     scoped_hit = task('scoped-hit', 'poison')
     assert_hit(scoped_hit, True)
+    cached_pod = get('pod', 'scoped-hit')
+    assert cached_pod['spec']['containers'][0]['image'] == CACHE_IMAGE
+    assert cached_pod['status']['phase'] == 'Succeeded'
+    assert 'This step output is taken from cache.' in k('-n', NS, 'logs',
+                                                        'scoped-hit')
+    record(
+        'default_cache_helper',
+        image=CACHE_IMAGE,
+        image_id=cached_pod['status']['containerStatuses'][0]['imageID'],
+        pod_uid=cached_pod['metadata']['uid'])
     assert scoped_hit['metadata']['annotations'][OUTPUT] == get(
         'pod', 'scoped-populate')['metadata']['annotations'][OUTPUT]
     assert_hit(

@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -30,13 +31,21 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             encoding='utf-8')
 
     def test_scanner_release_is_pinned_and_checksum_verified(self):
-        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"),
-                         2)
+        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"), 2)
         scanner_checksum = (
             "OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3f"
             "cfc434b0b423ea67468a84c207524e0c'")
         self.assertEqual(self.workflow.count(scanner_checksum), 2)
         self.assertIn('sha256sum --check --strict', self.workflow)
+
+    def test_cache_helper_uses_the_same_scanner_release(self):
+        helper = (ROOT /
+                  '.github/workflows/cache-rolling-upgrade.yml').read_text()
+        for key in ('OSV_SCANNER_VERSION', 'OSV_SCANNER_SHA256'):
+            pattern = rf"{key}: '([^']+)'"
+            self.assertEqual(
+                set(re.findall(pattern, helper)),
+                set(re.findall(pattern, self.workflow)))
 
     def test_scan_recursively_reports_all_supported_dependencies(self):
         self.assertIn('./osv-scanner scan source', self.workflow)
