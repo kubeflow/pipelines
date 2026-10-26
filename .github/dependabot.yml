@@ -263,5 +263,6 @@ updates:
       - "Dockerfile.viewercontroller"
       - "Dockerfile.visualization"
       - "api/**"
+      - "metadata_writer/**"
       - "src/**"
       - "test/**"

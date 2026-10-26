@@ -258,6 +258,7 @@ class DependabotConfigTest(unittest.TestCase):
         for path in (
             'Dockerfile',
             'Dockerfile.visualization',
+            'metadata_writer/Dockerfile',
             'src/cache/Dockerfile',
         ):
             with self.subTest(path=path):
