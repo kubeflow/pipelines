@@ -223,3 +223,18 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+## Third-party image upgrade checks
+
+`third-party-image-upgrades.yml` tests the release-2.18 SeaweedFS upgrade on the
+same Kind PVC, preserving S3 objects, lifecycle rules and profile-issued IAM
+credentials across upgrade and restart. It invokes the real profile webhook
+without installing Metacontroller, retains production security contexts, and
+checks profile reconciliation tests. Existing API/E2E lanes cover Argo; keep the
+3.7 compatibility slot while updating the default 4.1 slot.
+
+The scan jobs compare baseline and candidate manifest references on Linux AMD64,
+reusing production OSV tooling at a pinned commit. Raw JSON, SARIF, immutable
+image identities and advisory-alias comparisons are retained as artifacts.
+Successful scans mean complete evidence, not zero findings or release approval.
+These jobs neither suppress alerts nor change qualification/publication policy.
