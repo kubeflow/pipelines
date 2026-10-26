@@ -1,0 +1,1366 @@
+{
+  "artifact_types": {
+    "artifactTypes": [
+      {
+        "id": "14",
+        "name": "system.Dataset"
+      },
+      {
+        "id": "15",
+        "name": "system.Metrics"
+      }
+    ]
+  },
+  "artifacts": {
+    "artifacts": [
+      {
+        "id": "1",
+        "typeId": "14",
+        "type": "system.Dataset",
+        "uri": "s3://fixture/dataset",
+        "customProperties": {
+          "description": {
+            "stringValue": "shared input"
+          },
+          "display_name": {
+            "stringValue": "dataset"
+          },
+          "rows": {
+            "doubleValue": 12
+          },
+          "store_session_info": {
+            "stringValue": "null"
+          }
+        },
+        "state": "LIVE",
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "2",
+        "typeId": "15",
+        "type": "system.Metrics",
+        "uri": "s3://fixture/metrics",
+        "customProperties": {
+          "accuracy": {
+            "doubleValue": 0.875
+          },
+          "display_name": {
+            "stringValue": "metrics"
+          },
+          "loss": {
+            "doubleValue": 0.125
+          },
+          "note": {
+            "stringValue": "keep nonnumeric metadata"
+          },
+          "store_session_info": {
+            "stringValue": "null"
+          }
+        },
+        "state": "LIVE",
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "3",
+        "typeId": "15",
+        "type": "system.Metrics",
+        "uri": "s3://fixture/empty-metrics",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "empty-metrics"
+          },
+          "note": {
+            "stringValue": "no measurements"
+          },
+          "store_session_info": {
+            "stringValue": "null"
+          }
+        },
+        "state": "LIVE",
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      }
+    ]
+  },
+  "cache": {
+    "command": [
+      "python",
+      "train.py"
+    ],
+    "fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+    "image": "fixture/train:v1",
+    "inputs": {
+      "artifacts": {
+        "dataset": {
+          "artifacts": [
+            {
+              "name": "1",
+              "type": {
+                "instanceSchema": "title: system.Dataset\ntype: object\n"
+              },
+              "uri": "s3://fixture/dataset",
+              "metadata": {
+                "description": "shared input",
+                "display_name": "dataset",
+                "rows": 12,
+                "store_session_info": "null"
+              }
+            }
+          ]
+        },
+        "metrics": {
+          "artifacts": [
+            {
+              "name": "2",
+              "type": {
+                "instanceSchema": "title: system.Metrics\ntype: object\n"
+              },
+              "uri": "s3://fixture/metrics",
+              "metadata": {
+                "accuracy": 0.875,
+                "display_name": "metrics",
+                "loss": 0.125,
+                "note": "keep nonnumeric metadata",
+                "store_session_info": "null"
+              }
+            }
+          ]
+        }
+      },
+      "parameterValues": {
+        "epochs": 3
+      }
+    },
+    "key": {
+      "inputArtifactNames": {
+        "dataset": {
+          "artifactNames": [
+            "1"
+          ]
+        },
+        "metrics": {
+          "artifactNames": [
+            "2"
+          ]
+        }
+      },
+      "containerSpec": {
+        "image": "fixture/train:v1",
+        "cmdArgs": [
+          "python",
+          "train.py"
+        ]
+      },
+      "inputParameterValues": {
+        "epochs": 3
+      }
+    },
+    "outputs": {}
+  },
+  "cases": {
+    "cached": 6,
+    "consumer": 7,
+    "dataset": 1,
+    "empty-metrics": 3,
+    "failed": 11,
+    "gap": 12,
+    "importer": 4,
+    "iteration-0": 9,
+    "iteration-1": 10,
+    "late": 13,
+    "loop": 8,
+    "metrics": 2,
+    "nested": 2,
+    "orphan": 14,
+    "producer": 5,
+    "root": 1,
+    "skipped": 3
+  },
+  "context_types": {
+    "contextTypes": [
+      {
+        "id": "10",
+        "name": "system.Pipeline"
+      },
+      {
+        "id": "11",
+        "name": "system.PipelineRun"
+      }
+    ]
+  },
+  "contexts": {
+    "contexts": [
+      {
+        "id": "1",
+        "name": "migration-contract",
+        "typeId": "10",
+        "type": "system.Pipeline",
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "2",
+        "name": "11111111-1111-4111-8111-111111111111",
+        "typeId": "11",
+        "type": "system.PipelineRun",
+        "customProperties": {
+          "namespace": {
+            "stringValue": "migration-fixture"
+          },
+          "pipeline_root": {
+            "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+          },
+          "resource_name": {
+            "stringValue": "workflows.argoproj.io/fixture"
+          },
+          "store_session_info": {
+            "stringValue": "{}"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "3",
+        "name": "22222222-2222-4222-8222-222222222222",
+        "typeId": "11",
+        "type": "system.PipelineRun",
+        "customProperties": {
+          "namespace": {
+            "stringValue": "migration-fixture"
+          },
+          "pipeline_root": {
+            "stringValue": "s3://fixture/root/migration-contract/22222222-2222-4222-8222-222222222222"
+          },
+          "resource_name": {
+            "stringValue": "workflows.argoproj.io/orphan"
+          },
+          "store_session_info": {
+            "stringValue": "{}"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      }
+    ]
+  },
+  "events": {
+    "events": [
+      {
+        "artifactId": "1",
+        "executionId": "10",
+        "path": {
+          "steps": [
+            {
+              "key": "dataset"
+            }
+          ]
+        },
+        "type": "INPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "1",
+        "executionId": "4",
+        "path": {
+          "steps": [
+            {
+              "key": "dataset"
+            }
+          ]
+        },
+        "type": "OUTPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "1",
+        "executionId": "7",
+        "path": {
+          "steps": [
+            {
+              "key": "dataset"
+            }
+          ]
+        },
+        "type": "INPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "1",
+        "executionId": "9",
+        "path": {
+          "steps": [
+            {
+              "key": "dataset"
+            }
+          ]
+        },
+        "type": "INPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "2",
+        "executionId": "5",
+        "path": {
+          "steps": [
+            {
+              "key": "metrics"
+            }
+          ]
+        },
+        "type": "OUTPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "2",
+        "executionId": "6",
+        "path": {
+          "steps": [
+            {
+              "key": "metrics"
+            }
+          ]
+        },
+        "type": "OUTPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "2",
+        "executionId": "7",
+        "path": {
+          "steps": [
+            {
+              "key": "metrics"
+            }
+          ]
+        },
+        "type": "INPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      },
+      {
+        "artifactId": "3",
+        "executionId": "5",
+        "path": {
+          "steps": [
+            {
+              "key": "empty-metrics"
+            }
+          ]
+        },
+        "type": "OUTPUT",
+        "millisecondsSinceEpoch": "1700000001000"
+      }
+    ]
+  },
+  "execution_contexts": {
+    "1": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "10": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "11": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "12": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "3",
+          "name": "22222222-2222-4222-8222-222222222222",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/22222222-2222-4222-8222-222222222222"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/orphan"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "13": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "14": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "3",
+          "name": "22222222-2222-4222-8222-222222222222",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/22222222-2222-4222-8222-222222222222"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/orphan"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "2": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "3": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "4": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "5": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "6": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "7": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "8": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    },
+    "9": {
+      "contexts": [
+        {
+          "id": "1",
+          "name": "migration-contract",
+          "typeId": "10",
+          "type": "system.Pipeline",
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        },
+        {
+          "id": "2",
+          "name": "11111111-1111-4111-8111-111111111111",
+          "typeId": "11",
+          "type": "system.PipelineRun",
+          "customProperties": {
+            "namespace": {
+              "stringValue": "migration-fixture"
+            },
+            "pipeline_root": {
+              "stringValue": "s3://fixture/root/migration-contract/11111111-1111-4111-8111-111111111111"
+            },
+            "resource_name": {
+              "stringValue": "workflows.argoproj.io/fixture"
+            },
+            "store_session_info": {
+              "stringValue": "{}"
+            }
+          },
+          "createTimeSinceEpoch": "1700000000123",
+          "lastUpdateTimeSinceEpoch": "1700000001456"
+        }
+      ]
+    }
+  },
+  "execution_types": {
+    "executionTypes": [
+      {
+        "id": "12",
+        "name": "system.DAGExecution"
+      },
+      {
+        "id": "13",
+        "name": "system.ContainerExecution"
+      },
+      {
+        "id": "16",
+        "name": "system.ImporterExecution"
+      }
+    ]
+  },
+  "executions": {
+    "executions": [
+      {
+        "id": "1",
+        "name": "root",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "root"
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "task_name": {
+            "stringValue": "root"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "2",
+        "name": "nested",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "nested"
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "task_name": {
+            "stringValue": "nested"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "3",
+        "name": "skipped",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "CANCELED",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "skipped"
+          },
+          "image": {
+            "stringValue": ""
+          },
+          "namespace": {
+            "stringValue": ""
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "skipped"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "4",
+        "name": "importer",
+        "typeId": "16",
+        "type": "system.ImporterExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "importer"
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "task_name": {
+            "stringValue": "importer"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "5",
+        "name": "producer",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "producer"
+          },
+          "image": {
+            "stringValue": "fixture/train:v1"
+          },
+          "inputs": {
+            "structValue": {
+              "epochs": 3
+            }
+          },
+          "namespace": {
+            "stringValue": "migration-fixture"
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "2"
+          },
+          "pod_name": {
+            "stringValue": "producer-pod"
+          },
+          "pod_uid": {
+            "stringValue": "producer-uid"
+          },
+          "task_name": {
+            "stringValue": "producer"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "6",
+        "name": "cached",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "CACHED",
+        "customProperties": {
+          "cached_execution_id": {
+            "stringValue": "5"
+          },
+          "display_name": {
+            "stringValue": "cached"
+          },
+          "image": {
+            "stringValue": ""
+          },
+          "namespace": {
+            "stringValue": ""
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "cached"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "7",
+        "name": "consumer",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "cache_fingerprint": {
+            "stringValue": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb"
+          },
+          "display_name": {
+            "stringValue": "consumer"
+          },
+          "image": {
+            "stringValue": "fixture/train:v1"
+          },
+          "inputs": {
+            "structValue": {
+              "epochs": 3
+            }
+          },
+          "namespace": {
+            "stringValue": "migration-fixture"
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "consumer"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "8",
+        "name": "loop",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "loop"
+          },
+          "iteration_count": {
+            "intValue": "2"
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "task_name": {
+            "stringValue": "loop"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "9",
+        "name": "iteration-0",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "iteration-0"
+          },
+          "image": {
+            "stringValue": ""
+          },
+          "iteration_index": {
+            "intValue": "0"
+          },
+          "namespace": {
+            "stringValue": ""
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "8"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "iteration-0"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "10",
+        "name": "iteration-1",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "iteration-1"
+          },
+          "image": {
+            "stringValue": ""
+          },
+          "iteration_index": {
+            "intValue": "1"
+          },
+          "namespace": {
+            "stringValue": ""
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "8"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "iteration-1"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "11",
+        "name": "failed",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "FAILED",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "failed"
+          },
+          "image": {
+            "stringValue": ""
+          },
+          "namespace": {
+            "stringValue": ""
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "failed"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "12",
+        "name": "gap",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "RUNNING",
+        "customProperties": {
+          "display_name": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "gap"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "13",
+        "name": "late",
+        "typeId": "13",
+        "type": "system.ContainerExecution",
+        "lastKnownState": "COMPLETE",
+        "customProperties": {
+          "display_name": {
+            "stringValue": "late"
+          },
+          "image": {
+            "stringValue": ""
+          },
+          "namespace": {
+            "stringValue": ""
+          },
+          "outputs": {
+            "structValue": {
+              "result": "done"
+            }
+          },
+          "parent_dag_id": {
+            "intValue": "1"
+          },
+          "pod_name": {
+            "stringValue": ""
+          },
+          "pod_uid": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "late"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      },
+      {
+        "id": "14",
+        "name": "orphan",
+        "typeId": "12",
+        "type": "system.DAGExecution",
+        "lastKnownState": "RUNNING",
+        "customProperties": {
+          "display_name": {
+            "stringValue": ""
+          },
+          "task_name": {
+            "stringValue": "orphan"
+          }
+        },
+        "createTimeSinceEpoch": "1700000000123",
+        "lastUpdateTimeSinceEpoch": "1700000001456"
+      }
+    ]
+  },
+  "legacy_task": {
+    "UUID": "33333333-3333-4333-8333-333333333333",
+    "Namespace": "migration-fixture",
+    "PipelineName": "",
+    "RunID": "11111111-1111-4111-8111-111111111111",
+    "Run": {
+      "UUID": "",
+      "DisplayName": "",
+      "K8SName": "",
+      "Description": "",
+      "Namespace": "",
+      "ExperimentId": "",
+      "RecurringRunId": "",
+      "StorageState": "",
+      "ServiceAccount": "",
+      "Metrics": null,
+      "ResourceReferences": null,
+      "PipelineId": "",
+      "PipelineVersionId": "",
+      "PipelineName": "",
+      "PipelineSpecManifest": "",
+      "WorkflowSpecManifest": "",
+      "Parameters": "",
+      "PipelineRoot": "",
+      "CreatedAtInSec": 0,
+      "ScheduledAtInSec": 0,
+      "FinishedAtInSec": 0,
+      "Conditions": "",
+      "State": "",
+      "StateHistoryString": "",
+      "StateHistory": null,
+      "PluginsInputString": null,
+      "PluginsOutputString": null,
+      "PipelineRuntimeManifest": "",
+      "WorkflowRuntimeManifest": "",
+      "PipelineContextId": 0,
+      "PipelineRunContextId": 0,
+      "TaskDetails": null
+    },
+    "PodName": "",
+    "MLMDExecutionID": "7",
+    "CreatedTimestamp": 1700000000,
+    "StartedTimestamp": 0,
+    "FinishedTimestamp": 0,
+    "Fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+    "Name": "",
+    "ParentTaskId": "",
+    "State": "",
+    "StateHistoryString": "",
+    "MLMDInputs": "",
+    "MLMDOutputs": "",
+    "ChildrenPodsString": "",
+    "StateHistory": null,
+    "ChildrenPods": null,
+    "Payload": ""
+  },
+  "mlmd_version": "1.14.0",
+  "run": {
+    "namespace": "migration-fixture",
+    "pipeline_name": "migration-contract",
+    "uuid": "11111111-1111-4111-8111-111111111111"
+  },
+  "source_commit": "a0733cb51b0484a6050cafee989ffe3312f808ad",
+  "source_version": "2.17.3"
+}

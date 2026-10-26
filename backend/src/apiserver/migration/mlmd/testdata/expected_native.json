@@ -1,0 +1,459 @@
+{
+  "tasks": [
+    {
+      "UUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "root",
+      "DisplayName": "root",
+      "Type": 1,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": null,
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "nested",
+      "DisplayName": "nested",
+      "Type": 8,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "7b6503f5-a0f8-5321-9856-04b93302de08",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "skipped",
+      "DisplayName": "skipped",
+      "Type": 2,
+      "State": 4,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075"
+    },
+    {
+      "UUID": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "importer",
+      "DisplayName": "importer",
+      "Type": 7,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "b4092e13-d26c-5114-999e-6a164725dea4",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "producer",
+      "DisplayName": "producer",
+      "Type": 2,
+      "State": 2,
+      "Pods": [
+        {
+          "name": "producer-pod",
+          "uid": "producer-uid",
+          "type": "EXECUTOR"
+        }
+      ],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ],
+      "InputParameters": [
+        {
+          "parameterKey": "epochs",
+          "type": "RUNTIME_VALUE_INPUT",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "UUID": "1b18689d-0cb8-556a-8437-2c19e3ac8fda",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "cached",
+      "DisplayName": "cached",
+      "Type": 2,
+      "State": 5,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "consumer",
+      "DisplayName": "consumer",
+      "Type": 2,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ],
+      "InputParameters": [
+        {
+          "parameterKey": "epochs",
+          "type": "RUNTIME_VALUE_INPUT",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "UUID": "1866b144-f3cf-5c73-a38f-97d002629cca",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "loop",
+      "DisplayName": "loop",
+      "Type": 5,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {
+        "iterationCount": "2"
+      },
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "c1493683-05a0-5138-a17f-67ea00bdd883",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "iteration-0",
+      "DisplayName": "iteration-0",
+      "Type": 2,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {
+        "iterationIndex": "0"
+      },
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "1866b144-f3cf-5c73-a38f-97d002629cca",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "dcd6faf2-96e2-5a15-8df9-bc2cf48ab20e",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "iteration-1",
+      "DisplayName": "iteration-1",
+      "Type": 2,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {
+        "iterationIndex": "1"
+      },
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "1866b144-f3cf-5c73-a38f-97d002629cca",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "failed",
+      "DisplayName": "failed",
+      "Type": 2,
+      "State": 4,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    },
+    {
+      "UUID": "4edaa889-0b08-5797-8806-e00aa3e621df",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Namespace": "migration-fixture",
+      "Name": "late",
+      "DisplayName": "late",
+      "Type": 2,
+      "State": 2,
+      "Pods": [],
+      "TypeAttrs": {},
+      "Fingerprint": "",
+      "CreatedAtInSec": 1700000000,
+      "ParentTaskUUID": "9f26f813-9778-53bc-b93c-78b30df19075",
+      "OutputParameters": [
+        {
+          "parameterKey": "result",
+          "type": "OUTPUT",
+          "value": "done"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "UUID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
+      "Namespace": "migration-fixture",
+      "Name": "dataset",
+      "Type": 3,
+      "URI": "s3://fixture/dataset",
+      "URIHash": "f127c756aa51089ab614b38d5b0e88ad9ca9c1f4f31088f2a9d3e2a8c383302f",
+      "Metadata": {
+        "rows": 12,
+        "description": "shared input",
+        "display_name": "dataset",
+        "store_session_info": "null"
+      },
+      "NumberValue": null,
+      "CreatedAtInSec": 1700000000,
+      "LastUpdateInSec": 1700000001
+    },
+    {
+      "UUID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
+      "Namespace": "migration-fixture",
+      "Name": "accuracy",
+      "Type": 6,
+      "URI": "s3://fixture/metrics",
+      "URIHash": "a2ddebc19c743a54f40289390e3a63fe915e813fe65f62c04ddc06f88d94dd15",
+      "Metadata": {
+        "accuracy": 0.875,
+        "loss": 0.125,
+        "note": "keep nonnumeric metadata",
+        "display_name": "metrics",
+        "store_session_info": "null"
+      },
+      "NumberValue": 0.875,
+      "CreatedAtInSec": 1700000000,
+      "LastUpdateInSec": 1700000001
+    },
+    {
+      "UUID": "a704fec2-1396-53e5-b4e7-118eff429091",
+      "Namespace": "migration-fixture",
+      "Name": "loss",
+      "Type": 6,
+      "URI": "s3://fixture/metrics",
+      "URIHash": "a2ddebc19c743a54f40289390e3a63fe915e813fe65f62c04ddc06f88d94dd15",
+      "Metadata": {
+        "accuracy": 0.875,
+        "loss": 0.125,
+        "note": "keep nonnumeric metadata",
+        "display_name": "metrics",
+        "store_session_info": "null"
+      },
+      "NumberValue": 0.125,
+      "CreatedAtInSec": 1700000000,
+      "LastUpdateInSec": 1700000001
+    },
+    {
+      "UUID": "293403dd-0da1-58d9-920b-a3539bef4018",
+      "Namespace": "migration-fixture",
+      "Name": "empty-metrics",
+      "Type": 6,
+      "URI": "s3://fixture/empty-metrics",
+      "URIHash": "ceef1bf657c77c56437a28811f2a78190740b517dab2a9b0588e6692e8e647fd",
+      "Metadata": {
+        "note": "no measurements",
+        "display_name": "empty-metrics",
+        "store_session_info": "null"
+      },
+      "NumberValue": null,
+      "CreatedAtInSec": 1700000000,
+      "LastUpdateInSec": 1700000001
+    }
+  ],
+  "links": [
+    {
+      "UUID": "18d4bb6b-e575-5bc9-9ef5-e282228be69f",
+      "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
+      "TaskID": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "dataset"
+    },
+    {
+      "UUID": "7ede538f-6168-597f-bf09-5c4126332557",
+      "ArtifactID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
+      "TaskID": "b4092e13-d26c-5114-999e-6a164725dea4",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "UUID": "e8092718-9256-5373-8a0f-651b2ada5f34",
+      "ArtifactID": "a704fec2-1396-53e5-b4e7-118eff429091",
+      "TaskID": "b4092e13-d26c-5114-999e-6a164725dea4",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "UUID": "8470c2f8-861b-54e5-b1b1-186ad5ee3b5a",
+      "ArtifactID": "293403dd-0da1-58d9-920b-a3539bef4018",
+      "TaskID": "b4092e13-d26c-5114-999e-6a164725dea4",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "empty-metrics"
+    },
+    {
+      "UUID": "a0d361a3-50c4-5b09-8f01-9f8fe166239a",
+      "ArtifactID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
+      "TaskID": "1b18689d-0cb8-556a-8437-2c19e3ac8fda",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "UUID": "257bc1d1-df62-5e83-8941-4b4679169d63",
+      "ArtifactID": "a704fec2-1396-53e5-b4e7-118eff429091",
+      "TaskID": "1b18689d-0cb8-556a-8437-2c19e3ac8fda",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 9,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "UUID": "37421c66-7f41-56db-9490-71690a39a93c",
+      "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
+      "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 2,
+      "Iteration": -1,
+      "ArtifactKey": "dataset"
+    },
+    {
+      "UUID": "4c8bb1eb-1350-525d-9d28-dba2325446b7",
+      "ArtifactID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
+      "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 2,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "UUID": "bd0d86ef-8a65-551b-8cf9-ebe064f0bb14",
+      "ArtifactID": "a704fec2-1396-53e5-b4e7-118eff429091",
+      "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 2,
+      "Iteration": -1,
+      "ArtifactKey": "metrics"
+    },
+    {
+      "UUID": "81b6c8dd-613b-53e8-891a-23e2badb1848",
+      "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
+      "TaskID": "c1493683-05a0-5138-a17f-67ea00bdd883",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 2,
+      "Iteration": -1,
+      "ArtifactKey": "dataset"
+    },
+    {
+      "UUID": "0bf4f5d5-c58f-5d4c-8444-f83db2f18499",
+      "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
+      "TaskID": "dcd6faf2-96e2-5a15-8df9-bc2cf48ab20e",
+      "RunUUID": "11111111-1111-4111-8111-111111111111",
+      "Type": 2,
+      "Iteration": -1,
+      "ArtifactKey": "dataset"
+    }
+  ],
+  "skipped_executions": [
+    12,
+    14
+  ],
+  "legacy_provenance": {
+    "7b6503f5-a0f8-5321-9856-04b93302de08": {
+      "mlmd_state": "CANCELED"
+    },
+    "ddbc9b11-76ef-587d-b748-b489fd09fe90": {
+      "cache_fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "source_version": "2.17.3",
+  "source_commit": "a0733cb51b0484a6050cafee989ffe3312f808ad",
+  "mlmd_version": "1.14.0",
+  "mlmd_image": "gcr.io/tfx-oss-public/ml_metadata_store_server@sha256:51404ef4419c1426da80f3e14a83dcb55f65bb5a971371d36d14cec1e50af830",
+  "source_kind": "Unmodified legacy metadata writer against a disposable MLMD server with SQLite; not a cluster-executed pipeline.",
+  "sha256": {
+    "legacy_source.json": "8a9f584a57abc6391374892d7e9cd0e7832345bd32a5bc61ecb99a10e69cb4a8",
+    "expected_native.json": "be41089ec4498b0a6d7e582629246d86872a289c9518af868a71f9672a7d07e4",
+    "legacy_workflow.yaml": "5370b5bd9401fa5147c550c8671db09ff4ae120db84f42eb4202573f239c010a",
+    "generate_legacy.go": "92058c1c1b869b1cadc86cb37f288d70d321602f2637606b839bcc584910e845",
+    "generate_legacy_schema.go": "ce9e9c6565741c0bc8634a5270772674e9064e2db19ce4f451733a190970aca5",
+    "legacy_schema_mysql.json": "5491b237b98e3e80180e8db7febd7f920c898435c4689bcd1b5100974f257c8f",
+    "legacy_schema_pgx.json": "59fa4a54962cff0ea5f5c26abe83bbdedc85fa704d5930b7bbe6a43e7d91e83b",
+    "identity_vectors.json": "7d2ee630e5448553c1e8c6a66c7693ef2cd66d3c693f97a9944e06c24cebcb9f",
+    "merge_contract.json": "29b52c31fd6e6e03c1d76707e881e2441d6b9d7642ddd9d0f1e460b8b5bd8a30",
+    "runtime_source.json": "dfffbc6289decf206cf550ab9d682fa50321b3f7e7f61b8d4d43ff1d445472da",
+    "runtime_fixture_driver_test.go": "17d97bde8fee183f46fa71e62ebfac0f2a5c368012fd906f70310522257f96df",
+    "runtime_fixture_importer_test.go": "60659cbab994d52369854884ebdc8eb4d36ba83f4657714d25330571f60a72e5",
+    "export_runtime.go": "bbb046a694a59cfeaf5ca73b2241d9d05b29611e1612fcf0a227164cb9d6edad",
+    "legacy_partial_mysql.json": "231b8242ac1671d84c936a900bece84eaa68ce5600c5aa391179bfc24021dcfd",
+    "legacy_partial_pgx.json": "49c453fa908de8ca24f8f460287a2a5741406a902cc3bfc9c02a467f28983318",
+    "regenerate_catalogs.sh": "d658324c4168502fea0d75290f854102281dd7c696c3a129c8d2925cb049ee21"
+  },
+  "database_images": {
+    "mysql": "docker.io/library/mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b",
+    "pgx": "docker.io/library/postgres@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab"
+  }
+}
