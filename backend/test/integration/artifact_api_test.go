@@ -144,8 +144,9 @@ func (s *ArtifactAPITest) TestV1PipelineMetricsReportedByPersistenceAgent() {
 	require.NotNil(t, workflow)
 	var nodeID string
 	for id, node := range workflow.Status.Nodes {
-		// A retry parent shares the template name, so select the pod.
-		if node.TemplateName == "emit-metrics" && node.Type == workflowapi.NodeTypePod {
+		// A retry parent and failed attempts share the template name, so select
+		// the successful pod.
+		if node.TemplateName == "emit-metrics" && node.Type == workflowapi.NodeTypePod && node.Phase == workflowapi.NodeSucceeded {
 			nodeID = id
 		}
 	}
