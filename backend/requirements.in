@@ -3,4 +3,7 @@ requests>=2.33.0,<3
 oauthlib>=4.0.0,<5
 urllib3>=2.8.0,<3
 
+# Keep this transitive TLS dependency above the GHSA-6q48-6c7w-9gw2 security floor.
+# 2026.10.19 retains the compromised emSign root removal while restoring unaffected
+# roots removed in 2026.10.18, preserving trust for unaffected certificate chains.
 certifi>=2026.10.19
