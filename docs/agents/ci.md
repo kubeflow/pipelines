@@ -246,6 +246,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - Both TensorBoard Chromium acceptance lanes use Ubuntu 24.04, supported by their pinned Playwright 1.56.1. Keep these runner pins until the browser tooling is upgraded and validated on a newer Ubuntu image; `ubuntu-latest` can advance independently of Playwright support.
 
+- SDK YAPF, isort and docformatter jobs retain Python 3.9 on Ubuntu 24.04. Do not move these lanes to `ubuntu-latest` without validating interpreter availability: setup-python provides no Python 3.9 build for Ubuntu 26.04.
+
 ## PostgreSQL image patch acceptance
 
 `postgresql-image-upgrade.yml` is an isolated image-compatibility check for the
