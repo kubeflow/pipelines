@@ -1,18 +1,21 @@
 FROM golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c AS builder
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache git
 WORKDIR /src
-# Kubernetes v1.37.1, pinned source; retain upstream kubectl behavior while
-# rebuilding its embedded standard library and affected Go dependencies.
+# Keep real tag metadata so Go identifies the module version, not (devel).
+ARG KUBERNETES_VERSION=v1.37.1
 ARG KUBERNETES_COMMIT=d2b770f4c94636a992534a8d3156b6b2d8e82ac3
-ARG KUBERNETES_SHA256=ec99c6a72daa56c2549f42e5d9818b77f288bc7fec3f58acaab5ff604bb38baf
-RUN curl -fsSL --retry 3 "https://codeload.github.com/kubernetes/kubernetes/tar.gz/${KUBERNETES_COMMIT}" -o /tmp/kubernetes.tar.gz \
-    && echo "${KUBERNETES_SHA256}  /tmp/kubernetes.tar.gz" | sha256sum -c - \
-    && tar -xzf /tmp/kubernetes.tar.gz --strip-components=1 \
-    && rm /tmp/kubernetes.tar.gz
+RUN git clone --depth=1 --branch "${KUBERNETES_VERSION}" https://github.com/kubernetes/kubernetes.git . \
+    && test "$(git rev-parse HEAD)" = "${KUBERNETES_COMMIT}"
 ENV GOWORK=off GOFLAGS=-mod=mod CGO_ENABLED=0
 RUN go get golang.org/x/net@v0.60.0 golang.org/x/text@v0.42.0 \
-    && go build -trimpath -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=v1.37.1 -X k8s.io/component-base/version.gitMajor=1 -X k8s.io/component-base/version.gitMinor=37 -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl
+    && go build -trimpath -buildvcs=true -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=${KUBERNETES_VERSION} -X k8s.io/component-base/version.gitMajor=1 -X k8s.io/component-base/version.gitMinor=37 -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl \
+    && go version -m /out/kubectl > /out/kubectl.buildinfo \
+    && cat /out/kubectl.buildinfo \
+    && awk -v expected="${KUBERNETES_VERSION}+dirty" -v commit="${KUBERNETES_COMMIT}" \
+      '$1 == "mod" && $2 == "k8s.io/kubernetes" { version = $3 } \
+       $1 == "build" && $2 == "vcs.revision=" commit { revision = 1 } \
+       END { exit !(version == expected && revision) }' /out/kubectl.buildinfo
 
 FROM alpine:3.21
 
