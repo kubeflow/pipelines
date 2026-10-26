@@ -53,6 +53,15 @@ require a deployed KFP UI.
   explicitly creating a new run is the alternative and may repeat completed work.
   Old snapshots do not self-upgrade. Single-user behavior is unchanged. See the
   [task API upgrade procedure](docs/operator-guides/task-api-authentication.md).
+- Multi-user TokenReview and SubjectAccessReview use separate client rate limits,
+  each defaulting to 40 QPS and burst 80 per API replica. Size the extra Kubernetes
+  API load with the cluster administrator. Each field resolves independently:
+  `AuthClientQPS`/`AuthClientBurst`, then an explicit `ClientQPS`/`ClientBurst`,
+  then the default. General clients keep their 5/10 defaults.
+- Invalid authorization rate limits, including inherited `ClientQPS`/`ClientBurst`
+  values that are nonpositive or out of range, now fail multi-user API startup.
+  Set valid `AuthClientQPS`/`AuthClientBurst` overrides where unrelated clients use
+  such values. See [authorization load](docs/operator-guides/task-api-authentication.md#authorization-load).
 
 #### Artifact ownership compatibility
 
