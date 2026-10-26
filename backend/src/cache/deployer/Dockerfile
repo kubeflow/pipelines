@@ -4,8 +4,10 @@ RUN apk add --no-cache git
 WORKDIR /src
 # Keep real tag metadata so Go identifies the module version, not (devel).
 ARG KUBERNETES_VERSION=v1.37.1
-ARG KUBERNETES_COMMIT=d2b770f4c94636a992534a8d3156b6b2d8e82ac3
+ARG KUBERNETES_TAG_OBJECT=d2b770f4c94636a992534a8d3156b6b2d8e82ac3
+ARG KUBERNETES_COMMIT=f78e722310e50bcaca9276be22276d9e91d91308
 RUN git clone --depth=1 --branch "${KUBERNETES_VERSION}" https://github.com/kubernetes/kubernetes.git . \
+    && test "$(git rev-parse "refs/tags/${KUBERNETES_VERSION}")" = "${KUBERNETES_TAG_OBJECT}" \
     && test "$(git rev-parse HEAD)" = "${KUBERNETES_COMMIT}"
 ENV GOWORK=off GOFLAGS=-mod=mod CGO_ENABLED=0
 RUN go get golang.org/x/net@v0.60.0 golang.org/x/text@v0.42.0 \

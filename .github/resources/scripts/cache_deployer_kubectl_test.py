@@ -17,6 +17,8 @@ class CacheDeployerKubectlTest(unittest.TestCase):
                       source)
         self.assertIn('test "$(git rev-parse HEAD)" = "${KUBERNETES_COMMIT}"',
                       source)
+        self.assertIn('git rev-parse "refs/tags/${KUBERNETES_VERSION}"', source)
+        self.assertIn('= "${KUBERNETES_TAG_OBJECT}"', source)
         self.assertIn("-buildvcs=true", source)
         self.assertNotIn("codeload.github.com", source)
         self.assertNotIn("rm -rf .git", source)
