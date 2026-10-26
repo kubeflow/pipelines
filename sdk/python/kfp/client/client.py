@@ -128,6 +128,8 @@ class Client:
         ui_host: Base URL to use to open the Kubeflow Pipelines UI. This is used
             when running the client from a notebook to generate and print links.
         verify_ssl: Whether to verify the server's TLS certificate.
+        healthz_max_attempts: Number of times to try the healthz endpoint when
+            the client checks for multi-user mode during initialization.
     """
 
     # in-cluster DNS name of the pipeline service
@@ -157,6 +159,7 @@ class Client:
         credentials: Optional[TokenCredentialsBase] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
+        healthz_max_attempts: int = 5,
     ) -> None:
         """Create a new instance of kfp client."""
         warnings.warn(
@@ -224,7 +227,10 @@ class Client:
         self._healthz_api = kfp.server_api.HealthzServiceApi(api_client)
         if (
             not self._context_setting['namespace']
-            and self.get_kfp_healthz().multi_user is True
+            and self.get_kfp_healthz(
+                max_attempts=healthz_max_attempts
+            ).multi_user
+            is True
         ):
             try:
                 with open(Client._NAMESPACE_PATH, 'r') as f:
@@ -499,25 +505,23 @@ class Client:
     def get_kfp_healthz(
         self,
         sleep_duration: int = 5,
+        max_attempts: int = 5,
     ) -> kfp.server_api.V2GetHealthzResponse:
         """Gets healthz info for KFP deployment.
 
         Args:
             sleep_duration: Time in seconds between retries.
+            max_attempts: Number of times to try the healthz endpoint before
+                raising a TimeoutError. Must be at least 1.
 
         Returns:
             JSON response from the healthz endpoint.
         """
-        count = 0
-        response = None
-        max_attempts = 5
-        while not response:
-            count += 1
-            if count > max_attempts:
-                raise TimeoutError(
-                    f'Failed getting healthz endpoint after {max_attempts} attempts.'
-                )
-
+        if max_attempts < 1:
+            raise ValueError(
+                f'max_attempts must be at least 1, got {max_attempts}.'
+            )
+        for count in range(1, max_attempts + 1):
             try:
                 return self._healthz_api.healthz_service_get_healthz()
             # ApiException, including network errors, is the only type that may
@@ -533,7 +537,11 @@ class Client:
                 logging.exception(
                     f'Failed to get healthz info attempt {count} of {max_attempts}.'
                 )
-                time.sleep(sleep_duration)
+                if count < max_attempts:
+                    time.sleep(sleep_duration)
+        raise TimeoutError(
+            f'Failed getting healthz endpoint after {max_attempts} attempts.'
+        )
 
     def get_user_namespace(self) -> str:
         """Gets user namespace in context config.

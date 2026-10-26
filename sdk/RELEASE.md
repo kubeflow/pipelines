@@ -21,6 +21,11 @@
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
 
+* `kfp.Client.get_kfp_healthz` takes a `max_attempts` argument, and
+  `kfp.Client` takes `healthz_max_attempts` for the health check it runs during
+  initialization. Both default to 5. The client no longer sleeps after the last
+  failed attempt.
+
 ## Breaking changes
 
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by

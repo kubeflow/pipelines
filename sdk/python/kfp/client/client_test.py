@@ -676,6 +676,31 @@ class TestClient(parameterized.TestCase):
 
     @patch('kfp.client.client.time.sleep')
     @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_get_kfp_healthz_honors_max_attempts(self, get_healthz, sleep):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=503)
+        with self.assertRaisesRegex(TimeoutError, 'after 3 attempts'):
+            self.client.get_kfp_healthz(max_attempts=3)
+        self.assertEqual(get_healthz.call_count, 3)
+        # No sleep after the last attempt.
+        self.assertEqual(sleep.call_count, 2)
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_get_kfp_healthz_single_attempt_fails_fast(
+        self, get_healthz, sleep
+    ):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=503)
+        with self.assertRaises(TimeoutError):
+            self.client.get_kfp_healthz(max_attempts=1)
+        get_healthz.assert_called_once()
+        sleep.assert_not_called()
+
+    def test_get_kfp_healthz_rejects_max_attempts_below_one(self):
+        with self.assertRaisesRegex(ValueError, 'at least 1'):
+            self.client.get_kfp_healthz(max_attempts=0)
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
     def test_healthz_missing_api_fails_without_retry(self, get_healthz, sleep):
         get_healthz.side_effect = kfp.server_api.ApiException(status=404)
         with self.assertRaisesRegex(
