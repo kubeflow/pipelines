@@ -90,7 +90,9 @@ jobs:
   build-deployed-images:
     uses: ./.github/workflows/image-builds.yml
   deployed:
-    needs: build-deployed-images
+    permissions:
+      actions: read
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
