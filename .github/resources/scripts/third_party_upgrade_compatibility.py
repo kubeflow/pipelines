@@ -103,7 +103,25 @@ def forward(deployment, local, remote, evidence):
             process.wait(timeout=10)
 
 
-def client(endpoint, access="compat-admin", secret="compat-admin-secret"):
+def secret_credentials(secret):
+    """Read Kubernetes Secret values using stringData-over-data precedence."""
+    values = []
+    for key in ("accesskey", "secretkey"):
+        try:
+            if key in secret.get("stringData", {}):
+                value = secret["stringData"][key]
+            else:
+                value = base64.b64decode(
+                    secret["data"][key], validate=True).decode("utf-8")
+            if not isinstance(value, str) or not value:
+                raise ValueError("Empty or non-string credential")
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"Secret has invalid or missing {key}") from error
+        values.append(value)
+    return tuple(values)
+
+
+def client(endpoint, access, secret):
     import boto3
     from botocore.config import Config
 
@@ -168,6 +186,14 @@ def verify_state(s3):
 
 def exercise(evidence):
     storage = rendered(SEAWEED)
+    credentials = [
+        obj for obj in storage if obj.get("kind") == "Secret" and
+        obj.get("metadata", {}).get("name") == "mlpipeline-minio-artifact"
+    ]
+    if len(credentials) != 1:
+        raise ValueError(
+            "Expected exactly one rendered mlpipeline-minio-artifact Secret")
+    admin_credentials = secret_credentials(credentials[0])
     deployment = next(obj for obj in storage if obj["kind"] == "Deployment")
     target = deployment["spec"]["template"]["spec"]["containers"][0]["image"]
     deployment["spec"]["template"]["spec"]["containers"][0]["image"] = (
@@ -179,17 +205,6 @@ def exercise(evidence):
             "metadata": {
                 "name": "kubeflow"
             }
-        },
-        {
-            "apiVersion": "v1",
-            "kind": "Secret",
-            "metadata": {
-                "name": "mlpipeline-minio-artifact"
-            },
-            "stringData": {
-                "accesskey": "compat-admin",
-                "secretkey": "compat-admin-secret",
-            },
         },
         {
             "apiVersion": "v1",
@@ -210,7 +225,7 @@ def exercise(evidence):
     pvc_uid = json.loads(kubectl("get", "pvc", "seaweedfs-pvc", "-o",
                                  "json"))["metadata"]["uid"]
     with forward("seaweedfs", 18333, 8333, evidence) as endpoint:
-        s3 = client(endpoint)
+        s3 = client(endpoint, *admin_credentials)
         s3.put_object(Bucket=BUCKET, Key="shared/before-upgrade", Body=PAYLOAD)
         s3.put_bucket_lifecycle_configuration(
             Bucket=BUCKET,
@@ -237,7 +252,7 @@ def exercise(evidence):
     apply(profile)
     wait_ready("kubeflow-pipelines-profile-controller")
     with forward("seaweedfs", 18333, 8333, evidence) as endpoint:
-        s3 = client(endpoint)
+        s3 = client(endpoint, *admin_credentials)
         verify_state(s3)
         with forward("kubeflow-pipelines-profile-controller", 18080, 8080,
                      evidence) as webhook:
@@ -248,8 +263,7 @@ def exercise(evidence):
                     "Profile reconciliation replaced existing credentials")
         user = client(
             endpoint,
-            *(base64.b64decode(secret["data"][key]).decode()
-              for key in ("accesskey", "secretkey")),
+            *secret_credentials(secret),
         )
         user.put_object(
             Bucket=BUCKET,
@@ -261,11 +275,10 @@ def exercise(evidence):
     kubectl("rollout", "restart", "deployment/seaweedfs")
     wait_ready("seaweedfs")
     with forward("seaweedfs", 18333, 8333, evidence) as endpoint:
-        verify_state(client(endpoint))
+        verify_state(client(endpoint, *admin_credentials))
         user = client(
             endpoint,
-            *(base64.b64decode(secret["data"][key]).decode()
-              for key in ("accesskey", "secretkey")),
+            *secret_credentials(secret),
         )
         verify_payload(user, "private-artifacts/compat-user/after-upgrade")
     final_uid = json.loads(
