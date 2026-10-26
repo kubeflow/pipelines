@@ -252,8 +252,26 @@ class CompatibilityTest(unittest.TestCase):
         compatibility.verify_state(s3)
 
     def test_reconciliation_sends_existing_credentials(self):
-        secret = {'kind': 'Secret', 'data': {'accesskey': 'test'}}
-        response = io.BytesIO(json.dumps({'attachments': [secret]}).encode())
+        secret = {
+            'kind': 'Secret',
+            'metadata': {
+                'name': 'mlpipeline-minio-artifact'
+            },
+            'data': {
+                'accesskey': 'test'
+            },
+        }
+        token = {
+            'kind': 'Secret',
+            'metadata': {
+                'name': 'pipeline-runner-token'
+            },
+            'type': 'kubernetes.io/service-account-token',
+        }
+        response = io.BytesIO(
+            json.dumps({
+                'attachments': [token, secret]
+            }).encode())
         with patch.object(
                 compatibility.urllib.request, 'urlopen',
                 return_value=response) as request:
@@ -266,6 +284,37 @@ class CompatibilityTest(unittest.TestCase):
             observed['attachments']['Secret.v1'],
             {'user/mlpipeline-minio-artifact': secret},
         )
+
+    def test_reconciliation_rejects_missing_or_ambiguous_artifact_secret(self):
+        secret = {
+            'kind': 'Secret',
+            'metadata': {
+                'name': 'mlpipeline-minio-artifact'
+            },
+        }
+        for attachments in (
+            [],
+            [{
+                'kind': 'Secret',
+                'metadata': {
+                    'name': 'token'
+                }
+            }],
+            [secret, secret],
+        ):
+            with self.subTest(attachments=attachments):
+                response = io.BytesIO(
+                    json.dumps({
+                        'attachments': attachments
+                    }).encode())
+                with patch.object(
+                        compatibility.urllib.request,
+                        'urlopen',
+                        return_value=response,
+                ):
+                    with self.assertRaisesRegex(ValueError,
+                                                'Expected one artifact'):
+                        compatibility.sync_profile('http://localhost', 'user')
 
 
 if __name__ == '__main__':

@@ -236,8 +236,14 @@ IAM credentials on the same PVC across a SeaweedFS upgrade and restart. It invok
 the actual profile webhook without Metacontroller; it does not run an MLMD,
 whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
 The helper phases retain command stderr and make cluster deletion best-effort.
+Profile credential selection requires the named artifact Secret; service-account
+token Secrets can precede it in reconciliation output.
 
 Linux AMD64 scan jobs use pinned upstream release OSV tooling
 (the release branch does not contain that package) and retain raw JSON,
 SARIF, immutable image identities and advisory-alias comparisons. Success means
 complete evidence, not zero findings, applicability exemptions or release approval.
+
+Pinned upstream OSV tooling accepts classic Docker config IDs and containerd
+manifest/index IDs only when SHA-256-verified archived descriptors bind the
+selected native config. Missing, tampered, ambiguous or mismatched chains fail.

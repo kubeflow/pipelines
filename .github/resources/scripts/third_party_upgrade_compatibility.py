@@ -187,8 +187,16 @@ def sync_profile(endpoint, namespace, secret=None):
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         result = json.load(response)
-    return next(
-        item for item in result['attachments'] if item['kind'] == 'Secret')
+    credentials = [
+        item for item in result['attachments']
+        if item.get('kind') == 'Secret' and
+        item.get('metadata', {}).get('name') == 'mlpipeline-minio-artifact'
+    ]
+    if len(credentials) != 1:
+        raise ValueError(
+            'Expected one artifact credential Secret; inspect profile reconciliation output'
+        )
+    return credentials[0]
 
 
 def verify_payload(s3, key):
