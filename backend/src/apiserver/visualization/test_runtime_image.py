@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Dependency-light final-image smoke test that does not require snapshottest."""
+"""Final-image smoke test without the snapshottest dependency."""
 
 import unittest
 
