@@ -36,6 +36,7 @@ on:
       - 'Python Syntax'
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
+      - 'Third-party Image Upgrade Checks'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
