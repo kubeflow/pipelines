@@ -44,6 +44,31 @@ retains MLMD; upgrading to 2.18 does not perform the 3.0 MLMD-to-native conversi
 | Optional run-retention indexes | Background preparation when retention or prepare-only is enabled | Ordinary manual SQL is removed. Use prepare-only to build ahead of catch-up; conflicting definitions still need diagnosis. Disabled retention with prepare-only off does no preparation. |
 | 3.0 MLMD-to-native history/execution migration | Separate, not performed by the 2.18 startup path | Replacement-history import and schedule prerequisites do not establish a supported in-place upgrade or active-workload continuity. |
 
+### Retained PostgreSQL image overlays
+
+The retained PostgreSQL overlays use same-major patches: 18.3 to 18.6 for the
+KFP database and 14.7 to 14.24 for the legacy metadata database. This image
+qualification does not establish production PostgreSQL support for KFP 2.18;
+the MLMD concurrency limitation in [#14353](https://github.com/kubeflow/pipelines/issues/14353)
+remains.
+
+If you use the legacy 14.x overlay, review the migration sections in the
+[cumulative PostgreSQL 14 release notes](https://www.postgresql.org/docs/14/release.html)
+from your installed version through 14.24. For example,
+[14.10](https://www.postgresql.org/docs/release/14.10/) describes reindexing for
+specific affected GiST, interval B-tree and BRIN indexes, and
+[14.24](https://www.postgresql.org/docs/release/14.24/) describes conditional
+extension, logical-decoding and encrypted-data follow-up. These actions depend
+on the features and data you use; the fixture does not exercise every extension
+or repair existing indexes.
+
+The legacy image also changes Alpine 3.17 to 3.23. If your database uses ICU
+collations, check for version mismatches and rebuild affected objects before
+refreshing their recorded collation versions, following PostgreSQL's
+[collation upgrade guidance](https://www.postgresql.org/docs/14/sql-altercollation.html#SQL-ALTERCOLLATION-NOTES).
+Refreshing the version alone does not rebuild indexes. Back up and qualify your
+retained database before replacing its image.
+
 ### Automatic startup schema and data changes
 
 Database initialization reconciles model tables, columns and indexes. The

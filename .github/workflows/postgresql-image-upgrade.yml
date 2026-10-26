@@ -7,7 +7,10 @@ on:
     paths:
       - manifests/kustomize/third-party/postgresql/**
       - manifests/kustomize/base/metadata/**
-      - backend/**
+      - backend/src/apiserver/client_manager/**
+      - backend/src/apiserver/common/**
+      - backend/src/apiserver/model/**
+      - backend/src/apiserver/storage/**
       - go.mod
       - go.sum
       - .github/resources/postgresql-upgrade/**
