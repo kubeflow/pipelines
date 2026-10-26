@@ -212,7 +212,8 @@ def verify_state(s3):
 
 
 def seed_old_store(storage, baseline_image, evidence):
-    """Seed retained objects and lifecycle configuration on the baseline image."""
+    """Seed retained objects and lifecycle configuration on the baseline
+    image."""
     credentials = [
         obj
         for obj in storage
@@ -281,7 +282,8 @@ def upgrade_store(target):
 
 
 def exercise_profile(admin_credentials, evidence):
-    """Check retained data and issue reusable credentials through the webhook."""
+    """Check retained data and issue reusable credentials through the
+    webhook."""
     # The webhook is invoked directly; installing Metacontroller is unnecessary for this contract test.
     profile = [
         obj for obj in rendered(PROFILE) if obj['kind'] != 'DecoratorController'
@@ -318,7 +320,8 @@ def exercise_profile(admin_credentials, evidence):
 
 
 def verify_after_restart(admin_credentials, secret, pvc_uid, evidence):
-    """Require both credentials and data to survive a restart on the same PVC."""
+    """Require both credentials and data to survive a restart on the same
+    PVC."""
     kubectl('rollout', 'restart', 'deployment/seaweedfs')
     wait_ready('seaweedfs')
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
