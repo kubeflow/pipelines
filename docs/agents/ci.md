@@ -226,3 +226,18 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+## Third-party image upgrade checks
+
+`third-party-image-upgrades.yml` reads baseline images from the PR base commit
+(or the explicit manual baseline ref) and candidate images from the tested head.
+The Kind component check preserves S3 objects, lifecycle rules and profile-issued
+IAM credentials on the same PVC across a SeaweedFS upgrade and restart. It invokes
+the actual profile webhook without Metacontroller; it does not run an MLMD,
+whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
+The helper phases retain command stderr and make cluster deletion best-effort.
+
+Linux AMD64 scan jobs use pinned upstream release OSV tooling
+(the release branch does not contain that package) and retain raw JSON,
+SARIF, immutable image identities and advisory-alias comparisons. Success means
+complete evidence, not zero findings, applicability exemptions or release approval.
