@@ -130,6 +130,77 @@ class OsvImageScanTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'exactly one'):
             osv.verify_archive(path, self.image_id, 'linux/amd64')
 
+    def containerd_archive(
+        self,
+        path,
+        *,
+        index=True,
+        config_digest=None,
+        platform='amd64',
+        tamper=False,
+        duplicate=False,
+    ):
+        """Model Docker's OCI blobs plus its single-image compatibility
+        manifest."""
+        self.archive(path)
+        child = json.dumps(
+            {
+                'schemaVersion': 2,
+                'config': {'digest': config_digest or self.image_id},
+                'layers': [],
+            }
+        ).encode()
+        child_digest = 'sha256:' + hashlib.sha256(child).hexdigest()
+        descriptor = {
+            'digest': child_digest,
+            'platform': {'os': 'linux', 'architecture': platform},
+        }
+        # Unpulled platforms may be referenced but have no archived child blob.
+        descriptors = [
+            {
+                'digest': 'sha256:' + '0' * 64,
+                'platform': {'os': 'linux', 'architecture': 's390x'},
+            },
+            descriptor,
+        ]
+        if duplicate:
+            descriptors.append(descriptor)
+        root = json.dumps(
+            {'schemaVersion': 2, 'manifests': descriptors}
+        ).encode()
+        root_digest = 'sha256:' + hashlib.sha256(root).hexdigest()
+        with tarfile.open(path, 'a') as archive:
+            for digest, content in [(child_digest, child), (root_digest, root)]:
+                if tamper and digest == child_digest:
+                    content += b' '
+                member = tarfile.TarInfo('blobs/sha256/' + digest[7:])
+                member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        return root_digest if index else child_digest
+
+    def test_containerd_manifest_and_index_bind_native_config(self):
+        path = self.root / 'image.tar'
+        for index in (False, True):
+            with self.subTest(index=index):
+                image_id = self.containerd_archive(path, index=index)
+                self.assertEqual(
+                    osv.verify_archive(path, image_id, 'linux/amd64'),
+                    hashlib.sha256(path.read_bytes()).hexdigest(),
+                )
+
+    def test_containerd_rejects_invalid_descriptor_chains(self):
+        path = self.root / 'image.tar'
+        for options in (
+            {'tamper': True},
+            {'config_digest': 'sha256:' + 'f' * 64},
+            {'platform': 'arm64'},
+            {'duplicate': True},
+        ):
+            with self.subTest(options=options):
+                image_id = self.containerd_archive(path, **options)
+                with self.assertRaisesRegex(ValueError, 'image ID'):
+                    osv.verify_archive(path, image_id, 'linux/amd64')
+
     def test_clean_and_unfiltered_findings_are_valid(self):
         for findings in (False, True):
             report = envelope(self.image_id, findings)

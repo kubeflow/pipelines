@@ -283,6 +283,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 [
                     'uv',
                     'run',
+                    # The lint env is pinned to Python 3.11 because the
+                    # docformatter dependency untokenize cannot build on
+                    # Python >= 3.12, and isolated so the pin never rewrites
+                    # the project's .venv.
+                    '--python',
+                    '3.11',
+                    '--isolated',
                     '--frozen',
                     '--extra',
                     'lint',
