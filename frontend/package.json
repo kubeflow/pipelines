@@ -174,7 +174,6 @@
     "ejs": "3.1.7",
     "json-schema": "0.4.0",
     "ansi-html": "0.0.8",
-    "body-parser": "1.20.3",
     "braces": "3.0.3",
     "tmpl": "1.0.5",
     "react-dev-utils": {
