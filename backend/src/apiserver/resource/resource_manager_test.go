@@ -521,23 +521,6 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	return store, manager, experiment, p, pv
 }
 
-func initWithExperimentAndPipelineAndRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.PipelineVersion, *model.Run) {
-	store, manager, exp, pipeline, version := initWithExperimentAndPipeline(t)
-	// The pipeline specified via pipeline id will be converted to this
-	// pipeline's default version, which will be used to create run.
-	apiRun := &model.Run{
-		DisplayName:  "run1",
-		ExperimentId: exp.UUID,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:    pipeline.UUID,
-			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
-		},
-	}
-	run, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-	return store, manager, exp, pipeline, version, run
-}
-
 // Util function to create an initial state with pipeline uploaded
 func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
 	store, manager, exp := initWithExperiment(t)
@@ -4871,6 +4854,47 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2())
 }
 
+func TestReportWorkflowResource_RecurringRunObservesReportGap(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	manager.options.CollectMetrics = true
+	sampleCount := func() uint64 {
+		metric := &dto.Metric{}
+		require.NoError(t, recurringPipelineRunReportGap.Write(metric))
+		return metric.GetHistogram().GetSampleCount()
+	}
+	newRecurringWorkflow := func(id string, startedAt v1.Time) *util.Workflow {
+		return util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      id,
+				Namespace: job.Namespace,
+				UID:       types.UID(id),
+				Labels:    map[string]string{util.LabelKeyWorkflowRunId: id},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "ScheduledWorkflow",
+					Name:       job.K8SName,
+					UID:        types.UID(job.UUID),
+				}},
+			},
+			Status: v1alpha1.WorkflowStatus{StartedAt: startedAt},
+		})
+	}
+	before := sampleCount()
+
+	started := newRecurringWorkflow("started-workflow", v1.NewTime(time.Now().Add(-time.Minute)))
+	syncWorkflowReportWithFakeCluster(t, store, started)
+	_, err := manager.ReportWorkflowResource(context.Background(), started)
+	require.NoError(t, err)
+	assert.Equal(t, before+1, sampleCount())
+
+	notStarted := newRecurringWorkflow("not-started-workflow", v1.Time{})
+	syncWorkflowReportWithFakeCluster(t, store, notStarted)
+	_, err = manager.ReportWorkflowResource(context.Background(), notStarted)
+	require.NoError(t, err)
+	assert.Equal(t, before+1, sampleCount(), "a workflow without a start time must not be observed")
+}
+
 func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatch_Rejected(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
@@ -7212,31 +7236,6 @@ root:
       text:
         parameterType: STRING
         defaultValue: world
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`
-
-var v2SpecHelloWorldMutated = `
-components:
-  comp-hello-world:
-    executorLabel: exec-hello-world
-deploymentSpec:
-  executors:
-    exec-hello-world:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: pipelines/p1/versions/v1
-root:
-  dag:
-    tasks:
-      hello-world:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-hello-world
-        taskInfo:
-          name: hello-world
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
