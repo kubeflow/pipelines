@@ -61,8 +61,8 @@ data:
   ## cacheImage is the image that the mutating webhook will use to patch
   ## cached steps with. Will be used to echo a message announcing that
   ## the cached step result will be used. If not set it will default to
-  ## 'ghcr.io/containerd/busybox'
-  cacheImage: "ghcr.io/containerd/busybox"
+  ## the pinned Alpine image below (includes package metadata for scanning).
+  cacheImage: "docker.io/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63"
   ## cacheNodeRestrictions the dummy container runing if output is cached
   ## will run with the same affinity and node selector as the default pipeline
   ## step. This is defaulted to 'false' to allow the pod to be scheduled on

@@ -174,7 +174,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Synthetic Pods replace Argo's completion label, so this is cache component
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
-  failures remain failures and the disposable cluster is always deleted.
+  failures remain failures and the disposable cluster is always deleted. The
+  candidate removes the source CACHE_IMAGE override, verifies the default helper
+  completes a real cache-hit Pod, and records its image ID and log output. Helper
+  qualification retains its Alpine package database and pinned OSV JSON/SARIF
+  reports; missing package metadata or scanner errors fail coverage checks.
+  Advisory counts are evidence, not automatic release exceptions.
 - Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache
