@@ -937,11 +937,13 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
             columns={PIPELINE_VERSION_SELECTOR_COLUMNS}
             emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
             initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
-            selectionChanged={async (selectedVersionId: string) => {
+            selectionCleared={() => setPendingPipelineVersion(undefined)}
+            selectionChanged={async (selectedVersionId: string, isCurrent?: () => boolean) => {
               const selectedPipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
                 props.pipeline?.pipeline_id!,
                 selectedVersionId,
               );
+              if (isCurrent?.() === false) return;
               setPendingPipelineVersion(selectedPipelineVersion);
             }}
             // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
@@ -1066,9 +1068,14 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
                 columns={EXPERIMENT_SELECTOR_COLUMNS}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
-                selectionChanged={async (selectedExperimentId: string) => {
+                selectionCleared={() => setPendingExperiment(undefined)}
+                selectionChanged={async (
+                  selectedExperimentId: string,
+                  isCurrent?: () => boolean,
+                ) => {
                   const selectedExperiment =
                     await Apis.experimentServiceApiV2.getExperiment(selectedExperimentId);
+                  if (isCurrent?.() === false) return;
                   setPendingExperiment(selectedExperiment);
                 }}
               />
