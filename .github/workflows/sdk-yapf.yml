@@ -27,7 +27,8 @@ concurrency:
 
 jobs:
   yapf-sdk:
-    runs-on: ubuntu-latest
+    # Python 3.9 is unavailable on Ubuntu 26.04; match the other SDK formatters.
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout code
