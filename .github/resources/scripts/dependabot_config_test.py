@@ -232,44 +232,160 @@ class DependabotConfigTest(unittest.TestCase):
                     ['dependencies', ecosystem_label],
                 )
 
-    def test_tensorboard_release_updates_are_explicit_and_scoped(self):
-        updates = yaml.safe_load(self.config)['updates']
-        release = [update for update in updates if update.get('target-branch')]
-        self.assertEqual(len(release), 2)
-        by_ecosystem = {
-            update['package-ecosystem']: update for update in release
+    def release_updates(self):
+        return [
+            update
+            for update in yaml.safe_load(self.config)['updates']
+            if update.get('target-branch') == 'release-2.18'
+        ]
+
+    def release_update(self, ecosystem):
+        matches = [
+            update
+            for update in self.release_updates()
+            if update['package-ecosystem'] == ecosystem
+        ]
+        self.assertEqual(len(matches), 1, ecosystem)
+        return matches[0]
+
+    def test_release_ecosystems_are_complete_and_held(self):
+        release = self.release_updates()
+        labels = {
+            'gomod': 'go',
+            'docker': 'docker',
+            'npm': 'javascript',
+            'pip': 'python',
+            'github-actions': 'github_actions',
+            'pre-commit': 'pre_commit',
         }
-        self.assertEqual(set(by_ecosystem), {'pip', 'docker'})
+        self.assertEqual(len(release), len(labels))
         self.assertEqual(
-            by_ecosystem['pip']['directory'], '/backend/src/tensorboard'
+            {entry['package-ecosystem'] for entry in release}, set(labels)
         )
+        for update in release:
+            with self.subTest(ecosystem=update['package-ecosystem']):
+                self.assertEqual(update['schedule']['interval'], 'weekly')
+                self.assertEqual(update['open-pull-requests-limit'], 10)
+                self.assertEqual(
+                    update['labels'],
+                    [
+                        'dependencies',
+                        labels[update['package-ecosystem']],
+                        'do-not-merge/hold',
+                    ],
+                )
+                self.assertNotIn('allow', update)
+                self.assertEqual(
+                    update['commit-message']['prefix'], 'chore(deps)'
+                )
+
+    def test_release_scopes_cover_recursive_projects_and_actions(self):
+        for ecosystem in ('gomod', 'docker', 'npm'):
+            self.assertEqual(
+                self.release_update(ecosystem)['directories'], ['**/*']
+            )
         self.assertEqual(
-            by_ecosystem['pip']['allow'], [{'dependency-type': 'all'}]
+            self.release_update('github-actions')['directories'],
+            ['/', '/.github/actions/*'],
         )
-        docker = by_ecosystem['docker']
-        self.assertEqual(docker['directory'], '/backend')
-        self.assertEqual(docker['allow'], [{'dependency-name': 'python'}])
-        excludes = docker['exclude-paths']
-        self.assertFalse(
+        self.assertEqual(self.release_update('pre-commit')['directory'], '/')
+
+    def test_release_python_keeps_legacy_pip_layout_and_excludes_generated_clients(
+        self,
+    ):
+        expected = {
+            '/.github/resources/scripts/kfp-readiness',
+            '/api/v2alpha1/python',
+            '/backend',
+            '/backend/metadata_writer',
+            '/backend/src/apiserver/visualization',
+            '/backend/src/tensorboard',
+            '/backend/src/v2/test',
+            '/components/google-cloud',
+            '/docs',
+            '/docs/sdk',
+            '/kubernetes_platform/python',
+            '/kubernetes_platform/python/docs',
+            '/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller',
+            '/proxy',
+            '/release',
+            '/samples/core/artifact_previews',
+            '/sdk/python',
+            '/test/kfp-kubernetes-native-migration-tests',
+            '/tools/upgrade-readiness',
+        }
+        directories = self.release_update('pip')['directories']
+        self.assertEqual(len(directories), len(expected))
+        self.assertEqual(set(directories), expected)
+        for generated in (
+            '/backend/api/v1beta1/python_http_client',
+            '/backend/api/v2beta1/python_http_client',
+        ):
+            self.assertNotIn(generated, directories)
+        self.assertNotIn(
+            'uv',
+            {entry['package-ecosystem'] for entry in self.release_updates()},
+        )
+
+    def test_release_known_incompatible_python_and_formatter_updates_are_ignored(
+        self,
+    ):
+        self.assertIn(
+            {'dependency-name': 'protobuf', 'versions': ['>=7']},
+            self.release_update('pip')['ignore'],
+        )
+        self.assertIn(
+            {
+                'dependency-name': 'https://github.com/pycqa/docformatter',
+                'versions': ['1.7.8'],
+            },
+            self.release_update('pre-commit')['ignore'],
+        )
+
+    def test_release_argo_images_stay_paired_and_outside_bulk_go_updates(self):
+        groups = self.release_update('docker')['groups']
+        self.assertEqual(
+            set(groups['argo-images']['patterns']),
+            {'argoproj/workflow-controller', 'argoproj/argoexec'},
+        )
+        bulk = self.release_update('gomod')['groups']['go-minor-and-patch']
+        self.assertTrue(
             any(
-                fnmatchcase('Dockerfile.tensorboard', rule) for rule in excludes
+                fnmatchcase('github.com/argoproj/argo-workflows/v4', rule)
+                for rule in bulk['exclude-patterns']
             )
         )
-        for path in (
-            'Dockerfile',
-            'Dockerfile.visualization',
-            'metadata_writer/Dockerfile',
-            'src/cache/Dockerfile',
-        ):
-            with self.subTest(path=path):
-                self.assertTrue(
-                    any(fnmatchcase(path, rule) for rule in excludes)
-                )
-        for update in release:
-            self.assertEqual(update['target-branch'], 'release-2.18')
-            self.assertEqual(update['schedule']['interval'], 'weekly')
-            self.assertEqual(update['open-pull-requests-limit'], 10)
-            self.assertIn('dependencies', update['labels'])
+
+    def test_release_docker_does_not_inherit_master_only_mysql_policy(self):
+        docker = self.release_update('docker')
+        self.assertNotIn('exclude-paths', docker)
+        self.assertFalse(
+            any(
+                fnmatchcase('mysql', rule['dependency-name'])
+                for rule in docker.get('ignore', [])
+            )
+        )
+        self.assertEqual(
+            docker['groups']['docker-images'], {'group-by': 'dependency-name'}
+        )
+
+    def test_release_preserves_coupled_and_shared_dependency_groups(self):
+        gomod = self.release_update('gomod')
+        self.assertEqual(
+            gomod['groups']['golang-x']['patterns'], ['golang.org/x/*']
+        )
+        npm = self.release_update('npm')['groups']
+        self.assertLess(
+            list(npm).index('mui'), list(npm).index('npm-dependencies')
+        )
+        self.assertEqual(npm['mui']['patterns'], ['@mui/*'])
+        self.assertEqual(
+            npm['npm-dependencies'], {'group-by': 'dependency-name'}
+        )
+        self.assertEqual(
+            self.release_update('pip')['groups']['python-dependencies'],
+            {'group-by': 'dependency-name'},
+        )
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):
         config = yaml.safe_load(self.config)
