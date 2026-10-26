@@ -223,3 +223,5 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+- `image-builds.yml` loads the built visualization-server and metadata-writer archives and runs their runtime smoke/helper tests in disposable containers before uploading them. It checks that pip and ensurepip are absent. Tests do not run during production Docker builds or write test artifacts into published layers. `make test-backend-visualization` also exercises the dependency-light notebook smoke test.

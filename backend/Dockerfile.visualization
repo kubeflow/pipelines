@@ -37,7 +37,4 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
 
 COPY backend/src/apiserver/visualization /src
 
-# Exercise kernel execution and HTML export after removing bootstrap tooling.
-RUN python3 runtime_image_test.py
-
 ENTRYPOINT [ "python3", "server.py" ]

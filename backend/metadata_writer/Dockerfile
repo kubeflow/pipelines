@@ -12,6 +12,4 @@ RUN python3 -m pip install --no-cache-dir -r /kfp/metadata_writer/requirements.t
     && python3 -c "import importlib.util; assert importlib.util.find_spec('pip') is None; assert importlib.util.find_spec('ensurepip') is None"
 
 COPY backend/metadata_writer/src/* /kfp/metadata_writer/
-RUN PYTHONPATH=/kfp/metadata_writer python3 -m unittest discover \
-    -s /kfp/metadata_writer -p "*_test.py"
 CMD python3 -u /kfp/metadata_writer/metadata_writer.py

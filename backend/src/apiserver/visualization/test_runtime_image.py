@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Dependency-light final-image smoke test that does not require snapshottest."""
 
 import unittest
 
@@ -19,8 +20,10 @@ from nbformat.v4 import new_notebook
 
 
 class RuntimeImageTest(unittest.TestCase):
+    """Verify notebook execution with the installed runtime dependencies."""
 
-    def test_notebook_execution_and_html_export(self):
+    def test_notebook_execution_and_html_export(self) -> None:
+        """Execute a kernel and export its output after bootstrap removal."""
         notebook = new_notebook()
         notebook.cells.append(
             exporter.create_cell_from_custom_code([
