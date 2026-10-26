@@ -230,6 +230,23 @@ def setup():
             }
         }]
     apply(objects)
+    # Use the production multi-user viewer grants and watch configuration.
+    # Ingress/Istio are unnecessary for this localhost authorization fixture.
+    viewer_base = Path(
+        'manifests/kustomize/base/installs/multi-user/viewer-controller')
+    for filename in ['cluster-role.yaml', 'cluster-role-binding.yaml']:
+        resource = json.loads(
+            kube('create', '--dry-run=client', '-f',
+                 str(viewer_base / filename), '-o', 'json'))
+        for subject in resource.get('subjects', []):
+            if subject['kind'] == 'ServiceAccount':
+                subject['namespace'] = 'kubeflow'
+        apply([resource])
+    kube('-n', 'kubeflow', 'patch', 'deployment/ml-pipeline-viewer-crd',
+         '--type=strategic', '--patch-file',
+         str(viewer_base / 'deployment-patch.yaml'))
+    kube('-n', 'kubeflow', 'rollout', 'status',
+         'deployment/ml-pipeline-viewer-crd', '--timeout=180s')
     for name in ['s3', 'gcs']:
         kube('-n', NAMESPACE, 'rollout', 'status', 'deployment/' + name,
              '--timeout=180s')
@@ -347,6 +364,10 @@ def create(logdir, image):
     viewer = next(
         v for v in viewers if v['spec']['tensorboardSpec']['logDir'] == logdir)
     name = viewer['metadata']['name']
+    poll(
+        'viewer Deployment creation',
+        lambda: kube('-n', NAMESPACE, 'get', 'deployment/' + name +
+                     '-deployment', '--ignore-not-found', '-o', 'name'))
     kube('-n', NAMESPACE, 'rollout', 'status',
          'deployment/' + name + '-deployment', '--timeout=180s')
     pods = json.loads(
