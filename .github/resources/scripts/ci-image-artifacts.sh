@@ -26,7 +26,7 @@ BRANCH_CI_IMAGE_ARTIFACTS=(
   "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"
   "${RUNTIME_IMAGE_ARTIFACTS[@]}"
 )
-ALL_CI_IMAGE_ARTIFACTS=("${BRANCH_CI_IMAGE_ARTIFACTS[@]}" "runtime-base-images")
+ALL_CI_IMAGE_ARTIFACTS=("${BRANCH_CI_IMAGE_ARTIFACTS[@]}" "tensorboard" "runtime-base-images")
 
 # The native tooling producer and its consumers use these same output names.
 TOOL_GENERATOR_IMAGE="kfp-api-generator"
@@ -53,6 +53,9 @@ ci_artifact_files() {
         printf '%s/%s.tar\n' "$image" "$image"
       done
       ;;
+    tensorboard-image-files)
+      printf '%s\n' 'tensorboard.tar'
+      ;;
     runtime-base-image-files)
       case "${2:-false}" in
         true|false) ;;
@@ -64,7 +67,7 @@ ci_artifact_files() {
       fi
       ;;
     arm64-image-files)
-      for image in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}" "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
+      for image in "${BRANCH_CI_IMAGE_ARTIFACTS[@]}" tensorboard; do
         printf '%s-arm64.tar\n%s-arm64.json\n' "$image" "$image"
       done
       ;;

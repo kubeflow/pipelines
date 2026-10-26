@@ -1,0 +1,160 @@
+name: TensorBoard runtime acceptance
+'on':
+  pull_request:
+    paths:
+    - backend/Dockerfile.tensorboard
+    - backend/src/tensorboard/**
+    - backend/src/crd/controller/viewer/**
+    - frontend/src/components/viewers/Tensorboard*
+    - frontend/server/handlers/tensorboard*
+    - test/tensorboard/**
+    - hack/update_tensorboard_image.py
+    - .github/workflows/tensorboard-acceptance.yml
+    - .github/actions/deploy/**
+    - .github/actions/download-artifact-with-retry/**
+    - .github/resources/scripts/artifact-files.sh
+    - .github/resources/scripts/ci-image-artifacts.sh
+    - .github/resources/scripts/load-tensorboard-image.sh
+    - .github/workflows/image-builds.yml
+  merge_group:
+    types:
+    - checks_requested
+    branches:
+    - master
+  workflow_dispatch: null
+permissions:
+  contents: read
+  actions: read
+defaults:
+  run:
+    shell: bash
+concurrency:
+  group: tensorboard-acceptance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 24.22.1
+    - name: Start actual viewer image
+      run: |
+        set -euo pipefail
+        docker build -f backend/Dockerfile.tensorboard -t kfp-tensorboard:test .
+        docker run -d --name s3 --network host motoserver/moto:5.1.15@sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914
+        docker run -d --name gcs --network host fsouza/fake-gcs-server:1.54.0@sha256:3730da0e31f7e5186a90ec4899dc2c336104e7599df400411392ef17e684c31f -scheme http -port 4443 -external-url http://127.0.0.1:4443
+        docker run -d --name tensorboard --network host -e S3_ENDPOINT=http://127.0.0.1:5000 -e STORAGE_EMULATOR_HOST=http://127.0.0.1:4443 -e AWS_ACCESS_KEY_ID=test -e AWS_SECRET_ACCESS_KEY=test -e AWS_DEFAULT_REGION=us-east-1 -v "$PWD/test/tensorboard/runtime.py:/acceptance.py:ro" kfp-tensorboard:test python /acceptance.py
+        for _ in $(seq 1 120); do
+          if docker exec tensorboard test -f /tmp/tensorboard-ready; then break; fi
+          if [[ $(docker inspect -f '{{.State.Running}}' tensorboard) != true ]]; then docker logs tensorboard; exit 1; fi
+          sleep 2
+        done
+        docker exec tensorboard cat /tmp/tensorboard-ready | tee schemes.json
+    - name: Exercise browser navigation under proxy prefix
+      run: |
+        mkdir /tmp/browser
+        cd /tmp/browser
+        npm install playwright@1.56.1
+        npx playwright install --with-deps chromium
+        cd "$GITHUB_WORKSPACE"
+        NODE_PATH=/tmp/browser/node_modules node "$GITHUB_WORKSPACE/test/tensorboard/browser.cjs"
+    - name: Require existing storage reader schemes
+      run: |
+        python3 - <<'PY'
+        import json
+        schemes=json.load(open('schemes.json'))
+        assert 'gs' in schemes, schemes
+        assert 's3' in schemes, schemes
+        PY
+    - name: Preserve runtime diagnostics
+      if: always()
+      run: docker logs tensorboard > tensorboard-runtime.log 2>&1
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      if: always()
+      with:
+        name: tensorboard-runtime
+        path: |-
+          tensorboard-runtime.log
+          schemes.json
+          tensorboard-browser.*
+        retention-days: 7
+  arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - run: |-
+        docker build -f backend/Dockerfile.tensorboard -t kfp-tensorboard:test .
+        docker run --rm kfp-tensorboard:test tensorboard --version
+        docker run --rm kfp-tensorboard:test python -c "import boto3,gcsfs; from tensorboard.compat import tf; print(tf.io.gfile.__name__)"
+
+  build:
+    uses: ./.github/workflows/image-builds.yml
+  deployed:
+    permissions:
+      actions: read
+      contents: read
+    # Playwright 1.56.1 does not support Ubuntu 26.04 browser installation.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version-file: frontend/.nvmrc
+    - uses: ./.github/actions/create-cluster
+      with:
+        k8s_version: v1.36.1
+        cluster_name: kfp-tensorboard
+    - uses: ./.github/actions/deploy
+      with:
+        cluster_name: kfp-tensorboard
+        image_path: images_${{ github.run_id }}
+        image_tag: latest
+        image_registry: kind-registry:5000
+        forward_port: 'false'
+        load_tensorboard_image: 'true'
+    - name: Load explicit custom-image alias of the candidate
+      run: |
+        docker exec kfp-tensorboard-control-plane ctr --namespace k8s.io images tag \
+          "$(python3 hack/update_tensorboard_image.py --print-default)" \
+          kind-registry:5000/tensorboard:custom-acceptance
+    - name: Install browser acceptance tools
+      run: |
+        mkdir /tmp/browser
+        cd /tmp/browser
+        npm install playwright@1.56.1
+        npx playwright install --with-deps chromium
+    - name: Verify deployed storage, reload, authorization and lifecycle
+      env:
+        NODE_PATH: /tmp/browser/node_modules
+      run: python3 test/tensorboard/deployed.py
+    - name: Preserve deployed diagnostics
+      if: always()
+      run: |
+        mkdir -p "$RUNNER_TEMP/tensorboard-deployed"
+        kubectl -n tensorboard-acceptance get viewers,deployments,pods,services,jobs -o yaml > "$RUNNER_TEMP/tensorboard-deployed/resources.yaml" || true
+        kubectl -n tensorboard-acceptance get events --sort-by=.lastTimestamp > "$RUNNER_TEMP/tensorboard-deployed/events.txt" || true
+        for pod in $(kubectl -n tensorboard-acceptance get pods -o name); do
+          kubectl -n tensorboard-acceptance logs "$pod" --all-containers > "$RUNNER_TEMP/tensorboard-deployed/${pod#pod/}.log" 2>&1 || true
+        done
+        for app in ml-pipeline ml-pipeline-ui ml-pipeline-viewer-crd; do
+          kubectl -n kubeflow logs deployment/"$app" --all-containers > "$RUNNER_TEMP/tensorboard-deployed/$app.log" 2>&1 || true
+        done
+    - uses: ./.github/actions/upload-artifact-with-retry
+      if: always()
+      with:
+        name: tensorboard-deployed-${{ github.run_id }}
+        path: ${{ runner.temp }}/tensorboard-deployed
+    - name: Remove disposable cluster
+      if: always()
+      run: kind delete cluster --name kfp-tensorboard

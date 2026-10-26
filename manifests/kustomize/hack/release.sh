@@ -25,6 +25,8 @@ if [[ -z "$TAG_NAME" ]]; then
   exit 1
 fi
 
+python3 "${DIR}/../../../hack/update_tensorboard_image.py" "$TAG_NAME"
+
 echo "This release script uses yq, it can be downloaded at https://github.com/mikefarah/yq/releases/tag/v4.54.1"
 kustomization_yamls_with_images=(
   "base/pipeline/kustomization.yaml"

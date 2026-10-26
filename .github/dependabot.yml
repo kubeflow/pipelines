@@ -153,6 +153,7 @@ updates:
     # The root and SDK form the uv workspace; uv owns those manifests and lock.
     directories:
       - "/.github/scripts"
+      - "/backend/src/tensorboard"
       - "/components/PyTorch/pytorch-kfp-components"
       - "/components/google-cloud"
       - "/docs"

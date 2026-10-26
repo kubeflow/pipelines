@@ -156,7 +156,7 @@ class OsvMasterImagesTest(unittest.TestCase):
                     for name in IMAGES
                 },
             )
-            self.assertEqual(len(merged), len(third_party) + 7)
+            self.assertEqual(len(merged), len(third_party) + len(IMAGES))
 
     def test_records_fail_closed_without_exact_inventory_and_provenance(self):
         for mutation in (

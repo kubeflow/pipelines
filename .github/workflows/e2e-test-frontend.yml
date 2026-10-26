@@ -95,6 +95,7 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          load_tensorboard_image: 'true'
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
