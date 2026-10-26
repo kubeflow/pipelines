@@ -219,7 +219,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                   {this._image() && this._image() !== DEFAULT_TF_IMAGE && (
                     <MenuItem value={this._image()}>{this._image()}</MenuItem>
                   )}
-                  <MenuItem value={DEFAULT_TF_IMAGE}>TensorBoard 2.21.0</MenuItem>
+                  <MenuItem value={DEFAULT_TF_IMAGE}>KFP TensorBoard (default)</MenuItem>
                 </Select>
               </FormControl>
             </div>

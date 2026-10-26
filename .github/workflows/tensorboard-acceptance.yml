@@ -87,7 +87,7 @@ jobs:
         docker run --rm kfp-tensorboard:test tensorboard --version
         docker run --rm kfp-tensorboard:test python -c "import boto3,gcsfs; from tensorboard.compat import tf; print(tf.io.gfile.__name__)"
 
-  build-deployed-images:
+  build:
     uses: ./.github/workflows/image-builds.yml
   deployed:
     permissions:
@@ -111,6 +111,7 @@ jobs:
         image_tag: latest
         image_registry: kind-registry:5000
         forward_port: 'false'
+        load_tensorboard_image: 'true'
     - name: Load explicit custom-image alias of the candidate
       run: |
         docker exec kfp-tensorboard-control-plane ctr --namespace k8s.io images tag \

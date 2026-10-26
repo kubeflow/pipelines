@@ -2240,7 +2240,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
               role="combobox"
               tabindex="0"
             >
-              TensorBoard 2.21.0
+              KFP TensorBoard (default)
             </div>
             <input
               aria-hidden="true"

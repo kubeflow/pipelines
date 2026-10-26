@@ -211,7 +211,7 @@ describe('Tensorboard', () => {
     fireEvent.mouseDown(screen.getByRole('combobox'));
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
       config.image,
-      'TensorBoard 2.21.0',
+      'KFP TensorBoard (default)',
     ]);
     fireEvent.click(screen.getByRole('option', { name: config.image }));
     await invokeAndFlush(() => {

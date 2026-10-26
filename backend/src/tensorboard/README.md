@@ -45,3 +45,10 @@ Regenerate dependency hashes with the command recorded at the top of
 events, browser navigation under a URL prefix, and actual S3/GCS reads. Installing
 TensorFlow in this image would change TensorBoard's filesystem implementation
 and requires repeating that storage qualification.
+
+Dependency update scheduling is configured on the repository's default branch,
+using explicit `target-branch: release-2.18` entries for pip dependencies in
+`/backend/src/tensorboard` and Docker base images in `/backend`. Editing
+Dependabot configuration only on the release branch does not schedule updates.
+These weekly version-update PRs still require a fresh image scan and the storage,
+reload, authorization, and viewer lifecycle acceptance checks before merging.

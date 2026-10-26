@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import subprocess
 import time
+from typing import Callable, Optional, TypeVar
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request
@@ -23,16 +24,19 @@ from urllib.request import urlopen
 NAMESPACE = 'tensorboard-acceptance'
 CONTEXT = 'kind-kfp-tensorboard'
 STATE = Path(os.environ['RUNNER_TEMP']) / 'tensorboard-deployed'
-IMAGE = 'ghcr.io/kubeflow/kfp-tensorboard:' + Path(
-    'VERSION').read_text().strip()
+ROOT = Path(__file__).resolve().parents[2]
+IMAGE = 'ghcr.io/kubeflow/kfp-tensorboard:' + (ROOT /
+                                               'VERSION').read_text().strip()
 CUSTOM_IMAGE = 'kind-registry:5000/tensorboard:custom-acceptance'
 BASE = 'http://127.0.0.1:3000'
 MANAGER = 'manager@fixture.invalid'
 READER = 'reader@fixture.invalid'
 DENIED = 'denied@fixture.invalid'
+T = TypeVar('T')
 
 
-def kube(*args, value=None):
+def kube(*args: str, value: Optional[dict] = None) -> str:
+    """Run a bounded kubectl command against only the fixture cluster."""
     result = subprocess.run(
         ['kubectl', '--context', CONTEXT, '--request-timeout=30s', *args],
         input=None if value is None else json.dumps(value),
@@ -44,7 +48,8 @@ def kube(*args, value=None):
     return result.stdout
 
 
-def apply(objects):
+def apply(objects: list[dict]) -> None:
+    """Apply fixture objects through a single Kubernetes List."""
     kube(
         'apply',
         '-f',
@@ -56,7 +61,8 @@ def apply(objects):
         })
 
 
-def poll(description, check, timeout=180):
+def poll(description: str, check: Callable[[], T], timeout: int = 180) -> T:
+    """Wait for a condition and retain its last error for diagnostics."""
     deadline = time.monotonic() + timeout
     last = None
     while time.monotonic() < deadline:
@@ -71,7 +77,11 @@ def poll(description, check, timeout=180):
     raise AssertionError(f'{description} did not converge: {last}')
 
 
-def request(path, method='GET', user=MANAGER, expected=200):
+def request(path: str,
+            method: str = 'GET',
+            user: Optional[str] = MANAGER,
+            expected: int = 200) -> bytes:
+    """Call the UI as a fixture identity and assert the HTTP status."""
     headers = {'kubeflow-userid': user} if user else {}
     req = Request(BASE + '/' + path.lstrip('/'), headers=headers, method=method)
     try:
@@ -83,12 +93,13 @@ def request(path, method='GET', user=MANAGER, expected=200):
     return body
 
 
-def role(name,
-         verbs,
-         subjects,
-         group='kubeflow.org',
-         resources=None,
-         cluster=False):
+def role(name: str,
+         verbs: list[str],
+         subjects: list[dict],
+         group: str = 'kubeflow.org',
+         resources: Optional[list[str]] = None,
+         cluster: bool = False) -> list[dict]:
+    """Build a matching Role and binding with explicit fixture subjects."""
     metadata = {'name': 'tensorboard-acceptance-' + name}
     if not cluster:
         metadata['namespace'] = NAMESPACE
@@ -118,7 +129,8 @@ def role(name,
     }]
 
 
-def setup():
+def rbac_objects() -> list[dict]:
+    """Build namespace, viewer grants and fixture credential/script objects."""
     objects = [{
         'apiVersion': 'v1',
         'kind': 'Namespace',
@@ -169,6 +181,12 @@ def setup():
             'events.py': Path('test/tensorboard/events.py').read_text()
         }
     }]
+    return objects
+
+
+def storage_emulators() -> list[dict]:
+    """Build the isolated S3 and GCS services used by deployed viewer pods."""
+    objects = []
     stores = [
         ('s3',
          'motoserver/moto:5.1.15@sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914',
@@ -229,7 +247,11 @@ def setup():
                 }]
             }
         }]
-    apply(objects)
+    return objects
+
+
+def enable_multiuser_authz() -> None:
+    """Enable production viewer watches and fixture SAR checks."""
     # Use the production multi-user viewer grants and watch configuration.
     # Ingress/Istio are unnecessary for this localhost authorization fixture.
     viewer_base = Path(
@@ -247,9 +269,6 @@ def setup():
          str(viewer_base / 'deployment-patch.yaml'))
     kube('-n', 'kubeflow', 'rollout', 'status',
          'deployment/ml-pipeline-viewer-crd', '--timeout=180s')
-    for name in ['s3', 'gcs']:
-        kube('-n', NAMESPACE, 'rollout', 'status', 'deployment/' + name,
-             '--timeout=180s')
     # Use the real KFP AuthService and Kubernetes SAR, with trusted fixture users.
     kube('-n', 'kubeflow', 'set', 'env', 'deployment/ml-pipeline',
          'MULTIUSER=true', 'KUBEFLOW_USERID_HEADER=kubeflow-userid',
@@ -262,7 +281,17 @@ def setup():
              '--timeout=300s')
 
 
-def pod_template():
+def setup() -> None:
+    """Provision storage and identities before starting UI checks."""
+    apply(rbac_objects() + storage_emulators())
+    for name in ['s3', 'gcs']:
+        kube('-n', NAMESPACE, 'rollout', 'status', 'deployment/' + name,
+             '--timeout=180s')
+    enable_multiuser_authz()
+
+
+def pod_template() -> dict:
+    """Build the non-root viewer pod settings and storage credentials."""
     return {
         'spec': {
             'securityContext': {
@@ -305,7 +334,8 @@ def pod_template():
     }
 
 
-def upload(scheme, step):
+def upload(scheme: str, step: int) -> None:
+    """Write events through the candidate runtime in a bounded Job."""
     template = pod_template()
     template['spec']['restartPolicy'] = 'Never'
     container = template['spec']['containers'][0]
@@ -345,7 +375,8 @@ def upload(scheme, step):
         print(kube('-n', NAMESPACE, 'logs', 'job/' + name), flush=True)
 
 
-def viewer_path(logdir, image=IMAGE):
+def viewer_path(logdir: str, image: str = IMAGE) -> str:
+    """Encode a viewer request including the same credential pod template."""
     return '/apps/tensorboard?' + urlencode({
         'namespace': NAMESPACE,
         'logdir': logdir,
@@ -354,7 +385,8 @@ def viewer_path(logdir, image=IMAGE):
     })
 
 
-def create(logdir, image):
+def create(logdir: str, image: str) -> tuple[str, str, str, str]:
+    """Create a viewer and verify the reconciled pod image and identity."""
     proxy = request(viewer_path(logdir, image), 'POST').decode()
     metadata = json.loads(request(viewer_path(logdir, image)))
     assert metadata['image'] == image, metadata
@@ -387,7 +419,8 @@ def create(logdir, image):
     return proxy, name, pod['metadata']['uid'], status['imageID'].split('@')[-1]
 
 
-def viewer_process(name):
+def viewer_process(name: str) -> dict:
+    """Capture process identity so reload cannot pass by restarting a pod."""
     pods = json.loads(
         kube('-n', NAMESPACE, 'get', 'pods', '-l', 'viewer=' + name, '-o',
              'json'))['items']
@@ -404,7 +437,8 @@ def viewer_process(name):
     }
 
 
-def scalar(proxy, step):
+def scalar(proxy: str, step: int) -> bool:
+    """Find one expected scalar step through the real UI proxy."""
     raw = request(proxy + 'data/plugin/scalars/scalars?' + urlencode({
         'run': 'legacy',
         'tag': 'accuracy'
@@ -414,7 +448,8 @@ def scalar(proxy, step):
         row[1] == step and abs(row[2] - step / 4) < 0.0001 for row in values)
 
 
-def verify(proxy, step):
+def verify(proxy: str, step: int) -> None:
+    """Require scalar, graph and PNG data from the deployed viewer."""
     poll(
         f'scalar step {step} through UI proxy',
         lambda: scalar(proxy, step),
@@ -428,7 +463,8 @@ def verify(proxy, step):
     assert image.startswith(b'\x89PNG'), image[:100]
 
 
-def delete(logdir, name):
+def delete(logdir: str, name: str) -> None:
+    """Delete a viewer and wait for its owned resources to vanish."""
     request(viewer_path(logdir), 'DELETE')
     for resource in [
             'viewer/' + name, 'deployment/' + name + '-deployment',
@@ -438,7 +474,59 @@ def delete(logdir, name):
              '--timeout=180s')
 
 
-def run():
+def exercise_scheme(scheme: str) -> dict:
+    """Check one storage reader, authorization, reload and viewer lifecycle."""
+    upload(scheme, 1)
+    logdir = f'{scheme}://tensorboard-fixtures/logs'
+    path = viewer_path(logdir)
+    for method in ['POST', 'DELETE']:
+        request(path, method, READER, expected=401)
+    proxy, name, old_uid, image_id = create(logdir, IMAGE)
+    verify(proxy, 1)
+    reload_process = viewer_process(name)
+    assert reload_process['pod_uid'] == old_uid
+    request(proxy, user=READER)
+    for user in [DENIED, None]:
+        request(proxy, user=user, expected=403)
+    subprocess.run(
+        ['node', 'test/tensorboard/browser.cjs'],
+        check=True,
+        env={
+            **os.environ, 'TENSORBOARD_URL': BASE + '/' + proxy,
+            'TENSORBOARD_USER': MANAGER,
+            'TENSORBOARD_ARTIFACT_PREFIX': str(STATE / (scheme + '-browser'))
+        })
+    upload(scheme, 2)
+    verify(proxy, 2)
+    current_process = viewer_process(name)
+    assert current_process == reload_process, (reload_process, current_process)
+    upload(scheme, 3)
+    verify(proxy, 3)
+    current_process = viewer_process(name)
+    assert current_process == reload_process, (reload_process, current_process)
+    # Restart using the normal default, then an explicitly selected image.
+    delete(logdir, name)
+    proxy, name, new_uid, restarted_id = create(logdir, IMAGE)
+    assert new_uid != old_uid and restarted_id == image_id
+    verify(proxy, 3)
+    delete(logdir, name)
+    proxy, name, custom_uid, custom_id = create(logdir, CUSTOM_IMAGE)
+    assert custom_uid != new_uid and custom_id == image_id
+    verify(proxy, 3)
+    delete(logdir, name)
+    return {
+        'scheme': scheme,
+        'image_id': image_id,
+        'initial_pod_uid': old_uid,
+        'reload_process': reload_process,
+        'restarted_pod_uid': new_uid,
+        'custom_pod_uid': custom_uid,
+        'passed': True
+    }
+
+
+def run() -> None:
+    """Own UI forwarding and publish a receipt even when a case fails."""
     setup()
     log = (STATE / 'ui-forward.log').open('w')
     forward = subprocess.Popen([
@@ -461,58 +549,7 @@ def run():
             lambda: 'Forwarding from' in (STATE / 'ui-forward.log').read_text(),
             timeout=30)
         for scheme in ['s3', 'gs']:
-            upload(scheme, 1)
-            logdir = f'{scheme}://tensorboard-fixtures/logs'
-            path = viewer_path(logdir)
-            for method in ['POST', 'DELETE']:
-                request(path, method, READER, expected=401)
-            proxy, name, old_uid, image_id = create(logdir, IMAGE)
-            verify(proxy, 1)
-            reload_process = viewer_process(name)
-            assert reload_process['pod_uid'] == old_uid
-            request(proxy, user=READER)
-            for user in [DENIED, None]:
-                request(proxy, user=user, expected=403)
-            subprocess.run(
-                ['node', 'test/tensorboard/browser.cjs'],
-                check=True,
-                env={
-                    **os.environ, 'TENSORBOARD_URL':
-                        BASE + '/' + proxy,
-                    'TENSORBOARD_USER':
-                        MANAGER,
-                    'TENSORBOARD_ARTIFACT_PREFIX':
-                        str(STATE / (scheme + '-browser'))
-                })
-            upload(scheme, 2)
-            verify(proxy, 2)
-            current_process = viewer_process(name)
-            assert current_process == reload_process, (reload_process,
-                                                       current_process)
-            upload(scheme, 3)
-            verify(proxy, 3)
-            current_process = viewer_process(name)
-            assert current_process == reload_process, (reload_process,
-                                                       current_process)
-            # Restart using the normal default, then an explicitly selected image.
-            delete(logdir, name)
-            proxy, name, new_uid, restarted_id = create(logdir, IMAGE)
-            assert new_uid != old_uid and restarted_id == image_id
-            verify(proxy, 3)
-            delete(logdir, name)
-            proxy, name, custom_uid, custom_id = create(logdir, CUSTOM_IMAGE)
-            assert custom_uid != new_uid and custom_id == image_id
-            verify(proxy, 3)
-            delete(logdir, name)
-            report['cases'].append({
-                'scheme': scheme,
-                'image_id': image_id,
-                'initial_pod_uid': old_uid,
-                'reload_process': reload_process,
-                'restarted_pod_uid': new_uid,
-                'custom_pod_uid': custom_uid,
-                'passed': True
-            })
+            report['cases'].append(exercise_scheme(scheme))
         report['passed'] = True
     finally:
         (STATE / 'report.json').write_text(json.dumps(report, indent=2))

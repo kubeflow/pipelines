@@ -47,6 +47,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self,
         *,
         ready_after: int,
+        load_tensorboard: bool = False,
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
@@ -91,6 +92,8 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             environment = os.environ.copy()
             environment.pop('WAIT_ATTEMPTS', None)
             environment.update({
+                'LOAD_TENSORBOARD_IMAGE':
+                    str(load_tensorboard).lower(),
                 'ARTIFACT_NAMES':
                     ' '.join(ARTIFACTS),
                 'GH_COUNTER':
@@ -134,9 +137,29 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('All 14 branch image artifacts are available',
+        self.assertIn('All 13 branch image artifacts are available',
                       result.stdout)
         self.assertEqual(attempts, 1)
+
+    def test_non_viewer_lane_does_not_wait_for_tensorboard(self):
+        result, attempts = self._run(
+            ready_after=100, missing_artifact='tensorboard')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(attempts, 1)
+
+    def test_viewer_lane_waits_for_tensorboard_producer(self):
+        result, attempts = self._run(
+            ready_after=4,
+            load_tensorboard=True,
+            missing_artifact='tensorboard',
+            producer_jobs=((
+                'build / image-build (tensorboard, backend/Dockerfile.tensorboard, .)',
+                'in_progress', ''),))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(attempts, 4)
+        self.assertIn('Extending image artifact wait', result.stdout)
+        self.assertIn('All 14 branch image artifacts are available',
+                      result.stdout)
 
     def test_rejects_invalid_publication_grace(self):
         result, attempts = self._run(
