@@ -387,6 +387,23 @@ def create(logdir, image):
     return proxy, name, pod['metadata']['uid'], status['imageID'].split('@')[-1]
 
 
+def viewer_process(name):
+    pods = json.loads(
+        kube('-n', NAMESPACE, 'get', 'pods', '-l', 'viewer=' + name, '-o',
+             'json'))['items']
+    assert len(pods) == 1, pods
+    pod = pods[0]
+    assert not pod['metadata'].get('deletionTimestamp'), pod['metadata']
+    status = pod['status']['containerStatuses'][0]
+    assert status['ready'] and status['state'].get('running'), status
+    assert status['containerID'], status
+    return {
+        'pod_uid': pod['metadata']['uid'],
+        'container_id': status['containerID'],
+        'restart_count': status['restartCount']
+    }
+
+
 def scalar(proxy, step):
     raw = request(proxy + 'data/plugin/scalars/scalars?' + urlencode({
         'run': 'legacy',
@@ -451,6 +468,8 @@ def run():
                 request(path, method, READER, expected=401)
             proxy, name, old_uid, image_id = create(logdir, IMAGE)
             verify(proxy, 1)
+            reload_process = viewer_process(name)
+            assert reload_process['pod_uid'] == old_uid
             request(proxy, user=READER)
             for user in [DENIED, None]:
                 request(proxy, user=user, expected=403)
@@ -467,8 +486,14 @@ def run():
                 })
             upload(scheme, 2)
             verify(proxy, 2)
+            current_process = viewer_process(name)
+            assert current_process == reload_process, (reload_process,
+                                                       current_process)
             upload(scheme, 3)
             verify(proxy, 3)
+            current_process = viewer_process(name)
+            assert current_process == reload_process, (reload_process,
+                                                       current_process)
             # Restart using the normal default, then an explicitly selected image.
             delete(logdir, name)
             proxy, name, new_uid, restarted_id = create(logdir, IMAGE)
@@ -483,6 +508,7 @@ def run():
                 'scheme': scheme,
                 'image_id': image_id,
                 'initial_pod_uid': old_uid,
+                'reload_process': reload_process,
                 'restarted_pod_uid': new_uid,
                 'custom_pod_uid': custom_uid,
                 'passed': True
