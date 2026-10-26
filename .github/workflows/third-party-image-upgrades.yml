@@ -89,7 +89,7 @@ jobs:
       # Keep this backport blocked until the upstream harness merges.
       - uses: actions/checkout@v7
         with:
-          ref: 57060311ce65ed70b549abc6e90a955c51a846f5
+          ref: e3d61f355e495005e29166ad5ea3ce1500e839de
           path: tooling
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7

@@ -47,7 +47,8 @@ TARGETS = {
 PLATFORM = 'linux/amd64'
 
 
-def image_reference(checkout, target):
+def image_reference(checkout: Path, target: str) -> str:
+    """Read one named manifest container or Argo executor image reference."""
     relative, name = TARGETS[target]
     manifest = yaml.safe_load((checkout / relative).read_text())
     containers = manifest['spec']['template']['spec']['containers']
@@ -78,7 +79,7 @@ def image_reference(checkout, target):
     return reference
 
 
-def compare_reports(baseline, candidate):
+def compare_reports(baseline: dict, candidate: dict) -> dict:
     """Group transitive advisory aliases across both reports, not packages.
 
     Absence from the candidate scan is an observation, not an
@@ -90,7 +91,9 @@ def compare_reports(baseline, candidate):
     rows = [findings(baseline), findings(candidate)]
     parents = {}
 
-    def root(value):
+    # Join aliases across both reports before comparing their connected groups.
+    # An alias bridge introduced by either report must also join the other side.
+    def root(value: str) -> str:
         parents.setdefault(value, value)
         while parents[value] != value:
             value = parents[value]
@@ -121,7 +124,8 @@ def compare_reports(baseline, candidate):
     }
 
 
-def capture(checkout, target, output):
+def capture(checkout: Path, target: str, output: Path) -> tuple[dict, dict]:
+    """Scan the same immutable Linux AMD64 image in JSON and SARIF formats."""
     from kfpr.osv_image_scan import scan_image
     from kfpr.osv_image_scan import validate_report
 
@@ -166,7 +170,8 @@ def capture(checkout, target, output):
     return subject, report
 
 
-def main():
+def main() -> None:
+    """Capture baseline/candidate evidence and write their alias comparison."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--baseline', type=Path, required=True)
     parser.add_argument('--candidate', type=Path, required=True)
