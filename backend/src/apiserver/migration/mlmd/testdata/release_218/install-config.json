@@ -1,0 +1,56 @@
+{
+    "apiVersion": "v1",
+    "data": {
+        "ALLOWED_ARTIFACT_ENDPOINTS": "",
+        "ARCHIVED_RUNS_RETENTION_TIME": "",
+        "ARTIFACTS_PROXY_ENABLED": "false",
+        "ARTIFACT_RETENTION_DAYS": "-1",
+        "BLOCK_V1_PIPELINES": "false",
+        "ConMaxLifeTime": "120s",
+        "DEFAULT_CACHE_STALENESS": "",
+        "DRIVER_POD_ANNOTATIONS": "",
+        "DRIVER_POD_LABELS": "",
+        "HTTP_BASE_URL": "",
+        "LOG_LEVEL": "info",
+        "MAXIMUM_CACHE_STALENESS": "",
+        "RUNS_GC_BATCH_SIZE": "100",
+        "RUNS_GC_INTERVAL": "6h",
+        "RUNS_RETENTION_TIME": "",
+        "USERID_HEADER": "kubeflow-userid",
+        "USERID_PREFIX": "",
+        "V1_ALLOWED_NAMESPACES": "",
+        "appName": "pipeline",
+        "appVersion": "2.18.0",
+        "autoUpdatePipelineDefaultVersion": "true",
+        "bucketName": "mlpipeline",
+        "cacheDb": "cachedb",
+        "cacheImage": "mirror.gcr.io/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63",
+        "cacheNodeRestrictions": "false",
+        "cronScheduleTimezone": "UTC",
+        "dbType": "mysql",
+        "defaultPipelineRoot": "",
+        "defaultSecurityContextHostUsers": "",
+        "defaultSecurityContextRunAsGroup": "",
+        "defaultSecurityContextRunAsNonRoot": "",
+        "defaultSecurityContextRunAsUser": "",
+        "mlmdDb": "metadb",
+        "mysqlHost": "mysql",
+        "mysqlPort": "3306",
+        "pipelineDb": "mlpipeline",
+        "warning": "1. Do not use kubectl to edit this configmap, because some values are used\nduring kustomize build. Instead, change the configmap and apply the entire\nkustomize manifests again.\n2. After updating the configmap, some deployments may need to be restarted\nuntil the changes take effect. A quick way to restart all deployments in a\nnamespace: `kubectl rollout restart deployment -n \u003cyour-namespace\u003e`.\n"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+        "annotations": {
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"data\":{\"ALLOWED_ARTIFACT_ENDPOINTS\":\"\",\"ARCHIVED_RUNS_RETENTION_TIME\":\"\",\"ARTIFACTS_PROXY_ENABLED\":\"false\",\"ARTIFACT_RETENTION_DAYS\":\"-1\",\"BLOCK_V1_PIPELINES\":\"false\",\"ConMaxLifeTime\":\"120s\",\"DEFAULT_CACHE_STALENESS\":\"\",\"DRIVER_POD_ANNOTATIONS\":\"\",\"DRIVER_POD_LABELS\":\"\",\"HTTP_BASE_URL\":\"\",\"LOG_LEVEL\":\"info\",\"MAXIMUM_CACHE_STALENESS\":\"\",\"RUNS_GC_BATCH_SIZE\":\"100\",\"RUNS_GC_INTERVAL\":\"6h\",\"RUNS_RETENTION_TIME\":\"\",\"USERID_HEADER\":\"kubeflow-userid\",\"USERID_PREFIX\":\"\",\"V1_ALLOWED_NAMESPACES\":\"\",\"appName\":\"pipeline\",\"appVersion\":\"2.18.0\",\"autoUpdatePipelineDefaultVersion\":\"true\",\"bucketName\":\"mlpipeline\",\"cacheDb\":\"cachedb\",\"cacheImage\":\"mirror.gcr.io/library/alpine:3.23.7@sha256:ff7f0c727dd796aa36787bfcd9a64bf35a6ce72a73451b3359fde849b6703d63\",\"cacheNodeRestrictions\":\"false\",\"cronScheduleTimezone\":\"UTC\",\"dbType\":\"mysql\",\"defaultPipelineRoot\":\"\",\"defaultSecurityContextHostUsers\":\"\",\"defaultSecurityContextRunAsGroup\":\"\",\"defaultSecurityContextRunAsNonRoot\":\"\",\"defaultSecurityContextRunAsUser\":\"\",\"mlmdDb\":\"metadb\",\"mysqlHost\":\"mysql\",\"mysqlPort\":\"3306\",\"pipelineDb\":\"mlpipeline\",\"warning\":\"1. Do not use kubectl to edit this configmap, because some values are used\\nduring kustomize build. Instead, change the configmap and apply the entire\\nkustomize manifests again.\\n2. After updating the configmap, some deployments may need to be restarted\\nuntil the changes take effect. A quick way to restart all deployments in a\\nnamespace: `kubectl rollout restart deployment -n \\u003cyour-namespace\\u003e`.\\n\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"labels\":{\"application-crd-id\":\"kubeflow-pipelines\"},\"name\":\"pipeline-install-config\",\"namespace\":\"kubeflow\"}}\n"
+        },
+        "creationTimestamp": "2026-11-19T03:01:53Z",
+        "labels": {
+            "application-crd-id": "kubeflow-pipelines"
+        },
+        "name": "pipeline-install-config",
+        "namespace": "kubeflow",
+        "resourceVersion": "979",
+        "uid": "174dbd6e-f9ee-4179-96dd-17b7c216a1ec"
+    }
+}
