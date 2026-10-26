@@ -18,6 +18,14 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class TensorBoardDeployedTest(unittest.TestCase):
 
+    def test_browser_lanes_use_playwright_supported_runner(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/tensorboard-acceptance.yml').read_text())
+        for name in ('runtime', 'deployed'):
+            with self.subTest(job=name):
+                self.assertEqual(workflow['jobs'][name]['runs-on'],
+                                 'ubuntu-24.04')
+
     def test_only_viewer_callers_opt_into_image_loading_and_waiting(self):
         action = yaml.safe_load(
             (ROOT / '.github/actions/deploy/action.yml').read_text())

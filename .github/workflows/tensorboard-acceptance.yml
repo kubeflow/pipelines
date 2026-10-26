@@ -93,7 +93,8 @@ jobs:
     permissions:
       actions: read
       contents: read
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 does not support Ubuntu 26.04 browser installation.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@v7
