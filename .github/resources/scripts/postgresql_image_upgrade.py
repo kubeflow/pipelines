@@ -232,7 +232,7 @@ class Acceptance:
                                check=False)
 
     def deploy_old(self) -> tuple[str, str, int]:
-        """Render the candidate and deploy its immutable same-major predecessor."""
+        """Render the candidate and deploy its pinned predecessor."""
         source = ROOT / 'manifests/kustomize' / PROFILES[
             self.lane].kustomize_path
         rendered = run(
@@ -264,7 +264,7 @@ class Acceptance:
         return container, candidate, expected_version
 
     def seed(self) -> tuple[str, str, str]:
-        """Seed application data and capture identity and the exact KFP schema."""
+        """Seed data and capture identity and the exact KFP schema."""
         self.sql('''CREATE SCHEMA patch_acceptance;
 CREATE TABLE patch_acceptance.records (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -293,7 +293,7 @@ INSERT INTO patch_acceptance.records(name,payload,created)
                 'and runtime image ID before accepting the pin.')
 
     def verify_retained(self, before: str, system_id: str, tables: str) -> None:
-        """Check retained data before application startup can repair a schema."""
+        """Check retained data before migrations can repair the schema."""
         if (self.sql(DIGEST_QUERY) != before or
                 self.sql(SYSTEM_ID_QUERY) != system_id):
             raise RuntimeError('Upgrade changed retained data or database '
