@@ -258,3 +258,24 @@ The frontend qualification reliability reporter supports `--collect --repository
 - API cache scenarios use Ginkgo priority to start their long-running work before ordinary parallel specs. Cache-enabled standalone/Kubernetes-native jobs and multi-user shard B prepare offline fixture images with the original released SDK/Python matrix: kfp 2.13.0 on Python 3.12 and kfp 2.14.2 on Python 3.11. SDK wheels are prepared once per job (2.13.0 is built from its published sdist) then installed with --no-deps into preloaded bases without network access. Only fixture installer prefixes and images change; component source, arguments, outputs and PVC configuration remain intact. These cache fixtures do not consume checked-out SDK sources. Other API fixtures retain normal SDK installation. Include wheel and image preparation in wall-time comparisons; required migration labels and cache assertions remain unchanged.
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
+
+## Third-party image upgrade checks
+
+`third-party-image-upgrades.yml` reads baseline images from the PR base commit
+(or the explicit manual baseline ref) and candidate images from the tested head.
+The Kind component check preserves S3 objects, lifecycle rules and profile-issued
+IAM credentials on the same PVC across a SeaweedFS upgrade and restart. It invokes
+the actual profile webhook without Metacontroller; it does not run an MLMD,
+whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
+The helper phases retain command stderr and make cluster deletion best-effort.
+Profile credential selection requires the named artifact Secret; service-account
+token Secrets can precede it in reconciliation output. The workflow is registered
+in the trigger inventory and the CI Check completion subscription.
+
+Linux AMD64 scan jobs use the checkout's release OSV tooling and retain raw JSON,
+SARIF, immutable image identities and advisory-alias comparisons. Success means
+complete evidence, not zero findings, applicability exemptions or release approval.
+
+OSV archive verification accepts classic Docker config IDs and containerd
+manifest/index IDs only when SHA-256-verified archived descriptors bind the
+selected native config. Missing, tampered, ambiguous or mismatched chains fail.
