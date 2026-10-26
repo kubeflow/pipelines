@@ -123,6 +123,49 @@ func (s *ArtifactAPITest) TestV1PipelineArtifactRead() {
 	s.testReadArtifactEndpoint(runID, nodeID, artifactName)
 }
 
+// TestV1PipelineMetricsReportedByPersistenceAgent checks that the deployed
+// persistence agent reads a v1 mlpipeline-metrics artifact through the API
+// server and reports it, without the test calling ReportRunMetrics.
+func (s *ArtifactAPITest) TestV1PipelineMetricsReportedByPersistenceAgent() {
+	t := s.T()
+	runID, experimentID, pipelineID := s.runPipelineFromFile("../resources/metrics_pipeline.yaml")
+
+	defer func() {
+		s.deleteRun(runID)
+		s.deleteExperiment(experimentID)
+		s.deleteAllPipelineVersions(pipelineID)
+	}()
+
+	s.waitForRunCompletion(runID)
+
+	_, workflow, err := s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: runID})
+	require.NoError(t, err)
+	require.NotNil(t, workflow)
+	var nodeID string
+	for id, node := range workflow.Status.Nodes {
+		if node.TemplateName == "emit-metrics" {
+			nodeID = id
+		}
+	}
+	require.NotEmpty(t, nodeID, "Could not find the emit-metrics node in the workflow status")
+
+	var metrics []*run_model.APIRunMetric
+	require.Eventually(t, func() bool {
+		runDetail, _, err := s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: runID})
+		if err != nil {
+			t.Logf("Failed to get run %s: %v", runID, err)
+			return false
+		}
+		metrics = runDetail.Run.Metrics
+		return len(metrics) > 0
+	}, 2*time.Minute, 2*time.Second, "Persistence agent did not report the run metrics")
+
+	require.Len(t, metrics, 1)
+	require.Equal(t, "accuracy-score", metrics[0].Name)
+	require.Equal(t, 0.875, metrics[0].NumberValue)
+	require.Equal(t, nodeID, metrics[0].NodeID)
+}
+
 func (s *ArtifactAPITest) deleteAllPipelineVersions(pipelineID string) {
 	test.DeleteAllPipelineVersions(s.pipelineClient, s.T(), pipelineID)
 	if err := s.pipelineClient.Delete(&pipelineParams.PipelineServiceDeletePipelineV1Params{
@@ -156,18 +199,22 @@ func (s *ArtifactAPITest) createExperiment() *experiment_model.APIExperiment {
 	return experiment
 }
 
-func (s *ArtifactAPITest) uploadPipeline() *pipeline_upload_model.APIPipeline {
+func (s *ArtifactAPITest) uploadPipeline(path string) *pipeline_upload_model.APIPipeline {
 	uploadPipelineParams := uploadParams.NewUploadPipelineParams()
 	pipelineName := fmt.Sprintf("artifact-test-%d", time.Now().Unix())
 	uploadPipelineParams.SetName(&pipelineName)
-	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/artifact_pipeline.yaml", uploadPipelineParams)
+	pipeline, err := s.pipelineUploadClient.UploadFile(path, uploadPipelineParams)
 	require.NoError(s.T(), err, "Failed to upload pipeline")
 	return pipeline
 }
 
 func (s *ArtifactAPITest) runPipeline() (runID, experimentID, pipelineID string) {
+	return s.runPipelineFromFile("../resources/artifact_pipeline.yaml")
+}
+
+func (s *ArtifactAPITest) runPipelineFromFile(path string) (runID, experimentID, pipelineID string) {
 	experiment := s.createExperiment()
-	pipeline := s.uploadPipeline()
+	pipeline := s.uploadPipeline(path)
 
 	runRequest := &runParams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name: fmt.Sprintf("test-artifact-run-%d", time.Now().Unix()),
