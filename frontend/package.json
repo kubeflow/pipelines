@@ -144,7 +144,6 @@
     "eslint": "^10.8.0",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "fs": "0.0.1-security",
     "globals": "^16.5.0",
     "jsdom": "^24.1.0",
     "pixelmatch": "^5.3.0",
