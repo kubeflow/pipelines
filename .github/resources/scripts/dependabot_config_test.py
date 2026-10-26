@@ -129,6 +129,7 @@ class DependabotConfigTest(unittest.TestCase):
             block
             for configured_ecosystem, block in self.update_blocks()
             if configured_ecosystem == ecosystem
+            and not yaml.safe_load(block).get('target-branch')
         ]
         self.assertEqual(
             len(matching_blocks),
@@ -186,7 +187,9 @@ class DependabotConfigTest(unittest.TestCase):
 
     def test_all_supported_repository_ecosystems_are_configured(self):
         configured_ecosystems = [
-            ecosystem for ecosystem, _ in self.update_blocks()
+            ecosystem
+            for ecosystem, block in self.update_blocks()
+            if not yaml.safe_load(block).get('target-branch')
         ]
 
         self.assertCountEqual(
@@ -228,6 +231,44 @@ class DependabotConfigTest(unittest.TestCase):
                     self.configured_labels(ecosystem),
                     ['dependencies', ecosystem_label],
                 )
+
+    def test_tensorboard_release_updates_are_explicit_and_scoped(self):
+        updates = yaml.safe_load(self.config)['updates']
+        release = [update for update in updates if update.get('target-branch')]
+        self.assertEqual(len(release), 2)
+        by_ecosystem = {
+            update['package-ecosystem']: update for update in release
+        }
+        self.assertEqual(set(by_ecosystem), {'pip', 'docker'})
+        self.assertEqual(
+            by_ecosystem['pip']['directory'], '/backend/src/tensorboard'
+        )
+        self.assertEqual(
+            by_ecosystem['pip']['allow'], [{'dependency-type': 'all'}]
+        )
+        docker = by_ecosystem['docker']
+        self.assertEqual(docker['directory'], '/backend')
+        self.assertEqual(docker['allow'], [{'dependency-name': 'python'}])
+        excludes = docker['exclude-paths']
+        self.assertFalse(
+            any(
+                fnmatchcase('Dockerfile.tensorboard', rule) for rule in excludes
+            )
+        )
+        for path in (
+            'Dockerfile',
+            'Dockerfile.visualization',
+            'src/cache/Dockerfile',
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(
+                    any(fnmatchcase(path, rule) for rule in excludes)
+                )
+        for update in release:
+            self.assertEqual(update['target-branch'], 'release-2.18')
+            self.assertEqual(update['schedule']['interval'], 'weekly')
+            self.assertEqual(update['open-pull-requests-limit'], 10)
+            self.assertIn('dependencies', update['labels'])
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):
         config = yaml.safe_load(self.config)

@@ -72,3 +72,17 @@ This is a reachability assessment, not a patched dependency. The two lockfile
 alerts remain pending an upstream fix or removal of their dependency chains.
 The integration test project instead removes `braces` through coordinated
 WebdriverIO 10/Mocha 12 upgrades.
+
+## Release 2.18 TensorBoard image
+
+The default-branch configuration schedules weekly updates targeting `release-2.18`
+for the TensorBoard pip lock in `backend/src/tensorboard` and the Python base in
+`backend/Dockerfile.tensorboard`. The Docker entry excludes other backend images;
+keep those exclusions aligned if release-branch Dockerfiles are added. These entries
+support the release-only image introduced by #15152 and can be removed when that
+release line is no longer maintained.
+
+`target-branch` schedules version-update PRs, not security-update PRs: GitHub's
+security updates apply to the default branch. Continue fresh dependency/image
+scans and the TensorBoard storage qualification described in the release branch's
+`backend/src/tensorboard/README.md` before publishing an updated viewer image.

@@ -220,3 +220,48 @@ updates:
       pre-commit-hooks:
         patterns:
           - "*"
+  # This release-only image is absent from master. Dependabot reads configuration
+  # from the default branch, then resolves these manifests on release-2.18.
+  - package-ecosystem: pip
+    directory: "/backend/src/tensorboard"
+    target-branch: "release-2.18"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(viewer)"
+    allow:
+      - dependency-type: all
+    groups:
+      tensorboard-python:
+        group-by: dependency-name
+  - package-ecosystem: docker
+    directory: "/backend"
+    target-branch: "release-2.18"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(viewer)"
+    allow:
+      - dependency-name: "python"
+    # Keep this release exception scoped to Dockerfile.tensorboard.
+    exclude-paths:
+      - "Dockerfile"
+      - "Dockerfile.cacheserver"
+      - "Dockerfile.conformance"
+      - "Dockerfile.driver"
+      - "Dockerfile.launcher"
+      - "Dockerfile.persistenceagent"
+      - "Dockerfile.scheduledworkflow"
+      - "Dockerfile.viewercontroller"
+      - "Dockerfile.visualization"
+      - "api/**"
+      - "src/**"
+      - "test/**"
