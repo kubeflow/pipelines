@@ -127,7 +127,8 @@ html_theme_options = {
             },
         },
     ],
-    'font': {'text': 'Open Sans'},
+    # Use the theme's system fallback stack without build-time Google Fonts fetches.
+    'font': False,
     'version_dropdown': True,
     'version_info': [
         {

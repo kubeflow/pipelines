@@ -257,6 +257,16 @@ jobs:
             NUMBER_OF_NODES=3
           fi
 
+          # Kind and the pipeline pods share the runner with Ginkgo. Reserve
+          # half the available CPUs for that work, retaining stricter lane caps.
+          RUNNER_NODE_LIMIT=$(( $(nproc) / 2 ))
+          if [ "$RUNNER_NODE_LIMIT" -lt 1 ]; then
+            RUNNER_NODE_LIMIT=1
+          fi
+          if [ "$NUMBER_OF_NODES" -gt "$RUNNER_NODE_LIMIT" ]; then
+            NUMBER_OF_NODES=$RUNNER_NODE_LIMIT
+          fi
+
           # Explicit dispatch inputs take precedence over automatic lane caps.
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
