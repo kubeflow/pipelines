@@ -3,6 +3,7 @@ FROM golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e8835
 RUN apk add --no-cache git
 WORKDIR /src
 # Keep real tag metadata so Go identifies the module version, not (devel).
+# Patch x/net and x/text for security fixes; the go.mod changes yield +dirty.
 ARG KUBERNETES_VERSION=v1.37.1
 ARG KUBERNETES_TAG_OBJECT=d2b770f4c94636a992534a8d3156b6b2d8e82ac3
 ARG KUBERNETES_COMMIT=f78e722310e50bcaca9276be22276d9e91d91308
@@ -10,8 +11,12 @@ RUN git clone --depth=1 --branch "${KUBERNETES_VERSION}" https://github.com/kube
     && test "$(git rev-parse "refs/tags/${KUBERNETES_VERSION}")" = "${KUBERNETES_TAG_OBJECT}" \
     && test "$(git rev-parse HEAD)" = "${KUBERNETES_COMMIT}"
 ENV GOWORK=off GOFLAGS=-mod=mod CGO_ENABLED=0
-RUN go get golang.org/x/net@v0.60.0 golang.org/x/text@v0.42.0 \
-    && go build -trimpath -buildvcs=true -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=${KUBERNETES_VERSION} -X k8s.io/component-base/version.gitMajor=1 -X k8s.io/component-base/version.gitMinor=37 -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl \
+RUN kubernetes_version="${KUBERNETES_VERSION#v}" \
+    && kubernetes_major="${kubernetes_version%%.*}" \
+    && kubernetes_minor="${kubernetes_version#*.}" \
+    && kubernetes_minor="${kubernetes_minor%%.*}" \
+    && go get golang.org/x/net@v0.60.0 golang.org/x/text@v0.42.0 \
+    && go build -trimpath -buildvcs=true -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=${KUBERNETES_VERSION} -X k8s.io/component-base/version.gitMajor=${kubernetes_major} -X k8s.io/component-base/version.gitMinor=${kubernetes_minor} -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl \
     && go version -m /out/kubectl > /out/kubectl.buildinfo \
     && cat /out/kubectl.buildinfo \
     && awk -v expected="${KUBERNETES_VERSION}+dirty" -v commit="${KUBERNETES_COMMIT}" \
