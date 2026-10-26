@@ -63,7 +63,9 @@ def CreatePVC(
             one of ``pvc_name`` and ``pvc_name_suffix`` can be provided.
         storage_class_name: Name of StorageClass from which to provision the PV
             to back the PVC. ``None`` indicates to use the cluster's default
-            storage_class_name. Set to ``''`` for a statically specified PVC.
+            storage_class_name, or the server-configured default StorageClass
+            when one is set by the administrator. Set to ``''`` for a
+            statically specified PVC.
         volume_name: Pre-existing PersistentVolume that should back the
             provisioned PersistentVolumeClaim. Used for statically
             specified PV only. Corresponds to

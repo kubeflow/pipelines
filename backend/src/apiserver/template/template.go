@@ -124,13 +124,14 @@ type RunWorkflowOptions struct {
 }
 
 type TemplateOptions struct {
-	CacheDisabled        bool
-	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec
-	MLPipelineTLSEnabled bool
-	DefaultRunAsUser     *int64
-	DefaultRunAsGroup    *int64
-	DefaultRunAsNonRoot  *bool
-	DefaultHostUsers     *bool
+	CacheDisabled          bool
+	DefaultWorkspace       *corev1.PersistentVolumeClaimSpec
+	MLPipelineTLSEnabled   bool
+	DefaultRunAsUser       *int64
+	DefaultRunAsGroup      *int64
+	DefaultRunAsNonRoot    *bool
+	DefaultHostUsers       *bool
+	DefaultPVCStorageClass *string
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {
