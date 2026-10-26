@@ -52,6 +52,15 @@ fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
 
+# Most deployments never start a viewer. Only viewer acceptance callers need
+# the optional runtime; do not delay every backend lane on its publication.
+required_artifacts=()
+for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  if [[ "$artifact" != "tensorboard" || "${LOAD_TENSORBOARD_IMAGE:-false}" == "true" ]]; then
+    required_artifacts+=("$artifact")
+  fi
+done
+
 active_missing_producers=()
 failed_missing_producers=()
 successful_missing_producers=()
@@ -112,14 +121,14 @@ while true; do
   fi
 
   missing_artifacts=()
-  for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  for artifact in "${required_artifacts[@]}"; do
     if ! grep -Fqx -- "$artifact" <<< "$artifact_names"; then
       missing_artifacts+=("$artifact")
     fi
   done
 
   if (( ${#missing_artifacts[@]} == 0 )); then
-    echo "All ${#ALL_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
+    echo "All ${#required_artifacts[@]} branch image artifacts are available."
     exit 0
   fi
 

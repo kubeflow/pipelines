@@ -30,5 +30,6 @@ RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
 ALL_CI_IMAGE_ARTIFACTS=(
   "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"
   "${RUNTIME_IMAGE_ARTIFACTS[@]}"
+  "tensorboard"
   "runtime-base-images"
 )

@@ -7,7 +7,7 @@ Use the complete update command for both Dependabot proposals and manual upgrade
 ## Planned KFP 3.0 support boundary
 
 The release-2.18 branch retains Argo 3.7.18 compatibility coverage and uses
-Argo 4.1.5 as its default runtime. Upgrade the controller, executor, manifests,
+Argo 4.1.6 as its default runtime. Upgrade the controller, executor, manifests,
 CLI, and Go client together; preserve both API and end-to-end CI lanes.
 
 [Upstream maintains the two most recent minor releases](https://argo-workflows.readthedocs.io/en/latest/releases/),
@@ -27,7 +27,7 @@ CI matrices. Track this work in
 From the repository root, select an exact stable tag:
 
 ```bash
-ARGO_TAG=v4.1.5
+ARGO_TAG=v4.1.6
 make -C third_party/argo update ARGO_VERSION="${ARGO_TAG}"
 ```
 
