@@ -19,8 +19,14 @@ from http.server import ThreadingHTTPServer
 import json
 import os
 
-# From awscli installed in alpine/k8s image
-import botocore.session
+try:
+    import botocore.session
+except ModuleNotFoundError as error:
+    if error.name != 'botocore':
+        raise
+    # AWS CLI 1.46+ registers its bundled botocore import alias on startup.
+    import awscli  # noqa: F401
+    import botocore.session
 
 S3_BUCKET_NAME = 'mlpipeline'
 HEALTHZ_PATH = '/healthz'

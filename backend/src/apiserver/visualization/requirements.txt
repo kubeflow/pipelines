@@ -202,7 +202,7 @@ narwhals==2.23.0
     # via bokeh
 nbclient==0.10.2
     # via nbconvert
-nbconvert==7.17.1
+nbconvert==7.17.2
     # via -r requirements.in
 nbformat==5.10.4
     # via
@@ -336,8 +336,10 @@ scikit-learn==1.5.0
     # via -r requirements.in
 scipy==1.16.1
     # via scikit-learn
-setuptools==84.0.0
-    # via tensorflow
+setuptools==84.2.1
+    # via
+    #   -r requirements.in
+    #   tensorflow
 six==1.17.0
     # via
     #   astunparse
