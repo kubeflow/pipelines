@@ -3,4 +3,4 @@ pytest-mock>=3.10.0
 requests>=2.33.0
 pyyaml>=6.0
 kfp>=2.0.0
-kubernetes>=28.0.0 
+kubernetes>=28.0.0
