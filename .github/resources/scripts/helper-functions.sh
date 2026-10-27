@@ -51,11 +51,12 @@ for_each_runtime_base_image() {
 
 pull_image_with_backoff() {
   local image=$1
+  local platform=$2
   local max_attempts=5
   local attempt=1
 
   while [[ "$attempt" -le "$max_attempts" ]]; do
-    if docker pull "$image"; then
+    if docker pull "--platform=$platform" "$image"; then
       return 0
     fi
 
@@ -70,9 +71,37 @@ pull_image_with_backoff() {
   done
 }
 
+runtime_image_platform() {
+  local cluster_name=${1:-}
+  local platform=""
+  if [[ -z "$cluster_name" ]]; then
+    # Producers run before Kind exists. Use the daemon, not the CLI host or
+    # DOCKER_DEFAULT_PLATFORM, to select the runner's native platform.
+    platform=$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}') || return 1
+  else
+    local nodes node node_image node_platform
+    nodes=$(kind get nodes --name "$cluster_name") || return 1
+    for node in $nodes; do
+      node_image=$(docker inspect --format '{{.Image}}' "$node") || return 1
+      node_platform=$(docker image inspect --format '{{.Os}}/{{.Architecture}}{{if .Variant}}/{{.Variant}}{{end}}' "$node_image") || return 1
+      if [[ -n "$platform" && "$platform" != "$node_platform" ]]; then
+        echo "Kind nodes use different platforms; load runtime images per platform." >&2
+        return 1
+      fi
+      platform=$node_platform
+    done
+  fi
+  if [[ ! "$platform" =~ ^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?$ ]]; then
+    echo "Cannot determine runtime image platform; check Docker and Kind nodes." >&2
+    return 1
+  fi
+  printf '%s\n' "$platform"
+}
+
 pull_runtime_image_for_archive() {
   local image=$1
-  pull_image_with_backoff "$image" || return 1
+  local platform=$2
+  pull_image_with_backoff "$image" "$platform" || return 1
   # The inventory may pin acquisition with tag@digest. Docker archives must
   # retain the tag used by the fixture: RepoDigests need not survive save/load.
   if [[ "$image" == *@* ]]; then
@@ -84,30 +113,40 @@ pull_and_save_runtime_base_images() {
   local images_file=$1
   local archive_path=$2
   local runtime_base_images=()
+  local platform
+  platform=$(runtime_image_platform) || return 1
 
   pull_runtime_base_image() {
     local image=$1
 
-    pull_runtime_image_for_archive "$image" || return 1
+    pull_runtime_image_for_archive "$image" "$platform" || return 1
     runtime_base_images+=("${image%@*}")
   }
 
   for_each_runtime_base_image "$images_file" pull_runtime_base_image || return 1
 
-  docker save "${runtime_base_images[@]}" -o "$archive_path"
+  # Kind imports all platforms. A containerd image-store export may otherwise
+  # retain index entries whose content was not pulled for this runner.
+  docker save "--platform=$platform" "${runtime_base_images[@]}" -o "$archive_path"
 }
 
 load_runtime_base_images_into_kind() {
   local images_file=$1
   local cluster_name=$2
+  local platform
+  platform=$(runtime_image_platform "$cluster_name") || return 1
 
-  load_runtime_base_image() {
+  load_runtime_base_image() (
     local image=$1
+    local archive_path
 
-    pull_runtime_image_for_archive "$image" || return 1
-    kind --name "$cluster_name" load docker-image "${image%@*}" || return 1
+    pull_runtime_image_for_archive "$image" "$platform" || return 1
+    archive_path=$(mktemp) || return 1
+    trap 'rm -f "$archive_path"' EXIT
+    docker save "--platform=$platform" "${image%@*}" -o "$archive_path" || return 1
+    kind --name "$cluster_name" load image-archive "$archive_path" || return 1
     docker image rm "${image%@*}" || true
-  }
+  )
 
   for_each_runtime_base_image "$images_file" load_runtime_base_image
 }

@@ -26,6 +26,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Workflows that deploy CI-built images overlap Kind setup with current-branch image builds. The shared deploy action waits for the complete artifact inventory; its normal window extends while a missing artifact's producer is queued or running, and completed producers receive a short publication grace.
 - CI Docker-sensitive paths use retry wrappers for image builds, BuildKit bootstrap, and runtime-image pulls. GitHub-hosted Docker jobs configure `mirror.gcr.io` as a Docker Hub pull-through cache, docker-container builders use the same mirror through `buildkitd.toml`, and uncached images still fall back to Docker Hub. Build jobs explicitly try and locally tag the mirrored BuildKit bootstrap image before falling back to Docker Hub within the shared retry budget.
 - `runtime-base-images.yml` refreshes the shared runtime-image artifact. `image-builds.yml` prefers a matching current-source or trusted-master artifact, but rebuilds locally after a bounded lookup miss or failed download. Both workflows use `build-runtime-base-images.sh` to archive test-task, MySQL, and supported Argo images plus the Modelcar fixture. This keeps release branches and older PR snapshots working after shared artifacts expire without permanent release-specific producer lanes. Generation failures stop the job before upload; opted-in E2E lanes still require the Modelcar archive during deployment.
+- Runtime base-image pulls and exports select the Docker server's platform in producers. The Kind fallback selects the actual node image platform and imports a temporary platform-scoped archive; its temporary file is removed on success or failure. This avoids incomplete multi-platform indexes that Kind imports with `--all-platforms`. Shared producers and consumers run on the same platform; heterogeneous Kind nodes are rejected. The generation fingerprint includes `helper-functions.sh`, so changes to this export logic invalidate old artifacts and caches.
+- The DRA E2E lane loads its locally built `kfp-dra-sdk:test` component image the same way: `docker save --platform` for the Kind node platform from `runtime_image_platform` to a temporary archive, then `kind load image-archive`; the archive is removed on exit. `kfp component build` uses Docker's classic builder, whose images record no platform on the containerd image store (the default from Docker 29, used by `ubuntu-26.04` runners), so the lane first re-exports the image through BuildKit for that platform.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
 - The KFP Manifests suite also checks the rendered profile-controller NetworkPolicy for the base multi-user install and the plain, platform-agnostic, and PostgreSQL multi-user overlays. These selector/namespace/port assertions run through `manifests/kustomize/hack/test.sh`; they do not verify live CNI enforcement or override additive allowances from other policies.
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
@@ -35,6 +37,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 - Frontend Vitest snapshots preserve rendered whitespace. The trailing-whitespace hook excludes `frontend/**/*.snap`; update snapshots through Vitest so formatting hooks do not alter expected UI text.
 - `manifests/kustomize/hack/test.sh` runs `tensorboard_signing_key_test.py` to verify the shared Secret, least-privilege initializer permissions, migration-safe `Recreate` and documented opt-in `RollingUpdate`, generated Job names, and the actual CI and OpenShift overlays. The suite renders the exact rolling-update patch from `docs/operator-guides/server-config.md`, so changes to that guide also trigger `kubeflow-pipelines-manifests.yml`. The suite requires Python 3, `kustomize`, and mikefarah `yq` 4.54.1 (using its v4 command syntax); `manifests/kustomize/hack/presubmit.sh` installs pinned `kustomize` and builds pinned `yq` from `backend/api/tools` with the repository Go toolchain. Keep coverage for CI's preloaded initializer image and OpenShift's namespace-assigned UID policy when changing these manifests.
+
+- Cache-deployer Dockerfile changes trigger the CI script suite. Its kubectl build must retain the verified Kubernetes Git tag and commit; build-time assertions reject missing or incorrect embedded module versions and revisions.
 
 ## Common CI failures
 
@@ -50,6 +54,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.
 - For proxy failures, inspect the `tinyproxy` namespace pods, events, services, endpoints, and endpoint slices.
+- Tinyproxy runs in the foreground under Kubernetes supervision. Keep its PID file disabled; health probes use its listening socket, and no fixture consumes a PID file. This avoids requiring a writable runtime path without changing its service identity or security profiles.
 
 ## Release 2.18 stabilization
 
@@ -171,7 +176,12 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   Synthetic Pods replace Argo's completion label, so this is cache component
   acceptance, not full pipeline or audit-mode acceptance. The JSON artifact
   records exact source/target revisions, live image IDs and successful phases;
-  failures remain failures and the disposable cluster is always deleted.
+  failures remain failures and the disposable cluster is always deleted. The
+  candidate removes the source CACHE_IMAGE override, verifies the default helper
+  completes a real cache-hit Pod, and records its image ID and log output. Helper
+  qualification retains its Alpine package database and pinned OSV JSON/SARIF
+  reports; missing package metadata or scanner errors fail coverage checks.
+  Advisory counts are evidence, not automatic release exceptions.
 - Docker mirror configuration uses `/usr/bin/python3` on Ubuntu runners for its
   privileged standard-library-only helper. Do not select a setup-python runtime
   from `PATH` or preserve loader environment variables through `sudo`: tool-cache
@@ -206,8 +216,8 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   the job; normal Go checksum verification remains enabled. Conformance runs
   once after a successful prefetch, so test failures are never retried.
 
-- Multi-user CI pins Kubeflow Community Distribution at `c5e3896566d52e02090f15b476f4528605a9c35f`
-  (Istio 1.31.1), whose manifests use `docker.io/istio` for control-plane,
+- Multi-user CI pins Kubeflow Community Distribution at `5f0edd216742560ba205775e17b6b522cee53ae2`
+  (Istio 1.31.2), whose manifests use `docker.io/istio` for control-plane,
   gateway, CNI and injected sidecar images. Apply the upstream manifests directly.
   When advancing this pin, review and render all four consumed paths, including
   the profile controller; the pin selects more than Istio images.
@@ -223,3 +233,85 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
   overlap complements the ordinary populated 2.17.2 upgrade; it does not replace
   that upgrade or change production manifests. The fixture restores its original
   controller template and records results in `reports/handoff-wait.json`.
+
+- `image-builds.yml` loads the built visualization-server and metadata-writer archives and runs their runtime smoke/helper tests in disposable containers before uploading them. It checks that pip and ensurepip are absent. Visualization runs on native AMD64 and ARM64 runners; the ARM64 build uses a separate artifact name. Tests do not run during production Docker builds or write test artifacts into published layers. `make test-backend-visualization` also exercises the dependency-light notebook smoke test.
+- The legacy cache rolling-upgrade workflow runs helper-image OSV coverage in a separate job so a scanner outage does not skip functional upgrade validation. Keep its scanner version/checksum aligned with `osv-scanner.yml`; the CI-script test checks both. The helper uses the digest-identical Google-hosted Alpine mirror to avoid Docker Hub rate limits (#4099). Coverage derives the Alpine ecosystem from the inspected image and requires BusyBox and musl records.
+
+- Cache rolling-upgrade acceptance pulls published baseline and fixture images directly through the Kind node CRI runtime with bounded retries. Only the locally built candidate uses `kind load docker-image`; exporting published multi-platform images through host Docker can leave missing index content during containerd import.
+
+- The TensorBoard runtime is a separate KFP image built by the CI and release matrices. Its hash-locked standalone dependencies include S3 and GCS readers; do not replace it with a TensorFlow image without verifying that TensorBoard and both readers are present. `manifests/kustomize/hack/release.sh` stamps the UI/controller image defaults through `hack/update_tensorboard_image.py`. Its regression tests require both paths in the CI Scripts Tests filter.
+- `tensorboard-acceptance.yml` builds the candidate runtime explicitly on AMD64 and ARM64. The direct AMD64 runtime lane reads event files through S3/GCS protocol emulators and tests scalar/image/graph navigation under the scoped proxy prefix in Chromium. This bypasses published default-image tags so presubmit exercises the candidate build. The separate deployed lane below verifies Kubernetes proxy authorization; neither lane establishes real cloud IAM integration.
+
+- TensorBoard deployed acceptance uses a disposable Kind cluster with candidate UI/API/controller images and the same candidate viewer reference requested by the UI. It uses real KFP AuthService and Kubernetes SubjectAccessReview through localhost trusted identity headers; it does not test ingress authentication. The fixture verifies mounted AWS credential discovery, S3/GCS event reads, growing and rotated event-object reload without pod or container restarts, proxy browser rendering, denied/reader/manager permissions, deletion/recreation and explicit custom-image selection. GCS uses an anonymous emulator, so real cloud IAM remains outside this lane. No production images are published.
+
+- Both TensorBoard Chromium acceptance lanes use Ubuntu 24.04, supported by their pinned Playwright 1.56.1. Keep these runner pins until the browser tooling is upgraded and validated on a newer Ubuntu image; `ubuntu-latest` can advance independently of Playwright support.
+
+- SDK YAPF, isort and docformatter jobs retain Python 3.9 on Ubuntu 24.04. Do not move these lanes to `ubuntu-latest` without validating interpreter availability: setup-python provides no Python 3.9 build for Ubuntu 26.04.
+
+## PostgreSQL image patch acceptance
+
+`postgresql-image-upgrade.yml` is an isolated image-compatibility check for the
+shipped PostgreSQL manifests. It does not enable PostgreSQL deployment in the
+2.18 release matrices or resolve the MLMD concurrency limitation in #14353.
+The path-filtered PR workflow and manual dispatch use Kind, render the candidate
+manifests, and retain their PVC, PGDATA, service-account and security settings.
+The only initial deployment override is the old same-major database image:
+18.3 for the default database and 14.7 for the legacy metadata overlay, both
+pinned by digest in `PROFILES`. For every later image bump, advance each affected
+baseline to the previously shipped manifest image and digest so this lane tests
+the immediately preceding supported image. Do not refresh baseline digests
+independently of that transition.
+
+Each lane retains the same PVC and database identity while replacing the image
+with the digest-pinned candidate from the manifest. It checks records, JSONB
+queries, indexes, a subsequent write and a further pod restart. The 18 lane calls
+KFP's real database initialization/migration code and preserves an experiment;
+the 14 lane uses the actual MLMD deployment and verifies a metadata artifact
+through gRPC before and after the database replacement and restart. This checks
+single-client persistence, not concurrent MLMD type creation. Both lanes upload
+rendered manifests, a success receipt, pod logs and volume events. Command or
+application failures cannot create a passing receipt, and pipeline `pipefail`
+preserves errors when saving console output.
+
+## JavaScript dependency security guards
+
+`frontend/scripts/dependency-security.test.mjs` checks patched dependency ranges in
+the frontend, UI server, mock backend and frontend integration-test lockfiles,
+including nested copies. Keep these guards aligned when regenerating locks; they
+supplement fresh advisory scans.
+
+The integration-test runner overrides Mocha 10.8.2's `serialize-javascript` 6.x
+requirement with 7.1.3 to address GHSA-m5mm-p8h7-m29v, which has no patched 6.x
+release. Retain the override until Mocha resolves a patched version itself, and
+verify runner compatibility when changing it.
+
+## Third-party image upgrade checks
+
+`third-party-image-upgrades.yml` reads baseline images from the PR base commit
+(or the explicit manual baseline ref) and candidate images from the tested head.
+The Kind component check preserves seeded S3 objects, admin access and lifecycle
+rules on the same PVC across a SeaweedFS upgrade and restart. It issues reusable
+profile IAM credentials on the candidate and verifies them after restart. It invokes
+the actual profile webhook without Metacontroller; it does not run an MLMD,
+whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
+The helper phases retain command stderr and make cluster deletion best-effort.
+Profile credential selection requires the named artifact Secret; service-account
+token Secrets can precede it in reconciliation output.
+
+The scan matrix also covers the four cert-manager images from each checkout's
+`CERT_MANAGER_VERSION`. It preserves the downloaded upstream installation
+manifest and derives the ACME solver image from the controller arguments.
+TLS-enabled frontend tests on Kubernetes 1.33 and 1.36 and the API TLS lane
+exercise the candidate certificate installation and KFP-issued certificates.
+Changes to `backend/Makefile` trigger these frontend compatibility checks.
+These fresh-install checks do not validate an in-place cert-manager minor-version
+jump; existing clusters must follow upstream's supported upgrade sequence.
+
+Linux AMD64 scan jobs use pinned upstream release OSV tooling
+(the release branch does not contain that package) and retain raw JSON,
+SARIF, immutable image identities and advisory-alias comparisons. Success means
+complete evidence, not zero findings, applicability exemptions or release approval.
+
+Pinned upstream OSV tooling accepts classic Docker config IDs and containerd
+manifest/index IDs only when SHA-256-verified archived descriptors bind the
+selected native config. Missing, tampered, ambiguous or mismatched chains fail.

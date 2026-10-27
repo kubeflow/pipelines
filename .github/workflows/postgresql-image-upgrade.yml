@@ -1,0 +1,79 @@
+name: PostgreSQL image retained-data upgrade
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [release-2.18]
+    paths:
+      - manifests/kustomize/third-party/postgresql/**
+      - manifests/kustomize/base/metadata/**
+      - backend/src/apiserver/client_manager/**
+      - backend/src/apiserver/common/**
+      - backend/src/apiserver/model/**
+      - backend/src/apiserver/storage/**
+      - go.mod
+      - go.sum
+      - .github/resources/postgresql-upgrade/**
+      - .github/resources/scripts/postgresql_image_upgrade*
+      - .github/workflows/postgresql-image-upgrade.yml
+      - .github/actions/create-cluster/**
+      - .github/actions/setup-go/**
+      - .github/actions/setup-python-pip-cache/**
+  merge_group:
+    types: [checks_requested]
+    branches: [release-2.18]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upgrade:
+    name: Retained PostgreSQL ${{ matrix.major }} data (image compatibility only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        major: ['18', '14']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      - uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: '3.10'
+          cache-scope: postgresql-image-upgrade
+          cache-dependency-hash: ${{ hashFiles('.github/resources/postgresql-upgrade/requirements.txt') }}
+      - name: Install manifest parser
+        run: python -m pip install PyYAML==6.0.3
+      - name: Install MLMD acceptance dependencies
+        if: matrix.major == '14'
+        run: python -m pip install -r .github/resources/postgresql-upgrade/requirements.txt
+      - name: Build real KFP database initialization helper
+        if: matrix.major == '18'
+        run: go build -o /tmp/kfp-schema .github/resources/postgresql-upgrade/kfp-schema.go
+      - uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: v1.36.1
+          cluster_name: postgres-upgrade
+      - name: Upgrade using the rendered deployment and retained PVC
+        shell: bash
+        env:
+          PG_MAJOR: ${{ matrix.major }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/postgresql-upgrade
+          python .github/resources/scripts/postgresql_image_upgrade.py \
+            --lane "$PG_MAJOR" --output /tmp/postgresql-upgrade \
+            2>&1 | tee /tmp/postgresql-upgrade/acceptance.log
+          python -c 'import json; assert json.load(open("/tmp/postgresql-upgrade/receipt.json"))["status"] == "passed"'
+      - name: Preserve rendered resources, receipt, logs and volume events
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: postgresql-${{ matrix.major }}-retained-data
+          path: /tmp/postgresql-upgrade
+          if-no-files-found: warn

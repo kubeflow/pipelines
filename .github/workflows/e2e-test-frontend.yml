@@ -14,6 +14,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'frontend/**'
+      - 'backend/Makefile'
       - 'third_party/metadata_envoy/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'
@@ -95,6 +96,7 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_tensorboard_image: 'true'
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 
       - name: Forward Frontend port
