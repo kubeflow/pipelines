@@ -22,6 +22,7 @@ import tempfile
 from kfp import compiler
 from kfp import dsl
 from kfp import kubernetes
+from packaging.version import Version
 
 
 @dsl.container_component
@@ -35,14 +36,19 @@ def pipeline():
     kubernetes.add_pod_label(echo(), 'sdk-smoke', 'true')
 
 
-def main():
-    expected_version = sys.argv[1]
+def verify_versions(expected_version):
+    expected = Version(expected_version)
     for package in ('kfp', 'kfp-kubernetes', 'kfp-server-api',
                     'kfp-pipeline-spec'):
         actual = importlib.metadata.version(package)
-        if actual != expected_version:
+        if Version(actual) != expected:
             raise RuntimeError(
                 f'{package}: expected {expected_version}, got {actual}')
+
+
+def main():
+    expected_version = sys.argv[1]
+    verify_versions(expected_version)
     with tempfile.TemporaryDirectory() as directory:
         output = Path(directory) / 'pipeline.yaml'
         compiler.Compiler().compile(pipeline, package_path=str(output))
