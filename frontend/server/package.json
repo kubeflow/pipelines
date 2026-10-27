@@ -4,7 +4,7 @@
   "main": "server.js",
   "dependencies": {
     "@aws-sdk/client-s3": "~3.1156.0",
-    "@aws-sdk/credential-providers": "~3.1152.0",
+    "@aws-sdk/credential-providers": "~3.1156.0",
     "@kubernetes/client-node": "^1.4.0",
     "@smithy/node-http-handler": "~4.12.1",
     "axios": ">=1.20.0",
