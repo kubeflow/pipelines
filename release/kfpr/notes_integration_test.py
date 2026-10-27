@@ -11,7 +11,7 @@ from unittest import mock
 
 from typer.testing import CliRunner
 
-from kfpr import core, steps
+from kfpr import core, previews, steps
 from kfpr.cli import app
 from kfpr.editorial import editorial_scaffold
 
@@ -214,22 +214,79 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         self.context.runner.dry_run = False
         selected = steps._notes_range(self.context, 'backend')
         write_text = Path.write_text
+        temporary_file = previews.NamedTemporaryFile
+        temporary_paths = []
 
-        def interrupted(target, *args, **kwargs):
+        def interrupted(target, text, *args, **kwargs):
             if target == path:
+                write_text(target, text[:8], *args, **kwargs)
                 raise OSError('interrupted changelog write')
-            return write_text(target, *args, **kwargs)
+            return write_text(target, text, *args, **kwargs)
 
-        with mock.patch.object(Path, 'write_text', interrupted):
+        def partial_temporary_file(*args, **kwargs):
+            file = temporary_file(*args, **kwargs)
+            temporary_paths.append(Path(file.name))
+            write = file.write
+
+            def partial_write(contents):
+                write(contents[:8])
+                file.flush()
+                raise OSError('interrupted changelog write')
+
+            file.write = partial_write
+            return file
+
+        with (
+            mock.patch.object(Path, 'write_text', interrupted),
+            mock.patch.object(
+                previews, 'NamedTemporaryFile', partial_temporary_file
+            ),
+        ):
             with self.assertRaisesRegex(OSError, 'interrupted'):
                 steps._update_changelog(self.context, selected)
         self.assertEqual(path.read_text(), original)
+        self.assertTrue(temporary_paths)
+        self.assertTrue(all(not p.exists() for p in temporary_paths))
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        saved_entry = self.context.state.answers['prepared_changelog']['entry']
+        steps._update_changelog(self.context, selected)
+        prepared = path.read_text()
+        steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), prepared)
+        self.assertIn(saved_entry, prepared)
+        self.assertEqual(prepared.count('Keep this migration warning.'), 1)
+
+    def test_backend_preparation_retries_after_failed_replacement(self):
+        path = self.root / 'CHANGELOG.md'
+        original = (
+            'Changelog\n\n## Unreleased\n\nKeep this migration warning.\n\n'
+            '## 2.1.0 (2026-01-01)\n\nOriginal history.\n'
+        )
+        path.write_text(original)
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        replace = previews.os.replace
+        temporary_paths = []
+
+        def interrupted(source, target):
+            if Path(target) == path:
+                temporary_paths.append(Path(source))
+                raise OSError('interrupted changelog replacement')
+            return replace(source, target)
+
+        with mock.patch.object(previews.os, 'replace', interrupted):
+            with self.assertRaisesRegex(OSError, 'interrupted'):
+                steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), original)
+        self.assertTrue(temporary_paths)
+        self.assertTrue(all(not p.exists() for p in temporary_paths))
         self.context.state = core.ReleaseState.load(self.context.state.path)
         steps._update_changelog(self.context, selected)
         prepared = path.read_text()
         steps._update_changelog(self.context, selected)
         self.assertEqual(path.read_text(), prepared)
         self.assertEqual(prepared.count('Keep this migration warning.'), 1)
+        self.assertTrue(prepared.endswith('Original history.\n'))
 
     def test_backend_preparation_rejects_changed_range_on_resume(self):
         path = self.root / 'CHANGELOG.md'

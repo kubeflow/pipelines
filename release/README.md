@@ -205,9 +205,11 @@ replace installed-wheel qualification on each supported Python version.
 Authored `CHANGELOG.md` Unreleased guidance and SDK Current Version notes are
 carried into the release alongside generated changes. SDK preparation is
 idempotent. Backend preparation saves the exact prepared section and comparison
-SHAs in the checkpoint before writing it, so retrying with that checkpoint
-preserves curated guidance without duplicating it. Keep the checkpoint across
-interruptions. If the range changes or a prepared backend section is edited,
+SHAs in the checkpoint before writing it. It writes the changelog to a temporary
+file and atomically replaces the original only after the write succeeds, so a
+partial write leaves existing guidance and history intact. Retrying with that
+checkpoint preserves curated guidance without duplicating it. Keep the checkpoint
+across interruptions. If the range changes or a prepared backend section is edited,
 preparation stops without overwriting the notes; review the candidate and its
 notes explicitly rather than deleting guidance to make generation pass. If
 changelog filtering produces no user-facing entries, preparation stops so the
@@ -225,9 +227,10 @@ python3.11 -m venv /tmp/kfpr-tools
 /tmp/kfpr-tools/bin/pip install /path/to/current-master-checkout/release
 ```
 
-For 2.18.0, the prepared version PR is
-[#15217](https://github.com/kubeflow/pipelines/pull/15217). Do not regenerate that
-PR or create a tag merely to initialize kfpr. In a clean dedicated release
+For 2.18.0, the version PR
+[#15217](https://github.com/kubeflow/pipelines/pull/15217) merged as
+`97561db87ad2b82c7dc6b8a29284c1f0ca0fd7e7`. Do not regenerate that PR or create
+a tag merely to initialize kfpr. In a clean dedicated release
 checkout, configure `upstream`, fetch the release branch and tags, then create a
 new checkpoint outside the checkout (replace the fork URL with your actual fork):
 

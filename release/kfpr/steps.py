@@ -39,7 +39,7 @@ from .dependency_pins import preserve_dependency_pins
 from .editorial import editorial_scaffold, validate_notes
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
-from .previews import has_conflicts, regenerate_preview
+from .previews import _write_atomic, has_conflicts, regenerate_preview
 from .ranges import ReleaseRange, commit_date, read_commits, resolve_range
 
 
@@ -1061,7 +1061,7 @@ def _update_changelog(
     # resumable without duplicating authored guidance or accepting a new range.
     context.state.answers['prepared_changelog'] = {**identity, 'entry': entry}
     context.state.save()
-    path.write_text(text)
+    _write_atomic(path, text.encode('utf-8'))
 
 
 def _update_sdk_release_notes(
