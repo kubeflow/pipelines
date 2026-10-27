@@ -284,3 +284,34 @@ The integration-test runner overrides Mocha 10.8.2's `serialize-javascript` 6.x
 requirement with 7.1.3 to address GHSA-m5mm-p8h7-m29v, which has no patched 6.x
 release. Retain the override until Mocha resolves a patched version itself, and
 verify runner compatibility when changing it.
+
+## Third-party image upgrade checks
+
+`third-party-image-upgrades.yml` reads baseline images from the PR base commit
+(or the explicit manual baseline ref) and candidate images from the tested head.
+The Kind component check preserves seeded S3 objects, admin access and lifecycle
+rules on the same PVC across a SeaweedFS upgrade and restart. It issues reusable
+profile IAM credentials on the candidate and verifies them after restart. It invokes
+the actual profile webhook without Metacontroller; it does not run an MLMD,
+whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
+The helper phases retain command stderr and make cluster deletion best-effort.
+Profile credential selection requires the named artifact Secret; service-account
+token Secrets can precede it in reconciliation output.
+
+The scan matrix also covers the four cert-manager images from each checkout's
+`CERT_MANAGER_VERSION`. It preserves the downloaded upstream installation
+manifest and derives the ACME solver image from the controller arguments.
+TLS-enabled frontend tests on Kubernetes 1.33 and 1.36 and the API TLS lane
+exercise the candidate certificate installation and KFP-issued certificates.
+Changes to `backend/Makefile` trigger these frontend compatibility checks.
+These fresh-install checks do not validate an in-place cert-manager minor-version
+jump; existing clusters must follow upstream's supported upgrade sequence.
+
+Linux AMD64 scan jobs use pinned upstream release OSV tooling
+(the release branch does not contain that package) and retain raw JSON,
+SARIF, immutable image identities and advisory-alias comparisons. Success means
+complete evidence, not zero findings, applicability exemptions or release approval.
+
+Pinned upstream OSV tooling accepts classic Docker config IDs and containerd
+manifest/index IDs only when SHA-256-verified archived descriptors bind the
+selected native config. Missing, tampered, ambiguous or mismatched chains fail.
