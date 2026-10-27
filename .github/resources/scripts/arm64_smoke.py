@@ -34,9 +34,10 @@ CI_IMAGES = {
     'kfp-viewer-crd-controller': 'viewer-crd-controller',
     'kfp-driver': 'driver',
     'kfp-launcher': 'launcher',
+    'kfp-tensorboard': 'tensorboard',
 }
 IMAGES = set(CI_IMAGES)
-CONTROL_IMAGES = IMAGES - {'kfp-driver', 'kfp-launcher'}
+CONTROL_IMAGES = IMAGES - {'kfp-driver', 'kfp-launcher', 'kfp-tensorboard'}
 MARKER = 'KFP_NATIVE_ARM64_EXECUTION_OK'
 DRIVER_PLUGIN_MANIFEST = (
     Path(__file__).resolve().parents[3] / 'manifests/kustomize/base/pipeline/'
@@ -389,6 +390,37 @@ def observe_agent_pods(kubectl, workflow_name, observed):
         observed[pod['metadata']['name']] = pod
 
 
+def check_tensorboard_runtime(kubectl, image, mode):
+    """Execute the candidate viewer runtime on the native ARM node."""
+    kubectl(
+        '-n',
+        'kubeflow',
+        'run',
+        'tensorboard-native-smoke',
+        '--restart=Never',
+        '--image=' + image,
+        '--image-pull-policy='
+        + ('Never' if mode == 'local' else 'IfNotPresent'),
+        '--command',
+        '--',
+        'python',
+        '-c',
+        'import platform, boto3, gcsfs; '
+        'from tensorboard.compat import tf; '
+        'assert platform.machine() == "aarch64", platform.machine(); '
+        'print(tf.io.gfile.__name__)',
+    )
+    kubectl(
+        '-n',
+        'kubeflow',
+        'wait',
+        '--for=jsonpath={.status.phase}=Succeeded',
+        'pod/tensorboard-native-smoke',
+        '--timeout=180s',
+    )
+    return kubectl('-n', 'kubeflow', 'logs', 'tensorboard-native-smoke')
+
+
 def run_smoke(args, refs):
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -412,6 +444,9 @@ def run_smoke(args, refs):
     (output / 'installation.yaml').write_text(rendered)
     kubectl('apply', '-f', str(output / 'installation.yaml'))
     wait_for_deployments(kubectl)
+    (output / 'tensorboard-runtime.log').write_text(
+        check_tensorboard_runtime(kubectl, refs['kfp-tensorboard'], args.mode)
+    )
     with (output / 'port-forward.log').open('w') as log:
         forward = subprocess.Popen(
             [

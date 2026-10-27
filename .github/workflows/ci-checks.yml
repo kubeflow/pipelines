@@ -37,6 +37,8 @@ on:
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
       - 'Third-party Image Upgrade Checks'
+      - 'TensorBoard runtime acceptance'
+      - 'PostgreSQL image retained-data upgrade'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'

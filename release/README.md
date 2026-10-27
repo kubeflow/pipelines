@@ -647,3 +647,18 @@ notes or later edits is left untouched and preparation stops for manual review;
 keep those notes and resume after verifying the release preparation changes.
 SDK-only notes require an SDK or shared API scope; unknown and unscoped commits
 are included only in backend notes.
+
+### TensorBoard viewer image
+
+The release image inventory includes `ghcr.io/kubeflow/kfp-tensorboard` on AMD64
+and ARM64. The release manifest stamping command also updates the controller
+and UI defaults and bundled viewer assets through
+`hack/update_tensorboard_image.py`. Build the UI and viewer assets after stamping
+so they use the release tag. Publication and native image qualification require
+the TensorBoard record alongside the other seven KFP image records.
+
+Before publishing a release, run the TensorBoard runtime acceptance workflow
+for the release candidate. It checks local/S3/GCS event ingestion, live log
+updates, prefixed browser routes, and deployed viewer lifecycle behavior. See
+[the runtime contract](../backend/src/tensorboard/README.md) for the supported
+plugins and custom-image compatibility.

@@ -121,7 +121,7 @@ async function openTensorboardApp() {
   try {
     await waitForCondition(
       async () => {
-        const topBar = await $('#topBar');
+        const topBar = await $('app-header');
         if ((await topBar.isExisting()) && (await topBar.isDisplayed())) {
           return true;
         }
@@ -131,7 +131,7 @@ async function openTensorboardApp() {
       {
         timeout: tensorboardAppTimeout,
         interval: 2000,
-        timeoutMsg: 'timed out waiting for Tensorboard top bar to become visible',
+        timeoutMsg: 'timed out waiting for TensorBoard header to become visible',
       },
     );
   } catch (error) {
@@ -299,7 +299,7 @@ describe('deploy tensorboard example run', () => {
 
     await runPhase('open tensorboard app', async () => {
       await openTensorboardApp();
-      assert(await $('#topBar').isDisplayed(), 'tensorboard top bar should be visible');
+      assert(await $('app-header').isDisplayed(), 'TensorBoard header should be visible');
     });
   });
 });

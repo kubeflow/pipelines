@@ -40,6 +40,7 @@ WORKFLOW_JOBS = {
     '.github/workflows/kfp-sdk-client-tests.yml': ('sdk-client-tests',),
     '.github/workflows/kfp-webhooks.yml': ('webhook-tests',),
     '.github/workflows/upgrade-test.yml': ('upgrade-test',),
+    '.github/workflows/tensorboard-acceptance.yml': ('deployed',),
 }
 
 
@@ -102,10 +103,10 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             if step.get('uses')
             == './.github/actions/download-artifact-with-retry'
         ]
-        self.assertEqual(len(wait_steps), 2)
-        self.assertEqual(len(download_steps), 2)
-        runtime_wait, branch_wait = wait_steps
-        runtime_download, branch_download = download_steps
+        self.assertEqual(len(wait_steps), 3)
+        self.assertEqual(len(download_steps), 3)
+        runtime_wait, branch_wait, tensorboard_wait = wait_steps
+        runtime_download, branch_download, tensorboard_download = download_steps
         self.assertEqual(runtime_wait['id'], 'runtime-image-artifacts')
         self.assertEqual(branch_wait['id'], 'image-artifacts')
         self.assertIn(

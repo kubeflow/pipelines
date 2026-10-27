@@ -32,7 +32,8 @@ dependencies = [
   "googleapis-common-protos>=1.75.5",
   "kubernetes>=37.0.1",
   "protobuf>=6.33.5,<7",
-  "certifi",
+  # Retain the compromised emSign root removal without removing unaffected roots.
+  "certifi>=2026.10.19",
   "python-dateutil",
   "six>=1.10",
   "PyYAML>=5.3,<7",

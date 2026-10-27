@@ -50,6 +50,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  load_tensorboard_image:
+    description: "Wait for and load the candidate TensorBoard image for viewer tests."
+    required: false
+    default: 'false'
   load_modelcar_fixture:
     description: "Load the prebuilt Modelcar test fixture image into Kind."
     required: false
@@ -188,6 +192,33 @@ runs:
           docker image rm "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}"
           docker image rm "${{ inputs.image_registry }}/$app:ci"
         done
+
+    - name: Wait for TensorBoard image artifact
+      id: tensorboard-image-artifacts
+      if: ${{ inputs.load_tensorboard_image == 'true' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        ./.github/resources/scripts/wait-for-image-artifacts.sh tensorboard
+        bash .github/resources/scripts/ci-image-artifacts.sh --github-output tensorboard-image-files
+
+    - name: Download TensorBoard image
+      if: ${{ inputs.load_tensorboard_image == 'true' }}
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        name: tensorboard
+        path: "${{ inputs.image_path }}/tensorboard"
+        required-files: ${{ steps.tensorboard-image-artifacts.outputs.required-files }}
+
+    - name: Load TensorBoard Default Image Into Kind
+      if: ${{ inputs.load_tensorboard_image == 'true' }}
+      shell: bash
+      run: |
+        ./.github/resources/scripts/load-tensorboard-image.sh \
+          "${{ inputs.image_path }}/tensorboard/tensorboard.tar" \
+          "${{ inputs.image_registry }}/tensorboard:${{ inputs.image_tag }}" \
+          "${{ inputs.cluster_name }}" "$(python3 hack/update_tensorboard_image.py --print-default)"
 
     - name: Deploy Tinyproxy
       id: deploy-tinyproxy

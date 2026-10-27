@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from itertools import product
 from pathlib import Path
 
 import yaml
@@ -34,6 +35,7 @@ WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
     ('.github/actions/deploy/action.yml', 'composite'),  # Runtime images
     ('.github/actions/deploy/action.yml', 'composite'),  # Branch images
+    ('.github/actions/deploy/action.yml', 'composite'),  # Optional TensorBoard
     ('.github/workflows/arm64-presubmit.yml', 'smoke'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
@@ -256,10 +258,13 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > waiter-args\n'
             )
             waiter.chmod(0o755)
-            for modelcar in ('false', 'true'):
-                with self.subTest(modelcar=modelcar):
+            for modelcar, tensorboard in product(('false', 'true'), repeat=2):
+                with self.subTest(modelcar=modelcar, tensorboard=tensorboard):
                     context = {
-                        'inputs': {'load_modelcar_fixture': modelcar},
+                        'inputs': {
+                            'load_modelcar_fixture': modelcar,
+                            'load_tensorboard_image': tensorboard,
+                        },
                         'github': {'token': 'unused'},
                     }
                     runtime = self.required_files(
@@ -281,24 +286,68 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                     )
                     self.assertCountEqual(
                         (root / 'waiter-args').read_text().splitlines(),
-                        built_images,
+                        built_images - {'tensorboard'},
                     )
                     expected_runtime = {'runtime-base-images.tar'}
                     if modelcar == 'true':
                         expected_runtime.add('modelcar.tar')
                     self.assertEqual(runtime, expected_runtime)
                     self.assertEqual(
-                        branch, {f'{name}/{name}.tar' for name in built_images}
+                        branch,
+                        {
+                            f'{name}/{name}.tar'
+                            for name in built_images - {'tensorboard'}
+                        },
                     )
                     runtime_paths = {
                         f'runtime-base-images/{name}' for name in runtime
                     }
                     self.assertFalse(runtime_paths & branch)
+                    optional = set()
+                    if tensorboard == 'true':
+                        optional = self.required_files(
+                            '.github/actions/deploy/action.yml',
+                            'composite',
+                            context,
+                            cwd=root,
+                            caller_index=2,
+                        )
+                        self.assertEqual(optional, {'tensorboard.tar'})
+                        self.assertEqual(
+                            (root / 'waiter-args').read_text().splitlines(),
+                            ['tensorboard'],
+                        )
+                    optional_paths = {
+                        'tensorboard/' + name for name in optional
+                    }
+                    expected_images = (
+                        built_images
+                        if tensorboard == 'true'
+                        else built_images - {'tensorboard'}
+                    )
                     self.assertEqual(
-                        runtime_paths | branch,
-                        {f'{name}/{name}.tar' for name in built_images}
+                        runtime_paths | branch | optional_paths,
+                        {f'{name}/{name}.tar' for name in expected_images}
                         | runtime_paths,
                     )
+                    deploy = yaml.safe_load(
+                        (ROOT / '.github/actions/deploy/action.yml').read_text()
+                    )
+                    self.assertEqual(
+                        deploy['inputs']['load_tensorboard_image']['default'],
+                        'false',
+                    )
+                    optional_steps = [
+                        step
+                        for step in deploy['runs']['steps']
+                        if 'TensorBoard' in step.get('name', '')
+                    ]
+                    self.assertEqual(len(optional_steps), 3)
+                    for step in optional_steps:
+                        self.assertEqual(
+                            step['if'],
+                            "${{ inputs.load_tensorboard_image == 'true' }}",
+                        )
 
     def test_branch_download_pattern_selects_only_branch_image_artifacts(self):
         expected = {
@@ -333,7 +382,8 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         self.assertIsNotNone(match, pattern)
         alternatives = match.group(1).split(',')
         self.assertEqual(len(alternatives), 7)
-        self.assertCountEqual(alternatives, expected)
+        self.assertCountEqual(alternatives, expected - {'tensorboard'})
+        self.assertNotIn('tensorboard', alternatives)
         self.assertNotIn('runtime-base-images', alternatives)
         self.assertNotIn('build.dockerbuild', alternatives)
         start = lines.index('required-files<<EOF') + 1

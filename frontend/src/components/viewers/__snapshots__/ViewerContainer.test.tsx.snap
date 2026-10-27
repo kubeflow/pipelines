@@ -342,7 +342,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
               role="combobox"
               tabindex="0"
             >
-              TensorFlow 2.2.2
+              KFP TensorBoard (default)
             </div>
             <input
               aria-hidden="true"
@@ -350,7 +350,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
               class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               id="viewer-tb-image-select"
               tabindex="-1"
-              value="tensorflow/tensorflow:2.2.2"
+              value="ghcr.io/kubeflow/kfp-tensorboard:master"
             />
             <svg
               aria-hidden="true"

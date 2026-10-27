@@ -170,6 +170,9 @@ jobs:
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
+          - image: tensorboard
+            dockerfile: backend/Dockerfile.tensorboard
+            context: .
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
