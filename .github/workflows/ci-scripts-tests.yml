@@ -9,6 +9,9 @@ on:
     branches: [release-2.18]
   pull_request:
     paths:
+      - 'VERSION'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/kfp-sdk-client-tests.yml'
       - 'proxy/**'
       - '.github/dependabot.yml'
       - '**/go.mod'
