@@ -109,7 +109,7 @@ jobs:
       - name: Check if all CI checks passed
         id: poll
         if: steps.eligibility.outputs.should_poll == 'true' && steps.approval_gate.outcome == 'success'
-        uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
+        uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
         with:
           delay: '5'
           retries: '10'
