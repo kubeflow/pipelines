@@ -107,8 +107,8 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             '--overlay producer/manifests/kustomize/env/platform-agnostic-multi-user',
             self.workflow,
         )
-        self.assertIn('./osv-scanner scan image "${IMAGE}"', self.workflow)
-        self.assertIn('docker-pull-with-retry.sh "${IMAGE}"', self.workflow)
+        self.assertIn('third_party_image_scan.py scan', self.workflow)
+        self.assertIn('--image "$IMAGE" --output evidence', self.workflow)
         self.assertIn(
             'category: kubeflow-pipelines-osv-image-${{ matrix.category }}',
             self.workflow,
@@ -124,7 +124,8 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         scan_step = next(
             step
             for step in scan['steps']
-            if step['name'] == 'Scan deployed container image'
+            if step.get('name')
+            == 'Scan immutable image and retain full JSON and SARIF'
         )
         self.assertEqual(
             scan_step['env']['IMAGE'],
@@ -216,27 +217,34 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             )
         )
 
-    def test_exact_duplicate_results_are_removed_before_upload(self):
-        self.assertEqual(self.workflow.count('deduplicate_sarif.py'), 2)
-        self.assertIn('            --input osv-results.sarif', self.workflow)
+    def test_images_are_summarized_but_source_findings_remain_individual(self):
+        self.assertEqual(self.workflow.count('deduplicate_sarif.py'), 1)
         self.assertIn(
-            '            --output osv-results-deduplicated.sarif', self.workflow
+            'sarif_file: osv-results-deduplicated.sarif', self.workflow
         )
-        self.assertIn(
-            '            --input osv-image-results.sarif', self.workflow
+        self.assertIn('sarif_file: image-summary.sarif', self.workflow)
+        self.assertIn('python -m kfpr.image_summary', self.workflow)
+        self.assertIn('--input evidence/github/scan.sarif', self.workflow)
+        self.assertIn('third_party_image_scan.py scan', self.workflow)
+        steps = yaml.safe_load(self.workflow)['jobs']['scan-images']['steps']
+        upload = next(
+            step for step in steps if 'upload-sarif' in step.get('uses', '')
         )
-        self.assertIn(
-            '            --output osv-image-results-deduplicated.sarif',
-            self.workflow,
+        self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
+        summary = next(
+            step
+            for step in steps
+            if 'kfpr.image_summary' in step.get('run', '')
         )
-        self.assertIn(
-            '          sarif_file: osv-results-deduplicated.sarif',
-            self.workflow,
+        self.assertNotIn('if', summary)
+        evidence = next(
+            step
+            for step in steps
+            if 'actions/upload-artifact@' in step.get('uses', '')
         )
-        self.assertIn(
-            '          sarif_file: osv-image-results-deduplicated.sarif',
-            self.workflow,
-        )
+        self.assertEqual(evidence['if'], 'always()')
+        self.assertIn('evidence', evidence['with']['path'])
+        self.assertLess(steps.index(evidence), steps.index(upload))
 
     def test_ci_scripts_tests_run_for_osv_workflow_changes(self):
         self.assertIn(

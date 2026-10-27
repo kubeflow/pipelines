@@ -305,6 +305,7 @@ class ThirdPartyScanTest(unittest.TestCase):
         self.assertEqual(subject['repo_digests'], self.metadata['RepoDigests'])
 
     def test_sarif_scan_preserves_raw_json_and_its_logs(self):
+
         def write_report(image_id, platform, output, report_format):
             self.assertEqual(image_id, self.metadata['Id'])
             self.assertEqual(platform, 'linux/amd64')
@@ -462,7 +463,7 @@ class ThirdPartyWorkflowTest(unittest.TestCase):
             },
         )
 
-    def test_upload_validates_raw_evidence_and_only_removes_exact_duplicates(
+    def test_upload_validates_raw_evidence_before_image_summary(
         self,
     ):
         from kfpr.osv_image_scan import SCANNER
@@ -540,6 +541,8 @@ class ThirdPartyWorkflowTest(unittest.TestCase):
                     'PYTHONPATH': str(ROOT / 'release'),
                     'IMAGE': image,
                     'IMAGE_KEY': 'key',
+                    'IMAGE_CATEGORY': 'test-image',
+                    'EVIDENCE_URL': 'https://github.com/kubeflow/pipelines/actions/runs/123',
                 }
                 process = subprocess.run(
                     ['bash', '-e', '-o', 'pipefail', '-c', validation['run']],
@@ -557,8 +560,10 @@ class ThirdPartyWorkflowTest(unittest.TestCase):
                     uploaded = json.loads(
                         (directory / 'findings.sarif').read_text()
                     )
-                    self.assertEqual(
-                        uploaded['runs'][0]['results'], [result, distinct]
+                    self.assertEqual(len(uploaded['runs'][0]['results']), 1)
+                    self.assertNotEqual(
+                        uploaded['runs'][0]['results'][0]['ruleId'],
+                        result['ruleId'],
                     )
 
     def test_raw_failure_evidence_retained_and_report_requires_success(self):

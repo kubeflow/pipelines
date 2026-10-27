@@ -186,10 +186,12 @@ jobs:
             ${{ matrix.key }}/subject.json
             ${{ matrix.key }}/github/scan.json
             ${{ matrix.key }}/github/scan.sarif
-      - name: Validate immutable image evidence and retain every finding
+      - name: Validate immutable evidence and summarize image findings
         env:
           IMAGE: ${{ matrix.image }}
           IMAGE_KEY: ${{ matrix.key }}
+          IMAGE_CATEGORY: ${{ matrix.category }}
+          EVIDENCE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
           PYTHONPATH: release
         run: |
           python - <<'PYCODE'
@@ -207,8 +209,10 @@ jobs:
           if raw != envelope['sarif']:
               raise ValueError('Raw SARIF differs from verified scan envelope')
           PYCODE
-          python .github/resources/scripts/deduplicate_sarif.py \
+          python -m kfpr.image_summary \
             --input "evidence/$IMAGE_KEY/github/scan.sarif" \
+            --identity "$IMAGE_CATEGORY" --image "$IMAGE" \
+            --platform linux/amd64 --evidence-url "$EVIDENCE_URL" \
             --output findings.sarif
       - name: Checkout scanned source for attribution only
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6

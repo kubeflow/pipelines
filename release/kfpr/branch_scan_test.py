@@ -103,6 +103,35 @@ class BranchScanTest(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 scan.stable_matrix(self.source, {**self.release, key: bad})
 
+    def test_upload_matrix_groups_architectures_and_handles_single_lane(self):
+        matrix = scan.stable_matrix(self.source, self.release)
+        self.assertEqual(
+            scan.summary_matrix(matrix),
+            {
+                'include': [
+                    {
+                        'name': 'image-a',
+                        'platform': 'linux/amd64',
+                    }
+                ]
+            },
+        )
+        for platform in ('linux/amd64', 'linux/arm64'):
+            with self.subTest(platform=platform):
+                self.assertEqual(
+                    scan.summary_matrix(
+                        {'include': [{'name': 'image-a', 'platform': platform}]}
+                    ),
+                    {
+                        'include': [
+                            {
+                                'name': 'image-a',
+                                'platform': platform,
+                            }
+                        ]
+                    },
+                )
+
     def test_expected_lane_download_is_bound_to_request_and_attempt(self):
         files = scan.required_lanes(
             scan.stable_matrix(self.source, self.release), 'a' * 32, 2
@@ -189,10 +218,89 @@ class BranchScanTest(unittest.TestCase):
             )
             self.assertEqual(actual, expected)
 
+    def test_combined_summary_and_retirement_preserve_both_platforms(self):
+        directory = self.qualified()
+        scan.convert_scans(self.source, directory, self.release)
+        summary = json.loads(
+            (directory / 'image-summaries/image-a.sarif').read_text()
+        )
+        self.assertEqual(len(summary['runs'][0]['results']), 1)
+        text = summary['runs'][0]['results'][0]['message']['text']
+        self.assertIn('linux/amd64', text)
+        self.assertIn('linux/arm64', text)
+        self.assertIn('/actions/runs/123/attempts/1', text)
+        retired = json.loads(
+            (
+                directory / 'image-summaries/image-a-retire-arm64.sarif'
+            ).read_text()
+        )
+        self.assertEqual(retired['runs'][0]['results'], [])
+        # Retirement does not erase any scanner findings in the artifacts.
+        raw = json.loads((directory / 'sarif/image-a-arm64.sarif').read_text())
+        self.assertEqual(len(raw['runs'][0]['results']), 1)
+
+    def test_summary_identifies_each_scanned_architecture_image(self):
+        directory = self.qualified()
+        manifest_path = directory / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        image_ids = {
+            'linux/amd64': 'sha256:' + 'a' * 64,
+            'linux/arm64': 'sha256:' + 'b' * 64,
+        }
+        for record in manifest['images']:
+            image_id = image_ids[record['platform']]
+            path = directory / record['scan_file']
+            report = json.loads(path.read_text())
+            report['image_id'] = image_id
+            path.write_text(json.dumps(report))
+            record['image_id'] = image_id
+            record['scan_sha256'] = hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+        manifest_path.write_text(json.dumps(manifest))
+        before = {
+            path.name: path.read_bytes()
+            for path in (directory / 'scans').iterdir()
+        }
+        scan.convert_scans(self.source, directory, self.release)
+        run = json.loads(
+            (directory / 'image-summaries/image-a.sarif').read_text()
+        )['runs'][0]
+        title = run['tool']['driver']['rules'][0]['shortDescription']['text']
+        result = run['results'][0]
+        for platform, image_id in image_ids.items():
+            artifact = f'{platform}: {image_id}'
+            self.assertIn(artifact, title)
+            self.assertIn(artifact, result['message']['text'])
+            self.assertIn(artifact, result['properties']['image'])
+        for name, content in before.items():
+            self.assertEqual((directory / 'scans' / name).read_bytes(), content)
+
+    def test_arm_findings_survive_clean_amd_summary(self):
+        directory = self.qualified()
+        path = directory / 'scans/image-a-amd64.json'
+        report = json.loads(path.read_text())
+        report['sarif']['runs'][0]['results'] = []
+        report['exit_code'] = 0
+        path.write_text(json.dumps(report))
+        manifest_path = directory / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        for record in manifest['images']:
+            if record['platform'] == 'linux/amd64':
+                record['scan_sha256'] = hashlib.sha256(
+                    path.read_bytes()
+                ).hexdigest()
+        manifest_path.write_text(json.dumps(manifest))
+        scan.convert_scans(self.source, directory, self.release)
+        summary = json.loads(
+            (directory / 'image-summaries/image-a.sarif').read_text()
+        )
+        self.assertEqual(len(summary['runs'][0]['results']), 1)
+
     def test_clean_reports_produce_valid_empty_sarif(self):
         directory = self.qualified(clean=True)
         scan.convert_scans(self.source, directory, self.release)
-        for path in (directory / 'sarif').iterdir():
+        for path in (directory / 'image-summaries').iterdir():
             self.assertEqual(
                 json.loads(path.read_text())['runs'][0]['results'], []
             )
@@ -215,6 +323,7 @@ class BranchScanTest(unittest.TestCase):
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                 scan.convert_scans(self.source, directory, self.release)
             self.assertFalse((directory / 'sarif').exists())
+            self.assertFalse((directory / 'image-summaries').exists())
 
     def test_rejects_raw_scan_tampering_before_output(self):
         directory = self.qualified()

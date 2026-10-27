@@ -41,6 +41,7 @@ jobs:
       request-id: ${{ steps.source.outputs.request-id }}
       version: ${{ steps.inventory.outputs.version }}
       matrix: ${{ steps.inventory.outputs.matrix }}
+      upload-matrix: ${{ steps.inventory.outputs.upload-matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -187,7 +188,7 @@ jobs:
         run: |
           python -m kfpr.ci_images_runner aggregate --source source \
             --lanes lanes --output qualified --scanner osv
-      - name: Preserve every verified OSV finding as SARIF
+      - name: Preserve raw SARIF and summarize verified image findings
         run: python -m kfpr.branch_scan convert --source source --evidence qualified
       - name: Upload complete validated scans and SARIF
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -207,7 +208,7 @@ jobs:
       security-events: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.inventory.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.inventory.outputs.upload-matrix) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -238,15 +239,46 @@ jobs:
           path: qualified
           required-files: |
             manifest.json
-            sarif/${{ matrix.name }}-${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}.sarif
+            image-summaries/${{ matrix.name }}.sarif
       - name: Publish verified release branch findings
+        id: publish-summary
         uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
-          sarif_file: qualified/sarif/${{ matrix.name }}-${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}.sarif
+          sarif_file: qualified/image-summaries/${{ matrix.name }}.sarif
           category: release-2.18-image-${{ matrix.name }}-${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}
+          wait-for-processing: true
           sha: ${{ needs.inventory.outputs.source-sha }}
           ref: refs/heads/release-2.18
           checkout_path: source
+      - name: Confirm GitHub processed the combined summary
+        id: confirm-summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SARIF_ID: ${{ steps.publish-summary.outputs.sarif-id }}
+        run: |
+          if [[ -z "$SARIF_ID" ]]; then
+            echo "::error::Summary upload returned no SARIF ID; preserving ARM alerts."
+            exit 1
+          fi
+          status=$(gh api "repos/{owner}/{repo}/code-scanning/sarifs/$SARIF_ID" --jq '.processing_status')
+          if [[ "$status" != complete ]]; then
+            echo "::error::Summary processing is not complete ($status); preserving ARM alerts. Retry after successful processing."
+            exit 1
+          fi
+      # Preserve the existing primary category so individual advisory alerts
+      # resolve as the combined image summary replaces them. Do not clear the
+      # redundant ARM category until GitHub has accepted the combined summary.
+      - name: Retire redundant ARM alert category after summary publication
+        if: hashFiles(format('qualified/image-summaries/{0}-retire-arm64.sarif', matrix.name)) != ''
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: qualified/image-summaries/${{ matrix.name }}-retire-arm64.sarif
+          category: release-2.18-image-${{ matrix.name }}-arm64
+          sha: ${{ needs.inventory.outputs.source-sha }}
+          ref: refs/heads/release-2.18
+          checkout_path: source
+
 
   third-party-evidence:
     needs: inventory

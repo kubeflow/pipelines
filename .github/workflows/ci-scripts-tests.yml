@@ -150,7 +150,7 @@ jobs:
           PYTHONPATH: release
         run: >-
           python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test
-          kfpr.osv_image_scan_test kfpr.osv_reports_test
+          kfpr.image_summary_test kfpr.osv_image_scan_test kfpr.osv_reports_test
           kfpr.ci_security_runner_test kfpr.ci_qualification_runner_test
           kfpr.ci_qualification_client_test kfpr.qualification_test
           kfpr.qualification_exceptions_test kfpr.security_test
