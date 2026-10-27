@@ -15,6 +15,7 @@
 
 import copy
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -62,6 +63,8 @@ class ImageUpgradeScanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             checkout = Path(temporary)
             for target, (relative, name) in scan.TARGETS.items():
+                if target in scan.CERT_MANAGER_TARGETS:
+                    continue
                 path = checkout / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 manifest = {
@@ -106,6 +109,180 @@ class ImageUpgradeScanTest(unittest.TestCase):
                 path.write_text(yaml.safe_dump(manifest))
                 with self.assertRaises(ValueError):
                     scan.image_reference(checkout, target)
+
+    def cert_manifest(self, version):
+        documents = []
+        for component in ('controller', 'cainjector', 'webhook'):
+            container = {
+                'name':
+                    'cert-manager-' + component,
+                'image':
+                    'quay.io/jetstack/cert-manager-' + component + ':' +
+                    version,
+            }
+            if component == 'controller':
+                container['args'] = [
+                    '--acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:'
+                    + version,
+                ]
+            documents.append({
+                'kind': 'Deployment',
+                'metadata': {
+                    'namespace': 'cert-manager'
+                },
+                'spec': {
+                    'template': {
+                        'spec': {
+                            'containers': [container]
+                        }
+                    }
+                },
+            })
+        return documents
+
+    def test_cert_manager_targets_follow_each_checkout_and_preserve_manifest(
+            self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for version in ('v1.16.2', 'v1.21.3'):
+                checkout = root / version
+                (checkout / 'backend').mkdir(parents=True)
+                (checkout /
+                 'backend/Makefile').write_text('CERT_MANAGER_VERSION ?= ' +
+                                                version + '\n')
+                raw = yaml.safe_dump_all(self.cert_manifest(version)).encode()
+                for target in scan.CERT_MANAGER_TARGETS:
+                    output = checkout / target
+                    output.mkdir()
+                    with mock.patch.object(scan.urllib.request,
+                                           'urlopen') as download:
+                        download.return_value.__enter__.return_value.read.return_value = raw
+                        reference, provenance = scan.cert_manager_reference(
+                            checkout, target, output)
+                        expected_url = (
+                            'https://github.com/cert-manager/cert-manager/releases/download/'
+                            + version + '/cert-manager.yaml')
+                        download.assert_called_once_with(
+                            expected_url, timeout=60)
+                    self.assertEqual(
+                        reference, 'quay.io/jetstack/' + target + ':' + version)
+                    self.assertEqual(
+                        (output / 'cert-manager.yaml').read_bytes(), raw)
+                    self.assertEqual(
+                        provenance['upstream_manifest'], {
+                            'url': expected_url,
+                            'file': 'cert-manager.yaml',
+                            'sha256': hashlib.sha256(raw).hexdigest(),
+                        })
+
+    def test_cert_manager_rejects_unpinned_or_ambiguous_version_before_download(
+            self):
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary)
+            (checkout / 'backend').mkdir()
+            for text in (
+                    'CERT_MANAGER_VERSION ?= latest',
+                    'CERT_MANAGER_VERSION ?= $(VERSION)',
+                    'CERT_MANAGER_VERSION ?= v1.21.3\nCERT_MANAGER_VERSION ?= v1.16.2'
+            ):
+                (checkout / 'backend/Makefile').write_text(text)
+                with mock.patch.object(scan.urllib.request,
+                                       'urlopen') as download:
+                    with self.assertRaisesRegex(ValueError,
+                                                'pinned cert-manager version'):
+                        scan.cert_manager_reference(checkout,
+                                                    'cert-manager-controller',
+                                                    checkout)
+                    download.assert_not_called()
+
+    def test_cert_manager_missing_ambiguous_and_invalid_images_fail_closed(
+            self):
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary)
+            (checkout / 'backend').mkdir()
+            (checkout /
+             'backend/Makefile').write_text('CERT_MANAGER_VERSION ?= v1.21.3\n')
+            valid = self.cert_manifest('v1.21.3')
+            cases = [
+                ('cert-manager-controller', valid[1:]),
+                ('cert-manager-controller', valid + [valid[0]]),
+            ]
+            for args in ([], ['--acme-http01-solver-image='], [
+                    '--acme-http01-solver-image=one:1',
+                    '--acme-http01-solver-image=two:2'
+            ], ['--acme-http01-solver-image', '--another-flag']):
+                malformed = copy.deepcopy(valid)
+                malformed[0]['spec']['template']['spec']['containers'][0][
+                    'args'] = args
+                cases.append(('cert-manager-acmesolver', malformed))
+            malformed = copy.deepcopy(valid)
+            malformed[0]['spec']['template']['spec']['containers'][0][
+                'image'] = 'bad image'
+            cases.append(('cert-manager-controller', malformed))
+            for target, documents in cases:
+                raw = yaml.safe_dump_all(documents).encode()
+                with self.subTest(
+                        target=target, documents=documents), mock.patch.object(
+                            scan.urllib.request, 'urlopen') as download:
+                    download.return_value.__enter__.return_value.read.return_value = raw
+                    with self.assertRaises(ValueError):
+                        scan.cert_manager_reference(checkout, target, checkout)
+                    self.assertEqual(
+                        (checkout / 'cert-manager.yaml').read_bytes(), raw)
+
+    @unittest.skipUnless(
+        importlib.util.find_spec('kfpr'),
+        'Requires release tooling on PYTHONPATH',
+    )
+    def test_cert_manager_capture_binds_manifest_provenance_to_image_subject(
+            self):
+        image_id = 'sha256:' + 'a' * 64
+        provenance = {
+            'upstream_manifest': {
+                'file': 'cert-manager.yaml',
+                'sha256': 'b' * 64,
+                'url': 'https://example/manifest'
+            }
+        }
+        metadata = [{
+            'Id': image_id,
+            'Os': 'linux',
+            'Architecture': 'amd64',
+            'RepoDigests': ['registry/image@sha256:' + 'c' * 64]
+        }]
+
+        def scanner(actual, platform, output, report_format):
+            self.assertEqual(actual, image_id)
+            (output / 'scan.json').write_text(
+                json.dumps({'report': report([])}))
+
+        with (tempfile.TemporaryDirectory() as temporary,
+              mock.patch.object(
+                  scan,
+                  'cert_manager_reference',
+                  return_value=('registry/image:1', provenance)) as reference,
+              mock.patch.object(scan, 'image_reference') as ordinary_reference,
+              mock.patch.object(
+                  scan.subprocess,
+                  'check_output',
+                  side_effect=['d' * 40, json.dumps(metadata)]),
+              mock.patch.object(scan.subprocess, 'run'),
+              mock.patch('kfpr.osv_image_scan.scan_image', side_effect=scanner),
+              mock.patch('kfpr.osv_image_scan.validate_report')):
+            checkout = Path(temporary)
+            output = checkout / 'out'
+            subject, _ = scan.capture(checkout, 'cert-manager-controller',
+                                      output)
+            reference.assert_called_once_with(checkout,
+                                              'cert-manager-controller', output)
+            ordinary_reference.assert_not_called()
+            self.assertEqual(subject['source_sha'], 'd' * 40)
+            self.assertEqual(subject['manifest'], 'backend/Makefile')
+            self.assertEqual(subject['upstream_manifest'],
+                             provenance['upstream_manifest'])
+            self.assertEqual(subject['image_id'], image_id)
+            self.assertEqual(
+                json.loads((output / 'subject.json').read_text()), subject)
 
     @unittest.skipUnless(
         importlib.util.find_spec('kfpr'),

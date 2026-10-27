@@ -14,6 +14,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'frontend/**'
+      - 'backend/Makefile'
       - 'third_party/metadata_envoy/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'

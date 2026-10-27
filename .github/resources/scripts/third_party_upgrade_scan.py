@@ -15,10 +15,12 @@
 """Compare full OSV evidence for manifest image upgrades on Linux amd64."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
 import subprocess
+import urllib.request
 
 import yaml
 
@@ -44,7 +46,75 @@ TARGETS = {
         'workflow-controller',
     ),
 }
+CERT_MANAGER_TARGETS = {
+    'cert-manager-controller': 'cert-manager-controller',
+    'cert-manager-cainjector': 'cert-manager-cainjector',
+    'cert-manager-webhook': 'cert-manager-webhook',
+    'cert-manager-acmesolver': 'cert-manager-controller',
+}
+TARGETS.update({
+    target: ('backend/Makefile', container)
+    for target, container in CERT_MANAGER_TARGETS.items()
+})
 PLATFORM = 'linux/amd64'
+
+
+def cert_manager_reference(checkout: Path, target: str,
+                           output: Path) -> tuple[str, dict]:
+    """Resolve a component from the install manifest and retain that evidence."""
+    makefile = (checkout / 'backend/Makefile').read_text()
+    versions = re.findall(
+        r'^CERT_MANAGER_VERSION\s*\?=\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$',
+        makefile, re.MULTILINE)
+    if len(versions) != 1:
+        raise ValueError('Expected exactly one pinned cert-manager version')
+    url = ('https://github.com/cert-manager/cert-manager/releases/download/' +
+           versions[0] + '/cert-manager.yaml')
+    with urllib.request.urlopen(url, timeout=60) as response:
+        raw = response.read()
+    path = output / 'cert-manager.yaml'
+    path.write_bytes(raw)
+    containers = []
+    for document in yaml.safe_load_all(raw):
+        if (not isinstance(document, dict) or
+                document.get('kind') != 'Deployment' or document.get(
+                    'metadata', {}).get('namespace') != 'cert-manager'):
+            continue
+        containers.extend(
+            container
+            for container in document['spec']['template']['spec']['containers']
+            if container.get('name') == CERT_MANAGER_TARGETS[target])
+    if len(containers) != 1:
+        raise ValueError('Expected exactly one cert-manager target container')
+    container = containers[0]
+    if target == 'cert-manager-acmesolver':
+        flag = '--acme-http01-solver-image'
+        args = container.get('args', [])
+        values = [
+            value.split('=', 1)[1]
+            for value in args
+            if isinstance(value, str) and value.startswith(flag + '=')
+        ]
+        values += [
+            args[index + 1]
+            for index, value in enumerate(args[:-1])
+            if value == flag
+        ]
+        if len(values) != 1:
+            raise ValueError('Expected exactly one ACME solver image')
+        reference = values[0]
+    else:
+        reference = container.get('image')
+    if (not isinstance(reference, str) or not reference or
+            reference.startswith('-') or any(c.isspace() for c in reference)):
+        raise ValueError('Invalid cert-manager image reference')
+    return reference, {
+        'upstream_manifest': {
+            'url': url,
+            'file': path.name,
+            'sha256': hashlib.sha256(raw).hexdigest(),
+        }
+    }
 
 
 def image_reference(checkout: Path, target: str) -> str:
@@ -130,7 +200,10 @@ def capture(checkout: Path, target: str, output: Path) -> tuple[dict, dict]:
     from kfpr.osv_image_scan import validate_report
 
     output.mkdir(parents=True, exist_ok=True)
-    reference = image_reference(checkout, target)
+    if target in CERT_MANAGER_TARGETS:
+        reference, provenance = cert_manager_reference(checkout, target, output)
+    else:
+        reference, provenance = image_reference(checkout, target), {}
     sha = subprocess.check_output(
         ['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True).strip()
     subprocess.run(['docker', 'pull', '--platform', PLATFORM, reference],
@@ -156,6 +229,7 @@ def capture(checkout: Path, target: str, output: Path) -> tuple[dict, dict]:
         'image_id': image_id,
         'repo_digests': digests,
         'platform': PLATFORM,
+        **provenance,
     }
     (output / 'subject.json').write_text(json.dumps(subject, indent=2) + '\n')
     report = None

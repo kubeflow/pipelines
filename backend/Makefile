@@ -7,7 +7,7 @@ DATABASE ?= mysql
 # change the default to true for all databases.
 WEBHOOK_PROXY_ENABLED ?= $(if $(filter mysql,$(DATABASE)),true,false)
 
-CERT_MANAGER_VERSION ?= v1.16.2
+CERT_MANAGER_VERSION ?= v1.21.3
 DRA_DRIVER_NAMESPACE ?= dra-example-driver
 
 # Validate DATABASE value

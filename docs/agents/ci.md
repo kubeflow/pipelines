@@ -297,6 +297,15 @@ The helper phases retain command stderr and make cluster deletion best-effort.
 Profile credential selection requires the named artifact Secret; service-account
 token Secrets can precede it in reconciliation output.
 
+The scan matrix also covers the four cert-manager images from each checkout's
+`CERT_MANAGER_VERSION`. It preserves the downloaded upstream installation
+manifest and derives the ACME solver image from the controller arguments.
+TLS-enabled frontend tests on Kubernetes 1.33 and 1.36 and the API TLS lane
+exercise the candidate certificate installation and KFP-issued certificates.
+Changes to `backend/Makefile` trigger these frontend compatibility checks.
+These fresh-install checks do not validate an in-place cert-manager minor-version
+jump; existing clusters must follow upstream's supported upgrade sequence.
+
 Linux AMD64 scan jobs use pinned upstream release OSV tooling
 (the release branch does not contain that package) and retain raw JSON,
 SARIF, immutable image identities and advisory-alias comparisons. Success means

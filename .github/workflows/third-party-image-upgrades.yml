@@ -5,6 +5,7 @@ on:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**'
       - 'manifests/kustomize/third-party/seaweedfs/**'
       - 'manifests/kustomize/third-party/argo/**'
+      - 'backend/Makefile'
       - '.github/resources/scripts/third_party_upgrade_*.py'
       - '.github/workflows/third-party-image-upgrades.yml'
   workflow_dispatch:
@@ -74,7 +75,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [profile-controller, seaweedfs, argo-controller, argo-executor]
+        target: [profile-controller, seaweedfs, argo-controller, argo-executor, cert-manager-controller, cert-manager-cainjector, cert-manager-webhook, cert-manager-acmesolver]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
