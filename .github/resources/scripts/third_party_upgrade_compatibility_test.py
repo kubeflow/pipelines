@@ -243,13 +243,99 @@ class CompatibilityTest(unittest.TestCase):
         s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
         s3.get_bucket_lifecycle_configuration.return_value = {
             'Rules': [{
+                'ID': 'private-artifacts',
                 'Status': 'Enabled',
+                'Filter': {
+                    'Prefix': 'private-artifacts'
+                },
                 'Expiration': {
                     'Days': 30
                 }
             }]
         }
         compatibility.verify_state(s3)
+
+    def test_lifecycle_scope_changes_fail(self):
+        expected = {
+            'ID': 'private-artifacts',
+            'Status': 'Enabled',
+            'Filter': {
+                'Prefix': 'private-artifacts'
+            },
+            'Expiration': {
+                'Days': 30
+            },
+        }
+        for change in (
+            {
+                'Filter': {}
+            },
+            {
+                'Filter': {
+                    'Prefix': ''
+                }
+            },
+            {
+                'Filter': {
+                    'Prefix': 'shared/'
+                }
+            },
+            {
+                'ID': 'other-rule'
+            },
+            {
+                'Status': 'Disabled'
+            },
+            {
+                'Expiration': {
+                    'Days': 31
+                }
+            },
+        ):
+            with self.subTest(change=change):
+                s3 = Mock()
+                s3.get_object.return_value = {
+                    'Body': io.BytesIO(compatibility.PAYLOAD)
+                }
+                s3.get_bucket_lifecycle_configuration.return_value = {
+                    'Rules': [{
+                        **expected,
+                        **change
+                    }]
+                }
+                with self.assertRaisesRegex(AssertionError,
+                                            'Lifecycle configuration'):
+                    compatibility.verify_state(s3)
+
+    def test_additional_lifecycle_rule_fails(self):
+        s3 = Mock()
+        s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
+        s3.get_bucket_lifecycle_configuration.return_value = {
+            'Rules': [
+                {
+                    'ID': 'private-artifacts',
+                    'Status': 'Enabled',
+                    'Filter': {
+                        'Prefix': 'private-artifacts'
+                    },
+                    'Expiration': {
+                        'Days': 30
+                    }
+                },
+                {
+                    'ID': 'shared',
+                    'Status': 'Enabled',
+                    'Filter': {
+                        'Prefix': 'shared/'
+                    },
+                    'Expiration': {
+                        'Days': 30
+                    }
+                },
+            ]
+        }
+        with self.assertRaisesRegex(AssertionError, 'Lifecycle configuration'):
+            compatibility.verify_state(s3)
 
     def test_reconciliation_sends_existing_credentials(self):
         secret = {
