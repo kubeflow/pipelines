@@ -18,7 +18,7 @@ this guide doesn't change the default manifests.
 | API server | `ml-pipeline` | Yes | Serves requests statelessly. Each replica reconciles ScheduledWorkflow resources once at startup and [skips conflicting updates](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/resource/resource_manager.go#L1031). Garbage collection of expired runs, when enabled, uses [leader election](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/gc/run_gc.go#L216), so only one replica collects. See [API server installs and upgrades](#api-server-installs-and-upgrades). |
 | UI | `ml-pipeline-ui` | Yes | Serves requests statelessly. All replicas share the [TensorBoard proxy signing secret](server-config.md#tensorboard-proxy-signing-secret). The Deployment uses the `Recreate` strategy by default, so upgrades stop all UI Pods before starting new ones; to keep the UI available during upgrades, [enable rolling UI updates](server-config.md#enabling-rolling-ui-updates). |
 | Profile controller (multi-user) | `kubeflow-pipelines-profile-controller` | Yes | Stateless metacontroller webhook. Metacontroller never syncs the same namespace concurrently. Use a release that includes [kubeflow/pipelines#14809](https://github.com/kubeflow/pipelines/pull/14809) (2.18.0 or later), which adds [a health endpoint and a threaded server](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py#L619-L649). |
-| Scheduled workflow controller | `ml-pipeline-scheduledworkflow` | Yes | Uses leader election: only the replica holding a Lease starts scheduled runs. See [scheduled workflow controller leader election](#scheduled-workflow-controller-leader-election). |
+| Scheduled workflow controller | `ml-pipeline-scheduledworkflow` | Yes | Uses leader election, which the default manifests enable: only the replica holding a Lease starts scheduled runs. See [scheduled workflow controller leader election](#scheduled-workflow-controller-leader-election). |
 | Persistence agent | `ml-pipeline-persistenceagent` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 | Viewer controller | `ml-pipeline-viewer-crd` | **No** | See [components that must stay at one replica](#components-that-must-stay-at-one-replica). |
 
@@ -44,8 +44,8 @@ the steps that keep recurring runs consistent, see
 
 Only the replica holding the `kfp-scheduledworkflow` Lease starts scheduled runs. If
 it stops renewing the Lease, another replica takes over once the Lease expires, 15
-seconds after the last renewal. After a restart, the new Pod also waits for the
-previous Lease to expire before it starts scheduled runs.
+seconds after the last renewal. After a restart, the new Pod can wait up to 15
+seconds for the previous Lease to expire before it starts scheduled runs.
 
 Leader election does not guarantee that only one replica acts at a time: a replica
 that pauses and then resumes can still send a request it had in progress. Duplicate
@@ -55,8 +55,8 @@ fails with `AlreadyExists`. These protections also cover the brief overlap when 
 upgrade from a release without leader election.
 
 The default manifests set the `LEADER_ELECT` environment variable to `"true"`. To turn
-leader election off, scale the Deployment to 0, set `LEADER_ELECT` to `"false"`, then
-scale it to one replica.
+leader election off, set the Deployment's `replicas` to 0, set `LEADER_ELECT` to
+`"false"`, then set `replicas` to 1.
 
 If your overlay replaces the controller's Role, add the Lease rules from the base Role,
 or set `LEADER_ELECT` to `"false"`. If it replaces the controller's environment
