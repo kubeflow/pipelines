@@ -16,12 +16,16 @@
 import copy
 import json
 from pathlib import Path
+import runpy
 import shutil
 import subprocess
 import tempfile
 import unittest
 
 HACK = Path(__file__).resolve().parent
+REPOSITORY = HACK.parents[2]
+TENSORBOARD_UPDATER = REPOSITORY / 'hack/update_tensorboard_image.py'
+TENSORBOARD_PATHS = runpy.run_path(str(TENSORBOARD_UPDATER))['REQUIRED_PATHS']
 IMAGE_PATHS = (
     'base/cache-deployer/kustomization.yaml',
     'base/cache/kustomization.yaml',
@@ -48,9 +52,21 @@ class YqReleaseTest(unittest.TestCase):
             'base/pipeline/ml-pipeline-apiserver-deployment.yaml',
         )
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'hack').mkdir()
+            repository = Path(directory)
+            root = repository / 'manifests/kustomize'
+            (root / 'hack').mkdir(parents=True)
             shutil.copy(HACK / 'release.sh', root / 'hack/release.sh')
+            (repository / 'hack').mkdir()
+            shutil.copy(TENSORBOARD_UPDATER,
+                        repository / 'hack/update_tensorboard_image.py')
+            tensorboard_before = {}
+            for path in TENSORBOARD_PATHS:
+                target = repository / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(REPOSITORY / path, target)
+                tensorboard_before[path] = target.read_text()
+            current_image = 'ghcr.io/kubeflow/kfp-tensorboard:' + (
+                REPOSITORY / 'VERSION').read_text().strip()
             for path in paths:
                 (root / path).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy(HACK.parent / path, root / path)
@@ -64,6 +80,14 @@ class YqReleaseTest(unittest.TestCase):
                     capture_output=True,
                     text=True,
                 )
+                for path, content in tensorboard_before.items():
+                    self.assertIn(current_image, content)
+                    self.assertEqual(
+                        (repository / path).read_text(),
+                        content.replace(
+                            current_image,
+                            f'ghcr.io/kubeflow/kfp-tensorboard:{tag}'),
+                    )
                 for path in paths:
                     self.assertEqual((root / path).stat().st_mode, modes[path])
                 expected = copy.deepcopy(before)

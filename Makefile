@@ -39,4 +39,5 @@ install-backend-visualization-deps:
 test-backend-visualization:
 	cd backend/src/apiserver/visualization && \
 	python3 test_exporter.py && \
-	python3 test_server.py
+	python3 test_server.py && \
+	python3 test_runtime_image.py

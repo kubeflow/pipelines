@@ -13,10 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import Path
 import re
 import subprocess
 import unittest
+
+import yaml
 
 ROOT = Path(__file__).parents[3]
 ARTIFACTS_SCRIPT = Path(__file__).with_name('ci-image-artifacts.sh')
@@ -49,6 +52,72 @@ class CiImageArtifactsTest(unittest.TestCase):
         expected_artifacts = built_images | {'runtime-base-images'}
 
         self.assertEqual(configured_artifacts, expected_artifacts)
+
+    def test_visualization_runtime_has_native_arm64_coverage(self):
+        job = yaml.safe_load(
+            IMAGE_BUILDS_WORKFLOW.read_text())['jobs']['image-build']
+        entries = job['strategy']['matrix']['include']
+        visualization = [
+            entry for entry in entries
+            if entry['image'] == 'visualization-server'
+        ]
+        self.assertEqual(len(visualization), 2)
+        self.assertEqual(
+            {entry.get('runs_on', 'ubuntu-latest') for entry in visualization},
+            {'ubuntu-latest', 'ubuntu-24.04-arm'})
+        self.assertIn('matrix.runs_on', job['runs-on'])
+        self.assertIn('matrix.artifact_name', job['env']['ARTIFACT_NAME'])
+        artifacts = [
+            entry.get('artifact_name', entry['image']) for entry in entries
+        ]
+        self.assertEqual(len(artifacts), len(set(artifacts)))
+        for entry in visualization:
+            self.assertEqual(entry['dockerfile'],
+                             'backend/Dockerfile.visualization')
+        self.assertEqual(
+            sum(
+                entry.get('runs_on') == 'ubuntu-24.04-arm'
+                for entry in entries), 1)
+
+    def test_runtime_verification_propagates_container_failure(self):
+        steps = yaml.safe_load(
+            IMAGE_BUILDS_WORKFLOW.read_text())['jobs']['image-build']['steps']
+        verify = next(step for step in steps
+                      if step['name'] == 'Verify Python runtime images')
+        upload = next(
+            step for step in steps if step['name'] == 'Upload artifact')
+        self.assertLess(steps.index(verify), steps.index(upload))
+        self.assertIn('success()', upload['if'])
+        stub = """docker() {
+          printf '%s\\n' "$*"
+          case "$*" in
+            *test_runtime_image.py*|*unittest*) return "$SMOKE_EXIT" ;;
+          esac
+        }
+"""
+        for image in ('visualization-server', 'metadata-writer'):
+            self.assertIn(image, verify['if'])
+            for status in (0, 31):
+                with self.subTest(image=image, status=status):
+                    result = subprocess.run(
+                        ['bash', '-eu', '-c', stub + verify['run']],
+                        env={
+                            **os.environ, 'RUNTIME_IMAGE': image,
+                            'SMOKE_EXIT': str(status),
+                            'ARTIFACTS_PATH': '/tmp/images',
+                            'ARTIFACT_NAME': image,
+                            'REGISTRY': 'test',
+                            'IMAGE_TAG': 'test'
+                        },
+                        text=True,
+                        capture_output=True)
+                    self.assertEqual(result.returncode, status, result.stderr)
+                    self.assertIn('load --input', result.stdout)
+                    self.assertIn('ensurepip', result.stdout)
+                    self.assertIn(
+                        'test_runtime_image.py' if image
+                        == 'visualization-server' else 'unittest discover',
+                        result.stdout)
 
     def test_merge_group_requires_exact_runtime_base_image_producer_sha(self):
         workflow = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
