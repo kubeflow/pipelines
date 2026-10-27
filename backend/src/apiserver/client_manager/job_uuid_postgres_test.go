@@ -112,7 +112,7 @@ func TestJobUUIDPostgresRejectsConflictingAndInterruptedIndexes(t *testing.T) {
 		var builderPID int
 		require.NoError(t, builder.QueryRowContext(context.Background(), `SELECT pg_backend_pid()`).Scan(&builderPID))
 		// Concurrent creation waits for this writer transaction. Client timeout
-		// returns before pgx finishes asynchronously cancelling the backend.
+		// returns before pgx finishes asynchronously canceling the backend.
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		_, err = builder.ExecContext(ctx, recurringRunIndexDDL("postgres"))
@@ -125,7 +125,7 @@ func TestJobUUIDPostgresRejectsConflictingAndInterruptedIndexes(t *testing.T) {
 			var active bool
 			err := pool.QueryRowContext(waitCtx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = $1)`, builderPID).Scan(&active)
 			return err == nil && !active
-		}, 5*time.Second, 10*time.Millisecond, "cancelled index builder must exit before releasing the writer")
+		}, 5*time.Second, 10*time.Millisecond, "canceled index builder must exit before releasing the writer")
 		require.NoError(t, tx.Rollback())
 		var valid bool
 		require.NoError(t, db.Raw(`SELECT indisvalid FROM pg_index WHERE indexrelid = 'idx_run_details_job_uuid'::regclass`).Scan(&valid).Error)
