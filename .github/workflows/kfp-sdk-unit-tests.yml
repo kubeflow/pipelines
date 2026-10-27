@@ -12,6 +12,7 @@ on:
       - 'sdk/**'
       - 'test/presubmit-tests-sdk-unit.sh'
       - '.github/workflows/kfp-sdk-unit-tests.yml'
+      - '.github/resources/scripts/sdk-installed-smoke.py'
       - '.github/actions/setup-python-pip-cache/**'
       - '!**/*.md'
       - '!**/OWNERS'
