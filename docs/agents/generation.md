@@ -21,3 +21,5 @@ Never edit generated files. Update their source and regenerate them.
 - `pipeline.upload.swagger.json` and `backend/api/v2beta1/transfer.openapi.yaml` are manually maintained HTTP contracts; transfer archives use raw authenticated HTTP rather than generated gRPC clients.
 - Schema changes require both `make -C api python` and `make -C api golang`.
 - On SELinux hosts, protoc generation can require temporarily setting SELinux to permissive mode.
+
+- Both Python HTTP clients override dependency requirements, package metadata and README templates to preserve the release Python minimum. Regenerate both API versions after changing these templates; never patch only the generated outputs.

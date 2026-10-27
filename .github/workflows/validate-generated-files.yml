@@ -24,6 +24,7 @@ on:
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
       - 'backend/api/**/python_http_client/**'
+      - 'backend/api/**/python_http_client_template/**'
       - 'backend/api/**/swagger/**'
       - 'api/Makefile'
       - 'api/**/*.proto'
@@ -179,3 +180,31 @@ jobs:
           else
             [[ "$GENERATION_RESULT" == "skipped" ]]
           fi
+
+  python-client-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [v1beta1, v2beta1]
+        python-version: ['3.9', '3.10']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Build and test standalone client at the supported urllib3 floor
+        env:
+          CLIENT_ROOT: backend/api/${{ matrix.api }}/python_http_client
+        run: |
+          python -m pip install build packaging wheel -r "$CLIENT_ROOT/requirements.txt"
+          if [[ '${{ matrix.python-version }}' == '3.9' ]]; then
+            python -m pip install urllib3==2.6.3
+          else
+            python -m pip install urllib3==2.8.0
+          fi
+          python -m build --wheel --no-isolation --outdir "$RUNNER_TEMP/client-wheels" "$CLIENT_ROOT"
+          python -m pip install "$RUNNER_TEMP"/client-wheels/*.whl
+          python backend/api/hack/python_client_compatibility_test.py
+          python -m pip check

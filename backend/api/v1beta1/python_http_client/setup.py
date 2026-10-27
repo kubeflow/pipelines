@@ -21,7 +21,7 @@ VERSION = "2.18.0"
 # prerequisite: setuptools
 # http://pypi.python.org/pypi/setuptools
 
-REQUIRES = ["urllib3 >= 1.15", "six >= 1.10", "certifi", "python-dateutil"]
+REQUIRES = ["urllib3 >= 2.6.3; python_version < '3.10'", "urllib3 >= 2.8.0; python_version >= '3.10'", "six >= 1.10", "certifi", "python-dateutil"]
 
 setup(
     name=NAME,
@@ -32,6 +32,7 @@ setup(
     url="https://github.com/kubeflow/pipelines",
     keywords=["OpenAPI", "OpenAPI-Generator", "Kubeflow Pipelines API"],
     install_requires=REQUIRES,
+    python_requires=">=3.9",
     packages=find_packages(exclude=["test", "tests"]),
     include_package_data=True,
     license="Apache 2.0",
