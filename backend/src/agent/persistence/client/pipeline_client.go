@@ -85,7 +85,7 @@ func NewPipelineClient(
 			"Failed to get RPC connection. Error: %s", err.Error())
 	}
 
-	httpBaseURL := fmt.Sprintf("%s://%s%s", scheme, httpAddress, basePath)
+	httpBaseURL := fmt.Sprintf("%s://%s%s", scheme, httpAddress, artifactAPIBasePath(basePath))
 	artifactClient := artifactclient.NewClient(httpBaseURL, httpClient, tokenRefresher)
 
 	return &PipelineClient{
@@ -96,6 +96,18 @@ func NewPipelineClient(
 		runServiceClient:    api.NewRunServiceClient(connection),
 		artifactClient:      artifactClient,
 	}, nil
+}
+
+// artifactAPIBasePath strips the API version that basePath carries for the
+// health check, because the artifact client appends the versioned route itself.
+func artifactAPIBasePath(basePath string) string {
+	trimmed := strings.TrimSuffix(basePath, "/")
+	for _, version := range []string{"/apis/v1beta1", "/apis/v2beta1"} {
+		if strings.HasSuffix(trimmed, version) {
+			return strings.TrimSuffix(trimmed, version)
+		}
+	}
+	return basePath
 }
 
 func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
