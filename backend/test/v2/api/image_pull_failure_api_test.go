@@ -17,6 +17,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -38,7 +39,12 @@ const (
 	imagePullFailureEnabledEnvVar      = "IMAGE_PULL_FAILURE_HANDLING_ENABLED"
 	imagePullFailureGracePeriodEnvVar  = "IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC"
 	imagePullFailureDefaultGracePeriod = 300 * time.Second
-	unpullableImage                    = "registry.invalid/kubeflow/pipelines-unpullable:does-not-exist"
+	// imagePullFailureExpectedEnvVar is set to "true" by CI jobs whose overlay
+	// opts into image pull failure handling. In those jobs a disabled feature is
+	// a failure, not a skip, so the end-to-end contract cannot silently stop
+	// being exercised if the component or its env patch is dropped.
+	imagePullFailureExpectedEnvVar = "IMAGE_PULL_FAILURE_HANDLING_EXPECTED"
+	unpullableImage                = "registry.invalid/kubeflow/pipelines-unpullable:does-not-exist"
 	// imagePullFailureDetectionMargin is added to the configured grace period
 	// to cover pod scheduling, the kubelet reporting the pull error, and the
 	// persistence agent's 30s resync before and after the grace period.
@@ -51,7 +57,8 @@ const (
 // observes a workflow pod stuck pulling its image, the conditional merge patch
 // it sends is accepted by the API server, Argo finishes the workflow, and the
 // run is reported as failed with the image pull failure recorded on the
-// workflow.
+// workflow. Overlays that leave the feature disabled skip these tests, unless
+// the job declares the feature expected (see imagePullFailureExpectedEnvVar).
 var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITIVE, constants.APIServerTests, "ImagePullFailure"), func() {
 	var diagnosticRunID string
 	var gracePeriod time.Duration
@@ -60,6 +67,10 @@ var _ = Describe("Image pull failure handling >", Serial, Label(constants.POSITI
 		diagnosticRunID = ""
 		enabled, configuredGracePeriod := imagePullFailureHandlingConfig()
 		if !enabled {
+			if os.Getenv(imagePullFailureExpectedEnvVar) == "true" {
+				Fail(fmt.Sprintf("%s=true but %s is not \"true\" on the %s deployment: this job's overlay must opt in through manifests/kustomize/components/image-pull-failure-handling",
+					imagePullFailureExpectedEnvVar, imagePullFailureEnabledEnvVar, persistenceAgentDeploymentName))
+			}
 			Skip("Image pull failure handling is not enabled on the persistence agent")
 		}
 		gracePeriod = configuredGracePeriod
