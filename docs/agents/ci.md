@@ -289,8 +289,9 @@ verify runner compatibility when changing it.
 
 `third-party-image-upgrades.yml` reads baseline images from the PR base commit
 (or the explicit manual baseline ref) and candidate images from the tested head.
-The Kind component check preserves S3 objects, lifecycle rules and profile-issued
-IAM credentials on the same PVC across a SeaweedFS upgrade and restart. It invokes
+The Kind component check preserves seeded S3 objects, admin access and lifecycle
+rules on the same PVC across a SeaweedFS upgrade and restart. It issues reusable
+profile IAM credentials on the candidate and verifies them after restart. It invokes
 the actual profile webhook without Metacontroller; it does not run an MLMD,
 whole-installation or Argo upgrade. Existing API/E2E lanes cover Argo behavior.
 The helper phases retain command stderr and make cluster deletion best-effort.

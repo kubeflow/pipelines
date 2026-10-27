@@ -61,7 +61,8 @@ PLATFORM = 'linux/amd64'
 
 def cert_manager_reference(checkout: Path, target: str,
                            output: Path) -> tuple[str, dict]:
-    """Resolve a component from the install manifest and retain that evidence."""
+    """Resolve a component from the install manifest and retain that
+    evidence."""
     makefile = (checkout / 'backend/Makefile').read_text()
     versions = re.findall(
         r'^CERT_MANAGER_VERSION\s*\?=\s*(v[0-9]+\.[0-9]+\.[0-9]+)\s*$',
