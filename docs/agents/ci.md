@@ -385,3 +385,5 @@ evidence without changing production image alerts. After merge, run both master
 and release scans, verify summary counts, raw-artifact coverage and GitHub's
 processed alert state before manually removing any obsolete configurations.
 Do not bulk-dismiss package findings as false positives to hide the old reports.
+
+ARM summary migration requires a separate status API check for the exact upload SARIF ID: only `processing_status: complete` permits retirement. Upload-action success alone is insufficient; pending, failed, missing, or unavailable status preserves the old alerts and fails the job. CI Scripts Tests explicitly includes `kfpr.image_summary_test`.

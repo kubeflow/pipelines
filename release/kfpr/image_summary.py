@@ -54,9 +54,10 @@ def summarize(
 ) -> dict:
     """Return one stable image result, or none after a complete clean scan.
 
-    Callers must verify scan completeness and immutable image bindings before
-    calling this presentation-only helper. Identity describes a logical image,
-    independent of tags, digests, architectures and the current advisory set.
+    Callers must verify scan completeness and immutable image bindings
+    before calling this presentation-only helper. Identity describes a
+    logical image, independent of tags, digests, architectures and the
+    current advisory set.
     """
     if not sarifs or len(sarifs) != len(platforms):
         raise ValueError('Every image scan must have a platform')
