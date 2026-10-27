@@ -99,9 +99,15 @@ var _ Client = &client{}
 
 // NewClient creates a new artifact client
 func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *tokenrefresher.TokenRefresher) Client {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	clientCopy := *httpClient
+	clientCopy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+
 	return &client{
 		httpBaseURL:    httpBaseURL,
-		httpClient:     httpClient,
+		httpClient:     &clientCopy,
 		tokenRefresher: tokenRefresher,
 	}
 }
@@ -114,8 +120,10 @@ func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *toke
 // - Returns CUSTOM_CODE_TRANSIENT for retryable errors (401, 500, network issues)
 // - Automatically refreshes tokens on expiry; callers should retry transient errors
 func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error) {
-	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:read",
-		a.httpBaseURL, request.RunID, request.NodeID, request.ArtifactName)
+	url, err := artifactRequestURL(a.httpBaseURL, request)
+	if err != nil {
+		return nil, NewError(ErrorCodePermanent, err, "Invalid artifact request route")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -147,6 +155,11 @@ func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 			glog.Warningf("Failed to close response body: %v", closeErr)
 		}
 	}()
+
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		return nil, NewError(ErrorCodePermanent, fmt.Errorf("HTTP %d", resp.StatusCode),
+			"Artifact redirect rejected; configure the API endpoint without redirects")
+	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:

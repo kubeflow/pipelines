@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: metrics-reporting-test-v1-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.23, pipelines.kubeflow.org/pipeline_spec: '{"description": "V1 pipeline that emits mlpipeline-metrics", "name": "metrics-reporting-test-v1"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.23}
+spec:
+  entrypoint: metrics-reporting-test-v1
+  templates:
+  - name: metrics-reporting-test-v1
+    dag:
+      tasks:
+      - {name: emit-metrics, template: emit-metrics}
+  - name: emit-metrics
+    container:
+      command:
+      - sh
+      - -ec
+      - |
+        mkdir -p /tmp/outputs/mlpipeline_metrics
+        printf '%s' '{"metrics": [{"name": "accuracy-score", "numberValue": 0.875, "format": "RAW"}]}' > /tmp/outputs/mlpipeline_metrics/data
+      image: python:3.11
+    outputs:
+      artifacts:
+      - {name: mlpipeline-metrics, path: /tmp/outputs/mlpipeline_metrics/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.23
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
