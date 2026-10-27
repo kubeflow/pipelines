@@ -15,6 +15,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import semver from 'semver';
+import qs from 'qs';
 
 // Check nested copies as well as hoisted ones. These fixed release lines do not
 // replace fresh advisory scans when qualifying a release.
@@ -35,6 +36,7 @@ const scopes = {
   },
   '../package-lock.json': {
     ...tooling,
+    qs: '>=6.16.1 <7',
     storybook: '>=10.6.2 <11',
     zod: '>=4.6.6 <5',
   },
@@ -62,3 +64,18 @@ for (const [file, requirements] of Object.entries(scopes)) {
     }
   });
 }
+
+// GHSA-6pq8-jhm2-2vcw: comma serialization must handle JSON-derived objects
+// whose own toString value cannot be called. Test both coercion paths.
+describe('qs comma serialization', () => {
+  it.each([false, true])('handles hostile objects with encodeValuesOnly=%s', (encodeValuesOnly) => {
+    const input = JSON.parse('{"a":[{"toString":"x"}]}');
+    expect(qs.stringify(input, { arrayFormat: 'comma', encodeValuesOnly })).toBe(
+      'a=%5Bobject%20Object%5D',
+    );
+  });
+
+  it('preserves ordinary comma-separated values', () => {
+    expect(qs.stringify({ a: ['x', 'y'] }, { arrayFormat: 'comma' })).toBe('a=x%2Cy');
+  });
+});
