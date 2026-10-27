@@ -36,6 +36,7 @@ on:
       - 'Python Syntax'
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
+      - 'Third-party Image Upgrade Checks'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
@@ -145,7 +146,7 @@ jobs:
         id: poll
         if: steps.prepare.outputs.ready == 'true'
         continue-on-error: true
-        uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
+        uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
         with:
           commit_sha: ${{ steps.prepare.outputs.head_sha }}
           # Completion events and scheduled sweeps drive recovery. Never hold

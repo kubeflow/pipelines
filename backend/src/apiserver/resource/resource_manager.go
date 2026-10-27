@@ -2467,6 +2467,11 @@ func (r *ResourceManager) reportWorkflowResource(
 		); err != nil {
 			return nil, err
 		}
+
+		if startedAt := execStatus.StartedAtTime().Time; r.options.CollectMetrics && !startedAt.IsZero() {
+			recurringPipelineRunReportGap.Observe(time.Since(startedAt).Seconds())
+		}
+
 		run = createdRun
 		runId = run.UUID
 		updateError = nil
