@@ -201,7 +201,7 @@ jobs:
       actions: read
       checks: read
       contents: read
-      pull-requests: write
+      pull-requests: read
       statuses: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

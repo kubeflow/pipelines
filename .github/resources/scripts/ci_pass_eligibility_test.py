@@ -57,6 +57,7 @@ if (options.mergedRecovery) {
   context.ref = options.dispatchRef || 'refs/heads/master';
   context.payload.repository = {full_name: 'kubeflow/pipelines', default_branch: 'master'};
   pr.merged = true; pr.state = 'closed'; pr.merge_commit_sha = 'c'.repeat(40);
+  pr.commits = options.multiCommit ? 2 : 1;
   pr.base.ref = options.recoveryBase || 'release-2.18';
   pr.base.sha = 'e'.repeat(40); // Live API base may have advanced after merge.
   if (options.foreignBase) pr.base.repo.full_name = 'attacker/pipelines';
@@ -133,7 +134,10 @@ jobs:
   repos: {getCommit: async request => {
     commitReads += 1;
     if (options.commitFailure) throw Error('Commit unavailable');
-    return {data: {sha: request.ref, parents: options.badParents ? [] : [{sha: (options.parentDrift && commitReads >= 3 ? 'd' : 'b').repeat(40)}]}};
+    return {data: {sha: request.ref,
+      commit: options.missingTree ? {} : {tree: {sha: (options.treeMismatch && request.ref === HEAD ? 'f' : 'e').repeat(40)}},
+      tree: {sha: 'e'.repeat(40)}, // Wrong top-level shape must not satisfy proof.
+      parents: options.badParents ? [] : [{sha: ((options.parentDrift && commitReads >= 5) || (options.parentMismatch && request.ref === HEAD) ? 'd' : 'b').repeat(40)}]}};
   }, getCombinedStatusForRef: {}, listCommitStatusesForRef: methods.statuses,
     listPullRequestsAssociatedWithCommit: methods.associated,
     createCommitStatus: async request => {
@@ -231,6 +235,13 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
     def test_late_success_recovers_pending_merged_release(self):
         result = self.recover()
         self.assertEqual(result['status'], 'success', result)
+        self.assertFalse(
+            [
+                c
+                for c in result['calls']
+                if c[0] in ['add-label', 'remove-label']
+            ]
+        )
         inventories = [
             c[1]['expression']
             for c in result['calls']
@@ -277,6 +288,10 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
             dict(dispatchRef='refs/heads/feature'),
             dict(recoveryBase='master'),
             dict(badParents=True),
+            dict(multiCommit=True),
+            dict(parentMismatch=True),
+            dict(treeMismatch=True),
+            dict(missingTree=True),
         ]
         for case in cases:
             with self.subTest(case=case):

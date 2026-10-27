@@ -279,9 +279,13 @@ gh workflow run ci-checks.yml --ref master -f merged_pr=12345 -f head_sha=<40-ch
 
 This explicit recovery accepts only merged `release-X.Y` PRs in this repository
 whose aggregate is pending. It binds the head, merge commit, repository and branch,
-and reads the required workflow inventory from the merge commit's immutable
-first parent rather than a subsequently advancing PR base field. Existing green
+and accepts only single-commit PRs whose tested head and merged commit have
+identical trees and identical sole parents. This proves the immutable pre-PR
+base without trusting a subsequently advancing PR base field. Multi-commit PRs,
+merge commits with multiple parents, and changed parents or trees fail closed;
+a first parent alone is not proof because a multi-commit rebase can put it inside
+the PR. The required workflow inventory comes from this verified parent. Existing green
 or failed aggregate statuses are left untouched. The pinned independent checker,
 required-workflow validation and external-check reader must all pass. Identity
 changes, unavailable evidence and pending or failed checks cannot authorize a
-success. No release tag or package is published by this workflow.
+success. Recovery does not change PR labels. No release tag or package is published by this workflow.

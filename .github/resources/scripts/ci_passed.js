@@ -166,7 +166,7 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
 }
 
-async function publish(github, context, pr, state, description, provisional = false, expectedState = null, expectedId = null) {
+async function publish(github, context, pr, state, description, provisional = false, expectedState = null, expectedId = null, updateLabels = true) {
   let current;
   try {
     current = await currentStatus(github, context, pr.head.sha);
@@ -191,6 +191,7 @@ async function publish(github, context, pr, state, description, provisional = fa
       target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     })).data;
   }
+  if (!updateLabels) return written;
   if (state === 'success') {
     await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
   } else {
@@ -368,7 +369,7 @@ async function mergedRecoveryBinding(github, context, number, head) {
   }
   const pr = await readPR(github, context, Number(number));
   if (pr.number !== Number(number) || pr.merged !== true || pr.state !== 'closed' ||
-      pr.head.sha !== head || !pr.head.repo?.full_name ||
+      pr.head.sha !== head || pr.commits !== 1 || !pr.head.repo?.full_name ||
       pr.base.repo?.full_name !== repository || !/^release-\d+\.\d+$/.test(pr.base.ref) ||
       !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '') || blocked(pr)) {
     throw new Error('Recovery identity is not an eligible merged release PR.');
@@ -376,16 +377,22 @@ async function mergedRecoveryBinding(github, context, number, head) {
   const {data: commit} = await github.rest.repos.getCommit({
     ...context.repo, ref: pr.merge_commit_sha,
   });
-  if (commit.sha !== pr.merge_commit_sha || !Array.isArray(commit.parents) ||
-      ![1, 2].includes(commit.parents.length) ||
-      !commit.parents.every(parent => /^[0-9a-f]{40}$/.test(parent.sha || ''))) {
-    throw new Error('Cannot bind recovery to the immutable pre-merge base.');
+  const {data: tested} = await github.rest.repos.getCommit({...context.repo, ref: head});
+  if (commit.sha !== pr.merge_commit_sha || tested.sha !== head ||
+      !Array.isArray(commit.parents) || commit.parents.length !== 1 ||
+      !Array.isArray(tested.parents) || tested.parents.length !== 1 ||
+      !/^[0-9a-f]{40}$/.test(commit.parents[0].sha || '') ||
+      commit.parents[0].sha !== tested.parents[0].sha ||
+      !/^[0-9a-f]{40}$/.test(commit.commit?.tree?.sha || '') ||
+      commit.commit.tree.sha !== tested.commit?.tree?.sha) {
+    throw new Error('Recovery requires a single-commit PR with matching tested/merged parents and trees.');
   }
-  // GitHub can advance base.sha after merge. The squash/merge commit's first
-  // parent is the release branch state to which this change was applied.
+  // Multi-commit rebase merges make the last commit's parent part of the PR.
+  // Restrict recovery to one tested commit with an unchanged parent and tree;
+  // this proves the immutable base without trusting GitHub's mutable base.sha.
   const bound = {...pr, base: {...pr.base, sha: commit.parents[0].sha}};
   const identity = JSON.stringify([bound.number, head, pr.head.repo.full_name,
-    pr.base.repo.full_name, pr.base.ref, pr.merge_commit_sha, bound.base.sha]);
+    pr.base.repo.full_name, pr.base.ref, pr.merge_commit_sha, bound.base.sha, commit.commit.tree.sha]);
   return {pr: bound, identity};
 }
 
@@ -420,7 +427,7 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
   if (after.identity !== before) throw new Error('Merged recovery identity changed before publication.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;
   const written = await publish(github, context, after.pr, 'success',
-    successDescription(after.pr, workflows.baseSha), false, 'pending');
+    successDescription(after.pr, workflows.baseSha), false, 'pending', null, false);
   if (!written) return;
   // Publication is not atomic with GitHub's CI state. Recheck and revoke only
   // the exact status this attempt wrote, preserving another writer's update.
@@ -436,7 +443,7 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
     }
   } catch (error) {
     await publish(github, context, after.pr, 'failure',
-      'Merged recovery evidence changed; inspect CI Check.', false, 'success', written.id);
+      'Merged recovery evidence changed; inspect CI Check.', false, 'success', written.id, false);
     throw error;
   }
 }
