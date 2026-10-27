@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -24,36 +24,42 @@ CI_SCRIPTS_WORKFLOW_PATH = ROOT / '.github/workflows/ci-scripts-tests.yml'
 
 
 class OsvScannerWorkflowTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.workflow = WORKFLOW_PATH.read_text(encoding='utf-8')
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
 
     def test_producer_data_never_precedes_executable_steps(self):
         jobs = yaml.safe_load(self.workflow)['jobs']
         discovery = jobs['discover-images']['steps']
         for step in discovery:
             if step.get('uses', '').startswith('actions/checkout@'):
-                self.assertEqual(step['with']['ref'],
-                                 '${{ github.workflow_sha }}')
+                self.assertEqual(
+                    step['with']['ref'], '${{ github.workflow_sha }}'
+                )
         self.assertTrue(
-            any('osv_manifest_source.py' in step.get('run', '')
-                for step in discovery))
+            any(
+                'osv_manifest_source.py' in step.get('run', '')
+                for step in discovery
+            )
+        )
         scan = jobs['scan-images']['steps']
         producer_index = next(
-            i for i, step in enumerate(scan)
-            if step.get('with', {}).get('path') == 'producer')
+            i
+            for i, step in enumerate(scan)
+            if step.get('with', {}).get('path') == 'producer'
+        )
         self.assertEqual(producer_index, len(scan) - 2)
         self.assertIn('upload-sarif@', scan[-1]['uses'])
 
     def test_scanner_release_is_pinned_and_checksum_verified(self):
-        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"),
-                         2)
+        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"), 2)
         scanner_checksum = (
             "OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3f"
-            "cfc434b0b423ea67468a84c207524e0c'")
+            "cfc434b0b423ea67468a84c207524e0c'"
+        )
         self.assertEqual(self.workflow.count(scanner_checksum), 2)
         self.assertIn('sha256sum --check --strict', self.workflow)
 
@@ -66,8 +72,9 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             self.workflow,
         )
         self.assertIn('            --format sarif', self.workflow)
-        self.assertIn('            --output-file osv-results.sarif',
-                      self.workflow)
+        self.assertIn(
+            '            --output-file osv-results.sarif', self.workflow
+        )
         self.assertIn('            . || scan_exit_code=$?', self.workflow)
         self.assertIn(
             '"${scan_exit_code}" -ne 0 && "${scan_exit_code}" -ne 1',
@@ -80,8 +87,7 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         self.assertIn('  workflow_dispatch:', self.workflow)
         self.assertIn('  contents: read', self.workflow)
         self.assertIn('  security-events: write', self.workflow)
-        self.assertEqual(self.workflow.count('      security-events: write'),
-                         3)
+        self.assertEqual(self.workflow.count('      security-events: write'), 3)
         self.assertIn('          persist-credentials: false', self.workflow)
         self.assertNotIn('contents: write', self.workflow)
         self.assertNotIn('pull-requests: write', self.workflow)
@@ -115,19 +121,25 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         scan = workflow['jobs']['scan-images']
         self.assertIn('images', discovery['outputs'])
         self.assertNotIn('matrix.image', self.workflow)
-        scan_step = next(step for step in scan['steps'] if step.get('name') ==
-                         'Scan immutable image and retain full JSON and SARIF')
+        scan_step = next(
+            step
+            for step in scan['steps']
+            if step.get('name')
+            == 'Scan immutable image and retain full JSON and SARIF'
+        )
         self.assertEqual(
             scan_step['env']['IMAGE'],
             '${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}',
         )
 
     def test_images_follow_successful_master_publication_and_keep_source_pushes(
-        self, ):
+        self,
+    ):
         workflow = yaml.safe_load(self.workflow)
         triggers = workflow.get('on', workflow.get(True))
-        self.assertEqual(triggers['workflow_run']['workflows'],
-                         ['Build and Push for master'])
+        self.assertEqual(
+            triggers['workflow_run']['workflows'], ['Build and Push for master']
+        )
         self.assertEqual(triggers['workflow_run']['types'], ['completed'])
         self.assertFalse(workflow['concurrency']['cancel-in-progress'])
         group = workflow['concurrency']['group']
@@ -139,10 +151,9 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         )
         resolver = workflow['jobs']['resolve-images']
         self.assertIn("github.event_name != 'push'", resolver['if'])
-        self.assertEqual(resolver['permissions'], {
-            'contents': 'read',
-            'actions': 'read'
-        })
+        self.assertEqual(
+            resolver['permissions'], {'contents': 'read', 'actions': 'read'}
+        )
         discovery = workflow['jobs']['discover-images']
         self.assertEqual(discovery['needs'], 'resolve-images')
         self.assertIn('--published-records published-indexes', self.workflow)
@@ -152,8 +163,10 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             self.workflow,
         )
         download = next(
-            step for step in discovery['steps']
-            if step.get('uses', '').endswith('/download-artifact-with-retry'))
+            step
+            for step in discovery['steps']
+            if step.get('uses', '').endswith('/download-artifact-with-retry')
+        )
         self.assertEqual(
             download['with']['run-id'],
             '${{ needs.resolve-images.outputs.run-id }}',
@@ -163,16 +176,21 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             'published-index-*-${{ needs.resolve-images.outputs.run-attempt }}',
         )
         upload = workflow['jobs']['scan-images']['steps'][-1]['with']
-        self.assertEqual(upload['sha'],
-                         '${{ needs.discover-images.outputs.sha }}')
+        self.assertEqual(
+            upload['sha'], '${{ needs.discover-images.outputs.sha }}'
+        )
         self.assertEqual(upload['ref'], 'refs/heads/master')
         self.assertEqual(upload['checkout_path'], 'producer')
         publisher = yaml.safe_load(
-            (ROOT / '.github/workflows/create-manifest.yml').read_text())
+            (ROOT / '.github/workflows/create-manifest.yml').read_text()
+        )
         record_uploads = [
-            step for job in publisher['jobs'].values()
-            for step in job.get('steps', []) if step.get('with', {}).get(
-                'name', '').startswith('published-index-')
+            step
+            for job in publisher['jobs'].values()
+            for step in job.get('steps', [])
+            if step.get('with', {})
+            .get('name', '')
+            .startswith('published-index-')
         ]
         self.assertEqual(len(record_uploads), 1)
         self.assertEqual(record_uploads[0]['with']['retention-days'], 90)
@@ -181,33 +199,49 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         workflow = yaml.safe_load(self.workflow)
         steps = workflow['jobs']['discover-images']['steps']
         install_index = next(
-            index for index, step in enumerate(steps) if step.get('run') ==
-            'python3 -m pip install -r .github/scripts/requirements.txt')
-        render_index = next(index for index, step in enumerate(steps)
-                            if 'osv_manifest_images.py' in step.get('run', ''))
+            index
+            for index, step in enumerate(steps)
+            if step.get('run')
+            == 'python3 -m pip install -r .github/scripts/requirements.txt'
+        )
+        render_index = next(
+            index
+            for index, step in enumerate(steps)
+            if 'osv_manifest_images.py' in step.get('run', '')
+        )
         self.assertLess(install_index, render_index)
         self.assertTrue(
             any(
                 step.get('uses', '').startswith('actions/setup-python@')
-                for step in steps[:install_index]))
+                for step in steps[:install_index]
+            )
+        )
 
     def test_images_are_summarized_but_source_findings_remain_individual(self):
         self.assertEqual(self.workflow.count('deduplicate_sarif.py'), 1)
-        self.assertIn('sarif_file: osv-results-deduplicated.sarif',
-                      self.workflow)
+        self.assertIn(
+            'sarif_file: osv-results-deduplicated.sarif', self.workflow
+        )
         self.assertIn('sarif_file: image-summary.sarif', self.workflow)
         self.assertIn('python -m kfpr.image_summary', self.workflow)
         self.assertIn('--input evidence/github/scan.sarif', self.workflow)
         self.assertIn('third_party_image_scan.py scan', self.workflow)
         steps = yaml.safe_load(self.workflow)['jobs']['scan-images']['steps']
-        upload = next(step for step in steps
-                      if 'upload-sarif' in step.get('uses', ''))
+        upload = next(
+            step for step in steps if 'upload-sarif' in step.get('uses', '')
+        )
         self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
-        summary = next(step for step in steps
-                       if 'kfpr.image_summary' in step.get('run', ''))
+        summary = next(
+            step
+            for step in steps
+            if 'kfpr.image_summary' in step.get('run', '')
+        )
         self.assertNotIn('if', summary)
-        evidence = next(step for step in steps
-                        if 'actions/upload-artifact@' in step.get('uses', ''))
+        evidence = next(
+            step
+            for step in steps
+            if 'actions/upload-artifact@' in step.get('uses', '')
+        )
         self.assertEqual(evidence['if'], 'always()')
         self.assertIn('evidence', evidence['with']['path'])
         self.assertLess(steps.index(evidence), steps.index(upload))
