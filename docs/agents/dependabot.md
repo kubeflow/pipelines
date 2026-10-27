@@ -83,11 +83,12 @@ aligned when adding maintained release projects, and remove them when that line
 is no longer maintained.
 
 Release Python uses independent requirements projects, including the SDK,
-Kubernetes platform, legacy metadata/visualization services, proxy and readiness
-tools. It does not use master's uv workspace. The two generated backend HTTP
-clients remain excluded; update them through API regeneration. TensorBoard's pip
-directory and Dockerfile arrive through #15152, which must merge before enabling
-this schedule.
+Kubernetes platform, legacy metadata/visualization services, proxy, readiness
+tools and the PostgreSQL retained-data upgrade harness. The release schedule
+covers 20 maintained Python projects, including the harness's MLMD, NumPy and
+PyYAML requirements. It does not use master's uv workspace. The two generated
+backend HTTP clients remain excluded; update them through API regeneration. TensorBoard's pip
+directory and Dockerfile are present on release-2.18 after #15152 merged.
 
 Each release ecosystem retains weekly updates, a ten-PR limit, dependency labels
 and `do-not-merge/hold`. Grouping preserves golang.org/x modules, paired Argo

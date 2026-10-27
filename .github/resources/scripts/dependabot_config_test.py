@@ -294,6 +294,7 @@ class DependabotConfigTest(unittest.TestCase):
         self,
     ):
         expected = {
+            '/.github/resources/postgresql-upgrade',
             '/.github/resources/scripts/kfp-readiness',
             '/api/v2alpha1/python',
             '/backend',
