@@ -35,7 +35,7 @@
     "react-virtualized-auto-sizer": "^2.0.4",
     "recharts": "^3.10.1",
     "runtypes": "^7.0.5",
-    "ts-proto": "^2.18.0",
+    "ts-proto": "^2.18.3",
     "typestyle": "^2.4.0",
     "url": "^0.11.4"
   },
