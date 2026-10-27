@@ -17,7 +17,10 @@ SOURCE_PATHS = (
     'backend/src/apiserver/config/config.json',
     'backend/src/crd/controller/viewer/reconciler/reconciler.go',
     'frontend/src/components/viewers/Tensorboard.tsx',
+    'frontend/server/configs.ts',
+    'backend/src/cache/server/mutation.go',
 )
+CACHE_CONSUMER = SOURCE_PATHS[7]
 LEGACY = 'manifests/kustomize/base/metadata/overlays/'
 PREREQUISITES = {
     'istio': 'common/istio/istio-install/base',
@@ -164,7 +167,9 @@ def capture(source, kustomize, output):
     """Preserve inputs before deriving targets; no image pulls or scans."""
     source, output = Path(source), Path(output)
     missing = [
-        path for path in SOURCE_PATHS[1:] if not (source / path).is_file()
+        path
+        for path in SOURCE_PATHS[1:]
+        if path != CACHE_CONSUMER and not (source / path).is_file()
     ]
     if missing:
         raise ValueError(
@@ -173,7 +178,10 @@ def capture(source, kustomize, output):
             + '; fetch the complete source or update the inventory parser for the new source layout'
         )
     output.mkdir(parents=True, exist_ok=False)
-    sources = {path: (source / path).read_text() for path in SOURCE_PATHS[1:]}
+    sources = {
+        path: (source / path).read_text() if (source / path).is_file() else None
+        for path in SOURCE_PATHS[1:]
+    }
     profiles = profile_paths(source)
     kustomizations = {
         str(path.relative_to(source)): path.read_text()
@@ -263,6 +271,14 @@ def discover(output):
         raise ValueError(
             'Missing or unexpected inventory source; collect complete inputs or update the parser for the new source layout'
         )
+    if any(
+        not isinstance(content, str)
+        and not (path == CACHE_CONSUMER and content is None)
+        for path, content in sources.items()
+    ):
+        raise ValueError(
+            'Invalid inventory source content; collect fresh inputs'
+        )
     pins = _pins(sources)
     if inputs['prerequisites'] != pins or set(renders) != set(profiles) | {
         'prerequisite/' + name for name in pins
@@ -296,15 +312,34 @@ def discover(output):
         )
         for image in sorted(extract_images(rendered)):
             add(image, scope, profile)
-    config = json.loads(sources[SOURCE_PATHS[3]])
-    if (
-        not isinstance(config.get('CACHE_IMAGE'), str)
-        or not config['CACHE_IMAGE']
-    ):
-        raise ValueError(
-            'Missing cache image default; update the inventory parser for the new configuration'
+    cache_consumer = sources[CACHE_CONSUMER]
+    cache_deployed = any(
+        repository_name(row['image'])
+        in (
+            'ghcr.io/kubeflow/kfp-cache-server',
+            'gcr.io/ml-pipeline/cache-server',
         )
-    add(config['CACHE_IMAGE'], 'runtime', SOURCE_PATHS[3], 'cache')
+        for row in targets.values()
+    )
+    if cache_consumer is None:
+        if cache_deployed:
+            raise ValueError(
+                'Missing deployed cache consumer source; collect complete inputs'
+            )
+    else:
+        if not re.search(r'os\.LookupEnv\("CACHE_IMAGE"\)', cache_consumer):
+            raise ValueError(
+                'Cache image consumer changed; update the inventory parser'
+            )
+        config = json.loads(sources[SOURCE_PATHS[3]])
+        if (
+            not isinstance(config.get('CACHE_IMAGE'), str)
+            or not config['CACHE_IMAGE']
+        ):
+            raise ValueError(
+                'Missing cache image default; update the inventory parser for the new configuration'
+            )
+        add(config['CACHE_IMAGE'], 'runtime', SOURCE_PATHS[3], 'cache')
     for path, pattern, role in (
         (
             SOURCE_PATHS[4],
@@ -315,6 +350,11 @@ def discover(output):
             SOURCE_PATHS[5],
             r"const DEFAULT_TF_IMAGE\s*=\s*'([^']+)'",
             'tensorboard',
+        ),
+        (
+            SOURCE_PATHS[6],
+            r"VIEWER_TENSORBOARD_TF_IMAGE_NAME\s*=\s*'([^']+)'",
+            'tensorboard-server',
         ),
     ):
         add(

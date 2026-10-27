@@ -27,6 +27,10 @@ def write_inventory_fixture(directory, image='example.org/controller:v1'):
         + image
         + '"',
         inventory.SOURCE_PATHS[5]: "const DEFAULT_TF_IMAGE = '" + image + "';",
+        inventory.SOURCE_PATHS[6]: "VIEWER_TENSORBOARD_TF_IMAGE_NAME = '"
+        + image
+        + "',",
+        inventory.CACHE_CONSUMER: 'os.LookupEnv("CACHE_IMAGE")',
     }
     sources[inventory.SOURCE_PATHS[1]] += '\n'.join(
         'kubectl apply -k "https://github.com/kubeflow/community-distribution/'
@@ -120,6 +124,136 @@ class InventoryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Incomplete'):
             inventory.discover(output)
 
+    def test_capture_records_removed_cache_consumer_as_null(self):
+        inputs = json.loads((self.path / 'inputs.json').read_text())
+        source = self.path / 'source'
+        for relative, content in {
+            **inputs['sources'],
+            **inputs['kustomizations'],
+        }.items():
+            if relative == inventory.CACHE_CONSUMER:
+                continue
+            path = source / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+        output = self.path / 'captured'
+        with (
+            mock.patch.object(
+                inventory.subprocess,
+                'check_output',
+                return_value='kind: Deployment',
+            ),
+            mock.patch.object(inventory.urllib.request, 'urlopen') as urlopen,
+        ):
+            urlopen.return_value.__enter__.return_value.read.return_value = (
+                b'kind: Deployment'
+            )
+            result = inventory.capture(source, '/unused/kustomize', output)
+        captured = json.loads((output / 'inputs.json').read_text())
+        self.assertIn(inventory.CACHE_CONSUMER, captured['sources'])
+        self.assertIsNone(captured['sources'][inventory.CACHE_CONSUMER])
+        self.assertFalse(
+            any(
+                row['target'].startswith('runtime/cache/')
+                for row in result['targets']
+            )
+        )
+        self.assertTrue(
+            any(
+                row['target'].startswith('runtime/tensorboard-server/')
+                for row in result['targets']
+            )
+        )
+
+    def test_removed_cache_consumer_excludes_obsolete_config_default(self):
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].update(
+                {inventory.CACHE_CONSUMER: None}
+            ),
+        )
+        targets = inventory.discover(self.path)['targets']
+        self.assertFalse(
+            any(row['target'].startswith('runtime/cache/') for row in targets)
+        )
+
+    def test_absent_cache_evidence_key_is_not_an_absent_consumer(self):
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].pop(inventory.CACHE_CONSUMER),
+        )
+        with self.assertRaisesRegex(
+            ValueError, 'Missing or unexpected inventory source'
+        ):
+            inventory.discover(self.path)
+
+    def test_deployed_cache_requires_consumer_evidence(self):
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].update(
+                {inventory.CACHE_CONSUMER: None}
+            ),
+        )
+        self.edit(
+            'rendered.json',
+            lambda data: data.update(
+                {
+                    'manifests/kustomize/env/platform-agnostic': 'spec:\n  containers:\n  - image: ghcr.io/kubeflow/kfp-cache-server:v1\n'
+                }
+            ),
+        )
+        with self.assertRaisesRegex(
+            ValueError, 'Missing deployed cache consumer'
+        ):
+            inventory.discover(self.path)
+
+    def test_changed_cache_consumer_fails_closed(self):
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].update({inventory.CACHE_CONSUMER: ''}),
+        )
+        with self.assertRaisesRegex(ValueError, 'Cache image consumer changed'):
+            inventory.discover(self.path)
+
+    def test_server_tensorboard_fallback_has_distinct_stable_target(self):
+        source = inventory.SOURCE_PATHS[6]
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].update(
+                {
+                    source: "VIEWER_TENSORBOARD_TF_IMAGE_NAME = 'tensorflow/tensorflow',"
+                }
+            ),
+        )
+        targets = inventory.discover(self.path)['targets']
+        row = next(
+            row
+            for row in targets
+            if row['target'].startswith('runtime/tensorboard-server/')
+        )
+        self.assertEqual(row['image'], 'tensorflow/tensorflow')
+        self.assertEqual(row['profiles'], [source])
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].update(
+                {
+                    source: "VIEWER_TENSORBOARD_TF_IMAGE_NAME = 'tensorflow/tensorflow:2.20.0',"
+                }
+            ),
+        )
+        after = inventory.discover(self.path)['targets']
+        self.assertIn(row['target'], [target['target'] for target in after])
+
+    def test_server_tensorboard_default_cannot_be_missing(self):
+        self.edit(
+            'inputs.json',
+            lambda data: data['sources'].update(
+                {inventory.SOURCE_PATHS[6]: ''}
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, 'tensorboard-server default'):
+            inventory.discover(self.path)
+
     def test_missing_cache_default_fails_closed(self):
         self.edit(
             'inputs.json',
@@ -166,7 +300,7 @@ class InventoryTest(unittest.TestCase):
         )
         targets = inventory.discover(self.path)['targets']
         self.assertEqual(
-            len([row for row in targets if row['scope'] == 'runtime']), 3
+            len([row for row in targets if row['scope'] == 'runtime']), 4
         )
         self.assertNotIn(
             'tensorflow/tensorflow:1.7.1', [row['image'] for row in targets]

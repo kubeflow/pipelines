@@ -62,16 +62,25 @@ class ManifestSourceTest(unittest.TestCase):
                 [
                     ('repo/manifests/kustomize/base.yaml', tarfile.REGTYPE),
                     ('repo/backend/Makefile', tarfile.REGTYPE),
+                    ('repo/frontend/server/configs.ts', tarfile.REGTYPE),
+                    (
+                        'repo/backend/src/cache/server/mutation.go',
+                        tarfile.REGTYPE,
+                    ),
                     ('repo/backend/other.py', tarfile.REGTYPE),
                 ],
             )
             destination = Path(directory) / 'producer'
-            extract_manifests(
-                archive, destination, extra_paths=('backend/Makefile',)
+            runtime_paths = (
+                'backend/Makefile',
+                'frontend/server/configs.ts',
+                'backend/src/cache/server/mutation.go',
             )
-            source = destination / 'backend/Makefile'
-            self.assertTrue(source.is_file())
-            self.assertEqual(source.stat().st_mode & 0o111, 0)
+            extract_manifests(archive, destination, extra_paths=runtime_paths)
+            for relative in runtime_paths:
+                source = destination / relative
+                self.assertTrue(source.is_file())
+                self.assertEqual(source.stat().st_mode & 0o111, 0)
             self.assertFalse((destination / 'backend/other.py').exists())
 
     def test_rejects_traversal_links_and_special_files(self):
