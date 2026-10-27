@@ -317,3 +317,5 @@ manifest/index IDs only when SHA-256-verified archived descriptors bind the
 selected native config. Missing, tampered, ambiguous or mismatched chains fail.
 
 - TensorBoard deployed acceptance provisions Python 3.10 before deployment, matching the frontend acceptance lane. The shared deployment readiness helper invokes `python` and `pip`; do not rely on runner-provided `python3` alone.
+
+- Validate Generated Files also builds standalone v1beta1/v2beta1 Python client wheels on Python 3.9 and 3.10 and checks interpreter markers, dependency floors and local HTTP success/error handling at the minimum supported urllib3 versions. Template changes trigger this workflow.
