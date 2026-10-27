@@ -198,6 +198,11 @@ public state and delete its `runtime_tasks` row in one transaction. Results and 
 references remain in the existing tables. An attempt finishing does not trigger this deletion if the
 task will retry or still needs recovery or cleanup.
 
+Reject new-runtime run deletion until the run is terminal, workloads have stopped, and required
+execution and workspace cleanup is complete. Return a failed-precondition error with recovery
+guidance; automated deletion skips such runs. Check and delete atomically against dispatch, retries,
+and cleanup, preserving recovery references until safe. Argo deletion is unchanged.
+
 In addition to the references shown in the table, a composite foreign key `(TaskUUID, RunUUID)`
 references `tasks(UUID, RunUUID)` so the task and owning run cannot disagree.
 
@@ -421,6 +426,9 @@ workspaces. Cleanup is idempotent and occurs only after required results and log
 retained outside those resources. On cleanup failure, keep the execution reference and retry
 cleanup, including after a fatal task failure.
 
+The worker invokes executor cleanup during attempt finalization and workspace cleanup when its
+lifecycle permits; reconciliation retries unfinished cleanup.
+
 Running an independent worker requires disabling the API server's embedded worker. In Phase 1,
 administrators are responsible for ensuring only one worker is active. On startup, the worker
 reconciles all non-terminal attempts before admitting new work. It restores queued work and retry
@@ -538,6 +546,10 @@ and selected executor, reports startup failures, and manages the child processes
 package and SDK must declare compatible versions; minimum Python, Node.js, OS, and system-library
 versions must be documented for the published wheels.
 
+Local API, gRPC, and UI listeners bind to loopback; remote binding is unsupported initially. HTTP
+endpoints enforce local `Host` and browser-origin allowlists without requiring `Origin` from SDK
+clients.
+
 #### Migration
 
 The existing SDK `local.init(...)` experience would be deprecated, not removed. Documentation and
@@ -635,7 +647,28 @@ remains open.
 
 ## Test Plan
 
-To be determined
+### Phase 1
+
+1. Verify both executors' pipeline semantics, caching, retries, artifacts, and logs.
+2. Reject unsupported requirements before execution.
+3. Recover after submission crashes without duplicate execution.
+4. Test cancellation/publication races, reference retention on cleanup failure, and deletion guards.
+5. Verify loopback and Host/origin protections, SDK access, and Argo compatibility.
+
+### Phase 2
+
+1. Verify wheel installation on all supported platforms and SDK compatibility.
+2. Verify headless startup without Node.js.
+3. Verify explicit startup errors and bounded child-process shutdown.
+
+### Phase 3
+
+1. Verify lease takeover and stale-owner fencing without duplicate execution.
+2. Verify unknown execution outcomes do not trigger resubmission.
+
+### Phase 4
+
+1. Run shared executor and workspace contract tests for each added backend.
 
 ## Drawbacks
 
