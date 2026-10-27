@@ -129,6 +129,9 @@ describe('PrivateAndSharedPipelines', () => {
 
     rerender(renderWithNamespace('test-ns-2'));
     await waitFor(() => expect(listPipelineSpy).toHaveBeenCalled());
-    expect(listPipelineSpy.mock.lastCall?.[0]).toBe('test-ns-2');
+    await flushPromisesInAct();
+    const requestedNamespaces = listPipelineSpy.mock.calls.map(([namespace]) => namespace);
+    expect(requestedNamespaces).toContain('test-ns-2');
+    expect(requestedNamespaces).not.toContain('test-ns-1');
   });
 });
