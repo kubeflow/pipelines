@@ -2248,7 +2248,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
               class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
               id="viewer-tb-image-select"
               tabindex="-1"
-              value="ghcr.io/kubeflow/kfp-tensorboard:2.17.1"
+              value="ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
             />
             <svg
               aria-hidden="true"
