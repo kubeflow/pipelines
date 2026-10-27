@@ -25,7 +25,7 @@ import subprocess
 import tempfile
 import threading
 import time
-from typing import Any
+from typing import Any, Optional
 import webbrowser
 
 import click
@@ -179,7 +179,7 @@ def _launch_browser(url: str):
 
 def _export(
     source: Path,
-    function: str | None,
+    function: Optional[str],
     output: Path,
     format_: str,
     state: dict[str, Any],
@@ -207,7 +207,7 @@ def _export(
 
 def _update(
     source: Path,
-    function: str | None,
+    function: Optional[str],
     output: Path,
     format_: str,
     state: dict[str, Any],
@@ -240,7 +240,7 @@ def _update(
 
 def _watch(
     source: Path,
-    function: str | None,
+    function: Optional[str],
     output: Path,
     format_: str,
     state: dict[str, Any],
@@ -300,9 +300,9 @@ def _watch(
 )
 def visualize(
     source: Path,
-    output: Path | None,
-    format_: str | None,
-    function: str | None,
+    output: Optional[Path],
+    format_: Optional[str],
+    function: Optional[str],
     watch: bool,
     serve: bool,
     no_open: bool,

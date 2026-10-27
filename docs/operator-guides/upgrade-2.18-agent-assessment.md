@@ -284,15 +284,13 @@ may report generic invalid-token errors. A server rollout does not update client
 
 ### Limits, old specifications and workload behavior
 
-The accepted 2.18 SDK/Kubernetes SDK extension minimum is Python **>=3.10**,
-delivered in [#14865](https://github.com/kubeflow/pipelines/pull/14865).
-Prefer Python >=3.11 for newly migrated environments. Check whether the selected
-candidate includes the change, then compare the SDK package's `Requires-Python` and dependency metadata against
-notebooks, CI submitters and component base images that install that package. A
-server image rollout does not upgrade those environments. Track pending dependency
-PRs separately until selected; a proposed Python minimum is not evidence of a
-landed release requirement. Distinguish SDK host requirements from user containers
-that do not install the SDK.
+The 2.18 SDK and Kubernetes SDK extension support Python **>=3.9**.
+Check package `Requires-Python`, interpreter-specific dependency markers and
+installed-wheel compilation evidence for Python 3.9 as well as newer versions.
+The Python 3.9 Requests/urllib3 line retains findings whose fixes need Python
+3.10; compatibility support does not approve a security exception. Track those
+residuals explicitly. A server rollout does not upgrade SDK interpreters, and
+containers that do not install the SDK do not acquire an SDK Python requirement.
 
 Compare actual byte sizes with target `MAX_PIPELINE_UPLOAD_BYTES`,
 `MAX_PIPELINE_SPEC_BYTES` and `MAX_PIPELINE_UPDATE_BODY_BYTES` (32 MiB defaults,

@@ -24,14 +24,14 @@ import re
 import subprocess
 import sys
 import tempfile
-from typing import Any
+from typing import Any, Optional
 
 from google.protobuf import json_format
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
 
-def load_spec(path: Path, function: str | None = None) -> dict[str, Any]:
+def load_spec(path: Path, function: Optional[str] = None) -> dict[str, Any]:
     """Read a spec, or compile Python without submitting a pipeline run.
 
     Python module-level code executes during compilation. Only compile
@@ -141,9 +141,9 @@ def validate_spec(spec: dict[str, Any]) -> None:
             'Missing deploymentSpec. Restore the deployment configuration '
             'before exporting or serving this pipeline.')
     components = spec.get('components', {})
-    pending: list[str | None] = [None]
-    visited: set[str | None] = set()
-    component_dependencies: dict[str | None, set[str]] = {}
+    pending: list[Optional[str]] = [None]
+    visited: set[Optional[str]] = set()
+    component_dependencies: dict[Optional[str], set[str]] = {}
     while pending:
         reference = pending.pop()
         if reference in visited:

@@ -1,14 +1,16 @@
 # After any updates to this file, requirements.txt should be regenerated running
 # the following in this folder:
-# uv pip compile requirements.in -o requirements.txt --python-version 3.11 \
-#   --python-platform x86_64-manylinux_2_39 --no-strip-extras --annotation-style split
+# uv pip compile requirements.in -o requirements.txt --python-version 3.9 --universal \
+#   --no-strip-extras --annotation-style split
 
 # protobuf version should be identical to the one in kfp-pipeline-spec
 # api/v2alpha1/python/requirements.txt
 protobuf>=6.33.5,<7.0
 kfp>=2.18.0,<3
-requests==2.33.0
-urllib3==2.8.0
+requests==2.32.5; python_version < "3.10"
+requests==2.33.0; python_version >= "3.10"
+urllib3==2.6.3; python_version < "3.10"
+urllib3==2.8.0; python_version >= "3.10"
 oauthlib>=4.0.0,<5
 
 # Keep this transitive TLS dependency above the GHSA-6q48-6c7w-9gw2 security floor.

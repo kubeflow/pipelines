@@ -26,11 +26,12 @@ concurrency:
 
 jobs:
   sdk-tests:
-    runs-on: ubuntu-latest
+    # Python 3.9 setup-python builds are available on this runner image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
     strategy:
       matrix:
-        python-version: ['3.10', '3.13']
+        python-version: ['3.9', '3.10', '3.13']
 
     steps:
     - name: Checkout code

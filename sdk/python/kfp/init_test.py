@@ -16,20 +16,30 @@ import importlib
 import sys
 import unittest
 from unittest import mock
+import warnings
+
+import kfp
 
 
-@mock.patch.object(sys, 'version_info', new=(3, 7, 12, 'final', 0))
-class TestPythonEOLWarning(unittest.TestCase):
+class TestPythonVersionWarning(unittest.TestCase):
 
-    def test(self):
-        mod = importlib.import_module('kfp')
+    def test_unsupported_versions_warn(self):
+        for version in ((3, 7, 12), (3, 8, 20)):
+            with self.subTest(version=version):
+                with mock.patch.object(sys, 'version_info', version):
+                    with self.assertWarnsRegex(
+                            FutureWarning,
+                            r'KFP 2\.18 requires Python 3\.9 or newer\.'):
+                        importlib.reload(kfp)
 
-        with self.assertWarnsRegex(
-                FutureWarning,
-                r'KFP will drop support for Python 3.9 on October 1, 2026. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. See https://devguide.python.org/versions/ for more details.'
-        ):
-            # simulate first import from kfp
-            importlib.reload(mod)
+    def test_supported_versions_do_not_warn(self):
+        for version in ((3, 9, 0), (3, 10, 0), (3, 13, 0)):
+            with self.subTest(version=version):
+                with mock.patch.object(sys, 'version_info', version):
+                    with warnings.catch_warnings(record=True) as caught:
+                        warnings.simplefilter('always')
+                        importlib.reload(kfp)
+                self.assertEqual(caught, [])
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ pre-commit==2.19.0
 # Allow LibCST wheels on Python 3.13 without a Rust source build.
 pycln==2.6.0
 # pytest 9.0.3 contains the tmpdir handling fix.
-pytest==9.0.3
+pytest==8.4.2; python_version < "3.10"
+pytest==9.0.3; python_version >= "3.10"
 pytest-xdist==3.8.0
 yapf==0.32.0

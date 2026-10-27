@@ -219,18 +219,18 @@ Review these before rollout when the corresponding features are in use:
 
 ### Python environments installing the SDK
 
-Python **3.10 or newer** is the accepted minimum for the 2.18 KFP SDK and
-Kubernetes SDK extension, delivered by merged
-[#14865](https://github.com/kubeflow/pipelines/pull/14865). Inspect the published
-packages' `Requires-Python` when selecting an interpreter.
+Python **3.9 or newer** is supported by the 2.18 KFP SDK and Kubernetes SDK
+extension. Inspect package `Requires-Python` and dependency markers when selecting
+an interpreter. Python 3.9 environments select Requests 2.32.5 and urllib3 2.6.3;
+Python 3.10 and newer retain Requests 2.33.0 and urllib3 2.8.0.
 
-A Python 3.9 notebook or CI submitter that installs the new SDK must move to a
-supported interpreter. The same applies to component images that install that
-SDK. Prefer Python 3.11 or newer for new environments. Rebuild affected images,
-refresh dependency locks, and test compilation and submission before rollout.
-Upgrading the server does not update those interpreters or installed packages.
-Previously published packages and compiled pipelines are not rewritten; generic
-container components that do not install the SDK acquire no Python requirement.
+The Python 3.9 dependency line retains published security findings whose upstream
+fixes require Python 3.10. Restored compatibility is not a security exception or a
+claim that those findings are resolved. Prefer a newer interpreter when possible;
+refresh dependency locks and test compilation and submission when changing it.
+Upgrading the server does not update installed SDK packages or interpreters.
+Generic container components that do not install the SDK acquire no Python
+requirement from the server upgrade.
 
 ### Private pip mirrors
 
