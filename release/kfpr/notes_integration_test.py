@@ -201,9 +201,49 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         )
         self.assertIn('Back up the database.', text.split('## 2.1.1', 1)[1])
         self.assertTrue(text.endswith(history))
-        with self.assertRaisesRegex(ValueError, 'reviewed|edited'):
-            steps._update_changelog(self.context, selected)
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        steps._update_changelog(self.context, selected)
         self.assertEqual(path.read_text(), text)
+
+    def test_backend_preparation_retries_after_interrupted_write(self):
+        path = self.root / 'CHANGELOG.md'
+        original = (
+            'Changelog\n\n## Unreleased\n\nKeep this migration warning.\n'
+        )
+        path.write_text(original)
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        write_text = Path.write_text
+
+        def interrupted(target, *args, **kwargs):
+            if target == path:
+                raise OSError('interrupted changelog write')
+            return write_text(target, *args, **kwargs)
+
+        with mock.patch.object(Path, 'write_text', interrupted):
+            with self.assertRaisesRegex(OSError, 'interrupted'):
+                steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), original)
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        steps._update_changelog(self.context, selected)
+        prepared = path.read_text()
+        steps._update_changelog(self.context, selected)
+        self.assertEqual(path.read_text(), prepared)
+        self.assertEqual(prepared.count('Keep this migration warning.'), 1)
+
+    def test_backend_preparation_rejects_changed_range_on_resume(self):
+        path = self.root / 'CHANGELOG.md'
+        path.write_text('Changelog\n\n## Unreleased\n\nKeep upgrade advice.\n')
+        self.context.runner.dry_run = False
+        selected = steps._notes_range(self.context, 'backend')
+        steps._update_changelog(self.context, selected)
+        original = path.read_text()
+        self.context.state = core.ReleaseState.load(self.context.state.path)
+        self.context.release_target = 'HEAD'
+        changed = steps._notes_range(self.context, 'backend')
+        with self.assertRaisesRegex(ValueError, 'range changed'):
+            steps._update_changelog(self.context, changed)
+        self.assertEqual(path.read_text(), original)
 
     def test_backend_retry_refuses_to_overwrite_edited_version(self):
         path = self.root / 'CHANGELOG.md'

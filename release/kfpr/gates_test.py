@@ -220,6 +220,89 @@ class ReleaseGatesTest(unittest.TestCase):
                 self.runner.run.assert_not_called()
                 self.runner.capture.assert_not_called()
 
+    def test_resume_external_version_pr_never_pushes_preparation_or_tags(self):
+        self.context.state.answers['version_pr_url'] = (
+            'https://github.com/kubeflow/pipelines/pull/15217'
+        )
+        self.pr(headRefName='codex/218-release-version')
+        with (
+            mock.patch.object(steps, 'watch_pr_ci'),
+            mock.patch.object(steps, 'wait_for_pr_merge'),
+        ):
+            steps.step_merge_version_pr(self.context)
+            resumed = core.ReleaseState.load(self.context.state.path)
+            self.context.state = resumed
+            steps.step_merge_version_pr(self.context)
+        self.runner.run.assert_not_called()
+        self.assertEqual(resumed.answers['release_sha'], SHA)
+        self.assertEqual(resumed.answers['version_pr_head_sha'], HEAD)
+        # Recording a merge does not qualify it, even if an old checkpoint says done.
+        resumed.mark_done('qualify-release')
+        self.runner.reset_mock()
+        with self.assertRaisesRegex(ValueError, 'qualify-release'):
+            steps.step_create_sdk_tag(self.context)
+        self.runner.run.assert_not_called()
+
+    def test_recorded_merge_with_pending_tide_does_not_poll_forever(self):
+        self.pr()
+        pr = json.loads(self.runner.capture.return_value)
+        pr['statusCheckRollup'].append(
+            {
+                '__typename': 'StatusContext',
+                'context': 'tide',
+                'targetUrl': 'https://oss.gprow.dev/tide',
+                'state': 'PENDING',
+            }
+        )
+
+        def capture(command, **kwargs):
+            if command[-1] == '.statusCheckRollup':
+                return json.dumps(pr['statusCheckRollup'])
+            return json.dumps(pr)
+
+        self.runner.capture.side_effect = capture
+        with (
+            mock.patch.object(steps, 'wait_for_pr_merge'),
+            mock.patch.object(
+                core.time,
+                'sleep',
+                side_effect=AssertionError('Unexpected CI wait'),
+            ),
+        ):
+            steps.step_merge_version_pr(self.context)
+        self.assertEqual(self.context.state.answers['release_sha'], SHA)
+        self.runner.run.assert_not_called()
+
+    def test_recorded_unmerged_pr_cannot_reach_tag_creation(self):
+        self.pr(state='OPEN', mergeCommit=None)
+        with (
+            mock.patch.object(steps, 'watch_pr_ci'),
+            mock.patch.object(steps, 'wait_for_pr_merge'),
+        ):
+            with self.assertRaisesRegex(RuntimeError, 'must be merged'):
+                steps.step_merge_version_pr(self.context)
+        self.runner.run.assert_not_called()
+        with self.assertRaisesRegex(RuntimeError, 'must be merged'):
+            steps.step_create_sdk_tag(self.context)
+        self.runner.run.assert_not_called()
+
+    def test_preparation_does_not_create_tags_on_a_real_run(self):
+        self.runner.run.return_value = subprocess.CompletedProcess([], 1)
+        with (
+            mock.patch.object(steps, '_preparation_range'),
+            mock.patch.object(steps, '_update_changelog'),
+            mock.patch.object(steps, '_update_sdk_version_files'),
+            mock.patch.object(steps, '_run_reviewed_commit'),
+        ):
+            steps.step_update_version_tags(self.context)
+        commands = [call.args[0] for call in self.runner.run.call_args_list]
+        self.assertFalse(
+            any(command[:2] == ['git', 'tag'] for command in commands)
+        )
+        self.assertFalse(
+            any(command[:2] == ['git', 'push'] for command in commands)
+        )
+
     def test_qualification_checkpoint_precedes_publication(self):
         ids = [step.step_id for step in steps.build_steps('patch', True, True)]
         self.assertLess(

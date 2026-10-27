@@ -1806,6 +1806,15 @@ class StepPRCreationTest(unittest.TestCase):
             with mock.patch('builtins.input', return_value='u'):
                 steps.step_merge_version_pr(context)
 
+            self.assertIn(
+                [
+                    'git',
+                    'push',
+                    'git@github.com:testuser/pipelines.git',
+                    '1.3.0-update-version-tags',
+                ],
+                runner.commands,
+            )
             self.assertNotIn(
                 [
                     'git',

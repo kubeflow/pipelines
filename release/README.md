@@ -191,11 +191,87 @@ all four wheels (`kfp-pipeline-spec`, `kfp-server-api`, `kfp`, and
 `kfp-kubernetes`). Before committing, it checks wheel versions and required Python
 modules to catch successful builds with missing generated sources.
 
-Legacy dependency resolution reuses the existing `requirements.txt` pins with
-`pip-compile --output-file`; it does not truncate the lockfile before resolving.
-Review the resulting lockfile diff, including environment markers, on each
-supported Python version. If changelog filtering produces no user-facing entries, preparation stops with
-an actionable error so the maintainer can verify the selected range.
+Version preparation is not a dependency upgrade. Legacy resolution reuses the
+existing `requirements.txt` pins with `pip-compile --output-file`; uv releases
+reuse `uv.lock`. The four release packages may advance together, but third-party
+package additions, removals, or version changes stop preparation before the
+resolved SDK is built. For uv, changing a package source also stops preparation.
+The CLI restores existing lockfiles on failure or interruption, reports the drift,
+and requires a separately reviewed dependency update before retrying. It does not
+automatically accept a newer dependency just because the resolver needs it.
+Review environment markers and generated exports as well; these checks do not
+replace installed-wheel qualification on each supported Python version.
+
+Authored `CHANGELOG.md` Unreleased guidance and SDK Current Version notes are
+carried into the release alongside generated changes. SDK preparation is
+idempotent. Backend preparation saves the exact prepared section and comparison
+SHAs in the checkpoint before writing it, so retrying with that checkpoint
+preserves curated guidance without duplicating it. Keep the checkpoint across
+interruptions. If the range changes or a prepared backend section is edited,
+preparation stops without overwriting the notes; review the candidate and its
+notes explicitly rather than deleting guidance to make generation pass. If
+changelog filtering produces no user-facing entries, preparation stops so the
+maintainer can verify the selected range.
+
+## Continue 2.18 from an existing version PR
+
+Use the current master CLI to finish a maintenance release, even when the target
+branch contains older release automation. Install a non-editable copy from the
+reviewed master checkout into a separate environment; this keeps switching the
+release checkout to `release-2.18` from replacing the running tool's source:
+
+```bash
+python3.11 -m venv /tmp/kfpr-tools
+/tmp/kfpr-tools/bin/pip install /path/to/current-master-checkout/release
+```
+
+For 2.18.0, the prepared version PR is
+[#15217](https://github.com/kubeflow/pipelines/pull/15217). Do not regenerate that
+PR or create a tag merely to initialize kfpr. In a clean dedicated release
+checkout, configure `upstream`, fetch the release branch and tags, then create a
+new checkpoint outside the checkout (replace the fork URL with your actual fork):
+
+```json
+{
+  "answers": {
+    "release_type": "minor",
+    "version": "2.18.0",
+    "fork_remote": "https://github.com/USER/pipelines.git",
+    "release_source_branch": "release-2.18",
+    "include_backend": true,
+    "include_sdk": true,
+    "previous_release": "2.17.3",
+    "previous_sdk_release": "sdk-2.17.3",
+    "version_pr_url": "https://github.com/kubeflow/pipelines/pull/15217"
+  },
+  "completed_steps": ["prepare-release-branch", "update-version-tags"]
+}
+```
+
+Save it as `/tmp/kfp-2.18.0.json`, then run from that release checkout:
+
+```bash
+/tmp/kfpr-tools/bin/kfpr run preflight --state-file /tmp/kfp-2.18.0.json --done
+/tmp/kfpr-tools/bin/kfpr run merge-version-pr --state-file /tmp/kfp-2.18.0.json --done
+/tmp/kfpr-tools/bin/kfpr run qualify-release --state-file /tmp/kfp-2.18.0.json --done
+```
+
+A recorded `version_pr_url` resumes CI/merge verification directly: it does not
+push or recreate a version branch, create another PR, or create a tag. A canonical
+pending Tide merge-queue status does not block CI verification; actual CI still
+has to pass. The merge
+checkpoint records the actual tested head and merge commit; do not fill those
+SHAs in by hand. Qualification is read-only. Complete the final live acceptance
+and residual-finding review before proceeding to the publication steps below.
+The default zero-fixable policy still applies; previous release exceptions or
+tracker dispositions are not automatic approvals for 2.18.
+
+If a later fix changes the candidate, use a fresh checkpoint with that merged
+PR's URL and only the already-completed preparation steps. Do not copy
+`release_sha`, `version_pr_head_sha`, qualification receipts, or publication
+checkpoints from the previous candidate. Reverify merge/CI and requalify. A
+published tag is immutable: selecting a different candidate after publication
+requires a new release version, not a forced tag update.
 
 ## Qualification and publication gates
 
@@ -206,6 +282,9 @@ into the intended release branch, and have successful CI. Existing recorded head
 and merge SHAs cannot change silently; selecting a new release commit requires
 fresh qualification for that commit.
 `merge-version-pr` waits for CI and a maintainer merge; kfpr does not merge the PR.
+When reusing its usual version branch without a recorded PR, it pushes local
+commits normally before finding the PR; divergent history fails instead of
+silently qualifying an older remote head.
 It records the tested PR head and merged commit. The next checkpoint,
 `qualify-release`, dispatches the read-only `release-qualification.yml` workflow
 on upstream `master` for that exact commit. All builds, installed-wheel smoke
