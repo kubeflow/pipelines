@@ -1,7 +1,7 @@
 # After any updates to this file, requirements.txt should be regenerated running
 # the following in this folder:
-# uv pip compile requirements.in -o requirements.txt --python-version 3.11 \
-#   --python-platform x86_64-manylinux_2_39 --no-strip-extras --annotation-style split
+# uv pip compile requirements.in -o requirements.txt --python-version 3.9 --universal \
+#   --no-strip-extras --annotation-style split
 
 click>=8.1.8
 click-option-group==0.5.7
@@ -27,10 +27,12 @@ kubernetes>=8.0.0,<31
 # api/v2alpha1/python/requirements.txt
 protobuf>=6.31.1,<7.0
 PyYAML>=5.3,<7
-requests==2.33.0
+requests==2.32.5; python_version < "3.10"
+requests==2.33.0; python_version >= "3.10"
 requests-toolbelt>=0.8.0,<2
 tabulate>=0.8.6,<1
-urllib3==2.8.0
+urllib3==2.6.3; python_version < "3.10"
+urllib3==2.8.0; python_version >= "3.10"
 oauthlib>=4.0.0,<5
 
 # Keep this transitive TLS dependency above the GHSA-6q48-6c7w-9gw2 security floor.

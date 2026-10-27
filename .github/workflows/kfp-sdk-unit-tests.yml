@@ -25,10 +25,11 @@ concurrency:
 
 jobs:
   sdk-unit-tests:
-    runs-on: ubuntu-latest
+    # Python 3.9 setup-python builds are available on this runner image.
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python-version: ['3.10', '3.13']
+        python-version: ['3.9', '3.10', '3.13']
 
     steps:
     - name: Checkout code
@@ -48,6 +49,9 @@ jobs:
     - name: Install kfp & kfp-kubernetes from source
       id: install-kfp-k8s-deps
       uses: ./.github/actions/kfp-k8s
+
+    - name: Verify installed SDK compatibility
+      run: python .github/resources/scripts/sdk-installed-smoke.py "$(cat VERSION)"
 
     - name: Install Test dependencies
       run: |
