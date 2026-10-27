@@ -20,8 +20,9 @@ import tempfile
 import unittest
 import warnings
 
-from pylint.lint import caching
-from pylint.utils import LinterStats
+if sys.version_info >= (3, 10):
+    from pylint.lint import caching
+    from pylint.utils import LinterStats
 
 
 class _CachePayload:
@@ -34,6 +35,8 @@ class _CachePayload:
         return Path.touch, (self.marker,)
 
 
+@unittest.skipIf(sys.version_info < (3, 10),
+                 'Patched pylint is a Python 3.10+ development tool.')
 class DependencySecurityTest(unittest.TestCase):
 
     def test_pylint_does_not_execute_pickle_cache(self):
