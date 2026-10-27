@@ -75,6 +75,11 @@ ${PROTOCCOMPILER} \
     --plugin=protoc-gen-openapiv2=/go/bin/protoc-gen-openapiv2 \
     --openapiv2_out=logtostderr=true,json_names_for_fields=false:${TMP_OUTPUT} \
     backend/api/${API_VERSION}/*.proto
+# Preserve the existing Any client models across grpc-gateway schema changes.
+for swagger_file in ${TMP_OUTPUT}/backend/api/${API_VERSION}/*.swagger.json; do
+    jq -f backend/api/hack/normalize-protobuf-any.jq "$swagger_file" > "${swagger_file}.normalized"
+    mv "${swagger_file}.normalized" "$swagger_file"
+done
 # Move *.swagger.json files into swagger folder.
 cp -a ${TMP_OUTPUT}/backend/api/${API_VERSION}/*.swagger.json ./backend/api/${API_VERSION}/swagger
 # Generate a single swagger json file from the swagger json files of all models.
