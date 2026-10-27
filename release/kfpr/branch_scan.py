@@ -1,6 +1,7 @@
 """Build and report the current release branch without publishing images."""
 
 import argparse
+import copy
 import json
 import os
 import re
@@ -9,6 +10,7 @@ import uuid
 from pathlib import Path
 
 from . import ci_images_runner as runner
+from .image_summary import summarize
 from .osv_image_scan import SCANNER
 
 REPOSITORY = 'kubeflow/pipelines'
@@ -68,6 +70,19 @@ def stable_matrix(source: Path, release: dict) -> dict:
     }
 
 
+def summary_matrix(matrix: dict) -> dict:
+    """Keep the original primary matrix identity for each combined image."""
+    platforms = {}
+    for lane in matrix['include']:
+        platforms.setdefault(lane['name'], set()).add(lane['platform'])
+    return {
+        'include': [
+            {'name': name, 'platform': sorted(values)[0]}
+            for name, values in sorted(platforms.items())
+        ]
+    }
+
+
 def required_lanes(matrix: dict, request_id: str, attempt: int) -> list[str]:
     return [
         f'kfpr-lane-{request_id}-{attempt}-{lane["name"]}-{lane["platform"].split("/")[1]}/{filename}'
@@ -109,17 +124,52 @@ def convert_scans(source: Path, directory: Path, release: dict) -> None:
             raise ValueError(
                 'Raw scan checksum mismatch before SARIF conversion'
             )
+    # Construct every summary before writing output. A malformed report cannot
+    # leave a partial set that could be mistaken for complete clean coverage.
+    reports = {
+        (record['name'], record['platform']): json.loads(
+            (directory / record['scan_file']).read_text()
+        )['sarif']
+        for record in records
+    }
+    summaries = {}
+    for name in sorted({record['name'] for record in records}):
+        platforms = sorted(
+            platform for image, platform in reports if image == name
+        )
+        summaries[name] = summarize(
+            [reports[name, platform] for platform in platforms],
+            identity=f'{BRANCH}-image-{name}',
+            image=f'{name} (source {release["source_sha"]})',
+            evidence_url=(
+                f'https://github.com/{REPOSITORY}/actions/runs/'
+                f'{release["run_id"]}/attempts/{release["run_attempt"]}'
+            ),
+            platforms=platforms,
+        )
     output = directory / 'sarif'
     output.mkdir()
-    for record in records:
-        report = json.loads((directory / record['scan_file']).read_text())
-        destination = (
-            output
-            / f'{record["name"]}-{record["platform"].split("/")[1]}.sarif'
+    summary_output = directory / 'image-summaries'
+    summary_output.mkdir()
+    for (name, platform), report in reports.items():
+        arch = platform.split('/')[1]
+        # Preserve the complete scanner SARIF alongside the immutable envelopes.
+        (output / f'{name}-{arch}.sarif').write_text(
+            json.dumps(report, indent=2) + '\n'
         )
-        # OSV already emits SARIF. Preserve every result and its stable package
-        # location rather than translating findings between scanner formats.
-        destination.write_text(json.dumps(report['sarif'], indent=2) + '\n')
+        if platform == 'linux/arm64' and (name, 'linux/amd64') in reports:
+            empty = copy.deepcopy(report)
+            for run in empty['runs']:
+                run['results'] = []
+            # The workflow uploads this only after the combined summary has
+            # successfully processed, closing obsolete per-advisory ARM alerts.
+            (summary_output / f'{name}-retire-arm64.sarif').write_text(
+                json.dumps(empty, indent=2) + '\n'
+            )
+    for name, report in summaries.items():
+        (summary_output / f'{name}.sarif').write_text(
+            json.dumps(report, indent=2) + '\n'
+        )
 
 
 def main() -> None:
@@ -156,6 +206,11 @@ def main() -> None:
             print(f'version={release["version"]}', file=output)
             print(
                 'matrix=' + json.dumps(matrix, separators=(',', ':')),
+                file=output,
+            )
+            print(
+                'upload-matrix='
+                + json.dumps(summary_matrix(matrix), separators=(',', ':')),
                 file=output,
             )
     elif args.command == 'required-lanes':
