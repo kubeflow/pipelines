@@ -372,9 +372,10 @@ complete qualification receipt after the final image and dependency changes.
 
 For explicitly accepted findings, select `--security-exceptions /path/to/exceptions.json`.
 The [exception file](SECURITY_POLICY.md) identifies each exact artifact, advisory,
-package and installed version, with a justification and UTC expiry date. This
+package and installed version, with a justification and either a UTC expiry date
+or an exact final release version. This
 selects `approved-exceptions` and binds the file contents to qualification.
-Publication checks those contents and expiry again. All findings remain in the
+Publication checks those contents and the calendar or release bound again. All findings remain in the
 report; scanner errors and incomplete coverage always block. Selecting
 `--security-policy zero-fixable` clears the exception selection and requires fresh
 qualification. The historical `2.17.3-approved-exceptions-v1` policy retains its
