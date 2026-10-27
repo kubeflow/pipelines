@@ -31,7 +31,10 @@ func LoadPipelineAndPlatformSpec(path string) (*pipelinespec.PipelineSpec, *pipe
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read file: %w", err)
 	}
+	return LoadPipelineAndPlatformSpecBytes(data)
+}
 
+func LoadPipelineAndPlatformSpecBytes(data []byte) (*pipelinespec.PipelineSpec, *pipelinespec.PlatformSpec, error) {
 	dec := yaml3.NewDecoder(bytes.NewReader(data))
 	um := protojson.UnmarshalOptions{}
 

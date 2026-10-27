@@ -4,8 +4,6 @@ Filter is used to filter resources returned from a ListXXX request.  Example fil
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**predicates** | [**list[V2Predicate]**](V2Predicate.md) | All predicates are AND-ed when this filter is applied. | [optional] 
+**predicates** | [**list[V2Predicate]**](V2Predicate.md) | All predicates are AND-ed when this filter is applied. | [optional]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
-
-

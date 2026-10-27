@@ -254,15 +254,16 @@ var _ = Describe("Legacy API compatibility on the deployed server >", Serial, La
 		Expect(canonicalRun.RunId).To(Equal(run.RunId))
 		Expect(canonicalRun.State).To(Equal(api.RuntimeState_SUCCEEDED))
 
-		var executorPod, artifactID string
+		var executorPod, executorLogTaskID, artifactID string
 		Eventually(func(g Gomega) {
 			tasks := new(api.ListTasksResponse)
 			g.Expect(client.message(ctx, http.MethodGet, "v2beta1", runResource+"/tasks", nil, tasks)).To(Succeed())
-			executorPod, artifactID = "", ""
+			executorPod, executorLogTaskID, artifactID = "", "", ""
 			for _, task := range tasks.Tasks {
 				for _, pod := range task.Pods {
 					if pod.Type == api.PipelineTask_EXECUTOR {
 						executorPod = pod.Name
+						executorLogTaskID = task.GetTaskId()
 					}
 				}
 				for _, output := range task.GetOutputs().GetArtifacts() {
@@ -274,11 +275,15 @@ var _ = Describe("Legacy API compatibility on the deployed server >", Serial, La
 			g.Expect(executorPod).NotTo(BeEmpty(), "execution must have produced an executor pod")
 			g.Expect(artifactID).NotTo(BeEmpty(), "the fixture must publish its output artifact")
 		}, 90*time.Second, 2*time.Second).WithContext(ctx).Should(Succeed())
+		logNodeID := executorPod
+		if canonicalRun.GetExecutorType() != "" {
+			logNodeID = executorLogTaskID
+		}
 		for _, version := range []string{"v2beta1", "v2"} {
 			artifact := new(api.Artifact)
 			Expect(client.message(ctx, http.MethodGet, version, "/artifacts/"+url.PathEscape(artifactID), nil, artifact)).To(Succeed())
 			expectPublishedCompatibilityArtifact(Default, artifact, artifactID)
-			logs, err := client.request(ctx, http.MethodGet, version, runResource+"/nodes/"+url.PathEscape(executorPod)+"/log?follow=false", nil, "application/json", http.StatusOK)
+			logs, err := client.request(ctx, http.MethodGet, version, runResource+"/nodes/"+url.PathEscape(logNodeID)+"/log?follow=false", nil, "application/json", http.StatusOK)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(logs)).To(ContainSubstring("input:  foo"))
 		}

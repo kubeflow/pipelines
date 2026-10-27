@@ -60,7 +60,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.RunServiceApi(api_client)
     run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
-body = kfp.server_api.RunServiceUpdateTasksBulkBody() # RunServiceUpdateTasksBulkBody | 
+body = kfp.server_api.RunServiceUpdateTasksBulkBody() # RunServiceUpdateTasksBulkBody |
 
     try:
         # Updates multiple tasks in bulk.
@@ -74,8 +74,8 @@ body = kfp.server_api.RunServiceUpdateTasksBulkBody() # RunServiceUpdateTasksBul
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
- **body** | [**RunServiceUpdateTasksBulkBody**](RunServiceUpdateTasksBulkBody.md)|  | 
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. |
+ **body** | [**RunServiceUpdateTasksBulkBody**](RunServiceUpdateTasksBulkBody.md)|  |
 
 ### Return type
 
@@ -138,7 +138,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.RunServiceApi(api_client)
     run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
-task = kfp.server_api.V2PipelineTask() # V2PipelineTask | 
+task = kfp.server_api.V2PipelineTask() # V2PipelineTask |
 
     try:
         # Creates a new task.
@@ -152,8 +152,8 @@ task = kfp.server_api.V2PipelineTask() # V2PipelineTask |
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
- **task** | [**V2PipelineTask**](V2PipelineTask.md)|  | 
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. |
+ **task** | [**V2PipelineTask**](V2PipelineTask.md)|  |
 
 ### Return type
 
@@ -215,7 +215,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.RunServiceApi(api_client)
-    body = kfp.server_api.V2FindCachedTaskRequest() # V2FindCachedTaskRequest | 
+    body = kfp.server_api.V2FindCachedTaskRequest() # V2FindCachedTaskRequest |
 
     try:
         # Finds a cached successful task by namespace and fingerprint.
@@ -229,7 +229,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2FindCachedTaskRequest**](V2FindCachedTaskRequest.md)|  | 
+ **body** | [**V2FindCachedTaskRequest**](V2FindCachedTaskRequest.md)|  |
 
 ### Return type
 
@@ -292,7 +292,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.RunServiceApi(api_client)
     run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
-task_id = 'task_id_example' # str | 
+task_id = 'task_id_example' # str |
 
     try:
         # Gets a specific task by ID.
@@ -306,8 +306,8 @@ task_id = 'task_id_example' # str |
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
- **task_id** | **str**|  | 
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. |
+ **task_id** | **str**|  |
 
 ### Return type
 
@@ -388,12 +388,12 @@ order_by = 'order_by_example' # str |  (optional)
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
- **parent_id** | **str**| List all tasks with this parent task. | [optional] 
- **page_size** | **int**|  | [optional] 
- **page_token** | **str**|  | [optional] 
- **filter** | **str**|  | [optional] 
- **order_by** | **str**|  | [optional] 
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. |
+ **parent_id** | **str**| List all tasks with this parent task. | [optional]
+ **page_size** | **int**|  | [optional]
+ **page_token** | **str**|  | [optional]
+ **filter** | **str**|  | [optional]
+ **order_by** | **str**|  | [optional]
 
 ### Return type
 
@@ -470,8 +470,8 @@ experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| The ID of the run to be archived. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **run_id** | **str**| The ID of the run to be archived. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
 
 ### Return type
 
@@ -549,9 +549,9 @@ namespace = 'namespace_example' # str | Optional input field. Namespace for the 
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run** | [**V2Run**](V2Run.md)| Run to be created. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
- **namespace** | **str**| Optional input field. Namespace for the run. Ignored when run.namespace is set. | [optional] 
+ **run** | [**V2Run**](V2Run.md)| Run to be created. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
+ **namespace** | **str**| Optional input field. Namespace for the run. Ignored when run.namespace is set. | [optional]
 
 ### Return type
 
@@ -628,8 +628,8 @@ experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| The ID of the run to be deleted. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **run_id** | **str**| The ID of the run to be deleted. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
 
 ### Return type
 
@@ -707,8 +707,8 @@ view = 'DEFAULT' # str | Optional view mode. This field can be used to adjust ho
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| The ID of the run to be retrieved. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **run_id** | **str**| The ID of the run to be retrieved. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
  **view** | **str**| Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default &#x60;tasks&#x60; field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated. | [optional] [default to &#39;DEFAULT&#39;]
 
 ### Return type
@@ -792,13 +792,13 @@ view = 'DEFAULT' # str | Optional view mode. This field can be used to adjust ho
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **namespace** | **str**| Optional input field. Filters based on the namespace. | [optional] 
- **experiment_id** | **str**| The ID of the parent experiment. If empty, response includes runs across all experiments. | [optional] 
- **page_token** | **str**| A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page. | [optional] 
- **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When &#x60;view &#x3D; FULL&#x60;, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with &#x60;LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE&#x60;. | [optional] 
- **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
- **skip_count** | **bool**| Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size. | [optional] 
+ **namespace** | **str**| Optional input field. Filters based on the namespace. | [optional]
+ **experiment_id** | **str**| The ID of the parent experiment. If empty, response includes runs across all experiments. | [optional]
+ **page_token** | **str**| A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page. | [optional]
+ **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When &#x60;view &#x3D; FULL&#x60;, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with &#x60;LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE&#x60;. | [optional]
+ **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default. | [optional]
+ **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional]
+ **skip_count** | **bool**| Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size. | [optional]
  **view** | **str**| Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default &#x60;tasks&#x60; field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated. | [optional] [default to &#39;DEFAULT&#39;]
 
 ### Return type
@@ -876,8 +876,8 @@ experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| The ID of the run to be retried. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **run_id** | **str**| The ID of the run to be retried. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
 
 ### Return type
 
@@ -954,8 +954,8 @@ experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| The ID of the run to be terminated. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **run_id** | **str**| The ID of the run to be terminated. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
 
 ### Return type
 
@@ -1032,8 +1032,8 @@ experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| The ID of the run to be restored. | 
- **experiment_id** | **str**| The ID of the parent experiment. | [optional] 
+ **run_id** | **str**| The ID of the run to be restored. |
+ **experiment_id** | **str**| The ID of the parent experiment. | [optional]
 
 ### Return type
 
@@ -1096,8 +1096,8 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.RunServiceApi(api_client)
     run_id = 'run_id_example' # str | Required. Parent run ID. This is typically provided by the URL path.
-task_id = 'task_id_example' # str | 
-task = kfp.server_api.V2PipelineTask() # V2PipelineTask | 
+task_id = 'task_id_example' # str |
+task = kfp.server_api.V2PipelineTask() # V2PipelineTask |
 
     try:
         # Updates an existing task.
@@ -1111,9 +1111,9 @@ task = kfp.server_api.V2PipelineTask() # V2PipelineTask |
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. | 
- **task_id** | **str**|  | 
- **task** | [**V2PipelineTask**](V2PipelineTask.md)|  | 
+ **run_id** | **str**| Required. Parent run ID. This is typically provided by the URL path. |
+ **task_id** | **str**|  |
+ **task** | [**V2PipelineTask**](V2PipelineTask.md)|  |
 
 ### Return type
 
@@ -1135,4 +1135,3 @@ Name | Type | Description  | Notes
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

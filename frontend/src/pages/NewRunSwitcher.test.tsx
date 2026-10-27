@@ -29,6 +29,7 @@ import NewRunSwitcher from 'src/pages/NewRunSwitcher';
 import { PageProps } from 'src/pages/Page';
 import React from 'react';
 import { vi } from 'vitest';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 import v2XGYamlTemplateString from 'src/data/test/xgboost_sample_pipeline.yaml?raw';
 import {
   ORIGINAL_TEST_PIPELINE,
@@ -42,6 +43,25 @@ import {
 } from './__tests__/newRunTestFixtures';
 
 describe('NewRunSwitcher', () => {
+  it('blocks recurring clone bookmarks without fetching unsupported recurring-run APIs', async () => {
+    const getRecurringRun = vi.spyOn(Apis.recurringRunServiceApi, 'getRecurringRun');
+    render(
+      <CommonTestWrapper>
+        <BuildInfoContext.Provider
+          value={{
+            capabilities: {
+              recurring_runs: { supported: false, reason: 'Controller unavailable' },
+            },
+          }}
+        >
+          <NewRunSwitcher {...generatePropsCloneRecurringRun()} />
+        </BuildInfoContext.Provider>
+      </CommonTestWrapper>,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Controller unavailable');
+    expect(getRecurringRun).not.toHaveBeenCalled();
+  });
+
   const TEST_RUN_ID = 'test-run-id';
   const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
 

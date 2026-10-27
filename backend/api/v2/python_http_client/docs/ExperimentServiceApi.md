@@ -65,7 +65,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be archived. | 
+ **experiment_id** | **str**| The ID of the experiment to be archived. |
 
 ### Return type
 
@@ -141,7 +141,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **experiment** | [**V2Experiment**](V2Experiment.md)| The experiment to be created. | 
+ **experiment** | [**V2Experiment**](V2Experiment.md)| The experiment to be created. |
 
 ### Return type
 
@@ -217,7 +217,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be deleted. | 
+ **experiment_id** | **str**| The ID of the experiment to be deleted. |
 
 ### Return type
 
@@ -293,7 +293,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be retrieved. | 
+ **experiment_id** | **str**| The ID of the experiment to be retrieved. |
 
 ### Return type
 
@@ -373,11 +373,11 @@ namespace = 'namespace_example' # str | Which namespace to filter the experiment
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. | [optional] 
- **page_size** | **int**| The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
- **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/api/filter.proto)). | [optional] 
- **namespace** | **str**| Which namespace to filter the experiments on. | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. | [optional]
+ **page_size** | **int**| The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional]
+ **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default. | [optional]
+ **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/api/filter.proto)). | [optional]
+ **namespace** | **str**| Which namespace to filter the experiments on. | [optional]
 
 ### Return type
 
@@ -453,7 +453,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be restored. | 
+ **experiment_id** | **str**| The ID of the experiment to be restored. |
 
 ### Return type
 
@@ -475,4 +475,3 @@ Name | Type | Description  | Notes
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

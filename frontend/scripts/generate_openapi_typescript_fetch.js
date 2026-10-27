@@ -25,6 +25,14 @@ const GLOBAL_PROPERTIES = [
 const DEFAULT_CONCURRENCY = Math.max(1, Math.min(os.cpus().length, 4));
 
 const SPEC_TARGETS = {
+  'v2:healthz': {
+    spec: 'backend/api/v2/swagger/healthz.swagger.json',
+    output: 'frontend/src/apisv2/healthz',
+  },
+  'v2:healthz-server': {
+    spec: 'backend/api/v2/swagger/healthz.swagger.json',
+    output: 'frontend/server/src/generated/apisv2/healthz',
+  },
   'v2:experiment': {
     spec: 'backend/api/v2/swagger/experiment.swagger.json',
     output: 'frontend/src/apisv2/experiment',

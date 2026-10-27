@@ -32,6 +32,13 @@ describe('artifact sources', () => {
     expect(buildArtifactUri('gcs', 'bucket', 'key')).toBe('gs://bucket/key');
   });
 
+  it('builds the canonical identity for file artifact ownership validation', () => {
+    expect(requiresArtifactOwnershipValidation('file')).toBe(true);
+    expect(buildArtifactUri('file', 'tmp', 'artifacts/output.txt')).toBe(
+      'file:///tmp/artifacts/output.txt',
+    );
+  });
+
   it('keeps volume local and rejects unknown sources', () => {
     expect(isArtifactSource('volume')).toBe(true);
     expect(isLauncherArtifactSource('volume')).toBe(false);

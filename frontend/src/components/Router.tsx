@@ -46,7 +46,7 @@ import PrivateAndSharedPipelines, {
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
 import SideNavigation from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
-import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { BuildInfoContext, useRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 import {
   Alert,
@@ -312,6 +312,13 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
 function RoutePageElement({ route }: { route?: RouteConfig }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const recurringRunsRestriction = useRecurringRunsUnavailableReason();
+  if (
+    recurringRunsRestriction &&
+    (route?.path === RoutePage.RECURRING_RUNS || route?.path === RoutePage.RECURRING_RUN_DETAILS)
+  ) {
+    return <Alert severity='info'>{recurringRunsRestriction}</Alert>;
+  }
   // Match the encoded pathname before decoding once: useParams turns a literal
   // "%2F" (encoded as "%252F" in the URL) into a slash in React Router 8.
   const match = route && matchPath({ path: route.path, end: !route.notExact }, location.pathname);

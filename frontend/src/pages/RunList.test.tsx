@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import * as Utils from 'src/lib/Utils';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { produce } from 'immer';
@@ -26,6 +26,7 @@ import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { range } from 'lodash';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { vi } from 'vitest';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {
@@ -34,6 +35,28 @@ class RunListTest extends RunList {
 }
 
 describe('RunList', () => {
+  it('disables historical recurring-run links with the deployment explanation', async () => {
+    const instance = createRunListInstance();
+    render(
+      <CommonTestWrapper>
+        <BuildInfoContext.Provider
+          value={{
+            capabilities: {
+              recurring_runs: { supported: false, reason: 'Controller unavailable' },
+            },
+          }}
+        >
+          {instance._recurringRunCustomRenderer({ value: { id: 'schedule' } } as any)}
+        </BuildInfoContext.Provider>
+      </CommonTestWrapper>,
+    );
+    const label = screen.getByText('[View config]');
+    expect(label.closest('a')).toBeNull();
+    expect(label).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.mouseOver(label);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Controller unavailable');
+  });
+
   let renderResult: ReturnType<typeof render> | null = null;
   let runListRef: React.RefObject<RunListTest> | null = null;
 

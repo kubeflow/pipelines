@@ -24,12 +24,14 @@ import BusyButton from '../atoms/BusyButton';
 import { color, commonCss, dimension, fonts, fontsize, spacing } from '../Css';
 
 import { IconButton, Tooltip } from '@mui/material';
+import { BuildInfoContext, getRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 export interface ToolbarActionMap {
   [key: string]: ToolbarActionConfig;
 }
 
 export interface ToolbarActionConfig {
+  requiresRecurringRuns?: boolean;
   action: () => void;
   busy?: boolean;
   disabled?: boolean;
@@ -120,6 +122,9 @@ export interface ToolbarProps {
 }
 
 class Toolbar extends React.Component<ToolbarProps> {
+  static contextType = BuildInfoContext;
+  declare context: React.ContextType<typeof BuildInfoContext>;
+
   public render(): React.JSX.Element | null {
     const { actions, breadcrumbs, pageTitle, pageTitleTooltip } = { ...this.props };
 
@@ -186,10 +191,14 @@ class Toolbar extends React.Component<ToolbarProps> {
         <div className={css.actions}>
           {Object.keys(actions).map((buttonKey, i) => {
             const button = actions[buttonKey];
+            const restriction = button.requiresRecurringRuns
+              ? getRecurringRunsUnavailableReason(this.context)
+              : undefined;
             return (
               <Tooltip
                 title={
-                  button.disabled && button.disabledTitle ? button.disabledTitle : button.tooltip
+                  restriction ||
+                  (button.disabled && button.disabledTitle ? button.disabledTitle : button.tooltip)
                 }
                 enterDelay={300}
                 key={i}
@@ -200,7 +209,7 @@ class Toolbar extends React.Component<ToolbarProps> {
                     id={button.id}
                     color='secondary'
                     onClick={button.action}
-                    disabled={button.disabled}
+                    disabled={button.disabled || !!restriction}
                     title={button.title}
                     icon={button.icon}
                     busy={button.busy || false}

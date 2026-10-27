@@ -641,9 +641,16 @@ type Run struct {
 	// parent experiment when experiment_id is set. In multi-user mode with
 	// experiment_id omitted, this selects the namespace whose default
 	// experiment the run is placed in.
-	Namespace     string `protobuf:"bytes,24,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Namespace string `protobuf:"bytes,24,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// Output only. Deployment-selected workload executor for this run.
+	ExecutorType string `protobuf:"bytes,25,opt,name=executor_type,json=executorType,proto3" json:"executor_type,omitempty"`
+	// Output only. Deployment-selected pipeline run workspace provisioner.
+	WorkspaceProvisioner string `protobuf:"bytes,26,opt,name=workspace_provisioner,json=workspaceProvisioner,proto3" json:"workspace_provisioner,omitempty"`
+	// Output only. Safe description of the pipeline run workspace, without
+	// internal workspace references, filesystem paths, or credentials.
+	WorkspaceDescription string `protobuf:"bytes,27,opt,name=workspace_description,json=workspaceDescription,proto3" json:"workspace_description,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Run) Reset() {
@@ -855,6 +862,27 @@ func (x *Run) GetTasks() []*PipelineTask {
 func (x *Run) GetNamespace() string {
 	if x != nil {
 		return x.Namespace
+	}
+	return ""
+}
+
+func (x *Run) GetExecutorType() string {
+	if x != nil {
+		return x.ExecutorType
+	}
+	return ""
+}
+
+func (x *Run) GetWorkspaceProvisioner() string {
+	if x != nil {
+		return x.WorkspaceProvisioner
+	}
+	return ""
+}
+
+func (x *Run) GetWorkspaceDescription() string {
+	if x != nil {
+		return x.WorkspaceDescription
 	}
 	return ""
 }
@@ -3033,7 +3061,7 @@ var File_backend_api_v2_run_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2_run_proto_rawDesc = "" +
 	"\n" +
-	"\x18backend/api/v2/run.proto\x12!kubeflow.pipelines.backend.api.v2\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a#backend/api/v2/runtime_config.proto\x1a\x1dbackend/api/v2/artifact.proto\"\xaf\x0e\n" +
+	"\x18backend/api/v2/run.proto\x12!kubeflow.pipelines.backend.api.v2\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17google/rpc/status.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a#backend/api/v2/runtime_config.proto\x1a\x1dbackend/api/v2/artifact.proto\"\xd3\x0f\n" +
 	"\x03Run\x12#\n" +
 	"\rexperiment_id\x18\x01 \x01(\tR\fexperimentId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12!\n" +
@@ -3063,7 +3091,10 @@ const file_backend_api_v2_run_proto_rawDesc = "" +
 	"\n" +
 	"task_count\x18\x16 \x01(\x05R\ttaskCount\x12E\n" +
 	"\x05tasks\x18\x17 \x03(\v2/.kubeflow.pipelines.backend.api.v2.PipelineTaskR\x05tasks\x12\x1c\n" +
-	"\tnamespace\x18\x18 \x01(\tR\tnamespace\x1aX\n" +
+	"\tnamespace\x18\x18 \x01(\tR\tnamespace\x12*\n" +
+	"\rexecutor_type\x18\x19 \x01(\tB\x05\x92A\x02@\x01R\fexecutorType\x12:\n" +
+	"\x15workspace_provisioner\x18\x1a \x01(\tB\x05\x92A\x02@\x01R\x14workspaceProvisioner\x12:\n" +
+	"\x15workspace_description\x18\x1b \x01(\tB\x05\x92A\x02@\x01R\x14workspaceDescription\x1aX\n" +
 	"\x11PluginsInputEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12-\n" +
 	"\x05value\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x05value:\x028\x01\x1aq\n" +

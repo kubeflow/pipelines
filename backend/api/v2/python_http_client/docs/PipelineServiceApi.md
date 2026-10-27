@@ -71,7 +71,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline** | [**V2Pipeline**](V2Pipeline.md)| Required input. Pipeline that needs to be created. | 
+ **pipeline** | [**V2Pipeline**](V2Pipeline.md)| Required input. Pipeline that needs to be created. |
 
 ### Return type
 
@@ -133,7 +133,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.PipelineServiceApi(api_client)
-    body = kfp.server_api.V2CreatePipelineAndVersionRequest() # V2CreatePipelineAndVersionRequest | 
+    body = kfp.server_api.V2CreatePipelineAndVersionRequest() # V2CreatePipelineAndVersionRequest |
 
     try:
         # Creates a new pipeline and a new pipeline version in a single transaction.
@@ -147,7 +147,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2CreatePipelineAndVersionRequest**](V2CreatePipelineAndVersionRequest.md)|  | 
+ **body** | [**V2CreatePipelineAndVersionRequest**](V2CreatePipelineAndVersionRequest.md)|  |
 
 ### Return type
 
@@ -224,8 +224,8 @@ pipeline_version = kfp.server_api.V2PipelineVersion() # V2PipelineVersion | Requ
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **pipeline_version** | [**V2PipelineVersion**](V2PipelineVersion.md)| Required input. Pipeline version ID to be created. | 
+ **pipeline_id** | **str**| Required input. ID of the parent pipeline. |
+ **pipeline_version** | [**V2PipelineVersion**](V2PipelineVersion.md)| Required input. Pipeline version ID to be created. |
 
 ### Return type
 
@@ -302,8 +302,8 @@ cascade = True # bool | Optional. If true, the pipeline and all its versions wil
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the pipeline to be deleted. | 
- **cascade** | **bool**| Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions. | [optional] 
+ **pipeline_id** | **str**| Required input. ID of the pipeline to be deleted. |
+ **cascade** | **bool**| Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions. | [optional]
 
 ### Return type
 
@@ -380,8 +380,8 @@ pipeline_version_id = 'pipeline_version_id_example' # str | Required input. The 
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **pipeline_version_id** | **str**| Required input. The ID of the pipeline version to be deleted. | 
+ **pipeline_id** | **str**| Required input. ID of the parent pipeline. |
+ **pipeline_version_id** | **str**| Required input. The ID of the pipeline version to be deleted. |
 
 ### Return type
 
@@ -457,7 +457,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. The ID of the pipeline to be retrieved. | 
+ **pipeline_id** | **str**| Required input. The ID of the pipeline to be retrieved. |
 
 ### Return type
 
@@ -534,8 +534,8 @@ namespace = 'namespace_example' # str | Optional input. Namespace of the pipelin
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **name** | **str**| Required input. Name of the pipeline to be retrieved. | 
- **namespace** | **str**| Optional input. Namespace of the pipeline. It could be empty if default namespaces needs to be used or if multi-user support is turned off. | [optional] 
+ **name** | **str**| Required input. Name of the pipeline to be retrieved. |
+ **namespace** | **str**| Optional input. Namespace of the pipeline. It could be empty if default namespaces needs to be used or if multi-user support is turned off. | [optional]
 
 ### Return type
 
@@ -612,8 +612,8 @@ pipeline_version_id = 'pipeline_version_id_example' # str | Required input. ID o
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **pipeline_version_id** | **str**| Required input. ID of the pipeline version to be retrieved. | 
+ **pipeline_id** | **str**| Required input. ID of the parent pipeline. |
+ **pipeline_version_id** | **str**| Required input. ID of the pipeline version to be retrieved. |
 
 ### Return type
 
@@ -693,11 +693,11 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **page_token** | **str**| A page token to request the results page. | [optional] 
- **page_size** | **int**| The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
- **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+ **pipeline_id** | **str**| Required input. ID of the parent pipeline. |
+ **page_token** | **str**| A page token to request the results page. | [optional]
+ **page_size** | **int**| The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. | [optional]
+ **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional]
+ **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional]
 
 ### Return type
 
@@ -777,11 +777,11 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **namespace** | **str**| Optional input. Namespace for the pipelines. | [optional] 
- **page_token** | **str**| A page token to request the results page. | [optional] 
- **page_size** | **int**| The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
- **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+ **namespace** | **str**| Optional input. Namespace for the pipelines. | [optional]
+ **page_token** | **str**| A page token to request the results page. | [optional]
+ **page_size** | **int**| The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional]
+ **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional]
+ **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional]
 
 ### Return type
 
@@ -844,7 +844,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_pipeline_id = 'pipeline_pipeline_id_example' # str | Output. Unique pipeline ID. Generated by API server.
-pipeline = kfp.server_api.InlineObject() # InlineObject | 
+pipeline = kfp.server_api.InlineObject() # InlineObject |
 
     try:
         # Updates a pipeline's mutable fields (display_name, tags).
@@ -858,8 +858,8 @@ pipeline = kfp.server_api.InlineObject() # InlineObject |
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_pipeline_id** | **str**| Output. Unique pipeline ID. Generated by API server. | 
- **pipeline** | [**InlineObject**](InlineObject.md)|  | 
+ **pipeline_pipeline_id** | **str**| Output. Unique pipeline ID. Generated by API server. |
+ **pipeline** | [**InlineObject**](InlineObject.md)|  |
 
 ### Return type
 
@@ -923,7 +923,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
     api_instance = kfp.server_api.PipelineServiceApi(api_client)
     pipeline_version_pipeline_id = 'pipeline_version_pipeline_id_example' # str | Required input field. Unique ID of the parent pipeline. This is ignored in CreatePipelineAndVersion API.
 pipeline_version_pipeline_version_id = 'pipeline_version_pipeline_version_id_example' # str | Output. Unique pipeline version ID. Generated by API server.
-pipeline_version = kfp.server_api.InlineObject1() # InlineObject1 | 
+pipeline_version = kfp.server_api.InlineObject1() # InlineObject1 |
 
     try:
         # Updates a pipeline version's mutable fields (display_name, tags).
@@ -937,9 +937,9 @@ pipeline_version = kfp.server_api.InlineObject1() # InlineObject1 |
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pipeline_version_pipeline_id** | **str**| Required input field. Unique ID of the parent pipeline. This is ignored in CreatePipelineAndVersion API. | 
- **pipeline_version_pipeline_version_id** | **str**| Output. Unique pipeline version ID. Generated by API server. | 
- **pipeline_version** | [**InlineObject1**](InlineObject1.md)|  | 
+ **pipeline_version_pipeline_id** | **str**| Required input field. Unique ID of the parent pipeline. This is ignored in CreatePipelineAndVersion API. |
+ **pipeline_version_pipeline_version_id** | **str**| Output. Unique pipeline version ID. Generated by API server. |
+ **pipeline_version** | [**InlineObject1**](InlineObject1.md)|  |
 
 ### Return type
 
@@ -961,4 +961,3 @@ Name | Type | Description  | Notes
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

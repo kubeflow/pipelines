@@ -46,7 +46,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.HealthzServiceApi(api_client)
-    
+
     try:
         # Get healthz data.
         api_response = api_instance.healthz_service_get_healthz()
@@ -78,4 +78,3 @@ This endpoint does not need any parameter.
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

@@ -11,8 +11,31 @@ rules:
   - pods
   - pods/log
   verbs:
+  - create
   - get
   - list
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - create
   - delete
 - apiGroups:
   - argoproj.io

@@ -23,5 +23,8 @@
   "pipeline_reference": null,
   "task_count": 0,
   "tasks": [],
-  "namespace": ""
+  "namespace": "",
+  "executor_type": "",
+  "workspace_provisioner": "",
+  "workspace_description": ""
 }

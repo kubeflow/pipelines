@@ -1090,9 +1090,9 @@ func TestNeedsWorkspaceMount(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := needsWorkspaceMount(tt.executorInput)
+			result := NeedsWorkspaceMount(tt.executorInput)
 			if result != tt.expected {
-				t.Errorf("needsWorkspaceMount() = %v, want %v", result, tt.expected)
+				t.Errorf("NeedsWorkspaceMount() = %v, want %v", result, tt.expected)
 			}
 		})
 	}
@@ -1444,39 +1444,43 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 }
 
 func Test_initPodSpecPatch_RejectsReservedRuntimeEnvVar(t *testing.T) {
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-		Image: "python:3.11",
-		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
-			Name:  "NAMESPACE",
-			Value: "user-controlled",
-		}},
-	}
+	for _, name := range []string{"NAMESPACE", "KFP_TASK_ID", "KFP_TASK_ATTEMPT_ID"} {
+		t.Run(name, func(t *testing.T) {
+			containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+				Image: "python:3.11",
+				Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
+					Name:  name,
+					Value: "user-controlled",
+				}},
+			}
 
-	_, err := initPodSpecPatch(
-		containerSpec,
-		&pipelinespec.ComponentSpec{},
-		&pipelinespec.ExecutorInput{},
-		"27",
-		"",
-		"test",
-		"run",
-		"my-run-name",
-		"1",
-		"false",
-		"false",
-		&TaskConfig{},
-		"",
-		nil,
-		"",
-		false,
-		"",
-		"ml-pipeline.kubeflow",
-		"8887",
-		nil,
-		proxy.EmptyConfig(),
-	)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+			_, err := initPodSpecPatch(
+				containerSpec,
+				&pipelinespec.ComponentSpec{},
+				&pipelinespec.ExecutorInput{},
+				"27",
+				"",
+				"test",
+				"run",
+				"my-run-name",
+				"1",
+				"false",
+				"false",
+				&TaskConfig{},
+				"",
+				nil,
+				"",
+				false,
+				"",
+				"ml-pipeline.kubeflow",
+				"8887",
+				nil,
+				proxy.EmptyConfig(),
+			)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "reserved for KFP runtime identity")
+		})
+	}
 }
 
 func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {

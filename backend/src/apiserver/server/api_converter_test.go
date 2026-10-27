@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -1340,6 +1341,98 @@ func TestToModelTask_LifecycleCategoryRequiresMessage(t *testing.T) {
 	assert.Equal(t, "", *cleared.LifecycleCategory)
 }
 
+func TestToAPIRunExecutionMetadata(t *testing.T) {
+	workspaceReference := model.JSONData{
+		"path":       "/private/workspaces/run-1",
+		"claim_name": "opaque-pvc-name",
+		"secret":     "workspace-credential",
+	}
+	tests := []struct {
+		name                 string
+		executor             *string
+		provisioner          *string
+		reference            *model.JSONData
+		workspaceDescription string
+	}{
+		{name: "legacy Argo run"},
+		{name: "executor without workspace", executor: strPtr("docker")},
+		{name: "workspace not yet provisioned", executor: strPtr("kubernetes"), provisioner: strPtr("pvc")},
+		{
+			name: "PVC workspace", executor: strPtr("kubernetes"), provisioner: strPtr("pvc"),
+			reference: &workspaceReference, workspaceDescription: "Pipeline run workspace (pvc)",
+		},
+		{
+			name: "host-path workspace", executor: strPtr("docker"), provisioner: strPtr("host-path"),
+			reference: &workspaceReference, workspaceDescription: "Pipeline run workspace (host-path)",
+		},
+		{
+			name: "unknown provisioner", executor: strPtr("docker"), provisioner: strPtr("other"),
+			reference: &workspaceReference, workspaceDescription: "Pipeline run workspace",
+		},
+		{
+			name: "missing provisioner", reference: &workspaceReference,
+			workspaceDescription: "Pipeline run workspace",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := &model.Run{
+				UUID: "run-1",
+				PipelineSpec: model.PipelineSpec{
+					PipelineVersionId: "pipeline-version",
+				},
+				RunDetails: model.RunDetails{
+					ExecutorType:         tt.executor,
+					WorkspaceProvisioner: tt.provisioner,
+					WorkspaceReference:   tt.reference,
+				},
+			}
+			got := toAPIRun(run)
+			require.Nil(t, got.Error)
+			if tt.executor == nil {
+				assert.Empty(t, got.GetExecutorType())
+			} else {
+				assert.Equal(t, *tt.executor, got.GetExecutorType())
+			}
+			if tt.provisioner == nil {
+				assert.Empty(t, got.GetWorkspaceProvisioner())
+			} else {
+				assert.Equal(t, *tt.provisioner, got.GetWorkspaceProvisioner())
+			}
+			assert.Equal(t, tt.workspaceDescription, got.GetWorkspaceDescription())
+
+			encoded, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(got)
+			require.NoError(t, err)
+			for _, opaque := range []string{"workspace_reference", "/private/workspaces", "opaque-pvc-name", "workspace-credential"} {
+				assert.NotContains(t, string(encoded), opaque)
+			}
+			if tt.name == "legacy Argo run" {
+				for _, field := range []string{"executor_type", "workspace_provisioner", "workspace_description"} {
+					assert.NotContains(t, string(encoded), field)
+				}
+			}
+		})
+	}
+}
+
+func TestToModelRunIgnoresExecutionMetadata(t *testing.T) {
+	run, err := toModelRun(&apiv2.Run{
+		DisplayName: "client-supplied runtime",
+		PipelineSource: &apiv2.Run_PipelineVersionReference{
+			PipelineVersionReference: &apiv2.PipelineVersionReference{
+				PipelineId: "pipeline", PipelineVersionId: "version",
+			},
+		},
+		ExecutorType:         "client-executor",
+		WorkspaceProvisioner: "client-provisioner",
+		WorkspaceDescription: "client workspace",
+	})
+	require.NoError(t, err)
+	assert.Nil(t, run.ExecutorType)
+	assert.Nil(t, run.WorkspaceProvisioner)
+	assert.Nil(t, run.WorkspaceReference)
+}
+
 func TestToModelRun(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1877,6 +1970,102 @@ func Test_toAPIRun(t *testing.T) {
 			},
 			true,
 			"Failed to parse runtime config",
+		},
+		{
+			"v2 falls back to latest state history when state is unspecified",
+			&model.Run{
+				UUID:           "run1",
+				ExperimentId:   "exp1",
+				DisplayName:    "name1",
+				Description:    "this is a run",
+				ServiceAccount: "sa1",
+				RecurringRunId: "job1",
+				StorageState:   model.StorageStateArchived,
+				PipelineSpec: model.PipelineSpec{
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
+					PipelineSpecManifest: "Boolean: false\nNumber: 19.1\nString: pv2\nStruct:\n  InnerList:\n  - a\n  - b\n  InnerNull: null\n",
+				},
+				RunDetails: model.RunDetails{
+					StateHistory: []*model.RuntimeStatus{
+						{
+							UpdateTimeInSec: 9,
+							State:           model.RuntimeStateRunning,
+						},
+						{
+							UpdateTimeInSec: 10,
+							State:           model.RuntimeStateCancelling,
+						},
+					},
+					CreatedAtInSec:       1,
+					ScheduledAtInSec:     2,
+					FinishedAtInSec:      3,
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				ResourceReferences: nil,
+				Namespace:          "",
+				K8SName:            "",
+			},
+			&apiv2.Run{
+				ExperimentId: "exp1",
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2.Run_ARCHIVED,
+				PipelineSource: &apiv2.Run_PipelineSpec{
+					PipelineSpec: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"String":  structpb.NewStringValue("pv2"),
+							"Boolean": structpb.NewBoolValue(false),
+							"Number":  structpb.NewNumberValue(19.1),
+							"Struct": structpb.NewStructValue(
+								&structpb.Struct{
+									Fields: map[string]*structpb.Value{
+										"InnerNull": structpb.NewNullValue(),
+										"InnerList": structpb.NewListValue(
+											&structpb.ListValue{
+												Values: []*structpb.Value{
+													structpb.NewStringValue("a"),
+													structpb.NewStringValue("b"),
+												},
+											},
+										),
+									},
+								},
+							),
+						},
+					},
+				},
+				RuntimeConfig: &apiv2.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2.RuntimeState_CANCELING,
+				RunDetails: &apiv2.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2.RuntimeState_RUNNING,
+					},
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 10},
+						State:      apiv2.RuntimeState_CANCELING,
+					},
+				},
+			},
+			false,
+			"",
 		},
 		{
 			"v2 error pipeline source",

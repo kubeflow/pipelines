@@ -15,11 +15,13 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
 import { Handler } from 'express';
+import type { V2DeploymentCapabilities } from '../src/generated/apisv2/healthz/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** HealthzStats describes the ml-pipeline ui server state. */
 export interface HealthzStats {
+  capabilities?: V2DeploymentCapabilities;
   apiServerCommitHash: string;
   apiServerTagName: string;
   apiServerMultiUser: boolean;
@@ -91,6 +93,7 @@ export function getHealthzHandler(options: {
       healthzStats.apiServerMultiUser = serverStatus.multi_user;
       healthzStats.multi_user = serverStatus.multi_user;
       healthzStats.pipelineStore = serverStatus.pipeline_store;
+      healthzStats.capabilities = serverStatus.capabilities;
       healthzStats.apiServerReady = true;
     } catch (e) {
       healthzStats.apiServerReady = false;

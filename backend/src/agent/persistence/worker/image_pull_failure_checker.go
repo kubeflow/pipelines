@@ -459,11 +459,8 @@ func getImagePullFailures(pod *corev1.Pod) []imagePullFailure {
 // ImagePullBackOff or ErrImagePull state, and if so which image it is failing
 // to pull.
 func imagePullFailureFromStatus(status corev1.ContainerStatus) (imagePullFailure, bool) {
-	if status.State.Waiting != nil {
-		reason := status.State.Waiting.Reason
-		if reason == "ImagePullBackOff" || reason == "ErrImagePull" {
-			return imagePullFailure{container: status.Name, image: status.Image}, true
-		}
+	if util.IsImagePullFailure(status) {
+		return imagePullFailure{container: status.Name, image: status.Image}, true
 	}
 	return imagePullFailure{}, false
 }

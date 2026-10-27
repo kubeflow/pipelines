@@ -271,13 +271,24 @@ components:
 # - ../../components/image-pull-failure-handling-multi-user
 ```
 
-The component sets `IMAGE_PULL_FAILURE_HANDLING_ENABLED=true` on the persistence
-agent deployment and creates a dedicated Role/RoleBinding (or
-ClusterRole/ClusterRoleBinding) bound to its service account. Adjust
-`IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC` on the deployment to change the grace
-period. When a run is failed this way, the workflow is annotated with
+The component sets `IMAGE_PULL_FAILURE_HANDLING_ENABLED=true` on both the
+persistence agent and API server deployments and creates a dedicated
+Role/RoleBinding (or ClusterRole/ClusterRoleBinding) bound to the persistence
+agent's service account. Adjust `IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC` on both
+deployments to change the grace period.
+
+Argo runs are failed by the persistence agent. The workflow is annotated with
 `pipelines.kubeflow.org/termination-reason: ImagePullFailure` and
 `pipelines.kubeflow.org/failed-image: <image>`.
+
+For Kubernetes coordinator runs, the executor handles the same opt-in policy
+without creating an Argo Workflow. It persists each container/image's first
+failure observation with the attempt, preserving the grace period across worker
+takeover and resetting it when the container recovers or its image changes.
+Termination is identity-checked and confirmed before reporting failure. The
+failed task's status metadata includes `terminationReason`, `failedImage`, and
+`failedContainer`. A container that provably never started gets a diagnostic log;
+existing container output is not replaced.
 
 ## Artifact download responses
 

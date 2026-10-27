@@ -4,8 +4,8 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**report_service_report_scheduled_workflow**](ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
-[**report_service_report_workflow**](ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
+[**report_service_report_scheduled_workflow**](ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows |
+[**report_service_report_workflow**](ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows |
 
 
 # **report_service_report_scheduled_workflow**
@@ -60,7 +60,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **scheduled_workflow** | **str**| ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. | 
+ **scheduled_workflow** | **str**| ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. |
 
 ### Return type
 
@@ -135,7 +135,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **workflow** | **str**| Workflow is a workflow custom resource marshalled into a json string. | 
+ **workflow** | **str**| Workflow is a workflow custom resource marshalled into a json string. |
 
 ### Return type
 
@@ -157,4 +157,3 @@ Name | Type | Description  | Notes
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

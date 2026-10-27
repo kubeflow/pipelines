@@ -92,11 +92,12 @@ type ArtifactStoreInterface interface {
 }
 
 type ArtifactStore struct {
+	lease                           *leaseFence
 	dbDialect                       dialect.DBDialect
 	db                              *sql.DB
 	time                            util.TimeInterface
 	uuid                            util.UUIDGeneratorInterface
-	createArtifactTaskInTransaction func(tx *sql.Tx, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error)
+	createArtifactTaskInTransaction func(tx sqlTransaction, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error)
 }
 
 // NewArtifactStore creates a new ArtifactStore.
@@ -107,19 +108,32 @@ func NewArtifactStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGenerat
 		time:      time,
 		uuid:      uuid,
 	}
-	store.createArtifactTaskInTransaction = func(tx *sql.Tx, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	store.createArtifactTaskInTransaction = func(tx sqlTransaction, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 		return createArtifactTaskWithExecutor(tx.Exec, store.uuid, artifactTask, store.dbDialect)
 	}
 	return store
 }
 
 func (s *ArtifactStore) CreateArtifact(artifact *model.Artifact) (*model.Artifact, error) {
+	if s.lease != nil {
+		tx, err := beginStoreMutation(s.db, s.lease)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+		created, err := s.createArtifactWithExecutor(tx.Exec, artifact)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+		return created, nil
+	}
 	return s.createArtifactWithExecutor(s.db.Exec, artifact)
 }
 
 func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sql.Result, error), artifact *model.Artifact) (*model.Artifact, error) {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
 	// Set up UUID for artifact.
 	newArtifact := *artifact
 	id, err := s.uuid.NewRandom()
@@ -132,7 +146,14 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 	now := s.time.Now().Unix()
 	newArtifact.CreatedAtInSec = now
 	newArtifact.LastUpdateInSec = now
+	return s.insertArtifactWithExecutor(exec, &newArtifact)
+}
 
+// insertArtifactWithExecutor preserves a caller-supplied durable artifact ID.
+func (s *ArtifactStore) insertArtifactWithExecutor(exec func(string, ...any) (sql.Result, error), artifact *model.Artifact) (*model.Artifact, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	newArtifact := *artifact
 	// Convert metadata to JSON string for storage
 	metadataJSON, err := newArtifact.Metadata.Value()
 	if err != nil {
@@ -183,7 +204,7 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 // prevents callers from reaching into the raw DB just to keep `artifacts` and
 // `artifact_tasks` in sync for one logical API operation.
 func (s *ArtifactStore) CreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return nil, nil, util.NewInternalServerError(err, "Failed to start transaction for creating artifact and artifact-task")
 	}
@@ -192,6 +213,9 @@ func (s *ArtifactStore) CreateArtifactWithTask(artifact *model.Artifact, artifac
 			glog.Warningf("Failed to rollback artifact create transaction: %v", rbErr)
 		}
 	}()
+	if err := checkLeaseLinks(tx, s.lease, []*model.ArtifactTask{artifactTask}); err != nil {
+		return nil, nil, err
+	}
 
 	newArtifact, err := s.createArtifactWithExecutor(tx.Exec, artifact)
 	if err != nil {
@@ -219,7 +243,7 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(artifacts []*model.Artifact, ar
 		return nil, nil, util.NewInvalidInputError("artifacts and artifactTasks must have the same length")
 	}
 
-	tx, err := s.db.Begin()
+	tx, err := beginStoreMutation(s.db, s.lease)
 	if err != nil {
 		return nil, nil, util.NewInternalServerError(err, "Failed to start transaction for bulk artifact creation")
 	}
@@ -228,6 +252,9 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(artifacts []*model.Artifact, ar
 			glog.Warningf("Failed to rollback bulk artifact create transaction: %v", rbErr)
 		}
 	}()
+	if err := checkLeaseLinks(tx, s.lease, artifactTasks); err != nil {
+		return nil, nil, err
+	}
 
 	createdArtifacts := make([]*model.Artifact, 0, len(artifacts))
 	createdArtifactTasks := make([]*model.ArtifactTask, 0, len(artifactTasks))
@@ -262,6 +289,9 @@ func (s *ArtifactStore) FindOrCreateArtifactWithTask(artifact *model.Artifact, a
 	}
 	if artifactTask == nil {
 		return nil, nil, util.NewInvalidInputError("artifactTask is required")
+	}
+	if s.lease != nil {
+		return s.findOrCreateLeasedArtifact(artifact, artifactTask)
 	}
 
 	identityKey, err := computeArtifactIdentityKey(artifact)
@@ -339,6 +369,14 @@ func (s *ArtifactStore) linkExistingArtifact(existingArtifact *model.Artifact, a
 }
 
 func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	return s.getArtifactTaskByUniqueLinkWithQuerier(s.db, artifactTask)
+}
+
+type artifactSQLQuerier interface {
+	Query(string, ...any) (*sql.Rows, error)
+}
+
+func (s *ArtifactStore) getArtifactTaskByUniqueLinkWithQuerier(querier artifactSQLQuerier, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if artifactTask == nil {
@@ -368,13 +406,16 @@ func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.Artifact
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get artifact-task by unique link: %v", err.Error())
 	}
-	rows, err := s.db.Query(sql, args...)
+	rows, err := querier.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get artifact-task by unique link: %v", err.Error())
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 		return nil, nil
 	}
 	var (

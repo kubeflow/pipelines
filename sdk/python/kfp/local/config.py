@@ -17,6 +17,7 @@ import abc
 import dataclasses
 import os
 import tempfile
+import warnings
 from typing import Optional, Union
 
 from kfp import local
@@ -277,6 +278,9 @@ def init(
     """Initializes a local execution session.
 
     Once called, components can be invoked locally outside of a pipeline definition.
+    This SDK-only execution experience is deprecated. Use ``kfp local ui`` or
+    ``kfp local server`` and submit pipelines with ``kfp.client.Client`` instead.
+    Existing calls retain their behavior and do not start a server.
 
     Args:
         runner: The runner to use. Supported runners: kfp.local.SubprocessRunner and kfp.local.DockerRunner.
@@ -286,6 +290,14 @@ def init(
         enable_caching: If True, enables local task output caching (off by default). Tasks with `set_caching_options(enable_caching=False)` still bypass the cache.
         cache_root: Directory used to store cache entries. If None, defaults to `{pipeline_root}/.kfp_cache`.
     """
+    warnings.warn(
+        'The SDK-only kfp.local.init() execution experience is deprecated. '
+        'Use "kfp local ui" or "kfp local server" from the optional kfp-local '
+        'package and submit pipelines with kfp.client.Client. This call retains '
+        'its existing behavior and does not start services or import prior outputs.',
+        FutureWarning,
+        stacklevel=2,
+    )
     # updates a global config
     pipeline_root = os.path.abspath(pipeline_root)
     if workspace_root is None:

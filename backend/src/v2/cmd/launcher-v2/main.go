@@ -19,6 +19,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -157,6 +158,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if err := os.Setenv("KFP_API_ADDRESS", *mlPipelineServerAddress); err != nil {
+		return fmt.Errorf("failed to set KFP_API_ADDRESS: %w", err)
+	}
+	if err := os.Setenv("KFP_API_PORT", *mlPipelineServerPort); err != nil {
+		return fmt.Errorf("failed to set KFP_API_PORT: %w", err)
+	}
 
 	// Create a client manager
 	clientOptions := &client_manager.Options{
@@ -190,6 +197,16 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to get parent task: %w", err)
 	}
+	var currentTask *go_client.PipelineTask
+	if *executorType == "container" {
+		if *taskID == "" {
+			return fmt.Errorf("task id is nil or empty")
+		}
+		currentTask, err = kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{TaskId: *taskID, RunId: *runID})
+		if err != nil {
+			return fmt.Errorf("failed to get task: %w", err)
+		}
+	}
 
 	// Build scope path
 	pipelineSpecStruct, err := kfpAPI.FetchPipelineSpecFromRun(ctx, pipelineRun)
@@ -199,11 +216,7 @@ func run() error {
 	if *taskName == "" {
 		return fmt.Errorf("task name is nil or empty")
 	}
-	scopePath, err := util.ScopePathFromStringPathWithNewTask(
-		pipelineSpecStruct,
-		parentTask.GetScopePath(),
-		*taskName,
-	)
+	scopePath, err := launcherTaskScope(pipelineSpecStruct, parentTask, currentTask, *taskName, pipelineRun.GetExecutorType())
 	if err != nil {
 		return fmt.Errorf("failed to build scope path: %w", err)
 	}
@@ -258,17 +271,7 @@ func run() error {
 		return nil
 	case "container":
 		// Container task should have a pre-existing task created by the Driver
-		if *taskID == "" {
-			return fmt.Errorf("task id is nil or empty")
-		}
-		task, err := kfpAPI.GetTask(ctx, &go_client.GetTaskRequest{
-			TaskId: *taskID,
-			RunId:  *runID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get task: %w", err)
-		}
-		launcherV2Opts.Task = task
+		launcherV2Opts.Task = currentTask
 		launcher, err := component.NewLauncherV2(
 			*executorInputJSON,
 			flag.Args(),

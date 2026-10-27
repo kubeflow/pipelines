@@ -52,7 +52,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.ArtifactServiceApi(api_client)
-    body = kfp.server_api.V2CreateArtifactTasksBulkRequest() # V2CreateArtifactTasksBulkRequest | 
+    body = kfp.server_api.V2CreateArtifactTasksBulkRequest() # V2CreateArtifactTasksBulkRequest |
 
     try:
         # Creates multiple artifact-task relationships in bulk.
@@ -66,7 +66,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2CreateArtifactTasksBulkRequest**](V2CreateArtifactTasksBulkRequest.md)|  | 
+ **body** | [**V2CreateArtifactTasksBulkRequest**](V2CreateArtifactTasksBulkRequest.md)|  |
 
 ### Return type
 
@@ -128,7 +128,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.ArtifactServiceApi(api_client)
-    body = kfp.server_api.V2CreateArtifactsBulkRequest() # V2CreateArtifactsBulkRequest | 
+    body = kfp.server_api.V2CreateArtifactsBulkRequest() # V2CreateArtifactsBulkRequest |
 
     try:
         # Creates multiple artifacts in bulk.
@@ -142,7 +142,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2CreateArtifactsBulkRequest**](V2CreateArtifactsBulkRequest.md)|  | 
+ **body** | [**V2CreateArtifactsBulkRequest**](V2CreateArtifactsBulkRequest.md)|  |
 
 ### Return type
 
@@ -204,7 +204,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.ArtifactServiceApi(api_client)
-    body = kfp.server_api.V2CreateArtifactRequest() # V2CreateArtifactRequest | 
+    body = kfp.server_api.V2CreateArtifactRequest() # V2CreateArtifactRequest |
 
     try:
         # Creates a new artifact.
@@ -218,7 +218,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2CreateArtifactRequest**](V2CreateArtifactRequest.md)|  | 
+ **body** | [**V2CreateArtifactRequest**](V2CreateArtifactRequest.md)|  |
 
 ### Return type
 
@@ -280,7 +280,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.ArtifactServiceApi(api_client)
-    body = kfp.server_api.V2CreateArtifactTaskRequest() # V2CreateArtifactTaskRequest | 
+    body = kfp.server_api.V2CreateArtifactTaskRequest() # V2CreateArtifactTaskRequest |
 
     try:
         # Creates an artifact-task relationship.
@@ -294,7 +294,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2CreateArtifactTaskRequest**](V2CreateArtifactTaskRequest.md)|  | 
+ **body** | [**V2CreateArtifactTaskRequest**](V2CreateArtifactTaskRequest.md)|  |
 
 ### Return type
 
@@ -370,7 +370,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **artifact_id** | **str**| Required. The ID of the artifact to be retrieved. | 
+ **artifact_id** | **str**| Required. The ID of the artifact to be retrieved. |
 
 ### Return type
 
@@ -453,14 +453,14 @@ filter = 'filter_example' # str |  (optional)
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **task_ids** | [**list[str]**](str.md)| At least one of task_ids, run_ids, or artifact_ids is required. Optional, filter artifact task by a set of task_ids. | [optional] 
- **run_ids** | [**list[str]**](str.md)| Optional, filter artifact task by a set of run_ids. | [optional] 
- **artifact_ids** | [**list[str]**](str.md)| Optional, filter artifact task by a set of artifact_ids. | [optional] 
+ **task_ids** | [**list[str]**](str.md)| At least one of task_ids, run_ids, or artifact_ids is required. Optional, filter artifact task by a set of task_ids. | [optional]
+ **run_ids** | [**list[str]**](str.md)| Optional, filter artifact task by a set of run_ids. | [optional]
+ **artifact_ids** | [**list[str]**](str.md)| Optional, filter artifact task by a set of artifact_ids. | [optional]
  **type** | **str**| Optional. Only list artifact tasks that have artifacts of this type.   - UNSPECIFIED: For validation  - COMPONENT_DEFAULT_INPUT: This is used for inputs that are provided via default parameters in the component input definitions  - TASK_OUTPUT_INPUT: This is used for inputs that are provided via upstream tasks. In the sdk this appears as: TaskInputsSpec.kind.task_output_parameter &amp; TaskInputsSpec.kind.task_output_artifact  - COMPONENT_INPUT: Used for inputs that are passed from parent tasks.  - RUNTIME_VALUE_INPUT: Hardcoded values passed as arguments to the task.  - COLLECTED_INPUTS: Used for dsl.Collected Usage of this type indicates that all Artifacts within the IOArtifact.artifacts are inputs collected from sub tasks with ITERATOR_OUTPUT outputs.  - ITERATOR_INPUT: In a for loop task, introduced via ParallelFor, this type is used to indicate whether this resolved input belongs to a parameterIterator or artifactIterator. In such a case the \&quot;artifacts\&quot; field for IOArtifact.artifacts is the list of resolved items for this parallelFor.  - ITERATOR_INPUT_RAW: Hardcoded iterator parameters. Raw Iterator inputs have no producer  - ITERATOR_OUTPUT: When an output is produced by a Runtime Iteration Task This value is use to differentiate between standard inputs  - OUTPUT: All other output types fall under this type.  - ONE_OF_OUTPUT: An output of a Conditions branch. | [optional] [default to &#39;UNSPECIFIED&#39;]
- **page_token** | **str**|  | [optional] 
- **page_size** | **int**|  | [optional] 
- **sort_by** | **str**|  | [optional] 
- **filter** | **str**|  | [optional] 
+ **page_token** | **str**|  | [optional]
+ **page_size** | **int**|  | [optional]
+ **sort_by** | **str**|  | [optional]
+ **filter** | **str**|  | [optional]
 
 ### Return type
 
@@ -540,11 +540,11 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **namespace** | **str**| Optional input. Namespace for the artifacts. | [optional] 
- **page_token** | **str**| A page token to request the results page. | [optional] 
- **page_size** | **int**| The number of artifacts to be listed per page. If there are more artifacts than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
- **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/filter.proto)). | [optional] 
+ **namespace** | **str**| Optional input. Namespace for the artifacts. | [optional]
+ **page_token** | **str**| A page token to request the results page. | [optional]
+ **page_size** | **int**| The number of artifacts to be listed per page. If there are more artifacts than this number, the response message will contain a valid value in the nextPageToken field. | [optional]
+ **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional]
+ **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2/filter.proto)). | [optional]
 
 ### Return type
 
@@ -566,4 +566,3 @@ Name | Type | Description  | Notes
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

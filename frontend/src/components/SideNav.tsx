@@ -33,7 +33,7 @@ import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@mui/icons-material';
-import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { BuildInfoContext, getRecurringRunsUnavailableReason } from 'src/lib/BuildInfo';
 
 import { Button, IconButton, Tooltip } from '@mui/material';
 
@@ -259,6 +259,21 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     const displayBuildInfo: DisplayBuildInfo = this._getBuildInfo();
     const { collapsed } = this.state;
     const { gkeMetadata } = this.props;
+    const recurringRunsRestriction = getRecurringRunsUnavailableReason(this.props.buildInfo);
+    const recurringRunsButton = (
+      <SideNavButton
+        disabled={!!recurringRunsRestriction}
+        collapsed={collapsed}
+        className={this._highlightRecurringRunsButton(page) ? css.active : undefined}
+      >
+        <div className={tailwindcss.sideNavItem}>
+          <Alarm />
+          <span className={classes(collapsed && css.collapsedLabel, css.label)}>
+            Recurring Runs
+          </span>
+        </div>
+      </SideNavButton>
+    );
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
@@ -423,30 +438,24 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Recurring Runs List'}
+            title={recurringRunsRestriction || 'Recurring Runs List'}
             enterDelay={300}
             placement={'right-start'}
-            disableFocusListener={!collapsed}
-            disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}
+            disableFocusListener={!collapsed && !recurringRunsRestriction}
+            disableHoverListener={!collapsed && !recurringRunsRestriction}
+            disableTouchListener={!collapsed && !recurringRunsRestriction}
           >
-            <Link
-              id='recurringRunsBtn'
-              to={RoutePage.RECURRING_RUNS}
-              className={commonCss.unstyled}
-            >
-              <SideNavButton
-                collapsed={collapsed}
-                className={this._highlightRecurringRunsButton(page) ? css.active : undefined}
+            {recurringRunsRestriction ? (
+              <span id='recurringRunsBtn'>{recurringRunsButton}</span>
+            ) : (
+              <Link
+                id='recurringRunsBtn'
+                to={RoutePage.RECURRING_RUNS}
+                className={commonCss.unstyled}
               >
-                <div className={tailwindcss.sideNavItem}>
-                  <Alarm />
-                  <span className={classes(collapsed && css.collapsedLabel, css.label)}>
-                    Recurring Runs
-                  </span>
-                </div>
-              </SideNavButton>
-            </Link>
+                {recurringRunsButton}
+              </Link>
+            )}
           </Tooltip>
           <div
             className={classes(

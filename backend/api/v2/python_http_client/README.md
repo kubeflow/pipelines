@@ -63,7 +63,7 @@ configuration = kfp.server_api.Configuration(
 with kfp.server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp.server_api.ArtifactServiceApi(api_client)
-    body = kfp.server_api.V2CreateArtifactTasksBulkRequest() # V2CreateArtifactTasksBulkRequest | 
+    body = kfp.server_api.V2CreateArtifactTasksBulkRequest() # V2CreateArtifactTasksBulkRequest |
 
     try:
         # Creates multiple artifact-task relationships in bulk.
@@ -71,7 +71,7 @@ with kfp.server_api.ApiClient(configuration) as api_client:
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling ArtifactServiceApi->batch_create_artifact_tasks: %s\n" % e)
-    
+
 ```
 
 ## Documentation for API Endpoints
@@ -87,8 +87,8 @@ Class | Method | HTTP request | Description
 *ArtifactServiceApi* | [**get_artifact**](docs/ArtifactServiceApi.md#get_artifact) | **GET** /apis/v2beta1/artifacts/{artifact_id} | Finds a specific Artifact by ID.
 *ArtifactServiceApi* | [**list_artifact_tasks**](docs/ArtifactServiceApi.md#list_artifact_tasks) | **GET** /apis/v2beta1/artifact_tasks | Lists artifact-task relationships.
 *ArtifactServiceApi* | [**list_artifacts**](docs/ArtifactServiceApi.md#list_artifacts) | **GET** /apis/v2beta1/artifacts | Finds all artifacts within the specified namespace.
-*AuthServiceApi* | [**auth_service_authorize**](docs/AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
-*DummyFilterServiceApi* | [**dummy_filter_service_get_filter**](docs/DummyFilterServiceApi.md#dummy_filter_service_get_filter) | **GET** /apis/v2beta1/filters | 
+*AuthServiceApi* | [**auth_service_authorize**](docs/AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth |
+*DummyFilterServiceApi* | [**dummy_filter_service_get_filter**](docs/DummyFilterServiceApi.md#dummy_filter_service_get_filter) | **GET** /apis/v2beta1/filters |
 *ExperimentServiceApi* | [**experiment_service_archive_experiment**](docs/ExperimentServiceApi.md#experiment_service_archive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:archive | Archives an experiment and the experiment&#39;s runs and recurring runs.
 *ExperimentServiceApi* | [**experiment_service_create_experiment**](docs/ExperimentServiceApi.md#experiment_service_create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
 *ExperimentServiceApi* | [**experiment_service_delete_experiment**](docs/ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring runs before deleting the experiment.
@@ -108,16 +108,16 @@ Class | Method | HTTP request | Description
 *PipelineServiceApi* | [**pipeline_service_list_pipelines**](docs/PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
 *PipelineServiceApi* | [**pipeline_service_update_pipeline**](docs/PipelineServiceApi.md#pipeline_service_update_pipeline) | **PATCH** /apis/v2beta1/pipelines/{pipeline.pipeline_id} | Updates a pipeline&#39;s mutable fields (display_name, tags).
 *PipelineServiceApi* | [**pipeline_service_update_pipeline_version**](docs/PipelineServiceApi.md#pipeline_service_update_pipeline_version) | **PATCH** /apis/v2beta1/pipelines/{pipeline_version.pipeline_id}/versions/{pipeline_version.pipeline_version_id} | Updates a pipeline version&#39;s mutable fields (display_name, tags).
-*PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload | 
-*PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version | 
+*PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload |
+*PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version |
 *RecurringRunServiceApi* | [**recurring_run_service_create_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
 *RecurringRunServiceApi* | [**recurring_run_service_delete_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
 *RecurringRunServiceApi* | [**recurring_run_service_disable_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
 *RecurringRunServiceApi* | [**recurring_run_service_enable_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the recurring run will continue.
 *RecurringRunServiceApi* | [**recurring_run_service_get_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
 *RecurringRunServiceApi* | [**recurring_run_service_list_recurring_runs**](docs/RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace. If experiment ID is not specified, find all recurring runs across all experiments.
-*ReportServiceApi* | [**report_service_report_scheduled_workflow**](docs/ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
-*ReportServiceApi* | [**report_service_report_workflow**](docs/ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
+*ReportServiceApi* | [**report_service_report_scheduled_workflow**](docs/ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows |
+*ReportServiceApi* | [**report_service_report_workflow**](docs/ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows |
 *RunServiceApi* | [**batch_update_tasks**](docs/RunServiceApi.md#batch_update_tasks) | **POST** /apis/v2beta1/runs/{run_id}/tasks:batchUpdate | Updates multiple tasks in bulk.
 *RunServiceApi* | [**create_task**](docs/RunServiceApi.md#create_task) | **POST** /apis/v2beta1/runs/{run_id}/tasks | Creates a new task.
 *RunServiceApi* | [**find_cached_task**](docs/RunServiceApi.md#find_cached_task) | **POST** /apis/v2beta1/tasks:findCached | Finds a cached successful task by namespace and fingerprint.
@@ -172,8 +172,10 @@ Class | Method | HTTP request | Description
  - [V2CreatePipelineAndVersionRequest](docs/V2CreatePipelineAndVersionRequest.md)
  - [V2CronSchedule](docs/V2CronSchedule.md)
  - [V2DeletePropagationPolicy](docs/V2DeletePropagationPolicy.md)
+ - [V2DeploymentCapabilities](docs/V2DeploymentCapabilities.md)
  - [V2Experiment](docs/V2Experiment.md)
  - [V2ExperimentStorageState](docs/V2ExperimentStorageState.md)
+ - [V2FeatureCapability](docs/V2FeatureCapability.md)
  - [V2Filter](docs/V2Filter.md)
  - [V2FindCachedTaskRequest](docs/V2FindCachedTaskRequest.md)
  - [V2FindCachedTaskResponse](docs/V2FindCachedTaskResponse.md)
@@ -226,5 +228,3 @@ Class | Method | HTTP request | Description
 ## Author
 
 kubeflow-pipelines@google.com
-
-

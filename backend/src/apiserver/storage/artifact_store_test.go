@@ -305,7 +305,7 @@ func TestCreateArtifactWithTask_RollsBackArtifactOnLinkFailure(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()
 
-	store.createArtifactTaskInTransaction = func(tx *sql.Tx, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	store.createArtifactTaskInTransaction = func(tx sqlTransaction, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 		return nil, errors.New("injected artifact-task failure")
 	}
 
@@ -338,7 +338,7 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 	defer db.Close()
 
 	callCount := 0
-	store.createArtifactTaskInTransaction = func(tx *sql.Tx, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	store.createArtifactTaskInTransaction = func(tx sqlTransaction, artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
 		callCount++
 		if callCount == 2 {
 			return nil, errors.New("injected artifact-task failure")

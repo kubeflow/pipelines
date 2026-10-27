@@ -28,6 +28,235 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class V2DeploymentContractTest(unittest.TestCase):
+    def test_image_pull_policy_reaches_both_execution_engines(self) -> None:
+        """The opt-in components configure both workload owners."""
+        for component in (
+            'image-pull-failure-handling',
+            'image-pull-failure-handling-multi-user',
+        ):
+            directory = ROOT / 'manifests/kustomize/components' / component
+            config = yaml.safe_load(
+                (directory / 'kustomization.yaml').read_text()
+            )
+            patches = {patch['path'] for patch in config['patches']}
+            for deployment, container, filename in (
+                (
+                    'ml-pipeline',
+                    'ml-pipeline-api-server',
+                    'apiserver-env-patch.yaml',
+                ),
+                (
+                    'ml-pipeline-persistenceagent',
+                    'ml-pipeline-persistenceagent',
+                    'persistence-agent-env-patch.yaml',
+                ),
+            ):
+                with self.subTest(component=component, deployment=deployment):
+                    self.assertIn(filename, patches)
+                    patch = yaml.safe_load((directory / filename).read_text())
+                    self.assertEqual(patch['metadata']['name'], deployment)
+                    owner = patch['spec']['template']['spec']['containers'][0]
+                    self.assertEqual(owner['name'], container)
+                    env = {item['name']: item['value'] for item in owner['env']}
+                    self.assertEqual(
+                        env['IMAGE_PULL_FAILURE_HANDLING_ENABLED'], 'true'
+                    )
+
+        grace_file = ROOT / (
+            '.github/resources/manifests/base/'
+            'persistenceagent-image-pull-grace-period.yaml'
+        )
+        patches = list(yaml.safe_load_all(grace_file.read_text()))
+        self.assertEqual(
+            {patch['metadata']['name'] for patch in patches},
+            {'ml-pipeline', 'ml-pipeline-persistenceagent'},
+        )
+        for patch in patches:
+            owner = patch['spec']['template']['spec']['containers'][0]
+            env = {item['name']: item['value'] for item in owner['env']}
+            self.assertEqual(env['IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC'], '60')
+
+    def test_controllerless_docker_launchers_disable_recurring_runs(
+        self,
+    ) -> None:
+        """Local launchers must override the compatibility default
+        explicitly."""
+        for path in (
+            'hack/run-local-ui-and-poc-runtime.sh',
+            'backend/test/local_docker_e2e/run_local_docker_e2e.sh',
+        ):
+            with self.subTest(path=path):
+                self.assertIn(
+                    'SCHEDULED_WORKFLOW_CONTROLLER_ENABLED=false',
+                    (ROOT / path).read_text(),
+                )
+
+    def test_local_docker_readiness_starts_after_api_compilation(self):
+        for ignore_term, failed in (
+            (False, False),
+            (True, False),
+            (True, True),
+        ):
+            with self.subTest(ignore_term=ignore_term, failed=failed):
+                self._assert_local_docker_startup_and_cleanup(
+                    ignore_term, failed
+                )
+
+    def _assert_local_docker_startup_and_cleanup(self, ignore_term, failed):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            script = (
+                root / 'backend/test/local_docker_e2e/run_local_docker_e2e.sh'
+            )
+            script.parent.mkdir(parents=True)
+            script.write_text(
+                (
+                    ROOT
+                    / 'backend/test/local_docker_e2e/run_local_docker_e2e.sh'
+                ).read_text()
+            )
+            script.chmod(0o755)
+            (root / 'sdk/python').mkdir(parents=True)
+            tools = root / 'bin'
+            tools.mkdir()
+            (root / 'tmp').mkdir()
+            commands = {
+                'docker': '#!/bin/sh\nprintf "172.17.0.1\\n"\n',
+                'python3': (
+                    '#!/bin/sh\n'
+                    'while [ "$#" -gt 0 ]; do\n'
+                    '  if [ "$1" = --wheel-dir ]; then\n'
+                    '    touch "$2/kfp-test.whl"; exit 0\n'
+                    '  fi\n'
+                    '  shift\n'
+                    'done\nexit 1\n'
+                ),
+                'curl': (
+                    '#!/bin/sh\n'
+                    'echo probe >> "$EVENT_FILE"\n'
+                    'test -f "$READY_FILE"\n'
+                ),
+                'sleep': (
+                    '#!/bin/sh\n'
+                    'if [ "$1" = 2 ]; then exec /bin/sleep 0.001; fi\n'
+                    'exec /bin/sleep 0.05\n'
+                ),
+                'go': r"""#!/bin/sh
+if [ "$1" = build ]; then
+  echo build-start >> "$EVENT_FILE"
+  /bin/sleep 0.05
+  test "$2" = -o || exit 1
+  cat > "$3" <<'SERVER'
+#!/bin/sh
+echo server-start >> "$EVENT_FILE"
+echo "$$" > "$SERVER_PID_FILE"
+touch "$READY_FILE"
+if [ "$FAKE_IGNORE_TERM" = true ]; then
+  trap '' TERM INT
+else
+  trap 'exit 0' TERM INT
+fi
+while :; do /bin/sleep 0.01; done
+SERVER
+  chmod +x "$3"
+  echo build-done >> "$EVENT_FILE"
+elif [ "$1" = run ] && [ "$2" = ./backend/src/apiserver ]; then
+  echo compiling-during-readiness >> "$EVENT_FILE"
+  trap 'exit 0' TERM INT
+  while :; do /bin/sleep 0.01; done
+else
+  echo tests >> "$EVENT_FILE"
+  exit "$FAKE_TEST_EXIT"
+fi
+""",
+            }
+            for name, content in commands.items():
+                path = tools / name
+                path.write_text(content)
+                path.chmod(0o755)
+            result = subprocess.run(
+                ['bash', str(script)],
+                env={
+                    **os.environ,
+                    'PATH': str(tools) + os.pathsep + os.environ['PATH'],
+                    'TMPDIR': str(root / 'tmp'),
+                    'EVENT_FILE': str(root / 'events'),
+                    'READY_FILE': str(root / 'ready'),
+                    'SERVER_PID_FILE': str(root / 'server-pid'),
+                    'FAKE_IGNORE_TERM': str(ignore_term).lower(),
+                    'FAKE_TEST_EXIT': '1' if failed else '0',
+                    'RUN_PROXY_TESTS': 'false',
+                    'SQUID_PORT': '40001',
+                    'API_SERVER_HTTP_PORT': '40002',
+                    'API_SERVER_RPC_PORT': '40003',
+                },
+                capture_output=True,
+                text=True,
+                timeout=25,
+                check=False,
+            )
+            self.assertEqual(
+                result.returncode,
+                1 if failed else 0,
+                result.stdout + result.stderr,
+            )
+            events = (root / 'events').read_text().splitlines()
+            self.assertLess(events.index('build-done'), events.index('probe'))
+            self.assertLess(events.index('server-start'), events.index('tests'))
+            self.assertNotIn('compiling-during-readiness', events)
+            pid = int((root / 'server-pid').read_text())
+            with self.assertRaises(ProcessLookupError):
+                os.kill(pid, 0)
+
+    def test_api_lanes_forward_only_after_fixture_rollouts(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text()
+        )
+        checked = 0
+        for job_name, job in workflow['jobs'].items():
+            steps = job.get('steps', [])
+            if not any(
+                step.get('uses') == './.github/actions/test-and-report'
+                for step in steps
+            ):
+                continue
+            for step in steps:
+                if step.get('uses') != './.github/actions/deploy':
+                    continue
+                checked += 1
+                with self.subTest(job=job_name):
+                    self.assertEqual(
+                        step.get('with', {}).get('forward_port'),
+                        'false',
+                        'The test action must own API forwarding after its '
+                        'fixture rollout, without an older deploy-time listener.',
+                    )
+        self.assertGreater(checked, 0)
+
+    def test_tls_lanes_read_the_certificate_secret(self):
+        certificate = yaml.safe_load(
+            (
+                ROOT
+                / 'manifests/kustomize/env/cert-manager/base-tls-certs/kfp-api-cert.yaml'
+            ).read_text()
+        )
+        secret_name = certificate['spec']['secretName']
+        for filename in ('api-server-tests.yml', 'e2e-test.yml'):
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / filename).read_text()
+            )
+            for job_name, job in workflow['jobs'].items():
+                for step in job.get('steps', []):
+                    if (
+                        step.get('name')
+                        != 'Configure Cluster CA Cert for TLS-Enabled Tests'
+                    ):
+                        continue
+                    with self.subTest(workflow=filename, job=job_name):
+                        self.assertIn(
+                            f'kubectl get secret {secret_name} ', step['run']
+                        )
+
     def test_api_and_ui_probes_use_v2_healthz(self):
         for filename, count in (
             ('ml-pipeline-apiserver-deployment.yaml', 3),

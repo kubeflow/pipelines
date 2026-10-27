@@ -21,6 +21,9 @@ import { vi } from 'vitest';
 import Toolbar, { ToolbarActionMap } from './Toolbar';
 import HelpIcon from '@mui/icons-material/Help';
 import InfoIcon from '@mui/icons-material/Info';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
+import Buttons from 'src/lib/Buttons';
+import { PageProps } from 'src/pages/Page';
 
 const action1 = vi.fn();
 const action2 = vi.fn();
@@ -62,6 +65,42 @@ function renderWithRouter(ui: React.ReactElement) {
 }
 
 describe('Toolbar', () => {
+  it('disables recurring create, clone, enable, disable and delete without disabling one-off runs', async () => {
+    const buttons = new Buttons({ location: { search: '' } } as PageProps, vi.fn())
+      .newRecurringRun('experiment')
+      .cloneRecurringRun(() => ['schedule'], true)
+      .enableRecurringRun(() => 'schedule')
+      .disableRecurringRun(() => 'schedule')
+      .delete(() => ['schedule'], 'recurring run config', vi.fn(), true)
+      .newRun();
+    const map = buttons.getToolbarActionMap();
+    // Model an enabled schedule/selection: deployment restrictions must still win.
+    Object.values(map).forEach((action) => (action.disabled = false));
+    renderWithRouter(
+      <BuildInfoContext.Provider
+        value={{
+          capabilities: { recurring_runs: { supported: false, reason: 'Controller unavailable' } },
+        }}
+      >
+        <Toolbar breadcrumbs={[]} actions={map} pageTitle='Schedules' />
+      </BuildInfoContext.Provider>,
+    );
+    for (const name of [
+      'Create recurring run',
+      'Clone recurring run',
+      'Enable',
+      'Disable',
+      'Delete',
+    ]) {
+      expect(screen.getByRole('button', { name })).toBeDisabled();
+    }
+    expect(screen.getByRole('button', { name: 'Create run' })).toBeEnabled();
+    fireEvent.mouseOver(
+      screen.getByRole('button', { name: 'Create recurring run' }).parentElement!,
+    );
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Controller unavailable');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(window.history, 'length', 'get').mockReturnValue(2);

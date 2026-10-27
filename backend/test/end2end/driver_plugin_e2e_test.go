@@ -102,7 +102,7 @@ var _ = Describe("Driver plugin >", Label(FullRegression, E2eDriverPlugin), func
 			It(fmt.Sprintf("Upload %s pipeline and verify the driver ran as a plugin", pipelineFile), func() {
 				runID, observer := runPipelineObservingPods(pipelineFile, pipelineDir, testContext, argoClient, true)
 				compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
-				e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, runID, compiledWorkflow)
+				e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, runID, compiledWorkflow, userToken)
 				validateDriverPluginRun(runID, observer, argoClient)
 			})
 		}
@@ -127,7 +127,7 @@ var _ = Describe("Driver plugin >", Label(FullRegression, E2eDriverPlugin), func
 			updatedRun := testutil.GetPipelineRun(runClient, &runID)
 			Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
 			if *updatedRun.State != run_model.V2RuntimeStateSUCCEEDED {
-				e2e_utils.CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, updatedRun.Tasks)
+				e2e_utils.CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, updatedRun.Tasks, userToken)
 			}
 			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED), "Pipeline run with retries was expected to succeed, but is "+*updatedRun.State)
 

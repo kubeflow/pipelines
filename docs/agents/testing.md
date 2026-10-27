@@ -14,6 +14,10 @@ SETUP_ENV=false PYTEST_PARALLEL_WORKERS=4 \
 # Bundled Kubernetes helpers
 uv run pytest -v sdk/python/test/kubernetes
 
+# Optional local packaging contracts; no native assets are needed for unit tests
+uv run pytest sdk/python/kfp/cli/local_test.py
+uv run pytest -c local/pyproject.toml local/tests
+
 # Backend unit tests
 go test -v $(go list ./backend/... | \
   grep -v backend/test/v2/api | \

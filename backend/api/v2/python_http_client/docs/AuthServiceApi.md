@@ -4,7 +4,7 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
+[**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth |
 
 
 # **auth_service_authorize**
@@ -61,7 +61,7 @@ verb = 'UNASSIGNED_VERB' # str | Verb on the resource asking for authorization. 
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **namespace** | **str**| Namespace the resource belongs to. | [optional] 
+ **namespace** | **str**| Namespace the resource belongs to. | [optional]
  **resources** | **str**| Resource type asking for authorization. | [optional] [default to &#39;UNASSIGNED_RESOURCES&#39;]
  **verb** | **str**| Verb on the resource asking for authorization. | [optional] [default to &#39;UNASSIGNED_VERB&#39;]
 
@@ -85,4 +85,3 @@ Name | Type | Description  | Notes
 **0** | An unexpected error response. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

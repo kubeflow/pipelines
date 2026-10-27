@@ -35,6 +35,10 @@ type V2Run struct {
 	// how to handle the error. This is especially useful during listing call.
 	Error *GoogleRPCStatus `json:"error,omitempty"`
 
+	// Output only. Deployment-selected workload executor for this run.
+	// Read Only: true
+	ExecutorType string `json:"executor_type,omitempty"`
+
 	// Input. ID of the parent experiment.
 	// The default experiment ID will be used if this is not specified.
 	ExperimentID string `json:"experiment_id,omitempty"`
@@ -108,6 +112,15 @@ type V2Run struct {
 
 	// tasks
 	Tasks []*V2PipelineTask `json:"tasks,omitempty"`
+
+	// Output only. Safe description of the pipeline run workspace, without
+	// internal workspace references, filesystem paths, or credentials.
+	// Read Only: true
+	WorkspaceDescription string `json:"workspace_description,omitempty"`
+
+	// Output only. Deployment-selected pipeline run workspace provisioner.
+	// Read Only: true
+	WorkspaceProvisioner string `json:"workspace_provisioner,omitempty"`
 }
 
 // Validate validates this v2 run
@@ -467,6 +480,10 @@ func (m *V2Run) ContextValidate(ctx context.Context, formats strfmt.Registry) er
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateExecutorType(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidatePipelineReference(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -503,6 +520,14 @@ func (m *V2Run) ContextValidate(ctx context.Context, formats strfmt.Registry) er
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateWorkspaceDescription(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateWorkspaceProvisioner(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
@@ -529,6 +554,15 @@ func (m *V2Run) contextValidateError(ctx context.Context, formats strfmt.Registr
 
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *V2Run) contextValidateExecutorType(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "executor_type", "body", m.ExecutorType); err != nil {
+		return err
 	}
 
 	return nil
@@ -752,6 +786,24 @@ func (m *V2Run) contextValidateTasks(ctx context.Context, formats strfmt.Registr
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *V2Run) contextValidateWorkspaceDescription(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "workspace_description", "body", m.WorkspaceDescription); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *V2Run) contextValidateWorkspaceProvisioner(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "workspace_provisioner", "body", m.WorkspaceProvisioner); err != nil {
+		return err
 	}
 
 	return nil

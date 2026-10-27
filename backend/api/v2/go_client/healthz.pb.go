@@ -40,10 +40,17 @@ const (
 
 type GetHealthzResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// API server build commit.
+	CommitSha string `protobuf:"bytes,1,opt,name=commit_sha,json=commitSha,proto3" json:"commit_sha,omitempty"`
+	// API server build tag.
+	TagName string `protobuf:"bytes,2,opt,name=tag_name,json=tagName,proto3" json:"tag_name,omitempty"`
 	// Returns whether KFP is in multi-user mode.
 	MultiUser bool `protobuf:"varint,3,opt,name=multi_user,json=multiUser,proto3" json:"multi_user,omitempty"`
 	// Returns the pipeline storage type (database or kubernetes)
 	PipelineStore string `protobuf:"bytes,4,opt,name=pipeline_store,json=pipelineStore,proto3" json:"pipeline_store,omitempty"`
+	// Deployment restrictions. Absent capabilities on older servers do not
+	// disable existing client functionality.
+	Capabilities  *DeploymentCapabilities `protobuf:"bytes,5,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -78,6 +85,20 @@ func (*GetHealthzResponse) Descriptor() ([]byte, []int) {
 	return file_backend_api_v2_healthz_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *GetHealthzResponse) GetCommitSha() string {
+	if x != nil {
+		return x.CommitSha
+	}
+	return ""
+}
+
+func (x *GetHealthzResponse) GetTagName() string {
+	if x != nil {
+		return x.TagName
+	}
+	return ""
+}
+
 func (x *GetHealthzResponse) GetMultiUser() bool {
 	if x != nil {
 		return x.MultiUser
@@ -92,15 +113,129 @@ func (x *GetHealthzResponse) GetPipelineStore() string {
 	return ""
 }
 
+func (x *GetHealthzResponse) GetCapabilities() *DeploymentCapabilities {
+	if x != nil {
+		return x.Capabilities
+	}
+	return nil
+}
+
+type DeploymentCapabilities struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Recurring-run management requires the scheduled-workflow controller.
+	RecurringRuns *FeatureCapability `protobuf:"bytes,1,opt,name=recurring_runs,json=recurringRuns,proto3" json:"recurring_runs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeploymentCapabilities) Reset() {
+	*x = DeploymentCapabilities{}
+	mi := &file_backend_api_v2_healthz_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeploymentCapabilities) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeploymentCapabilities) ProtoMessage() {}
+
+func (x *DeploymentCapabilities) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2_healthz_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeploymentCapabilities.ProtoReflect.Descriptor instead.
+func (*DeploymentCapabilities) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2_healthz_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *DeploymentCapabilities) GetRecurringRuns() *FeatureCapability {
+	if x != nil {
+		return x.RecurringRuns
+	}
+	return nil
+}
+
+type FeatureCapability struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Supported bool                   `protobuf:"varint,1,opt,name=supported,proto3" json:"supported,omitempty"`
+	// Explains the restriction when supported is false.
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FeatureCapability) Reset() {
+	*x = FeatureCapability{}
+	mi := &file_backend_api_v2_healthz_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FeatureCapability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FeatureCapability) ProtoMessage() {}
+
+func (x *FeatureCapability) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2_healthz_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FeatureCapability.ProtoReflect.Descriptor instead.
+func (*FeatureCapability) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2_healthz_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *FeatureCapability) GetSupported() bool {
+	if x != nil {
+		return x.Supported
+	}
+	return false
+}
+
+func (x *FeatureCapability) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 var File_backend_api_v2_healthz_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2_healthz_proto_rawDesc = "" +
 	"\n" +
-	"\x1cbackend/api/v2/healthz.proto\x12!kubeflow.pipelines.backend.api.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"Z\n" +
+	"\x1cbackend/api/v2/healthz.proto\x12!kubeflow.pipelines.backend.api.v2\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xf3\x01\n" +
 	"\x12GetHealthzResponse\x12\x1d\n" +
 	"\n" +
+	"commit_sha\x18\x01 \x01(\tR\tcommitSha\x12\x19\n" +
+	"\btag_name\x18\x02 \x01(\tR\atagName\x12\x1d\n" +
+	"\n" +
 	"multi_user\x18\x03 \x01(\bR\tmultiUser\x12%\n" +
-	"\x0epipeline_store\x18\x04 \x01(\tR\rpipelineStore2\x87\x01\n" +
+	"\x0epipeline_store\x18\x04 \x01(\tR\rpipelineStore\x12]\n" +
+	"\fcapabilities\x18\x05 \x01(\v29.kubeflow.pipelines.backend.api.v2.DeploymentCapabilitiesR\fcapabilities\"u\n" +
+	"\x16DeploymentCapabilities\x12[\n" +
+	"\x0erecurring_runs\x18\x01 \x01(\v24.kubeflow.pipelines.backend.api.v2.FeatureCapabilityR\rrecurringRuns\"I\n" +
+	"\x11FeatureCapability\x12\x1c\n" +
+	"\tsupported\x18\x01 \x01(\bR\tsupported\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason2\x87\x01\n" +
 	"\x0eHealthzService\x12u\n" +
 	"\n" +
 	"GetHealthz\x12\x16.google.protobuf.Empty\x1a5.kubeflow.pipelines.backend.api.v2.GetHealthzResponse\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/apis/v2/healthzB\x93\x01\x92AX*\x02\x01\x02R#\n" +
@@ -124,19 +259,23 @@ func file_backend_api_v2_healthz_proto_rawDescGZIP() []byte {
 	return file_backend_api_v2_healthz_proto_rawDescData
 }
 
-var file_backend_api_v2_healthz_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_backend_api_v2_healthz_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_backend_api_v2_healthz_proto_goTypes = []any{
-	(*GetHealthzResponse)(nil), // 0: kubeflow.pipelines.backend.api.v2.GetHealthzResponse
-	(*emptypb.Empty)(nil),      // 1: google.protobuf.Empty
+	(*GetHealthzResponse)(nil),     // 0: kubeflow.pipelines.backend.api.v2.GetHealthzResponse
+	(*DeploymentCapabilities)(nil), // 1: kubeflow.pipelines.backend.api.v2.DeploymentCapabilities
+	(*FeatureCapability)(nil),      // 2: kubeflow.pipelines.backend.api.v2.FeatureCapability
+	(*emptypb.Empty)(nil),          // 3: google.protobuf.Empty
 }
 var file_backend_api_v2_healthz_proto_depIdxs = []int32{
-	1, // 0: kubeflow.pipelines.backend.api.v2.HealthzService.GetHealthz:input_type -> google.protobuf.Empty
-	0, // 1: kubeflow.pipelines.backend.api.v2.HealthzService.GetHealthz:output_type -> kubeflow.pipelines.backend.api.v2.GetHealthzResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: kubeflow.pipelines.backend.api.v2.GetHealthzResponse.capabilities:type_name -> kubeflow.pipelines.backend.api.v2.DeploymentCapabilities
+	2, // 1: kubeflow.pipelines.backend.api.v2.DeploymentCapabilities.recurring_runs:type_name -> kubeflow.pipelines.backend.api.v2.FeatureCapability
+	3, // 2: kubeflow.pipelines.backend.api.v2.HealthzService.GetHealthz:input_type -> google.protobuf.Empty
+	0, // 3: kubeflow.pipelines.backend.api.v2.HealthzService.GetHealthz:output_type -> kubeflow.pipelines.backend.api.v2.GetHealthzResponse
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_backend_api_v2_healthz_proto_init() }
@@ -150,7 +289,7 @@ func file_backend_api_v2_healthz_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_backend_api_v2_healthz_proto_rawDesc), len(file_backend_api_v2_healthz_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

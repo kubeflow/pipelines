@@ -31,6 +31,14 @@
 
 ## Local execution
 
+The optional `kfp-local` native-wheel proof runs the shared Go API/embedded Docker
+worker and Node UI. Its task-scoped executor owns staging and durable publication;
+normal SDK submission targets the printed loopback endpoint. See the
+[packaging guide](../../local/README.md).
+
+The SDK-only experience below is deprecated but retained. It emits a migration
+warning without starting services or changing existing runner behavior.
+
 ```python
 from kfp import local
 

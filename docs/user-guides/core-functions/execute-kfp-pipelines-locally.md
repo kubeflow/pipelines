@@ -2,10 +2,34 @@
 
 ## Overview
 
-KFP supports executing components and pipelines locally, enabling a tight development loop before running your code remotely.
+The local-server experience uses the normal KFP API, UI, pipeline history, logs,
+and artifact storage. Start it with `kfp local ui`, or use `kfp local server` for
+headless operation, then submit compiled pipelines through `kfp.client.Client`.
+The optional `kfp-local` package must be installed separately from the SDK.
 
-Executing components and pipelines locally is easy. Simply initialize a local session using `local.init()`, then call the component or pipeline like a normal Python function. 
-KFP will log information about the execution. 
+The current native-wheel implementation is an experimental Linux proof, not a
+published multi-platform release. Build and install its matching SDK and native
+wheels using the
+[packaging guide](https://github.com/kubeflow/pipelines/blob/master/local/README.md),
+which documents Docker/Node requirements and platform limits.
+
+```python
+from kfp import client
+
+api = client.Client(host="http://127.0.0.1:3002")
+api.create_run_from_pipeline_package("pipeline.yaml")
+```
+
+### Legacy SDK-only execution (deprecated)
+
+`kfp.local.init(...)` now emits a migration warning. Existing calls keep their
+runner, configuration, and execution behavior: they do not start a server, import
+old output directories into server history, or automatically submit work to an
+API. The examples and limitations below describe this retained SDK-only runner,
+not the local server.
+
+Executing components and pipelines locally is easy. Simply initialize a local session using `local.init()`, then call the component or pipeline like a normal Python function.
+KFP will log information about the execution.
 Once execution completes, you can access the task outputs just as you would when composing a pipeline; the only difference is that the outputs are now materialized values, not references to future outputs.
 
 ## Limitations
@@ -111,7 +135,7 @@ Since the local `DockerRunner` executes each task in a separate container, the `
 - Is most faithful to the remote runtime environment
 - Allows execution of all component types: [Lightweight Python Component][lightweight-python-component], [Containerized Python Components][containerized-python-components], and [Container Components][container-components]
 
-When you use the `DockerRunner`, KFP mounts your local pipeline root to the container to write outputs outside of the container. 
+When you use the `DockerRunner`, KFP mounts your local pipeline root to the container to write outputs outside of the container.
 This means that your component outputs will still be available for inspection even after the container exits.
 
 ### **Runner:** SubprocessRunner

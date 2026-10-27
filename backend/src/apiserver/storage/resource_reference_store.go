@@ -43,7 +43,7 @@ type ResourceReferenceStore struct {
 
 // Create a resource reference.
 // This is always in company with creating a parent resource so a transaction is needed as input.
-func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*model.ResourceReference) error {
+func (s *ResourceReferenceStore) CreateResourceReferences(tx sqlTransaction, refs []*model.ResourceReference) error {
 	if len(refs) > 0 {
 		q := s.dbDialect.QuoteIdentifier
 		qb := s.dbDialect.QueryBuilder()
@@ -77,29 +77,29 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 	return nil
 }
 
-func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId string, referenceType model.ResourceType) bool {
+func (s *ResourceReferenceStore) checkReferenceExist(tx sqlTransaction, referenceID string, referenceType model.ResourceType) bool {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	var selectBuilder sq.SelectBuilder
 	switch referenceType {
 	case model.JobResourceType:
-		selectBuilder = qb.Select("1").From(q("jobs")).Where(sq.Eq{q("UUID"): referenceId})
+		selectBuilder = qb.Select("1").From(q("jobs")).Where(sq.Eq{q("UUID"): referenceID})
 	case model.ExperimentResourceType:
-		selectBuilder = qb.Select("1").From(q("experiments")).Where(sq.Eq{q("UUID"): referenceId})
+		selectBuilder = qb.Select("1").From(q("experiments")).Where(sq.Eq{q("UUID"): referenceID})
 	case model.PipelineVersionResourceType:
 		if s.pipelineStore != nil {
-			pv, _ := s.pipelineStore.GetPipelineVersion(referenceId)
+			pv, _ := s.pipelineStore.GetPipelineVersion(referenceID)
 
 			return pv != nil
 		}
-		selectBuilder = qb.Select("1").From(q("pipeline_versions")).Where(sq.Eq{q("UUID"): referenceId})
+		selectBuilder = qb.Select("1").From(q("pipeline_versions")).Where(sq.Eq{q("UUID"): referenceID})
 	case model.PipelineResourceType:
 		if s.pipelineStore != nil {
-			p, _ := s.pipelineStore.GetPipeline(referenceId)
+			p, _ := s.pipelineStore.GetPipeline(referenceID)
 
 			return p != nil
 		}
-		selectBuilder = qb.Select("1").From(q("pipelines")).Where(sq.Eq{q("UUID"): referenceId})
+		selectBuilder = qb.Select("1").From(q("pipelines")).Where(sq.Eq{q("UUID"): referenceID})
 	case model.NamespaceResourceType:
 		// This function is called to check the data validity when the data are transformed according to the DB schema.
 		// Since there is not a separate table to store the namespace data, thus always returning true.
@@ -121,7 +121,7 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 
 // Delete all resource references for a specific resource.
 // This is always in company with creating a parent resource so a transaction is needed as input.
-func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string, resourceType model.ResourceType) error {
+func (s *ResourceReferenceStore) DeleteResourceReferences(tx sqlTransaction, id string, resourceType model.ResourceType) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	refSQL, refArgs, err := qb.

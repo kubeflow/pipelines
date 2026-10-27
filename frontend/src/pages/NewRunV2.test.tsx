@@ -40,6 +40,7 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import NewRunV2 from 'src/pages/NewRunV2';
 import { PageProps } from 'src/pages/Page';
 import { vi } from 'vitest';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 import {
   ORIGINAL_TEST_PIPELINE,
   ORIGINAL_TEST_PIPELINE_ID,
@@ -770,6 +771,49 @@ describe('NewRunV2', () => {
   });
 
   describe('creating a recurring run', () => {
+    it('disables recurring selection but preserves one-off creation when unsupported', async () => {
+      render(
+        <BuildInfoContext.Provider
+          value={{
+            capabilities: {
+              recurring_runs: { supported: false, reason: 'Controller unavailable' },
+            },
+          }}
+        >
+          {buildNewRunV2Element({ chosenExperiment: DEFAULT_EXPERIMENT })}
+        </BuildInfoContext.Provider>,
+      );
+      expect(screen.getByLabelText('Recurring')).toBeDisabled();
+      expect(screen.getByRole('alert')).toHaveTextContent('Controller unavailable');
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Start' })).toBeEnabled());
+    });
+
+    it.each(['direct recurring URL', 'recurring clone'])(
+      'blocks submission of %s when unsupported',
+      async (source) => {
+        const create = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
+        render(
+          <BuildInfoContext.Provider
+            value={{
+              capabilities: {
+                recurring_runs: { supported: false, reason: 'Controller unavailable' },
+              },
+            }}
+          >
+            {buildNewRunV2Element({
+              chosenExperiment: DEFAULT_EXPERIMENT,
+              ...(source === 'recurring clone'
+                ? { existingRecurringRun: API_UI_CREATED_NEW_RECURRING_RUN_DETAILS }
+                : { location: { ...generatePropsNewRun().location, search: '?recurring=1' } }),
+            })}
+          </BuildInfoContext.Provider>,
+        );
+        expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+        expect(create).not.toHaveBeenCalled();
+      },
+    );
+
     it('submits a new recurring run', async () => {
       const createRecurringRunSpy = vi.spyOn(Apis.recurringRunServiceApi, 'createRecurringRun');
       createRecurringRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);

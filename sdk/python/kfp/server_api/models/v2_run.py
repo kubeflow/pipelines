@@ -56,7 +56,10 @@ class V2Run(object):
         'pipeline_reference': 'V2PipelineVersionReference',
         'task_count': 'int',
         'tasks': 'list[V2PipelineTask]',
-        'namespace': 'str'
+        'namespace': 'str',
+        'executor_type': 'str',
+        'workspace_provisioner': 'str',
+        'workspace_description': 'str'
     }
 
     attribute_map = {
@@ -83,10 +86,13 @@ class V2Run(object):
         'pipeline_reference': 'pipeline_reference',
         'task_count': 'task_count',
         'tasks': 'tasks',
-        'namespace': 'namespace'
+        'namespace': 'namespace',
+        'executor_type': 'executor_type',
+        'workspace_provisioner': 'workspace_provisioner',
+        'workspace_description': 'workspace_description'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, pipeline_reference=None, task_count=None, tasks=None, namespace=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, pipeline_reference=None, task_count=None, tasks=None, namespace=None, executor_type=None, workspace_provisioner=None, workspace_description=None, local_vars_configuration=None):  # noqa: E501
         """V2Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -116,6 +122,9 @@ class V2Run(object):
         self._task_count = None
         self._tasks = None
         self._namespace = None
+        self._executor_type = None
+        self._workspace_provisioner = None
+        self._workspace_description = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -166,6 +175,12 @@ class V2Run(object):
             self.tasks = tasks
         if namespace is not None:
             self.namespace = namespace
+        if executor_type is not None:
+            self.executor_type = executor_type
+        if workspace_provisioner is not None:
+            self.workspace_provisioner = workspace_provisioner
+        if workspace_description is not None:
+            self.workspace_description = workspace_description
 
     @property
     def experiment_id(self):
@@ -700,6 +715,75 @@ class V2Run(object):
         """
 
         self._namespace = namespace
+
+    @property
+    def executor_type(self):
+        """Gets the executor_type of this V2Run.  # noqa: E501
+
+        Output only. Deployment-selected workload executor for this run.  # noqa: E501
+
+        :return: The executor_type of this V2Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._executor_type
+
+    @executor_type.setter
+    def executor_type(self, executor_type):
+        """Sets the executor_type of this V2Run.
+
+        Output only. Deployment-selected workload executor for this run.  # noqa: E501
+
+        :param executor_type: The executor_type of this V2Run.  # noqa: E501
+        :type executor_type: str
+        """
+
+        self._executor_type = executor_type
+
+    @property
+    def workspace_provisioner(self):
+        """Gets the workspace_provisioner of this V2Run.  # noqa: E501
+
+        Output only. Deployment-selected pipeline run workspace provisioner.  # noqa: E501
+
+        :return: The workspace_provisioner of this V2Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._workspace_provisioner
+
+    @workspace_provisioner.setter
+    def workspace_provisioner(self, workspace_provisioner):
+        """Sets the workspace_provisioner of this V2Run.
+
+        Output only. Deployment-selected pipeline run workspace provisioner.  # noqa: E501
+
+        :param workspace_provisioner: The workspace_provisioner of this V2Run.  # noqa: E501
+        :type workspace_provisioner: str
+        """
+
+        self._workspace_provisioner = workspace_provisioner
+
+    @property
+    def workspace_description(self):
+        """Gets the workspace_description of this V2Run.  # noqa: E501
+
+        Output only. Safe description of the pipeline run workspace, without internal workspace references, filesystem paths, or credentials.  # noqa: E501
+
+        :return: The workspace_description of this V2Run.  # noqa: E501
+        :rtype: str
+        """
+        return self._workspace_description
+
+    @workspace_description.setter
+    def workspace_description(self, workspace_description):
+        """Sets the workspace_description of this V2Run.
+
+        Output only. Safe description of the pipeline run workspace, without internal workspace references, filesystem paths, or credentials.  # noqa: E501
+
+        :param workspace_description: The workspace_description of this V2Run.  # noqa: E501
+        :type workspace_description: str
+        """
+
+        self._workspace_description = workspace_description
 
     def to_dict(self):
         """Returns the model properties as a dict"""

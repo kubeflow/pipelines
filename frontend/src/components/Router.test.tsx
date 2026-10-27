@@ -28,6 +28,7 @@ import { useEffect, useState } from 'react';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage, RoutePageFactory } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 vi.mock('src/pages/RunDetailsRouter', () => ({
   default: () => <div>Run details</div>,
@@ -39,6 +40,27 @@ vi.mock('src/pages/AllRunsAndArchive', () => ({
 }));
 
 describe('Router', () => {
+  it.each([RoutePage.RECURRING_RUNS, '/recurringrun/details/schedule'])(
+    'blocks direct navigation to unsupported recurring management at %s',
+    (path) => {
+      render(
+        <BuildInfoContext.Provider
+          value={{
+            capabilities: {
+              recurring_runs: { supported: false, reason: 'Controller unavailable' },
+            },
+          }}
+        >
+          <MemoryRouter initialEntries={[path]}>
+            <Router />
+          </MemoryRouter>
+        </BuildInfoContext.Provider>,
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent('Controller unavailable');
+      expect(screen.queryByTestId('page-title')).not.toBeInTheDocument();
+    },
+  );
+
   it('initial render', () => {
     const renderResult = render(
       <MemoryRouter initialEntries={['/does-not-exist']}>

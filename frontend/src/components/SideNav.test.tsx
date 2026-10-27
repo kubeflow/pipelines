@@ -65,6 +65,30 @@ function renderSideNav(
 }
 
 describe('SideNav', () => {
+  it('disables recurring navigation only when explicitly unsupported and explains why', async () => {
+    renderSideNav(RoutePage.PIPELINES, {
+      buildInfo: {
+        capabilities: {
+          recurring_runs: { supported: false, reason: 'Controller unavailable' },
+        },
+      } as React.ComponentProps<typeof SideNav>['buildInfo'],
+    });
+    const button = screen.getByRole('button', { name: /Recurring Runs/ });
+    expect(button).toBeDisabled();
+    expect(button.closest('a')).toBeNull();
+    fireEvent.mouseOver(button.parentElement!);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Controller unavailable');
+  });
+
+  it('retains recurring navigation for older servers without capabilities', () => {
+    renderSideNav(RoutePage.PIPELINES);
+    expect(screen.getByRole('button', { name: /Recurring Runs/ })).toBeEnabled();
+    expect(screen.getByRole('link', { name: /Recurring Runs/ })).toHaveAttribute(
+      'href',
+      RoutePage.RECURRING_RUNS,
+    );
+  });
+
   it('keeps namespace transfer out of the sidebar', () => {
     renderSideNav(RoutePage.METADATA_TRANSFER);
     expect(screen.queryByRole('link', { name: 'Export / Import' })).not.toBeInTheDocument();

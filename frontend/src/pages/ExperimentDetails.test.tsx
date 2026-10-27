@@ -30,8 +30,30 @@ import { V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 import { V2PredicateOperation } from 'src/apisv2/filter';
 import { vi } from 'vitest';
 import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
+import { BuildInfoContext } from 'src/lib/BuildInfo';
 
 describe('ExperimentDetails', () => {
+  it('disables recurring management without fetching schedules or hiding one-off runs', async () => {
+    render(
+      <CommonTestWrapper>
+        <BuildInfoContext.Provider
+          value={{
+            capabilities: {
+              recurring_runs: { supported: false, reason: 'Controller unavailable' },
+            },
+          }}
+        >
+          <ExperimentDetails {...generateProps()} />
+        </BuildInfoContext.Provider>
+      </CommonTestWrapper>,
+    );
+    await screen.findByText('Recurring run configs');
+    expect(screen.getByRole('button', { name: 'Manage' })).toBeDisabled();
+    expect(screen.getByText('Controller unavailable')).toBeVisible();
+    expect(listRecurringRunsSpy).not.toHaveBeenCalled();
+    await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
+  });
+
   const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => null);
   const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => null);
 
