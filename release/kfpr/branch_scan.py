@@ -132,15 +132,22 @@ def convert_scans(source: Path, directory: Path, release: dict) -> None:
         )['sarif']
         for record in records
     }
+    image_ids = {
+        (record['name'], record['platform']): record['image_id']
+        for record in records
+    }
     summaries = {}
     for name in sorted({record['name'] for record in records}):
         platforms = sorted(
             platform for image, platform in reports if image == name
         )
+        artifacts = ', '.join(
+            f'{platform}: {image_ids[name, platform]}' for platform in platforms
+        )
         summaries[name] = summarize(
             [reports[name, platform] for platform in platforms],
             identity=f'{BRANCH}-image-{name}',
-            image=f'{name} (source {release["source_sha"]})',
+            image=f'{name} ({artifacts}; source {release["source_sha"]})',
             evidence_url=(
                 f'https://github.com/{REPOSITORY}/actions/runs/'
                 f'{release["run_id"]}/attempts/{release["run_attempt"]}'

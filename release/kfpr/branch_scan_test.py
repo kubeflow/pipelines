@@ -239,6 +239,43 @@ class BranchScanTest(unittest.TestCase):
         raw = json.loads((directory / 'sarif/image-a-arm64.sarif').read_text())
         self.assertEqual(len(raw['runs'][0]['results']), 1)
 
+    def test_summary_identifies_each_scanned_architecture_image(self):
+        directory = self.qualified()
+        manifest_path = directory / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        image_ids = {
+            'linux/amd64': 'sha256:' + 'a' * 64,
+            'linux/arm64': 'sha256:' + 'b' * 64,
+        }
+        for record in manifest['images']:
+            image_id = image_ids[record['platform']]
+            path = directory / record['scan_file']
+            report = json.loads(path.read_text())
+            report['image_id'] = image_id
+            path.write_text(json.dumps(report))
+            record['image_id'] = image_id
+            record['scan_sha256'] = hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+        manifest_path.write_text(json.dumps(manifest))
+        before = {
+            path.name: path.read_bytes()
+            for path in (directory / 'scans').iterdir()
+        }
+        scan.convert_scans(self.source, directory, self.release)
+        run = json.loads(
+            (directory / 'image-summaries/image-a.sarif').read_text()
+        )['runs'][0]
+        title = run['tool']['driver']['rules'][0]['shortDescription']['text']
+        result = run['results'][0]
+        for platform, image_id in image_ids.items():
+            artifact = f'{platform}: {image_id}'
+            self.assertIn(artifact, title)
+            self.assertIn(artifact, result['message']['text'])
+            self.assertIn(artifact, result['properties']['image'])
+        for name, content in before.items():
+            self.assertEqual((directory / 'scans' / name).read_bytes(), content)
+
     def test_arm_findings_survive_clean_amd_summary(self):
         directory = self.qualified()
         path = directory / 'scans/image-a-amd64.json'
