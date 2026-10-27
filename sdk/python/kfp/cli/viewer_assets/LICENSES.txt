@@ -1577,7 +1577,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-## pako - 3.0.1 ((MIT AND Zlib))
+## pako - 3.0.2 ((MIT AND Zlib))
 
 (The MIT License)
 
