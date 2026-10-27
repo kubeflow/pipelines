@@ -53,7 +53,7 @@ def _identity(
         exceptions = _configured_exceptions(context)
     identity = {
         'image_qualification': mode,
-        'schema': 2,
+        'schema': 3,
         'security_scanner': SCANNER,
         'release_sha': sha,
         'version': context.metadata.tag,
@@ -207,6 +207,7 @@ def qualify_release(context: ReleaseContext) -> None:
         context, expected_images, expected_minors, output / 'ci'
     )
     report['images'] = result['images']
+    report['third_party'] = result.get('third_party')
     report['wheels'] = result['wheels']
     report['security'] = result['security']
     report['security_ci'] = result['run']
@@ -274,6 +275,80 @@ def release_coverage(context: ReleaseContext, sha: str) -> tuple[set, set]:
     return images, minors
 
 
+def _require_third_party(report, include_backend, source_sha):
+    """Revalidate retained raw evidence and its original CI provenance."""
+    from .third_party import verify
+
+    scans = [
+        scan
+        for scan in report['security']['scans']
+        if scan['name'].startswith('third-party-')
+    ]
+    evidence = report.get('third_party')
+    if not include_backend:
+        if evidence is not None or scans:
+            raise ValueError('Unexpected third-party qualification evidence')
+        return
+    if not isinstance(evidence, dict):
+        raise ValueError(
+            'Third-party qualification evidence is missing; rerun qualify-release'
+        )
+    identity = report.get('security_ci', {})
+    if identity.get('source_sha') != source_sha:
+        raise ValueError(
+            'Third-party CI source does not match the approved release'
+        )
+    expected = {
+        'schema': 1,
+        **{
+            key: identity.get(key)
+            for key in (
+                'version',
+                'source_sha',
+                'workflow_sha',
+                'request_id',
+                'run_id',
+                'run_attempt',
+            )
+        },
+    }
+    directory = evidence.get('evidence_directory')
+    if not isinstance(directory, str) or not Path(directory).is_absolute():
+        raise ValueError('Third-party evidence directory is missing')
+    directory = Path(directory)
+    manifest = directory / 'third-party.json'
+    if (
+        directory.is_symlink()
+        or manifest.is_symlink()
+        or not manifest.is_file()
+    ):
+        raise ValueError(
+            'Third-party raw evidence is missing or unsafe; rerun qualify-release'
+        )
+    if hashlib.sha256(manifest.read_bytes()).hexdigest() != evidence.get(
+        'manifest_sha256'
+    ):
+        raise ValueError(
+            'Third-party raw evidence checksum changed; rerun qualify-release'
+        )
+    verified = verify(directory, expected)
+    if verified['inventory']['first_party_names'] != sorted(
+        {image['name'] for image in report.get('images', [])}
+    ):
+        raise ValueError(
+            'Third-party ownership does not match the release image inventory'
+        )
+    recorded = {
+        key: value
+        for key, value in evidence.items()
+        if key not in ('evidence_directory', 'manifest_sha256')
+    }
+    if verified != recorded or verified['scans'] != scans:
+        raise ValueError(
+            'Third-party scan coverage or findings changed; rerun qualify-release'
+        )
+
+
 def require_qualification(context: ReleaseContext) -> None:
     """Recheck live CI and reject missing, stale or differently scoped
     evidence."""
@@ -337,6 +412,7 @@ def require_qualification(context: ReleaseContext) -> None:
         raise ValueError(
             'Security findings do not satisfy the selected policy; rerun qualify-release'
         )
+    _require_third_party(report, context.include_backend, sha)
     image_scans = [
         scan for scan in security['scans'] if scan['name'].startswith('image-')
     ]

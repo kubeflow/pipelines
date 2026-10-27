@@ -350,3 +350,19 @@ class OsvImageScanTest(unittest.TestCase):
                 stderr='Error during extraction: incomplete lockfile\n',
             )
         self.assertFalse((self.root / 'scan.json').exists())
+
+    def test_sarif_rejects_partial_extraction_even_with_valid_report(self):
+        for has_findings in (False, True):
+            with (
+                self.subTest(findings=has_findings),
+                self.assertRaisesRegex(
+                    ValueError, 'incomplete package extraction'
+                ),
+            ):
+                self.invoke(
+                    code=int(has_findings),
+                    report=sarif(has_findings),
+                    report_format='sarif',
+                    stderr='Error during extraction: incomplete lockfile\n',
+                )
+            self.assertFalse((self.root / 'scan.json').exists())

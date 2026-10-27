@@ -259,6 +259,79 @@ The frontend qualification reliability reporter supports `--collect --repository
 
 - The deploy action first restores the existing runtime-image cache using the producer’s exact source fingerprint, UTC date, and archive paths; matrix jobs never save caches. A missing, failed, or incomplete restore falls back to the same-run runtime artifact with digest checking and bounded recovery. Both archives must be nonempty before accepting a cache hit, and all required image tags are still verified in Kind. Runtime preparation overlaps branch image builds; the later barrier and positive download pattern select only the seven branch images. The two archive inventories preserve optional Modelcar coverage. Measure the full job, including cache misses: artifact transfer/extraction variability can dominate cluster setup.
 
+## Third-party image security alerts and evidence
+
+`third-party-image-scanning.yml` is called by the master OSV workflow and the
+release-2.18 branch scan workflow. It resolves both branch heads and uses the
+shared source-derived inventory: all Kustomize environment and legacy metadata
+profiles, configured executor/cache images where present, UI/controller
+TensorBoard defaults, and pinned
+cluster prerequisites. Prerequisites and legacy/runtime roles remain separately
+identified. Arbitrary workloads, operator overrides and non-default TensorBoard
+menu choices are outside this inventory. It scans each distinct external image
+on Linux AMD64, retaining both JSON and SARIF reports from
+the same immutable image ID. The seven published master KFP images
+continue to upload to their existing GitHub code-scanning categories. Third-party
+findings also remain in GitHub: the upload matrix binds each image to its branch
+and exact source SHA. Master retains `kubeflow-pipelines-osv-image-<repository hash>`;
+release-2.18 uses `release-2.18-third-party-image-<repository hash>-amd64`.
+Tags, digests and source commits do not affect category identity. The hash is of
+the normalized repository name for existing standard deployments. Additional
+legacy, runtime and prerequisite targets include their stable logical role in
+the hash, so different versions of one repository do not overwrite each other.
+Only exact duplicate SARIF results are removed
+from the uploaded copy; raw evidence and release-policy inputs are unchanged.
+Only the post-report upload job receives security-events write permission.
+Candidate branch runs retain and validate evidence but do not publish alerts.
+
+Inventory size and native/external classification follow the selected source.
+Runtime inventory includes the concrete UI and viewer-controller TensorBoard
+defaults. The server repository prefix requires an explicit user-selected version
+and is not an implicit latest-image default. The legacy cache default is included
+only when its source consumer exists; absence is retained explicitly and cannot
+excuse a deployed cache server.
+Release 2.18's merged standalone TensorBoard runtime is a KFP-built image; require
+its matching native publication record rather than scanning an old default tag
+as an external TensorFlow image. Its merged Alpine cache helper has package
+metadata, replacing the old BusyBox coverage gap, but exact-image extraction and
+scanning remain required. Do not copy historical inventory totals or candidate
+scan results into a current release-readiness claim. The independent
+`third-party-image-upgrades.yml` workflow checks compatibility; it does not replace
+full-inventory security qualification or the approved-exceptions policy.
+
+Each run retains rendered inventories, source commits, immutable Docker image
+IDs and registry digests, complete OSV JSON and raw SARIF, and scanner diagnostics for seven days (the repository artifact-retention cap).
+The aggregate job preserves verified counts alongside explicit unknown coverage
+when a scanner cannot identify packages, then fails the coverage gate. Unknown
+is never zero; all production SARIF uploads remain blocked until coverage is
+complete, preserving existing alerts. Missing lanes or inconsistent reports
+also fail. Qualification preserves scan failures and continues collecting the
+remaining image scans before failing; incomplete evidence cannot authorize release. A successful evidence job means scanning completed, not that images
+have no vulnerabilities or are authorized for release.
+
+The image-level summary compares release pins with different pins already used
+on master in the same image repository. It lists advisories removed and added,
+using advisory aliases to avoid counting renamed advisories as fixes. These are
+scanned candidates, not compatibility-approved upgrades. Other findings remain
+upstream/applicability work; a package fixed version alone is not evidence that a
+replacement image exists. The JSON report retains all packages and findings.
+
+Backend release qualification uses the same complete inventory from the exact
+candidate commit. Preserved source inputs, profile catalogs, rendered YAML and
+pinned prerequisite manifests are checksummed and revalidated with the receipt.
+The trusted checkout and workflow provenance bind those inputs to the candidate;
+input checksums alone do not attest to source authenticity. Their raw findings enter the existing zero-fixable
+policy; approved exceptions remain exact to image ID, package, installed version
+and advisory, require a justification and expiry, and are rechecked at
+publication. Missing, stale or inconsistent third-party evidence blocks release.
+SDK-only qualification does not require backend images. Scheduled comparison
+reports are supplemental and cannot authorize publication.
+Retire only demonstrably obsolete GitHub configurations after the replacement
+workflow is merged and complete per-image, per-branch coverage is verified;
+archive old analyses before deletion. Never retire a category merely because
+an image is third-party. Preserve first-party/source coverage and all distinct
+advisory/package/location results.
+
 ## Third-party image upgrade checks
 
 `third-party-image-upgrades.yml` reads baseline images from the PR base commit

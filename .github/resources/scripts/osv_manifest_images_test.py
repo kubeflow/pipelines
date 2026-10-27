@@ -24,8 +24,10 @@ from osv_manifest_images import (
     create_image_map,
     create_matrix,
     extract_images,
+    is_first_party,
     main,
     render_overlay,
+    select_images,
 )
 
 
@@ -198,13 +200,83 @@ spec:
             create_matrix({'alpine:1'}), create_matrix({'alpine:2'})
         )
 
+    def test_native_and_external_images_partition_without_losing_coverage(self):
+        native = {
+            'ghcr.io/kubeflow/kfp-api-server:2.18.0',
+            'ghcr.io/kubeflow/kfp-metadata-writer:2.18.0',
+            'ghcr.io/kubeflow/kfp-visualization-server:2.18.0',
+            'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
+            'ghcr.io/kubeflow/kfp-inverse-proxy-agent:2.18.0',
+            'gcr.io/ml-pipeline/api-server:2.17.1',
+            'gcr.io/ml-pipeline/frontend:2.17.1',
+        }
+        external = {
+            'docker.io/alpine/k8s:1.36.2',
+            'ghcr.io/chrislusf/seaweedfs:4.34',
+            'gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0',
+            'ghcr.io/metacontroller/metacontroller:v4.16.2',
+            'gcr.io/ml-pipeline/application-crd-controller:20231101',
+            'mysql:8.4',
+            'registry.example/unseen:1',
+        }
+        images = native | external
+        self.assertEqual(select_images(images, 'all', 'kubeflow'), images)
+        self.assertEqual(
+            select_images(images, 'first-party', 'kubeflow'), native
+        )
+        self.assertEqual(
+            select_images(images, 'third-party', 'kubeflow'), external
+        )
+
+    def test_unknown_native_component_requires_explicit_classification(self):
+        with self.assertRaisesRegex(ValueError, 'Unclassified KFP'):
+            is_first_party('ghcr.io/kubeflow/kfp-new-component:1')
+        self.assertTrue(
+            is_first_party('ghcr.io/FORK/kfp-api-server:1'.lower(), 'FORK')
+        )
+        self.assertFalse(is_first_party('ghcr.io/other/kfp-api-server:1'))
+
+    def test_empty_filtered_inventory_fails(self):
+        with self.assertRaisesRegex(ValueError, 'No third-party'):
+            select_images(
+                {'ghcr.io/kubeflow/kfp-api-server:1'}, 'third-party', 'kubeflow'
+            )
+
+    @mock.patch('osv_manifest_images.merge_published_images')
+    @mock.patch('osv_manifest_images.render_overlay')
+    @mock.patch('osv_manifest_images.parse_args')
+    def test_scope_filter_follows_publication_merge(
+        self, args_mock, render_mock, merge_mock
+    ):
+        args_mock.return_value = mock.Mock(
+            kustomize='kustomize',
+            overlay=['a'],
+            published_records=Path('records'),
+            source_sha='a' * 40,
+            image_owner='kubeflow',
+            image_scope='first-party',
+        )
+        render_mock.return_value = 'kind: Pod\nspec:\n  containers:\n  - image: docker.io/alpine:3.23\n'
+        digest = 'ghcr.io/kubeflow/kfp-api-server@sha256:' + 'b' * 64
+        merge_mock.return_value = {digest, 'docker.io/alpine:3.23'}
+        with mock.patch('sys.stdout', new_callable=io.StringIO) as output:
+            main()
+        self.assertEqual(
+            set(json.loads(output.getvalue())['images'].values()), {digest}
+        )
+        merge_mock.assert_called_once()
+
     @mock.patch('osv_manifest_images.render_overlay')
     @mock.patch('osv_manifest_images.parse_args')
     def test_main_emits_matrix_and_matching_image_map(
         self, args_mock, render_mock
     ):
         args_mock.return_value = mock.Mock(
-            kustomize='kustomize', overlay=['a', 'b'], published_records=None
+            kustomize='kustomize',
+            overlay=['a', 'b'],
+            published_records=None,
+            image_scope='all',
+            image_owner=None,
         )
         render_mock.return_value = 'kind: Pod\nspec:\n  containers:\n  - image: registry.example/task:1\n'
         with mock.patch('sys.stdout', new_callable=io.StringIO) as output:

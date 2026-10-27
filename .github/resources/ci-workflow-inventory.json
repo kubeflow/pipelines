@@ -758,6 +758,12 @@
       "pull_request": null
     },
     {
+      "path": ".github/workflows/third-party-image-scanning.yml",
+      "name": "Third-party Image Security",
+      "header_sha256": "9162eb1ecd0c71c55eae7338c45999a6905ed50e1a9a41ff71b884173bda77c1",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/third-party-image-upgrades.yml",
       "name": "Third-party Image Upgrade Checks",
       "header_sha256": "51af41f636629c336ead7a3d33ccd4f9ee130662a06b7cddb369260e74151cda",

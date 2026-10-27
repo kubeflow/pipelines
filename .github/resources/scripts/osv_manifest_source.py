@@ -23,7 +23,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 
-def extract_manifests(archive, destination):
+def extract_manifests(archive, destination, extra_paths=()):
     destination.mkdir(parents=True, exist_ok=False)
     count = 0
     with tarfile.open(archive) as source:
@@ -32,7 +32,10 @@ def extract_manifests(archive, destination):
             if path.is_absolute() or '..' in path.parts:
                 raise ValueError('Unsafe producer archive path')
             # GitHub archives have one repository-prefix directory.
-            if len(path.parts) < 2 or path.parts[1] != 'manifests':
+            if len(path.parts) < 2 or not (
+                path.parts[1] == 'manifests'
+                or str(PurePosixPath(*path.parts[1:])) in extra_paths
+            ):
                 continue
             if member.isdir():
                 continue
@@ -52,7 +55,7 @@ def extract_manifests(archive, destination):
         raise ValueError('Producer archive contains no manifests')
 
 
-def download_manifests(repository, sha, destination):
+def download_manifests(repository, sha, destination, extra_paths=()):
     if not re.fullmatch(
         r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository
     ):
@@ -67,7 +70,7 @@ def download_manifests(repository, sha, destination):
                 stdout=output,
                 check=True,
             )
-        extract_manifests(archive, destination)
+        extract_manifests(archive, destination, extra_paths=extra_paths)
 
 
 if __name__ == '__main__':

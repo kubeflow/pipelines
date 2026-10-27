@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 from . import ci_images_runner as images
+from . import third_party as external
 from .ci_security_runner import verify_security
 from .smoke import supported_python_versions
 
@@ -59,6 +60,7 @@ def aggregate(
     identity: dict,
     include_sdk: bool,
     include_backend: bool,
+    third_party: Path | None = None,
 ) -> dict:
     expected = inventory(source, identity, include_sdk, include_backend)
     verify_security(security, identity, expected['python_versions'])
@@ -74,6 +76,21 @@ def aggregate(
             'report_format': 'json',
             'images': [],
         }
+    if include_backend:
+        if third_party is None:
+            raise ValueError('Missing third-party qualification evidence')
+        verified = external.verify(third_party, identity)
+        native_names = sorted(
+            {row['name'] for row in expected['matrix']['include']}
+        )
+        if verified['inventory']['first_party_names'] != native_names:
+            raise ValueError(
+                'Third-party ownership does not match release inventory'
+            )
+        shutil.copytree(third_party, output / 'third-party')
+        manifest['third_party_manifest_sha256'] = hashlib.sha256(
+            (output / 'third-party/third-party.json').read_bytes()
+        ).hexdigest()
     # Reject extra symlink evidence before copying a downloaded artifact tree.
     if security.is_symlink() or any(
         path.is_symlink() for path in security.rglob('*')
@@ -97,6 +114,7 @@ def main() -> None:
     parser.add_argument('--source', required=True, type=Path)
     parser.add_argument('--lanes', type=Path, default=Path('lanes'))
     parser.add_argument('--security', type=Path, default=Path('security'))
+    parser.add_argument('--third-party', type=Path, default=Path('third-party'))
     parser.add_argument('--output', type=Path, default=Path('qualified'))
     args = parser.parse_args()
     identity = images.identity()
@@ -131,6 +149,7 @@ def main() -> None:
             args.output,
             identity,
             *flags,
+            third_party=args.third_party,
         )
 
 

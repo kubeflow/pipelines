@@ -255,9 +255,9 @@ def scan_image(
                 stderr=errors,
                 check=False,
             )
-        if report_format == 'json' and 'Error during extraction:' in (
-            output / 'scan.stderr.log'
-        ).read_text(errors='replace'):
+        if 'Error during extraction:' in (output / 'scan.stderr.log').read_text(
+            errors='replace'
+        ):
             raise ValueError(
                 'OSV image scan reported incomplete package extraction'
             )

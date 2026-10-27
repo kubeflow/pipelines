@@ -97,8 +97,19 @@ class ReportsTest(unittest.TestCase):
             osv_reports.findings(data)[0]['fixed_versions'], ['2.0']
         )
         del affected[0]
-        with self.assertRaises(ValueError):
-            osv_reports.findings(data)
+        finding = osv_reports.findings(data)[0]
+        self.assertEqual(finding['fixed_versions'], [])
+        self.assertFalse(finding['fixable'])
+        self.assertEqual(
+            finding['support_channel_evidence'],
+            [
+                {
+                    'ecosystem': 'Ubuntu:Pro:22.04',
+                    'fixed_versions': ['99.0'],
+                    'requires_support_channel': True,
+                }
+            ],
+        )
         data = report('util-linux', 'Ubuntu:Pro:22.04')
         data['results'][0]['packages'][0]['vulnerabilities'][0]['affected'][0][
             'package'
@@ -106,6 +117,79 @@ class ReportsTest(unittest.TestCase):
         self.assertEqual(
             osv_reports.findings(data)[0]['fixed_versions'], ['2.0']
         )
+
+    def test_pro_only_matches_retain_advisories_without_claiming_standard_fixes(
+        self,
+    ):
+        data = report('util-linux', 'Ubuntu:20.04')
+        vulnerability = data['results'][0]['packages'][0]['vulnerabilities'][0]
+        affected = vulnerability['affected'][0]
+        affected['package']['ecosystem'] = 'Ubuntu:Pro:20.04:LTS'
+        original = copy.deepcopy(data)
+        finding = osv_reports.findings(data)[0]
+        self.assertEqual(data, original)
+        self.assertEqual(finding['id'], vulnerability['id'])
+        self.assertEqual(finding['aliases'], vulnerability['aliases'])
+        self.assertFalse(finding['fixable'])
+        self.assertEqual(finding['fixed_versions'], [])
+        self.assertEqual(finding['scanned_ecosystem'], 'Ubuntu:20.04')
+        self.assertEqual(
+            finding['support_channel_evidence'],
+            [
+                {
+                    'ecosystem': 'Ubuntu:Pro:20.04',
+                    'fixed_versions': ['2.0'],
+                    'requires_support_channel': True,
+                }
+            ],
+        )
+        policy = evaluate_policy(
+            [
+                {
+                    'name': 'image-test',
+                    'target': 'sha256:' + 'a' * 64,
+                    'findings': [finding],
+                }
+            ]
+        )
+        self.assertEqual(policy['blocking_count'], 0)
+        self.assertEqual(policy['residual_count'], 1)
+        del affected['ranges'][0]['events'][1]
+        finding = osv_reports.findings(data)[0]
+        self.assertEqual(
+            finding['support_channel_evidence'][0]['fixed_versions'], []
+        )
+        self.assertEqual(finding['id'], vulnerability['id'])
+
+    def test_support_channel_matching_never_crosses_release_or_package(self):
+        for ecosystem, name in [
+            ('Ubuntu:Pro:22.04', 'util-linux'),
+            ('Ubuntu:20.04', 'util-linux'),
+            ('Ubuntu:Pro:20.04', 'unrelated'),
+        ]:
+            data = report('util-linux', 'Ubuntu:Pro:20.04')
+            if name == 'unrelated':
+                data['results'][0]['packages'][0]['package']['ecosystem'] = (
+                    'Ubuntu:20.04'
+                )
+            data['results'][0]['packages'][0]['vulnerabilities'][0]['affected'][
+                0
+            ]['package'] = {'name': name, 'ecosystem': ecosystem}
+            with (
+                self.subTest(ecosystem=ecosystem, name=name),
+                self.assertRaises(ValueError),
+            ):
+                osv_reports.findings(data)
+
+    def test_malformed_pro_ranges_still_fail_closed(self):
+        data = report('util-linux', 'Ubuntu:20.04')
+        affected = data['results'][0]['packages'][0]['vulnerabilities'][0][
+            'affected'
+        ][0]
+        affected['package']['ecosystem'] = 'Ubuntu:Pro:20.04:LTS'
+        affected['ranges'][0]['events'] = [{'fixed': '2.0'}]
+        with self.assertRaisesRegex(ValueError, 'introduction'):
+            osv_reports.findings(data)
 
     def test_last_affected_limit_and_versions_are_not_fixes(self):
         for event in ({'last_affected': '2.0'}, {'limit': '2.0'}):
@@ -165,7 +249,10 @@ class ReportsTest(unittest.TestCase):
                 package['package']['version'] = ''
             else:
                 data['experimental_generic_findings'] = [{}]
-            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+            with (
+                self.subTest(mutation=mutation),
+                self.assertRaises(ValueError),
+            ):
                 osv_reports.findings(data)
 
     def test_unresolved_source_entries_are_explicit_and_not_audited(self):

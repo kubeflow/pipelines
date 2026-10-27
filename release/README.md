@@ -253,6 +253,40 @@ across all severities. Findings without a published fix remain in the report. Mi
 scanner errors, incomplete dependency coverage and unrecognized reports block
 publication. A scanner-reported fix requiring a newer Python still blocks; kfpr
 does not silently waive an advisory or change supported Python versions.
+Ubuntu Pro-only fixes are labeled separately from standard Ubuntu fixes: those
+findings remain visible residuals requiring support-channel review, and do not
+claim an available fix in the image's standard package channel.
+
+Backend qualification derives its external-image inventory from the exact
+release commit: all environment and legacy metadata profiles, configured Argo
+executor and cache helper where present, the UI/controller TensorBoard defaults,
+and separately identified pinned cluster prerequisites. It preserves source inputs and rendered manifests,
+scans each distinct image on Linux AMD64, and revalidates complete coverage with
+the receipt. Arbitrary workloads, operator overrides and non-default TensorBoard
+menu selections are outside this inventory. Findings use the same
+fixable-vulnerability policy as first-party images. A scanner with no recognizable
+package inventory produces unknown coverage, never a zero-vulnerability result.
+Collection retains failed-scan diagnostics and attempts the remaining images;
+any incomplete coverage still blocks qualification and publication.
+Missing third-party coverage blocks qualification; older receipts must be
+regenerated. Scheduled image-comparison reports cannot substitute for this
+candidate-bound evidence.
+
+The inventory is derived from the selected source, not a fixed image count.
+Release 2.18 now uses the KFP-built TensorBoard runtime and a digest-pinned Alpine
+cache helper. TensorBoard belongs to the native image inventory and needs matching
+candidate publication records; a source default tag does not prove that the
+version-stamped image exists or is publicly pullable. The Alpine helper has APK
+package metadata, but qualification must still verify package extraction and scan
+the exact selected image. Historical unknown coverage for the previous BusyBox
+helper does not describe the new default, and earlier successful candidate scans
+do not certify a later merged or version-stamped release.
+
+Image-upgrade compatibility checks are separate evidence. Passing the persistent
+SeaweedFS/profile checks or the PostgreSQL/TensorBoard acceptance lanes does not
+waive scan findings or authorize publication. Rebuild the selected release source,
+verify the published image identities and supported platforms, and regenerate the
+complete qualification receipt after the final image and dependency changes.
 
 For explicitly accepted findings, select `--security-exceptions /path/to/exceptions.json`.
 The [exception file](SECURITY_POLICY.md) identifies each exact artifact, advisory,
