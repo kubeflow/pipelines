@@ -62,7 +62,6 @@ class ManifestSourceTest(unittest.TestCase):
                 [
                     ('repo/manifests/kustomize/base.yaml', tarfile.REGTYPE),
                     ('repo/backend/Makefile', tarfile.REGTYPE),
-                    ('repo/frontend/server/configs.ts', tarfile.REGTYPE),
                     (
                         'repo/backend/src/cache/server/mutation.go',
                         tarfile.REGTYPE,
@@ -73,7 +72,6 @@ class ManifestSourceTest(unittest.TestCase):
             destination = Path(directory) / 'producer'
             runtime_paths = (
                 'backend/Makefile',
-                'frontend/server/configs.ts',
                 'backend/src/cache/server/mutation.go',
             )
             extract_manifests(archive, destination, extra_paths=runtime_paths)

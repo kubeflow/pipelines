@@ -27,9 +27,6 @@ def write_inventory_fixture(directory, image='example.org/controller:v1'):
         + image
         + '"',
         inventory.SOURCE_PATHS[5]: "const DEFAULT_TF_IMAGE = '" + image + "';",
-        inventory.SOURCE_PATHS[6]: "VIEWER_TENSORBOARD_TF_IMAGE_NAME = '"
-        + image
-        + "',",
         inventory.CACHE_CONSUMER: 'os.LookupEnv("CACHE_IMAGE")',
     }
     sources[inventory.SOURCE_PATHS[1]] += '\n'.join(
@@ -136,6 +133,13 @@ class InventoryTest(unittest.TestCase):
             path = source / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
+        # The server repository prefix is combined with an explicit user tag;
+        # requests without image or tfversion are rejected by the handler.
+        config = source / 'frontend/server/configs.ts'
+        config.parent.mkdir(parents=True, exist_ok=True)
+        config.write_text(
+            "VIEWER_TENSORBOARD_TF_IMAGE_NAME = 'tensorflow/tensorflow',"
+        )
         output = self.path / 'captured'
         with (
             mock.patch.object(
@@ -158,11 +162,8 @@ class InventoryTest(unittest.TestCase):
                 for row in result['targets']
             )
         )
-        self.assertTrue(
-            any(
-                row['target'].startswith('runtime/tensorboard-server/')
-                for row in result['targets']
-            )
+        self.assertNotIn(
+            'tensorflow/tensorflow', [row['image'] for row in result['targets']]
         )
 
     def test_removed_cache_consumer_excludes_obsolete_config_default(self):
@@ -215,45 +216,6 @@ class InventoryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Cache image consumer changed'):
             inventory.discover(self.path)
 
-    def test_server_tensorboard_fallback_has_distinct_stable_target(self):
-        source = inventory.SOURCE_PATHS[6]
-        self.edit(
-            'inputs.json',
-            lambda data: data['sources'].update(
-                {
-                    source: "VIEWER_TENSORBOARD_TF_IMAGE_NAME = 'tensorflow/tensorflow',"
-                }
-            ),
-        )
-        targets = inventory.discover(self.path)['targets']
-        row = next(
-            row
-            for row in targets
-            if row['target'].startswith('runtime/tensorboard-server/')
-        )
-        self.assertEqual(row['image'], 'tensorflow/tensorflow')
-        self.assertEqual(row['profiles'], [source])
-        self.edit(
-            'inputs.json',
-            lambda data: data['sources'].update(
-                {
-                    source: "VIEWER_TENSORBOARD_TF_IMAGE_NAME = 'tensorflow/tensorflow:2.20.0',"
-                }
-            ),
-        )
-        after = inventory.discover(self.path)['targets']
-        self.assertIn(row['target'], [target['target'] for target in after])
-
-    def test_server_tensorboard_default_cannot_be_missing(self):
-        self.edit(
-            'inputs.json',
-            lambda data: data['sources'].update(
-                {inventory.SOURCE_PATHS[6]: ''}
-            ),
-        )
-        with self.assertRaisesRegex(ValueError, 'tensorboard-server default'):
-            inventory.discover(self.path)
-
     def test_missing_cache_default_fails_closed(self):
         self.edit(
             'inputs.json',
@@ -300,7 +262,7 @@ class InventoryTest(unittest.TestCase):
         )
         targets = inventory.discover(self.path)['targets']
         self.assertEqual(
-            len([row for row in targets if row['scope'] == 'runtime']), 4
+            len([row for row in targets if row['scope'] == 'runtime']), 3
         )
         self.assertNotIn(
             'tensorflow/tensorflow:1.7.1', [row['image'] for row in targets]

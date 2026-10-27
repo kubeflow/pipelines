@@ -17,10 +17,9 @@ SOURCE_PATHS = (
     'backend/src/apiserver/config/config.json',
     'backend/src/crd/controller/viewer/reconciler/reconciler.go',
     'frontend/src/components/viewers/Tensorboard.tsx',
-    'frontend/server/configs.ts',
     'backend/src/cache/server/mutation.go',
 )
-CACHE_CONSUMER = SOURCE_PATHS[7]
+CACHE_CONSUMER = SOURCE_PATHS[6]
 LEGACY = 'manifests/kustomize/base/metadata/overlays/'
 PREREQUISITES = {
     'istio': 'common/istio/istio-install/base',
@@ -350,11 +349,6 @@ def discover(output):
             SOURCE_PATHS[5],
             r"const DEFAULT_TF_IMAGE\s*=\s*'([^']+)'",
             'tensorboard',
-        ),
-        (
-            SOURCE_PATHS[6],
-            r"VIEWER_TENSORBOARD_TF_IMAGE_NAME\s*=\s*'([^']+)'",
-            'tensorboard-server',
         ),
     ):
         add(

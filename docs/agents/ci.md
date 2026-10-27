@@ -285,9 +285,11 @@ Only the post-report upload job receives security-events write permission.
 Candidate branch runs retain and validate evidence but do not publish alerts.
 
 Inventory size and native/external classification follow the selected source.
-Runtime inventory includes the UI, viewer-controller and direct API TensorBoard
-fallbacks. The legacy cache default is included only when its source consumer
-exists; absence is retained explicitly and cannot excuse a deployed cache server.
+Runtime inventory includes the concrete UI and viewer-controller TensorBoard
+defaults. The server repository prefix requires an explicit user-selected version
+and is not an implicit latest-image default. The legacy cache default is included
+only when its source consumer exists; absence is retained explicitly and cannot
+excuse a deployed cache server.
 Release 2.18's merged standalone TensorBoard runtime is a KFP-built image; require
 its matching native publication record rather than scanning an old default tag
 as an external TensorFlow image. Its merged Alpine cache helper has package
