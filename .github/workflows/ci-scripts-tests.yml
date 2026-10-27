@@ -12,7 +12,7 @@ on:
       - 'proxy/**'
       - '.github/dependabot.yml'
       - '**/go.mod'
-      - 'backend/api/hack/uv.sh'
+      - 'backend/api/hack/**'
       - 'hack/update_tensorboard_image.py'
       - 'manifests/kustomize/hack/release.sh'
       - 'backend/Dockerfile.tensorboard'
