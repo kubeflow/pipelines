@@ -15,8 +15,13 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
+	"net"
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -82,7 +87,8 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	shutdownContext := signals.SetupSignalHandler()
+	stopCh := shutdownContext.Done()
 
 	// Use the util to store the ExecutionType
 	util.SetExecutionType(util.ExecutionType(executionType))
@@ -158,9 +164,82 @@ func main() {
 	go swfInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
-	if err = controller.Run(numWorker, stopCh); err != nil {
-		log.Fatalf("Error running controller: %s", err.Error())
+	// Create a child context that is canceled when controller.Run returns
+	// for any reason (normal shutdown, error, or recovered panic via
+	// runtime.HandleCrash). This ensures the health server always shuts
+	// down, even if the signal context has not been canceled.
+	healthCtx, healthCancel := context.WithCancel(shutdownContext)
+
+	var serverWg sync.WaitGroup
+	serverWg.Add(1)
+	go func() {
+		defer serverWg.Done()
+		startHealthProbeServer(healthCtx, controller)
+	}()
+
+	runErr := controller.Run(numWorker, stopCh)
+	healthCancel()
+
+	if runErr != nil && shutdownContext.Err() == nil {
+		log.Fatalf("Error running controller: %s", runErr.Error())
 	}
+
+	// Wait for the health probe server to finish its graceful shutdown
+	// before the process exits.
+	serverWg.Wait()
+}
+
+const healthProbePort = ":9090"
+
+func newHealthMux(readinessCheck func() bool) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if readinessCheck() {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("not ready"))
+		}
+	})
+	return mux
+}
+
+func startHealthProbeServer(shutdownContext context.Context, controller *PersistenceAgent) {
+	listener, err := net.Listen("tcp", healthProbePort)
+	if err != nil {
+		log.Fatalf("Health probe server failed to listen: %v", err)
+	}
+	log.Infof("Starting health probe server at %s...", healthProbePort)
+	serveHealthProbe(shutdownContext, listener, controller.HasSynced)
+}
+
+func serveHealthProbe(shutdownContext context.Context, listener net.Listener, readinessCheck func() bool) {
+	srv := &http.Server{
+		Handler:           newHealthMux(readinessCheck),
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+
+	shutdownDone := make(chan struct{})
+	go func() {
+		defer close(shutdownDone)
+		<-shutdownContext.Done()
+		log.Info("Shutting down health probe server...")
+		shutdownTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownTimeout); err != nil {
+			log.Errorf("Health probe server graceful shutdown failed: %v", err)
+		}
+	}()
+
+	if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("Health probe server failed: %v", err)
+	}
+	<-shutdownDone
 }
 
 func init() {
