@@ -93,6 +93,117 @@ class SecurityExceptionsTest(unittest.TestCase):
                 )
                 self.assertEqual(result['blocking_count'], 1)
 
+    def release_document(self):
+        document = self.document()
+        document.update(schema=2, release_version='2.18.0')
+        del document['exceptions'][0]['expires']
+        return document
+
+    def test_release_scoped_approval_has_no_calendar_expiry(self):
+        document = self.release_document()
+        for now in (NOW, datetime(2099, 1, 1, tzinfo=timezone.utc)):
+            result = security.evaluate_policy(
+                self.scan(),
+                policy='approved-exceptions',
+                exceptions=document,
+                release_version='2.18.0',
+                now=now,
+            )
+            self.assertEqual(result['blocking_count'], 0)
+            self.assertEqual(result['accepted_count'], 1)
+            self.assertEqual(
+                result['accepted_findings'][0]['release_version'], '2.18.0'
+            )
+            self.assertNotIn('expires', result['accepted_findings'][0])
+
+    def test_release_bound_python_and_image_identities(self):
+        for scope, artifact, other in (
+            ('python', '3.9', '3.10'),
+            ('image', 'sha256:' + 'a' * 64, 'sha256:' + 'b' * 64),
+        ):
+            document = self.release_document()
+            document['exceptions'][0].update(scope=scope, artifact=artifact)
+            for target, expected_blocking in ((artifact, 0), (other, 1)):
+                with self.subTest(scope=scope, target=target):
+                    result = security.evaluate_policy(
+                        self.scan(scope, target),
+                        policy='approved-exceptions',
+                        exceptions=document,
+                        release_version='2.18.0',
+                    )
+                    self.assertEqual(
+                        result['blocking_count'], expected_blocking
+                    )
+            document['exceptions'][0]['artifact'] = 'mutable-tag'
+            with self.assertRaises(ValueError):
+                exceptions.validate_exceptions(document)
+
+    def test_release_scope_rejects_other_or_missing_release(self):
+        for version in ('', '2.18.1', '2.19.0', '2.18.0-rc.1', 'v2.18.0'):
+            with (
+                self.subTest(version=version),
+                self.assertRaisesRegex(
+                    ValueError, 'apply only to release 2.18.0'
+                ),
+            ):
+                security.evaluate_policy(
+                    self.scan(),
+                    policy='approved-exceptions',
+                    exceptions=self.release_document(),
+                    release_version=version,
+                )
+
+    def test_release_schema_rejects_ambiguous_bounds(self):
+        valid = self.release_document()
+        invalid = []
+        for version in (
+            '',
+            '*',
+            '2.18',
+            'release-2.18',
+            '02.18.0',
+            '2.18.0-rc.1',
+            '>=2.18.0',
+            218,
+        ):
+            invalid.append({**valid, 'release_version': version})
+        invalid.append({**valid, 'schema': 1})
+        invalid.append({'schema': 2, 'exceptions': valid['exceptions']})
+        mixed = copy.deepcopy(valid)
+        mixed['exceptions'][0]['expires'] = '2999-01-01'
+        invalid.append(mixed)
+        for document in invalid:
+            with self.subTest(document=document), self.assertRaises(ValueError):
+                exceptions.validate_exceptions(document)
+
+    def test_release_scope_preserves_exact_identities_and_digest(self):
+        document = self.release_document()
+        for field in ('id', 'package', 'installed_version', 'target'):
+            scans = self.scan()
+            scans[0]['findings'][0][field] = 'different'
+            with self.subTest(field=field):
+                result = security.evaluate_policy(
+                    scans,
+                    policy='approved-exceptions',
+                    exceptions=document,
+                    release_version='2.18.0',
+                )
+                self.assertEqual(result['blocking_count'], 1)
+        other = {**document, 'release_version': '2.18.1'}
+        self.assertNotEqual(
+            exceptions.exception_digest(document),
+            exceptions.exception_digest(other),
+        )
+        for field, value in (('artifact', '*'), ('package', 'example*')):
+            invalid = copy.deepcopy(document)
+            invalid['exceptions'][0][field] = value
+            with self.assertRaises(ValueError):
+                exceptions.validate_exceptions(invalid)
+        duplicate = copy.deepcopy(document)
+        duplicate['exceptions'] *= 2
+        with self.assertRaisesRegex(ValueError, 'Duplicate'):
+            exceptions.validate_exceptions(duplicate)
+
     def test_invalid_documents_fail_closed(self):
         valid = self.document()
         invalid = [
