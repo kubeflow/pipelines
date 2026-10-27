@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
 import { PageProps } from './Page';
 import { Apis } from 'src/lib/Apis';
@@ -109,5 +109,29 @@ describe('PrivateAndSharedPipelines', () => {
     );
     await flushPromisesInAct();
     expect(tree).toMatchSnapshot();
+  });
+
+  it('reloads private pipelines when namespace changes', async () => {
+    const listPipelineSpy = vi.mocked(Apis.pipelineServiceApiV2.listPipelines);
+    const renderWithNamespace = (namespace: string) => (
+      <Router history={history}>
+        <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
+          <NamespaceContext.Provider value={namespace}>
+            <PrivateAndSharedPipelines {...generateProps()} />
+          </NamespaceContext.Provider>
+        </BuildInfoContext.Provider>
+      </Router>
+    );
+    const { rerender } = render(renderWithNamespace('test-ns-1'));
+    await waitFor(() => expect(listPipelineSpy).toHaveBeenCalled());
+    expect(listPipelineSpy.mock.lastCall?.[0]).toBe('test-ns-1');
+    listPipelineSpy.mockClear();
+
+    rerender(renderWithNamespace('test-ns-2'));
+    await waitFor(() => expect(listPipelineSpy).toHaveBeenCalled());
+    await flushPromisesInAct();
+    const requestedNamespaces = listPipelineSpy.mock.calls.map(([namespace]) => namespace);
+    expect(requestedNamespaces).toContain('test-ns-2');
+    expect(requestedNamespaces).not.toContain('test-ns-1');
   });
 });
