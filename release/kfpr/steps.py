@@ -342,7 +342,7 @@ def step_update_version_tags(context: ReleaseContext) -> None:
         if context.runner.dry_run:
             print(f'[dry-run] would write VERSION: {metadata.tag}')
         else:
-            (root / 'VERSION').write_text(metadata.tag)
+            (root / 'VERSION').write_text(metadata.tag + '\n')
         release_image_tag = (
             'master'
             if metadata.release_type in ('major', 'minor')
@@ -1907,11 +1907,11 @@ def step_sync_master(context: ReleaseContext) -> None:
     context.runner.run(['git', 'pull', '--ff-only'], cwd=root)
     context.runner.run(['git', 'checkout', '-b', branch], cwd=root)
 
-    # Write VERSION file without trailing newline - guarded in dry-run
+    # Keep VERSION compatible with the repository end-of-file formatting hook.
     if context.runner.dry_run:
         print(f'[dry-run] would write VERSION: {metadata.tag}')
     else:
-        (root / 'VERSION').write_text(metadata.tag)
+        (root / 'VERSION').write_text(metadata.tag + '\n')
 
     release_image_tag = (
         'master'
