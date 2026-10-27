@@ -38,8 +38,8 @@ WORKDIR /src/kubernetes
 RUN git clone --depth=1 --branch "${KUBECTL_VERSION}" https://github.com/kubernetes/kubernetes.git . \
     && test "$(git rev-parse HEAD)" = "${KUBECTL_COMMIT}" \
     && rm -rf vendor \
-    && GOFLAGS=-mod=mod go get golang.org/x/net@v0.60.0 \
-      golang.org/x/sys@v0.48.0 golang.org/x/text@v0.42.0 \
+    && GOFLAGS=-mod=mod go get golang.org/x/net@v0.62.0 \
+      golang.org/x/sys@v0.49.0 golang.org/x/text@v0.43.0 \
       go.opentelemetry.io/otel@v1.44.0 \
       go.opentelemetry.io/otel/trace@v1.44.0 \
       go.opentelemetry.io/otel/metric@v1.44.0 \

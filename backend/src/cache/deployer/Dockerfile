@@ -15,7 +15,7 @@ RUN kubernetes_version="${KUBERNETES_VERSION#v}" \
     && kubernetes_major="${kubernetes_version%%.*}" \
     && kubernetes_minor="${kubernetes_version#*.}" \
     && kubernetes_minor="${kubernetes_minor%%.*}" \
-    && go get golang.org/x/net@v0.60.0 golang.org/x/text@v0.42.0 \
+    && go get golang.org/x/net@v0.62.0 golang.org/x/text@v0.43.0 \
     && go build -trimpath -buildvcs=true -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=${KUBERNETES_VERSION} -X k8s.io/component-base/version.gitMajor=${kubernetes_major} -X k8s.io/component-base/version.gitMinor=${kubernetes_minor} -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl \
     && go version -m /out/kubectl > /out/kubectl.buildinfo \
     && cat /out/kubectl.buildinfo \
