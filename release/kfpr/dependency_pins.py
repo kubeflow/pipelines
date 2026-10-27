@@ -58,8 +58,9 @@ def _pins(path: Path) -> dict[str, set[str]]:
 def preserve_dependency_pins(root: Path, *, dry_run: bool = False):
     """Restore locks and fail if preparation changes third-party dependencies.
 
-    Resolvers prefer existing pins but may change them to satisfy new metadata.
-    Such changes need their own review before release version preparation.
+    Resolvers prefer existing pins but may change them to satisfy new
+    metadata. Such changes need their own review before release version
+    preparation.
     """
     if dry_run:
         yield lambda: None
