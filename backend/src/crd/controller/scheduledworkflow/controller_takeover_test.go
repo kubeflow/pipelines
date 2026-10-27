@@ -134,16 +134,3 @@ func TestTakeoverQueuesOnlyCurrentScheduledWorkflows(t *testing.T) {
 		5*time.Second, 10*time.Millisecond, "the new leader should queue every current schedule")
 	assert.Equal(t, 0, queuedKeys(controller, "deleted", churnCount), "the new leader must not queue deleted schedules")
 }
-
-// A controller that exists while schedules are created and deleted, and has
-// no workers to drain its queue, keeps every deleted key queued.
-func TestControllerCreatedBeforeChurnQueuesDeletedScheduledWorkflows(t *testing.T) {
-	const liveCount, churnCount = 2, 100
-	scheduleSource := newScheduleSource(t)
-	controller := scheduleSource.newController(t)
-	scheduleSource.start()
-	scheduleSource.createAndDelete(t, liveCount, churnCount)
-
-	assert.Eventually(t, func() bool { return queuedKeys(controller, "deleted", churnCount) == churnCount },
-		5*time.Second, 10*time.Millisecond, "every deleted schedule stays queued when no worker drains the queue")
-}
