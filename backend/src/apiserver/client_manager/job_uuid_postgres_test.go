@@ -106,12 +106,26 @@ func TestJobUUIDPostgresRejectsConflictingAndInterruptedIndexes(t *testing.T) {
 		defer tx.Rollback()
 		_, err = tx.Exec(`INSERT INTO run_details VALUES ('run', 'schedule')`)
 		require.NoError(t, err)
-		// Concurrent creation must wait for this writer transaction. Cancellation
-		// leaves an invalid index with the otherwise correct definition.
+		builder, err := pool.Conn(context.Background())
+		require.NoError(t, err)
+		defer builder.Close()
+		var builderPID int
+		require.NoError(t, builder.QueryRowContext(context.Background(), `SELECT pg_backend_pid()`).Scan(&builderPID))
+		// Concurrent creation waits for this writer transaction. Client timeout
+		// returns before pgx finishes asynchronously cancelling the backend.
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		_, err = pool.ExecContext(ctx, recurringRunIndexDDL("postgres"))
-		require.Error(t, err)
+		_, err = builder.ExecContext(ctx, recurringRunIndexDDL("postgres"))
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		// Keep the writer blocked until cancellation actually stops the build,
+		// otherwise the index can become valid before cancellation arrives.
+		waitCtx, stopWaiting := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stopWaiting()
+		require.Eventually(t, func() bool {
+			var active bool
+			err := pool.QueryRowContext(waitCtx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = $1)`, builderPID).Scan(&active)
+			return err == nil && !active
+		}, 5*time.Second, 10*time.Millisecond, "cancelled index builder must exit before releasing the writer")
 		require.NoError(t, tx.Rollback())
 		var valid bool
 		require.NoError(t, db.Raw(`SELECT indisvalid FROM pg_index WHERE indexrelid = 'idx_run_details_job_uuid'::regclass`).Scan(&valid).Error)
