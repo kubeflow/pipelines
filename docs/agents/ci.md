@@ -315,3 +315,5 @@ complete evidence, not zero findings, applicability exemptions or release approv
 Pinned upstream OSV tooling accepts classic Docker config IDs and containerd
 manifest/index IDs only when SHA-256-verified archived descriptors bind the
 selected native config. Missing, tampered, ambiguous or mismatched chains fail.
+
+- TensorBoard deployed acceptance provisions Python 3.10 before deployment, matching the frontend acceptance lane. The shared deployment readiness helper invokes `python` and `pip`; do not rely on runner-provided `python3` alone.

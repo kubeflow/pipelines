@@ -26,6 +26,19 @@ class TensorBoardDeployedTest(unittest.TestCase):
                 self.assertEqual(workflow['jobs'][name]['runs-on'],
                                  'ubuntu-24.04')
 
+    def test_deployment_provisions_python_before_readiness_checks(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/tensorboard-acceptance.yml').read_text())
+        steps = workflow['jobs']['deployed']['steps']
+        deploy_index = next(i for i, step in enumerate(steps)
+                            if step.get('uses') == './.github/actions/deploy')
+        python_steps = [
+            step for step in steps[:deploy_index]
+            if step.get('uses', '').startswith('actions/setup-python@')
+        ]
+        self.assertEqual(len(python_steps), 1)
+        self.assertEqual(python_steps[0]['with']['python-version'], '3.10')
+
     def test_only_viewer_callers_opt_into_image_loading_and_waiting(self):
         action = yaml.safe_load(
             (ROOT / '.github/actions/deploy/action.yml').read_text())
