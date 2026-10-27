@@ -225,9 +225,12 @@ an interpreter. Python 3.9 environments select Requests 2.32.5 and urllib3 2.6.3
 Python 3.10 and newer retain Requests 2.33.0 and urllib3 2.8.0.
 
 The Python 3.9 dependency line retains published security findings whose upstream
-fixes require Python 3.10. Restored compatibility is not a security exception or a
-claim that those findings are resolved. Prefer a newer interpreter when possible;
-refresh dependency locks and test compilation and submission when changing it.
+fixes require Python 3.10. The reviewed findings have scoped deferrals for 2.18.0,
+restricted to their exact package/version/advisory/artifact identities. Changed
+findings require review; these deferrals do not resolve the vulnerabilities. See
+the [security tracker](https://github.com/kubeflow/pipelines/issues/14421).
+Prefer a newer interpreter when possible; refresh dependency locks and test
+compilation and submission when changing it.
 Upgrading the server does not update installed SDK packages or interpreters.
 Generic container components that do not install the SDK acquire no Python
 requirement from the server upgrade.

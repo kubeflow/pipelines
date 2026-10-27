@@ -56,23 +56,20 @@ and [HTTP configuration](docs/operator-guides/server-config.md#http-artifact-mig
 
 #### Python support in 2.18
 
-* **Python 3.10 is now the minimum for the KFP SDK and Kubernetes SDK
-  extension in 2.18.** Python 3.9 support ends with this release, following the
-  October 1, 2026 retirement date announced in
-  [#12383](https://github.com/kubeflow/pipelines/pull/12383). This is an explicit
-  release-2.18 compatibility decision in
-  [#14865](https://github.com/kubeflow/pipelines/pull/14865), enabling the fixed
-  Requests/urllib3 dependencies.
-* Upgrade Python 3.9 authoring environments, notebooks, CI submitters, and custom
-  component images that install the new SDK to Python 3.10 or later; rebuild
-  images and refresh dependency locks. Existing published packages and compiled
-  pipelines are not rewritten. Generic container components do not acquire a
-  Python requirement merely because KFP runs them.
-* This release keeps Python 3.10 compatibility; master separately requires
-  Python 3.11 or later under
-  [#14534](https://github.com/kubeflow/pipelines/issues/14534). Python 3.10 reaches
-  upstream end of life in October 2026, so Python 3.11 or later is the preferred
-  migration target.
+* **Python 3.9 remains supported** by the 2.18 KFP SDK and companion packages,
+  including the Kubernetes SDK extension and standalone API client.
+* Python 3.9 selects Requests 2.32.5 and urllib3 2.6.3; newer interpreters retain
+  Requests 2.33.0 and urllib3 2.8.0. The older dependency line has known security
+  findings whose upstream fixes require Python 3.10. The reviewed findings have
+  scoped deferrals for 2.18.0, restricted to their exact
+  package/version/advisory/artifact identities. Changed findings require review;
+  these deferrals do not resolve the vulnerabilities. See the
+  [security tracker](https://github.com/kubeflow/pipelines/issues/14421).
+* Prefer a newer interpreter when possible and refresh dependency locks when
+  changing Python. Existing published packages and compiled pipelines are not
+  rewritten by an SDK upgrade. Generic container components do not acquire a
+  Python requirement merely because KFP executes them. Master has a separate
+  Python support policy.
 
 #### Run retention
 
@@ -91,9 +88,9 @@ and [HTTP configuration](docs/operator-guides/server-config.md#http-artifact-mig
 
 #### Breaking changes for multi-user upgrades to 2.18
 
-- **SDK/client environments:** the accepted 2.18 SDK and Kubernetes SDK extension
-  minimum is Python >=3.10, delivered in [#14865](https://github.com/kubeflow/pipelines/pull/14865).
-  Upgrade affected Python 3.9 submitters and SDK-installing component images.
+- **SDK/client environments:** Python 3.9 remains supported by the SDK and
+  companion packages. Prefer newer interpreters for patched dependencies;
+  refresh locks and rebuild SDK-installing component images when changing Python.
   Newly compiled components may need explicit private-mirror trust; embedded
   artifacts must be self-contained. Download consumers must handle attachments
   and original archive bytes. See [migration examples](docs/operator-guides/upgrade-2.18.md#sdk-and-custom-client-migration).
