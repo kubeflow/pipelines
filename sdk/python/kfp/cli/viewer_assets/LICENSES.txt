@@ -1249,7 +1249,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## isarray - 0.0.1 (MIT)
 
-## js-yaml - 5.4.1 (MIT)
+## js-yaml - 5.5.0 (MIT)
 
 (The MIT License)
 
