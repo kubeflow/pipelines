@@ -616,7 +616,7 @@ describe('NewPipelineVersion', () => {
 
     describe('kubernetes pipeline store', () => {
       beforeEach(() => {
-        vi.spyOn(Apis.pipelineServiceApi, 'getPipeline').mockResolvedValue({
+        vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline').mockResolvedValue({
           name: 'test-pipeline',
         } as any);
       });

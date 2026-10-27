@@ -3,7 +3,7 @@ import { UIServer } from '../app.js';
 import { commonSetup, buildQuery } from './test-helper.js';
 import requests from 'supertest';
 import { loadConfigs } from '../configs.js';
-import * as minioHelper from '../minio-helper.js';
+import * as minioHelper from '../artifact-store.js';
 import { PassThrough } from 'stream';
 import express, { type RequestHandler } from 'express';
 import { Server } from 'http';
@@ -186,6 +186,32 @@ describe('/artifacts/get namespaced proxy', () => {
     expect(response.headers['set-cookie']).toBeUndefined();
     expect(response.headers['x-powered-by']).toBe('Express');
     expect(response.headers['x-tenant-header']).toBeUndefined();
+  });
+
+  it('preserves rate-limit status and retry guidance from the namespaced artifact service', async () => {
+    await setUpNamespacedArtifactService({
+      namespace: 'ns2',
+      responseHeaders: { 'Retry-After': '17', RateLimit: '"300-in-1min"; r=0; t=17' },
+      requestHandler: (_req, res) => res.status(429).send('receiver quota exceeded'),
+    });
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+
+    const response = await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          ...commonParams,
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(429);
+
+    expect(response.headers['retry-after']).toBe('17');
+    // The shared server reports its own budget, not the receiver's.
+    expect(response.headers['ratelimit']).toContain('r=299');
+    expect(response.headers['content-disposition']).toBe('attachment');
   });
 
   it('preserves a safe proxy download filename while forcing attachment', async () => {

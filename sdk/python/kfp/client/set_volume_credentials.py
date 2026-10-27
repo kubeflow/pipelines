@@ -16,13 +16,15 @@ import logging
 import os
 from typing import Optional
 
+from kubernetes.client import configuration
+
 from kfp import client
 from kfp.client import token_credentials_base
-from kubernetes.client import configuration
 
 
 class ServiceAccountTokenVolumeCredentials(
-        token_credentials_base.TokenCredentialsBase):
+    token_credentials_base.TokenCredentialsBase
+):
     """Audience-bound ServiceAccountToken in the local filesystem.
 
     This is a credentials interface for audience-bound ServiceAccountTokens
@@ -47,8 +49,10 @@ class ServiceAccountTokenVolumeCredentials(
             path (Optional[str], optional): Path of file containing auth token. Defaults to None.
         """
         self._token_path = (
-            path or os.getenv(client.KF_PIPELINES_SA_TOKEN_ENV) or
-            client.KF_PIPELINES_SA_TOKEN_PATH)
+            path
+            or os.getenv(client.KF_PIPELINES_SA_TOKEN_ENV)
+            or client.KF_PIPELINES_SA_TOKEN_PATH
+        )
 
     def _get_token(self) -> str:
         """Reads the token found in file provided as `path` argument to
@@ -60,10 +64,14 @@ class ServiceAccountTokenVolumeCredentials(
         token = None
         try:
             token = token_credentials_base.read_token_from_file(
-                self._token_path)
+                self._token_path
+            )
         except OSError as e:
-            logging.error("Failed to read a token from file '%s' (%s).",
-                          self._token_path, str(e))
+            logging.error(
+                "Failed to read a token from file '%s' (%s).",
+                self._token_path,
+                str(e),
+            )
             raise
         return token
 
@@ -79,6 +87,6 @@ class ServiceAccountTokenVolumeCredentials(
                 The configuration object that the client uses.
 
                 The Configuration object of the kubernetes client's is the same
-                with kfp_server_api.configuration.Configuration.
+                with kfp.server_api.configuration.Configuration.
         """
         config.api_key['authorization'] = self._get_token()

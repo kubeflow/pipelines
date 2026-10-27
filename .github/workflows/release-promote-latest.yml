@@ -1,0 +1,75 @@
+name: Promote Published Release Images
+run-name: KFP latest promotion ${{ inputs.version }} ${{ inputs.request_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published stable backend release (X.Y.Z)
+        required: true
+        type: string
+      request_id:
+        description: Unique request identifier for kfpr dispatch tracking
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: kfp-published-images-latest-promotion
+  cancel-in-progress: false
+jobs:
+  discover:
+    if: github.repository == 'kubeflow/pipelines' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      inventory: ${{ steps.discover.outputs.inventory }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - id: discover
+        run: python -m kfpr.promotion discover
+        env:
+          PYTHONPATH: release
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+  promote:
+    needs: discover
+    if: github.repository == 'kubeflow/pipelines' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Promote exact released indexes without rebuilding
+        run: python -m kfpr.promotion promote
+        env:
+          PYTHONPATH: release
+          PROMOTION_INVENTORY: ${{ needs.discover.outputs.inventory }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Retain before and after index evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: latest-promotion-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: warn

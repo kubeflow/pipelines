@@ -1,57 +1,151 @@
-# Copyright 2018 The Kubeflow Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: helloworld-
-spec:
-  entrypoint: diamond
-  serviceAccountName: pipeline-runner
-  arguments:
-    parameters:
-    - name: message
-      value: hello world
-
-  templates:
-  - name: diamond
-    dag:
-      tasks:
-      - name: A
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: A"}]
-      - name: B
-        dependencies: [A]
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: B"}]
-      - name: C
-        dependencies: [A]
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: C"}]
-      - name: D
-        dependencies: [B, C]
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: D"}]
-
-  - name: echo
-    inputs:
+# PIPELINE DEFINITION
+# Name: helloworld
+# Inputs:
+#    message: str [Default: 'hello world']
+components:
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
       parameters:
-      - name: message
-    container:
-      image: alpine:3.7
-      command: [echo, "{{inputs.parameters.message}}"]
+        message:
+          parameterType: STRING
+        node:
+          parameterType: STRING
+  comp-echo-2:
+    executorLabel: exec-echo-2
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        node:
+          parameterType: STRING
+  comp-echo-3:
+    executorLabel: exec-echo-3
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        node:
+          parameterType: STRING
+  comp-echo-4:
+    executorLabel: exec-echo-4
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        node:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-echo:
+      container:
+        args:
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
+        command:
+        - echo
+        image: alpine:3.21
+    exec-echo-2:
+      container:
+        args:
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
+        command:
+        - echo
+        image: alpine:3.21
+    exec-echo-3:
+      container:
+        args:
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
+        command:
+        - echo
+        image: alpine:3.21
+    exec-echo-4:
+      container:
+        args:
+        - '{{$.inputs.parameters[''message'']}}'
+        - 'from node:'
+        - '{{$.inputs.parameters[''node'']}}'
+        command:
+        - echo
+        image: alpine:3.21
+pipelineInfo:
+  name: helloworld
+root:
+  dag:
+    tasks:
+      echo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: message
+            node:
+              runtimeValue:
+                constant: A
+        taskInfo:
+          name: A
+      echo-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-2
+        dependentTasks:
+        - echo
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: message
+            node:
+              runtimeValue:
+                constant: B
+        taskInfo:
+          name: B
+      echo-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-3
+        dependentTasks:
+        - echo
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: message
+            node:
+              runtimeValue:
+                constant: C
+        taskInfo:
+          name: C
+      echo-4:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-4
+        dependentTasks:
+        - echo-2
+        - echo-3
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: message
+            node:
+              runtimeValue:
+                constant: D
+        taskInfo:
+          name: D
+  inputDefinitions:
+    parameters:
+      message:
+        defaultValue: hello world
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.16.1

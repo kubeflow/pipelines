@@ -13,29 +13,23 @@
 # limitations under the License.
 """Pipeline using dsl.importer and GCPC types."""
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import importer
 
 
 class VertexDataset(dsl.Artifact):
     """An artifact representing a GCPC Vertex Dataset."""
+
     schema_title = 'google.VertexDataset'
 
 
-consumer_op = components.load_component_from_text("""
-name: consumer_op
-inputs:
-  - {name: dataset, type: google.VertexDataset}
-implementation:
-  container:
-    image: dummy
-    command:
-    - cmd
-    args:
-    - {inputPath: dataset}
-""")
+@dsl.container_component
+def consumer_op(dataset: dsl.Input[VertexDataset]):
+    return dsl.ContainerSpec(
+        image='dummy',
+        command=['cmd'],
+        args=[dataset.path],
+    )
 
 
 @dsl.pipeline(name='pipeline-with-importer-and-gcpc-type')
@@ -45,11 +39,12 @@ def my_pipeline():
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
         artifact_class=VertexDataset,
         reimport=False,
-        metadata={'key': 'value'})
+        metadata={'key': 'value'},
+    )
     consume1 = consumer_op(dataset=importer1.output)
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

@@ -20,12 +20,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -78,6 +77,10 @@ var _ = BeforeSuite(func() {
 		if err != nil {
 			log.Fatalf("Error getting TLS Config: %v", err)
 		}
+	}
+
+	if *config.UseLegacyAPIPrefix {
+		Expect(testutil.WaitForReady(time.Minute)).To(Succeed(), "Legacy API prefix must be ready before running tests")
 	}
 
 	if *config.KubeflowMode {
@@ -156,8 +159,8 @@ var _ = BeforeEach(func() {
 	testContext = &TestContext{
 		TestStartTimeUTC: time.Now(),
 	}
-	randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
-	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
+	randomName = testutil.NewTestResourceNameSuffix(GinkgoParallelProcess())
+	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2Pipeline, 0)
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)

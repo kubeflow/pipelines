@@ -175,3 +175,54 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [sample pipeline]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.py
 [sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.yaml
 [KFP docs]: https://www.kubeflow.org/docs/components/pipelines/getting-started/
+
+## Multi-user artifact ownership
+
+With `ENABLE_AUTHZ=true`, artifact previews and downloads first require permission
+for the requested namespace. Unsafe keys and known foreign namespace prefixes are
+rejected. An exact native Artifact API match in the authorized namespace permits
+an existing custom root without requiring `private-artifacts/<namespace>/`.
+For example, a registered `s3://bucket/model/team-a-training/result` can be read
+without moving the object. Storage endpoint, provider and credential restrictions
+still apply independently.
+
+`ARTIFACT_NAMESPACE_OWNERSHIP_MODE=artifact-then-prefix` is the default: a canonical
+key under the configured namespace prefix can pass without a metadata lookup.
+A genuine no-record result also uses the existing prefix fallback. `artifact-only`
+requires a matching native record; it does not require a namespace prefix after
+that match. The legacy spellings `mlmd-then-prefix` and `mlmd-only` remain aliases
+for these native policies, not a runtime MLMD dependency. Lookup failures deny
+access; invalid modes do not enable no-record fallback. Neither mode is an audit
+switch. `ARTIFACT_NAMESPACE_KEY_PREFIX` changes the prefix used for those checks.
+
+**This compatibility policy does not establish complete object authorization.**
+A tenant can register an arbitrary custom-root URI in its own native metadata. If
+the serving credentials can read that object, the metadata match can expose it.
+A namespace proxy or distinct Secret name does not prove isolation; stock storage
+grants can include shared legacy paths. The
+[backend-first artifact API work](https://github.com/kubeflow/pipelines/issues/14031)
+must replace this boundary before claiming 3.0 artifact remediation. Metadata
+registration, including imported history, is not a trustworthy grant to object bytes.
+
+With `ARTIFACTS_SERVICE_PROXY_ENABLED=true`, HTTP(S) requests use the namespace
+artifact service and its `HTTP_BASE_URL` and HTTP credentials. Otherwise the shared
+UI serves them using its configuration. Configure each actual serving process;
+proxy mode does not require copying namespace HTTP credentials into the shared UI.
+Absolute HTTP bases confine every request/redirect to the approved origin and path.
+The scheme-less gateway form retains its domain-allowlisted redirect behavior and
+strips configured authentication when the origin changes. Redirects are no longer
+required to have a namespace-shaped path. Destination controls alone do not prove
+object ownership. See [HTTP serving configuration](../docs/operator-guides/server-config.md#http-artifact-serving-configuration).
+
+Updated namespace receivers retain destination, credential, path and response
+protections. Old receivers retain their old behavior until their normal rollout
+finishes. Central multi-user `volume://` reads remain denied; supported isolated
+volume paths are unchanged.
+
+The final 3.0 backend transition must start from actual 2.18 installations without
+assuming new storage approvals, readiness records or a versioned receiver protocol
+were installed. [#14883](https://github.com/kubeflow/pipelines/pull/14883) is a
+reference implementation and test source, not a required intermediate deployment.
+The [2.18 rollback](https://github.com/kubeflow/pipelines/pull/15044) is separate:
+master retains native Artifact APIs and fail-closed lookup errors, not MLMD's
+permissive missing-evidence behavior.

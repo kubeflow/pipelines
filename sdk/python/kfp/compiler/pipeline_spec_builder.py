@@ -16,34 +16,32 @@
 import copy
 import json
 import typing
-
-# SDK CI uses isort 5.10.1; pre-commit CI uses isort 9.0.1.
-# isort: off
-from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
-                    Union)
-# isort: on
 import warnings
+from typing import Any, DefaultDict, Dict, List, Mapping, Optional, Tuple, Union
 
-from google.protobuf import json_format
-from google.protobuf import struct_pb2
+import yaml
+from google.protobuf import json_format, struct_pb2
+
 import kfp
 from kfp import dsl
 from kfp.compiler import compiler_utils
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
-from kfp.dsl import component_factory
-from kfp.dsl import for_loop
-from kfp.dsl import pipeline_channel
-from kfp.dsl import pipeline_config
-from kfp.dsl import pipeline_context
-from kfp.dsl import pipeline_task
-from kfp.dsl import placeholders
-from kfp.dsl import structures
-from kfp.dsl import tasks_group
-from kfp.dsl import utils
+from kfp.dsl import (
+    component_factory,
+    constants,
+    for_loop,
+    pipeline_channel,
+    pipeline_config,
+    pipeline_context,
+    pipeline_task,
+    placeholders,
+    structures,
+    tasks_group,
+    utils,
+)
 from kfp.dsl.component_task_config import TaskConfigField
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 # must be defined here to avoid circular imports
 group_type_to_dsl_class = {
@@ -55,7 +53,8 @@ group_type_to_dsl_class = {
 
 
 def to_protobuf_value(
-        value: Optional[type_utils.PARAMETER_TYPES]) -> struct_pb2.Value:
+    value: Optional[type_utils.PARAMETER_TYPES],
+) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
     value.
 
@@ -79,17 +78,22 @@ def to_protobuf_value(
         return struct_pb2.Value(number_value=value)
     elif isinstance(value, dict):
         return struct_pb2.Value(
-            struct_value=struct_pb2.Struct(fields={
-                k: to_protobuf_value(v) for k, v in value.items()
-            }))
+            struct_value=struct_pb2.Struct(
+                fields={k: to_protobuf_value(v) for k, v in value.items()}
+            )
+        )
     elif isinstance(value, list):
         return struct_pb2.Value(
             list_value=struct_pb2.ListValue(
-                values=[to_protobuf_value(v) for v in value]))
+                values=[to_protobuf_value(v) for v in value]
+            )
+        )
     else:
-        raise ValueError('Value must be one of the following types: '
-                         'None, str, int, float, bool, dict, and list. Got: '
-                         f'"{value}" of type "{type(value)}".')
+        raise ValueError(
+            'Value must be one of the following types: '
+            'None, str, int, float, bool, dict, and list. Got: '
+            f'"{value}" of type "{type(value)}".'
+        )
 
 
 def build_task_spec_for_task(
@@ -125,21 +129,24 @@ def build_task_spec_for_task(
     """
     pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
     pipeline_task_spec.task_info.name = (
-        task._task_spec.display_name or task.name)
+        task._task_spec.display_name or task.name
+    )
     # Use task.name for component_ref.name because we may customize component
     # spec for individual tasks to work around the lack of optional inputs
     # support in IR.
-    pipeline_task_spec.component_ref.name = (
-        utils.sanitize_component_name(task.name))
+    pipeline_task_spec.component_ref.name = utils.sanitize_component_name(
+        task.name
+    )
     pipeline_task_spec.caching_options.enable_cache = (
-        task._task_spec.enable_caching)
+        task._task_spec.enable_caching
+    )
     if task._task_spec.cache_key:
-        pipeline_task_spec.caching_options.cache_key = (
-            task._task_spec.cache_key)
+        pipeline_task_spec.caching_options.cache_key = task._task_spec.cache_key
 
     if task._task_spec.retry_policy is not None:
         pipeline_task_spec.retry_policy.CopyFrom(
-            task._task_spec.retry_policy.to_proto())
+            task._task_spec.retry_policy.to_proto()
+        )
 
     # Inject resource fields into inputs
     if task.container_spec and task.container_spec.resources:
@@ -157,110 +164,148 @@ def build_task_spec_for_task(
         # types than PipelineParameterChannel, start with them.
 
         if isinstance(input_value, for_loop.LoopParameterArgument):
-
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value))
-            assert component_input_parameter in parent_component_inputs.parameters, \
+                    input_value
+                )
+            )
+            assert (
+                component_input_parameter in parent_component_inputs.parameters
+            ), (
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            )
             pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
+                input_name
+            ].component_input_parameter = component_input_parameter
 
         elif isinstance(input_value, for_loop.LoopArtifactArgument):
-
             component_input_artifact = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value))
-            assert component_input_artifact in parent_component_inputs.artifacts, \
+                    input_value
+                )
+            )
+            assert (
+                component_input_artifact in parent_component_inputs.artifacts
+            ), (
                 f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+            )
             pipeline_task_spec.inputs.artifacts[
-                input_name].component_input_artifact = (
-                    component_input_artifact)
+                input_name
+            ].component_input_artifact = component_input_artifact
 
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
-
             component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value.loop_argument))
-            assert component_input_parameter in parent_component_inputs.parameters, \
+                    input_value.loop_argument
+                )
+            )
+            assert (
+                component_input_parameter in parent_component_inputs.parameters
+            ), (
                 f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            )
             pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    component_input_parameter)
+                input_name
+            ].component_input_parameter = component_input_parameter
             pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{input_value.subvar_name}"]')
-        elif isinstance(input_value,
-                        pipeline_channel.PipelineArtifactChannel) or (
-                            isinstance(input_value, dsl.Collected) and
-                            input_value.is_artifact_channel):
-
+                input_name
+            ].parameter_expression_selector = (
+                f'parseJson(string_value)["{input_value.subvar_name}"]'
+            )
+        elif isinstance(
+            input_value, pipeline_channel.PipelineArtifactChannel
+        ) or (
+            isinstance(input_value, dsl.Collected)
+            and input_value.is_artifact_channel
+        ):
             if input_value.task_name:
                 # Value is produced by an upstream task.
                 if input_value.task_name in tasks_in_current_dag:
                     # Dependent task within the same DAG.
                     pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
+                        input_name
+                    ].task_output_artifact.producer_task = (
+                        utils.sanitize_task_name(input_value.task_name)
+                    )
                     pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.output_artifact_key = (
-                            input_value.name)
+                        input_name
+                    ].task_output_artifact.output_artifact_key = (
+                        input_value.name
+                    )
                 else:
                     # Dependent task not from the same DAG.
-                    component_input_artifact = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_artifact in parent_component_inputs.artifacts, \
+                    component_input_artifact = compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value
+                    )
+                    assert (
+                        component_input_artifact
+                        in parent_component_inputs.artifacts
+                    ), (
                         f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+                    )
                     pipeline_task_spec.inputs.artifacts[
-                        input_name].component_input_artifact = (
-                            component_input_artifact)
+                        input_name
+                    ].component_input_artifact = component_input_artifact
             else:
                 component_input_artifact = input_value.full_name
-                if component_input_artifact not in parent_component_inputs.artifacts:
-                    component_input_artifact = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
+                if (
+                    component_input_artifact
+                    not in parent_component_inputs.artifacts
+                ):
+                    component_input_artifact = compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value
+                    )
                 pipeline_task_spec.inputs.artifacts[
-                    input_name].component_input_artifact = (
-                        component_input_artifact)
+                    input_name
+                ].component_input_artifact = component_input_artifact
 
-        elif isinstance(input_value,
-                        pipeline_channel.PipelineParameterChannel) or (
-                            isinstance(input_value, dsl.Collected) and
-                            not input_value.is_artifact_channel):
+        elif isinstance(
+            input_value, pipeline_channel.PipelineParameterChannel
+        ) or (
+            isinstance(input_value, dsl.Collected)
+            and not input_value.is_artifact_channel
+        ):
             if input_value.task_name:
-
                 # Value is produced by an upstream task.
                 if input_value.task_name in tasks_in_current_dag:
                     # Dependent task within the same DAG.
                     pipeline_task_spec.inputs.parameters[
-                        input_name].task_output_parameter.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
+                        input_name
+                    ].task_output_parameter.producer_task = (
+                        utils.sanitize_task_name(input_value.task_name)
+                    )
                     pipeline_task_spec.inputs.parameters[
-                        input_name].task_output_parameter.output_parameter_key = (
-                            input_value.name)
+                        input_name
+                    ].task_output_parameter.output_parameter_key = (
+                        input_value.name
+                    )
                 else:
                     # Dependent task not from the same DAG.
-                    component_input_parameter = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_parameter in parent_component_inputs.parameters, \
+                    component_input_parameter = compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value
+                    )
+                    assert (
+                        component_input_parameter
+                        in parent_component_inputs.parameters
+                    ), (
                         f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                    )
                     pipeline_task_spec.inputs.parameters[
-                        input_name].component_input_parameter = (
-                            component_input_parameter)
+                        input_name
+                    ].component_input_parameter = component_input_parameter
             else:
                 # Value is from pipeline input.
                 component_input_parameter = input_value.full_name
-                if component_input_parameter not in parent_component_inputs.parameters:
-                    component_input_parameter = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
+                if (
+                    component_input_parameter
+                    not in parent_component_inputs.parameters
+                ):
+                    component_input_parameter = compiler_utils.additional_input_name_for_pipeline_channel(
+                        input_value
+                    )
                 pipeline_task_spec.inputs.parameters[
-                    input_name].component_input_parameter = (
-                        component_input_parameter)
+                    input_name
+                ].component_input_parameter = component_input_parameter
 
         elif isinstance(input_value, (str, int, float, bool, dict, list)):
             pipeline_channels = (
@@ -277,7 +322,9 @@ def build_task_spec_for_task(
                 # doesn't collide with any existing input names.
                 additional_input_name = (
                     compiler_utils.additional_input_name_for_pipeline_channel(
-                        channel))
+                        channel
+                    )
+                )
 
                 # We don't expect collision to happen because we prefix the name
                 # of additional input with 'pipelinechannel--'. But just in case
@@ -289,58 +336,75 @@ def build_task_spec_for_task(
                             f'Name collision between existing input name {existing_input_name} and compiler injected input name {additional_input_name}'
                         )
 
-                additional_input_placeholder = placeholders.InputValuePlaceholder(
-                    additional_input_name)._to_string()
+                additional_input_placeholder = (
+                    placeholders.InputValuePlaceholder(
+                        additional_input_name
+                    )._to_string()
+                )
 
                 input_value = compiler_utils.recursive_replace_placeholders(
-                    input_value, channel.pattern, additional_input_placeholder)
+                    input_value, channel.pattern, additional_input_placeholder
+                )
 
                 if channel.task_name:
                     # Value is produced by an upstream task.
                     if channel.task_name in tasks_in_current_dag:
                         # Dependent task within the same DAG.
                         pipeline_task_spec.inputs.parameters[
-                            additional_input_name].task_output_parameter.producer_task = (
-                                utils.sanitize_task_name(channel.task_name))
+                            additional_input_name
+                        ].task_output_parameter.producer_task = (
+                            utils.sanitize_task_name(channel.task_name)
+                        )
                         pipeline_task_spec.inputs.parameters[
-                            additional_input_name].task_output_parameter.output_parameter_key = (
-                                channel.name)
+                            additional_input_name
+                        ].task_output_parameter.output_parameter_key = (
+                            channel.name
+                        )
                     else:
                         # Dependent task not from the same DAG.
-                        component_input_parameter = (
-                            compiler_utils.
-                            additional_input_name_for_pipeline_channel(channel))
-                        assert component_input_parameter in parent_component_inputs.parameters, \
+                        component_input_parameter = compiler_utils.additional_input_name_for_pipeline_channel(
+                            channel
+                        )
+                        assert (
+                            component_input_parameter
+                            in parent_component_inputs.parameters
+                        ), (
                             f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+                        )
                         pipeline_task_spec.inputs.parameters[
-                            additional_input_name].component_input_parameter = (
-                                component_input_parameter)
+                            additional_input_name
+                        ].component_input_parameter = component_input_parameter
                 else:
                     # Value is from pipeline input. (or loop?)
                     component_input_parameter = channel.full_name
-                    if component_input_parameter not in parent_component_inputs.parameters:
-                        component_input_parameter = (
-                            compiler_utils.
-                            additional_input_name_for_pipeline_channel(channel))
+                    if (
+                        component_input_parameter
+                        not in parent_component_inputs.parameters
+                    ):
+                        component_input_parameter = compiler_utils.additional_input_name_for_pipeline_channel(
+                            channel
+                        )
                     pipeline_task_spec.inputs.parameters[
-                        additional_input_name].component_input_parameter = (
-                            component_input_parameter)
+                        additional_input_name
+                    ].component_input_parameter = component_input_parameter
 
             pipeline_task_spec.inputs.parameters[
-                input_name].runtime_value.constant.CopyFrom(
-                    to_protobuf_value(input_value))
+                input_name
+            ].runtime_value.constant.CopyFrom(to_protobuf_value(input_value))
 
         else:
             raise ValueError(
                 'Input argument supports only the following types: '
                 'str, int, float, bool, dict, and list.'
-                f'Got {input_value} of type {type(input_value)}.')
+                f'Got {input_value} of type {type(input_value)}.'
+            )
 
     return pipeline_task_spec
 
 
 def build_component_spec_for_exit_task(
-    task: pipeline_task.PipelineTask,) -> pipeline_spec_pb2.ComponentSpec:
+    task: pipeline_task.PipelineTask,
+) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec for an exit task.
 
     Args:
@@ -350,7 +414,8 @@ def build_component_spec_for_exit_task(
         A ComponentSpec object for the exit task.
     """
     return build_component_spec_for_task(
-        task=task, is_compiled_component=False, is_exit_task=True)
+        task=task, is_compiled_component=False, is_exit_task=True
+    )
 
 
 def build_component_spec_for_task(
@@ -368,54 +433,64 @@ def build_component_spec_for_task(
         A ComponentSpec object for the task.
     """
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
-        if not is_exit_task and type_utils.is_task_final_status_type(
-                input_spec.type
-        ) and not is_compiled_component and not task._ignore_upstream_failure_tag:
+        if (
+            not is_exit_task
+            and type_utils.is_task_final_status_type(input_spec.type)
+            and not is_compiled_component
+            and not task._ignore_upstream_failure_tag
+        ):
             raise ValueError(
                 f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
             )
 
     component_spec = _build_component_spec_from_component_spec_structure(
-        task.component_spec)
+        task.component_spec
+    )
     component_spec.executor_label = utils.sanitize_executor_label(task.name)
     return component_spec
 
 
 def _build_component_spec_from_component_spec_structure(
-    component_spec_struct: structures.ComponentSpec
+    component_spec_struct: structures.ComponentSpec,
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec proto from ComponentSpec structure."""
     component_spec = pipeline_spec_pb2.ComponentSpec()
 
     for input_name, input_spec in (component_spec_struct.inputs or {}).items():
-
         # Special handling for PipelineTaskFinalStatus first.
         if type_utils.is_task_final_status_type(input_spec.type):
             component_spec.input_definitions.parameters[
-                input_name].parameter_type = pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS
+                input_name
+            ].parameter_type = pipeline_spec_pb2.ParameterType.TASK_FINAL_STATUS
             component_spec.input_definitions.parameters[
-                input_name].is_optional = True
+                input_name
+            ].is_optional = True
             if input_spec.description:
                 component_spec.input_definitions.parameters[
-                    input_name].description = input_spec.description
+                    input_name
+                ].description = input_spec.description
 
         # Special handling for TaskConfig second.
         elif type_utils.is_task_config_type(input_spec.type):
             component_spec.input_definitions.parameters[
-                input_name].parameter_type = pipeline_spec_pb2.ParameterType.TASK_CONFIG
+                input_name
+            ].parameter_type = pipeline_spec_pb2.ParameterType.TASK_CONFIG
             component_spec.input_definitions.parameters[
-                input_name].is_optional = True
+                input_name
+            ].is_optional = True
             if input_spec.description:
                 component_spec.input_definitions.parameters[
-                    input_name].description = input_spec.description
+                    input_name
+                ].description = input_spec.description
 
         elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
-                input_name].parameter_type = type_utils.get_parameter_type(
-                    input_spec.type)
+                input_name
+            ].parameter_type = type_utils.get_parameter_type(input_spec.type)
             if input_spec.optional:
                 component_spec.input_definitions.parameters[
-                    input_name].is_optional = True
+                    input_name
+                ].is_optional = True
                 _fill_in_component_input_default_value(
                     component_spec=component_spec,
                     input_name=input_name,
@@ -423,41 +498,51 @@ def _build_component_spec_from_component_spec_structure(
                 )
             if input_spec.description:
                 component_spec.input_definitions.parameters[
-                    input_name].description = input_spec.description
+                    input_name
+                ].description = input_spec.description
 
         else:
             component_spec.input_definitions.artifacts[
-                input_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        input_spec.type))
+                input_name
+            ].artifact_type.CopyFrom(
+                type_utils.bundled_artifact_to_artifact_proto(input_spec.type)
+            )
             component_spec.input_definitions.artifacts[
-                input_name].is_artifact_list = input_spec.is_artifact_list
+                input_name
+            ].is_artifact_list = input_spec.is_artifact_list
             if input_spec.optional:
                 component_spec.input_definitions.artifacts[
-                    input_name].is_optional = True
+                    input_name
+                ].is_optional = True
             if input_spec.description:
                 component_spec.input_definitions.artifacts[
-                    input_name].description = input_spec.description
+                    input_name
+                ].description = input_spec.description
 
-    for output_name, output_spec in (component_spec_struct.outputs or
-                                     {}).items():
+    for output_name, output_spec in (
+        component_spec_struct.outputs or {}
+    ).items():
         if type_utils.is_parameter_type(output_spec.type):
             component_spec.output_definitions.parameters[
-                output_name].parameter_type = type_utils.get_parameter_type(
-                    output_spec.type)
+                output_name
+            ].parameter_type = type_utils.get_parameter_type(output_spec.type)
             if output_spec.description:
                 component_spec.output_definitions.parameters[
-                    output_name].description = output_spec.description
+                    output_name
+                ].description = output_spec.description
         else:
             component_spec.output_definitions.artifacts[
-                output_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        output_spec.type))
+                output_name
+            ].artifact_type.CopyFrom(
+                type_utils.bundled_artifact_to_artifact_proto(output_spec.type)
+            )
             component_spec.output_definitions.artifacts[
-                output_name].is_artifact_list = output_spec.is_artifact_list
+                output_name
+            ].is_artifact_list = output_spec.is_artifact_list
             if output_spec.description:
                 component_spec.output_definitions.artifacts[
-                    output_name].description = output_spec.description
+                    output_name
+                ].description = output_spec.description
 
     # Attach TaskConfig passthroughs if present on the structure
     if getattr(component_spec_struct, 'task_config_passthroughs', None):
@@ -486,20 +571,24 @@ def connect_single_dag_output(
                 f'Pipeline or component output not defined: {output_name}. You may be missing a type annotation.'
             )
         component_spec.dag.outputs.artifacts[
-            output_name].artifact_selectors.append(
-                pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
-                    producer_subtask=output_channel.task_name,
-                    output_artifact_key=output_channel.name,
-                ))
+            output_name
+        ].artifact_selectors.append(
+            pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                producer_subtask=output_channel.task_name,
+                output_artifact_key=output_channel.name,
+            )
+        )
     elif isinstance(output_channel, pipeline_channel.PipelineParameterChannel):
         if output_name not in component_spec.output_definitions.parameters:
             raise ValueError(
                 f'Pipeline or component output not defined: {output_name}. You may be missing a type annotation.'
             )
         component_spec.dag.outputs.parameters[
-            output_name].value_from_parameter.producer_subtask = output_channel.task_name
+            output_name
+        ].value_from_parameter.producer_subtask = output_channel.task_name
         component_spec.dag.outputs.parameters[
-            output_name].value_from_parameter.output_parameter_key = output_channel.name
+            output_name
+        ].value_from_parameter.output_parameter_key = output_channel.name
 
 
 def connect_oneof_dag_output(
@@ -522,11 +611,13 @@ def connect_oneof_dag_output(
             )
         for channel in oneof_output.channels:
             component_spec.dag.outputs.artifacts[
-                output_name].artifact_selectors.append(
-                    pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
-                        producer_subtask=channel.task_name,
-                        output_artifact_key=channel.name,
-                    ))
+                output_name
+            ].artifact_selectors.append(
+                pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                    producer_subtask=channel.task_name,
+                    output_artifact_key=channel.name,
+                )
+            )
     if isinstance(oneof_output, pipeline_channel.OneOfParameter):
         if output_name not in component_spec.output_definitions.parameters:
             raise ValueError(
@@ -534,11 +625,13 @@ def connect_oneof_dag_output(
             )
         for channel in oneof_output.channels:
             component_spec.dag.outputs.parameters[
-                output_name].value_from_oneof.parameter_selectors.append(
-                    pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
-                        producer_subtask=channel.task_name,
-                        output_parameter_key=channel.name,
-                    ))
+                output_name
+            ].value_from_oneof.parameter_selectors.append(
+                pipeline_spec_pb2.DagOutputsSpec.ParameterSelectorSpec(
+                    producer_subtask=channel.task_name,
+                    output_parameter_key=channel.name,
+                )
+            )
 
 
 def _build_dag_outputs(
@@ -563,7 +656,8 @@ def _build_dag_outputs(
 
 
 def validate_dag_outputs(
-        component_spec: pipeline_spec_pb2.ComponentSpec) -> None:
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+) -> None:
     """Validates the DAG's ComponentSpec specifies the source task for all of
     its ComponentSpec inputs (input_definitions) and outputs
     (output_definitions)."""
@@ -601,7 +695,7 @@ def build_oneof_dag_outputs(
 
 
 def build_importer_spec_for_task(
-    task: pipeline_task.PipelineTask
+    task: pipeline_task.PipelineTask,
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
     """Builds ImporterSpec for a pipeline task.
 
@@ -612,9 +706,11 @@ def build_importer_spec_for_task(
         A ImporterSpec object for the task.
     """
     type_schema = type_utils.bundled_artifact_to_artifact_proto(
-        task.importer_spec.schema_title)
+        task.importer_spec.schema_title
+    )
     importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
-        type_schema=type_schema, reimport=task.importer_spec.reimport)
+        type_schema=type_schema, reimport=task.importer_spec.reimport
+    )
 
     if task.importer_spec.metadata:
         metadata_protobuf_struct = struct_pb2.Struct()
@@ -623,19 +719,24 @@ def build_importer_spec_for_task(
 
     # Emit download_to_workspace if set on the task
     if getattr(task.importer_spec, 'download_to_workspace', False):
-        importer_spec.download_to_workspace = task.importer_spec.download_to_workspace
+        importer_spec.download_to_workspace = (
+            task.importer_spec.download_to_workspace
+        )
 
-    if isinstance(task.importer_spec.artifact_uri,
-                  pipeline_channel.PipelineChannel):
+    if isinstance(
+        task.importer_spec.artifact_uri, pipeline_channel.PipelineChannel
+    ):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
     elif isinstance(task.importer_spec.artifact_uri, str):
-        importer_spec.artifact_uri.constant.string_value = task.importer_spec.artifact_uri
+        importer_spec.artifact_uri.constant.string_value = (
+            task.importer_spec.artifact_uri
+        )
 
     return importer_spec
 
 
 def build_container_spec_for_task(
-    task: pipeline_task.PipelineTask
+    task: pipeline_task.PipelineTask,
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec:
     """Builds PipelineContainerSpec for a pipeline task.
 
@@ -646,14 +747,16 @@ def build_container_spec_for_task(
         A PipelineContainerSpec object for the task.
     """
 
-    def _raise_passthrough_error(task: pipeline_task.PipelineTask,
-                                 resource_type: str) -> None:
+    def _raise_passthrough_error(
+        task: pipeline_task.PipelineTask, resource_type: str
+    ) -> None:
         raise ValueError(
             f"Task '{task.name}' cannot handle resource type '{resource_type}' based on the values in task_config_passthroughs"
         )
 
     def _validate_task_config_passthroughs_for_container_settings(
-        task: pipeline_task.PipelineTask,) -> None:
+        task: pipeline_task.PipelineTask,
+    ) -> None:
         """Validates that when a component declares TaskConfig passthroughs,
         the task does not set container-level resources/env that are not
         listed.
@@ -661,8 +764,9 @@ def build_container_spec_for_task(
         This prevents silent no-ops at runtime when a component expects
         to handle certain TaskConfig fields externally.
         """
-        passthroughs = getattr(task.component_spec, 'task_config_passthroughs',
-                               None)
+        passthroughs = getattr(
+            task.component_spec, 'task_config_passthroughs', None
+        )
         if not passthroughs:
             return
 
@@ -670,17 +774,20 @@ def build_container_spec_for_task(
 
         if task.container_spec and task.container_spec.resources:
             res = task.container_spec.resources
-            if any([
+            if any(
+                [
                     res.cpu_request,
                     res.cpu_limit,
                     res.memory_request,
                     res.memory_limit,
                     res.accelerator_type,
                     res.accelerator_count,
-            ]):
+                ]
+            ):
                 if TaskConfigField.RESOURCES not in allowed_fields:
-                    _raise_passthrough_error(task,
-                                             TaskConfigField.RESOURCES.name)
+                    _raise_passthrough_error(
+                        task, TaskConfigField.RESOURCES.name
+                    )
 
         if task.container_spec and task.container_spec.env:
             if TaskConfigField.ENV not in allowed_fields:
@@ -689,12 +796,14 @@ def build_container_spec_for_task(
     _validate_task_config_passthroughs_for_container_settings(task)
 
     def _validate_task_config_passthroughs_for_kubernetes_settings(
-        task: pipeline_task.PipelineTask,) -> None:
+        task: pipeline_task.PipelineTask,
+    ) -> None:
         """Validates that when a component declares TaskConfig passthroughs,
         the task does not set Kubernetes platform options that are not
         listed."""
-        passthroughs = getattr(task.component_spec, 'task_config_passthroughs',
-                               None)
+        passthroughs = getattr(
+            task.component_spec, 'task_config_passthroughs', None
+        )
         if not passthroughs:
             return
 
@@ -707,17 +816,20 @@ def build_container_spec_for_task(
         if _has_any(k8s_cfg, ['tolerations']):
             if TaskConfigField.KUBERNETES_TOLERATIONS not in allowed_fields:
                 _raise_passthrough_error(
-                    task, TaskConfigField.KUBERNETES_TOLERATIONS.name)
+                    task, TaskConfigField.KUBERNETES_TOLERATIONS.name
+                )
 
         if _has_any(k8s_cfg, ['nodeSelector']):
             if TaskConfigField.KUBERNETES_NODE_SELECTOR not in allowed_fields:
                 _raise_passthrough_error(
-                    task, TaskConfigField.KUBERNETES_NODE_SELECTOR.name)
+                    task, TaskConfigField.KUBERNETES_NODE_SELECTOR.name
+                )
 
         if _has_any(k8s_cfg, ['nodeAffinity', 'podAffinity']):
             if TaskConfigField.KUBERNETES_AFFINITY not in allowed_fields:
                 _raise_passthrough_error(
-                    task, TaskConfigField.KUBERNETES_AFFINITY.name)
+                    task, TaskConfigField.KUBERNETES_AFFINITY.name
+                )
 
         volume_like_keys = [
             'pvcMount',
@@ -727,42 +839,50 @@ def build_container_spec_for_task(
         if _has_any(k8s_cfg, volume_like_keys):
             if TaskConfigField.KUBERNETES_VOLUMES not in allowed_fields:
                 _raise_passthrough_error(
-                    task, TaskConfigField.KUBERNETES_VOLUMES.name)
+                    task, TaskConfigField.KUBERNETES_VOLUMES.name
+                )
 
         if _has_any(k8s_cfg, ['podResourceClaims']):
             if TaskConfigField.KUBERNETES_RESOURCE_CLAIMS not in allowed_fields:
                 _raise_passthrough_error(
-                    task, TaskConfigField.KUBERNETES_RESOURCE_CLAIMS.name)
+                    task, TaskConfigField.KUBERNETES_RESOURCE_CLAIMS.name
+                )
 
     _validate_task_config_passthroughs_for_kubernetes_settings(task)
 
     def convert_to_placeholder(input_value: str) -> str:
         """Checks if input is a pipeline channel and if so, converts to
         compiler injected input name."""
-        pipeline_channels = (
-            pipeline_channel.extract_pipeline_channels_from_any(input_value))
+        pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
+            input_value
+        )
         if pipeline_channels:
             assert len(pipeline_channels) == 1
             channel = pipeline_channels[0]
             additional_input_name = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
-                    channel))
+                    channel
+                )
+            )
             additional_input_placeholder = placeholders.InputValuePlaceholder(
-                additional_input_name)._to_string()
-            input_value = input_value.replace(channel.pattern,
-                                              additional_input_placeholder)
+                additional_input_name
+            )._to_string()
+            input_value = input_value.replace(
+                channel.pattern, additional_input_placeholder
+            )
         return input_value
 
-    container_spec = (
-        pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
-            image=convert_to_placeholder(task.container_spec.image),
-            command=task.container_spec.command,
-            args=task.container_spec.args,
-            env=[
-                pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
-                .EnvVar(name=name, value=value)
-                for name, value in (task.container_spec.env or {}).items()
-            ]))
+    container_spec = pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+        image=convert_to_placeholder(task.container_spec.image),
+        command=task.container_spec.command,
+        args=task.container_spec.args,
+        env=[
+            pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar(
+                name=name, value=value
+            )
+            for name, value in (task.container_spec.env or {}).items()
+        ],
+    )
 
     # All the fields with the resource_ prefix are newer fields to support pipeline input parameters. The below code
     # will check if the value is a placeholder and if not, it will also set the value on the old deprecated fields
@@ -770,57 +890,81 @@ def build_container_spec_for_task(
     if task.container_spec.resources is not None:
         if task.container_spec.resources.cpu_request is not None:
             placeholder = convert_to_placeholder(
-                task.container_spec.resources.cpu_request)
+                task.container_spec.resources.cpu_request
+            )
             container_spec.resources.resource_cpu_request = placeholder
 
             if task.container_spec.resources.cpu_request == placeholder:
-                container_spec.resources.cpu_request = compiler_utils._cpu_to_float(
-                    task.container_spec.resources.cpu_request)
+                container_spec.resources.cpu_request = (
+                    compiler_utils._cpu_to_float(
+                        task.container_spec.resources.cpu_request
+                    )
+                )
         if task.container_spec.resources.cpu_limit is not None:
             placeholder = convert_to_placeholder(
-                task.container_spec.resources.cpu_limit)
+                task.container_spec.resources.cpu_limit
+            )
             container_spec.resources.resource_cpu_limit = placeholder
 
             if task.container_spec.resources.cpu_limit == placeholder:
-                container_spec.resources.cpu_limit = compiler_utils._cpu_to_float(
-                    task.container_spec.resources.cpu_limit)
+                container_spec.resources.cpu_limit = (
+                    compiler_utils._cpu_to_float(
+                        task.container_spec.resources.cpu_limit
+                    )
+                )
         if task.container_spec.resources.memory_request is not None:
             placeholder = convert_to_placeholder(
-                task.container_spec.resources.memory_request)
+                task.container_spec.resources.memory_request
+            )
             container_spec.resources.resource_memory_request = placeholder
 
             if task.container_spec.resources.memory_request == placeholder:
-                container_spec.resources.memory_request = compiler_utils._memory_to_float(
-                    task.container_spec.resources.memory_request)
+                container_spec.resources.memory_request = (
+                    compiler_utils._memory_to_float(
+                        task.container_spec.resources.memory_request
+                    )
+                )
         if task.container_spec.resources.memory_limit is not None:
             placeholder = convert_to_placeholder(
-                task.container_spec.resources.memory_limit)
+                task.container_spec.resources.memory_limit
+            )
             container_spec.resources.resource_memory_limit = placeholder
 
             if task.container_spec.resources.memory_limit == placeholder:
-                container_spec.resources.memory_limit = compiler_utils._memory_to_float(
-                    task.container_spec.resources.memory_limit)
+                container_spec.resources.memory_limit = (
+                    compiler_utils._memory_to_float(
+                        task.container_spec.resources.memory_limit
+                    )
+                )
         if task.container_spec.resources.accelerator_count is not None:
             ac_type = None
             ac_type_placholder = convert_to_placeholder(
-                task.container_spec.resources.accelerator_type)
-            if task.container_spec.resources.accelerator_type == ac_type_placholder:
+                task.container_spec.resources.accelerator_type
+            )
+            if (
+                task.container_spec.resources.accelerator_type
+                == ac_type_placholder
+            ):
                 ac_type = task.container_spec.resources.accelerator_type
 
             ac_count = None
             ac_count_placeholder = convert_to_placeholder(
-                task.container_spec.resources.accelerator_count)
-            if task.container_spec.resources.accelerator_count == ac_count_placeholder:
+                task.container_spec.resources.accelerator_count
+            )
+            if (
+                task.container_spec.resources.accelerator_count
+                == ac_count_placeholder
+            ):
                 ac_count = int(task.container_spec.resources.accelerator_count)
 
             container_spec.resources.accelerator.CopyFrom(
-                pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
-                .ResourceSpec.AcceleratorConfig(
+                pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig(
                     resource_type=ac_type_placholder,
                     resource_count=ac_count_placeholder,
                     type=ac_type,
                     count=ac_count,
-                ))
+                )
+            )
 
     return container_spec
 
@@ -841,27 +985,32 @@ def _fill_in_component_input_default_value(
         return
 
     parameter_type = component_spec.input_definitions.parameters[
-        input_name].parameter_type
+        input_name
+    ].parameter_type
     if pipeline_spec_pb2.ParameterType.NUMBER_INTEGER == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.number_value = default_value
+            input_name
+        ].default_value.number_value = default_value
     elif pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.number_value = default_value
+            input_name
+        ].default_value.number_value = default_value
     elif pipeline_spec_pb2.ParameterType.STRING == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.string_value = default_value
+            input_name
+        ].default_value.string_value = default_value
     elif pipeline_spec_pb2.ParameterType.BOOLEAN == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.bool_value = default_value
+            input_name
+        ].default_value.bool_value = default_value
     elif pipeline_spec_pb2.ParameterType.STRUCT == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.CopyFrom(
-                to_protobuf_value(default_value))
+            input_name
+        ].default_value.CopyFrom(to_protobuf_value(default_value))
     elif pipeline_spec_pb2.ParameterType.LIST == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.CopyFrom(
-                to_protobuf_value(default_value))
+            input_name
+        ].default_value.CopyFrom(to_protobuf_value(default_value))
 
 
 def build_component_spec_for_group(
@@ -881,23 +1030,40 @@ def build_component_spec_for_group(
 
     for channel in input_pipeline_channels:
         input_name = compiler_utils.additional_input_name_for_pipeline_channel(
-            channel)
+            channel
+        )
 
-        if isinstance(channel, (pipeline_channel.PipelineArtifactChannel,
-                                for_loop.LoopArtifactArgument)):
+        if isinstance(
+            channel,
+            (
+                pipeline_channel.PipelineArtifactChannel,
+                for_loop.LoopArtifactArgument,
+            ),
+        ):
             component_spec.input_definitions.artifacts[
-                input_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        channel.channel_type))
+                input_name
+            ].artifact_type.CopyFrom(
+                type_utils.bundled_artifact_to_artifact_proto(
+                    channel.channel_type
+                )
+            )
             component_spec.input_definitions.artifacts[
-                input_name].is_artifact_list = channel.is_artifact_list
-        elif isinstance(channel,
-                        (pipeline_channel.PipelineParameterChannel,
-                         for_loop.LoopParameterArgument,
-                         for_loop.LoopArgumentVariable, dsl.Collected)):
+                input_name
+            ].is_artifact_list = channel.is_artifact_list
+        elif isinstance(
+            channel,
+            (
+                pipeline_channel.PipelineParameterChannel,
+                for_loop.LoopParameterArgument,
+                for_loop.LoopArgumentVariable,
+                dsl.Collected,
+            ),
+        ):
             component_spec.input_definitions.parameters[
-                input_name].parameter_type = type_utils.get_parameter_type(
-                    channel.channel_type)
+                input_name
+            ].parameter_type = type_utils.get_parameter_type(
+                channel.channel_type
+            )
         else:
             raise TypeError(
                 f'Expected PipelineParameterChannel, PipelineArtifactChannel, LoopParameterArgument, LoopArtifactArgument, LoopArgumentVariable, or Collected, got {type(channel)}.'
@@ -906,15 +1072,21 @@ def build_component_spec_for_group(
     for output_name, output in output_pipeline_channels.items():
         if isinstance(output, pipeline_channel.PipelineArtifactChannel):
             component_spec.output_definitions.artifacts[
-                output_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        output.channel_type))
+                output_name
+            ].artifact_type.CopyFrom(
+                type_utils.bundled_artifact_to_artifact_proto(
+                    output.channel_type
+                )
+            )
             component_spec.output_definitions.artifacts[
-                output_name].is_artifact_list = output.is_artifact_list
+                output_name
+            ].is_artifact_list = output.is_artifact_list
         else:
             component_spec.output_definitions.parameters[
-                output_name].parameter_type = type_utils.get_parameter_type(
-                    output.channel_type)
+                output_name
+            ].parameter_type = type_utils.get_parameter_type(
+                output.channel_type
+            )
 
     return component_spec
 
@@ -927,7 +1099,7 @@ def _pop_input_from_task_spec(
 
     Args:
       task_spec: The pipeline task spec to update in place.
-      input_name: The name of the input, which could be an artifact or paremeter.
+      input_name: The name of the input, which could be an artifact or parameter.
     """
     task_spec.inputs.artifacts.pop(input_name)
     task_spec.inputs.parameters.pop(input_name)
@@ -948,35 +1120,53 @@ def _update_task_spec_for_loop_group(
     """
     if group.items_is_pipeline_channel:
         loop_items_channel = group.loop_argument.items_or_pipeline_channel
-        input_parameter_name = compiler_utils.additional_input_name_for_pipeline_channel(
-            loop_items_channel)
-        loop_argument_item_name = compiler_utils.additional_input_name_for_pipeline_channel(
-            group.loop_argument.full_name)
+        input_parameter_name = (
+            compiler_utils.additional_input_name_for_pipeline_channel(
+                loop_items_channel
+            )
+        )
+        loop_argument_item_name = (
+            compiler_utils.additional_input_name_for_pipeline_channel(
+                group.loop_argument.full_name
+            )
+        )
 
-        loop_arguments_item = f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
+        loop_arguments_item = (
+            f'{input_parameter_name}-{for_loop.LOOP_ITEM_NAME_BASE}'
+        )
         assert loop_arguments_item == loop_argument_item_name
 
         if isinstance(group.loop_argument, for_loop.LoopParameterArgument):
             pipeline_task_spec.parameter_iterator.items.input_parameter = (
-                input_parameter_name)
+                input_parameter_name
+            )
             pipeline_task_spec.parameter_iterator.item_input = (
-                loop_argument_item_name)
+                loop_argument_item_name
+            )
 
             _pop_input_from_task_spec(
                 task_spec=pipeline_task_spec,
-                input_name=pipeline_task_spec.parameter_iterator.item_input)
+                input_name=pipeline_task_spec.parameter_iterator.item_input,
+            )
 
         elif isinstance(group.loop_argument, for_loop.LoopArtifactArgument):
-            input_artifact_name = compiler_utils.additional_input_name_for_pipeline_channel(
-                loop_items_channel)
+            input_artifact_name = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    loop_items_channel
+                )
+            )
 
-            pipeline_task_spec.artifact_iterator.items.input_artifact = input_artifact_name
+            pipeline_task_spec.artifact_iterator.items.input_artifact = (
+                input_artifact_name
+            )
             pipeline_task_spec.artifact_iterator.item_input = (
-                loop_argument_item_name)
+                loop_argument_item_name
+            )
 
             _pop_input_from_task_spec(
                 task_spec=pipeline_task_spec,
-                input_name=pipeline_task_spec.artifact_iterator.item_input)
+                input_name=pipeline_task_spec.artifact_iterator.item_input,
+            )
         else:
             raise TypeError(
                 f'Expected LoopParameterArgument or LoopArtifactArgument, got {type(group.loop_argument)}.'
@@ -986,35 +1176,45 @@ def _update_task_spec_for_loop_group(
         # subvar name.
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
-                input_parameter_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{loop_items_channel.subvar_name}"]'
-                )
+                input_parameter_name
+            ].parameter_expression_selector = (
+                f'parseJson(string_value)["{loop_items_channel.subvar_name}"]'
+            )
             pipeline_task_spec.inputs.parameters[
-                input_parameter_name].component_input_parameter = (
-                    compiler_utils.additional_input_name_for_pipeline_channel(
-                        loop_items_channel.loop_argument))
+                input_parameter_name
+            ].component_input_parameter = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    loop_items_channel.loop_argument
+                )
+            )
 
     else:
-        input_parameter_name = compiler_utils.additional_input_name_for_pipeline_channel(
-            group.loop_argument)
+        input_parameter_name = (
+            compiler_utils.additional_input_name_for_pipeline_channel(
+                group.loop_argument
+            )
+        )
         raw_values = group.loop_argument.items_or_pipeline_channel
 
         pipeline_task_spec.parameter_iterator.items.raw = json.dumps(
-            raw_values, sort_keys=True)
-        pipeline_task_spec.parameter_iterator.item_input = (
-            input_parameter_name)
+            raw_values, sort_keys=True
+        )
+        pipeline_task_spec.parameter_iterator.item_input = input_parameter_name
 
         _pop_input_from_task_spec(
             task_spec=pipeline_task_spec,
-            input_name=pipeline_task_spec.parameter_iterator.item_input)
+            input_name=pipeline_task_spec.parameter_iterator.item_input,
+        )
 
-    if (group.parallelism_limit > 0):
+    if group.parallelism_limit > 0:
         pipeline_task_spec.iterator_policy.parallelism_limit = (
-            group.parallelism_limit)
+            group.parallelism_limit
+        )
 
 
 def _binary_operations_to_cel_conjunctive(
-        operations: List[pipeline_channel.ConditionOperation]) -> str:
+    operations: List[pipeline_channel.ConditionOperation],
+) -> str:
     """Converts a list of ConditionOperation to a CEL string with placeholders.
     Each ConditionOperation will be joined the others via the conjunctive (&&).
 
@@ -1032,7 +1232,8 @@ def _binary_operations_to_cel_conjunctive(
 
 
 def _single_binary_operation_to_cel_condition(
-        operation: pipeline_channel.ConditionOperation) -> str:
+    operation: pipeline_channel.ConditionOperation,
+) -> str:
     """Converts a ConditionOperation to a CEL string with placeholders.
 
     Args:
@@ -1048,15 +1249,18 @@ def _single_binary_operation_to_cel_condition(
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             parameter_type = type_utils.get_parameter_type(
-                value_or_reference.channel_type)
+                value_or_reference.channel_type
+            )
             if parameter_type in [
-                    pipeline_spec_pb2.ParameterType.STRUCT,
-                    pipeline_spec_pb2.ParameterType.LIST,
-                    pipeline_spec_pb2.ParameterType
-                    .PARAMETER_TYPE_ENUM_UNSPECIFIED,
+                pipeline_spec_pb2.ParameterType.STRUCT,
+                pipeline_spec_pb2.ParameterType.LIST,
+                pipeline_spec_pb2.ParameterType.PARAMETER_TYPE_ENUM_UNSPECIFIED,
             ]:
-                input_name = compiler_utils.additional_input_name_for_pipeline_channel(
-                    value_or_reference)
+                input_name = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        value_or_reference
+                    )
+                )
                 raise ValueError(
                     f'Conditional requires primitive parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
                 )
@@ -1066,10 +1270,12 @@ def _single_binary_operation_to_cel_condition(
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             parameter_type = type_utils.get_parameter_type(
-                value_or_reference.channel_type)
+                value_or_reference.channel_type
+            )
         else:
             parameter_type = type_utils.get_parameter_type(
-                type(value_or_reference).__name__)
+                type(value_or_reference).__name__
+            )
 
         parameter_types.add(parameter_type)
 
@@ -1084,11 +1290,16 @@ def _single_binary_operation_to_cel_condition(
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.BOOLEAN
         else:
             # Must be a double and int, promote to double.
-            assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, \
-                f'Types: {parameter_types} [{left_operand} {right_operand}]'
-            assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, \
-                f'Types: {parameter_types} [{left_operand} {right_operand}]'
-            canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+            assert (
+                pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types
+            ), f'Types: {parameter_types} [{left_operand} {right_operand}]'
+            assert (
+                pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
+                in parameter_types
+            ), f'Types: {parameter_types} [{left_operand} {right_operand}]'
+            canonical_parameter_type = (
+                pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+            )
     elif len(parameter_types) == 1:  # Both operands are the same type.
         canonical_parameter_type = parameter_types.pop()
     else:
@@ -1100,11 +1311,15 @@ def _single_binary_operation_to_cel_condition(
     operand_values = []
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
-            input_name = compiler_utils.additional_input_name_for_pipeline_channel(
-                value_or_reference)
+            input_name = (
+                compiler_utils.additional_input_name_for_pipeline_channel(
+                    value_or_reference
+                )
+            )
             operand_value = f"inputs.parameter_values['{input_name}']"
             parameter_type = type_utils.get_parameter_type(
-                value_or_reference.channel_type)
+                value_or_reference.channel_type
+            )
             if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
                 operand_value = f'int({operand_value})'
         elif isinstance(value_or_reference, str):
@@ -1124,22 +1339,34 @@ def _single_binary_operation_to_cel_condition(
 
         if parameter_type != canonical_parameter_type:
             # Type-cast to so CEL does not complain.
-            if canonical_parameter_type == pipeline_spec_pb2.ParameterType.STRING:
+            if (
+                canonical_parameter_type
+                == pipeline_spec_pb2.ParameterType.STRING
+            ):
                 assert parameter_type in [
                     pipeline_spec_pb2.ParameterType.BOOLEAN,
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
                     pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
                 ]
                 operand_value = f"'{operand_value}'"
-            elif canonical_parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
+            elif (
+                canonical_parameter_type
+                == pipeline_spec_pb2.ParameterType.BOOLEAN
+            ):
                 assert parameter_type in [
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
                     pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
                 ]
                 operand_value = 'true' if int(operand_value) == 0 else 'false'
             else:
-                assert canonical_parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
-                assert parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
+                assert (
+                    canonical_parameter_type
+                    == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
+                )
+                assert (
+                    parameter_type
+                    == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
+                )
                 operand_value = f'double({operand_value})'
 
         operand_values.append(operand_value)
@@ -1147,7 +1374,8 @@ def _single_binary_operation_to_cel_condition(
     left_operand_value, right_operand_value = tuple(operand_values)
 
     condition_string = (
-        f'{left_operand_value} {operation.operator} {right_operand_value}')
+        f'{left_operand_value} {operation.operator} {right_operand_value}'
+    )
 
     return f'!({condition_string})' if operation.negate else condition_string
 
@@ -1164,7 +1392,8 @@ def _update_task_spec_for_condition_group(
     """
     condition = _binary_operations_to_cel_conjunctive(group.conditions)
     pipeline_task_spec.trigger_policy.CopyFrom(
-        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(condition=condition))
+        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy(condition=condition)
+    )
 
 
 def build_task_spec_for_exit_task(
@@ -1189,14 +1418,13 @@ def build_task_spec_for_exit_task(
         tasks_in_current_dag=[],  # Does not matter for exit task
     )
     pipeline_task_spec.dependent_tasks.extend([dependent_task])
-    pipeline_task_spec.trigger_policy.strategy = (
-        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
-        .ALL_UPSTREAM_TASKS_COMPLETED)
+    pipeline_task_spec.trigger_policy.strategy = pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy.ALL_UPSTREAM_TASKS_COMPLETED
 
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
         if type_utils.is_task_final_status_type(input_spec.type):
             pipeline_task_spec.inputs.parameters[
-                input_name].task_final_status.producer_task = dependent_task
+                input_name
+            ].task_final_status.producer_task = dependent_task
 
     return pipeline_task_spec
 
@@ -1221,11 +1449,11 @@ def build_task_spec_for_group(
     """
     pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
     pipeline_task_spec.task_info.name = group.display_name or group.name
-    pipeline_task_spec.component_ref.name = (
-        utils.sanitize_component_name(group.name))
+    pipeline_task_spec.component_ref.name = utils.sanitize_component_name(
+        group.name
+    )
 
     for channel in pipeline_channels:
-
         channel_full_name = channel.full_name
         subvar_name = None
         if isinstance(channel, for_loop.LoopArgumentVariable):
@@ -1233,42 +1461,56 @@ def build_task_spec_for_group(
             subvar_name = channel.subvar_name
 
         input_name = compiler_utils.additional_input_name_for_pipeline_channel(
-            channel)
+            channel
+        )
 
         channel_name = channel.name
         if subvar_name:
             pipeline_task_spec.inputs.parameters[
-                input_name].parameter_expression_selector = (
-                    f'parseJson(string_value)["{subvar_name}"]')
+                input_name
+            ].parameter_expression_selector = (
+                f'parseJson(string_value)["{subvar_name}"]'
+            )
             if not channel.is_with_items_loop_argument:
                 channel_name = channel.items_or_pipeline_channel.name
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             if channel.task_name and channel.task_name in tasks_in_current_dag:
                 pipeline_task_spec.inputs.artifacts[
-                    input_name].task_output_artifact.producer_task = (
-                        utils.sanitize_task_name(channel.task_name))
+                    input_name
+                ].task_output_artifact.producer_task = utils.sanitize_task_name(
+                    channel.task_name
+                )
                 pipeline_task_spec.inputs.artifacts[
-                    input_name].task_output_artifact.output_artifact_key = (
-                        channel_name)
+                    input_name
+                ].task_output_artifact.output_artifact_key = channel_name
             else:
                 pipeline_task_spec.inputs.artifacts[
-                    input_name].component_input_artifact = (
-                        channel_full_name
-                        if is_parent_component_root else input_name)
+                    input_name
+                ].component_input_artifact = (
+                    channel_full_name
+                    if is_parent_component_root
+                    else input_name
+                )
         elif channel.task_name and channel.task_name in tasks_in_current_dag:
             pipeline_task_spec.inputs.parameters[
-                input_name].task_output_parameter.producer_task = (
-                    utils.sanitize_task_name(channel.task_name))
+                input_name
+            ].task_output_parameter.producer_task = utils.sanitize_task_name(
+                channel.task_name
+            )
             pipeline_task_spec.inputs.parameters[
-                input_name].task_output_parameter.output_parameter_key = (
-                    channel_name)
+                input_name
+            ].task_output_parameter.output_parameter_key = channel_name
         else:
             pipeline_task_spec.inputs.parameters[
-                input_name].component_input_parameter = (
-                    channel_full_name if is_parent_component_root else
-                    compiler_utils.additional_input_name_for_pipeline_channel(
-                        channel_full_name))
+                input_name
+            ].component_input_parameter = (
+                channel_full_name
+                if is_parent_component_root
+                else compiler_utils.additional_input_name_for_pipeline_channel(
+                    channel_full_name
+                )
+            )
 
     if isinstance(group, tasks_group.ParallelFor):
         _update_task_spec_for_loop_group(
@@ -1317,11 +1559,13 @@ def modify_pipeline_spec_with_override(
     # that match the pipeline inputs definition.
     for input_name, input_value in (pipeline_parameters or {}).items():
         if input_name in pipeline_spec.root.input_definitions.parameters:
-            _fill_in_component_input_default_value(pipeline_spec.root,
-                                                   input_name, input_value)
+            _fill_in_component_input_default_value(
+                pipeline_spec.root, input_name, input_value
+            )
         elif input_name in pipeline_spec.root.input_definitions.artifacts:
             raise NotImplementedError(
-                'Default value for artifact input is not supported.')
+                'Default value for artifact input is not supported.'
+            )
         else:
             raise ValueError(
                 f'Pipeline parameter {input_name} does not match any known pipeline input.'
@@ -1338,8 +1582,9 @@ def build_spec_by_group(
     outputs: DefaultDict[str, Dict[str, pipeline_channel.PipelineChannel]],
     dependencies: Dict[str, List[compiler_utils.GroupOrTaskType]],
     rootgroup_name: str,
-    task_name_to_parent_groups: Mapping[str,
-                                        List[compiler_utils.GroupOrTaskType]],
+    task_name_to_parent_groups: Mapping[
+        str, List[compiler_utils.GroupOrTaskType]
+    ],
     group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
@@ -1384,18 +1629,17 @@ def build_spec_by_group(
     # Generate task specs and component specs for the dag.
     subgroups = group.groups + group.tasks
     for subgroup in subgroups:
-
         subgroup_input_channels = [
             channel for channel, _ in inputs.get(subgroup.name, [])
         ]
         subgroup_output_channels = outputs.get(subgroup.name, {})
 
-        subgroup_component_name = (utils.sanitize_component_name(subgroup.name))
+        subgroup_component_name = utils.sanitize_component_name(subgroup.name)
 
         tasks_in_current_dag = [
             utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
         ]
-        is_parent_component_root = (group_component_spec == pipeline_spec.root)
+        is_parent_component_root = group_component_spec == pipeline_spec.root
 
         if isinstance(subgroup, pipeline_task.PipelineTask):
             subgroup_task_spec = build_task_spec_for_task(
@@ -1414,19 +1658,21 @@ def build_spec_by_group(
                 executor_label = utils.make_name_unique_by_adding_index(
                     name=subgroup_component_spec.executor_label,
                     collection=list(deployment_config.executors.keys()),
-                    delimiter='-')
+                    delimiter='-',
+                )
                 subgroup_component_spec.executor_label = executor_label
 
             if subgroup.container_spec is not None:
                 subgroup_container_spec = build_container_spec_for_task(
-                    task=subgroup)
+                    task=subgroup
+                )
                 deployment_config.executors[executor_label].container.CopyFrom(
-                    subgroup_container_spec)
+                    subgroup_container_spec
+                )
                 single_task_platform_spec = platform_config_to_platform_spec(
                     subgroup.platform_config,
                     executor_label,
-                    parent_component_inputs=group_component_spec
-                    .input_definitions,
+                    parent_component_inputs=group_component_spec.input_definitions,
                     tasks_in_current_dag=tasks_in_current_dag,
                 )
                 merge_platform_specs(
@@ -1436,26 +1682,29 @@ def build_spec_by_group(
 
             elif subgroup.importer_spec is not None:
                 subgroup_importer_spec = build_importer_spec_for_task(
-                    task=subgroup)
+                    task=subgroup
+                )
                 deployment_config.executors[executor_label].importer.CopyFrom(
-                    subgroup_importer_spec)
+                    subgroup_importer_spec
+                )
             elif subgroup.pipeline_spec is not None:
                 if subgroup.platform_config:
                     raise ValueError(
                         'Platform-specific features can only be set on primitive components. Found platform-specific feature set on a pipeline.'
                     )
-                sub_pipeline_spec, platform_spec = merge_deployment_spec_and_component_spec(
-                    main_pipeline_spec=pipeline_spec,
-                    main_deployment_config=deployment_config,
-                    sub_pipeline_spec=subgroup.pipeline_spec,
-                    main_platform_spec=platform_spec,
-                    sub_platform_spec=subgroup.platform_spec,
+                sub_pipeline_spec, platform_spec = (
+                    merge_deployment_spec_and_component_spec(
+                        main_pipeline_spec=pipeline_spec,
+                        main_deployment_config=deployment_config,
+                        sub_pipeline_spec=subgroup.pipeline_spec,
+                        main_platform_spec=platform_spec,
+                        sub_platform_spec=subgroup.platform_spec,
+                    )
                 )
                 subgroup_component_spec = sub_pipeline_spec.root
             else:
                 raise RuntimeError
         elif isinstance(subgroup, tasks_group.ParallelFor):
-
             # "Punch the hole", adding additional inputs (other than loop
             # arguments which will be handled separately) needed by its
             # subgroups or tasks.
@@ -1463,18 +1712,27 @@ def build_spec_by_group(
 
             for channel in subgroup_input_channels:
                 # Skip 'withItems' loop arguments if it's from an inner loop.
-                if isinstance(channel, (
-                        for_loop.LoopParameterArgument,
-                        for_loop.LoopArtifactArgument,
-                        for_loop.LoopArgumentVariable,
-                )) and channel.is_with_items_loop_argument:
+                if (
+                    isinstance(
+                        channel,
+                        (
+                            for_loop.LoopParameterArgument,
+                            for_loop.LoopArtifactArgument,
+                            for_loop.LoopArgumentVariable,
+                        ),
+                    )
+                    and channel.is_with_items_loop_argument
+                ):
                     withitems_loop_arg_found_in_self_or_upstream = False
                     for group_name in group_name_to_parent_groups[
-                            subgroup.name][::-1]:
+                        subgroup.name
+                    ][::-1]:
                         if group_name in name_to_for_loop_group:
                             loop_group = name_to_for_loop_group[group_name]
                             if channel.name in loop_group.loop_argument.name:
-                                withitems_loop_arg_found_in_self_or_upstream = True
+                                withitems_loop_arg_found_in_self_or_upstream = (
+                                    True
+                                )
                                 break
                     if not withitems_loop_arg_found_in_self_or_upstream:
                         continue
@@ -1485,7 +1743,8 @@ def build_spec_by_group(
                 # rather than a static list, it is either the output of
                 # another task or an input as global pipeline parameters.
                 loop_subgroup_channels.append(
-                    subgroup.loop_argument.items_or_pipeline_channel)
+                    subgroup.loop_argument.items_or_pipeline_channel
+                )
 
             loop_subgroup_channels.append(subgroup.loop_argument)
 
@@ -1501,17 +1760,18 @@ def build_spec_by_group(
                 is_parent_component_root=is_parent_component_root,
             )
 
-            _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels)
+            _build_dag_outputs(
+                subgroup_component_spec, subgroup_output_channels
+            )
 
         elif isinstance(subgroup, tasks_group._ConditionBase):
-
             # "Punch the hole", adding inputs needed by its subgroups or
             # tasks.
             condition_subgroup_channels = list(subgroup_input_channels)
 
             compiler_utils.get_channels_from_condition(
-                subgroup.conditions, condition_subgroup_channels)
+                subgroup.conditions, condition_subgroup_channels
+            )
 
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=condition_subgroup_channels,
@@ -1525,11 +1785,11 @@ def build_spec_by_group(
                 is_parent_component_root=is_parent_component_root,
             )
 
-            _build_dag_outputs(subgroup_component_spec,
-                               subgroup_output_channels)
+            _build_dag_outputs(
+                subgroup_component_spec, subgroup_output_channels
+            )
 
         elif isinstance(subgroup, tasks_group.ExitHandler):
-
             subgroup_component_spec = build_component_spec_for_group(
                 input_pipeline_channels=subgroup_input_channels,
                 output_pipeline_channels={},
@@ -1556,42 +1816,50 @@ def build_spec_by_group(
                 is_parent_component_root=is_parent_component_root,
             )
             # oneof is the only type of output a ConditionBranches group can have
-            build_oneof_dag_outputs(subgroup_component_spec,
-                                    subgroup_output_channels)
+            build_oneof_dag_outputs(
+                subgroup_component_spec, subgroup_output_channels
+            )
 
         else:
             raise RuntimeError(
                 f'Unexpected task/group type: Got {subgroup} of type '
-                f'{type(subgroup)}.')
+                f'{type(subgroup)}.'
+            )
 
         # Generate dependencies section for this task.
         if dependencies.get(subgroup.name, None):
             group_dependencies = list(dependencies[subgroup.name])
             group_dependencies.sort()
             subgroup_task_spec.dependent_tasks.extend(
-                [utils.sanitize_task_name(dep) for dep in group_dependencies])
+                [utils.sanitize_task_name(dep) for dep in group_dependencies]
+            )
 
         # Modify the task inputs for PipelineTaskFinalStatus if ignore_upstream_failure is used
         # Must be done after dependencies are added
         if isinstance(subgroup, pipeline_task.PipelineTask):
             modify_task_for_ignore_upstream_failure(
-                task=subgroup, pipeline_task_spec=subgroup_task_spec)
+                task=subgroup, pipeline_task_spec=subgroup_task_spec
+            )
         # Add component spec
         subgroup_component_name = utils.make_name_unique_by_adding_index(
             name=subgroup_component_name,
             collection=list(pipeline_spec.components.keys()),
-            delimiter='-')
+            delimiter='-',
+        )
 
         subgroup_task_spec.component_ref.name = subgroup_component_name
         pipeline_spec.components[subgroup_component_name].CopyFrom(
-            subgroup_component_spec)
+            subgroup_component_spec
+        )
 
         # Add task spec
         group_component_spec.dag.tasks[subgroup.name].CopyFrom(
-            subgroup_task_spec)
+            subgroup_task_spec
+        )
 
     pipeline_spec.deployment_spec.update(
-        json_format.MessageToDict(deployment_config))
+        json_format.MessageToDict(deployment_config)
+    )
 
 
 def modify_task_for_ignore_upstream_failure(
@@ -1599,17 +1867,19 @@ def modify_task_for_ignore_upstream_failure(
     pipeline_task_spec: pipeline_spec_pb2.PipelineTaskSpec,
 ):
     if task._ignore_upstream_failure_tag:
-        pipeline_task_spec.trigger_policy.strategy = (
-            pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
-            .ALL_UPSTREAM_TASKS_COMPLETED)
+        pipeline_task_spec.trigger_policy.strategy = pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy.ALL_UPSTREAM_TASKS_COMPLETED
 
-        for input_name, input_spec in (task.component_spec.inputs or
-                                       {}).items():
+        for input_name, input_spec in (
+            task.component_spec.inputs or {}
+        ).items():
             if not type_utils.is_task_final_status_type(input_spec.type):
                 continue
 
             if len(pipeline_task_spec.dependent_tasks) == 0:
-                if task.parent_task_group.group_type == tasks_group.TasksGroupType.PIPELINE:
+                if (
+                    task.parent_task_group.group_type
+                    == tasks_group.TasksGroupType.PIPELINE
+                ):
                     raise compiler_utils.InvalidTopologyException(
                         f"Tasks that use '.ignore_upstream_failure()' and 'PipelineTaskFinalStatus' must have exactly one dependent upstream task. Got task '{pipeline_task_spec.task_info.name} with no upstream dependencies."
                     )
@@ -1626,15 +1896,18 @@ def modify_task_for_ignore_upstream_failure(
                 )
 
             pipeline_task_spec.inputs.parameters[
-                input_name].task_final_status.producer_task = pipeline_task_spec.dependent_tasks[
-                    0]
+                input_name
+            ].task_final_status.producer_task = (
+                pipeline_task_spec.dependent_tasks[0]
+            )
 
 
 def platform_config_to_platform_spec(
     platform_config: dict,
     executor_label: str,
     parent_component_inputs: Optional[
-        pipeline_spec_pb2.ComponentInputsSpec] = None,
+        pipeline_spec_pb2.ComponentInputsSpec
+    ] = None,
     tasks_in_current_dag: Optional[List[str]] = None,
 ) -> pipeline_spec_pb2.PlatformSpec:
     """Converts a single task's pipeline_task.platform_config dictionary to a
@@ -1649,14 +1922,13 @@ def platform_config_to_platform_spec(
         {
             'platforms': {
                 platform_key: {
-                    'deployment_spec': {
-                        'executors': {
-                            executor_label: config
-                        }
-                    }
-                } for platform_key, config in rewritten_config.items()
+                    'deployment_spec': {'executors': {executor_label: config}}
+                }
+                for platform_key, config in rewritten_config.items()
             }
-        }, platform_spec_msg)
+        },
+        platform_spec_msg,
+    )
     return platform_spec_msg
 
 
@@ -1692,8 +1964,11 @@ def _rewrite_platform_config_input_references(
         cip = rewritten.get('componentInputParameter')
         if cip is not None:
             if cip not in parent_component_inputs.parameters:
-                prefixed = compiler_utils.additional_input_name_for_pipeline_channel(
-                    cip)
+                prefixed = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        cip
+                    )
+                )
                 if prefixed in parent_component_inputs.parameters:
                     rewritten['componentInputParameter'] = prefixed
 
@@ -1703,10 +1978,16 @@ def _rewrite_platform_config_input_references(
         if top is not None:
             producer_task = top.get('producerTask')
             output_key = top.get('outputParameterKey')
-            if (producer_task is not None and output_key is not None and
-                    producer_task not in tasks_in_current_dag):
-                surfaced_name = compiler_utils.additional_input_name_for_pipeline_channel(
-                    f'{producer_task}-{output_key}')
+            if (
+                producer_task is not None
+                and output_key is not None
+                and producer_task not in tasks_in_current_dag
+            ):
+                surfaced_name = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        f'{producer_task}-{output_key}'
+                    )
+                )
                 if surfaced_name in parent_component_inputs.parameters:
                     rewritten.pop('taskOutputParameter')
                     rewritten['componentInputParameter'] = surfaced_name
@@ -1715,7 +1996,8 @@ def _rewrite_platform_config_input_references(
                         'Failed to rewrite cross-DAG platform config reference '
                         f'for task output {producer_task}.{output_key}. '
                         f'Expected surfaced input {surfaced_name!r} in parent '
-                        'component inputs, but it was not found.')
+                        'component inputs, but it was not found.'
+                    )
 
         return rewritten
 
@@ -1757,7 +2039,6 @@ def build_exit_handler_groups_recursively(
         return
     for group in parent_group.groups:
         if isinstance(group, tasks_group.ExitHandler):
-
             # remove this if block to support nested exit handlers
             if not parent_group.is_root:
                 raise ValueError(
@@ -1775,38 +2056,45 @@ def build_exit_handler_groups_recursively(
             )
 
             exit_task_component_spec = build_component_spec_for_exit_task(
-                task=exit_task)
+                task=exit_task
+            )
 
             # Add exit task container spec if applicable.
             if exit_task.container_spec is not None:
                 exit_task_container_spec = build_container_spec_for_task(
-                    task=exit_task)
+                    task=exit_task
+                )
                 executor_label = utils.make_name_unique_by_adding_index(
                     name=exit_task_component_spec.executor_label,
                     collection=list(deployment_config.executors.keys()),
-                    delimiter='-')
+                    delimiter='-',
+                )
                 exit_task_component_spec.executor_label = executor_label
                 deployment_config.executors[executor_label].container.CopyFrom(
-                    exit_task_container_spec)
+                    exit_task_container_spec
+                )
                 single_task_platform_spec = platform_config_to_platform_spec(
                     exit_task.platform_config,
                     executor_label,
-                    parent_component_inputs=pipeline_spec.root
-                    .input_definitions,
+                    parent_component_inputs=pipeline_spec.root.input_definitions,
                     tasks_in_current_dag=list(
-                        pipeline_spec.root.dag.tasks.keys()),
+                        pipeline_spec.root.dag.tasks.keys()
+                    ),
                 )
                 merge_platform_specs(
                     platform_spec,
                     single_task_platform_spec,
                 )
             elif exit_task.pipeline_spec is not None:
-                exit_task_pipeline_spec, updated_platform_spec = merge_deployment_spec_and_component_spec(
-                    main_pipeline_spec=pipeline_spec,
-                    main_deployment_config=deployment_config,
-                    sub_pipeline_spec=exit_task.pipeline_spec,
-                    main_platform_spec=platform_spec,
-                    sub_platform_spec=exit_task.platform_spec)
+                exit_task_pipeline_spec, updated_platform_spec = (
+                    merge_deployment_spec_and_component_spec(
+                        main_pipeline_spec=pipeline_spec,
+                        main_deployment_config=deployment_config,
+                        sub_pipeline_spec=exit_task.pipeline_spec,
+                        main_platform_spec=platform_spec,
+                        sub_platform_spec=exit_task.platform_spec,
+                    )
+                )
                 exit_task_component_spec = exit_task_pipeline_spec.root
                 # assign the new PlatformSpec data to the existing main PlatformSpec object
                 platform_spec.CopyFrom(updated_platform_spec)
@@ -1819,17 +2107,20 @@ def build_exit_handler_groups_recursively(
             component_name = utils.make_name_unique_by_adding_index(
                 name=exit_task_task_spec.component_ref.name,
                 collection=list(pipeline_spec.components.keys()),
-                delimiter='-')
+                delimiter='-',
+            )
             exit_task_task_spec.component_ref.name = component_name
             pipeline_spec.components[component_name].CopyFrom(
-                exit_task_component_spec)
+                exit_task_component_spec
+            )
 
             # Add exit task task spec.
             parent_dag = pipeline_spec.root.dag
             parent_dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
 
             pipeline_spec.deployment_spec.update(
-                json_format.MessageToDict(deployment_config))
+                json_format.MessageToDict(deployment_config)
+            )
 
         build_exit_handler_groups_recursively(
             parent_group=group,
@@ -1923,43 +2214,56 @@ def _merge_deployment_spec(
     ) -> None:
         # make a copy so that map size doesn't change during iteration
         sub_platform_spec_copy = copy.deepcopy(sub_platform_spec)
-        for platform_key, platform_config in sub_platform_spec_copy.platforms.items(
-        ):
-            for cur_exec_label, task_config in platform_config.deployment_spec.executors.items(
-            ):
+        for (
+            platform_key,
+            platform_config,
+        ) in sub_platform_spec_copy.platforms.items():
+            for (
+                cur_exec_label,
+                task_config,
+            ) in platform_config.deployment_spec.executors.items():
                 if cur_exec_label == old_executor_label:
                     del sub_platform_spec.platforms[
-                        platform_key].deployment_spec.executors[
-                            old_executor_label]
+                        platform_key
+                    ].deployment_spec.executors[old_executor_label]
                     sub_platform_spec.platforms[
-                        platform_key].deployment_spec.executors[
-                            new_executor_label].CopyFrom(task_config)
+                        platform_key
+                    ].deployment_spec.executors[new_executor_label].CopyFrom(
+                        task_config
+                    )
 
     sub_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     json_format.ParseDict(
         json_format.MessageToDict(sub_pipeline_spec.deployment_spec),
-        sub_deployment_config)
+        sub_deployment_config,
+    )
 
-    for executor_label, executor_spec in sub_deployment_config.executors.items(
-    ):
+    for (
+        executor_label,
+        executor_spec,
+    ) in sub_deployment_config.executors.items():
         old_executor_label = executor_label
         executor_label = utils.make_name_unique_by_adding_index(
             name=executor_label,
             collection=list(main_deployment_config.executors.keys()),
-            delimiter='-')
+            delimiter='-',
+        )
         if executor_label != old_executor_label:
             _rename_executor_labels(
                 pipeline_spec=sub_pipeline_spec,
                 old_executor_label=old_executor_label,
-                new_executor_label=executor_label)
+                new_executor_label=executor_label,
+            )
             _rename_platform_config_executor_labels(
                 sub_platform_spec,
                 old_executor_label=old_executor_label,
-                new_executor_label=executor_label)
+                new_executor_label=executor_label,
+            )
 
         main_deployment_config.executors[executor_label].CopyFrom(executor_spec)
         merge_platform_specs(
-            main_msg=main_platform_spec, sub_msg=sub_platform_spec)
+            main_msg=main_platform_spec, sub_msg=sub_platform_spec
+        )
 
 
 def _merge_component_spec(
@@ -2013,7 +2317,8 @@ def _merge_component_spec(
         new_component_name = utils.make_name_unique_by_adding_index(
             name=component_name,
             collection=existing_main_comp_names + current_comp_name_collection,
-            delimiter='-')
+            delimiter='-',
+        )
         old_name_to_new_name[old_component_name] = new_component_name
 
     ordered_names = enumerate(old_name_to_new_name.items())
@@ -2023,29 +2328,40 @@ def _merge_component_spec(
             _rename_component_refs(
                 pipeline_spec=sub_pipeline_spec,
                 old_component_ref=old_component_name,
-                new_component_ref=new_component_name)
+                new_component_ref=new_component_name,
+            )
 
-    for old_component_name, component_spec in sub_pipeline_spec.components.items(
-    ):
+    for (
+        old_component_name,
+        component_spec,
+    ) in sub_pipeline_spec.components.items():
         main_pipeline_spec.components[
-            old_name_to_new_name[old_component_name]].CopyFrom(component_spec)
+            old_name_to_new_name[old_component_name]
+        ].CopyFrom(component_spec)
 
 
 def validate_pipeline_outputs_dict(
-        pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel]):
+    pipeline_outputs_dict: Dict[str, pipeline_channel.PipelineChannel],
+):
     for channel in pipeline_outputs_dict.values():
         if isinstance(channel, dsl.Collected):
             # this validation doesn't apply to Collected
             continue
 
         elif isinstance(channel, pipeline_channel.OneOfMixin):
-            if channel.condition_branches_group.parent_task_group.group_type != tasks_group.TasksGroupType.PIPELINE:
+            if (
+                channel.condition_branches_group.parent_task_group.group_type
+                != tasks_group.TasksGroupType.PIPELINE
+            ):
                 raise compiler_utils.InvalidTopologyException(
                     f'Pipeline outputs may only be returned from the top level of the pipeline function scope. Got pipeline output dsl.{pipeline_channel.OneOf.__name__} from within the control flow group dsl.{channel.condition_branches_group.parent_task_group.__class__.__name__}.'
                 )
 
         elif isinstance(channel, pipeline_channel.PipelineChannel):
-            if channel.task.parent_task_group.group_type != tasks_group.TasksGroupType.PIPELINE:
+            if (
+                channel.task.parent_task_group.group_type
+                != tasks_group.TasksGroupType.PIPELINE
+            ):
                 raise compiler_utils.InvalidTopologyException(
                     f'Pipeline outputs may only be returned from the top level of the pipeline function scope. Got pipeline output from within the control flow group dsl.{channel.task.parent_task_group.__class__.__name__}.'
                 )
@@ -2086,7 +2402,8 @@ def create_pipeline_spec(
     pipeline_spec.schema_version = '2.1.0'
 
     pipeline_spec.root.CopyFrom(
-        _build_component_spec_from_component_spec_structure(component_spec))
+        _build_component_spec_from_component_spec_structure(component_spec)
+    )
 
     # TODO: add validation of returned outputs -- it's possible to return
     # an output from a task in a condition group, for example, which isn't
@@ -2099,9 +2416,11 @@ def create_pipeline_spec(
     all_groups = compiler_utils.get_all_groups(root_group)
     group_name_to_group = {group.name: group for group in all_groups}
     task_name_to_parent_groups, group_name_to_parent_groups = (
-        compiler_utils.get_parent_groups(root_group))
+        compiler_utils.get_parent_groups(root_group)
+    )
     condition_channels = compiler_utils.get_condition_channels_for_tasks(
-        root_group)
+        root_group
+    )
     name_to_for_loop_group = {
         group_name: group
         for group_name, group in group_name_to_group.items()
@@ -2114,12 +2433,15 @@ def create_pipeline_spec(
         condition_channels=condition_channels,
         name_to_for_loop_group=name_to_for_loop_group,
     )
-    outputs, modified_pipeline_outputs_dict = compiler_utils.get_outputs_for_all_groups(
-        pipeline=pipeline,
-        task_name_to_parent_groups=task_name_to_parent_groups,
-        group_name_to_parent_groups=group_name_to_parent_groups,
-        all_groups=all_groups,
-        pipeline_outputs_dict=pipeline_outputs_dict)
+    outputs, modified_pipeline_outputs_dict = (
+        compiler_utils.get_outputs_for_all_groups(
+            pipeline=pipeline,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            group_name_to_parent_groups=group_name_to_parent_groups,
+            all_groups=all_groups,
+            pipeline_outputs_dict=pipeline_outputs_dict,
+        )
+    )
     dependencies = compiler_utils.get_dependencies(
         pipeline=pipeline,
         task_name_to_parent_groups=task_name_to_parent_groups,
@@ -2131,7 +2453,8 @@ def create_pipeline_spec(
     platform_spec = pipeline_spec_pb2.PlatformSpec()
     if pipeline_config is not None:
         _merge_pipeline_config(
-            pipelineConfig=pipeline_config, platformSpec=platform_spec)
+            pipelineConfig=pipeline_config, platformSpec=platform_spec
+        )
 
     for group in all_groups:
         build_spec_by_group(
@@ -2156,6 +2479,14 @@ def create_pipeline_spec(
         platform_spec=platform_spec,
     )
 
+    # Apply after merging nested pipelines and exit handlers so the opt-out
+    # reaches every producer without changing reusable component definitions.
+    if pipeline_config is not None and not pipeline_config.artifact_previews:
+        _disable_artifact_previews(deployment_config)
+        pipeline_spec.deployment_spec.update(
+            json_format.MessageToDict(deployment_config)
+        )
+
     _build_dag_outputs(
         component_spec=pipeline_spec.root,
         dag_outputs=modified_pipeline_outputs_dict,
@@ -2164,14 +2495,66 @@ def create_pipeline_spec(
     # at all, then validate that the annotation is correct with _validate_dag_output_types
     _validate_dag_output_types(
         dag_outputs=modified_pipeline_outputs_dict,
-        structures_component_spec=component_spec)
+        structures_component_spec=component_spec,
+    )
 
     return pipeline_spec, platform_spec
 
 
+_PYTHON_EXECUTOR_FUNCTION_FLAG = '--function_to_execute'
+
+
+def _runs_python_executor(
+    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec,
+) -> bool:
+    """Returns whether a container runs the KFP Python component executor.
+
+    Args:
+        container: A compiled executor container.
+
+    Returns:
+        True when the command invokes the KFP executor module and the
+        arguments name the function to execute.
+    """
+    return any(
+        component_factory.EXECUTOR_MODULE in part for part in container.command
+    ) and any(
+        arg == _PYTHON_EXECUTOR_FUNCTION_FLAG
+        or arg.startswith(f'{_PYTHON_EXECUTOR_FUNCTION_FLAG}=')
+        for arg in container.args
+    )
+
+
+def _disable_artifact_previews(
+    deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
+) -> None:
+    """Adds the preview opt-out flag to every KFP Python executor.
+
+    Executor arguments always reach the producer, whereas capture-only
+    TaskConfig ENV passthrough keeps compiled environment variables out of
+    its pod. Older KFP executors ignore flags they do not recognize, so
+    images with older SDKs keep working. Container components and importers
+    are unchanged.
+
+    Args:
+        deployment_config: The pipeline's executors, including those merged
+            from nested pipelines and exit handlers.
+    """
+    for executor in deployment_config.executors.values():
+        if not executor.HasField('container'):
+            continue
+        container = executor.container
+        if (
+            _runs_python_executor(container)
+            and constants.DISABLE_ARTIFACT_PREVIEWS_FLAG not in container.args
+        ):
+            container.args.append(constants.DISABLE_ARTIFACT_PREVIEWS_FLAG)
+
+
 def _validate_dag_output_types(
-        dag_outputs: Dict[str, pipeline_channel.PipelineChannel],
-        structures_component_spec: structures.ComponentSpec) -> None:
+    dag_outputs: Dict[str, pipeline_channel.PipelineChannel],
+    structures_component_spec: structures.ComponentSpec,
+) -> None:
     for output_name, output_channel in dag_outputs.items():
         output_spec = structures_component_spec.outputs[output_name]
         output_name = '' if len(dag_outputs) == 1 else f'{output_name!r} '
@@ -2185,8 +2568,9 @@ def _validate_dag_output_types(
 
 
 def convert_pipeline_outputs_to_dict(
-    pipeline_outputs: Union[pipeline_channel.PipelineChannel, typing.NamedTuple,
-                            None]
+    pipeline_outputs: Union[
+        pipeline_channel.PipelineChannel, typing.NamedTuple, None
+    ],
 ) -> Dict[str, pipeline_channel.PipelineChannel]:
     """Converts the outputs from a pipeline function into a dictionary of
     output name to PipelineChannel."""
@@ -2200,7 +2584,8 @@ def convert_pipeline_outputs_to_dict(
     elif isinstance(pipeline_outputs, pipeline_channel.PipelineChannel):
         return {component_factory.SINGLE_OUTPUT_NAME: pipeline_outputs}
     elif isinstance(pipeline_outputs, tuple) and hasattr(
-            pipeline_outputs, '_asdict'):
+        pipeline_outputs, '_asdict'
+    ):
         return dict(pipeline_outputs._asdict())
     else:
         raise ValueError(
@@ -2236,8 +2621,9 @@ def write_pipeline_spec_to_file(
         if executors:
             for _, exec_spec in executors.items():
                 if exec_spec.WhichOneof('spec') == 'importer':
-                    if getattr(exec_spec.importer, 'download_to_workspace',
-                               False):
+                    if getattr(
+                        exec_spec.importer, 'download_to_workspace', False
+                    ):
                         return True
             return False
         ds_dict = json_format.MessageToDict(ds)
@@ -2250,7 +2636,8 @@ def write_pipeline_spec_to_file(
             if isinstance(exec_spec, dict) and 'importer' in exec_spec:
                 importer = exec_spec['importer']
                 if isinstance(importer, dict) and importer.get(
-                        'downloadToWorkspace', False):
+                    'downloadToWorkspace', False
+                ):
                     return True
         return False
 
@@ -2265,18 +2652,21 @@ def write_pipeline_spec_to_file(
         for platform_name, platform_config in platforms.items():
             if isinstance(platform_config, dict):
                 pc = platform_config.get('pipelineConfig')
-                if isinstance(
-                        pc, dict
-                ) and 'workspace' in pc and pc['workspace'] is not None:
+                if (
+                    isinstance(pc, dict)
+                    and 'workspace' in pc
+                    and pc['workspace'] is not None
+                ):
                     return True
         return False
 
-    if _uses_workspace_download(
-            pipeline_spec) and not _has_workspace_config(platform_spec):
+    if _uses_workspace_download(pipeline_spec) and not _has_workspace_config(
+        platform_spec
+    ):
         raise ValueError(
             'dsl.importer(download_to_workspace=True) requires PipelineConfig(workspace=...) on the pipeline. '
             'Add workspace configuration to your @dsl.pipeline decorator: '
-            'pipeline_config=dsl.PipelineConfig(workspace=dsl.WorkspaceConfig(size=\\\'1Gi\\\'))'
+            "pipeline_config=dsl.PipelineConfig(workspace=dsl.WorkspaceConfig(size=\\'1Gi\\'))"
         )
 
     if kubernetes_manifest_format:
@@ -2293,15 +2683,18 @@ def write_pipeline_spec_to_file(
 
     pipeline_spec_dict = json_format.MessageToDict(pipeline_spec)
 
-    yaml_comments = extract_comments_from_pipeline_spec(pipeline_spec_dict,
-                                                        pipeline_description)
+    yaml_comments = extract_comments_from_pipeline_spec(
+        pipeline_spec_dict, pipeline_description
+    )
     has_platform_specific_features = len(platform_spec.platforms) > 0
 
     if package_path.endswith('.json'):
         warnings.warn(
-            ('Compiling to JSON is deprecated and will be '
-             'removed in a future version. Please compile to a YAML file by '
-             'providing a file path with a .yaml extension instead.'),
+            (
+                'Compiling to JSON is deprecated and will be '
+                'removed in a future version. Please compile to a YAML file by '
+                'providing a file path with a .yaml extension instead.'
+            ),
             category=DeprecationWarning,
             stacklevel=2,
         )
@@ -2322,7 +2715,8 @@ def write_pipeline_spec_to_file(
 
     else:
         raise ValueError(
-            f'The output path {package_path} should end with ".yaml".')
+            f'The output path {package_path} should end with ".yaml".'
+        )
 
 
 def _write_kubernetes_manifest_to_file(
@@ -2391,51 +2785,69 @@ def _write_kubernetes_manifest_to_file(
         )
 
 
-def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
-                           platformSpec: pipeline_spec_pb2.PlatformSpec):
+def _merge_pipeline_config(
+    pipelineConfig: pipeline_config.PipelineConfig,
+    platformSpec: pipeline_spec_pb2.PlatformSpec,
+):
     config_dict = {}
 
     workspace = pipelineConfig.workspace
     if workspace is not None:
         config_dict['workspace'] = workspace.get_workspace()
 
-    if (pipelineConfig.ttl_seconds_after_finished is not None and
-            pipelineConfig.ttl_seconds_after_finished > 0):
-        config_dict[
-            'resourceTtlOnCompletion'] = pipelineConfig.ttl_seconds_after_finished
+    if (
+        pipelineConfig.ttl_seconds_after_finished is not None
+        and pipelineConfig.ttl_seconds_after_finished > 0
+    ):
+        config_dict['resourceTtlOnCompletion'] = (
+            pipelineConfig.ttl_seconds_after_finished
+        )
 
-    if (pipelineConfig.ttl_seconds_after_success is not None and
-            pipelineConfig.ttl_seconds_after_success > 0):
-        config_dict[
-            'resourceTtlOnSuccess'] = pipelineConfig.ttl_seconds_after_success
+    if (
+        pipelineConfig.ttl_seconds_after_success is not None
+        and pipelineConfig.ttl_seconds_after_success > 0
+    ):
+        config_dict['resourceTtlOnSuccess'] = (
+            pipelineConfig.ttl_seconds_after_success
+        )
 
-    if (pipelineConfig.ttl_seconds_after_failure is not None and
-            pipelineConfig.ttl_seconds_after_failure > 0):
-        config_dict[
-            'resourceTtlOnFailure'] = pipelineConfig.ttl_seconds_after_failure
+    if (
+        pipelineConfig.ttl_seconds_after_failure is not None
+        and pipelineConfig.ttl_seconds_after_failure > 0
+    ):
+        config_dict['resourceTtlOnFailure'] = (
+            pipelineConfig.ttl_seconds_after_failure
+        )
 
-    if (pipelineConfig.active_deadline_seconds is not None and
-            pipelineConfig.active_deadline_seconds > 0):
-        config_dict[
-            'activeDeadlineSeconds'] = pipelineConfig.active_deadline_seconds
+    if (
+        pipelineConfig.active_deadline_seconds is not None
+        and pipelineConfig.active_deadline_seconds > 0
+    ):
+        config_dict['activeDeadlineSeconds'] = (
+            pipelineConfig.active_deadline_seconds
+        )
 
     if config_dict:
-        json_format.ParseDict({'pipelineConfig': config_dict},
-                              platformSpec.platforms['kubernetes'])
+        json_format.ParseDict(
+            {'pipelineConfig': config_dict},
+            platformSpec.platforms['kubernetes'],
+        )
 
     return platformSpec
 
 
-def extract_comments_from_pipeline_spec(pipeline_spec: dict,
-                                        pipeline_description: str) -> str:
+def extract_comments_from_pipeline_spec(
+    pipeline_spec: dict, pipeline_description: str
+) -> str:
 
     map_headings = {
         'inputDefinitions': '# Inputs:',
-        'outputDefinitions': '# Outputs:'
+        'outputDefinitions': '# Outputs:',
     }
 
-    def collect_pipeline_signatures(root_dict: dict,
-                                    signature_type: str) -> List[str]:
+    def collect_pipeline_signatures(
+        root_dict: dict, signature_type: str
+    ) -> List[str]:
         comment_strings = []
         if signature_type in root_dict:
             signature = root_dict[signature_type]
@@ -2444,39 +2856,50 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
             # Collect data
             array_of_signatures = []
             for parameter_name, parameter_body in signature.get(
-                    'parameters', {}).items():
+                'parameters', {}
+            ).items():
                 data = {}
                 data['name'] = parameter_name
-                data[
-                    'parameterType'] = type_utils.IR_TYPE_TO_COMMENT_TYPE_STRING[
-                        parameter_body['parameterType']]
+                data['parameterType'] = (
+                    type_utils.IR_TYPE_TO_COMMENT_TYPE_STRING[
+                        parameter_body['parameterType']
+                    ]
+                )
                 if 'defaultValue' in signature['parameters'][parameter_name]:
                     data['defaultValue'] = signature['parameters'][
-                        parameter_name]['defaultValue']
+                        parameter_name
+                    ]['defaultValue']
                     if isinstance(data['defaultValue'], str):
                         data['defaultValue'] = "'" + data['defaultValue'] + "'"
                 array_of_signatures.append(data)
 
-            for artifact_name, artifact_body in signature.get('artifacts',
-                                                              {}).items():
+            for artifact_name, artifact_body in signature.get(
+                'artifacts', {}
+            ).items():
                 data = {
-                    'name':
-                        artifact_name,
-                    'parameterType':
-                        artifact_body['artifactType']['schemaTitle']
+                    'name': artifact_name,
+                    'parameterType': artifact_body['artifactType'][
+                        'schemaTitle'
+                    ],
                 }
                 array_of_signatures.append(data)
 
             array_of_signatures = sorted(
-                array_of_signatures, key=lambda d: d.get('name'))
+                array_of_signatures, key=lambda d: d.get('name')
+            )
 
             # Present data
             for signature in array_of_signatures:
-                string = '#    ' + signature['name'] + ': ' + signature[
-                    'parameterType']
+                string = (
+                    '#    '
+                    + signature['name']
+                    + ': '
+                    + signature['parameterType']
+                )
                 if 'defaultValue' in signature:
-                    string += ' [Default: ' + str(
-                        signature['defaultValue']) + ']'
+                    string += (
+                        ' [Default: ' + str(signature['defaultValue']) + ']'
+                    )
                 comment_strings.append(string)
 
         return comment_strings
@@ -2487,12 +2910,15 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
     comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
     if pipeline_description:
         pipeline_description = f'\n{multi_line_description_prefix}'.join(
-            pipeline_description.splitlines())
+            pipeline_description.splitlines()
+        )
         comment_sections.append('# Description: ' + pipeline_description)
     comment_sections.extend(
-        collect_pipeline_signatures(pipeline_spec['root'], 'inputDefinitions'))
+        collect_pipeline_signatures(pipeline_spec['root'], 'inputDefinitions')
+    )
     comment_sections.extend(
-        collect_pipeline_signatures(pipeline_spec['root'], 'outputDefinitions'))
+        collect_pipeline_signatures(pipeline_spec['root'], 'outputDefinitions')
+    )
 
     comment = '\n'.join(comment_sections) + '\n'
 

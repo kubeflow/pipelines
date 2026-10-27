@@ -18,24 +18,25 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import List
 import unittest
+from typing import List
 from unittest import mock
 
-from absl.testing import parameterized
 import click
-from click import testing
-from kfp.cli import cli
-from kfp.cli import compile_
 import yaml
+from absl.testing import parameterized
+from click import testing
+
+from kfp.cli import cli, compile_, output, pipeline
+from kfp.dsl import pipeline_context
 
 
 class TestCliNounAliases(unittest.TestCase):
-
     def setUp(self):
         runner = testing.CliRunner()
         self.invoke = functools.partial(
-            runner.invoke, cli=cli.cli, catch_exceptions=False, obj={})
+            runner.invoke, cli=cli.cli, catch_exceptions=False, obj={}
+        )
 
     def test_aliases_singular(self):
         result = self.invoke(args=['component'])
@@ -48,17 +49,18 @@ class TestCliNounAliases(unittest.TestCase):
     def test_aliases_fails(self):
         result = self.invoke(args=['componentss'])
         self.assertEqual(result.exit_code, 2)
-        self.assertEqual("Error: Unrecognized command 'componentss'\n",
-                         result.output)
+        self.assertEqual(
+            "Error: Unrecognized command 'componentss'\n", result.output
+        )
 
 
 class TestAliases(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         runner = testing.CliRunner()
         cls.invoke = functools.partial(
-            runner.invoke, cli=cli.cli, catch_exceptions=True, obj={})
+            runner.invoke, cli=cli.cli, catch_exceptions=True, obj={}
+        )
 
     def test_aliases_singular(self):
         result = self.invoke(args=['component'])
@@ -71,16 +73,17 @@ class TestAliases(unittest.TestCase):
     def test_aliases_fails(self):
         result = self.invoke(args=['componentss'])
         self.assertEqual(result.exit_code, 2)
-        self.assertEqual("Error: Unrecognized command 'componentss'\n",
-                         result.output)
+        self.assertEqual(
+            "Error: Unrecognized command 'componentss'\n", result.output
+        )
 
 
 class TestCliAutocomplete(parameterized.TestCase):
-
     def setUp(self):
         runner = testing.CliRunner()
         self.invoke = functools.partial(
-            runner.invoke, cli=cli.cli, catch_exceptions=False, obj={})
+            runner.invoke, cli=cli.cli, catch_exceptions=False, obj={}
+        )
 
     @parameterized.parameters(['bash', 'zsh', 'fish'])
     def test_show_autocomplete(self, shell):
@@ -105,9 +108,11 @@ class TestCliAutocomplete(parameterized.TestCase):
                 self.assertEqual(result.exit_code, 0)
 
     @parameterized.parameters(
-        list(itertools.product(['bash', 'zsh', 'fish'], [True, False])))
-    def test_install_autocomplete_with_unempty_file(self, shell,
-                                                    has_trailing_newline):
+        list(itertools.product(['bash', 'zsh', 'fish'], [True, False]))
+    )
+    def test_install_autocomplete_with_unempty_file(
+        self, shell, has_trailing_newline
+    ):
         with tempfile.TemporaryDirectory() as tempdir:
             with mock.patch('os.path.expanduser', return_value=tempdir):
                 temp_path = os.path.join(tempdir, *cli.SHELL_FILES[shell])
@@ -130,11 +135,11 @@ class TestCliAutocomplete(parameterized.TestCase):
 
 
 class TestCliVersion(unittest.TestCase):
-
     def setUp(self):
         runner = testing.CliRunner()
         self.invoke = functools.partial(
-            runner.invoke, cli=cli.cli, catch_exceptions=False, obj={})
+            runner.invoke, cli=cli.cli, catch_exceptions=False, obj={}
+        )
 
     def test_version(self):
         result = self.invoke(args=['--version'])
@@ -143,19 +148,67 @@ class TestCliVersion(unittest.TestCase):
         self.assertTrue(matches)
 
 
-class TestDslCompile(parameterized.TestCase):
+class TestPipelineVersionCommands(unittest.TestCase):
+    def setUp(self):
+        self.context = click.Context(pipeline.pipeline)
+        self.client = mock.Mock()
+        self.context.obj = {
+            'client': self.client,
+            'output': output.OutputFormat.table,
+        }
+        self.version = mock.Mock()
 
+    @mock.patch('kfp.cli.pipeline.output.print_output')
+    def test_get_version_uses_pipeline_version_output(self, mock_print_output):
+        self.client.get_pipeline_version.return_value = self.version
+
+        with self.context:
+            pipeline.get_version.callback(
+                pipeline_id='pipeline-id', version_id='version-id'
+            )
+
+        mock_print_output.assert_called_once_with(
+            self.version,
+            output.ModelType.PIPELINE_VERSION,
+            output.OutputFormat.table,
+        )
+
+    @mock.patch('kfp.cli.pipeline.output.print_output')
+    def test_create_version_uses_pipeline_version_output(
+        self, mock_print_output
+    ):
+        self.client.upload_pipeline_version.return_value = self.version
+
+        with self.context:
+            pipeline.create_version.callback(
+                package_file='pipeline.yaml',
+                pipeline_version='version-name',
+                pipeline_id='pipeline-id',
+                pipeline_name=None,
+                description=None,
+            )
+
+        mock_print_output.assert_called_once_with(
+            self.version,
+            output.ModelType.PIPELINE_VERSION,
+            output.OutputFormat.table,
+        )
+
+
+class TestDslCompile(parameterized.TestCase):
     def invoke(self, args: List[str]) -> testing.Result:
         starting_args = ['dsl', 'compile']
         args = starting_args + args
         runner = testing.CliRunner()
         return runner.invoke(
-            cli=cli.cli, args=args, catch_exceptions=False, obj={})
+            cli=cli.cli, args=args, catch_exceptions=False, obj={}
+        )
 
     def invoke_deprecated(self, args: List[str]) -> testing.Result:
         runner = testing.CliRunner()
         return runner.invoke(
-            cli=compile_.compile_, args=args, catch_exceptions=False, obj={})
+            cli=compile_.compile_, args=args, catch_exceptions=False, obj={}
+        )
 
     def test_deprecated_command_is_found(self):
         result = self.invoke_deprecated(['--help'])
@@ -163,8 +216,10 @@ class TestDslCompile(parameterized.TestCase):
 
     def test_deprecation_warning(self):
         res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
-        self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
-                      res.stdout.decode('utf-8'))
+        self.assertIn(
+            'Deprecated. Please use `kfp dsl compile` instead.)',
+            res.stdout.decode('utf-8'),
+        )
 
 
 info_dict = cli.cli.to_info_dict(ctx=click.Context(cli.cli))
@@ -178,7 +233,6 @@ noun_verb_list = [
 
 
 class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.runner = testing.CliRunner()
@@ -192,19 +246,24 @@ class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
                 args=[noun, verb, '--help'],
                 cli=cli.cli,
                 catch_exceptions=False,
-                obj={})
+                obj={},
+            )
             self.assertTrue(result.output.startswith('Usage: '))
             self.assertEqual(result.exit_code, 0)
 
 
 class TestKfpDslCompile(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
 
     def invoke(self, args):
         starting_args = ['dsl', 'compile']
         args = starting_args + args
         runner = testing.CliRunner()
         return runner.invoke(
-            cli=cli.cli, args=args, catch_exceptions=False, obj={})
+            cli=cli.cli, args=args, catch_exceptions=False, obj={}
+        )
 
     def create_pipeline_file(self):
         pipeline_code = b"""
@@ -218,7 +277,9 @@ def my_component():
 def my_pipeline():
     my_component_task = my_component()
 """
-        temp_pipeline = tempfile.NamedTemporaryFile(suffix='.py', delete=False)
+        temp_pipeline = tempfile.NamedTemporaryFile(
+            suffix='.py', dir=self.temp_dir.name, delete=False
+        )
         temp_pipeline.write(pipeline_code)
         temp_pipeline.flush()
         return temp_pipeline
@@ -229,10 +290,11 @@ def my_pipeline():
 
     def test_compile_with_caching_flag_enabled(self):
         temp_pipeline = self.create_pipeline_file()
-        output_file = 'test_output.yaml'
+        output_file = os.path.join(self.temp_dir.name, 'test_output.yaml')
 
         result = self.invoke(
-            ['--py', temp_pipeline.name, '--output', output_file])
+            ['--py', temp_pipeline.name, '--output', output_file]
+        )
         self.assertEqual(result.exit_code, 0)
 
         output_data = self.load_output_yaml(output_file)
@@ -245,12 +307,17 @@ def my_pipeline():
 
     def test_compile_with_caching_flag_disabled(self):
         temp_pipeline = self.create_pipeline_file()
-        output_file = 'test_output.yaml'
+        output_file = os.path.join(self.temp_dir.name, 'test_output.yaml')
 
-        result = self.invoke([
-            '--py', temp_pipeline.name, '--output', output_file,
-            '--disable-execution-caching-by-default'
-        ])
+        result = self.invoke(
+            [
+                '--py',
+                temp_pipeline.name,
+                '--output',
+                output_file,
+                '--disable-execution-caching-by-default',
+            ]
+        )
         self.assertEqual(result.exit_code, 0)
 
         output_data = self.load_output_yaml(output_file)
@@ -263,13 +330,15 @@ def my_pipeline():
 
     def test_compile_with_caching_disabled_env_var(self):
         temp_pipeline = self.create_pipeline_file()
-        output_file = 'test_output.yaml'
+        output_file = os.path.join(self.temp_dir.name, 'test_output.yaml')
 
-        os.environ['KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT'] = 'true'
-        result = self.invoke(
-            ['--py', temp_pipeline.name, '--output', output_file])
-        self.assertEqual(result.exit_code, 0)
-        del os.environ['KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT']
+        with mock.patch.dict(
+            os.environ, {'KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT': 'true'}
+        ):
+            result = self.invoke(
+                ['--py', temp_pipeline.name, '--output', output_file]
+            )
+            self.assertEqual(result.exit_code, 0)
 
         output_data = self.load_output_yaml(output_file)
         self.assertIn('root', output_data)
@@ -279,10 +348,93 @@ def my_pipeline():
             caching_options = task['cachingOptions']
             self.assertEqual(caching_options, {})
 
+    def test_compile_restores_caching_default(self) -> None:
+        """Apply the CLI option without changing later SDK compilations."""
+        output_file = os.path.join(self.temp_dir.name, 'pipeline.yaml')
+        for original_default in (True, False):
+            for disable_caching in (True, False):
+                with (
+                    self.subTest(
+                        original_default=original_default,
+                        disable_caching=disable_caching,
+                    ),
+                    mock.patch.object(
+                        pipeline_context.Pipeline,
+                        '_execution_caching_default',
+                        original_default,
+                    ),
+                    self.create_pipeline_file() as temp_pipeline,
+                ):
+                    args = ['--py', temp_pipeline.name, '--output', output_file]
+                    if disable_caching:
+                        args.append('--disable-execution-caching-by-default')
+                    result = self.invoke(args)
+                    self.assertEqual(result.exit_code, 0)
+                    self.assertEqual(
+                        pipeline_context.Pipeline.get_execution_caching_default(),
+                        original_default,
+                    )
+                    output_data = self.load_output_yaml(output_file)
+                    for task in output_data['root']['dag']['tasks'].values():
+                        self.assertEqual(
+                            task['cachingOptions'].get('enableCache', False),
+                            not disable_caching,
+                        )
+
+    def test_compile_restores_caching_default_after_error(self) -> None:
+        """Restore the default when loading or compiling a pipeline fails."""
+        with self.create_pipeline_file() as temp_pipeline:
+            output_file = os.path.join(self.temp_dir.name, 'pipeline.yaml')
+            for original_default in (True, False):
+                for target in (
+                    'collect_pipeline_or_component_func',
+                    'compiler.Compiler.compile',
+                ):
+                    with (
+                        self.subTest(
+                            original_default=original_default, target=target
+                        ),
+                        mock.patch.object(
+                            pipeline_context.Pipeline,
+                            '_execution_caching_default',
+                            original_default,
+                        ),
+                        mock.patch(
+                            f'kfp.cli.compile_.{target}',
+                            side_effect=ValueError('compilation failed'),
+                        ),
+                    ):
+                        args = [
+                            '--py',
+                            temp_pipeline.name,
+                            '--output',
+                            output_file,
+                        ]
+                        if original_default:
+                            args.append(
+                                '--disable-execution-caching-by-default'
+                            )
+                        with self.assertRaisesRegex(
+                            ValueError, 'compilation failed'
+                        ):
+                            self.invoke(args)
+                        self.assertEqual(
+                            pipeline_context.Pipeline.get_execution_caching_default(),
+                            original_default,
+                        )
+
     def test_compile_with_kubernetes_manifest_format(self):
-        with tempfile.NamedTemporaryFile(suffix='.py', delete=True) as temp_pipeline, \
-             tempfile.NamedTemporaryFile(suffix='.yaml', delete=True) as output_file, \
-             tempfile.NamedTemporaryFile(suffix='.yaml', delete=True) as output_file2:
+        with (
+            tempfile.NamedTemporaryFile(
+                suffix='.py', delete=True
+            ) as temp_pipeline,
+            tempfile.NamedTemporaryFile(
+                suffix='.yaml', delete=True
+            ) as output_file,
+            tempfile.NamedTemporaryFile(
+                suffix='.yaml', delete=True
+            ) as output_file2,
+        ):
             temp_pipeline.write(b"""
 from kfp import dsl
 
@@ -302,14 +454,24 @@ def iris_pipeline():
             namespace = 'test-namespace'
 
             # Test with --kubernetes-manifest-format flag
-            result = self.invoke([
-                '--py', temp_pipeline.name, '--output', output_file.name,
-                '--kubernetes-manifest-format', '--pipeline-display-name',
-                pipeline_display_name, '--pipeline-version-name',
-                pipeline_version_name, '--pipeline-version-display-name',
-                pipeline_version_display_name, '--namespace', namespace,
-                '--include-pipeline-manifest'
-            ])
+            result = self.invoke(
+                [
+                    '--py',
+                    temp_pipeline.name,
+                    '--output',
+                    output_file.name,
+                    '--kubernetes-manifest-format',
+                    '--pipeline-display-name',
+                    pipeline_display_name,
+                    '--pipeline-version-name',
+                    pipeline_version_name,
+                    '--pipeline-version-display-name',
+                    pipeline_version_display_name,
+                    '--namespace',
+                    namespace,
+                    '--include-pipeline-manifest',
+                ]
+            )
             self.assertEqual(result.exit_code, 0)
 
             with open(output_file.name, 'r') as f:
@@ -318,30 +480,48 @@ def iris_pipeline():
             self.assertIn('Pipeline', kinds)
             self.assertIn('PipelineVersion', kinds)
             pipeline_doc = next(
-                doc for doc in docs if doc['kind'] == 'Pipeline')
+                doc for doc in docs if doc['kind'] == 'Pipeline'
+            )
             pipeline_version_doc = next(
-                doc for doc in docs if doc['kind'] == 'PipelineVersion')
+                doc for doc in docs if doc['kind'] == 'PipelineVersion'
+            )
             self.assertEqual(pipeline_doc['metadata']['name'], pipeline_name)
             self.assertEqual(pipeline_doc['metadata']['namespace'], namespace)
-            self.assertEqual(pipeline_doc['spec']['displayName'],
-                             pipeline_display_name)
-            self.assertEqual(pipeline_version_doc['metadata']['name'],
-                             pipeline_version_name)
-            self.assertEqual(pipeline_version_doc['metadata']['namespace'],
-                             namespace)
-            self.assertEqual(pipeline_version_doc['spec']['displayName'],
-                             pipeline_version_display_name)
-            self.assertEqual(pipeline_version_doc['spec']['pipelineName'],
-                             pipeline_name)
+            self.assertEqual(
+                pipeline_doc['spec']['displayName'], pipeline_display_name
+            )
+            self.assertEqual(
+                pipeline_version_doc['metadata']['name'], pipeline_version_name
+            )
+            self.assertEqual(
+                pipeline_version_doc['metadata']['namespace'], namespace
+            )
+            self.assertEqual(
+                pipeline_version_doc['spec']['displayName'],
+                pipeline_version_display_name,
+            )
+            self.assertEqual(
+                pipeline_version_doc['spec']['pipelineName'], pipeline_name
+            )
 
             # include_pipeline_manifest False
-            result = self.invoke([
-                '--py', temp_pipeline.name, '--output', output_file2.name,
-                '--kubernetes-manifest-format', '--pipeline-display-name',
-                pipeline_display_name, '--pipeline-version-name',
-                pipeline_version_name, '--pipeline-version-display-name',
-                pipeline_version_display_name, '--namespace', namespace
-            ])
+            result = self.invoke(
+                [
+                    '--py',
+                    temp_pipeline.name,
+                    '--output',
+                    output_file2.name,
+                    '--kubernetes-manifest-format',
+                    '--pipeline-display-name',
+                    pipeline_display_name,
+                    '--pipeline-version-name',
+                    pipeline_version_name,
+                    '--pipeline-version-display-name',
+                    pipeline_version_display_name,
+                    '--namespace',
+                    namespace,
+                ]
+            )
             self.assertEqual(result.exit_code, 0)
 
             with open(output_file2.name, 'r') as f:
@@ -351,18 +531,29 @@ def iris_pipeline():
             self.assertIn('PipelineVersion', kinds)
             self.assertEqual(len(kinds), 1)
             pipeline_version_doc = docs[0]
-            self.assertEqual(pipeline_version_doc['metadata']['name'],
-                             pipeline_version_name)
-            self.assertEqual(pipeline_version_doc['metadata']['namespace'],
-                             namespace)
-            self.assertEqual(pipeline_version_doc['spec']['displayName'],
-                             pipeline_version_display_name)
-            self.assertEqual(pipeline_version_doc['spec']['pipelineName'],
-                             pipeline_name)
+            self.assertEqual(
+                pipeline_version_doc['metadata']['name'], pipeline_version_name
+            )
+            self.assertEqual(
+                pipeline_version_doc['metadata']['namespace'], namespace
+            )
+            self.assertEqual(
+                pipeline_version_doc['spec']['displayName'],
+                pipeline_version_display_name,
+            )
+            self.assertEqual(
+                pipeline_version_doc['spec']['pipelineName'], pipeline_name
+            )
 
     def test_compile_manifest_options_without_format_flag(self):
-        with tempfile.NamedTemporaryFile(suffix='.py', delete=True) as temp_pipeline, \
-             tempfile.NamedTemporaryFile(suffix='.yaml', delete=True) as output_file:
+        with (
+            tempfile.NamedTemporaryFile(
+                suffix='.py', delete=True
+            ) as temp_pipeline,
+            tempfile.NamedTemporaryFile(
+                suffix='.yaml', delete=True
+            ) as output_file,
+        ):
             temp_pipeline.write(b"""
 from kfp import dsl
 
@@ -380,18 +571,28 @@ def iris_pipeline():
             pipeline_version_display_name = 'IrisPipelineVersion'
             namespace = 'test-namespace'
 
-            result = self.invoke([
-                '--py', temp_pipeline.name, '--output', output_file.name,
-                '--pipeline-display-name', pipeline_display_name,
-                '--pipeline-version-name', pipeline_version_name,
-                '--pipeline-version-display-name',
-                pipeline_version_display_name, '--namespace', namespace,
-                '--include-pipeline-manifest'
-            ])
+            result = self.invoke(
+                [
+                    '--py',
+                    temp_pipeline.name,
+                    '--output',
+                    output_file.name,
+                    '--pipeline-display-name',
+                    pipeline_display_name,
+                    '--pipeline-version-name',
+                    pipeline_version_name,
+                    '--pipeline-version-display-name',
+                    pipeline_version_display_name,
+                    '--namespace',
+                    namespace,
+                    '--include-pipeline-manifest',
+                ]
+            )
             self.assertEqual(result.exit_code, 0)
             self.assertIn(
                 'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format was not set',
-                result.output)
+                result.output,
+            )
             # Should only output a regular pipeline spec, not Kubernetes manifests
             with open(output_file.name, 'r') as f:
                 doc = yaml.safe_load(f)

@@ -24,7 +24,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	specPB "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	pb "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	pb "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 
 	"github.com/golang/glog"
@@ -258,14 +258,6 @@ var experiment = &pb.Experiment{
 	Namespace:        "namespace1",
 	StorageState:     pb.Experiment_AVAILABLE,
 	LastRunCreatedAt: fixedTimestamp(),
-}
-
-var visualization = &pb.Visualization{
-	Type:      pb.Visualization_ROC_CURVE,
-	Source:    "gs://my-bucket/data/visualization.csv",
-	Arguments: "{\"param1\": \"value1\", \"param2\": \"value2\"}",
-	Html:      "<div>Generated Visualization</div>",
-	Error:     "",
 }
 
 var recurringRun = &pb.RecurringRun{

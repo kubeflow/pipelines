@@ -67,7 +67,6 @@ components:
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
           parameterType: STRING
         storage_class_name:
-          defaultValue: ''
           description: 'Name of StorageClass from which to provision the PV
 
             to back the PVC. ``None`` indicates to use the cluster''s default

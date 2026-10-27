@@ -63,11 +63,29 @@ function display_pod_info {
     for POD_NAME in ${POD_NAMES}; do
         {
             echo "===== Pod: ${POD_NAME} in ${NAMESPACE} ====="
-            echo "----- EVENTS -----"
-            kubectl_with_timeout describe pod "${POD_NAME}" -n "${NAMESPACE}" | grep -A 100 Events || echo "No events found for pod ${POD_NAME}."
+            echo "----- STATUS AND EVENTS -----"
+            kubectl_with_timeout describe pod "${POD_NAME}" -n "${NAMESPACE}" || echo "No description found for pod ${POD_NAME}."
 
             echo "----- LOGS -----"
-            kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" || echo "No logs found for pod ${POD_NAME}."
+            local COMPONENT
+            COMPONENT=$(kubectl_with_timeout get pod "${POD_NAME}" -n "${NAMESPACE}" \
+                -o 'jsonpath={.metadata.labels.workflows\.argoproj\.io/component}') || COMPONENT=""
+            if [[ "${COMPONENT}" == agent ]]; then
+                kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" -c driver-plugin || \
+                    echo "No logs found for pod ${POD_NAME}."
+            else
+                kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" || \
+                    echo "No logs found for pod ${POD_NAME}."
+            fi
+
+            echo "----- PREVIOUS LOGS -----"
+            if [[ "${COMPONENT}" == agent ]]; then
+                kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" --previous -c driver-plugin || \
+                    echo "No previous logs found for pod ${POD_NAME}."
+            else
+                kubectl_with_timeout logs "${POD_NAME}" -n "${NAMESPACE}" --previous || \
+                    echo "No previous logs found for pod ${POD_NAME}."
+            fi
 
             echo "==========================="
             echo ""

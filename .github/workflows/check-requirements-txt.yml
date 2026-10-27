@@ -1,0 +1,46 @@
+name: Check Python dependency artifacts
+
+on:
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'requirements.txt'
+      - '**/pyproject.toml'
+      - 'sdk/python/**'
+      - '**/requirements.txt'
+      - '.github/workflows/check-requirements-txt.yml'
+      - 'release/kfpr/steps.py'
+      - '.github/resources/scripts/export_python_requirements.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.4"
+      - name: Check and install the frozen workspace
+        run: |
+          uv lock --check
+          uv sync --python 3.11 --frozen --no-dev
+      - name: Build SDK distributions
+        run: uv build --package kfp --out-dir "$RUNNER_TEMP/python-dist"
+      - name: Check pip artifacts in a clean environment
+        run: |
+          bash .github/resources/scripts/export_python_requirements.sh "$RUNNER_TEMP/python-exports"
+          uv venv --python 3.11 --seed "$RUNNER_TEMP/pip-compat"
+          for requirements in "$RUNNER_TEMP/python-exports/"*.txt; do
+            "$RUNNER_TEMP/pip-compat/bin/python" -m pip install \
+              --dry-run --ignore-installed -r "$requirements"
+          done
+          "$RUNNER_TEMP/pip-compat/bin/python" -m pip install "$RUNNER_TEMP/python-dist/"*.whl
+          "$RUNNER_TEMP/pip-compat/bin/python" -m pip check
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/pip-compat/bin/python" -c 'import kfp; import kfp.dsl; import kfp.kubernetes; import kfp.server_api; import kfp.pipeline_spec.pipeline_spec_pb2'

@@ -93,23 +93,6 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 	return results
 }
 
-// Mutate default values of specified pipeline spec.
-// Args:
-//
-//	text: (part of) pipeline file in string.
-func PatchPipelineDefaultParameter(text string) (string, error) {
-	defaultBucket := GetStringConfig(DefaultBucketNameEnvVar)
-	projectId := GetStringConfig(ProjectIDEnvVar)
-	toPatch := map[string]string{
-		"{{kfp-default-bucket}}": defaultBucket,
-		"{{kfp-project-id}}":     projectId,
-	}
-	for key, value := range toPatch {
-		text = strings.ReplaceAll(text, key, value)
-	}
-	return text, nil
-}
-
 // ValidatePipelineName Validates a pipeline name.
 func ValidatePipelineName(pipelineName string) error {
 	if pipelineName == "" {

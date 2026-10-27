@@ -97,10 +97,7 @@ func (b *BlobObjectStore) ReadFileLimited(ctx context.Context, filePath string, 
 		return nil, util.NewInternalServerError(err, "Failed to read file %v", filePath)
 	}
 	if int64(len(fileBytes)) > maxBytes {
-		return nil, util.NewInvalidInputError(
-			"File %v size too large (%v bytes). Maximum supported size: %v.",
-			filePath, len(fileBytes), maxBytes,
-		)
+		return nil, common.NewSizeLimitError("pipeline_spec", maxBytes, common.MaxPipelineSpecBytesEnv)
 	}
 	return fileBytes, nil
 }
@@ -118,7 +115,11 @@ func (b *BlobObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, file
 }
 
 func (b *BlobObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
-	yamlBytes, err := b.ReadFileLimited(ctx, filePath, int64(common.MaxFileLength))
+	limits, err := common.GetPipelineSizeLimits()
+	if err != nil {
+		return util.NewInternalServerError(err, "Invalid pipeline size limit configuration")
+	}
+	yamlBytes, err := b.ReadFileLimited(ctx, filePath, int64(limits.SpecBytes))
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file")
 	}

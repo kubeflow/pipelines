@@ -14,12 +14,12 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
-from typing import Optional
 import unittest
+from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 SCRIPT = Path(__file__).with_name('wait-for-image-artifacts.sh')
@@ -29,9 +29,6 @@ ARTIFACTS = (
     'persistenceagent',
     'frontend',
     'viewer-crd-controller',
-    'visualization-server',
-    'cache-deployer',
-    'cache-server',
     'driver',
     'launcher',
     'runtime-base-images',
@@ -39,11 +36,18 @@ ARTIFACTS = (
 
 
 class WaitForImageArtifactsTest(unittest.TestCase):
+    def test_requires_explicit_artifact_selection(self):
+        result, polls = self._run(ready_after=1, requested_artifacts=())
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('Specify at least one', result.stderr)
+        self.assertEqual(polls, 0)
 
     def _run(
         self,
         *,
         ready_after: int,
+        requested_artifacts: tuple[str, ...] = ARTIFACTS,
+        available_artifacts: tuple[str, ...] = ARTIFACTS,
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
@@ -59,7 +63,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             counter.write_text('0', encoding='utf-8')
             fake_gh = fake_bin / 'gh'
             fake_gh.write_text(
-                textwrap.dedent('''\
+                textwrap.dedent("""\
                     #!/usr/bin/env bash
                     if [[ "$*" == *"/jobs?"* ]]; then
                       if [[ "$JOBS_API_FAILS" == "true" ]]; then
@@ -80,46 +84,42 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                         fi
                       done
                     fi
-                '''),
+                """),
                 encoding='utf-8',
             )
             fake_gh.chmod(0o755)
 
             environment = os.environ.copy()
             environment.pop('WAIT_ATTEMPTS', None)
-            environment.update({
-                'ARTIFACT_NAMES':
-                    ' '.join(ARTIFACTS),
-                'GH_COUNTER':
-                    str(counter),
-                'GITHUB_REPOSITORY':
-                    'kubeflow/pipelines',
-                'GITHUB_RUN_ID':
-                    '123',
-                'JOBS_API_FAILS':
-                    str(jobs_api_fails).lower(),
-                'MISSING_ARTIFACT':
-                    missing_artifact,
-                'PATH':
-                    f'{fake_bin}{os.pathsep}{environment["PATH"]}',
-                'PRODUCER_JOBS':
-                    '\n'.join('\t'.join(producer_job)
-                              for producer_job in producer_jobs),
-                'READY_AFTER':
-                    str(ready_after),
-                'WAIT_INTERVAL_SECONDS':
-                    '0',
-            })
+            environment.update(
+                {
+                    'ARTIFACT_NAMES': ' '.join(available_artifacts),
+                    'GH_COUNTER': str(counter),
+                    'GITHUB_REPOSITORY': 'kubeflow/pipelines',
+                    'GITHUB_RUN_ID': '123',
+                    'JOBS_API_FAILS': str(jobs_api_fails).lower(),
+                    'MISSING_ARTIFACT': missing_artifact,
+                    'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
+                    'PRODUCER_JOBS': '\n'.join(
+                        '\t'.join(producer_job)
+                        for producer_job in producer_jobs
+                    ),
+                    'READY_AFTER': str(ready_after),
+                    'WAIT_INTERVAL_SECONDS': '0',
+                }
+            )
             if attempts is not None:
                 environment['WAIT_ATTEMPTS'] = str(attempts)
             if publication_grace_attempts is not None:
                 environment['PUBLICATION_GRACE_ATTEMPTS'] = str(
-                    publication_grace_attempts)
+                    publication_grace_attempts
+                )
             if producer_state_unavailable_extensions is not None:
                 environment['PRODUCER_STATE_UNAVAILABLE_EXTENSIONS'] = str(
-                    producer_state_unavailable_extensions)
+                    producer_state_unavailable_extensions
+                )
             result = subprocess.run(
-                ['bash', str(SCRIPT)],
+                ['bash', str(SCRIPT), *requested_artifacts],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -131,9 +131,53 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('All 11 branch image artifacts are available',
-                      result.stdout)
+        self.assertIn(
+            'All 8 branch image artifacts are available', result.stdout
+        )
         self.assertEqual(attempts, 1)
+
+    def test_runtime_only_succeeds_without_branch_images(self):
+        result, attempts = self._run(
+            ready_after=1,
+            requested_artifacts=('runtime-base-images',),
+            available_artifacts=('runtime-base-images',),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            'All 1 branch image artifacts are available', result.stdout
+        )
+        self.assertEqual(attempts, 1)
+
+    def test_rejects_unknown_or_empty_selection_before_polling(self):
+        for artifact in ('unknown-image', ''):
+            with self.subTest(artifact=artifact):
+                result, attempts = self._run(
+                    ready_after=1,
+                    requested_artifacts=(artifact,),
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('Unknown image artifact requested', result.stderr)
+                self.assertEqual(attempts, 0)
+
+    def test_runtime_only_fails_when_runtime_producer_fails(self):
+        result, attempts = self._run(
+            ready_after=99,
+            requested_artifacts=('runtime-base-images',),
+            missing_artifact='runtime-base-images',
+            producer_jobs=(
+                ('build / runtime-base-images', 'completed', 'failure'),
+                (
+                    'build / image-build (frontend, frontend/Dockerfile, .)',
+                    'in_progress',
+                    '',
+                ),
+            ),
+        )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('runtime-base-images:failure', result.stderr)
+        self.assertEqual(attempts, 2)
 
     def test_rejects_invalid_publication_grace(self):
         result, attempts = self._run(
@@ -142,8 +186,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn('PUBLICATION_GRACE_ATTEMPTS must be a positive integer',
-                      result.stderr)
+        self.assertIn(
+            'PUBLICATION_GRACE_ATTEMPTS must be a positive integer',
+            result.stderr,
+        )
         self.assertEqual(attempts, 0)
 
     def test_retries_until_artifacts_are_available(self):
@@ -158,8 +204,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=21, attempts=None)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('Waiting for branch image artifacts (20/40)',
-                      result.stdout)
+        self.assertIn(
+            'Waiting for branch image artifacts (20/40)', result.stdout
+        )
         self.assertEqual(attempts, 21)
 
     def test_fails_with_missing_artifact_names(self):
@@ -168,7 +215,8 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn(
             'Missing branch image artifacts after producer completion grace',
-            result.stderr)
+            result.stderr,
+        )
         self.assertIn('frontend', result.stderr)
         self.assertEqual(attempts, 5)
 
@@ -176,28 +224,33 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(
             ready_after=3,
             attempts=2,
-            producer_jobs=((
-                'build / image-build (frontend, frontend/Dockerfile, .)',
-                'in_progress',
-                '',
-            ),),
+            producer_jobs=(
+                (
+                    'build / image-build (frontend, frontend/Dockerfile, .)',
+                    'in_progress',
+                    '',
+                ),
+            ),
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(
             'Extending image artifact wait; active producers: frontend',
-            result.stdout)
+            result.stdout,
+        )
         self.assertEqual(attempts, 3)
 
     def test_does_not_extend_for_an_unrelated_active_producer(self):
         result, attempts = self._run(
             ready_after=99,
             attempts=2,
-            producer_jobs=((
-                'build / image-build (apiserver, backend/Dockerfile, .)',
-                'in_progress',
-                '',
-            ),),
+            producer_jobs=(
+                (
+                    'build / image-build (apiserver, backend/Dockerfile, .)',
+                    'in_progress',
+                    '',
+                ),
+            ),
         )
 
         self.assertEqual(result.returncode, 1)
@@ -208,11 +261,13 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(
             ready_after=99,
             attempts=2,
-            producer_jobs=((
-                'build / image-build (frontend, frontend/Dockerfile, .)',
-                'completed',
-                'failure',
-            ),),
+            producer_jobs=(
+                (
+                    'build / image-build (frontend, frontend/Dockerfile, .)',
+                    'completed',
+                    'failure',
+                ),
+            ),
         )
 
         self.assertEqual(result.returncode, 1)
@@ -223,11 +278,13 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(
             ready_after=4,
             attempts=2,
-            producer_jobs=((
-                'build / image-build (frontend, frontend/Dockerfile, .)',
-                'completed',
-                'success',
-            ),),
+            producer_jobs=(
+                (
+                    'build / image-build (frontend, frontend/Dockerfile, .)',
+                    'completed',
+                    'success',
+                ),
+            ),
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -239,11 +296,13 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             ready_after=3,
             attempts=2,
             missing_artifact='runtime-base-images',
-            producer_jobs=((
-                'build / runtime-base-images',
-                'queued',
-                '',
-            ),),
+            producer_jobs=(
+                (
+                    'build / runtime-base-images',
+                    'queued',
+                    '',
+                ),
+            ),
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -260,7 +319,8 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(
             'Extending image artifact wait because producer state is unavailable',
-            result.stdout)
+            result.stdout,
+        )
         self.assertEqual(attempts, 2)
 
     def test_fails_after_bounded_producer_state_api_fallback(self):

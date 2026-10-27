@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilitites for formatting, coloring, and controlling the output of logs."""
+
 import builtins
 import contextlib
 import datetime
 import logging
 import shutil
 import sys
+import threading
 from typing import Any, Dict, Generator, List
 
 from kfp import dsl
@@ -37,7 +39,6 @@ class Color:
 
 
 class MillisecondFormatter(logging.Formatter):
-
     def formatTime(
         self,
         record: logging.LogRecord,
@@ -49,9 +50,24 @@ class MillisecondFormatter(logging.Formatter):
         return s[:-3]
 
 
+_ORIGINAL_PRINT = builtins.print
+_ACTIVE_INDENT_CONTEXTS = 0
+_INDENT_LOCK = threading.Lock()
+_THREAD_LOCAL_STATE = threading.local()
+
+
+def _thread_aware_indented_print(*args: Any, **kwargs: Any) -> None:
+    """Forward prints using the active thread's indentation."""
+    num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
+    if num_spaces > 0:
+        _ORIGINAL_PRINT(' ' * num_spaces, end='')
+    return _ORIGINAL_PRINT(*args, **kwargs)
+
+
 @contextlib.contextmanager
 def local_logger_context() -> Generator[None, None, None]:
-    """Context manager for creating and reseting the local execution logger."""
+    """Context manager for creating and resetting the local execution
+    logger."""
 
     logger = logging.getLogger()
     original_level = logger.level
@@ -87,24 +103,36 @@ def indented_print(num_spaces: int = 4) -> Generator[None, None, None]:
     Useful for visually separating a subprocess logs from the outer
     process logs.
     """
-    original_print = builtins.print
+    global _ACTIVE_INDENT_CONTEXTS, _ORIGINAL_PRINT
 
-    def indented_print_function(*args, **kwargs):
-        original_print(' ' * num_spaces, end='')
-        return original_print(*args, **kwargs)
+    with _INDENT_LOCK:
+        if _ACTIVE_INDENT_CONTEXTS == 0:
+            _ORIGINAL_PRINT = builtins.print
+            builtins.print = _thread_aware_indented_print
+        _ACTIVE_INDENT_CONTEXTS += 1
 
-    builtins.print = indented_print_function
+    current_num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
+    _THREAD_LOCAL_STATE.num_spaces = current_num_spaces + num_spaces
+
     try:
         yield
     finally:
-        builtins.print = original_print
+        current_num_spaces = getattr(_THREAD_LOCAL_STATE, 'num_spaces', 0)
+        _THREAD_LOCAL_STATE.num_spaces = max(current_num_spaces - num_spaces, 0)
+
+        with _INDENT_LOCK:
+            _ACTIVE_INDENT_CONTEXTS = max(_ACTIVE_INDENT_CONTEXTS - 1, 0)
+            if _ACTIVE_INDENT_CONTEXTS == 0:
+                builtins.print = _ORIGINAL_PRINT
 
 
 def color_text(text: str, color: Color) -> str:
     return f'{color}{text}{Color.RESET}'
 
 
-def make_log_lines_for_artifact(artifact: dsl.Artifact,) -> List[str]:
+def make_log_lines_for_artifact(
+    artifact: dsl.Artifact,
+) -> List[str]:
     """Returns a list of log lines that represent a single artifact output."""
     artifact_class_name_and_paren = f'{artifact.__class__.__name__}( '
     # name
@@ -118,7 +146,7 @@ def make_log_lines_for_artifact(artifact: dsl.Artifact,) -> List[str]:
 
 
 def make_log_lines_for_outputs(outputs: Dict[str, Any]) -> List[str]:
-    """Returns a list of log lines to repesent the outputs of a task."""
+    """Returns a list of log lines to represent the outputs of a task."""
     INDENT = ' ' * 4
     SEPARATOR = ': '
     output_lines = []

@@ -18,21 +18,19 @@ import collections
 import dataclasses
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import uuid
+from decimal import Decimal
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
+import yaml
 from google.protobuf import json_format
+
 import kfp
 from kfp.dsl import container_component_artifact_channel as artifact_channel
-from kfp.dsl import placeholders
-from kfp.dsl import utils
-from kfp.dsl import v1_structures
+from kfp.dsl import placeholders, utils
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import type_annotations, type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 
 @dataclasses.dataclass
@@ -46,7 +44,8 @@ class InputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Input description.
     """
-    type: Union[str, dict]
+
+    type: str
     default: Optional[Any] = None
     optional: bool = False
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
@@ -59,7 +58,8 @@ class InputSpec:
 
     @classmethod
     def from_ir_component_inputs_dict(
-            cls, ir_component_inputs_dict: Dict[str, Any]) -> 'InputSpec':
+        cls, ir_component_inputs_dict: Dict[str, Any]
+    ) -> 'InputSpec':
         """Creates an InputSpec from a ComponentInputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.inputDefinitions.parameters.<input-key>).
@@ -81,24 +81,30 @@ class InputSpec:
             # since some IR compiled with kfp<=2.0.0b8 will have defaults
             # without isOptional=True
             optional = ir_component_inputs_dict.get(
-                'isOptional', 'defaultValue' in ir_component_inputs_dict)
+                'isOptional', 'defaultValue' in ir_component_inputs_dict
+            )
             return InputSpec(
-                type=type_, default=default_value, optional=optional)
+                type=type_, default=default_value, optional=optional
+            )
 
         else:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_inputs_dict['artifactType'][
-                'schemaVersion']
+                'schemaVersion'
+            ]
             # TODO: would be better to extract these fields from the proto
             # message, as False default would be preserved
             optional = ir_component_inputs_dict.get('isOptional', False)
             is_artifact_list = ir_component_inputs_dict.get(
-                'isArtifactList', False)
+                'isArtifactList', False
+            )
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version),
+                    type_, schema_version
+                ),
                 optional=optional,
-                is_artifact_list=is_artifact_list)
+                is_artifact_list=is_artifact_list,
+            )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -114,9 +120,11 @@ class InputSpec:
             bool: True if the objects are equal, False otherwise.
         """
         if isinstance(other, InputSpec):
-            return type_utils.get_canonical_name_for_outer_generic(
-                self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type) and self.default == other.default
+            return (
+                type_utils.get_canonical_name_for_outer_generic(self.type)
+                == type_utils.get_canonical_name_for_outer_generic(other.type)
+                and self.default == other.default
+            )
         else:
             return False
 
@@ -126,7 +134,6 @@ class InputSpec:
 
         This allows us to perform fewer checks downstream.
         """
-        # TODO: add transformation logic so that we don't have to transform inputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
@@ -149,7 +156,8 @@ class OutputSpec:
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Output description.
     """
-    type: Union[str, dict]
+
+    type: str
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
     description: Optional[str] = None
@@ -159,7 +167,8 @@ class OutputSpec:
 
     @classmethod
     def from_ir_component_outputs_dict(
-            cls, ir_component_outputs_dict: Dict[str, Any]) -> 'OutputSpec':
+        cls, ir_component_outputs_dict: Dict[str, Any]
+    ) -> 'OutputSpec':
         """Creates an OutputSpec from a ComponentOutputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.outputDefinitions.parameters|artifacts.<output-key>).
@@ -176,17 +185,23 @@ class OutputSpec:
             type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
-            return OutputSpec(type=type_,)
+            return OutputSpec(
+                type=type_,
+            )
         else:
             type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_outputs_dict['artifactType'][
-                'schemaVersion']
+                'schemaVersion'
+            ]
             is_artifact_list = ir_component_outputs_dict.get(
-                'isArtifactList', False)
+                'isArtifactList', False
+            )
             return OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version),
-                is_artifact_list=is_artifact_list)
+                    type_, schema_version
+                ),
+                is_artifact_list=is_artifact_list,
+            )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -203,8 +218,8 @@ class OutputSpec:
         """
         if isinstance(other, OutputSpec):
             return type_utils.get_canonical_name_for_outer_generic(
-                self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type)
+                self.type
+            ) == type_utils.get_canonical_name_for_outer_generic(other.type)
         else:
             return False
 
@@ -214,18 +229,22 @@ class OutputSpec:
 
         This allows us to perform fewer checks downstream.
         """
-        # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
 
 def spec_type_is_parameter(type_: str) -> bool:
-    in_memory_type = type_annotations.maybe_strip_optional_from_annotation_string(
-        type_utils.get_canonical_name_for_outer_generic(type_))
+    in_memory_type = (
+        type_annotations.maybe_strip_optional_from_annotation_string(
+            type_utils.get_canonical_name_for_outer_generic(type_)
+        )
+    )
 
-    return (in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or
-            in_memory_type == 'PipelineTaskFinalStatus' or
-            in_memory_type == 'TaskConfig')
+    return (
+        in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE
+        or in_memory_type == 'PipelineTaskFinalStatus'
+        or in_memory_type == 'TaskConfig'
+    )
 
 
 @dataclasses.dataclass
@@ -241,6 +260,7 @@ class ResourceSpec:
             container.
         accelerator_count (optional): the number of accelerators attached.
     """
+
     cpu_request: Optional[str] = None
     cpu_limit: Optional[str] = None
     memory_request: Optional[str] = None
@@ -277,6 +297,7 @@ class ContainerSpec:
                     model_config_path,
                 ])
     """
+
     image: str
     """Container image."""
 
@@ -290,6 +311,7 @@ class ContainerSpec:
 @dataclasses.dataclass
 class ContainerSpecImplementation:
     """Container implementation definition."""
+
     image: str
     """Container image."""
 
@@ -324,19 +346,20 @@ class ContainerSpecImplementation:
 
     @classmethod
     def from_container_spec(
-            cls,
-            container_spec: ContainerSpec) -> 'ContainerSpecImplementation':
+        cls, container_spec: ContainerSpec
+    ) -> 'ContainerSpecImplementation':
         return ContainerSpecImplementation(
             image=container_spec.image,
             command=container_spec.command,
             args=container_spec.args,
             env=None,
-            resources=None)
+            resources=None,
+        )
 
     @classmethod
     def from_container_dict(
-            cls, container_dict: Dict[str,
-                                      Any]) -> 'ContainerSpecImplementation':
+        cls, container_dict: Dict[str, Any]
+    ) -> 'ContainerSpecImplementation':
         """Creates a ContainerSpecImplementation from a PipelineContainerSpec
         message in dict format
         (pipeline_spec.deploymentSpec.executors.<executor- key>.container).
@@ -353,7 +376,16 @@ class ContainerSpecImplementation:
             command=container_dict.get('command'),
             args=container_dict.get('args'),
             env=container_dict.get('env'),
-            resources=None)  # can only be set on tasks
+            resources=None,
+        )  # can only be set on tasks
+
+
+_RETRY_POLICY_MAP = {
+    'Always': 'POLICY_ALWAYS',
+    'OnFailure': 'POLICY_ON_FAILURE',
+    'OnError': 'POLICY_ON_ERROR',
+    'OnTransientError': 'POLICY_ON_TRANSIENT_ERROR',
+}
 
 
 @dataclasses.dataclass
@@ -363,13 +395,26 @@ class RetryPolicy:
     Attributes:
         num_retries (int): Number of times to retry on failure.
         backoff_duration (int): The the number of seconds to wait before triggering a retry.
-        backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
+        backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60s" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
         backoff_max_duration (int): The maximum duration during which the task will be retried.
+        policy (str): Controls which failure types trigger a retry. Only
+            supported when using Argo Workflows as the pipeline execution
+            engine. One of ``'Always'``, ``'OnFailure'``, ``'OnError'``, or
+            ``'OnTransientError'``. ``'OnFailure'`` retries container exits,
+            including SIGTERM (exit code 143); ``'OnError'`` retries pods that
+            report no exit code, such as deletion or node loss;
+            ``'OnTransientError'`` retries either when the failure message
+            matches the controller's transient-error pattern; ``'Always'``
+            retries both. Defaults to ``None``, which omits the policy so the
+            deployment's Argo configuration applies; KFP's bundled manifests
+            set ``'OnError'``.
     """
+
     max_retry_count: Optional[int] = None
     backoff_duration: Optional[str] = None
     backoff_factor: Optional[float] = None
     backoff_max_duration: Optional[str] = None
+    policy: Optional[str] = None
 
     def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
         # include defaults so that IR is more reflective of runtime behavior
@@ -378,16 +423,29 @@ class RetryPolicy:
         backoff_factor = self.backoff_factor or 2.0
         backoff_max_duration = self.backoff_max_duration or '3600s'
 
-        backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
-        backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
+        backoff_duration_seconds = (
+            f'{convert_duration_to_seconds(backoff_duration)}s'
+        )
+        backoff_max_duration_seconds = (
+            f'{convert_duration_to_seconds(backoff_max_duration)}s'
+        )
 
+        retry_policy_dict = {
+            'max_retry_count': max_retry_count,
+            'backoff_duration': backoff_duration_seconds,
+            'backoff_factor': backoff_factor,
+            'backoff_max_duration': backoff_max_duration_seconds,
+        }
+        if self.policy:
+            if self.policy not in _RETRY_POLICY_MAP:
+                raise ValueError(
+                    f'Invalid retry policy {self.policy!r}. '
+                    f'Must be one of: {sorted(_RETRY_POLICY_MAP)}'
+                )
+            retry_policy_dict['policy'] = _RETRY_POLICY_MAP[self.policy]
         return json_format.ParseDict(
-            {
-                'max_retry_count': max_retry_count,
-                'backoff_duration': backoff_duration_seconds,
-                'backoff_factor': backoff_factor,
-                'backoff_max_duration': backoff_max_duration_seconds,
-            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+            retry_policy_dict, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy()
+        )
 
 
 @dataclasses.dataclass
@@ -417,6 +475,7 @@ class TaskSpec:
         display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
+
     name: str
     inputs: Mapping[str, Any]
     dependent_tasks: List[str]
@@ -443,6 +502,7 @@ class ImporterSpec:
          imported before.
         metadata (optional): the properties of the artifact.
     """
+
     artifact_uri: str
     schema_title: str
     schema_version: str
@@ -460,14 +520,16 @@ class Implementation:
         graph: graph implementation details.
         importer: importer implementation details.
     """
+
     container: Optional[ContainerSpecImplementation] = None
     importer: Optional[ImporterSpec] = None
     # Use type forward reference to skip the type validation in BaseModel.
     graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
 
     @classmethod
-    def from_pipeline_spec_dict(cls, pipeline_spec_dict: Dict[str, Any],
-                                component_name: str) -> 'Implementation':
+    def from_pipeline_spec_dict(
+        cls, pipeline_spec_dict: Dict[str, Any], component_name: str
+    ) -> 'Implementation':
         """Creates an Implementation object from a PipelineSpec message in dict
         format.
 
@@ -480,14 +542,21 @@ class Implementation:
         """
         executor_key = utils.sanitize_executor_label(component_name)
         executor = pipeline_spec_dict['deploymentSpec']['executors'].get(
-            executor_key)
+            executor_key
+        )
         if executor is not None:
-            container_spec = ContainerSpecImplementation.from_container_dict(
-                executor['container']) if executor else None
+            container_spec = (
+                ContainerSpecImplementation.from_container_dict(
+                    executor['container']
+                )
+                if executor
+                else None
+            )
             return Implementation(container=container_spec)
         else:
             pipeline_spec = json_format.ParseDict(
-                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec())
+                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec()
+            )
             return Implementation(graph=pipeline_spec)
 
 
@@ -504,7 +573,7 @@ def check_placeholder_references_valid_io_name(
         arg: The placeholder argument for checking.
 
     Raises:
-        ValueError: if any placeholder references a nonexistant input or
+        ValueError: if any placeholder references a nonexistent input or
             output.
         TypeError: if any argument is neither a str nor a placeholder
             instance.
@@ -516,17 +585,17 @@ def check_placeholder_references_valid_io_name(
     elif isinstance(arg, placeholders.PRIMITIVE_INPUT_PLACEHOLDERS):
         if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{arg.__class__.__name__}" references nonexistant input: "{arg.input_name}".'
+                f'Argument "{arg.__class__.__name__}" references nonexistent input: "{arg.input_name}".'
             )
     elif isinstance(arg, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
         if arg.output_name not in outputs_dict:
             raise ValueError(
-                f'Argument "{arg.__class__.__name__}" references nonexistant output: "{arg.output_name}".'
+                f'Argument "{arg.__class__.__name__}" references nonexistent output: "{arg.output_name}".'
             )
     elif isinstance(arg, placeholders.IfPresentPlaceholder):
         if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{arg.__class__.__name__}" references nonexistant input: "{arg.input_name}".'
+                f'Argument "{arg.__class__.__name__}" references nonexistent input: "{arg.input_name}".'
             )
 
         all_normalized_args: List[placeholders.CommandLineElement] = []
@@ -545,12 +614,14 @@ def check_placeholder_references_valid_io_name(
             all_normalized_args.append(arg.else_)
 
         for arg in all_normalized_args:
-            check_placeholder_references_valid_io_name(inputs_dict,
-                                                       outputs_dict, arg)
+            check_placeholder_references_valid_io_name(
+                inputs_dict, outputs_dict, arg
+            )
     elif isinstance(arg, placeholders.ConcatPlaceholder):
         for arg in arg.items:
-            check_placeholder_references_valid_io_name(inputs_dict,
-                                                       outputs_dict, arg)
+            check_placeholder_references_valid_io_name(
+                inputs_dict, outputs_dict, arg
+            )
     elif not isinstance(arg, str):
         raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
@@ -567,13 +638,15 @@ class ComponentSpec:
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
+
     name: str
     implementation: Implementation
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
     platform_spec: pipeline_spec_pb2.PlatformSpec = dataclasses.field(
-        default_factory=pipeline_spec_pb2.PlatformSpec)
+        default_factory=pipeline_spec_pb2.PlatformSpec
+    )
     # Optional passthroughs for TaskConfig fields
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
 
@@ -605,170 +678,11 @@ class ComponentSpec:
         valid_outputs = {} if self.outputs is None else self.outputs
         for arg in itertools.chain(
             (self.implementation.container.command or []),
-            (self.implementation.container.args or [])):
-            check_placeholder_references_valid_io_name(valid_inputs,
-                                                       valid_outputs, arg)
-
-    @classmethod
-    def from_v1_component_spec(
-            cls,
-            v1_component_spec: v1_structures.ComponentSpec) -> 'ComponentSpec':
-        """Converts V1 ComponentSpec to V2 ComponentSpec.
-
-        Args:
-            v1_component_spec: The V1 ComponentSpec.
-
-        Returns:
-            Component spec in the form of V2 ComponentSpec.
-
-        Raises:
-            ValueError: If implementation is not found.
-            TypeError: If any argument is neither a str nor Dict.
-        """
-        component_dict = v1_component_spec.to_dict()
-        if component_dict.get('implementation') is None:
-            raise ValueError('Implementation field not found')
-
-        if 'implementation' not in component_dict or 'container' not in component_dict[
-                'implementation']:
-            raise NotImplementedError('Container implementation not found.')
-
-        container = component_dict['implementation']['container']
-        command = [
-            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                command, component_dict=component_dict)
-            for command in container.get('command', [])
-        ]
-        args = [
-            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                command, component_dict=component_dict)
-            for command in container.get('args', [])
-        ]
-        env = {
-            key:
-                placeholders
-                .maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                    command, component_dict=component_dict)
-            for key, command in container.get('env', {}).items()
-        }
-        container_spec = ContainerSpecImplementation.from_container_dict({
-            'image': container['image'],
-            'command': command,
-            'args': args,
-            'env': env
-        })
-
-        inputs = {}
-        for spec in component_dict.get('inputs', []):
-            type_ = spec.get('type')
-            optional = spec.get('optional', False) or 'default' in spec
-            default = spec.get('default')
-            default = type_utils.deserialize_v1_component_yaml_default(
-                type_=type_, default=default)
-
-            if isinstance(type_, str):
-                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
-
-            if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_, optional=True)
-                continue
-
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils.PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
-                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-                    type_enum)
-                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
-                    ir_parameter_type_name]
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=in_memory_parameter_type_name,
-                    default=default,
-                    optional=optional,
-                )
-                continue
-
-            elif isinstance(type_, str) and re.match(
-                    type_utils._GOOGLE_TYPES_PATTERN, type_):
-                schema_title = type_
-                schema_version = type_utils._GOOGLE_TYPES_VERSION
-
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
-                    type_.lower()]
-                schema_title = artifact_class.schema_title
-                schema_version = artifact_class.schema_version
-
-            elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
-                schema_title = artifact_types.Artifact.schema_title
-                schema_version = artifact_types.Artifact.schema_version
-
-            else:
-                raise ValueError(f'Unknown input: {type_}')
-
-            if optional:
-                # handles optional artifacts with no default value
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_utils.create_bundled_artifact_type(
-                        schema_title, schema_version),
-                    default=default,
-                    optional=optional,
-                )
-            else:
-                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_utils.create_bundled_artifact_type(
-                        schema_title, schema_version))
-
-        outputs = {}
-        for spec in component_dict.get('outputs', []):
-            type_ = spec.get('type')
-            if isinstance(type_, str):
-                type_ = type_utils.get_canonical_name_for_outer_generic(type_)
-
-            if isinstance(type_, str) and type_.lower(
-            ) in type_utils.PARAMETER_TYPES_MAPPING:
-                type_enum = type_utils.PARAMETER_TYPES_MAPPING[type_.lower()]
-                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
-                    type_enum)
-                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
-                    ir_parameter_type_name]
-                outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
-                    type=in_memory_parameter_type_name)
-                continue
-
-            elif isinstance(type_, str) and re.match(
-                    type_utils._GOOGLE_TYPES_PATTERN, type_):
-                schema_title = type_
-                schema_version = type_utils._GOOGLE_TYPES_VERSION
-
-            elif isinstance(type_, str) and type_.lower(
-            ) in type_utils.ARTIFACT_CLASSES_MAPPING:
-                artifact_class = type_utils.ARTIFACT_CLASSES_MAPPING[
-                    type_.lower()]
-                schema_title = artifact_class.schema_title
-                schema_version = artifact_class.schema_version
-
-            elif type_ is None or isinstance(type_, dict) or type_.lower(
-            ) not in type_utils.ARTIFACT_CLASSES_MAPPING:
-                schema_title = artifact_types.Artifact.schema_title
-                schema_version = artifact_types.Artifact.schema_version
-
-            else:
-                raise ValueError(f'Unknown output: {type_}')
-
-            outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
-                type=type_utils.create_bundled_artifact_type(
-                    schema_title, schema_version))
-
-        return ComponentSpec(
-            name=component_dict.get('name', 'name'),
-            description=component_dict.get('description'),
-            implementation=Implementation(container=container_spec),
-            inputs=inputs,
-            outputs=outputs,
-        )
+            (self.implementation.container.args or []),
+        ):
+            check_placeholder_references_valid_io_name(
+                valid_inputs, valid_outputs, arg
+            )
 
     @classmethod
     def from_ir_dicts(
@@ -781,11 +695,14 @@ class ComponentSpec:
         raw_name = pipeline_spec_dict['pipelineInfo']['name']
 
         def inputs_dict_from_component_spec_dict(
-                component_spec_dict: Dict[str, Any]) -> Dict[str, InputSpec]:
-            parameters = component_spec_dict.get('inputDefinitions',
-                                                 {}).get('parameters', {})
-            artifacts = component_spec_dict.get('inputDefinitions',
-                                                {}).get('artifacts', {})
+            component_spec_dict: Dict[str, Any],
+        ) -> Dict[str, InputSpec]:
+            parameters = component_spec_dict.get('inputDefinitions', {}).get(
+                'parameters', {}
+            )
+            artifacts = component_spec_dict.get('inputDefinitions', {}).get(
+                'artifacts', {}
+            )
             all_inputs = {**parameters, **artifacts}
             return {
                 name: InputSpec.from_ir_component_inputs_dict(input_dict)
@@ -793,11 +710,14 @@ class ComponentSpec:
             }
 
         def outputs_dict_from_component_spec_dict(
-                components_spec_dict: Dict[str, Any]) -> Dict[str, OutputSpec]:
-            parameters = component_spec_dict.get('outputDefinitions',
-                                                 {}).get('parameters', {})
-            artifacts = components_spec_dict.get('outputDefinitions',
-                                                 {}).get('artifacts', {})
+            components_spec_dict: Dict[str, Any],
+        ) -> Dict[str, OutputSpec]:
+            parameters = component_spec_dict.get('outputDefinitions', {}).get(
+                'parameters', {}
+            )
+            artifacts = components_spec_dict.get('outputDefinitions', {}).get(
+                'artifacts', {}
+            )
             all_outputs = {**parameters, **artifacts}
             return {
                 name: OutputSpec.from_ir_component_outputs_dict(output_dict)
@@ -805,13 +725,14 @@ class ComponentSpec:
             }
 
         def extract_description_from_command(
-                commands: List[str]) -> Optional[str]:
+            commands: List[str],
+        ) -> Optional[str]:
             for command in commands:
                 if isinstance(command, str) and 'import kfp' in command:
                     for node in ast.walk(ast.parse(command)):
                         if isinstance(
-                                node,
-                            (ast.FunctionDef, ast.ClassDef, ast.Module)):
+                            node, (ast.FunctionDef, ast.ClassDef, ast.Module)
+                        ):
                             docstring = ast.get_docstring(node)
                             if docstring:
                                 return docstring
@@ -819,17 +740,23 @@ class ComponentSpec:
 
         component_key = utils.sanitize_component_name(raw_name)
         component_spec_dict = pipeline_spec_dict['components'].get(
-            component_key, pipeline_spec_dict['root'])
+            component_key, pipeline_spec_dict['root']
+        )
 
         inputs = inputs_dict_from_component_spec_dict(component_spec_dict)
         outputs = outputs_dict_from_component_spec_dict(component_spec_dict)
 
         implementation = Implementation.from_pipeline_spec_dict(
-            pipeline_spec_dict, raw_name)
+            pipeline_spec_dict, raw_name
+        )
 
-        description = extract_description_from_command(
-            implementation.container.command or
-            []) if implementation.container else None
+        description = (
+            extract_description_from_command(
+                implementation.container.command or []
+            )
+            if implementation.container
+            else None
+        )
 
         platform_spec = pipeline_spec_pb2.PlatformSpec()
         json_format.ParseDict(platform_spec_dict, platform_spec)
@@ -845,7 +772,7 @@ class ComponentSpec:
 
     @classmethod
     def from_yaml_documents(cls, component_yaml: str) -> 'ComponentSpec':
-        """Loads V1 or V2 component YAML into a ComponentSpec.
+        """Loads PipelineSpec IR YAML into a ComponentSpec.
 
         Args:
             component_yaml: PipelineSpec and optionally PlatformSpec YAML documents as a single string.
@@ -872,29 +799,37 @@ class ComponentSpec:
             while index < len(lines):
                 line = lines[index]
                 if line.startswith(multi_line_description_prefix):
-                    description += '\n' + line[len(multi_line_description_prefix
-                                                  ):]
+                    description += (
+                        '\n' + line[len(multi_line_description_prefix) :]
+                    )
                     index += 1
                 else:
                     break
 
-            return description[len(heading):]
+            return description[len(heading) :]
 
         pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
-            component_yaml)
+            component_yaml
+        )
 
-        is_v1 = 'implementation' in set(pipeline_spec_dict.keys())
-        if is_v1:
-            v1_component = _load_component_spec_from_component_text(
-                component_yaml)
-            return cls.from_v1_component_spec(v1_component)
-        else:
-            component_spec = ComponentSpec.from_ir_dicts(
-                pipeline_spec_dict, platform_spec_dict)
-            if not component_spec.description:
-                component_spec.description = extract_description(
-                    component_yaml=component_yaml)
-            return component_spec
+        if (
+            'implementation' in pipeline_spec_dict
+            or pipeline_spec_dict.get('kind') == 'Workflow'
+        ):
+            raise ValueError(
+                'Component YAML must use the PipelineSpec IR format. '
+                'Legacy component definitions and Argo Workflows are not supported. '
+                'Rewrite the component with the v2 SDK, or convert legacy '
+                'container YAML to IR with an older KFP v2 SDK before upgrading.'
+            )
+        component_spec = cls.from_ir_dicts(
+            pipeline_spec_dict, platform_spec_dict
+        )
+        if not component_spec.description:
+            component_spec.description = extract_description(
+                component_yaml=component_yaml
+            )
+        return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.
@@ -922,12 +857,10 @@ class ComponentSpec:
         Returns:
             A PipelineSpec proto representing the compiled component.
         """
-        # import here to aviod circular module dependency
+        # import here to avoid circular module dependency
         from kfp.compiler import compiler_utils
         from kfp.compiler import pipeline_spec_builder as builder
-        from kfp.dsl import pipeline_channel
-        from kfp.dsl import pipeline_task
-        from kfp.dsl import tasks_group
+        from kfp.dsl import pipeline_channel, pipeline_task, tasks_group
 
         args_dict = {}
         pipeline_inputs = self.inputs or {}
@@ -936,14 +869,16 @@ class ComponentSpec:
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
                 name=arg_name,
                 channel_type=input_spec.type,
-                is_artifact_list=input_spec.is_artifact_list)
+                is_artifact_list=input_spec.is_artifact_list,
+            )
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
         # instead of constructing a pipeline with pipeline_context.Pipeline,
         # just build the single task group
         group = tasks_group.TasksGroup(
-            group_type=tasks_group.TasksGroupType.PIPELINE)
+            group_type=tasks_group.TasksGroupType.PIPELINE
+        )
         group.tasks.append(task)
 
         group.name = uuid.uuid4().hex
@@ -955,11 +890,13 @@ class ComponentSpec:
         pipeline_output_spec = self.outputs or {}
 
         for arg_name, output_spec in pipeline_output_spec.items():
-            pipeline_outputs[
-                arg_name] = pipeline_channel.create_pipeline_channel(
+            pipeline_outputs[arg_name] = (
+                pipeline_channel.create_pipeline_channel(
                     name=arg_name,
                     channel_type=output_spec.type,
-                    task_name=task.name)
+                    task_name=task.name,
+                )
+            )
 
         utils.validate_pipeline_name(pipeline_name)
 
@@ -971,21 +908,25 @@ class ComponentSpec:
 
         # if we decide to surface component outputs to pipeline level,
         # can just assign the component_spec_proto directly to .root
-        component_spec_proto = builder._build_component_spec_from_component_spec_structure(
-            self)
+        component_spec_proto = (
+            builder._build_component_spec_from_component_spec_structure(self)
+        )
         pipeline_spec.root.CopyFrom(component_spec_proto)
 
         builder._build_dag_outputs(
-            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
+            component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs
+        )
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
 
-        task_name_to_parent_groups, group_name_to_parent_groups = compiler_utils.get_parent_groups(
-            root_group)
+        task_name_to_parent_groups, group_name_to_parent_groups = (
+            compiler_utils.get_parent_groups(root_group)
+        )
 
-        def get_inputs(task_group: tasks_group.TasksGroup,
-                       task_name_to_parent_groups):
+        def get_inputs(
+            task_group: tasks_group.TasksGroup, task_name_to_parent_groups
+        ):
             inputs = collections.defaultdict(set)
             if len(task_group.tasks) != 1:
                 raise ValueError(
@@ -1005,14 +946,14 @@ class ComponentSpec:
             group=root_group,
             inputs=inputs,
             outputs=collections.defaultdict(
-                dict),  # empty -- no sub-DAG outputs to surface
+                dict
+            ),  # empty -- no sub-DAG outputs to surface
             dependencies={},  # no dependencies for single-component pipeline
             rootgroup_name=root_group.name,
             task_name_to_parent_groups=task_name_to_parent_groups,
             group_name_to_parent_groups=group_name_to_parent_groups,
             name_to_for_loop_group={},  # no for loop in single-component pipeline
-            platform_spec=pipeline_spec_pb2.PlatformSpec(
-            ),  # no PlatformSpec single-component pipeline
+            platform_spec=pipeline_spec_pb2.PlatformSpec(),  # no PlatformSpec single-component pipeline
             is_compiled_component=True,
         )
 
@@ -1028,21 +969,22 @@ def normalize_time_string(duration: str) -> str:
             - '2hours' -> '2h'
             - '2 w' -> '2w'
             - '2w' -> '2w'
+            - '0.5 hours' -> '0.5h'
     Args:
         duration (str): The unnormalized duration string.
     Returns:
         str: The normalized duration string.
     """
     no_ws_duration = duration.replace(' ', '')
-    duration_split = [el for el in re.split(r'(\D+)', no_ws_duration) if el]
+    match = re.fullmatch(r'(\d+(?:\.\d+)?)([a-zA-Z]+)', no_ws_duration)
 
-    if len(duration_split) != 2:
+    if match is None:
         raise ValueError(
-            f"Invalid duration string: '{duration}'. Expected one value (as integer in string) and one unit, such as '1 hour'."
+            f"Invalid duration string: '{duration}'. Expected one value (as a "
+            f"number in a string) and one unit, such as '1 hour' or '0.5 hours'."
         )
 
-    value = duration_split[0]
-    unit = duration_split[1]
+    value, unit = match.groups()
 
     first_letter_of_unit = unit[0]
     return value + first_letter_of_unit
@@ -1064,8 +1006,15 @@ def convert_duration_to_seconds(duration: str) -> int:
     seconds_per_unit = {'s': 1, 'm': 60, 'h': 3_600, 'd': 86_400, 'w': 604_800}
     if duration[-1] not in seconds_per_unit.keys():
         raise ValueError(
-            f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
-    return int(duration[:-1]) * seconds_per_unit[duration[-1]]
+            f"Unsupported duration unit: '{duration[-1]}' for '{duration}'."
+        )
+    seconds = Decimal(duration[:-1]) * seconds_per_unit[duration[-1]]
+    if seconds != seconds.to_integral_value():
+        raise ValueError(
+            f"Invalid duration string: '{duration}'. Duration must resolve to a "
+            f'whole number of seconds, but got {seconds}.'
+        )
+    return int(seconds)
 
 
 def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
@@ -1087,15 +1036,3 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
             f'Expected one or two YAML documents in the IR YAML file. Got: {num_docs}.'
         )
     return pipeline_spec_dict, platform_spec_dict
-
-
-def _load_component_spec_from_component_text(
-        text) -> v1_structures.ComponentSpec:
-    component_dict = yaml.safe_load(text)
-    component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
-
-    # Calculating hash digest for the component
-    data = text if isinstance(text, bytes) else text.encode('utf-8')
-    data = data.replace(b'\r\n', b'\n')  # Normalizing line endings
-
-    return component_spec

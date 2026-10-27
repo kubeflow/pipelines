@@ -109,6 +109,8 @@ rules:
   - workfloweventbindings
   - workflowtemplates
   - workflowtaskresults
+  - workflowtasksets/status
+  - workflowtasksets
 - apiGroups:
     - pipelines.kubeflow.org
   resources:
@@ -159,9 +161,3 @@ rules:
   - viewers
   verbs:
   - get
-- apiGroups:
-  - pipelines.kubeflow.org
-  resources:
-  - visualizations
-  verbs:
-  - create

@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import { vi, describe, it, expect, afterAll, afterEach, beforeEach, MockInstance } from 'vitest';
-import * as minio from 'minio';
-import { PassThrough } from 'stream';
+
+import { PassThrough, Readable } from 'stream';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
@@ -24,8 +24,12 @@ import * as serverInfo from '../helpers/server-info.js';
 import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
-const MinioClient = minio.Client;
-vi.mock('minio');
+import { MockS3Client } from './s3-client-test-helper.js';
+vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>();
+  const { createS3Mock } = await import('./s3-client-test-helper.js');
+  return { ...actual, S3Client: createS3Mock(actual) };
+});
 vi.mock('@aws-sdk/credential-providers');
 vi.mock('../k8s-helper.js', () => ({
   getArgoWorkflow: vi.fn(),
@@ -51,18 +55,19 @@ vi.mock('../gcs-helper.js', () => ({
 }));
 
 const mockedValidateArtifactNamespace = vi.fn();
-vi.mock('../helpers/artifact-validator.js', () => ({
+vi.mock('../helpers/artifact-validator.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../helpers/artifact-validator.js')>()),
   validateArtifactNamespace: (...args: unknown[]) => mockedValidateArtifactNamespace(...args),
-  requiresArtifactOwnershipValidation: (source: string) =>
-    ['minio', 's3', 'gcs', 'http', 'https'].includes(source),
-  buildArtifactUri: (source: string, bucket: string, key: string) => {
-    const scheme = source === 'gcs' ? 'gs' : source;
-    return `${scheme}://${bucket}/${key}`;
-  },
 }));
 
 const mockedFetch = vi.fn();
 vi.stubGlobal('fetch', mockedFetch);
+
+function toWebStream(content: string): ReadableStream<Uint8Array> {
+  const stream = new PassThrough();
+  stream.end(content);
+  return Readable.toWeb(stream) as ReadableStream<Uint8Array>;
+}
 
 describe('/artifacts authorization', () => {
   let app: UIServer;
@@ -87,8 +92,8 @@ describe('/artifacts authorization', () => {
     // Default: ArtifactService validation passes (artifact belongs to claimed namespace)
     mockedValidateArtifactNamespace.mockResolvedValue({ valid: true });
 
-    const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function () {
+    const mockedMockS3Client = MockS3Client as any;
+    mockedMockS3Client.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -105,7 +110,7 @@ describe('/artifacts authorization', () => {
             throw new Error(`Unable to retrieve ${bucket}/${key} artifact.`);
           }
         },
-        listObjectsV2Query: vi.fn(),
+        listPage: vi.fn(),
       };
     });
   });
@@ -322,7 +327,7 @@ describe('/artifacts authorization', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-        url: '/apis/v1beta1/auth',
+        url: '/apis/v2/auth',
         json: () =>
           Promise.resolve({
             error: 'User is not authorized to GET VIEWERS in namespace other-namespace',
@@ -555,6 +560,57 @@ describe('/artifacts authorization', () => {
       });
     };
 
+    const authEnabledHttpConfigs = () => {
+      const configurations = authEnabledConfigs();
+      configurations.artifacts.http.baseUrl = 'allowed.host/root/';
+      configurations.artifacts.http.auth = {
+        key: 'Authorization',
+        defaultValue: 'shared-http-token',
+      };
+      configurations.artifacts.allowedDomain = '^(allowed|cdn)\\.host$';
+      return configurations;
+    };
+
+    const mockHttpRedirect = (firstUrl: string, location: string) => {
+      mockedFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        })
+        .mockImplementationOnce((url: string) => {
+          expect(url).toBe(firstUrl);
+          return Promise.resolve({
+            status: 302,
+            headers: new Map([['location', location]]),
+            body: toWebStream(''),
+          });
+        });
+    };
+
+    const httpArtifactRequest =
+      '/artifacts/get?source=http&bucket=storage-bucket' +
+      '&key=private-artifacts%2Fmy-namespace%2Frun%2Foutput.txt&namespace=my-namespace';
+    const firstHttpArtifactUrl =
+      'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/run/output.txt';
+
+    it('returns a controlled error when direct HTTP serving lacks a shared base URL', async () => {
+      mockAuthPass();
+      const configurations = authEnabledConfigs();
+      app = new UIServer(configurations);
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(
+          400,
+          'HTTP artifact base URL is not configured. Set HTTP_BASE_URL to an approved artifact base.',
+        );
+
+      expect(mockedFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('rejects artifact access when ArtifactService shows namespace mismatch', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
@@ -738,8 +794,142 @@ describe('/artifacts authorization', () => {
         'http://internal.example.com/victim/secret.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
+    });
+
+    it('follows an authorized custom-root redirect within the configured absolute base', async () => {
+      const firstUrl = 'https://allowed.host/reports/history/output.txt';
+      const targetUrl = 'https://allowed.host/reports/signed/download.txt?signature=abc';
+      mockHttpRedirect(firstUrl, targetUrl);
+      mockedFetch.mockResolvedValueOnce({
+        status: 200,
+        body: toWebStream('historical artifact'),
+      });
+      const configurations = authEnabledHttpConfigs();
+      configurations.artifacts.http.baseUrl = 'https://allowed.host/reports/';
+      app = new UIServer(configurations);
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({
+          source: 'https',
+          bucket: 'allowed.host',
+          key: 'reports/history/output.txt',
+          namespace: 'my-namespace',
+        })
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, 'historical artifact');
+      expect(mockedFetch).toHaveBeenNthCalledWith(3, targetUrl, {
+        headers: { Authorization: 'shared-http-token' },
+        redirect: 'manual',
+      });
+    });
+
+    it('records the gateway redirect ownership gap pending backend byte authorization', async () => {
+      const targetUrl =
+        'http://allowed.host/root/storage-bucket/private-artifacts/other-namespace/secret.txt';
+      mockHttpRedirect(firstHttpArtifactUrl, targetUrl);
+      mockedFetch.mockResolvedValueOnce({
+        status: 200,
+        body: toWebStream('broad-credential bytes'),
+      });
+      app = new UIServer(authEnabledHttpConfigs());
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, 'broad-credential bytes');
+      expect(mockedFetch).toHaveBeenNthCalledWith(3, targetUrl, {
+        headers: { Authorization: 'shared-http-token' },
+        redirect: 'manual',
+      });
+    });
+
+    it('follows a canonical same-origin redirect within the namespace', async () => {
+      const targetUrl =
+        'http://allowed.host/root/storage-bucket/private-artifacts/my-namespace/run/other.txt?signature=abc';
+      mockHttpRedirect(firstHttpArtifactUrl, targetUrl);
+      mockedFetch.mockResolvedValueOnce({
+        status: 200,
+        headers: new Map(),
+        body: toWebStream('same namespace artifact'),
+      });
+      app = new UIServer(authEnabledHttpConfigs());
+
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, 'same namespace artifact');
+
+      expect(mockedFetch).toHaveBeenNthCalledWith(3, targetUrl, {
+        headers: { Authorization: 'shared-http-token' },
+        redirect: 'manual',
+      });
+    });
+
+    it.each([
+      ['outside base', 'https://allowed.host/outside/secret.txt'],
+      ['encoded parent separator', 'https://allowed.host/reports/..%2Fsecret.txt'],
+      ['encoded backslash', 'https://allowed.host/reports/run%5C..%5Csecret.txt'],
+      ['foreign origin', 'https://cdn.host/reports/secret.txt'],
+    ])('rejects an absolute-base redirect with %s', async (_description, targetUrl) => {
+      const firstUrl = 'https://allowed.host/reports/history/output.txt';
+      mockHttpRedirect(firstUrl, targetUrl);
+      const configurations = authEnabledHttpConfigs();
+      configurations.artifacts.http.baseUrl = 'https://allowed.host/reports/';
+      app = new UIServer(configurations);
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({
+          source: 'https',
+          bucket: 'allowed.host',
+          key: 'reports/history/output.txt',
+          namespace: 'my-namespace',
+        })
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+      expect(mockedFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('rechecks the configured base after every redirect hop', async () => {
+      const firstUrl = 'https://allowed.host/reports/history/output.txt';
+      mockHttpRedirect(firstUrl, 'https://allowed.host/reports/intermediate.txt');
+      mockedFetch.mockResolvedValueOnce({
+        status: 302,
+        headers: new Map([['location', '/outside/secret.txt']]),
+        body: toWebStream(''),
+      });
+      const configurations = authEnabledHttpConfigs();
+      configurations.artifacts.http.baseUrl = 'https://allowed.host/reports/';
+      app = new UIServer(configurations);
+      await requests(app.app)
+        .get('/artifacts/get')
+        .query({
+          source: 'https',
+          bucket: 'allowed.host',
+          key: 'reports/history/output.txt',
+          namespace: 'my-namespace',
+        })
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(400, 'HTTP artifact URL or redirect is outside the HTTP_BASE_URL origin/path.');
+      expect(mockedFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('follows allowlisted cross-origin gateway redirects without forwarding credentials', async () => {
+      const signedUrl = 'https://cdn.host/signed/opaque-object?signature=abc';
+      mockHttpRedirect(firstHttpArtifactUrl, signedUrl);
+      mockedFetch.mockResolvedValueOnce({ status: 200, body: toWebStream('signed artifact') });
+      app = new UIServer(authEnabledHttpConfigs());
+      await requests(app.app)
+        .get(httpArtifactRequest)
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, 'signed artifact');
+      expect(mockedFetch).toHaveBeenNthCalledWith(2, firstHttpArtifactUrl, {
+        headers: { Authorization: 'shared-http-token' },
+        redirect: 'manual',
+      });
+      expect(mockedFetch).toHaveBeenNthCalledWith(3, signedUrl, {
+        headers: {},
+        redirect: 'manual',
+      });
     });
 
     it('passes the correct URI to ArtifactService validation for an s3 source', async () => {
@@ -761,7 +951,6 @@ describe('/artifacts authorization', () => {
         's3://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -784,7 +973,6 @@ describe('/artifacts authorization', () => {
         's3://ml-pipeline/hello/world.txt?endpoint=https%3A%2F%2Fceph.example&region=ceph',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -807,7 +995,6 @@ describe('/artifacts authorization', () => {
         'gs://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -828,7 +1015,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -848,7 +1034,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/root%20dir/artifact.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -876,7 +1061,6 @@ describe('/artifacts authorization', () => {
           `minio://ml-pipeline/${uriKey}`,
           'my-namespace',
           { 'kubeflow-userid': 'user@example.com' },
-          false,
         );
       },
     );
@@ -909,7 +1093,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/caf%c3%a9/model.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
       expect(mockedValidateArtifactNamespace).toHaveBeenNthCalledWith(
         2,
@@ -917,7 +1100,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/caf%c3%a9/model.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -940,7 +1122,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/root dir/artifact.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -963,7 +1144,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/hello/world.txt/',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -1030,7 +1210,6 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
-        false,
       );
     });
 
@@ -1086,7 +1265,7 @@ describe('/artifacts authorization', () => {
         ok: false,
         status: 403,
         statusText: 'Forbidden',
-        url: '/apis/v1beta1/auth',
+        url: '/apis/v2/auth',
         json: () =>
           Promise.resolve({
             error: 'User is not authorized to GET VIEWERS in namespace unauthorized-ns',

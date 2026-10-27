@@ -3,7 +3,7 @@ name: Workflow Compiler Tests
 env:
   TESTS_DIR: "./backend/test/compiler"
   TESTS_LABEL: "WorkflowCompiler"
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
 
 on:
   push:
@@ -29,8 +29,12 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - '.github/workflows/compiler-tests.yml'
       - '.github/actions/test-and-report/**'
+      - '.github/resources/scripts/download-go-modules.sh'
+      - '.github/resources/scripts/helper-functions.sh'
       - 'backend/src/v2/compiler/**'
       - 'test_data/**'
       - '!**/*.md'
@@ -41,6 +45,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   compiler-tests:
     runs-on: ubuntu-latest
@@ -48,7 +55,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Configure Input Variables
         shell: bash

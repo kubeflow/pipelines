@@ -1,0 +1,123 @@
+[project]
+name = "kfp-workspace"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = [
+  "kfp",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 80
+include = ["*.py", "*.pyi"]
+# Apply exclusions even when pre-commit passes explicit paths.
+force-exclude = true
+extend-exclude = [
+  "backend/api/v2/python_http_client",
+  "backend/api/v2beta1/python_http_client",
+  "sdk/python/kfp/server_api",
+  "*_pb2.py",
+  # Scheduled for deletion; leave this tree untouched by the tooling migration.
+  "components/google-cloud",
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["F401", "I", "W605"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package imports are public re-exports, not necessarily used in the module.
+"__init__.py" = ["F401"]
+
+[tool.uv.workspace]
+members = [
+  "sdk/python",
+]
+
+[tool.uv.sources]
+kfp = { workspace = true }
+
+[tool.uv]
+# Shared constraints applied during resolution for ALL workspace members
+constraint-dependencies = [
+  # GCPC's supported Vertex AI dependency does not support protobuf 7 yet.
+  "protobuf>=6.33.5,<7",
+  "kubernetes>=8.0.0",
+  "google-auth>=1.6.1,<3",
+  "PyYAML>=5.3,<7",
+  "urllib3<3.0.0",
+]
+
+[project.optional-dependencies]
+# Linting tools (pinned to avoid new lint failures)
+lint = [
+  "docformatter==1.7.7",
+  "pylint==4.1.3",
+  "ruff==0.17.1",
+]
+
+# Testing tools
+test = [
+  "absl-py",
+  "docker",
+  # Older 1.x releases import removed kfp.dsl internals. Do not let dependency
+  # resolution backtrack to them when a newer protobuf is incompatible.
+  "google-cloud-pipeline-components>=2.22.0",
+  "kfp[notebooks]",
+  "kubernetes",
+  "nbformat",
+  "pip",
+  "pydantic>=2",
+  # pytest 9.0.3 contains the tmpdir handling fix.
+  "pytest>=9.0.3",
+  "pytest-cov>=7.1.0",
+  "pytest-mock",
+  "pytest-randomly>=5.0.0",
+  "pytest-xdist>=3.8.0",
+  "setuptools",
+  "wheel",
+]
+
+# Development (lint + test + type checking)
+dev = [
+  "kfp-workspace[lint,test]",
+  "mypy",
+  "pre-commit>=4.7.0",
+  "types-protobuf",
+  "types-PyYAML",
+  "types-requests",
+  "types-tabulate",
+]
+
+# Documentation building
+docs = [
+  "autodocsumm",
+  "m2r2",
+  "sphinx>=7.2.0,<8.0.0",
+  "sphinx-click",
+  "sphinx-immaterial>=0.13.9,<1",
+  "sphinx-rtd-theme",
+  "furo>=2024.8.6",
+  "myst-parser>=3.0.0,<4.0.0",
+  "sphinxcontrib-mermaid>=2.1.1,<3.0.0",
+  "sphinx-copybutton>=0.5.2,<1.0.0",
+  "sphinx-design>=0.6.0,<1.0.0",
+  "sphinx-autobuild>=2024.10.3",
+]
+
+# CI-specific tools (includes lint, test, and docs)
+ci = [
+  "kfp-workspace[lint,test,docs]",
+  "build",
+  "junit2html",
+  "requests",
+  "ruamel.yaml",
+  "twine",
+]
+
+# Legacy backend v2 test helpers
+backend-v2-test = [
+  "fire",
+]

@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
       - '.github/workflows/image-builds.yml'
@@ -20,8 +21,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   webhook-tests:
@@ -36,7 +43,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Create KFP cluster
         id: create-kfp-cluster
@@ -59,7 +68,8 @@ jobs:
         id: tests
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          make -C backend/test/integration test-webhook
+          export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
+          make -C backend/test/v2/integration test-webhook
         continue-on-error: true
 
       - name: Collect failed logs
@@ -70,7 +80,7 @@ jobs:
 
       - name: Collect test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -16,7 +16,7 @@ import (
 )
 
 // MatchPipelines - Deep compare 2 pipelines
-func MatchPipelines(actual *model.V2beta1Pipeline, expected *model.V2beta1Pipeline) {
+func MatchPipelines(actual *model.V2Pipeline, expected *model.V2Pipeline) {
 	ginkgo.GinkgoHelper()
 	gomega.Expect(actual.PipelineID).To(gomega.Not(gomega.BeEmpty()), "Pipeline ID is empty")
 	actualTime := time.Time(actual.CreatedAt).UTC()
@@ -38,7 +38,7 @@ func MatchPipelines(actual *model.V2beta1Pipeline, expected *model.V2beta1Pipeli
 }
 
 // MatchPipelineVersions - Deep compare 2 pipeline versions - even with deep comparison of pipeline specs
-func MatchPipelineVersions(actual *model.V2beta1PipelineVersion, expected *model.V2beta1PipelineVersion) {
+func MatchPipelineVersions(actual *model.V2PipelineVersion, expected *model.V2PipelineVersion) {
 	ginkgo.GinkgoHelper()
 	gomega.Expect(actual.PipelineVersionID).To(gomega.Not(gomega.BeEmpty()), "Pipeline Version ID is empty")
 	actualTime := time.Time(actual.CreatedAt).UTC()
@@ -72,7 +72,7 @@ func MatchPipelineSpecs(actual interface{}, expected *template.V2Spec) {
 }
 
 // MatchPipelineRuns - Shallow match 2 pipeline runs i.e. match only the fields that you do add to the payload when creating a run
-func MatchPipelineRuns(actual *run_model.V2beta1Run, expected *run_model.V2beta1Run) {
+func MatchPipelineRuns(actual *run_model.V2Run, expected *run_model.V2Run) {
 	ginkgo.GinkgoHelper()
 	if expected.RunID != "" {
 		gomega.Expect(actual.RunID).To(gomega.Equal(expected.RunID), "Run ID is not matching")
@@ -99,7 +99,7 @@ func MatchPipelineRuns(actual *run_model.V2beta1Run, expected *run_model.V2beta1
 // Callers that compare against FULL Get should set expected.PipelineSpec to the
 // locally compiled/uploaded pipeline map so mixed-form matching still validates
 // semantic content without a pipeline-version API lookup.
-func matchPipelineRunSource(actual *run_model.V2beta1Run, expected *run_model.V2beta1Run) {
+func matchPipelineRunSource(actual *run_model.V2Run, expected *run_model.V2Run) {
 	ginkgo.GinkgoHelper()
 	actualHasRef := actual.PipelineVersionReference != nil
 	expectedHasRef := expected.PipelineVersionReference != nil

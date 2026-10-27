@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2beta1/artifact/index.js';
+import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2/artifact/index.js';
 import { stripArtifactUriQuery } from './artifact-coordinates.js';
 import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from './artifact-path.js';
 export { buildArtifactUri, requiresArtifactOwnershipValidation } from './artifact-sources.js';
@@ -54,17 +54,30 @@ export interface ValidationResult {
   reason?: string;
 }
 
-function matchNamespaceSegment(
-  artifactUri: string,
+/** Matches the actual storage key without decoding its literal percent signs. */
+export function namespaceFromArtifactStorageKey(
+  key: string,
   keyPrefix: string = NAMESPACE_KEY_PREFIX,
 ): string | undefined {
   if (!keyPrefix) {
     return undefined;
   }
   const escapedPrefix = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return artifactUri.match(
-    new RegExp(`^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+/${escapedPrefix}/([^/]+)/`),
-  )?.[1];
+  // A namespace root can be listed/downloaded even without a trailing slash.
+  return key.match(new RegExp(`^${escapedPrefix}/([^/]+)(?:/|$)`))?.[1];
+}
+
+function matchNamespaceSegment(
+  artifactUri: string,
+  keyPrefix: string = NAMESPACE_KEY_PREFIX,
+): string | undefined {
+  const key = artifactUri.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\/(.*)$/)?.[1];
+  if (key === undefined) {
+    return undefined;
+  }
+  const namespace = namespaceFromArtifactStorageKey(key, keyPrefix);
+  // Preserve the existing URI prefix shortcut, which requires a slash after the namespace.
+  return namespace && key.startsWith(`${keyPrefix}/${namespace}/`) ? namespace : undefined;
 }
 
 export function namespaceFromArtifactUri(
@@ -85,12 +98,9 @@ export function namespaceFromArtifactUri(
   }
 }
 
-export function validateArtifactKeyPrefix(
-  artifactUri: string,
-  claimedNamespace: string,
-): ValidationResult {
+export function validateArtifactKeySafety(artifactUri: string): ValidationResult {
   // A launcher provider query is part of artifact identity, not the object key. Endpoint values
-  // can contain '/' and must not be interpreted as object-key segments by this prefix check.
+  // can contain '/' and must not be interpreted as object-key segments by this safety check.
   const artifactUriWithoutQuery = stripArtifactUriQuery(artifactUri);
   const objectKey = artifactUriWithoutQuery.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
   const scheme = artifactUriWithoutQuery.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):\/\//)?.[1];
@@ -107,6 +117,18 @@ export function validateArtifactKeyPrefix(
     return { valid: false, reason: 'key-not-normalized' };
   }
 
+  return { valid: true };
+}
+
+export function validateArtifactKeyPrefix(
+  artifactUri: string,
+  claimedNamespace: string,
+): ValidationResult {
+  const keySafetyValidation = validateArtifactKeySafety(artifactUri);
+  if (!keySafetyValidation.valid) {
+    return keySafetyValidation;
+  }
+  const artifactUriWithoutQuery = stripArtifactUriQuery(artifactUri);
   const actualNamespace = namespaceFromArtifactUri(artifactUriWithoutQuery);
   if (actualNamespace === undefined) {
     return { valid: false, reason: 'artifact-not-found' };
@@ -148,7 +170,6 @@ export async function validateArtifactNamespace(
   artifactUri: string,
   claimedNamespace: string,
   authenticationHeaders?: Record<string, string>,
-  allowNamespaceIsolatedCustomRoots = false,
 ): Promise<ValidationResult> {
   // A database row in the caller's namespace must not override ownership encoded by the
   // standard multi-user object key. Otherwise a tenant could import another namespace's
@@ -186,15 +207,10 @@ export async function validateArtifactNamespace(
       { headers: authenticationHeaders, signal: abortController.signal },
     );
     if (response.artifacts?.length) {
-      // A namespaced Artifact API row alone is not proof that a custom-root URI belongs to the
-      // namespace: a tenant can import an arbitrary URI into its own run. Custom roots are safe
-      // only when the actual read is delegated to the namespace-isolated artifact proxy.
-      // An encoded-prefix match is different: its decoded path is still under the caller's standard
-      // namespace prefix. The exact row proves the alternate identity spelling, so it may use the
-      // same direct serving path as a canonical prefix without weakening the custom-root boundary.
-      return keyPrefixValidation.valid || allowNamespaceIsolatedCustomRoots
-        ? { valid: true, reason: 'artifact-api-match' }
-        : { valid: false, reason: 'custom-root-requires-namespace-isolation' };
+      // Compatibility accepts the native row without prescribing an object-key layout. This is
+      // not proof of byte ownership: a tenant can import an arbitrary URI into its namespace.
+      // A backend storage-authorization boundary is required before relying on this for isolation.
+      return { valid: true, reason: 'artifact-api-match' };
     }
     return validateArtifactNotFound(artifactUri, claimedNamespace);
   } catch (error) {

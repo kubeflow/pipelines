@@ -13,11 +13,8 @@
 # limitations under the License.
 from typing import Optional
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
-from kfp.dsl import Input
+from kfp import compiler, dsl
+from kfp.dsl import Artifact, Dataset, Input
 
 
 @dsl.component
@@ -38,8 +35,10 @@ def custom_artifact_printer(artifact: Optional[Input[Artifact]] = None):
             dsl.IfPresentPlaceholder(
                 input_name='artifact',
                 then=['echo', artifact.uri],
-                else_=['echo', 'No artifact provided!'])
-        ])
+                else_=['echo', 'No artifact provided!'],
+            )
+        ],
+    )
 
 
 @dsl.pipeline
@@ -63,4 +62,5 @@ def pipeline(dataset1: Optional[Input[Dataset]] = None):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

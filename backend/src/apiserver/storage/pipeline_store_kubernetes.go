@@ -1,9 +1,10 @@
 package storage
 
 import (
+	"cmp"
 	"context"
 	"fmt"
-	"slices"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -27,8 +28,9 @@ import (
 const pollTimeout = 3 * time.Second
 
 var (
-	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
 	ErrUnsupportedField = errors.New("the field is unsupported")
+
+	errDefaultVersionUnresolved = errors.New("spec.defaultVersionName does not resolve to exactly one pipeline version")
 )
 
 type PipelineStoreKubernetes struct {
@@ -40,12 +42,15 @@ func NewPipelineStoreKubernetes(k8sClient ctrlclient.Client, k8sClientNoCache ct
 	return &PipelineStoreKubernetes{client: k8sClient, clientNoCache: k8sClientNoCache}
 }
 
-func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
-	return nil, nil, ErrNoV1
-}
-
 func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
 	if namespace == "" {
+		// The pod namespace is where KFP itself runs; falling back to it would cross tenants.
+		if common.IsMultiUserMode() {
+			return nil, util.NewInvalidInputError(
+				"A namespace is required to look up pipeline %v in multi-user mode", name,
+			)
+		}
+
 		namespace = common.GetPodNamespace()
 	}
 
@@ -61,10 +66,6 @@ func (k *PipelineStoreKubernetes) GetPipelineByNameAndNamespace(name string, nam
 	}
 
 	return k8sPipeline.ToModel(), nil
-}
-
-func (k *PipelineStoreKubernetes) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	return nil, nil, 0, "", ErrNoV1
 }
 
 func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
@@ -116,52 +117,89 @@ func (k *PipelineStoreKubernetes) ListPipelines(filterContext *model.FilterConte
 		pipelines = append(pipelines, k8sPipeline.ToModel())
 	}
 
-	// Because controller-client does not have sorting, use this function to sort by fields.
-	sort.SliceStable(pipelines, func(i, j int) bool {
-		if opts.SortByFieldName != "" {
-			elementA := pipelines[i].GetFieldValue(opts.SortByFieldName)
-			elementB := pipelines[j].GetFieldValue(opts.SortByFieldName)
+	return sortAndPaginate(pipelines, opts)
+}
 
-			if elementA != nil && elementB != nil {
-				switch elementA.(type) {
-				case int64:
-					return elementA.(int64) > elementB.(int64)
-				case float64:
-					return elementA.(float64) > elementB.(float64)
-				case string:
-					return strings.ToLower(elementA.(string)) > strings.ToLower(elementB.(string))
-				default:
-					glog.Warningf("Field type %T in %s not recognized. Sorting will not work.", elementA, opts.SortByFieldName)
-					return false
-				}
-			}
+// sortAndPaginate orders items by the requested field and then by primary key,
+// as the SQL stores do, and returns the page that opts points at. The cache
+// returns objects in no particular order, so the key tiebreak is what keeps
+// pages consistent between calls. The page starts at the first item at or after
+// the token's position, so it does not depend on that item still existing.
+func sortAndPaginate[T list.Listable](items []T, opts *list.Options) ([]T, int, string, error) {
+	key := func(item T) string {
+		return fmt.Sprint(item.GetFieldValue(item.PrimaryKeyColumnName()))
+	}
+	sortValue := func(item T) interface{} {
+		if opts.SortByFieldName == "" {
+			return nil
 		}
-		return false
+		return item.GetFieldValue(opts.SortByFieldName)
+	}
+	// position compares an item with a (sort value, key) pair in list order.
+	position := func(item T, otherSortValue interface{}, otherKey string) int {
+		order := compareSortValues(sortValue(item), otherSortValue)
+		if order == 0 {
+			order = strings.Compare(key(item), otherKey)
+		}
+		if opts.IsDesc {
+			return -order
+		}
+		return order
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		return position(items[i], sortValue(items[j]), key(items[j])) < 0
 	})
-	if !opts.IsDesc {
-		slices.Reverse(pipelines)
+
+	start := 0
+	if opts.KeyFieldValue != nil && fmt.Sprint(opts.KeyFieldValue) != "" {
+		tokenKey := fmt.Sprint(opts.KeyFieldValue)
+		start = sort.Search(len(items), func(i int) bool {
+			return position(items[i], opts.SortByFieldValue, tokenKey) >= 0
+		})
 	}
 
-	// If there's pagination, find the index of the first element of the next page
-	nextPage := 0
-	for p, pipeline := range pipelines {
-		if opts.KeyFieldValue != "" {
-			if strings.Compare(fmt.Sprint(opts.KeyFieldValue), pipeline.UUID) == 0 {
-				nextPage = p
-				break
-			}
-		}
+	end := start + opts.PageSize
+	if end >= len(items) {
+		return items[start:], len(items), "", nil
 	}
+	nextPageToken, err := opts.NextPageToken(items[end])
+	return items[start:end], len(items), nextPageToken, err
+}
 
-	// Split results on multiple pages if needed
-	upperBound := nextPage + opts.PageSize
-	npt := ""
-	if len(pipelines) > upperBound {
-		npt, err = opts.NextPageToken(pipelines[upperBound])
-	} else {
-		upperBound = len(pipelines)
+// compareSortValues compares two sort field values: numbers numerically and
+// everything else as case-insensitive strings. A page token carries numbers as
+// float64 after its JSON round trip, so all numeric kinds compare as float64.
+func compareSortValues(a, b interface{}) int {
+	aNumber, aIsNumber := sortValueAsFloat(a)
+	bNumber, bIsNumber := sortValueAsFloat(b)
+	if aIsNumber && bIsNumber {
+		return cmp.Compare(aNumber, bNumber)
 	}
-	return pipelines[nextPage:upperBound], len(pipelines), npt, err
+	return strings.Compare(sortValueAsString(a), sortValueAsString(b))
+}
+
+func sortValueAsFloat(value interface{}) (float64, bool) {
+	v := reflect.ValueOf(value)
+	switch {
+	case !v.IsValid():
+		return 0, false
+	case v.CanInt():
+		return float64(v.Int()), true
+	case v.CanUint():
+		return float64(v.Uint()), true
+	case v.CanFloat():
+		return v.Float(), true
+	default:
+		return 0, false
+	}
+}
+
+func sortValueAsString(value interface{}) string {
+	if value == nil {
+		return ""
+	}
+	return strings.ToLower(fmt.Sprint(value))
 }
 
 func (k *PipelineStoreKubernetes) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -225,6 +263,11 @@ func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *mod
 
 	pipelineVersion, err = k.createPipelineVersionWithPipeline(context.TODO(), pipeline, pipelineVersion)
 	if err != nil {
+		message := fmt.Sprintf("%s The pipeline %q (ID %s) was created. Upload the corrected version to this pipeline.",
+			pipelineVersionCreateSizeMessage, pipeline.Name, pipeline.UUID)
+		if sizeError := pipelineVersionSizeError(err, message); sizeError != nil {
+			return nil, nil, sizeError
+		}
 		return nil, nil, err
 	}
 
@@ -334,31 +377,149 @@ func (k *PipelineStoreKubernetes) CreatePipelineVersion(pipelineVersion *model.P
 	return k.createPipelineVersionWithPipeline(context.TODO(), pipeline, pipelineVersion)
 }
 
-func (k *PipelineStoreKubernetes) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	// Default version was used in KFPv1 and is deprecated. In KFPv2, we do not support this.
-	return util.NewBadRequestError(errors.New("pipeline default version is unsupported"),
-		"pipeline default version is unsupported when storing in Kubernetes")
-}
-
-func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
-	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineId, "")
+// GetDefaultPipelineVersion returns spec.defaultVersionName when set, otherwise the newest version.
+// A default that does not resolve is an error, not a fallback.
+func (k *PipelineStoreKubernetes) GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error) {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
 	if err != nil {
 		return nil, err
 	}
 
+	ownedVersions, err := k.ownedPipelineVersions(context.TODO(), k8sPipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	if defaultVersionName := k8sPipeline.Spec.DefaultVersionName; defaultVersionName != "" {
+		pipelineVersion, err := resolveDefaultPipelineVersion(ownedVersions, defaultVersionName)
+		if err != nil {
+			return nil, util.Wrapf(
+				err,
+				"Failed to resolve the default pipeline version %q of pipeline %v",
+				defaultVersionName, pipelineID,
+			)
+		}
+
+		return pipelineVersion, nil
+	}
+
 	var latestK8sPipelineVersion *v2beta1.PipelineVersion
 
-	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
-		if latestK8sPipelineVersion == nil || isNewerPipelineVersion(&k8sPipelineVersion, latestK8sPipelineVersion) {
-			latestK8sPipelineVersion = &k8sPipelineVersion
+	for _, k8sPipelineVersion := range ownedVersions {
+		if latestK8sPipelineVersion == nil || isNewerPipelineVersion(k8sPipelineVersion, latestK8sPipelineVersion) {
+			latestK8sPipelineVersion = k8sPipelineVersion
 		}
 	}
 
 	if latestK8sPipelineVersion == nil {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", "Latest")
+		return nil, util.NewResourceNotFoundError("PipelineVersion", "Default")
 	}
 
 	return latestK8sPipelineVersion.ToModel()
+}
+
+// ownedPipelineVersions lists the pipeline's versions in its own namespace and keeps those its
+// ownerReferences claim. The pipelines.kubeflow.org/pipeline-id label is user-mutable, so it is not
+// used to select candidates: a stale label must neither hide an owned version nor surface a foreign one.
+func (k *PipelineStoreKubernetes) ownedPipelineVersions(
+	ctx context.Context, k8sPipeline *v2beta1.Pipeline,
+) ([]*v2beta1.PipelineVersion, error) {
+	k8sPipelineVersions, err := k.listPipelineVersionsInNamespace(ctx, k8sPipeline.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	owned := make([]*v2beta1.PipelineVersion, 0, len(k8sPipelineVersions.Items))
+
+	for i := range k8sPipelineVersions.Items {
+		k8sPipelineVersion := &k8sPipelineVersions.Items[i]
+		if k8sPipelineVersion.IsOwnedByPipeline(string(k8sPipeline.UID)) {
+			owned = append(owned, k8sPipelineVersion)
+		}
+	}
+
+	return owned, nil
+}
+
+// listPipelineVersionsInNamespace lists the pipeline version CRs in a namespace.
+//
+// Be careful, the deep copy is disabled here to reduce memory allocations.
+// Callers that mutate the returned objects must deep copy them first.
+func (k *PipelineStoreKubernetes) listPipelineVersionsInNamespace(
+	ctx context.Context, namespace string,
+) (*v2beta1.PipelineVersionList, error) {
+	k8sPipelineVersions := &v2beta1.PipelineVersionList{}
+
+	err := k.client.List(
+		ctx, k8sPipelineVersions,
+		ctrlclient.UnsafeDisableDeepCopy, ctrlclient.InNamespace(namespace),
+	)
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err, "Failed to list pipeline versions in namespace %v", namespace,
+		)
+	}
+
+	return k8sPipelineVersions, nil
+}
+
+// GetAnyPipelineVersionID returns the id of one version owned by the pipeline, or "" if it owns
+// none. It returns on the first owned CR and never calls ToModel, so a caller that only needs to
+// know whether any version exists does not pay to parse the whole version history.
+func (k *PipelineStoreKubernetes) GetAnyPipelineVersionID(pipelineID string) (string, error) {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
+	if err != nil {
+		return "", err
+	}
+
+	k8sPipelineVersions, err := k.listPipelineVersionsInNamespace(context.TODO(), k8sPipeline.Namespace)
+	if err != nil {
+		return "", err
+	}
+
+	for i := range k8sPipelineVersions.Items {
+		if k8sPipelineVersions.Items[i].IsOwnedByPipeline(string(k8sPipeline.UID)) {
+			return string(k8sPipelineVersions.Items[i].UID), nil
+		}
+	}
+
+	return "", nil
+}
+
+// resolveDefaultPipelineVersion matches the pin on the name ToModel reports: spec.versionName, or
+// metadata.name when unset.
+func resolveDefaultPipelineVersion(
+	k8sPipelineVersions []*v2beta1.PipelineVersion, defaultVersionName string,
+) (*model.PipelineVersion, error) {
+	var matches []*v2beta1.PipelineVersion
+
+	for _, k8sPipelineVersion := range k8sPipelineVersions {
+		versionName := k8sPipelineVersion.Spec.VersionName
+		if versionName == "" {
+			versionName = k8sPipelineVersion.Name
+		}
+
+		if versionName == defaultVersionName {
+			matches = append(matches, k8sPipelineVersion)
+		}
+	}
+
+	switch len(matches) {
+	case 0:
+		return nil, util.NewFailedPreconditionError(
+			errDefaultVersionUnresolved,
+			"no pipeline version is named %q; set spec.defaultVersionName to an existing version",
+			defaultVersionName,
+		)
+	case 1:
+		return matches[0].ToModel()
+	default:
+		return nil, util.NewFailedPreconditionError(
+			errDefaultVersionUnresolved,
+			"%d pipeline versions are named %q; spec.defaultVersionName must match exactly one",
+			len(matches), defaultVersionName,
+		)
+	}
 }
 
 // isNewerPipelineVersion reports whether a should be preferred over b. CreationTimestamp has second
@@ -490,52 +651,7 @@ func (k *PipelineStoreKubernetes) ListPipelineVersions(pipelineID string, opts *
 		pipelineVersions = append(pipelineVersions, pipelineVersion)
 	}
 
-	// Because controller-client does not have sorting, use this function to sort by fields.
-	sort.SliceStable(pipelineVersions, func(i, j int) bool {
-		if opts.SortByFieldName != "" {
-			elementA := pipelineVersions[i].GetFieldValue(opts.SortByFieldName)
-			elementB := pipelineVersions[j].GetFieldValue(opts.SortByFieldName)
-
-			if elementA != nil && elementB != nil {
-				switch elementA.(type) {
-				case int64:
-					return elementA.(int64) > elementB.(int64)
-				case float64:
-					return elementA.(float64) > elementB.(float64)
-				case string:
-					return strings.ToLower(elementA.(string)) > strings.ToLower(elementB.(string))
-				default:
-					glog.Warningf("Field type %T in %s not recognized. Sorting will not work.", elementA, opts.SortByFieldName)
-					return false
-				}
-			}
-		}
-		return false
-	})
-	if !opts.IsDesc {
-		slices.Reverse(pipelineVersions)
-	}
-
-	// If there's pagination, find the index of the first element of the next page
-	nextPage := 0
-	if opts.KeyFieldValue != "" {
-		for p, pipelineVersion := range pipelineVersions {
-			if strings.Compare(fmt.Sprint(opts.KeyFieldValue), pipelineVersion.UUID) == 0 {
-				nextPage = p
-				break
-			}
-		}
-	}
-
-	// Split results on multiple pages if needed
-	upperBound := nextPage + opts.PageSize
-	npt := ""
-	if len(pipelineVersions) > upperBound {
-		npt, err = opts.NextPageToken(pipelineVersions[upperBound])
-	} else {
-		upperBound = len(pipelineVersions)
-	}
-	return pipelineVersions[nextPage:upperBound], len(pipelineVersions), npt, err
+	return sortAndPaginate(pipelineVersions, opts)
 }
 
 func (k *PipelineStoreKubernetes) DeletePipelineVersion(pipelineVersionId string) error {
@@ -746,6 +862,10 @@ func (k *PipelineStoreKubernetes) createPipelineVersionWithPipeline(ctx context.
 		)
 	} else if k8serrors.IsInvalid(err) && strings.Contains(err.Error(), "metadata.name") {
 		return nil, util.NewBadKubernetesNameError("pipeline version")
+	} else if rejection := pipelineVersionAdmissionError(err); rejection != nil {
+		return nil, rejection
+	} else if sizeError := pipelineVersionSizeError(err, pipelineVersionCreateSizeMessage); sizeError != nil {
+		return nil, sizeError
 	} else if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create the pipeline version")
 	}
@@ -786,6 +906,12 @@ func (k *PipelineStoreKubernetes) UpdatePipelineVersionFields(pipelineVersionID 
 		versionCopy.Spec.Tags = tags
 	}
 	if err := k.client.Update(context.TODO(), versionCopy); err != nil {
+		if rejection := pipelineVersionAdmissionError(err); rejection != nil {
+			return rejection
+		}
+		if sizeError := pipelineVersionSizeError(err, pipelineVersionUpdateSizeMessage); sizeError != nil {
+			return sizeError
+		}
 		return util.NewInternalServerError(err, "Failed to update pipeline version %v", pipelineVersionID)
 	}
 	return k.updateWithTimeout(versionCopy)

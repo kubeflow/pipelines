@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	mlflowclient "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -121,7 +121,7 @@ func retryRunAlreadyStarted(runClient *apiserver.RunClient, runID string) bool {
 	for attempt := 1; attempt <= 3; attempt++ {
 		run, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
 		if err == nil {
-			if run.State != nil && *run.State == run_model.V2beta1RuntimeStateRUNNING {
+			if run.State != nil && *run.State == run_model.V2RuntimeStateRUNNING {
 				logger.Log("RetryRun already moved run %s to RUNNING; treating transport error as success", runID)
 				return true
 			}
@@ -177,7 +177,7 @@ func CreatePipelineRunWithPluginsInput(
 	experimentID *string,
 	inputParams map[string]interface{},
 	pluginsInput map[string]interface{},
-) *run_model.V2beta1Run {
+) *run_model.V2Run {
 	ginkgo.GinkgoHelper()
 	runName := fmt.Sprintf("MLflow E2e Test Run-%v", testContext.TestStartTimeUTC)
 	runDescription := fmt.Sprintf("MLflow run for %s", runName)
@@ -213,7 +213,7 @@ func CreatePipelineRunWithPluginsInputPayload(
 	experimentID *string,
 	inputParams map[string]interface{},
 	pluginsInput map[string]interface{},
-) *run_model.V2beta1Run {
+) *run_model.V2Run {
 	run := CreatePipelineRunPayload(
 		runName,
 		runDescription,
@@ -248,7 +248,7 @@ func BuildMLflowPluginsInputDisabled() map[string]interface{} {
 
 // VerifyPluginsOutput asserts that the run's plugins_output contains a valid
 // MLflow entry with experiment_id, root_run_id, and the expected plugin state.
-func VerifyPluginsOutput(run *run_model.V2beta1Run, expectedState run_model.V2beta1PluginState) error {
+func VerifyPluginsOutput(run *run_model.V2Run, expectedState run_model.V2PluginState) error {
 	ginkgo.GinkgoHelper()
 	if run.PluginsOutput == nil {
 		return fmt.Errorf("plugins_output should not be nil")
@@ -280,7 +280,7 @@ func VerifyPluginsOutput(run *run_model.V2beta1Run, expectedState run_model.V2be
 	return nil
 }
 
-func GetPluginsOutputEntryValue(run *run_model.V2beta1Run, entryKey string) (string, error) {
+func GetPluginsOutputEntryValue(run *run_model.V2Run, entryKey string) (string, error) {
 	ginkgo.GinkgoHelper()
 	if run.PluginsOutput == nil {
 		return "", fmt.Errorf("plugins_output should not be nil")
@@ -303,7 +303,7 @@ func GetPluginsOutputEntryValue(run *run_model.V2beta1Run, entryKey string) (str
 	return strVal, nil
 }
 
-func VerifyNoPluginsOutput(run *run_model.V2beta1Run) error {
+func VerifyNoPluginsOutput(run *run_model.V2Run) error {
 	ginkgo.GinkgoHelper()
 	if run.PluginsOutput == nil {
 		return nil

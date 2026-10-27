@@ -88,7 +88,7 @@ This test gets triggered by the end-to-end testing workflows.
 
 ## Dependency compatibility checks
 
-Use Node.js 22.12.0 or newer (the version in `frontend/.nvmrc` is recommended).
+Use Node.js 22.19.0 or newer (the version in `frontend/.nvmrc` is recommended).
 
 ```bash
 npm install
@@ -97,18 +97,40 @@ npm run test:dependencies
 
 These checks load the WebdriverIO configuration, confirm that the pinned browser
 installer exposes the API WebdriverIO calls, and confirm that our explicit
-Selenium connection skips automatic browser and driver installation. They do not
-require Selenium, a deployed KFP cluster, or a ZIP extractor. CI runs them once in
-the `frontend-integration-dependency-checks` job of `e2e-test-frontend.yml`; they
-are not part of `npm test`.
+Selenium connection skips automatic browser and driver installation. They also
+check selector-based readiness waits across element replacement during navigation.
+They do not require Selenium, a deployed KFP cluster, or a ZIP extractor. CI runs
+them once in the `frontend-integration-dependency-checks` job of
+`e2e-test-frontend.yml`; they are not part of `npm test`.
 
-`@puppeteer/browsers` is pinned to 3.2.2, and the override applies the same pin
-to `@wdio/utils`, because the 2.x line that `@wdio/utils` declares still depends
-on `extract-zip`, which has no patched release for
-[GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv).
-`@wdio/utils` does not declare support for the 3.x major; the checks above stand
-in for that support. Two consequences of 3.x are worth knowing: it requires the
-Node.js version above, and it made `proxy-agent` optional, so `HTTPS_PROXY` is
-ignored on the browser download path. That path never runs here because the
-Selenium host is explicit. Remove the pin and the override when `@wdio/utils`
-accepts the 3.x major.
+WebdriverIO 10 and Mocha 12 are upgraded together: the framework adapter's
+Mocha dependency now shares the direct Mocha installation. Their chokidar 5
+dependency removes the vulnerable `braces` parser from this test project.
+The dependency checks reject reintroduced `braces` and vulnerable nested
+`brace-expansion` versions.
+
+`@puppeteer/browsers` remains pinned to 3.2.2 for reproducible checks. WebdriverIO
+10 supports this major directly, so the previous browser-installer override
+is no longer needed. Explicit Selenium configuration still skips automatic
+browser/driver downloads.
+
+## Navigation readiness
+
+A matching URL hash does not guarantee that React has mounted the destination
+page. When a control's selector is shared across routes, use
+`waitForSelectorDisplayed` to resolve the selector on every poll. An element-bound
+`waitForDisplayed` can keep checking an outgoing element after its replacement is
+visible. Keep waits bounded; a destination that never renders must still fail.
+
+## Pipeline fixtures
+
+The browser tests upload KFP v2 pipeline IR only. Regenerate the hello-world and
+TensorBoard fixtures with `python compile_fixtures.py` in an environment with the
+v2 `kfp` SDK installed. TensorBoard exercises UI metadata carried as a native
+`system.Artifact`, not an Argo workflow upload.
+
+Pipeline file inputs use WebdriverIO 10 `setFiles` with absolute paths. The test
+runner and Selenium browser share `/src` in the integration image; an external
+Selenium host must expose the same fixture paths. `setFiles` requires a BiDi
+session and does not transfer files to a remote host. The dependency regression
+executes the upload step from each pipeline spec to catch removed runner APIs.

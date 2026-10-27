@@ -18,7 +18,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-import { UIConfigs } from './configs.js';
+import { UIConfigs, legacyApiVersion2Prefix } from './configs.js';
 import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
@@ -26,13 +26,14 @@ import {
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
+  getArtifactsRateLimiter,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getArtifactPreviewHandler } from './handlers/artifact-preview.js';
 import { getAuthorizeFn } from './helpers/auth.js';
 import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
 import { getClusterNameHandler, getProjectIdHandler } from './handlers/gke-metadata.js';
-import { getAllowCustomVisualizationsHandler } from './handlers/vis.js';
 import { getIndexHTMLHandler } from './handlers/index-html.js';
 
 import { IncomingMessage, Server } from 'http';
@@ -59,7 +60,10 @@ function getRegisterHandler(app: Application, basePath: string) {
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
-    return func.call(app, `${basePath}${route}`, handler);
+    const prefixedRoutes = Array.isArray(route)
+      ? route.map((entry) => `${basePath}${entry}`)
+      : `${basePath}${route}`;
+    return func.call(app, prefixedRoutes, handler);
   };
 }
 
@@ -135,7 +139,6 @@ export class UIServer {
 function createUIServer(options: UIConfigs) {
   const currDir = path.resolve(__dirname);
   const basePath = options.server.basePath;
-  const apiVersion1Prefix = options.server.apiVersion1Prefix;
   const apiVersion2Prefix = options.server.apiVersion2Prefix;
   const apiServerAddress = getAddress(options.pipeline);
 
@@ -148,16 +151,25 @@ function createUIServer(options: UIConfigs) {
     next();
   });
 
-  /** Healthz */
-  registerHandler(
-    app.get,
-    `/${apiVersion1Prefix}/healthz`,
-    getHealthzHandler({
-      healthzEndpoint: getHealthzEndpoint(apiServerAddress, apiVersion1Prefix),
-      healthzStats: getBuildMetadata(currDir),
-    }),
-  );
+  // Normalize legacy API paths before health, deny-list, and proxy handlers.
+  // Rewriting only req.url preserves the method, stream, headers, query, and
+  // originalUrl for logging; no client-visible redirect is necessary.
+  app.use((req, _res, next) => {
+    for (const prefix of ['', basePath]) {
+      const legacy = `${prefix}/${legacyApiVersion2Prefix}`;
+      if (
+        req.url === legacy ||
+        req.url.startsWith(`${legacy}/`) ||
+        req.url.startsWith(`${legacy}?`)
+      ) {
+        req.url = `${prefix}/${apiVersion2Prefix}${req.url.slice(legacy.length)}`;
+        break;
+      }
+    }
+    next();
+  });
 
+  /** Healthz */
   registerHandler(
     app.get,
     `/${apiVersion2Prefix}/healthz`,
@@ -169,12 +181,17 @@ function createUIServer(options: UIConfigs) {
 
   /** Authorize function - created early so it can be used by artifact handlers */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+  const artifactsRateLimiter = getArtifactsRateLimiter({
+    authEnabled: options.auth.enabled,
+    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    disabled: options.artifacts.rateLimitDisabled,
+  });
 
   /**
    * Artifact Authorization Middleware
    * Security fix for https://github.com/kubeflow/pipelines/issues/9889
-   * This middleware validates namespace access before allowing artifact retrieval,
-   * preventing unauthorized cross-namespace artifact access.
+   * This middleware authorizes namespace access and checks artifact metadata/path consistency.
+   * A metadata match is not an independent grant to bytes accessible with shared credentials.
    */
   const artifactsAuthMiddleware = getArtifactsAuthMiddleware(
     authorizeFn,
@@ -182,6 +199,12 @@ function createUIServer(options: UIConfigs) {
     options.auth.kubeflowUserIdHeader,
     apiServerAddress,
     options.artifacts.proxy.enabled,
+  );
+
+  app.get(
+    ['/artifacts/:artifactId/preview', `${basePath}/artifacts/:artifactId/preview`],
+    artifactsRateLimiter,
+    getArtifactPreviewHandler(options, apiServerAddress, authorizeFn),
   );
 
   /** Artifact */
@@ -193,6 +216,7 @@ function createUIServer(options: UIConfigs) {
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -202,6 +226,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -255,7 +280,13 @@ function createUIServer(options: UIConfigs) {
     get: tensorboardGetHandler,
     create: tensorboardCreateHandler,
     delete: tensorboardDeleteHandler,
-  } = getTensorboardHandlers(options.viewer.tensorboard, authorizeFn);
+  } = getTensorboardHandlers(
+    options.viewer.tensorboard,
+    authorizeFn,
+    // Standalone artifact/experiment records have no tenant namespace.
+    // Authenticated requests must always name a namespace explicitly.
+    options.auth.enabled ? undefined : options.server.serverNamespace,
+  );
   registerHandler(app.get, '/apps/tensorboard', tensorboardGetHandler);
   registerHandler(app.delete, '/apps/tensorboard', tensorboardDeleteHandler);
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
@@ -264,8 +295,18 @@ function createUIServer(options: UIConfigs) {
   /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
   if (options.artifacts.streamLogsFromServerApi) {
     app.all(
-      '/k8s/pod/logs',
+      ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
       hardenPodLogsProxyRequest,
+      (req, res, next) => {
+        for (const key of ['runid', 'podname']) {
+          const value = req.query[key];
+          if (typeof value !== 'string' || !value || value === '.' || value === '..') {
+            res.status(400).send(`${key} must be a non-empty path segment`);
+            return;
+          }
+        }
+        next();
+      },
       createProxyMiddleware({
         changeOrigin: true,
         on: {
@@ -277,44 +318,8 @@ function createUIServer(options: UIConfigs) {
         headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
         pathRewrite: (pathStr: string, req: any) => {
           /** Argo nodeId is just POD name */
-          const nodeId = req.query.podname;
-          const runId = req.query.runid;
-          return `/${apiVersion1Prefix}/runs/${runId}/nodes/${nodeId}/log`;
-        },
-        target: apiServerAddress,
-      }),
-    );
-  } else {
-    registerHandler(
-      app.get,
-      '/k8s/pod/logs',
-      getPodLogsHandler(
-        options.argo,
-        options.artifacts,
-        options.pod.logContainerName,
-        authorizeFn,
-        options.auth.enabled,
-      ),
-    );
-  }
-
-  if (options.artifacts.streamLogsFromServerApi) {
-    app.all(
-      '/k8s/pod/logs',
-      hardenPodLogsProxyRequest,
-      createProxyMiddleware({
-        changeOrigin: true,
-        on: {
-          proxyReq: (proxyReq) => {
-            console.log('Proxied log request: ', proxyReq.path);
-          },
-          proxyRes: hardenPodLogsProxyResponse,
-        },
-        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-        pathRewrite: (pathStr: string, req: any) => {
-          /** Argo nodeId is just POD name */
-          const nodeId = req.query.podname;
-          const runId = req.query.runid;
+          const nodeId = encodeURIComponent(req.query.podname as string);
+          const runId = encodeURIComponent(req.query.runid as string);
           return `/${apiVersion2Prefix}/runs/${runId}/nodes/${nodeId}/log`;
         },
         target: apiServerAddress,
@@ -343,32 +348,16 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.get, '/system/cluster-name', getClusterNameHandler(options.gkeMetadata));
   registerHandler(app.get, '/system/project-id', getProjectIdHandler(options.gkeMetadata));
 
-  /** Visualization */
-  registerHandler(
-    app.get,
-    '/visualizations/allowed',
-    getAllowCustomVisualizationsHandler(options.visualizations.allowCustomVisualizations),
-  );
-
   registerHandler(
     app.use,
-    [
-      // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
-      `/${apiVersion1Prefix}/runs/*reportMetrics`,
-      `/${apiVersion1Prefix}/workflows`,
-      `/${apiVersion1Prefix}/scheduledworkflows`,
-      `/${apiVersion2Prefix}/workflows`,
-      `/${apiVersion2Prefix}/scheduledworkflows`,
-    ],
+    [`/${apiVersion2Prefix}/workflows`, `/${apiVersion2Prefix}/scheduledworkflows`],
     (req, res) => {
       res.status(403).send(`${req.originalUrl} endpoint is not meant for external usage.`);
     },
   );
 
   const deprecatedProxyRoutes = [
-    `/${apiVersion1Prefix}/_proxy/*`,
     `/${apiVersion2Prefix}/_proxy/*`,
-    `${basePath}/${apiVersion1Prefix}/_proxy/*`,
     `${basePath}/${apiVersion2Prefix}/_proxy/*`,
   ];
 
@@ -377,19 +366,6 @@ function createUIServer(options: UIConfigs) {
   });
 
   /** Proxy to ml-pipeline api server */
-  app.all(
-    `/${apiVersion1Prefix}/*`,
-    createProxyMiddleware({
-      changeOrigin: true,
-      on: {
-        proxyReq: (proxyReq) => {
-          console.log('Proxied request: ', proxyReq.path);
-        },
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      target: apiServerAddress,
-    }),
-  );
   app.all(
     `/${apiVersion2Prefix}/*`,
     createProxyMiddleware({
@@ -404,21 +380,6 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
-  app.all(
-    `${basePath}/${apiVersion1Prefix}/*`,
-    createProxyMiddleware({
-      changeOrigin: true,
-      on: {
-        proxyReq: (proxyReq) => {
-          console.log('Proxied request: ', proxyReq.path);
-        },
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      pathRewrite: (pathStr) =>
-        pathStr.startsWith(basePath) ? pathStr.substr(basePath.length, pathStr.length) : pathStr,
-      target: apiServerAddress,
-    }),
-  );
   app.all(
     `${basePath}/${apiVersion2Prefix}/*`,
     createProxyMiddleware({

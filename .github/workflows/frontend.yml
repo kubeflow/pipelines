@@ -12,8 +12,7 @@ on:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
-      - 'backend/api/v1beta1/swagger/**'
-      - 'backend/api/v2beta1/swagger/**'
+      - 'backend/api/v2/swagger/**'
       - '.github/workflows/frontend.yml'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -24,21 +23,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   frontend-tests:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
 
     - name: Set up Node.js
-      uses: actions/setup-node@v7
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
       with:
         node-version-file: frontend/.nvmrc
 
     - name: Set up Python for profile-controller regression tests
-      uses: actions/setup-python@v7
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
       with:
         python-version: '3.13'
 
@@ -67,9 +71,9 @@ jobs:
         npm run apis:all
         git diff --exit-code -- \
           src/apis \
-          src/apisv2beta1 \
+          src/apisv2 \
           server/src/generated/apis \
-          server/src/generated/apisv2beta1
+          server/src/generated/apisv2
 
     - name: Verify pipeline and platform spec generation
       working-directory: frontend
@@ -86,3 +90,9 @@ jobs:
 
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci
+
+    - name: Verify production bundle startup
+      working-directory: frontend
+      run: |
+        npx playwright install --with-deps chromium
+        npm run test:bundle

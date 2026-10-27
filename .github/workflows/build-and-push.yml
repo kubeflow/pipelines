@@ -122,6 +122,8 @@ on:
         default: false
         description: 'Whether to push image to CR or not'
         required: true
+permissions: {}
+
 env:
   SOURCE_BRANCH: ${{ inputs.src_branch }}
   TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
@@ -134,6 +136,7 @@ env:
 
 jobs:
   build-and-push-images:
+    if: inputs.push
     continue-on-error: false
     runs-on: ${{ inputs.runs_on }}
     permissions:
@@ -141,11 +144,13 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-    steps:
+    # The dry run uses identical build logic with a separate read-only token.
+    steps: &image-build-steps
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{env.SOURCE_BRANCH}}
+          persist-credentials: false
 
       - name: Get checked-out commit SHA
         id: get_commit
@@ -156,7 +161,7 @@ jobs:
         run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
@@ -190,7 +195,7 @@ jobs:
       # The images value provides the base name for the tags and labels.
       - name: Extract metadata (tags, labels) for Build
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         if: steps.check_tag.outcome == 'success'
         with:
           images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
@@ -218,6 +223,7 @@ jobs:
           build_command=(
             bash ./.github/resources/scripts/docker-buildx-build-with-retry.sh
             --platform "${INPUT_PLATFORMS}"
+            --provenance=mode=min
             --file "${INPUT_DOCKER_FILE}"
             --output "type=image,name=${IMAGE_NAME},push-by-digest=true,name-canonical=true,push=${INPUT_PUSH}"
             --metadata-file "${METADATA_FILE}"
@@ -248,25 +254,41 @@ jobs:
       # Export the digest
       - name: Export digest
         if: steps.check_tag.outcome == 'success' && inputs.push
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
+          PLATFORM: ${{ inputs.platforms }}
+          ARCH: ${{ inputs.arch_tag }}
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.push.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          jq -n --arg digest "$DIGEST" --arg source_sha "$SOURCE_SHA" \
+            --arg platform "$PLATFORM" \
+            '{digest: $digest, source_sha: $source_sha, platform: $platform}' \
+            > "/tmp/digests/${ARCH}.json"
 
       # Upload the digest
       - name: Upload digest
         if: steps.check_tag.outcome == 'success' && inputs.push
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: digests-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}
+          name: digests-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}-${{ github.run_attempt }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
       # This step generates an artifact attestation for the image
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         if: steps.check_tag.outcome == 'success' && inputs.push
         with:
           subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
           subject-digest: ${{ steps.push.outputs.digest }}
+
+  dry-run-images:
+    if: ${{ !inputs.push }}
+    continue-on-error: false
+    runs-on: ${{ inputs.runs_on }}
+    permissions:
+      contents: read
+      packages: read
+    steps: *image-build-steps

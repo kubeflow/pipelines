@@ -20,6 +20,13 @@
 - Error messages must state the problem and corrective action.
 - Write concise GoDoc for exported Go APIs. Python SDK public docstrings are user-facing Sphinx documentation.
 
+## Database migrations
+
+Never introduce blocking production database migrations or implicit table-copy
+fallbacks. Follow [Nonblocking database changes](database-migrations.md) for model
+tags, schema/index changes and backfills. The GORM preference below applies to
+queries; it does not establish that ORM-generated migrations are safe.
+
 ## Database query guidelines (backend storage layer)
 
 When writing or modifying database queries in the backend storage layer (`backend/src/apiserver/storage/`):

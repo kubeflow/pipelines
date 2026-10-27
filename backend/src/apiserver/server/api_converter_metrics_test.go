@@ -17,7 +17,7 @@ package server
 import (
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/assert"
 )
@@ -48,11 +48,11 @@ func TestToApiTask_MetricsGrouping(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-1",
 					Name:        "accuracy",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &accuracy,
 					Metadata:    accuracyMetadata,
 				},
@@ -62,11 +62,11 @@ func TestToApiTask_MetricsGrouping(t *testing.T) {
 			},
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-2",
 					Name:        "precision",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &precision,
 					Metadata:    precisionMetadata,
 				},
@@ -76,11 +76,11 @@ func TestToApiTask_MetricsGrouping(t *testing.T) {
 			},
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-3",
 					Name:        "recall",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &recall,
 					Metadata:    recallMetadata,
 				},
@@ -100,7 +100,7 @@ func TestToApiTask_MetricsGrouping(t *testing.T) {
 
 	ioArtifact := apiTask.Outputs.Artifacts[0]
 	assert.Equal(t, "metrics", ioArtifact.ArtifactKey)
-	assert.Equal(t, apiv2beta1.IOType_OUTPUT, ioArtifact.Type)
+	assert.Equal(t, apiv2.IOType_OUTPUT, ioArtifact.Type)
 
 	// Verify all three metric artifacts are in the same IOArtifact
 	assert.Equal(t, 3, len(ioArtifact.Artifacts), "Should have all three metric artifacts in one IOArtifact")
@@ -109,7 +109,7 @@ func TestToApiTask_MetricsGrouping(t *testing.T) {
 	artifactNames := make(map[string]bool)
 	for _, artifact := range ioArtifact.Artifacts {
 		artifactNames[artifact.Name] = true
-		assert.Equal(t, apiv2beta1.Artifact_Metric, artifact.Type)
+		assert.Equal(t, apiv2.Artifact_Metric, artifact.Type)
 	}
 
 	assert.True(t, artifactNames["accuracy"], "Should contain accuracy metric")
@@ -131,11 +131,11 @@ func TestToApiTask_MetricsGrouping_DifferentProducers(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-1",
 					Name:        "accuracy",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &accuracy,
 				},
 				Producer: &model.IOProducer{
@@ -144,11 +144,11 @@ func TestToApiTask_MetricsGrouping_DifferentProducers(t *testing.T) {
 			},
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-2",
 					Name:        "precision",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &precision,
 				},
 				Producer: &model.IOProducer{
@@ -187,11 +187,11 @@ func TestToApiTask_MetricsGrouping_WithIterations(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-1",
 					Name:        "accuracy",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &accuracy1,
 				},
 				Producer: &model.IOProducer{
@@ -201,11 +201,11 @@ func TestToApiTask_MetricsGrouping_WithIterations(t *testing.T) {
 			},
 			{
 				Key:  "metrics",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-2",
 					Name:        "accuracy",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &accuracy2,
 				},
 				Producer: &model.IOProducer{
@@ -248,11 +248,11 @@ func TestToApiTask_NonMetrics(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "datasets",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "artifact-1",
 					Name: "dataset1",
-					Type: model.ArtifactType(apiv2beta1.Artifact_Dataset),
+					Type: model.ArtifactType(apiv2.Artifact_Dataset),
 					URI:  &uri1,
 				},
 				Producer: &model.IOProducer{
@@ -261,11 +261,11 @@ func TestToApiTask_NonMetrics(t *testing.T) {
 			},
 			{
 				Key:  "datasets",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "artifact-2",
 					Name: "dataset2",
-					Type: model.ArtifactType(apiv2beta1.Artifact_Dataset),
+					Type: model.ArtifactType(apiv2.Artifact_Dataset),
 					URI:  &uri2,
 				},
 				Producer: &model.IOProducer{
@@ -316,11 +316,11 @@ func TestToApiTask_ArtifactGroupsAreSortedDeterministically(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "z-metrics",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-2",
 					Name:        "metric",
-					Type:        model.ArtifactType(apiv2beta1.Artifact_Metric),
+					Type:        model.ArtifactType(apiv2.Artifact_Metric),
 					NumberValue: &metricValue,
 				},
 				Producer: &model.IOProducer{
@@ -329,11 +329,11 @@ func TestToApiTask_ArtifactGroupsAreSortedDeterministically(t *testing.T) {
 			},
 			{
 				Key:  "a-dataset",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "artifact-1",
 					Name: "dataset",
-					Type: model.ArtifactType(apiv2beta1.Artifact_Dataset),
+					Type: model.ArtifactType(apiv2.Artifact_Dataset),
 					URI:  &datasetURI,
 				},
 				Producer: &model.IOProducer{
@@ -368,7 +368,7 @@ func TestToApiTask_IteratorOutputMultipleArtifactsPerIteration(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "output",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "artifact-1",
 					Name: "part1",
@@ -381,7 +381,7 @@ func TestToApiTask_IteratorOutputMultipleArtifactsPerIteration(t *testing.T) {
 			},
 			{
 				Key:  "output",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "artifact-2",
 					Name: "part2",
@@ -394,7 +394,7 @@ func TestToApiTask_IteratorOutputMultipleArtifactsPerIteration(t *testing.T) {
 			},
 			{
 				Key:  "output",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "artifact-3",
 					Name: "part1",
@@ -446,7 +446,7 @@ func TestToApiTask_IterationOrderIndependentOfUUID(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "output",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "zzz-uuid",
 					Name: "out",
@@ -459,7 +459,7 @@ func TestToApiTask_IterationOrderIndependentOfUUID(t *testing.T) {
 			},
 			{
 				Key:  "output",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "aaa-uuid",
 					Name: "out",
@@ -472,7 +472,7 @@ func TestToApiTask_IterationOrderIndependentOfUUID(t *testing.T) {
 			},
 			{
 				Key:  "output",
-				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Type: apiv2.IOType_ITERATOR_OUTPUT,
 				Value: &model.Artifact{
 					UUID: "mmm-uuid",
 					Name: "out",
@@ -507,7 +507,7 @@ func TestToApiTask_DescriptionPreservation(t *testing.T) {
 		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
 			{
 				Key:  "model",
-				Type: apiv2beta1.IOType_OUTPUT,
+				Type: apiv2.IOType_OUTPUT,
 				Value: &model.Artifact{
 					UUID:        "artifact-1",
 					Name:        "trained-model",

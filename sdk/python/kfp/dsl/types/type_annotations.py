@@ -17,16 +17,14 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import Any, get_origin, List, Optional, Type, TypeVar, Union
+from typing import Any, List, Optional, Type, TypeVar, Union, get_origin
 
 try:
     from types import UnionType as _UnionType
 except ImportError:  # PEP 604 `X | Y` syntax; no types.UnionType before 3.10.
     _UnionType = None
 
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import artifact_types, type_annotations, type_utils
 
 
 class OutputPath:
@@ -104,22 +102,27 @@ class InputPath:
 
 
 def construct_type_for_inputpath_or_outputpath(
-        type_: Union[str, Type, None]) -> Optional[str]:
+    type_: Union[str, Type, None],
+) -> Optional[str]:
     if type_annotations.is_artifact_class(type_):
-        return type_utils.create_bundled_artifact_type(type_.schema_title,
-                                                       type_.schema_version)
-    elif isinstance(
-            type_,
-            str) and type_.lower() in type_utils.ARTIFACT_CLASSES_MAPPING:
-        # v1 artifact backward compat, e.g. dsl.OutputPath('Dataset')
         return type_utils.create_bundled_artifact_type(
-            type_utils.ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
+            type_.schema_title, type_.schema_version
+        )
+    elif (
+        isinstance(type_, str)
+        and type_.lower() in type_utils.ARTIFACT_CLASSES_MAPPING
+    ):
+        # Resolve SDK artifact names in path annotations, e.g. OutputPath('Dataset').
+        return type_utils.create_bundled_artifact_type(
+            type_utils.ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title
+        )
     elif type_utils.get_parameter_type(type_):
         return type_
     else:
-        # v1 unknown type dsl.OutputPath('MyCustomType')
+        # Unregistered path types use the generic artifact schema.
         return type_utils.create_bundled_artifact_type(
-            artifact_types.Artifact.schema_title)
+            artifact_types.Artifact.schema_title
+        )
 
 
 class InputAnnotation:
@@ -174,8 +177,8 @@ def is_artifact_wrapped_in_Output(typ: Any) -> bool:
 
 
 def get_io_artifact_class(typ):
-    from kfp.dsl import Input
-    from kfp.dsl import Output
+    from kfp.dsl import Input, Output
+
     if not is_Input_Output_artifact_annotation(typ):
         return None
     if typ == Input or typ == Output:
@@ -194,7 +197,8 @@ def strip_Input_or_Output_marker(typ: Any) -> artifact_types.Artifact:
 
 
 def get_input_or_output_marker(
-        typ) -> Optional[Union[InputAnnotation, OutputAnnotation]]:
+    typ,
+) -> Optional[Union[InputAnnotation, OutputAnnotation]]:
     if not is_Input_Output_artifact_annotation(typ):
         return None
 
@@ -265,17 +269,20 @@ def get_short_type_name(type_name: str) -> str:
 def is_artifact_class(artifact_class_or_instance: Type) -> bool:
     # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
     return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
-        artifact_class_or_instance, 'schema_version')
+        artifact_class_or_instance, 'schema_version'
+    )
 
 
 def is_list_of_artifacts(
-    annotation: Union[Type[List[artifact_types.Artifact]],
-                      Type[artifact_types.Artifact]]
+    annotation: Union[
+        Type[List[artifact_types.Artifact]], Type[artifact_types.Artifact]
+    ],
 ) -> bool:
     """Checks if an object is a list of list of artifacts annotation (e.g.,
     List[Artifact], List[Dataset])"""
     return is_generic_list(annotation) and issubclass_of_artifact(
-        get_inner_type(annotation))
+        get_inner_type(annotation)
+    )
 
 
 def get_inner_type(annotation: Any) -> Optional[Any]:
@@ -300,9 +307,10 @@ def issubclass_of_artifact(obj: Any) -> bool:
 
 def is_generic_list(annotation: Any) -> bool:
     # handles generics from the typing module for python<3.9
-    typing_generic_list = getattr(annotation, '__origin__',
-                                  None) is list or getattr(
-                                      annotation, '__origin__', None) is List
+    typing_generic_list = (
+        getattr(annotation, '__origin__', None) is list
+        or getattr(annotation, '__origin__', None) is List
+    )
     # handles built-in generics for python>=3.9
     built_in_generic_list = annotation == list
     return typing_generic_list or built_in_generic_list

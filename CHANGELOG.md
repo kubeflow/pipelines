@@ -1,5 +1,36 @@
 Changelog
 
+## Unreleased
+
+### Upgrade notes
+
+- **Artifact compatibility reset (3.0 development):** matching native Artifact
+  records permit existing custom roots without a mandatory namespace prefix.
+  HTTP proxy mode again uses namespace receivers and their local credentials;
+  existing endpoint, credential, path, response and namespace-access checks remain.
+  Native lookup failures still deny access. This interim behavior does **not**
+  establish tenant isolation when native metadata can name objects readable by
+  broad/shared credentials; HTTP destination restrictions are not object grants.
+  The [backend-first artifact API](https://github.com/kubeflow/pipelines/issues/14031)
+  must provide the replacement authority before security remediation or supported
+  3.0 adoption is claimed. No prior 2.18 artifact approval/readiness rollout is
+  assumed. See [compatibility and remaining limits](frontend/README.md#multi-user-artifact-ownership).
+
+- **Recurring-run security:** multi-user recurring runs created before API-owned
+  scheduling state must be reviewed and recreated through the API. Otherwise they
+  stop submitting executions, even when shown as enabled. API startup logs now
+  enumerate affected jobs. See the [migration inventory and procedure](docs/operator-guides/scheduled-service-accounts.md#inventory-before-completing-the-upgrade).
+  Upgrade the API and controller together and apply the multi-user RBAC; generic
+  schedules alone do not replace an upgraded controller in multi-user mode.
+  Block recurring-run creation and recreation until all old API replicas and their
+  in-flight reports have drained. Schedules created during mixed-version API
+  operation also require review and recreation, even if they have scheduling
+  state and are omitted from the migration inventory.
+- **Recurring-run parameters:** API-path schedules now expand scheduling macros
+  inside nested list/struct parameters and support `[[Index]]`, matching embedded
+  workflow scheduling. Review nested values containing literal `[[…]]` or
+  `{{$.…}}` before recreating schedules; these sequences may now be substituted.
+
 ## 2.17.1 (2026-08-26)
 
 ### Bug Fixes
@@ -722,7 +753,7 @@ Changelog
 - adding myself as a reviewer ([#12325](https://github.com/kubeflow/pipelines/pull/12325))
 ### Ci
 
-- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))# 
+- first interaction ([#12209](https://github.com/kubeflow/pipelines/pull/12209))#
 
 ### [2.14.3](https://github.com/kubeflow/pipelines/compare/2.14.0...2.14.3) (2025-08-28)
 

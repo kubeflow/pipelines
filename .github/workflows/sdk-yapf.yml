@@ -1,4 +1,5 @@
-name: KFP SDK YAPF Tests
+# Keep the legacy file path: CI Check matches paths from the PR base.
+name: Python Ruff Format
 
 on:
   push:
@@ -6,11 +7,15 @@ on:
 
   pull_request:
     paths:
-      - 'api/**'
-      - 'sdk/python/**'
-      - 'test/presubmit-yapf-sdk.sh'
+      - '**/pyproject.toml'
+      - 'uv.lock'
+      - '**/*.py'
+      - '**/*.pyi'
+      - '.gitignore'
+      - '.pre-commit-config.yaml'
+      - 'test/presubmit-ruff.sh'
       - '.github/workflows/sdk-yapf.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -19,23 +24,24 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  yapf-sdk:
+  ruff:
+    name: Ruff formatting
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
-
-    - name: Set up Python
-      uses: ./.github/actions/setup-python-pip-cache
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
-        python-version: '3.9'
-        cache-scope: sdk-yapf
-        cache-dependency-hash: ${{ hashFiles('sdk/python/requirements-dev.txt') }}
+        persist-credentials: false
 
-    - name: Install dependencies
-      run: pip install yapf
+    - name: Setup Python with uv
+      uses: ./.github/actions/setup-python
+      with:
+        python-version: '3.11'
 
-    - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+    - name: Check Python formatting with Ruff
+      run: uv run --frozen --extra lint ruff format --check .

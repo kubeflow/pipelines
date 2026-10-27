@@ -13,6 +13,7 @@
 // limitations under the License.
 
 const assert = require('assert');
+const path = require('path');
 const URL = require('url').URL;
 const {
   buildTableRowSelector,
@@ -66,7 +67,7 @@ async function waitForCreatedRunId() {
 
 async function fetchRunById(runId) {
   return browser.execute(async (currentRunId) => {
-    const response = await fetch(`/apis/v2beta1/runs/${currentRunId}`);
+    const response = await fetch(`/apis/v2/runs/${currentRunId}`);
     const responseText = await response.text();
     let responseBody;
     try {
@@ -89,7 +90,7 @@ async function deleteCreatedRun() {
 
   try {
     const deleteResponse = await browser.execute(async (currentRunId) => {
-      const response = await fetch(`/apis/v2beta1/runs/${currentRunId}`, {
+      const response = await fetch(`/apis/v2/runs/${currentRunId}`, {
         method: 'DELETE',
       });
       return {
@@ -172,8 +173,7 @@ describe('literal input parameter integration', () => {
     await waitForHashPrefix('#/pipeline_versions/new', { timeout: uiTimeout });
 
     await $('#localPackageBtn').click();
-    const remoteFilePath = await browser.uploadFile('./literal-input.yaml');
-    await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+    await $('#dropZone input[type="file"]').setFiles(path.resolve('./literal-input.yaml'));
     await $('#newPipelineName').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
@@ -210,13 +210,7 @@ describe('literal input parameter integration', () => {
   });
 
   it('renders the literal parameter as a dropdown and requires a selection before start', async () => {
-    const runFormVariant = await waitForRunPageReady({ timeout: runStartTimeout });
-    assert.equal(
-      runFormVariant.name,
-      'v2',
-      'compiled literal-input pipeline should open the v2 run form',
-    );
-    const selectors = runFormVariant.selectors;
+    const selectors = await waitForRunPageReady({ timeout: runStartTimeout });
 
     await $(selectors.runName).click();
     await clearDefaultInput();

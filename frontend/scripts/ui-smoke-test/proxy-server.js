@@ -47,7 +47,6 @@ const PROXY_PATHS = [
   '/apis/',
   '/system/',
   '/artifacts/',
-  '/visualizations/',
   '/k8s/',
   '/apps/',
 ];

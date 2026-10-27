@@ -13,8 +13,13 @@
 // limitations under the License.
 
 import { Apis } from 'src/lib/Apis';
-import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
-import { getRunDisplayName, getTaskDisplayName, listAllRunTasks } from './RunTaskUtils';
+import { PipelineTaskTaskState, PipelineTaskTaskType } from 'src/apisv2/run';
+import {
+  getRunDisplayName,
+  getTaskDisplayName,
+  getTaskLifecycleMessage,
+  listAllRunTasks,
+} from './RunTaskUtils';
 
 describe('listAllRunTasks', () => {
   afterEach(() => {
@@ -91,5 +96,43 @@ describe('runtime display names', () => {
     expect(getRunDisplayName({ display_name: 'Display', run_id: 'run-id' })).toBe('Display');
     expect(getRunDisplayName({ run_id: 'run-id' })).toBe('run-id');
     expect(getRunDisplayName({}, '-')).toBe('-');
+  });
+});
+
+describe('getTaskLifecycleMessage', () => {
+  it('returns the message for a task that is still pending or running', () => {
+    expect(
+      getTaskLifecycleMessage({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'ImagePullBackOff',
+      }),
+    ).toBe('ImagePullBackOff');
+  });
+
+  it('returns the message for a failed task', () => {
+    expect(
+      getTaskLifecycleMessage({
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled',
+      }),
+    ).toBe('OOMKilled');
+  });
+
+  it('returns undefined when there is no message or an empty message', () => {
+    expect(getTaskLifecycleMessage(undefined)).toBeUndefined();
+    expect(getTaskLifecycleMessage({ state: PipelineTaskTaskState.RUNNING })).toBeUndefined();
+    expect(
+      getTaskLifecycleMessage({ state: PipelineTaskTaskState.RUNNING, lifecycle_message: '' }),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    PipelineTaskTaskState.SUCCEEDED,
+    PipelineTaskTaskState.CACHED,
+    PipelineTaskTaskState.SKIPPED,
+  ])('ignores a stale message on a %s task', (state) => {
+    expect(
+      getTaskLifecycleMessage({ state, lifecycle_message: 'ImagePullBackOff' }),
+    ).toBeUndefined();
   });
 });

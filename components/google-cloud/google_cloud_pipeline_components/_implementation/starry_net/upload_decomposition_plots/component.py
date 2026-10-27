@@ -17,52 +17,53 @@ from kfp import dsl
 
 
 @dsl.component(
-    base_image='python:3.9',
+    base_image='python:3.11',
     packages_to_install=[
         'google-cloud-aiplatform[tensorboard]==1.87.0',
         'protobuf==3.20.*',
     ],
 )
 def upload_decomposition_plots(
-    project: str,
-    location: str,
-    tensorboard_id: str,
-    display_name: str,
-    trainer_dir: dsl.InputPath(),
+        project: str,
+        location: str,
+        tensorboard_id: str,
+        display_name: str,
+        trainer_dir: dsl.InputPath(),
 ) -> dsl.Artifact:
-  # fmt: off
-  """Uploads decomposition plots to Tensorboard.
+    # fmt: off
+    """Uploads decomposition plots to Tensorboard.
 
-  Args:
-    project: The project where the pipeline is run. Defaults to current project.
-    location: The location where the pipeline components are run.
-    tensorboard_id: The tensorboard instance ID.
-    display_name: The diplay name of the job.
-    trainer_dir: The directory where training artifacts where stored.
+    Args:
+      project: The project where the pipeline is run. Defaults to current project.
+      location: The location where the pipeline components are run.
+      tensorboard_id: The tensorboard instance ID.
+      display_name: The diplay name of the job.
+      trainer_dir: The directory where training artifacts where stored.
 
-  Returns:
-    A dsl.Artifact where the URI is the URI where decomposition plots can be
-    viewed.
-  """
-  import os  # pylint: disable=g-import-not-at-top
-  import uuid  # pylint: disable=g-import-not-at-top
-  from google.cloud import aiplatform  # pylint: disable=g-import-not-at-top
+    Returns:
+      A dsl.Artifact where the URI is the URI where decomposition plots can be
+      viewed.
+    """
+    import os  # pylint: disable=g-import-not-at-top
+    import uuid  # pylint: disable=g-import-not-at-top
 
-  log_dir = os.path.join(trainer_dir, 'tensorboard', 'r=1:gc=0')
-  project_number = os.environ['CLOUD_ML_PROJECT_ID']
-  experiment_name = str(uuid.uuid4())
-  aiplatform.init(
-      experiment=experiment_name, project=project, location=location)
-  aiplatform.upload_tb_log(
-      tensorboard_id=tensorboard_id,
-      tensorboard_experiment_name=experiment_name,
-      logdir=log_dir,
-      experiment_display_name=display_name,
-      description=f'Tensorboard for {display_name}',
-  )
-  uri = (
-      f'https://{location}.tensorboard.googleusercontent.com/experiment/'
-      f'projects+{project_number}+locations+{location}+tensorboards+'
-      f'{tensorboard_id}+experiments+{experiment_name}/#images'
-  )
-  return dsl.Artifact(uri=uri)
+    from google.cloud import aiplatform  # pylint: disable=g-import-not-at-top
+
+    log_dir = os.path.join(trainer_dir, 'tensorboard', 'r=1:gc=0')
+    project_number = os.environ['CLOUD_ML_PROJECT_ID']
+    experiment_name = str(uuid.uuid4())
+    aiplatform.init(
+        experiment=experiment_name, project=project, location=location)
+    aiplatform.upload_tb_log(
+        tensorboard_id=tensorboard_id,
+        tensorboard_experiment_name=experiment_name,
+        logdir=log_dir,
+        experiment_display_name=display_name,
+        description=f'Tensorboard for {display_name}',
+    )
+    uri = (
+        f'https://{location}.tensorboard.googleusercontent.com/experiment/'
+        f'projects+{project_number}+locations+{location}+tensorboards+'
+        f'{tensorboard_id}+experiments+{experiment_name}/#images'
+    )
+    return dsl.Artifact(uri=uri)

@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
+from kfp import compiler, dsl
 
-component_op = components.load_component_from_text("""
-name: Print Text
-inputs:
-- {name: text, type: String}
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$0"
-    - {inputValue: text}
-""")
+
+@dsl.container_component
+def print_text(text: str):
+    return dsl.ContainerSpec(
+        image='docker.io/alpine:3.23',
+        command=['sh', '-c', 'set -e -x\necho "$0"\n', text],
+    )
+
+
+component_op = print_text
 
 
 @dsl.pipeline(name='pipeline-with-after')
@@ -42,5 +35,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

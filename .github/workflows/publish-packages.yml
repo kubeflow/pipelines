@@ -5,199 +5,216 @@ on:
       tag:
         type: string
         required: true
-        description: "Tag associated with the release (e.g.: 2.14.0)"
+        description: "Tag associated with the release"
       packages:
         type: choice
         required: true
-        description: "Which package(s) to publish"
+        description: "Publish kfp; separate packages are supported only for legacy tags"
         options:
           - all
+          - kfp
           - kfp-pipeline-spec
           - kfp-server-api
-          - kfp
           - kfp-kubernetes
       dry_run:
         type: boolean
         required: true
         default: true
-        description: "Dry run - build packages without publishing to PyPI"
+        description: "Build and validate without publishing to PyPI"
 
 env:
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.11"
+  UV_VERSION: "0.13.4"
+  TWINE_VERSION: "7.0.0"
+  TWINE_PYTHON_VERSION: "3.12"
 
 jobs:
-  publish-kfp-pipeline-spec:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-pipeline-spec' }}
+  select-packages:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+    outputs:
+      packages: ${{ steps.select.outputs.packages }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.inputs.tag }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install build dependencies
+          persist-credentials: false
+      - name: Select distributions owned by the source tag
+        id: select
+        env:
+          SELECTED_PACKAGE: ${{ inputs.packages }}
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
 
-      - name: Build kfp-pipeline-spec
-        run: |
-          cd api
-          make python
-          cd v2alpha1/python
-          twine check dist/*
+          packages = [{"name": "kfp", "path": "sdk/python"}]
+          if not Path("sdk/python/kfp/server_api/__init__.py").is_file():
+              packages.extend([
+                  {"name": "kfp-pipeline-spec", "path": "api/v2alpha1/python"},
+                  {"name": "kfp-server-api", "path": "backend/api/v2beta1/python_http_client"},
+                  {"name": "kfp-kubernetes", "path": "kubernetes_platform/python"},
+              ])
+          selected = os.environ["SELECTED_PACKAGE"]
+          if selected != "all":
+              packages = [package for package in packages if package["name"] == selected]
+          if not packages:
+              raise SystemExit(f"{selected} is not a distribution in this tag; select kfp.")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"packages={json.dumps(packages)}\n")
+          PY
 
-      - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: api/v2alpha1/python/dist/
-          print-hash: true
-
-      - name: Upload artifacts (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: kfp-pipeline-spec-dist
-          path: api/v2alpha1/python/dist/
-
-  publish-kfp-server-api:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-server-api' }}
+  build:
+    needs: select-packages
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.select-packages.outputs.packages) }}
     permissions:
       contents: read
-      id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.inputs.tag }}
+          persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      # A selected legacy tag need not contain local actions or uv metadata.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install twine
-
-      - name: Build kfp-server-api
-        run: |
-          cd backend/api/v2beta1/python_http_client
-          rm -rf dist
-          python setup.py --quiet sdist
-          twine check dist/*
-
-      - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          packages-dir: backend/api/v2beta1/python_http_client/dist/
-          print-hash: true
+          version: ${{ env.UV_VERSION }}
+
+      - name: Build selected distribution
+        env:
+          PACKAGE_NAME: ${{ matrix.package.name }}
+          PACKAGE_PATH: ${{ matrix.package.path }}
+        run: |
+          case "$PACKAGE_NAME" in
+            kfp) make -C sdk python ;;
+            kfp-pipeline-spec) make -C api python ;;
+            kfp-kubernetes) make -C kubernetes_platform python ;;
+            kfp-server-api)
+              uv build "$PACKAGE_PATH" --out-dir "$PACKAGE_PATH/dist"
+              ;;
+            *) echo "Unsupported distribution: $PACKAGE_NAME" >&2; exit 1 ;;
+          esac
+          uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" \
+            twine check "$PACKAGE_PATH"/dist/*
+
+      - name: Prepare distributions for publication
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        env:
+          PACKAGE_PATH: ${{ matrix.package.path }}
+        run: |
+          python3 -I - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+
+          source = Path(os.environ['PACKAGE_PATH']) / 'dist'
+          files = []
+          for path in sorted(source.iterdir()):
+              # uv adds this source-control marker beside its distributions.
+              if path.name == '.gitignore' and path.is_file() and not path.is_symlink():
+                  continue
+              files.append(path)
+          if not any(path.name.endswith('.whl') for path in files) or not any(
+              path.name.endswith(('.tar.gz', '.zip')) for path in files
+          ):
+              raise SystemExit('Publication requires both a wheel and a source distribution.')
+          for path in files:
+              if path.is_symlink() or not path.is_file() or not path.stat().st_size:
+                  raise SystemExit(f'Invalid distribution file: {path.name}')
+              if not path.name.endswith(('.whl', '.tar.gz', '.zip')):
+                  raise SystemExit(f'Unexpected distribution file: {path.name}')
+          artifact = Path(os.environ['RUNNER_TEMP']) / 'package-artifact'
+          destination = artifact / 'dist'
+          destination.mkdir(parents=True)
+          manifest = {}
+          for path in files:
+              copied = Path(shutil.copyfile(path, destination / path.name))
+              manifest[path.name] = hashlib.sha256(copied.read_bytes()).hexdigest()
+          (artifact / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True))
+          PY
+
+      - name: Upload distributions for publication
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.package.name }}-publish-dist
+          path: ${{ runner.temp }}/package-artifact/
+          if-no-files-found: error
+          overwrite: true
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: kfp-server-api-dist
-          path: backend/api/v2beta1/python_http_client/dist/
+          name: ${{ matrix.package.name }}-dist
+          path: ${{ matrix.package.path }}/dist/
+          if-no-files-found: error
 
-  publish-kfp:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp' }}
-    # Uncomment once all packages in PyPi are configured to be released from this repo.
-    # needs: [publish-kfp-pipeline-spec, publish-kfp-server-api]
+  publish:
+    needs: [select-packages, build]
+    if: ${{ github.event.inputs.dry_run == 'false' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.select-packages.outputs.packages) }}
     permissions:
-      contents: read
       id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      # Same-run artifacts let failed publishers retry without rebuilding or
+      # rerunning distributions that have already published successfully.
+      - name: Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          ref: ${{ github.event.inputs.tag }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install build dependencies
+          name: ${{ matrix.package.name }}-publish-dist
+          path: package-artifact/
+      - name: Verify distributions before publishing
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine
+          python3 -I - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
 
-      - name: Build kfp
-        run: |
-          cd sdk
-          make python
-          cd python
-          twine check dist/*
-
+          artifact = Path('package-artifact')
+          if {path.name for path in artifact.iterdir()} != {'dist', 'manifest.json'}:
+              raise SystemExit('Package artifact must contain only dist/ and manifest.json.')
+          manifest_path = artifact / 'manifest.json'
+          distributions = artifact / 'dist'
+          if manifest_path.is_symlink() or not manifest_path.is_file():
+              raise SystemExit('Package artifact manifest must be a regular file.')
+          if distributions.is_symlink() or not distributions.is_dir():
+              raise SystemExit('Package artifact dist/ must be a directory.')
+          manifest = json.loads(manifest_path.read_text())
+          if not isinstance(manifest, dict) or not manifest:
+              raise SystemExit('Package artifact manifest must be a nonempty object.')
+          files = list(distributions.iterdir())
+          if {path.name for path in files} != set(manifest):
+              raise SystemExit('Distribution inventory differs from the build manifest.')
+          if not any(path.name.endswith('.whl') for path in files) or not any(
+              path.name.endswith(('.tar.gz', '.zip')) for path in files
+          ):
+              raise SystemExit('Publication requires both a wheel and a source distribution.')
+          for path in files:
+              if path.is_symlink() or not path.is_file() or not path.stat().st_size:
+                  raise SystemExit(f'Invalid distribution file: {path.name}')
+              if not path.name.endswith(('.whl', '.tar.gz', '.zip')):
+                  raise SystemExit(f'Unexpected distribution file: {path.name}')
+              if hashlib.sha256(path.read_bytes()).hexdigest() != manifest[path.name]:
+                  raise SystemExit(f'Distribution checksum differs from the build: {path.name}')
+          PY
       - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
         with:
-          packages-dir: sdk/python/dist/
+          packages-dir: package-artifact/dist/
           print-hash: true
-
-      - name: Upload artifacts (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: kfp-dist
-          path: sdk/python/dist/
-
-  publish-kfp-kubernetes:
-    if: ${{ github.event.inputs.packages == 'all' || github.event.inputs.packages == 'kfp-kubernetes' }}
-    # Uncomment once all packages in PyPi are configured to be released from this repo.
-    # needs: [publish-kfp-pipeline-spec, publish-kfp]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.tag }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-
-      - name: Build kfp-kubernetes
-        run: |
-          cd kubernetes_platform
-          make python
-          cd python
-          twine check dist/*
-
-      - name: Publish to PyPI
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: kubernetes_platform/python/dist/
-          print-hash: true
-
-      - name: Upload artifacts (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: kfp-kubernetes-dist
-          path: kubernetes_platform/python/dist/

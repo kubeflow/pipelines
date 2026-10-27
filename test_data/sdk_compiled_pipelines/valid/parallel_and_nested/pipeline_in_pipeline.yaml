@@ -125,7 +125,7 @@ deploymentSpec:
         command:
         - echo
         - '{{$.inputs.parameters[''msg'']}}'
-        image: alpine
+        image: docker.io/alpine:3.23
 pipelineInfo:
   name: pipeline-in-pipeline
 root:

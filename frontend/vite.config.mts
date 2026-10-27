@@ -16,7 +16,6 @@ const proxyPaths = [
   '/hub',
   '/k8s',
   '/system',
-  '/visualizations',
 ];
 
 const proxy = proxyPaths.reduce<Record<string, { target: string; changeOrigin: boolean }>>(
@@ -42,10 +41,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       src: path.resolve(__dirname, 'src'),
-      'react-virtualized': path.resolve(
-        __dirname,
-        'node_modules/react-virtualized/dist/commonjs/index.js',
-      ),
     },
   },
   server: {

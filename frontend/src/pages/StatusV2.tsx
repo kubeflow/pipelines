@@ -25,11 +25,11 @@ import UnknownIcon from '@mui/icons-material/Help';
 import { color } from 'src/Css';
 import { logger, formatDateString } from 'src/lib/Utils';
 import { checkIfTerminatedV2 } from 'src/lib/StatusUtils';
-import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { V2RuntimeState } from 'src/apisv2/run';
 import { Tooltip } from '@mui/material';
 
 export function statusToIcon(
-  state?: V2beta1RuntimeState,
+  state?: V2RuntimeState,
   startDate?: Date | string,
   endDate?: Date | string,
   nodeMessage?: string,
@@ -40,46 +40,46 @@ export function statusToIcon(
   let iconColor = color.inactive;
   let title = 'Unknown status';
   switch (state) {
-    case V2beta1RuntimeState.FAILED:
+    case V2RuntimeState.FAILED:
       IconComponent = ErrorIcon;
       iconColor = color.errorText;
       title = 'Resource failed to execute';
       break;
-    case V2beta1RuntimeState.PENDING:
+    case V2RuntimeState.PENDING:
       IconComponent = PendingIcon;
       iconColor = color.weak;
       title = 'Pending execution';
       break;
-    case V2beta1RuntimeState.RUNNING:
+    case V2RuntimeState.RUNNING:
       IconComponent = RunningIcon;
       iconColor = color.blue;
       title = 'Running';
       break;
-    case V2beta1RuntimeState.CANCELING:
+    case V2RuntimeState.CANCELING:
       IconComponent = RunningIcon;
       iconColor = color.blue;
       title = 'Run is canceling';
       break;
-    case V2beta1RuntimeState.PAUSED:
+    case V2RuntimeState.PAUSED:
       IconComponent = PendingIcon;
       iconColor = color.weak;
       title = 'Run is paused';
       break;
-    case V2beta1RuntimeState.SKIPPED:
+    case V2RuntimeState.SKIPPED:
       IconComponent = SkippedIcon;
       title = 'Execution has been skipped for this resource';
       break;
-    case V2beta1RuntimeState.SUCCEEDED:
+    case V2RuntimeState.SUCCEEDED:
       IconComponent = SuccessIcon;
       iconColor = color.success;
       title = 'Executed successfully';
       break;
-    case V2beta1RuntimeState.CANCELED:
+    case V2RuntimeState.CANCELED:
       IconComponent = TerminatedIcon;
       iconColor = color.terminated;
       title = 'Run was manually canceled';
       break;
-    case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
+    case V2RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       break;
     default:
       if (state != null) {

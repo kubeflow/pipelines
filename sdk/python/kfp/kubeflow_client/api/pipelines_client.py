@@ -20,21 +20,25 @@ designed for re-export by the Kubeflow SDK at ``kubeflow.pipelines``.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from kfp.client import Client
 
-from kfp.kubeflow_client.backends.kubernetes import KubernetesBackend
-from kfp.kubeflow_client.backends.kubernetes import KubernetesBackendConfig
-from kfp.kubeflow_client.types import Experiment
-from kfp.kubeflow_client.types import ListExperimentsResponse
-from kfp.kubeflow_client.types import ListPipelinesResponse
-from kfp.kubeflow_client.types import ListPipelineVersionsResponse
-from kfp.kubeflow_client.types import ListRunsResponse
-from kfp.kubeflow_client.types import Pipeline
-from kfp.kubeflow_client.types import PipelineVersion
-from kfp.kubeflow_client.types import Run
+from kfp.kubeflow_client.backends.kubernetes import (
+    KubernetesBackend,
+    KubernetesBackendConfig,
+)
+from kfp.kubeflow_client.types import (
+    Experiment,
+    ListExperimentsResponse,
+    ListPipelinesResponse,
+    ListPipelineVersionsResponse,
+    ListRunsResponse,
+    Pipeline,
+    PipelineVersion,
+    Run,
+)
 
 __all__ = ['PipelinesClient']
 
@@ -100,7 +104,8 @@ class PipelinesClient:
             A ``PipelineVersion`` object representing the uploaded version.
         """
         return self._backend.upload_pipeline(
-            pipeline, name=name, version_name=version, description=description)
+            pipeline, name=name, version_name=version, description=description
+        )
 
     def get_pipeline(self, name: str) -> Pipeline:
         """Get a pipeline by name.
@@ -152,7 +157,8 @@ class PipelinesClient:
             ``.next_page_token``.
         """
         return self._backend.list_pipelines(
-            page_token=page_token, page_size=page_size)
+            page_token=page_token, page_size=page_size
+        )
 
     def list_pipeline_versions(
         self,
@@ -173,7 +179,8 @@ class PipelinesClient:
             and ``.next_page_token``.
         """
         return self._backend.list_pipeline_versions(
-            name, page_token=page_token, page_size=page_size)
+            name, page_token=page_token, page_size=page_size
+        )
 
     def delete_pipeline(
         self,
@@ -272,16 +279,13 @@ class PipelinesClient:
         """List runs, optionally filtered by pipeline, experiment, or status.
 
         Note:
-            The ``pipeline`` filter is applied client-side because the KFP
-            v2beta1 API does not support server-side filtering by pipeline ID.
-            When used, the returned page may contain fewer items than
-            ``page_size`` — including zero items with a non-empty
-            ``next_page_token`` if all runs on that server page belong to
-            other pipelines. Callers should continue paginating until
-            ``next_page_token`` is empty.
+            The ``pipeline`` filter is applied server-side, so a page contains
+            up to ``page_size`` matching runs. It requires a KFP runtime that
+            accepts the ``pipeline_id`` filter key; older runtimes reject the
+            request.
 
         Args:
-            pipeline: Filter by pipeline display name (client-side).
+            pipeline: Filter by pipeline display name.
             experiment: Filter by experiment display name.
             status: Filter by run state (e.g. ``"succeeded"``).
             page_token: Token for obtaining the next page.
@@ -390,7 +394,8 @@ class PipelinesClient:
             ``.next_page_token``.
         """
         return self._backend.list_experiments(
-            page_token=page_token, page_size=page_size)
+            page_token=page_token, page_size=page_size
+        )
 
     def delete_experiment(self, name: str) -> None:
         """Delete an experiment by name.
@@ -416,6 +421,7 @@ class PipelinesClient:
         """
         if self._kfp_client_instance is None:
             from kfp.client import Client
+
             config = self._backend.config
             kwargs: dict[str, Any] = {}
             if config.base_url:

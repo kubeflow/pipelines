@@ -19,8 +19,8 @@ import * as JsYaml from 'js-yaml';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils from 'src/TestUtils';
 import RecurringRunDetailsRouter from 'src/pages/RecurringRunDetailsRouter';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
+import { V2PipelineVersion } from 'src/apisv2/pipeline';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
 import { RouteParams, RoutePage } from 'src/components/Router';
@@ -40,8 +40,8 @@ describe('RecurringRunDetailsV2FC', () => {
   let getExperimentSpy: ReturnType<typeof vi.fn>;
   const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
 
-  let fullTestV2RecurringRun: V2beta1RecurringRun = {};
-  let testPipelineVersion: V2beta1PipelineVersion = {};
+  let fullTestV2RecurringRun: V2RecurringRun = {};
+  let testPipelineVersion: V2PipelineVersion = {};
 
   function generateProps(): PageProps {
     return {
@@ -70,7 +70,7 @@ describe('RecurringRunDetailsV2FC', () => {
       },
       recurring_run_id: 'test-recurring-run-id',
       runtime_config: { parameters: { param1: 'value1' } },
-      status: V2beta1RecurringRunStatus.ENABLED,
+      status: V2RecurringRunStatus.ENABLED,
       trigger: {
         periodic_schedule: {
           end_time: new Date(2018, 10, 9, 8, 7, 6),
@@ -78,7 +78,7 @@ describe('RecurringRunDetailsV2FC', () => {
           start_time: new Date(2018, 9, 8, 7, 6),
         },
       },
-    } as V2beta1RecurringRun;
+    } as V2RecurringRun;
 
     testPipelineVersion = {
       display_name: 'test_pipeline_version',
@@ -139,10 +139,9 @@ describe('RecurringRunDetailsV2FC', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(getPipelineVersionSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
-
-    expect(await screen.findByText('Enabled')).toBeInTheDocument();
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('Every 1 hours');
@@ -175,10 +174,9 @@ describe('RecurringRunDetailsV2FC', () => {
     );
     await waitFor(() => {
       expect(getRecurringRunSpy).toHaveBeenCalled();
-      expect(getPipelineVersionSpy).toHaveBeenCalled();
+      expect(screen.getByText('Enabled')).toBeInTheDocument();
     });
-
-    expect(await screen.findByText('Enabled')).toBeInTheDocument();
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
     screen.getByText('Yes');
     screen.getByText('Trigger');
     screen.getByText('* * * 0 0 !');
@@ -362,8 +360,7 @@ describe('RecurringRunDetailsV2FC', () => {
     });
 
     const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions.refresh.action as
-      | (() => Promise<void>)
-      | undefined;
+      (() => Promise<void>) | undefined;
     expect(refreshAction).toBeDefined();
     const refreshCallCount = getRecurringRunSpy.mock.calls.length;
 
@@ -406,7 +403,7 @@ describe('RecurringRunDetailsV2FC', () => {
   });
 
   it('enables Enable buttons if the run is disabled', async () => {
-    fullTestV2RecurringRun.status = V2beta1RecurringRunStatus.DISABLED;
+    fullTestV2RecurringRun.status = V2RecurringRunStatus.DISABLED;
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />

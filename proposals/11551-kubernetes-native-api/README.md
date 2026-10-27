@@ -615,7 +615,7 @@ where a real Kubernetes cluster is present.
 #### Integration tests
 
 - Add an additional matrix to the GitHub workflows `API integration tests v2`, `Frontend Integration Tests`, and
-  `basic-sample-tests` to test with the Kubernetes API being the storage for piplines. This ensures backwards
+  `basic-sample-tests` to test with the Kubernetes API being the storage for pipelines. This ensures backwards
   compatibility through the REST API.
 - Add an additional end to end test that leverages a sample pipeline that compiles out to the Kubernetes manifest format
   using the Python SDK and submits it directly against the Kubernetes API with `kubectl`. Then a pipeline run is started

@@ -1,7 +1,7 @@
 # Dependabot configuration for scheduled version updates.
 #
 # Scope: every supported dependency ecosystem present in the repository: Go,
-# container images, npm, pip, GitHub Actions, and pre-commit. This makes bumps
+# container images, npm, pip, uv, GitHub Actions, and pre-commit. This makes bumps
 # explicit and deterministic rather than relying on implicit/security-only
 # behavior.
 #
@@ -9,15 +9,222 @@
 # not by this file. This file does not turn them on or off, though they still
 # honor configuration here such as `ignore` rules and directory/ecosystem scope.
 #
-# Every Dependabot PR starts held to prevent unattended merging. Remove the hold
-# only immediately before merge after verifying CI for the current head, and
-# restore it if the head changes. Custom labels replace Dependabot's defaults, so
-# each ecosystem explicitly retains the dependencies and ecosystem labels.
+# Default-branch Dependabot PRs are not held by default. Merging is gated by the
+# required `ci-passed` commit status on the verified head SHA (published by the
+# CI Check workflow) and the deployed Tide policy, so a PR auto-merges once
+# `ci-passed` is green. Maintainers can still apply `do-not-merge/hold` to a
+# specific PR to hold it back; that PR-specific hold is never removed by the
+# publisher. Custom labels replace Dependabot's defaults, so each ecosystem
+# explicitly retains the dependencies and ecosystem labels.
 #
 # Tracks: https://github.com/kubeflow/pipelines/issues/13490
 version: 2
 updates:
   - package-ecosystem: gomod
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "go"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # These versions select generators as well as runtime libraries. Keep
+      # output-changing upgrades out of routine runtime dependency batches;
+      # regeneration and validation are required before they can merge.
+      go-api-generators:
+        patterns:
+          - "github.com/grpc-ecosystem/grpc-gateway/v2"
+          - "google.golang.org/protobuf"
+          - "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+          - "github.com/go-swagger/go-swagger"
+      # Keep the golang.org/x/* modules together; they release in lockstep and
+      # bumping one (e.g. x/net) usually drags the others along via go mod tidy.
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
+      # Batch all remaining minor/patch bumps to limit PR volume. Major version
+      # updates fall through to individual PRs so they get explicit review.
+      go-minor-and-patch:
+        patterns:
+          - "*"
+        # Argo also needs runtime, manifest, and CI synchronization. Complete
+        # its separate PR using third_party/argo/UPGRADE.md.
+        exclude-patterns:
+          - "github.com/argoproj/argo-workflows/*"
+        update-types:
+          - "minor"
+          - "patch"
+  - package-ecosystem: docker
+    # Dependabot's Docker ecosystem also updates image references in Kubernetes
+    # manifests. The recursive glob covers the repository root and every nested
+    # directory, including custom-named Dockerfiles.
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # Keep the bundled database on 8.4 LTS. Patch and digest updates remain
+      # enabled; changing release lines requires a tested database migration.
+      - dependency-name: "mysql"
+        versions: ["<8.4", ">=8.5"]
+    groups:
+      # The controller injects argoexec into workflow pods, so update the two
+      # runtime images together when Dependabot finds a new release.
+      argo-images:
+        patterns:
+          - "argoproj/workflow-controller"
+          - "argoproj/argoexec"
+      # Update the same image in one PR when it is referenced from multiple
+      # Dockerfiles or Kubernetes manifests.
+      docker-images:
+        group-by: dependency-name
+  - package-ecosystem: npm
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      react-version:
+        applies-to: version-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      react-security:
+        applies-to: security-updates
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Coverage providers require the exact matching Vitest release.
+      # Keep these before the catch-all dependency-name group.
+      vitest-version:
+        applies-to: version-updates
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      vitest-security:
+        applies-to: security-updates
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      # The TypeScript ESLint plugin requires a compatible parser release.
+      # Keep this family together before the catch-all dependency-name group.
+      typescript-eslint-version:
+        applies-to: version-updates
+        patterns:
+          - "@typescript-eslint/*"
+      typescript-eslint-security:
+        applies-to: security-updates
+        patterns:
+          - "@typescript-eslint/*"
+      # @mui/icons-material declares a peer dependency on the matching
+      # @mui/material version, so bumping either one alone leaves the other
+      # outside its peer range and `npm install` fails to resolve. They have to
+      # land together. Listed before npm-dependencies because a dependency
+      # joins the first group whose patterns match.
+      mui:
+        patterns:
+          - "@mui/*"
+      # Update a shared package in one PR across all npm projects.
+      npm-dependencies:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    # Generated API clients are excluded: their requirements express generated
+    # compatibility minimums and must be changed through API regeneration.
+    # The root and SDK form the uv workspace; uv owns those manifests and lock.
+    directories:
+      - "/.github/scripts"
+      - "/components/PyTorch/pytorch-kfp-components"
+      - "/components/google-cloud"
+      - "/docs"
+      - "/release"
+      - "/samples/core/artifact_previews"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Keep shared Python constraints aligned across the monorepo.
+      python-dependencies:
+        group-by: dependency-name
+  - package-ecosystem: uv
+    # Workspace manifests and uv.lock are the only tracked dependency sources.
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python:uv"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # GCPC/Vertex AI do not support protobuf 7. Revisit the SDK/workspace
+      # constraints together when upstream supports it; keep 6.x updates on.
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+  - package-ecosystem: github-actions
+    # Root covers .github/workflows; the glob covers reusable actions.
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "github_actions"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      github-actions:
+        group-by: dependency-name
+  - package-ecosystem: pre-commit
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "pre_commit"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # v1.7.8 has continuation and blank-line tokenization regressions.
+      - dependency-name: "https://github.com/pycqa/docformatter"
+        versions: ["1.7.8"]
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"
+  # Release scheduling must live on the default branch. Preserve 2.18's pip
+  # layout and explicit holds rather than inheriting master's uv/merge policy.
+  # TensorBoard files arrive through #15152; merge after that prerequisite.
+  - package-ecosystem: gomod
+    target-branch: "release-2.18"
     directories:
       - "**/*"
     schedule:
@@ -40,10 +247,17 @@ updates:
       go-minor-and-patch:
         patterns:
           - "*"
+        # Argo also needs runtime, manifest, and CI synchronization. Complete
+        # its separate PR using third_party/argo/UPGRADE.md.
+        exclude-patterns:
+          - "github.com/argoproj/argo-workflows/*"
         update-types:
           - "minor"
           - "patch"
   - package-ecosystem: docker
+    target-branch: "release-2.18"
+    # Do not copy master's MySQL 8.4-only range: this branch also retains 8.0
+    # and legacy 8.0.3. Database/MLMD migrations require explicit review.
     # Dependabot's Docker ecosystem also updates image references in Kubernetes
     # manifests. The recursive glob covers the repository root and every nested
     # directory, including custom-named Dockerfiles.
@@ -70,6 +284,7 @@ updates:
       docker-images:
         group-by: dependency-name
   - package-ecosystem: npm
+    target-branch: "release-2.18"
     directories:
       - "**/*"
     schedule:
@@ -94,13 +309,17 @@ updates:
       npm-dependencies:
         group-by: dependency-name
   - package-ecosystem: pip
+    target-branch: "release-2.18"
     # Generated API clients are excluded: their requirements express generated
     # compatibility minimums and must be changed through API regeneration.
     directories:
+      - "/.github/resources/postgresql-upgrade"
       - "/.github/resources/scripts/kfp-readiness"
       - "/api/v2alpha1/python"
       - "/backend"
+      - "/backend/metadata_writer"
       - "/backend/src/apiserver/visualization"
+      - "/backend/src/tensorboard"
       - "/backend/src/v2/test"
       - "/components/google-cloud"
       - "/docs"
@@ -110,8 +329,10 @@ updates:
       - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
       - "/proxy"
       - "/release"
+      - "/samples/core/artifact_previews"
       - "/sdk/python"
       - "/test/kfp-kubernetes-native-migration-tests"
+      - "/tools/upgrade-readiness"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
@@ -121,11 +342,16 @@ updates:
       - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # The release SDK/platform and legacy runtime sources require protobuf <7.
+      - dependency-name: "protobuf"
+        versions: [">=7"]
     groups:
       # Keep shared Python constraints aligned across the monorepo.
       python-dependencies:
         group-by: dependency-name
   - package-ecosystem: github-actions
+    target-branch: "release-2.18"
     # Root covers .github/workflows; the glob covers reusable actions.
     directories:
       - "/"
@@ -143,6 +369,7 @@ updates:
       github-actions:
         group-by: dependency-name
   - package-ecosystem: pre-commit
+    target-branch: "release-2.18"
     directory: "/"
     schedule:
       interval: weekly
@@ -153,6 +380,10 @@ updates:
       - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # Keep the release's documented workaround for tokenization regressions.
+      - dependency-name: "https://github.com/pycqa/docformatter"
+        versions: ["1.7.8"]
     groups:
       pre-commit-hooks:
         patterns:

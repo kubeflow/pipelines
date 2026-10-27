@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Objects for configuring local execution."""
+
 import abc
 import dataclasses
 import os
@@ -54,23 +55,26 @@ class SubprocessRunner:
         serialize_pip_installs: Whether to serialize pip installations across parallel tasks to avoid race conditions. Only applies when use_venv=True. Default is True for safety.
         max_concurrent_pip_installs: Maximum number of concurrent pip installations when serialize_pip_installs=False. Default is 1.
     """
+
     use_venv: bool = True
     serialize_pip_installs: bool = True
     max_concurrent_pip_installs: int = 1
 
     def __post_init__(self):
         """Configure the pip install manager when the runner is created."""
-        if self.use_venv:
-            # Lazy import to avoid circular imports
-            from kfp.local.pip_install_manager import pip_install_manager
-            pip_install_manager.configure(
-                serialize_installs=self.serialize_pip_installs,
-                max_concurrent=self.max_concurrent_pip_installs)
+        # Lazy import to avoid circular imports
+        from kfp.local.pip_install_manager import pip_install_manager
+
+        pip_install_manager.configure(
+            serialize_installs=self.serialize_pip_installs,
+            max_concurrent=self.max_concurrent_pip_installs,
+        )
 
 
 class DockerRunner:
     """Runner that indicates that local tasks should be run as a Docker
     container."""
+
     DOCKER_CONTAINER_RUN_ARGS = {
         # for available run parameters:
         # https://docker-py.readthedocs.io/en/stable/containers.html
@@ -165,9 +169,9 @@ class DockerRunner:
         'working_dir',
     }
 
-    def __init__(self,
-                 max_concurrent_pip_installs: int = 1,
-                 **container_run_args):
+    def __init__(
+        self, max_concurrent_pip_installs: int = 1, **container_run_args
+    ):
         """Runner constructor, taking any arguments to propagate to
         `containers.run` in the `docker` SDK.
 
@@ -191,20 +195,22 @@ class DockerRunner:
                 f"Package 'docker' must be installed to use {DockerRunner.__name__!r}. Install it using 'pip install docker'."
             ) from e
 
-        unsupported_args = container_run_args.keys(
-        ) - self.DOCKER_CONTAINER_RUN_ARGS
+        unsupported_args = (
+            container_run_args.keys() - self.DOCKER_CONTAINER_RUN_ARGS
+        )
 
         if unsupported_args:
             raise ValueError(
-                f"Unsupported `docker run` arguments, see Package `docker` for details: {', '.join(unsupported_args)}"
+                f'Unsupported `docker run` arguments, see Package `docker` for details: {", ".join(unsupported_args)}'
             )
 
-        excess_args: set = set(['image', 'command', 'volumes'
-                               ]) & container_run_args.keys()
+        excess_args: set = (
+            set(['image', 'command', 'volumes']) & container_run_args.keys()
+        )
 
         if excess_args:
             raise ValueError(
-                f"The following docker run arguments should not be specififed: {', '.join(excess_args)}"
+                f'The following docker run arguments should not be specified: {", ".join(excess_args)}'
             )
 
         self.container_run_args = container_run_args
@@ -213,6 +219,7 @@ class DockerRunner:
         # Configure docker pip install manager
         # Lazy import to avoid circular imports
         from kfp.local.pip_install_manager import pip_install_manager
+
         pip_install_manager.configure_docker(max_concurrent_pip_installs)
 
 
@@ -245,11 +252,13 @@ class LocalExecutionConfig:
         if not isinstance(runner, permitted_runners):
             permitted_runner_names = '. '.join(
                 permitted_runner.__name__
-                for permitted_runner in permitted_runners)
+                for permitted_runner in permitted_runners
+            )
             raise ValueError(
                 f'Got unknown runner {runner} of type '
                 f'{runner.__class__.__name__}. Runner should be one of the '
-                f'following types: {permitted_runner_names}.')
+                f'following types: {permitted_runner_names}.'
+            )
         self.runner = runner
         self.pipeline_root = pipeline_root
         self.workspace_root = workspace_root
@@ -305,4 +314,5 @@ def init(
     # Reset the local cache singleton so a new LocalCache is created against
     # the (possibly new) cache_root on first use.
     from kfp.local import cache as _cache_module
+
     _cache_module.reset_local_cache_singleton()

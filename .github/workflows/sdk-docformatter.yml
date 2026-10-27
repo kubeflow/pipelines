@@ -6,10 +6,12 @@ on:
 
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - 'sdk/python/**'
       - 'test/presubmit-docformatter-sdk.sh'
       - '.github/workflows/sdk-docformatter.yml'
-      - '.github/actions/setup-python-pip-cache/**'
+      - '.github/actions/setup-python/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -18,19 +20,22 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test-docformatter-kfp-sdk:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Python
-        uses: ./.github/actions/setup-python-pip-cache
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          python-version: 3.9
-          cache-scope: sdk-docformatter
-          cache-dependency-hash: ${{ hashFiles('sdk/python/requirements-dev.txt') }}
+          persist-credentials: false
+
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
+        with:
+          python-version: '3.11'
 
       - name: Run docformatter tests
         run: ./test/presubmit-docformatter-sdk.sh

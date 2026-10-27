@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: pipeline-with-importer-and-gcpc-type
+# Name: pipeline-with-importer-and-gcpc-types
 components:
   comp-consumer-op:
     executorLabel: exec-consumer-op
@@ -40,7 +40,7 @@ deploymentSpec:
           schemaTitle: google.VertexDataset
           schemaVersion: 0.0.1
 pipelineInfo:
-  name: pipeline-with-importer-and-gcpc-type
+  name: pipeline-with-importer-and-gcpc-types
 root:
   dag:
     tasks:
@@ -72,4 +72,4 @@ root:
         taskInfo:
           name: importer
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.15.2

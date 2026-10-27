@@ -21,8 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
@@ -37,19 +35,14 @@ import (
 
 const (
 	volumeNameKFPLauncher = "kfp-launcher"
-	volumeNameCABundle    = "ca-bundle"
 	LauncherImageEnvVar   = "V2_LAUNCHER_IMAGE"
-	DriverImageEnvVar     = "V2_DRIVER_IMAGE"
-	// DefaultLauncherImage & DefaultDriverImage are set as latest here
-	// but are overridden by environment variables set via k8s manifests.
+	// DefaultLauncherImage is set as latest here
+	// but is overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
 	// this is to avoid hardcoding releases in code here.
 	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
 	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
 	DefaultLauncherCommand   = "launcher-v2"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
-	DefaultDriverCommand     = "driver"
-	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
 	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
 	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
 	PublishLogsEnvVar        = "PUBLISH_LOGS"
@@ -90,22 +83,6 @@ func GetLauncherImage() string {
 		launcherImage = DefaultLauncherImage
 	}
 	return launcherImage
-}
-
-func GetDriverImage() string {
-	driverImage := os.Getenv(DriverImageEnvVar)
-	if driverImage == "" {
-		driverImage = DefaultDriverImage
-	}
-	return driverImage
-}
-
-func GetDriverCommand() []string {
-	driverCommand := os.Getenv(DriverCommandEnvVar)
-	if driverCommand == "" {
-		driverCommand = DefaultDriverCommand
-	}
-	return strings.Split(driverCommand, " ")
 }
 
 func GetLauncherCommand() []string {
@@ -154,10 +131,14 @@ func GetPipelineRunAsUser() *int64 {
 	return &runAsUser
 }
 
-func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs, error) {
+	template, err := c.addContainerDriverTemplate()
+	if err != nil {
+		return nil, nil, err
+	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: template,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
@@ -182,67 +163,40 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		cached:       taskOutputParameter(name, paramCachedDecision),
 		condition:    taskOutputParameter(name, paramCondition),
 	}
-	return dagTask, outputs
+	return dagTask, outputs, nil
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
+// Create the Argo Workflow executor plugin template for the container driver.
+// See https://argo-workflows.readthedocs.io/en/latest/executor_plugins/
+func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	name := "system-container-driver"
 	_, ok := c.templates[name]
 	if ok {
-		return name
+		return name, nil
 	}
 
-	args := []string{
-		"--type", "CONTAINER",
-		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-		"--run_id", runID(),
-		"--run_name", runResourceName(),
-		"--run_display_name", c.job.DisplayName,
-		"--parent_task_id", inputValue(paramParentDagTaskID),
-		"--task_name", inputValue(paramTaskName),
-		"--iteration_index", inputValue(paramIterationIndex),
-		"--cached_decision_path", outputPath(paramCachedDecision),
-		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-		"--condition_path", outputPath(paramCondition),
-		"--kubernetes_config", inputValue(paramKubernetesConfig),
-		"--namespace", fmt.Sprintf("$(%s)", component.EnvNamespace),
-		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
-		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
-		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
-		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
-	}
-	args = append(args,
-		"--cache_disabled="+strconv.FormatBool(c.cacheDisabled),
-		"--log_level", pipelineLogLevelArg(),
-		"--publish_logs", publishLogsArg(),
-		"--ml_pipeline_tls_enabled="+strconv.FormatBool(c.mlPipelineTLSEnabled),
-	)
-
-	// Always passed; empty unless a custom CA bundle is configured.
-	caCertPath := ""
-	setCABundle := false
-	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		caCertPath = common.CustomCaCertPath
-		setCABundle = true
-	}
-	args = append(args, "--ca_cert_path", caCertPath)
+	args := c.driverPluginArgs("CONTAINER")
+	args["kubernetes_config"] = inputValue(paramKubernetesConfig)
 
 	// Admin defaults are emitted only when configured; an unset default is
 	// indistinguishable from "not set", so these stay optional (not required).
 	if c.defaultRunAsUser != nil {
-		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
+		args["default_run_as_user"] = *c.defaultRunAsUser
 	}
 	if c.defaultRunAsGroup != nil {
-		args = append(args, "--default_run_as_group", strconv.FormatInt(*c.defaultRunAsGroup, 10))
+		args["default_run_as_group"] = *c.defaultRunAsGroup
 	}
 	if c.defaultRunAsNonRoot != nil {
-		args = append(args, "--default_run_as_non_root", strconv.FormatBool(*c.defaultRunAsNonRoot))
+		args["default_run_as_non_root"] = strconv.FormatBool(*c.defaultRunAsNonRoot)
 	}
 	if c.defaultHostUsers != nil {
-		args = append(args, "--default_host_users", strconv.FormatBool(*c.defaultHostUsers))
+		args["default_host_users"] = strconv.FormatBool(*c.defaultHostUsers)
 	}
 
+	containerDriverPlugin, err := driverPlugin(args)
+	if err != nil {
+		return name, fmt.Errorf("failed to add container driver plugin: %v", err)
+	}
 	template := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -255,56 +209,16 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
+				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{JSONPath: "$.cached-decision", Default: wfapi.AnyStringPtr("false")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       append(append(proxy.GetConfig().GetEnvVars(), commonEnvs...), mlPipelineAPIClientEnvVars()...),
-			VolumeMounts: []k8score.VolumeMount{
-				{
-					Name:      kfpTokenVolumeName,
-					MountPath: kfpTokenMountPath,
-					ReadOnly:  true,
-				},
-			},
-		},
-		Volumes: []k8score.Volume{
-			{
-				Name: kfpTokenVolumeName,
-				VolumeSource: k8score.VolumeSource{
-					Projected: &k8score.ProjectedVolumeSource{
-						Sources: []k8score.VolumeProjection{
-							{
-								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
-									Path:              "token",
-									Audience:          c.tokenAudienceForRun(runID()),
-									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		Plugin: containerDriverPlugin,
 	}
-	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
-	applySecurityContextToTemplate(template)
-	applyDriverPodConfig(c.driverPodConfig, template)
-	mountLauncherConfigMap(template)
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
-	if setCABundle {
-		ConfigureCustomCABundle(template)
-	}
-	addSystemPodMetadata(template, "container-driver", name)
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
-	return name
+	return name, nil
 }
 
 type containerExecutorInputs struct {
@@ -384,6 +298,13 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		if task != nil && task.GetDag() == nil {
 			nameContainerExecutor = "retry-" + nameContainerExecutor
 			nameContainerImpl = "retry-" + nameContainerImpl
+			// retryPolicy can't be parameterized (Argo validates it as a strict enum at submission),
+			// so bake it into the template name.
+			if policy := protoRetryPolicyToArgo(taskRetrySpec.GetPolicy()); policy != "" {
+				suffix := "-" + strings.ToLower(policy)
+				nameContainerExecutor += suffix
+				nameContainerImpl += suffix
+			}
 		}
 	}
 	podMetadata := k8sExecCfg.GetPodMetadata()
@@ -453,6 +374,14 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				When: inputParameter(paramCachedDecision) + " != true",
 			}},
 		},
+	}
+	// templateDefaults would give this wrapper the deployment's retryStrategy,
+	// retrying on top of the impl template's. A zero limit keeps retry on the
+	// impl alone, so num_retries and the policy mean what they say.
+	if taskRetrySpec != nil {
+		container.RetryStrategy = &wfapi.RetryStrategy{
+			Limit: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
+		}
 	}
 	c.templates[nameContainerExecutor] = container
 
@@ -538,10 +467,11 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		},
 		InitContainers: []wfapi.UserContainer{{
 			Container: k8score.Container{
-				Name:    "kfp-launcher",
-				Image:   c.launcherImage,
-				Command: c.launcherCommand,
-				Args:    args,
+				TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
+				Name:                     "kfp-launcher",
+				Image:                    c.launcherImage,
+				Command:                  c.launcherCommand,
+				Args:                     args,
 				VolumeMounts: []k8score.VolumeMount{
 					{
 						Name:      volumeNameKFPLauncher,
@@ -552,6 +482,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			},
 		}},
 		Container: &k8score.Container{
+			TerminationMessagePolicy: k8score.TerminationMessageFallbackToLogsOnError,
 			// The placeholder image and command should always be
 			// overridden in podSpecPatch.
 			// In case we have a bug, the placeholder image is kept
@@ -595,8 +526,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 					MountPath: dotConfigScratchLocation,
 				},
 			},
-			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+			Env: append(commonEnvs, mlPipelineAPIClientEnvVars()...),
 		},
 	}
 	setRuntimeRole(executor, util.ExecutionRuntimeRoleLauncher)
@@ -617,7 +547,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
 			inputParameter(paramRetryBackOffDuration),
 			inputParameter(paramRetryBackOffFactor),
-			inputParameter(paramRetryBackOffMaxDuration))
+			inputParameter(paramRetryBackOffMaxDuration),
+			protoRetryPolicyToArgo(taskRetrySpec.GetPolicy()))
 		executor.Container.Env = append(executor.Container.Env, retryIndexEnv)
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
@@ -683,9 +614,12 @@ func (c *workflowCompiler) getTaskRetryParametersWithValues(task *pipelinespec.P
 }
 
 func (c *workflowCompiler) addParameterDefault(parameters []wfapi.Parameter, defaultValue string) []wfapi.Parameter {
-	// Set the "Default" field of each parameter in input slice with input defaultValue.
+	// Set the "Default" field of each parameter in input slice with defaultValue,
+	// unless the parameter already has an explicit default set.
 	for i := range parameters {
-		parameters[i].Default = wfapi.AnyStringPtr(defaultValue)
+		if parameters[i].Default == nil {
+			parameters[i].Default = wfapi.AnyStringPtr(defaultValue)
+		}
 	}
 	return parameters
 }
@@ -699,7 +633,7 @@ func (c *workflowCompiler) addParameterInputPath(parameters []wfapi.Parameter) [
 }
 
 func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOffDuration string, backOffFactor string,
-	backOffMaxDuration string) *wfapi.RetryStrategy {
+	backOffMaxDuration string, retryPolicy string) *wfapi.RetryStrategy {
 	backoff := &wfapi.Backoff{
 		Factor: &intstr.IntOrString{
 			Type:   intstr.String,
@@ -714,7 +648,26 @@ func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOf
 			Type:   intstr.String,
 			StrVal: maxCount,
 		},
-		Backoff: backoff,
+		Backoff:     backoff,
+		RetryPolicy: wfapi.RetryPolicy(retryPolicy),
+	}
+}
+
+// protoRetryPolicyToArgo maps a KFP proto RetryPolicy_Policy enum value to the
+// corresponding Argo Workflows RetryPolicy string. An empty string is returned
+// for POLICY_UNSPECIFIED, which causes Argo to use its default (OnFailure).
+func protoRetryPolicyToArgo(policy pipelinespec.PipelineTaskSpec_RetryPolicy_Policy) string {
+	switch policy {
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ALWAYS:
+		return string(wfapi.RetryPolicyAlways)
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_FAILURE:
+		return string(wfapi.RetryPolicyOnFailure)
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_ERROR:
+		return string(wfapi.RetryPolicyOnError)
+	case pipelinespec.PipelineTaskSpec_RetryPolicy_POLICY_ON_TRANSIENT_ERROR:
+		return string(wfapi.RetryPolicyOnTransientError)
+	default:
+		return "" // POLICY_UNSPECIFIED → Argo uses OnFailure by default
 	}
 }
 

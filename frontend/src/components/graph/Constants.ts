@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
+
+export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
 
 // Being used as the base interace for Node and Edge in Reactflow.
 export type FlowElementDataBase = {
@@ -21,15 +23,24 @@ export type FlowElementDataBase = {
   [key: string]: any;
 };
 
-export type SubDagFlowElementData = FlowElementDataBase & {
-  // Callback action if a SubDag expand button is clicked.
-  expand: (nodeKey: string) => void;
+export type SubDagTaskData = FlowElementDataBase & {
+  groupKind?: SubDagKind;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the driver pod, same semantics as on execution nodes.
+  lifecycleMessage?: string;
+};
+
+export type SubDagFlowElementData = SubDagTaskData & {
+  // Callback action if a SubDag expand button is clicked.
+  expand: (nodeKey: string) => void;
 };
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the execution engine. Set only while the task has an
+  // unresolved problem such as ImagePullBackOff, and cleared when the task recovers.
+  lifecycleMessage?: string;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {

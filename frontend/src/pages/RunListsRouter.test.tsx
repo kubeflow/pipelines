@@ -18,22 +18,22 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { produce } from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
 import { RouteParams } from 'src/components/Router';
-import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { ApiExperiment } from 'src/apis/experiment';
+import { V2Run, V2RunStorageState } from 'src/apisv2/run';
+import { V2Experiment } from 'src/apisv2/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from 'src/lib/Utils';
 import { BrowserRouter } from 'react-router';
-import { PredicateOp } from 'src/apis/filter';
+import { V2PredicateOperation } from 'src/apisv2/filter';
 
 describe('RunListsRouter', () => {
   let navigateSpy: any;
-  let runStorageState = V2beta1RunStorageState.AVAILABLE;
+  let runStorageState = V2RunStorageState.AVAILABLE;
 
   const onSelectionChangeMock = vi.fn();
   const listRunsSpy = vi.spyOn(Apis.runServiceApiV2, 'listRuns');
   const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
-  const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getExperimentSpy = vi.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getPipelineSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
+  const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
   const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
   const formatDateStringSpy = vi.spyOn(Utils, 'formatDateString');
   const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => null);
@@ -42,11 +42,11 @@ describe('RunListsRouter', () => {
   const archiveRunDisplayName = 'run with id: achiverunid';
   const activeRunDisplayName = 'run with id: activerunid';
 
-  function newMockExperiment(): ApiExperiment {
+  function newMockExperiment(): V2Experiment {
     return {
       description: 'mock experiment description',
-      id: 'some-mock-experiment-id',
-      name: 'some mock experiment name',
+      experiment_id: 'some-mock-experiment-id',
+      display_name: 'some mock experiment name',
     };
   }
 
@@ -55,15 +55,15 @@ describe('RunListsRouter', () => {
       onTabSwitch: vi.fn((newTab: number) => {
         // this.refresh();
         if (newTab === 1) {
-          runStorageState = V2beta1RunStorageState.ARCHIVED;
+          runStorageState = V2RunStorageState.ARCHIVED;
         } else {
-          runStorageState = V2beta1RunStorageState.AVAILABLE;
+          runStorageState = V2RunStorageState.AVAILABLE;
         }
       }),
       hideExperimentColumn: true,
       navigate: navigateSpy,
       location: '' as any,
-      params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } as any,
+      params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.experiment_id } as any,
       onSelectionChange: onSelectionChangeMock,
       selectedIds: [],
       storageState: runStorageState,
@@ -72,7 +72,6 @@ describe('RunListsRouter', () => {
       disablePaging: false,
       disableSorting: true,
       disableSelection: false,
-      hideMetricMetadata: false,
       onError: consoleErrorSpy,
     };
     return runListsRouterProps;
@@ -81,7 +80,7 @@ describe('RunListsRouter', () => {
   beforeEach(() => {
     getRunSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce({} as Partial<V2beta1Run>, (draft) => {
+        produce({} as Partial<V2Run>, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
@@ -95,8 +94,8 @@ describe('RunListsRouter', () => {
           predicates: [
             {
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
-              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+              operation: V2PredicateOperation.EQUALS,
+              string_value: V2RunStorageState.ARCHIVED.toString(),
             },
           ],
         }),

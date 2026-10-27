@@ -11,8 +11,7 @@ import functools
 from typing import Any, Callable, List, Optional
 
 from kfp.dsl import component_factory
-from kfp.dsl.component_task_config import TaskConfigField
-from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.component_task_config import TaskConfigField, TaskConfigPassthrough
 
 
 def notebook_component(
@@ -36,8 +35,7 @@ def notebook_component(
         base_image: Base container image for the component.
         packages_to_install: Runtime-only packages to install inside the
             component container. When None, defaults to
-            ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9",
-            "fastjsonschema<2.22; python_version < '3.10'"]
+            ["nbclient>=0.10,<1", "ipykernel>=6", "jupyter_client>=7,<9"]
             to ensure the notebook can execute with a Python kernel and client.
             When [], installs nothing. When non-empty, installs the exact list.
         output_component_file: Optional path to write the component YAML.
@@ -67,8 +65,10 @@ def notebook_component(
     formatted_passthroughs = None
     if task_config_passthroughs is not None:
         formatted_passthroughs = [
-            TaskConfigPassthrough(field=p, apply_to_task=False) if isinstance(
-                p, TaskConfigField) else p for p in task_config_passthroughs
+            TaskConfigPassthrough(field=p, apply_to_task=False)
+            if isinstance(p, TaskConfigField)
+            else p
+            for p in task_config_passthroughs
         ]
 
     if func is None:

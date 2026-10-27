@@ -1,98 +1,83 @@
 # Upgrading Argo Workflows
 
-Kubeflow Pipelines regularly upgrades the version of Argo Workflows provided.  See below for
-documentation on the steps required to perform this upgrade
+Argo upgrades must keep the Go client and CLI, controller and executor images,
+upstream manifests and CRDs, CI matrices, and runtime preload images aligned.
+Use the complete update command for both Dependabot proposals and manual upgrades.
 
-## Planned KFP 3.0 support boundary
+## KFP 3.0 support boundary
 
-Argo Workflows 3.x remains supported for KFP 2.x, but is deprecated and will not be supported by
-Kubeflow Pipelines 3.0. Before the KFP 3.0 release, replace the 3.x compatibility lane with the
-oldest supported 4.x release, update the public compatibility matrix and operator upgrade
-documentation, and verify the resulting minimum and maximum versions through the API and end-to-end
-CI matrices. Track this work in
+Master supports Argo Workflows 4.0.x and 4.1.x, with exact patch versions pinned in
+`COMPATIBILITY_VERSION` and `VERSION`. The default runtime uses 4.1.x; API and
+end-to-end CI also exercise the 4.0.x compatibility runtime. Keep each lane on its
+latest stable patch through coordinated upgrades, not floating image tags.
+
+[Upstream maintains the two most recent minor releases](https://argo-workflows.readthedocs.io/en/latest/releases/).
+As of October 2026 these are 4.0 and 4.1. Reassess the support floor when upstream
+introduces a new release line; do not silently drop a supported line in a patch upgrade.
+
+Argo 3.x is not supported by KFP 3.0. KFP 2.x release branches retain their
+documented 3.x compatibility coverage, independently of upstream maintenance.
+Before upgrading KFP 2.x to 3.0, operators must upgrade the Argo controller and
+executor together to a supported 4.x patch and follow the
+[upstream upgrade guide](https://argo-workflows.readthedocs.io/en/latest/upgrading/).
+Track the broader migration work in
 [the KFP 3.0 compatibility issue](https://github.com/kubeflow/pipelines/issues/14139).
 
-## Upgrade Argo Workflows
+## Upgrade the current release
 
-Instructions:
+From the repository root, select an exact stable tag:
 
-1. Set version of argo you want to upgrade to, for example:
+```bash
+ARGO_TAG=v4.1.6
+make -C third_party/argo update ARGO_VERSION="${ARGO_TAG}"
+```
 
-    ```bash
-    ARGO_TAG=v4.1.2
-    ```
+The command updates `VERSION` and the maintained runtime, CI, and upgrade-guide
+references, including `go.mod` and `go.sum` through `go mod tidy`. It validates the
+complete edit plan and resolves Go dependencies before writing tracked files; failed validation or dependency
+resolution leaves them unchanged. It uses the installed Go compiler and rejects
+an implicit compiler or Argo module-major change. Handle major migrations and
+compiler upgrades explicitly before using this command.
 
-    When updating the retained compatibility release, also update
-    [COMPATIBILITY_VERSION](./COMPATIBILITY_VERSION).
+The existing workflow also remains available: edit [VERSION](./VERSION), then run
+`make -C third_party/argo update`. To change the older supported release, edit
+[COMPATIBILITY_VERSION](./COMPATIBILITY_VERSION) before running the command. Keep
+it older than the current release. Both supported CI lanes remain enabled.
 
-1. Run the `update` target of the [Makefile](./Makefile) in this directory
-    ```bash
-    cd ./third_party/argo  # From repo root, if not already there
-    echo "${ARGO_TAG}" > VERSION
-    make update
-    ```
-1. Update the minor versions listed in the compatibility matrix in
-   [README.md](../../README.md) when either supported release line changes.
+Dependabot deliberately proposes the Argo Go module separately from the generic
+Go minor/patch batch. Its module and image proposals still need this command to
+update repository-specific references, including the executor command argument
+and upstream CRD Git refs. Run it with the proposal's target version and review
+one complete upgrade before approval. Normal version and security proposals
+remain enabled.
 
-1. Verify all instances of the argo version have been updated.
-    * A simple search such as `grep -R "vX.Y.Z" .` from repo root usually is good enough
+## Verify the upgrade
 
-1. Verify backend images still build by running `make image_all` from the `backend` directory
-    * It would be a good idea to tag and push these images to a dev repo for use in testing
+1. Refresh the tested patch versions in the public [compatibility notice](../../README.md)
+   for every upgrade; this notice is checked by the consistency tests and is not
+   rewritten by the update command. Update the compatibility matrix when either
+   supported release line changes. Review upstream release notes and migration
+   requirements; pin synchronization does not establish compatibility.
+2. Check the synchronized references and review the full diff:
 
-1. Validate the changes
-    * Deploy KFP to a test environment, update the `image` used for the APIServer to the one built in the step above
-    * Verify the API Server and WorkflowController pods come up, can run Pipelines, etc.
-    * Fix any other issues caused by the upgrade.
+   ```bash
+   python3 .github/resources/scripts/sync_argo_versions.py --scope all --check
+   python3 -m unittest discover -s .github/resources/scripts -p '*argo*test.py'
+   git diff --check
+   git diff
+   ```
 
-1. Commit these changes to a PR.
+3. Build the backend images with `make -C backend image_all` and render the Argo
+   Kustomize overlays. CRDs are referenced from the upstream release rather than
+   vendored, so their Git refs must be included in the upgrade.
+4. Run the API and end-to-end CI suites for both supported Argo versions and test
+   the deployment before merging. Keep the previous release available for rollback.
 
-NOTE: At this time, release.sh is a no-op included only for maintaining consistency with other third-party dependencies
+The component targets `update_ci` (also `update_tests`), `update_manifests`,
+`update_backend`, and `update_docs` are available for focused maintenance. They
+read `VERSION`; a partial target does not constitute a complete upgrade. CI uses
+`update_manifests` to select an older supported Argo runtime without changing the
+Go module or CI version matrix. The module-major guard applies to `update` and
+`update_backend`. Use `make update` for a complete release change.
 
-## Upgrade Argo Workflows
-
-### Upgrade All References of Argo Workflows
-
-To upgrade to a new Argo version, including manifests, code dependencies, tests, and documentation:
-
-1. Update the version in [VERSION](./VERSION)
-2. Run `make update` to automatically update all references of the Argo Workflows dependency
-3. Test the new configuration with your KFP deployment
-
-The update includes the GitHub CI matrices, runtime image preload list, and
-their documented versions.
-
-### Update Argo Workflows Manifests
-
-To upgrade just the manifests used for Argo Workflows:
-
-1. Update the version in [VERSION](./VERSION)
-2. Run `make update_manifests` to automatically update all remote Git references to the new version
-3. Test the new configuration with your KFP deployment
-
-
-### Update Argo Workflows in Backend Code
-
-To upgrade just the backend code and package references to a new Argo version:
-
-1. Update the version in [VERSION](./VERSION)
-2. Run `make update_backend` to automatically update all remote Git references to the new version
-3. Test the new configuration with your KFP deployment
-
-
-### Update Argo Workflows in Tests
-
-To upgrade just the test references to a new Argo version:
-
-1. Update the version in [VERSION](./VERSION)
-2. Run `make update_tests` to automatically update all remote Git references to the new version
-3. Test the new configuration with your KFP deployment
-
-
-### Update Argo Workflows in Docs
-
-To upgrade just the doc references to a new Argo version:
-
-1. Update the version in [VERSION](./VERSION)
-2. Run `make update_docs` to automatically update all remote Git references to the new version
-3. Test the new configuration with your KFP deployment
+`release.sh` is a no-op retained for consistency with other third-party dependencies.
