@@ -19,7 +19,7 @@
     "ace-builds": "^1.44.0",
     "d3-dsv": "^3.0.1",
     "dagre": "^0.8.5",
-    "google-protobuf": "^4.0.2",
+    "google-protobuf": "^4.0.3",
     "grpc-web": "^2.1.1",
     "http-proxy-middleware": "^4.2.0",
     "immer": "^11.1.18",
