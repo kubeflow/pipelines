@@ -296,14 +296,15 @@ func main() {
 	resourceManager := resource.NewResourceManager(
 		clientManager,
 		&resource.ResourceManagerOptions{
-			CollectMetrics:       *collectMetricsFlag,
-			CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
-			DefaultWorkspace:     pvcSpec,
-			MLPipelineTLSEnabled: tlsCfg != nil,
-			DefaultRunAsUser:     parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
-			DefaultRunAsGroup:    parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
-			DefaultRunAsNonRoot:  parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
-			DefaultHostUsers:     parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
+			CollectMetrics:         *collectMetricsFlag,
+			CacheDisabled:          !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			DefaultWorkspace:       pvcSpec,
+			MLPipelineTLSEnabled:   tlsCfg != nil,
+			DefaultRunAsUser:       parseOptionalInt64(common.GetDefaultSecurityContextRunAsUser()),
+			DefaultRunAsGroup:      parseOptionalInt64(common.GetDefaultSecurityContextRunAsGroup()),
+			DefaultRunAsNonRoot:    parseOptionalBool(common.GetDefaultSecurityContextRunAsNonRoot()),
+			DefaultHostUsers:       parseOptionalBool(common.GetDefaultSecurityContextHostUsers()),
+			DefaultPVCStorageClass: parseOptionalString(common.GetDefaultPVCStorageClass()),
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -794,6 +795,16 @@ func parseOptionalBool(s string) *bool {
 		return nil
 	}
 	return &v
+}
+
+// parseOptionalString converts a string to *string. Returns nil if the string
+// is empty or consists only of whitespace.
+func parseOptionalString(s string) *string {
+	trimmed := strings.TrimSpace(s)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec from the config.
