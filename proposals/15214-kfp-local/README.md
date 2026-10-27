@@ -276,6 +276,7 @@ The request types reuse pipeline-spec messages and `json.RawMessage`. A request 
 ```go
 type ExecutorCapabilities struct {
     RecoverLostTasks               bool
+    SupportsLeaseTakeover          bool
     SupportsMultiUser              bool
     SupportsContainers             bool
     SupportsKubernetes             bool
@@ -391,6 +392,11 @@ Boolean capabilities default to false. `SupportsMultiUser` must be explicitly en
 executor, and does not replace KFP authorization. Subprocess and Docker declare
 `SupportsMultiUser=false` and require single-user deployments, with embedded or independent workers.
 Reject incompatible executors before execution; do not fall back to another executor.
+
+`SupportsLeaseTakeover` requires `RecoverLostTasks` and additionally guarantees safe transfer of
+in-flight attempts between workers, including handling stale submissions. Subprocess and Docker
+initially disable it; Docker still supports lost-task recovery without lease takeover. Kubernetes
+may enable it only after implementing this guarantee.
 
 The plugin data contracts are:
 
@@ -653,12 +659,26 @@ distribution.
 
 Renewals run independently of task execution and waiting, retaining the generation. Every
 coordinator write atomically checks the owner, generation, and expiration using database time,
-rejecting stale owners. A worker losing ownership stops dispatching and writing state without
-canceling work the new owner may recover.
+rejecting stale owners. Workers check ownership before and after submission. On ownership loss,
+including failure to renew before expiry, they stop dispatching, observing, and writing state.
+Without `SupportsLeaseTakeover`, they also best-effort cancel their in-flight workloads, including
+any returned by a late `Submit`. With it, they leave current attempts for the new owner and cancel
+only confirmed superseded attempts.
+
+After lease expiry, runs with only queued work may resume. For in-flight or uncertain attempts:
+
+1. Without `SupportsLeaseTakeover`, the new owner fails the run without automatic retries,
+   regardless of retry policy, and requests cancellation. Retain execution references for cleanup;
+   failed runs with outstanding cleanup remain eligible for ownership.
+2. With `SupportsLeaseTakeover`, the new owner recovers existing attempts. Unknown outcomes never
+   authorize replacement execution. The executor must prevent late submission of an attempt already
+   declared stopped during recovery; per-attempt idempotence alone is insufficient.
+
+Run failure does not prove workload termination. Explicit retry requires all outstanding submissions,
+including the former owner's, to be resolved and workload termination and required cleanup confirmed.
 
 Leases replace Phase 1's single-worker restriction. Workers reconcile only claimed runs; after lease
-expiry, takeover uses the existing attempt-recovery process rather than rerunning the pipeline.
-Plugin interfaces and task lifecycle remain unchanged.
+expiry, recovery follows the executor's takeover capability.
 
 Workers sharing runs need access to the same executor backend and storage; an unreachable backend
 means an unknown outcome, not a stopped workload. Multi-host deployments use PostgreSQL or MySQL,
@@ -712,8 +732,17 @@ remains open.
 
 ### Phase 3
 
-1. Verify lease takeover and stale-owner fencing without duplicate execution.
-2. Verify unknown execution outcomes do not trigger resubmission.
+1. Verify queued-only takeover and stale-owner database fencing.
+2. Without takeover support, expire a lease with a running or uncertain attempt; verify run failure
+   without replacement computation, including with an `Always` retry policy.
+3. Without takeover support, pause `Submit` before backend creation and expire the lease. Resume the
+   stale worker and verify cancellation of its workload and rejection of stale reports.
+4. With takeover support, recover existing attempts without canceling adopted workloads or
+   resubmitting unknown outcomes.
+5. With takeover support, pause `Submit`, expire the lease, and recover the attempt as stopped.
+   Start a replacement, resume the stale submitter, and verify it cannot launch the closed attempt.
+6. Verify cleanup resumes after restart and explicit retry is blocked until outstanding submissions,
+   termination, and required cleanup are resolved.
 
 ### Phase 4
 
