@@ -270,6 +270,9 @@ without requiring workflow objects or Argo compilation in the new runtime.
 Initially, plugins are built-in Go implementations. The following interfaces describe the required
 boundaries; exact type definitions and package placement may be refined during implementation.
 
+The request types reuse pipeline-spec messages and `json.RawMessage`. A request sets exactly one of
+`Process` or `Container`. Opaque data is versioned and backend-owned.
+
 ```go
 type ExecutorCapabilities struct {
     RecoverLostTasks               bool
@@ -281,6 +284,52 @@ type ExecutorCapabilities struct {
 
 type ExecutorCapacity struct {
     MaxActiveTasks         *int
+}
+
+type TaskAttemptIdentity struct {
+    RunID     string
+    TaskID    string
+    AttemptID string
+}
+
+type TaskExecutionRequest struct {
+    Identity             TaskAttemptIdentity
+    Process              *ProcessSpec
+    Container            *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+    ExecutorInput        *pipelinespec.ExecutorInput
+    OutputParameterTypes map[string]pipelinespec.ParameterType_ParameterTypeEnum
+    Workspace            *WorkspaceAttachment
+}
+
+type ExecutionReference struct {
+    Executor string
+    Version  int
+    Identity TaskAttemptIdentity
+    Data     json.RawMessage
+}
+
+type ProcessSpec struct {
+    Command   []string
+    Args      []string
+    Env       map[string]string
+    Resources *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec
+}
+
+type ExecutionTarget struct {
+    Executor string
+    Version  int
+    Data     json.RawMessage
+}
+
+type WorkspaceAttachment struct {
+    Provisioner string
+    Version     int
+    Data        json.RawMessage
+}
+
+type ExecutionLogSource interface {
+    Identity() TaskAttemptIdentity
+    Stream(ctx context.Context, follow bool, destination io.Writer) error
 }
 
 type WorkloadExecutorPlugin interface {
@@ -345,15 +394,15 @@ Reject incompatible executors before execution; do not fall back to another exec
 
 The plugin data contracts are:
 
-| Contract                           | Contents                                                                                                                                                                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Task request                       | Stable run, task-instance, and attempt identities; a typed process or container specification; resolved inputs and expected outputs; environment, resources, optional workspace attachment, and scoped reporting context |
-| Execution reference                | Backend identity and versioned backend-owned data needed to locate the workload                                                                                                                                          |
-| Task result                        | Success or a user-workload/infrastructure failure, including whether the failure is fatal, output values or durable references, and diagnostics                                                                          |
-| Workspace request                  | Stable workspace identity and pipeline run storage requirements                                                                                                                                                          |
-| Workspace reference and attachment | A durable storage identity and access information for the execution target, such as a directory or bind mount                                                                                                            |
-| Cancellation result                | Confirmed termination, termination still pending, or an unknown outcome                                                                                                                                                  |
-| Execution log source               | Task/attempt identity and access to live or durably retained stdout and stderr                                                                                                                                           |
+| Contract                           | Contents                                                                                                                                                                                       |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Task request                       | Stable run, task-instance, and attempt identities; a typed process or container specification; resolved inputs and expected outputs; environment, resources, and optional workspace attachment |
+| Execution reference                | Backend identity and versioned backend-owned data needed to locate the workload                                                                                                                |
+| Task result                        | Success or a user-workload/infrastructure failure, including whether the failure is fatal, output values or durable references, and diagnostics                                                |
+| Workspace request                  | Stable workspace identity and pipeline run storage requirements                                                                                                                                |
+| Workspace reference and attachment | A durable storage identity and access information for the execution target, such as a directory or bind mount                                                                                  |
+| Cancellation result                | Confirmed termination, termination still pending, or an unknown outcome                                                                                                                        |
+| Execution log source               | Task/attempt identity and access to live or durably retained stdout and stderr                                                                                                                 |
 
 Requests must not contain `model.Run`, `PipelineJob`, the full DAG, upstream task collections, or
 database clients. Reuse typed IR values such as `ExecutorInput` where appropriate. The framework
