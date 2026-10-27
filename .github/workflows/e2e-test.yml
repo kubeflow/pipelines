@@ -155,7 +155,7 @@ jobs:
           source "${RUNNER_TEMP}/dra-component-build/bin/activate"
           python -m pip install --upgrade pip
           python -m pip install api/v2alpha1/python/dist/*.whl
-          python -m pip install sdk/python kubernetes_platform/python docker==7.1.0
+          python -m pip install backend/api/v2beta1/python_http_client sdk/python kubernetes_platform/python docker==7.1.0
 
           BUILD_CONTEXT=$(mktemp -d)
           cp test_data/sdk_compiled_pipelines/valid/dra/dra_passthrough_check.py "${BUILD_CONTEXT}/"
@@ -165,6 +165,7 @@ jobs:
             --component-filepattern dra_passthrough_check.py \
             --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
             --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/backend/api/v2beta1/python_http_client" \
             --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
             --no-push-image
           platform=$(runtime_image_platform "${{ env.CLUSTER_NAME }}")

@@ -43,7 +43,7 @@ import (
 
 const viewerTargetPort = 6006
 
-const defaultTensorflowImage = "ghcr.io/kubeflow/kfp-tensorboard:2.17.1"
+const defaultTensorflowImage = "ghcr.io/kubeflow/kfp-tensorboard:2.18.0"
 
 // Reconciler implements reconcile.Reconciler for the Viewer CRD.
 type Reconciler struct {

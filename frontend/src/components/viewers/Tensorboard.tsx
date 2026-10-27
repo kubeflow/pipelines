@@ -81,7 +81,7 @@ interface TensorboardViewerState {
   errorMessage?: string;
 }
 
-const DEFAULT_TF_IMAGE = 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1';
+const DEFAULT_TF_IMAGE = 'ghcr.io/kubeflow/kfp-tensorboard:2.18.0';
 
 class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewerState> {
   timerID: NodeJS.Timeout;

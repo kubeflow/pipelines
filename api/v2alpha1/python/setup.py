@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import setuptools
 import os
 from typing import List
 
+import setuptools
+
 NAME = 'kfp-pipeline-spec'
-VERSION = '2.15.2'
+VERSION = '2.18.0'
+
 
 def get_requirements(requirements_file: str) -> List[str]:
     """Read requirements from requirements.in."""
@@ -28,6 +30,7 @@ def get_requirements(requirements_file: str) -> List[str]:
     lines = [line.strip() for line in lines]
     lines = [line for line in lines if not line.startswith('#') and line]
     return lines
+
 
 setuptools.setup(
     name=NAME,

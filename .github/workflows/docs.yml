@@ -10,14 +10,20 @@ on:
   pull_request:
     paths:
       - "docs/**"
-      - "sdk/python/kfp/**"
+      - "sdk/python/**"
+      - "api/v2alpha1/**"
+      - "backend/api/v2beta1/python_http_client/**"
+      - ".github/actions/protobuf/**"
       - ".readthedocs.yml"
       - ".github/workflows/docs.yml"
   push:
     branches: [master]
     paths:
       - "docs/**"
-      - "sdk/python/kfp/**"
+      - "sdk/python/**"
+      - "api/v2alpha1/**"
+      - "backend/api/v2beta1/python_http_client/**"
+      - ".github/actions/protobuf/**"
       - ".readthedocs.yml"
 
 concurrency:
@@ -45,7 +51,7 @@ jobs:
         uses: ./.github/actions/protobuf
 
       - name: Install documentation dependencies
-        run: pip install -r docs/requirements.txt
+        run: pip install ./backend/api/v2beta1/python_http_client -r docs/requirements.txt
 
       - name: Build documentation (warnings treated as errors)
         run: python -m sphinx -W --keep-going -b html docs docs/_build/html
@@ -75,7 +81,7 @@ jobs:
         uses: ./.github/actions/protobuf
 
       - name: Install documentation dependencies
-        run: pip install -r docs/requirements.txt
+        run: pip install ./backend/api/v2beta1/python_http_client -r docs/requirements.txt
 
       - name: Check links
         run: python -m sphinx -b linkcheck docs docs/_build/linkcheck || true

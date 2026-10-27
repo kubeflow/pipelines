@@ -133,7 +133,7 @@ describe('Tensorboard', () => {
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1',
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
       podTemplateSpec: undefined,
     });
   });
@@ -162,7 +162,7 @@ describe('Tensorboard', () => {
     expect(startAppSpy).toHaveBeenCalledWith({
       logdir: config.url,
       namespace: config.namespace,
-      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1',
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
       podTemplateSpec: undefined,
     });
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/new-token/');
@@ -187,7 +187,7 @@ describe('Tensorboard', () => {
     const expectedUrl = `Series1:${config.url},Series2:${config2.url}`;
     expect(startAppMock).toHaveBeenCalledWith({
       logdir: expectedUrl,
-      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1',
+      image: 'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
       namespace: config.namespace,
       podTemplateSpec: undefined,
     });
@@ -243,7 +243,7 @@ describe('Tensorboard', () => {
   });
 
   it.each([
-    [undefined, 'ghcr.io/kubeflow/kfp-tensorboard:2.17.1'],
+    [undefined, 'ghcr.io/kubeflow/kfp-tensorboard:2.18.0'],
     ['example.com/custom-tensorboard:stable', 'example.com/custom-tensorboard:stable'],
   ])('restarts an existing viewer using the configured image %s', async (image, expectedImage) => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);

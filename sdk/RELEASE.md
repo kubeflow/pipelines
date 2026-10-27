@@ -2,11 +2,25 @@
 
 ## Features
 
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+# 2.18.0
+
+## Features
+
 * Add Kubernetes Dynamic Resource Allocation support. This feature requires
   Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
   enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
+
+* Add standalone HTML/Mermaid pipeline previews with local watch mode (#15064).
+* Allow explicit namespaces when creating immediate and recurring runs (#14812).
+* add pydantic BaseModel support for component I/O (#13995)
 
 ## Breaking changes
 
@@ -28,9 +42,15 @@
   upstream end of life in October 2026, so Python 3.11 or later is the preferred
   migration target.
 
-## Deprecations
-
 ## Bug fixes and other changes
+
+* backport pipeline_id-only run creation to 2.18 (#14711)
+* backport server-side pipeline filter to 2.18 (#14660)
+* backport get_pipeline_id() namespace support for private pipelines to 2.18 (#14611)
+* check comment index bounds in extract_description (#13619)
+* align parallelfor taskInfo name with system key (#13707)
+* surface the cause when loading kube config fails. Fixes #13870 (#13871)
+* do not automatically add --trusted-host to pip commands by default. Fixes #11155 (#13780)
 
 # 2.15.2
 

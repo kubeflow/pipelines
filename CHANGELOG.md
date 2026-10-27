@@ -1,6 +1,6 @@
 Changelog
 
-## Unreleased
+## 2.18.0 (2026-10-27)
 
 See the [2.18 upgrade guide](docs/operator-guides/upgrade-2.18.md) for applicable
 operator actions and client changes. Standard managed installations use their
