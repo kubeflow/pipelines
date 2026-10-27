@@ -55,8 +55,12 @@ fails with `AlreadyExists`. These protections also cover the brief overlap when 
 upgrade from a release without leader election.
 
 The default manifests set the `LEADER_ELECT` environment variable to `"true"`. To turn
-leader election off, scale the Deployment to one replica, then set `LEADER_ELECT` to
-`"false"`.
+leader election off, scale the Deployment to 0, set `LEADER_ELECT` to `"false"`, then
+scale it to one replica.
+
+If your overlay replaces the controller's Role, add the Lease rules from the base Role,
+or set `LEADER_ELECT` to `"false"`. If it replaces the controller's environment
+variables, leader election stays off unless you add `LEADER_ELECT` and `POD_NAMESPACE`.
 
 ## Example overlay
 

@@ -51,8 +51,8 @@ type leaderElectionTimings struct {
 	retryPeriod   time.Duration
 }
 
-// The same timings as the API server's run garbage collection lease
-// (backend/src/apiserver/gc/run_gc.go).
+// Kubernetes' default leader election timings, also used by the API server's
+// run garbage collection.
 var defaultLeaderElectionTimings = leaderElectionTimings{
 	leaseDuration: 15 * time.Second,
 	renewDeadline: 10 * time.Second,
