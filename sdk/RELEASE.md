@@ -28,9 +28,12 @@
   Python 3.9 selects Requests 2.32.5 and urllib3 2.6.3; newer interpreters retain
   the patched Requests 2.33.0 and urllib3 2.8.0 selections. The older dependency
   line retains security findings whose upstream fixes require Python 3.10.
-  Compatibility restoration does not waive these findings. Prefer a newer
-  interpreter when possible and refresh dependency locks when changing Python.
-  Master has a separate Python support policy.
+  The reviewed findings have scoped deferrals for 2.18.0, restricted to their
+  exact package/version/advisory/artifact identities. Changed findings require
+  review; these deferrals do not resolve the vulnerabilities. See the
+  [security tracker](https://github.com/kubeflow/pipelines/issues/14421).
+  Prefer a newer interpreter when possible and refresh dependency locks when
+  changing Python. Master has a separate Python support policy.
 
 ## Bug fixes and other changes
 

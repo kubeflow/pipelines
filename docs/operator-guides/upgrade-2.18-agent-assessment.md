@@ -288,8 +288,10 @@ The 2.18 SDK and Kubernetes SDK extension support Python **>=3.9**.
 Check package `Requires-Python`, interpreter-specific dependency markers and
 installed-wheel compilation evidence for Python 3.9 as well as newer versions.
 The Python 3.9 Requests/urllib3 line retains findings whose fixes need Python
-3.10; compatibility support does not approve a security exception. Track those
-residuals explicitly. A server rollout does not upgrade SDK interpreters, and
+3.10. The reviewed residuals have scoped deferrals for 2.18.0 as described in the
+[upgrade guide](upgrade-2.18.md#python-environments-installing-the-sdk). Match the
+exact approved identities; changed findings require review. A server rollout
+does not upgrade SDK interpreters, and
 containers that do not install the SDK do not acquire an SDK Python requirement.
 
 Compare actual byte sizes with target `MAX_PIPELINE_UPLOAD_BYTES`,
