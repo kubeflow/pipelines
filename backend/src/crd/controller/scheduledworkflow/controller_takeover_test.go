@@ -26,9 +26,11 @@ import (
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	coordinationv1 "k8s.io/api/coordination/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	fcache "k8s.io/client-go/tools/cache/testing"
 )
@@ -133,4 +135,31 @@ func TestTakeoverQueuesOnlyCurrentScheduledWorkflows(t *testing.T) {
 	assert.Eventually(t, func() bool { return queuedKeys(controller, "live", liveCount) == liveCount },
 		5*time.Second, 10*time.Millisecond, "the new leader should queue every current schedule")
 	assert.Equal(t, 0, queuedKeys(controller, "deleted", churnCount), "the new leader must not queue deleted schedules")
+}
+
+// The leader election loop uses the Kubernetes scheme while a new leader
+// creates its controller, so creating the controller after startup
+// registration must not modify the scheme. Run with -race to detect a write.
+func TestTakeoverDoesNotModifyScheme(t *testing.T) {
+	registerScheme()
+	scheduleSource := newScheduleSource(t)
+	scheduleSource.start()
+
+	stopReading := make(chan struct{})
+	readerDone := make(chan struct{})
+	go func() {
+		defer close(readerDone)
+		for {
+			select {
+			case <-stopReading:
+				return
+			default:
+				_, _, _ = scheme.Scheme.ObjectKinds(&coordinationv1.Lease{})
+			}
+		}
+	}()
+
+	scheduleSource.newController(t)
+	close(stopReading)
+	<-readerDone
 }

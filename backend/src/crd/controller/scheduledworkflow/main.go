@@ -79,6 +79,10 @@ func main() {
 		log.Fatal(leaderElectError)
 	}
 
+	// Register before the informers and leader election start: they use the
+	// scheme, and the controller is created later, when this replica leads.
+	registerScheme()
+
 	// set up signals so we handle the first shutdown signal gracefully
 	shutdownContext := signals.SetupSignalHandler()
 	stopCh := shutdownContext.Done()
