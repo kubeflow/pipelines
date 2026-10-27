@@ -1,0 +1,14 @@
+# Shorten the image pull failure grace period for CI so the integration test
+# that exercises it does not have to wait for the five minute production default.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-persistenceagent
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-pipeline-persistenceagent
+        env:
+        - name: IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC
+          value: "60"

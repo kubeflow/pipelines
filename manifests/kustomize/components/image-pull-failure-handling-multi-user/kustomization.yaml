@@ -1,0 +1,21 @@
+# Opt-in: fail pipeline runs whose pods cannot pull their container image.
+#
+# Multi-user variant of ../image-pull-failure-handling. The multi-user
+# persistence agent watches workflows in every profile namespace, so the extra
+# permissions (reading pods and patching Argo Workflows) are granted through a
+# ClusterRole. They are deliberately not part of the base persistence agent
+# ClusterRole so that installations that do not opt in do not carry them.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# The base manifests rely on their kustomization's namespace; a component is
+# applied by the including overlay, so set it here. Override it alongside the
+# rest of your installation if KFP is deployed to another namespace.
+namespace: kubeflow
+
+resources:
+- cluster-role.yaml
+- cluster-role-binding.yaml
+
+patches:
+- path: persistence-agent-env-patch.yaml
