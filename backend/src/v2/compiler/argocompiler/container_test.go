@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8score "k8s.io/api/core/v1"
 )
 
 func TestContainerDoesNotSaveSpecOrImplementationToWorkflowArguments(t *testing.T) {
@@ -392,5 +393,56 @@ func Test_extendPodMetadata(t *testing.T) {
 			extendPodMetadata(tt.podMetadata, tt.kubernetesExecutorConfig)
 			assert.Equal(t, tt.expected, tt.podMetadata)
 		})
+	}
+}
+
+func TestAddContainerExecutorTemplate_PropagatesRuntimeRPCRetryEnv(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	viper.Set(backendcommon.KFPRuntimeRPCTotalTimeout, "20s")
+	viper.Set(backendcommon.KFPRuntimeRPCMaxAttempts, "5")
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+	}
+
+	c.addContainerExecutorTemplate(
+		&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}},
+		&kubernetesplatform.KubernetesExecutorConfig{},
+	)
+
+	tmpl := c.templates["system-container-impl"]
+	require.NotNil(t, tmpl)
+	require.NotNil(t, tmpl.Container)
+
+	got := map[string]string{}
+	for _, env := range tmpl.Container.Env {
+		got[env.Name] = env.Value
+	}
+	assert.Equal(t, "20s", got[apiclient.KFPRuntimeRPCTotalTimeoutEnvVar])
+	assert.Equal(t, "5", got[apiclient.KFPRuntimeRPCMaxAttemptsEnvVar])
+	assert.NotContains(t, got, apiclient.KFPRuntimeRPCAttemptTimeoutEnvVar, "unset settings must keep launcher defaults")
+}
+
+func TestRuntimeRPCRetryEnvVars_UnsetAndPluginSeparation(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	assert.Empty(t, runtimeRPCRetryEnvVars())
+
+	viper.Set(backendcommon.KFPRuntimeRPCInitialBackoff, "50ms")
+	assert.Equal(t, []k8score.EnvVar{
+		{Name: apiclient.KFPRuntimeRPCInitialBackoffEnvVar, Value: "50ms"},
+	}, runtimeRPCRetryEnvVars())
+
+	// The driver plugin arguments have a fixed schema, so the retry settings
+	// must never be added to the shared API client env list.
+	for _, env := range mlPipelineAPIClientEnvVars() {
+		assert.NotContains(t, env.Name, "KFP_RUNTIME_RPC_")
 	}
 }

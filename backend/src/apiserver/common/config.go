@@ -40,6 +40,11 @@ const (
 	MLPipelineGRPCBackoffJitter             string = "ML_PIPELINE_GRPC_BACKOFF_JITTER"
 	MLPipelineGRPCBackoffMaxDelay           string = "ML_PIPELINE_GRPC_BACKOFF_MAX_DELAY"
 	MLPipelineGRPCMinConnectTimeout         string = "ML_PIPELINE_GRPC_MIN_CONNECT_TIMEOUT"
+	KFPRuntimeRPCAttemptTimeout             string = "KFP_RUNTIME_RPC_ATTEMPT_TIMEOUT"
+	KFPRuntimeRPCTotalTimeout               string = "KFP_RUNTIME_RPC_TOTAL_TIMEOUT"
+	KFPRuntimeRPCMaxAttempts                string = "KFP_RUNTIME_RPC_MAX_ATTEMPTS"
+	KFPRuntimeRPCInitialBackoff             string = "KFP_RUNTIME_RPC_INITIAL_BACKOFF"
+	KFPRuntimeRPCMaxBackoff                 string = "KFP_RUNTIME_RPC_MAX_BACKOFF"
 	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
@@ -290,6 +295,29 @@ func GetMLPipelineGRPCBackoffMaxDelay() string {
 
 func GetMLPipelineGRPCMinConnectTimeout() string {
 	return GetStringConfigWithDefault(MLPipelineGRPCMinConnectTimeout, "")
+}
+
+// The runtime RPC getters return "" when unset so launcher pods keep the
+// built-in defaults of kfpapi.RetryPolicyFromEnv.
+
+func GetKFPRuntimeRPCAttemptTimeout() string {
+	return GetStringConfigWithDefault(KFPRuntimeRPCAttemptTimeout, "")
+}
+
+func GetKFPRuntimeRPCTotalTimeout() string {
+	return GetStringConfigWithDefault(KFPRuntimeRPCTotalTimeout, "")
+}
+
+func GetKFPRuntimeRPCMaxAttempts() string {
+	return GetStringConfigWithDefault(KFPRuntimeRPCMaxAttempts, "")
+}
+
+func GetKFPRuntimeRPCInitialBackoff() string {
+	return GetStringConfigWithDefault(KFPRuntimeRPCInitialBackoff, "")
+}
+
+func GetKFPRuntimeRPCMaxBackoff() string {
+	return GetStringConfigWithDefault(KFPRuntimeRPCMaxBackoff, "")
 }
 
 // GetMetadataTLSEnabled returns whether metadata TLS is enabled.
