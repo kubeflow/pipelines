@@ -120,7 +120,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "bd982c49b5acbab574767638ed892cba1fb1d1c2f88d9758f7742192326de8d1",
+      "header_sha256": "95ff2675eecd35c0eea828ad1c6155fe3ed1550990abf227454c205802277ef1",
       "pull_request": null
     },
     {
@@ -780,6 +780,21 @@
           "manifests/kustomize/third-party/argo/**",
           ".github/resources/scripts/third_party_upgrade_*.py",
           ".github/workflows/third-party-image-upgrades.yml"
+        ]
+      }
+    },
+    {
+      "path": ".github/workflows/ui-smoke-full-stack.yml",
+      "name": "UI smoke full-stack qualification",
+      "header_sha256": "b2858628324a9b18a26ea9ca463b0083727c39948b1c91303186421d31836e09",
+      "pull_request": {
+        "branches": [
+          "master"
+        ],
+        "paths": [
+          "frontend/scripts/ui-smoke-test/**",
+          ".github/workflows/ui-smoke-full-stack.yml",
+          "!**/*.md"
         ]
       }
     },
