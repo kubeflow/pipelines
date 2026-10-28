@@ -18,9 +18,11 @@ upgrade. Use the feature-specific sections for the integrations you have enabled
    manifests, including RBAC, environment variables, Secret references, and Jobs.
    Use the [compatibility checklist](#check-applicable-compatibility-changes) below
    for custom roles, storage, clients, and enabled retention.
-3. **Expect a brief UI interruption.** The default `Recreate` strategy replaces
-   the old UI Pods before starting the new ones. First shared-key adoption also
-   invalidates old TensorBoard URLs; reopen viewers after the rollout.
+3. **Expect an interruption to the Pipelines UI (`ml-pipeline-ui`).** Its default
+   `Recreate` strategy stops the old Pods before starting replacements, affecting
+   all Pipelines pages and their TensorBoard proxy. This change does not restart
+   the separate Kubeflow central dashboard. First shared-key adoption also
+   invalidates old TensorBoard URLs; reopen TensorBoard viewers after the rollout.
 4. **If you also upgrade SDKs, update those environments separately.** A server
    upgrade does not update installed SDK packages or previously compiled
    components. Before recompiling with the new SDK, review the
@@ -419,9 +421,11 @@ pipeline uploads also need their own explicit `namespace=` argument. See
 ### Standard manifests: automatic setup
 
 The initializer creates the shared signing key if absent and preserves a valid
-existing key. The UI waits for it automatically. First adoption briefly interrupts
-the UI and invalidates old TensorBoard URLs; reopen TensorBoard after rollout.
-Later restarts reuse the key, but UI updates still use `Recreate` by default unless
+existing key. The Pipelines UI waits for it automatically. Its `Recreate` rollout
+interrupts all Pipelines pages, not only TensorBoard; the separate Kubeflow central
+dashboard is not restarted by this change. First adoption also invalidates old
+TensorBoard URLs; reopen TensorBoard after rollout.
+Later restarts reuse the key, but Pipelines UI updates still use `Recreate` by default unless
 you configure rolling updates after adoption.
 
 Include the signing Secret in backups. A brief `CreateContainerConfigError` while
