@@ -59,7 +59,7 @@ type mockPauseSignaler struct {
 	readCount int
 
 	// resumeAfter: on the Nth successful read (0-indexed) the server flips
-	// ResumeRequested to true - modelling the user's click landing at a
+	// ResumeRequested to true - modeling the user's click landing at a
 	// particular moment. -1 means never.
 	resumeAfter int
 

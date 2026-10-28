@@ -127,9 +127,6 @@ func (c DebugPauseConfig) Enabled() bool {
 	return c.Before || c.After || c.OnError
 }
 
-// PauseSignaler is the seam between the pause loop and however it talks to
-// the KFP API server. Abstracting this out lets debugPauseLoop be unit
-// tested with a mock, without a real network call or a running API server.
 // PauseState is the pause overlay as currently persisted on the task
 // record: which barrier is parked, which pause instance published it, and
 // whether resume has been requested.
