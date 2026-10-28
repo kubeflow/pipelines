@@ -172,7 +172,7 @@ async function publish(github, context, pr, state, description, provisional = fa
     current = await currentStatus(github, context, pr.head.sha);
   } catch (error) {
     // A failed read must not prevent invalidating a previously green head.
-    if (state === 'success') throw error;
+    if (state === 'success' || expectedId !== null) throw error;
   }
   // Explicit merged recovery must not overwrite a status changed by another
   // writer after verification. Ordinary reconciliation keeps its existing rules.
@@ -396,10 +396,50 @@ async function mergedRecoveryBinding(github, context, number, head) {
   return {pr: bound, identity};
 }
 
+async function resetRecoveryStatus(github, context, pr, status) {
+  // A status read must succeed before every conditional write. Never trade
+  // another writer's safety for availability during a GitHub API outage.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await publish(github, context, pr, 'pending',
+        'Merged recovery needs revalidation; rerun trusted recovery.',
+        false, status.state, status.id, false);
+    } catch (error) {
+      if (attempt === 2) throw new Error(`Recovery cleanup could not verify its status; rerun trusted recovery: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+}
+
+async function repairInterruptedRecovery(github, context, pr, status) {
+  if (!status || !['success', 'failure'].includes(status.state) ||
+      !Number.isSafeInteger(status.id) || status.id <= 0) return;
+  const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+  if (typeof status.target_url !== 'string' || !status.target_url.startsWith(prefix)) return;
+  const id = status.target_url.slice(prefix.length);
+  if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) return;
+  const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: Number(id)});
+  const repository = `${context.repo.owner}/${context.repo.repo}`;
+  if (run.id !== Number(id) || run.path !== '.github/workflows/ci-checks.yml' ||
+      run.event !== 'workflow_dispatch' || run.head_branch !== context.payload.repository.default_branch ||
+      run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) return;
+  // Rerunning the same Actions run changes its state to in_progress. Do not
+  // let that no-op turn a failed owner into a successful run and strand green.
+  if (run.status !== 'completed') throw new Error('Recovery owner is still running; dispatch a fresh recovery after it finishes.');
+  if (!['failure', 'cancelled', 'timed_out', 'startup_failure', 'action_required'].includes(run.conclusion)) return;
+  // Cleanup precedes evidence reads and the independent poll, so even another
+  // validation failure leaves a retryable, non-green aggregate.
+  await resetRecoveryStatus(github, context, pr, status);
+}
+
 async function prepareMergedRecovery({github, context, core, number, head,
   root = process.env.GITHUB_WORKSPACE}) {
   const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
-  if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  const initial = await currentStatus(github, context, head);
+  if (initial?.state !== 'pending') {
+    await repairInterruptedRecovery(github, context, pr, initial);
+    if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  }
   const workflows = await evidence(github, context, pr, root);
   core.info(JSON.stringify(workflows));
   if (!workflows.passed) throw new Error('Required merged-head workflows have not passed.');
@@ -442,8 +482,7 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
       throw new Error('CI evidence changed during merged recovery publication.');
     }
   } catch (error) {
-    await publish(github, context, after.pr, 'failure',
-      'Merged recovery evidence changed; inspect CI Check.', false, 'success', written.id, false);
+    await resetRecoveryStatus(github, context, after.pr, {state: 'success', id: written.id});
     throw error;
   }
 }

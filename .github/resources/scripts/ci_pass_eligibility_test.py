@@ -69,6 +69,7 @@ let statusReads = 0;
 let statusId = 1;
 let status = options.initialStatus;
 let description = options.initialDescription;
+let statusTarget = options.initialTargetUrl;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => ({data: {total_count: 0, workflow_runs: []}});
@@ -112,7 +113,12 @@ jobs:
       }
       return {data: structuredClone(pr)};
     }},
-  actions: {listWorkflowRunsForRepo: methods.runs},
+  actions: {listWorkflowRunsForRepo: methods.runs, getWorkflowRun: async ({run_id}) => ({data: {
+    id: run_id, path: '.github/workflows/ci-checks.yml', event: 'workflow_dispatch',
+    head_branch: 'master', repository: {full_name: 'kubeflow/pipelines'},
+    head_repository: {full_name: 'kubeflow/pipelines'}, status: 'completed',
+    conclusion: 'failure', ...options.priorRun,
+  }})},
   checks: {listForRef: async () => {
     if (options.checkApiFailure || (published && options.postCheckFailure)) throw Error('Checks API unavailable');
     const status = published && options.drift === 'external-rerun' ? 'in_progress' :
@@ -145,6 +151,7 @@ jobs:
     statusId += 1;
     status = request.state;
     description = request.description;
+    statusTarget = request.target_url;
     descriptions.push(description);
     targetUrls.push(request.target_url);
     calls.push(['status', request.state, request.sha]);
@@ -187,8 +194,9 @@ jobs:
 github.paginate.iterator = async function* () {
   statusReads += 1;
   if (options.statusRace && statusReads === 4) status = options.statusRace;
-  if (options.statusReadFailure) throw Error('Status read unavailable');
-  yield {data: {statuses: status ? [{id: statusId, context: 'ci-passed', state: status, description}] : []}};
+  if (options.retryWriter && statusReads === 6) {statusId += 1; status = options.retryWriter;}
+  if (options.statusReadFailure || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
+  yield {data: {statuses: status ? [{id: statusId, context: 'ci-passed', state: status, description, target_url: statusTarget}] : []}};
 };
 (async () => {
   let error;
@@ -320,7 +328,7 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
         ]:
             with self.subTest(change=change):
                 result = self.recover(**change)
-                self.assertEqual(result['status'], 'failure', result)
+                self.assertEqual(result['status'], 'pending', result)
 
     def test_post_publication_failure_preserves_another_writer(self):
         for state in ['pending', 'failure', 'success']:
@@ -330,6 +338,108 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
                 self.assertEqual(
                     len([c for c in result['calls'] if c[0] == 'status']), 1
                 )
+
+    def test_transient_rollback_read_failure_does_not_leave_green(self):
+        result = self.recover(postCheckFailure=True, rollbackReadFailure='once')
+        self.assertEqual(result['status'], 'pending', result)
+
+    def test_persistent_rollback_read_failure_is_visible_and_bounded(self):
+        result = self.recover(
+            postCheckFailure=True, rollbackReadFailure='always'
+        )
+        self.assertIn('cleanup could not verify', result['error'])
+        self.assertEqual(result['status'], 'success')
+        self.assertEqual(
+            len([c for c in result['calls'] if c[0] == 'status']), 1
+        )
+
+    def test_failed_recovery_green_is_reset_before_evidence_failure(self):
+        for state in ['success', 'failure']:
+            with self.subTest(state=state):
+                result = exercise(
+                    dict(
+                        mergedRecovery=True,
+                        initialStatus=state,
+                        initialTargetUrl='https://github.com/kubeflow/pipelines/actions/runs/98',
+                        inventoryFailure=True,
+                    )
+                )
+                self.assertEqual(result['status'], 'pending', result)
+                self.assertTrue(result['error'])
+
+    def test_later_dispatch_revalidates_interrupted_recovery(self):
+        for conclusion in [
+            'failure',
+            'cancelled',
+            'timed_out',
+            'startup_failure',
+            'action_required',
+        ]:
+            with self.subTest(conclusion=conclusion):
+                result = exercise(
+                    dict(
+                        mergedRecovery=True,
+                        initialStatus='success',
+                        initialTargetUrl='https://github.com/kubeflow/pipelines/actions/runs/98',
+                        priorRun=dict(conclusion=conclusion),
+                    )
+                )
+                self.assertEqual(result['status'], 'success', result)
+                self.assertEqual(
+                    [c[1] for c in result['calls'] if c[0] == 'status'],
+                    ['pending', 'success'],
+                )
+
+    def test_other_run_provenance_cannot_authorize_cleanup(self):
+        cases = [
+            dict(event='push'),
+            dict(head_branch='feature'),
+            dict(path='.github/workflows/other.yml'),
+            dict(repository=dict(full_name='attacker/pipelines')),
+            dict(head_repository=dict(full_name='attacker/pipelines')),
+            dict(status='in_progress', conclusion=None),
+            dict(conclusion='success'),
+        ]
+        for prior in cases:
+            with self.subTest(prior=prior):
+                result = exercise(
+                    dict(
+                        mergedRecovery=True,
+                        initialStatus='success',
+                        initialTargetUrl='https://github.com/kubeflow/pipelines/actions/runs/98',
+                        priorRun=prior,
+                    )
+                )
+                self.assertFalse(
+                    [c for c in result['calls'] if c[0] == 'status'], result
+                )
+
+    def test_retry_does_not_overwrite_newer_writer(self):
+        for state in ['pending', 'success', 'failure']:
+            with self.subTest(state=state):
+                result = self.recover(
+                    postCheckFailure=True,
+                    rollbackReadFailure='once',
+                    retryWriter=state,
+                )
+                self.assertEqual(result['status'], state, result)
+                self.assertEqual(
+                    len([c for c in result['calls'] if c[0] == 'status']), 1
+                )
+
+    def test_rerunning_failed_owner_cannot_silently_make_it_successful(self):
+        result = exercise(
+            dict(
+                mergedRecovery=True,
+                initialStatus='success',
+                initialTargetUrl='https://github.com/kubeflow/pipelines/actions/runs/99',
+                priorRun=dict(status='in_progress', conclusion=None),
+            )
+        )
+        self.assertIn('owner is still running', result['error'])
+        self.assertFalse(
+            [c for c in result['calls'] if c[0] == 'status'], result
+        )
 
     def test_immutable_parent_change_never_publishes(self):
         result = self.recover(parentDrift=True)
