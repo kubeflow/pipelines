@@ -23,6 +23,8 @@ upgrade. Use the feature-specific sections for the integrations you have enabled
    all Pipelines pages and their TensorBoard proxy. This change does not restart
    the separate Kubeflow central dashboard. First shared-key adoption also
    invalidates old TensorBoard URLs; reopen TensorBoard viewers after the rollout.
+   After the initial 2.18 rollout completes, you can
+   [enable rolling UI updates](server-config.md#enabling-rolling-ui-updates).
 4. **If you also upgrade SDKs, update those environments separately.** A server
    upgrade does not update installed SDK packages or previously compiled
    components. Before recompiling with the new SDK, review the
@@ -421,12 +423,22 @@ pipeline uploads also need their own explicit `namespace=` argument. See
 ### Standard manifests: automatic setup
 
 The initializer creates the shared signing key if absent and preserves a valid
-existing key. The Pipelines UI waits for it automatically. Its `Recreate` rollout
-interrupts all Pipelines pages, not only TensorBoard; the separate Kubeflow central
-dashboard is not restarted by this change. First adoption also invalidates old
-TensorBoard URLs; reopen TensorBoard after rollout.
-Later restarts reuse the key, but Pipelines UI updates still use `Recreate` by default unless
-you configure rolling updates after adoption.
+existing key. The Pipelines UI waits for it automatically. The TensorBoard proxy
+runs inside the same `ml-pipeline-ui` Deployment as the Pipelines pages. During
+first adoption, old and new Pods can use different signing keys and reject each
+other's TensorBoard URLs. `Recreate` prevents that overlap by stopping old Pods
+before starting replacements. Consequently, all Pipelines pages are interrupted,
+not only TensorBoard. This change does not restart the separate Kubeflow central
+dashboard. First adoption also invalidates old TensorBoard URLs; reopen
+TensorBoard after rollout.
+
+**After the initial 2.18 rollout completes, you can switch the Pipelines UI to
+`RollingUpdate`.** First verify that every UI Pod uses the shared key, then apply
+the [rolling-update override](server-config.md#enabling-rolling-ui-updates) in a
+separate apply or GitOps sync. It preserves available replicas with
+`maxUnavailable: 0` and requires capacity for one additional Pod. Keep the shared
+Secret and the override for subsequent upgrades. The default manifests remain
+`Recreate`; they do not switch strategies automatically.
 
 Include the signing Secret in backups. A brief `CreateContainerConfigError` while
 the key is initialized can clear automatically. If startup stays blocked, follow
