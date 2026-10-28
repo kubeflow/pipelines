@@ -1,0 +1,62 @@
+.kfp-theme .kfp-artifact-preview-root {
+  min-width: 0;
+  width: 100%;
+}
+.kfp-theme .kfp-artifact-preview-topDiv {
+  display: flex;
+  min-width: 0;
+}
+.kfp-theme .kfp-artifact-preview-downloadLink {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--primary);
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+}
+.kfp-theme .kfp-artifact-preview-fullUri {
+  margin: 8px 0;
+  font-size: 12px;
+}
+.kfp-theme .kfp-artifact-preview-fullUri summary {
+  cursor: pointer;
+  color: var(--primary);
+}
+.kfp-theme .kfp-artifact-preview-fullUri button {
+  margin: 8px 8px 0 0;
+}
+.kfp-theme .kfp-artifact-preview-uriText {
+  display: block;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--muted);
+  color: var(--foreground);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  font-family: var(--kfp-font-mono);
+}
+.kfp-theme .kfp-artifact-preview-preview {
+  max-height: 250px;
+  overflow: auto;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+  color: var(--foreground);
+}
+.kfp-theme .kfp-artifact-preview-preview pre {
+  margin: 0;
+  font-family: var(--kfp-font-mono);
+  font-size: 12px;
+}
+.kfp-theme .kfp-artifact-preview-loading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  color: var(--muted-foreground);
+}

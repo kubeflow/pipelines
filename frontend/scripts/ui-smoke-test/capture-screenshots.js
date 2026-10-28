@@ -168,7 +168,7 @@ const PAGES = [
   {
     name: 'pipelines',
     path: '/#/pipelines',
-    waitFor: '[class*="tableRow"]',
+    waitFor: '[aria-label="Pipelines"] li, [class*="tableRow"]',
     waitForData: 'a[href*="pipeline"]',
   },
   {
@@ -194,13 +194,13 @@ const PAGES = [
   {
     name: 'experiments',
     path: '/#/experiments',
-    waitFor: '[class*="tableRow"]',
+    waitFor: '[data-testid="table-row"], [class*="tableRow"]',
     waitForData: 'a[href*="experiment"]',
   },
   {
     name: 'runs',
     path: '/#/runs',
-    waitFor: '[class*="tableRow"]',
+    waitFor: '[data-testid="table-row"], [class*="tableRow"]',
     waitForData: 'a[href*="run"]',
   },
   {
@@ -308,8 +308,8 @@ const PAGES = [
       { type: 'waitForSelector', selector: '#dropZone' },
     ],
   },
-  { name: 'recurring-runs', path: '/#/recurringruns', waitFor: '[class*="tableRow"]' },
-  { name: 'artifacts', path: '/#/artifacts', waitFor: '[class*="tableRow"]' },
+  { name: 'recurring-runs', path: '/#/recurringruns', waitFor: '[data-testid="table-row"], [class*="tableRow"]' },
+  { name: 'artifacts', path: '/#/artifacts', waitFor: '[data-testid="table-row"], [class*="tableRow"]' },
   {
     name: 'artifact-related-tasks-seeded',
     path: '/#/artifacts/{seed.artifactId}',

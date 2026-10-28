@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
+import ExperimentDetailsWithContext, { ExperimentDetails } from './ExperimentDetails';
+vi.mock('src/components/shell/ThemeProvider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('src/components/shell/ThemeProvider')>()),
+  useTheme: () => ({ themeClassName: 'kfp-theme' }),
+}));
+
 import TestUtils, { RouterLocation, flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { V2Experiment, V2ExperimentStorageState } from 'src/apisv2/experiment';
 import { Apis } from 'src/lib/Apis';
@@ -23,13 +28,14 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { MemoryRouter } from 'react-router';
 import { V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 import { V2PredicateOperation } from 'src/apisv2/filter';
 import { vi } from 'vitest';
-import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
+import { stableSnapshotFragment } from 'src/testUtils/snapshot';
 
 describe('ExperimentDetails', () => {
   const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => null);
@@ -87,7 +93,9 @@ describe('ExperimentDetails', () => {
   async function renderExperimentDetails(props?: PageProps) {
     const utils = render(
       <CommonTestWrapper>
-        <ExperimentDetails {...(props || generateProps())} />
+        <ThemeProvider>
+          <ExperimentDetails {...(props || generateProps())} />
+        </ThemeProvider>
       </CommonTestWrapper>,
     );
     await flushPromisesInAct();
@@ -100,6 +108,7 @@ describe('ExperimentDetails', () => {
 
   async function waitForTableRows(expectedCount?: number): Promise<HTMLElement[]> {
     await waitFor(() => {
+      expect(screen.getByRole('table', { name: 'Runs' })).toHaveAttribute('aria-busy', 'false');
       const rows = screen.queryAllByTestId('table-row');
       if (expectedCount !== undefined) {
         expect(rows).toHaveLength(expectedCount);
@@ -127,7 +136,13 @@ describe('ExperimentDetails', () => {
     expect(predicate?.operation).toBe(operation);
   }
 
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    );
     consoleLogSpy.mockReset();
     consoleErrorSpy.mockReset();
     updateBannerSpy.mockReset();
@@ -145,12 +160,22 @@ describe('ExperimentDetails', () => {
     await mockNRuns(0);
   });
 
+  it('keeps pending details inside the shared page container', async () => {
+    getExperimentSpy.mockReturnValue(new Promise(() => {}));
+    await renderExperimentDetails();
+    expect(
+      screen
+        .getByRole('progressbar', { name: 'Loading experiment' })
+        .closest('.kfp-page-container'),
+    ).not.toBeNull();
+  });
+
   it('renders a page with no runs or recurring runs', async () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('uses the experiment ID in props as the page title if the experiment has no name', async () => {
@@ -190,7 +215,7 @@ describe('ExperimentDetails', () => {
     });
   });
 
-  it('uses an empty string if the experiment has no description', async () => {
+  it('hides the description control if the experiment has no description', async () => {
     const experiment = newMockExperiment();
     delete experiment.description;
 
@@ -199,27 +224,37 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
-  it('removes all description text after second newline and replaces with an ellipsis', async () => {
+  it('keeps the full description available from the compact summary', async () => {
     const experiment = newMockExperiment();
     experiment.description = 'Line 1\nLine 2\nLine 3\nLine 4';
-
     getExperimentSpy.mockImplementation(() => experiment);
 
     await renderExperimentDetails();
     await waitForExperimentLoad();
-    screen.getByText('Line 1');
-    screen.getByText('Line 2');
-    screen.getByText('...');
+    fireEvent.click(screen.getByRole('button', { name: 'View description' }));
+    expect(updateDialogSpy).toHaveBeenCalledWith({
+      content: experiment.description,
+      title: 'Experiment description',
+    });
+  });
+
+  it('omits the description summary for blank descriptions', async () => {
+    getExperimentSpy.mockImplementation(() => ({ ...newMockExperiment(), description: '  ' }));
+    await renderExperimentDetails();
+    await waitForExperimentLoad();
+    expect(screen.queryByRole('region', { name: 'Experiment description' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'View description' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Manage' })).toBeEnabled();
   });
 
   it('opens the expanded description modal when the expand button is clicked', async () => {
     await renderExperimentDetails();
     await waitForExperimentLoad();
 
-    fireEvent.click(screen.getByTestId('LaunchIcon'));
+    fireEvent.click(screen.getByRole('button', { name: 'View description' }));
     await flushPromisesInAct();
     expect(updateDialogSpy).toHaveBeenCalledWith({
       content: MOCK_EXPERIMENT.description,
@@ -240,6 +275,7 @@ describe('ExperimentDetails', () => {
     TestUtils.makeErrorResponse(getExperimentSpy, 'test error');
 
     await renderExperimentDetails();
+    expect((await screen.findByRole('alert')).closest('.kfp-page-container')).not.toBeNull();
 
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -297,7 +333,7 @@ describe('ExperimentDetails', () => {
     );
     screen.getByText('1 active');
     await screen.findByText('No available runs found for this experiment.');
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
   }, 20000);
 
   it("shows an error banner if fetching the experiment's recurring runs fails", async () => {
@@ -424,8 +460,8 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     const rows = await waitForTableRows(2);
 
-    fireEvent.click(rows[0]);
-    fireEvent.click(rows[1]);
+    fireEvent.click(within(rows[0]).getByRole('checkbox'));
+    fireEvent.click(within(rows[1]).getByRole('checkbox'));
 
     const compareButton = await screen.findByRole('button', { name: 'Compare runs' });
     await waitFor(() => expect(compareButton).toBeEnabled());
@@ -469,7 +505,7 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     const rows = await waitForTableRows(1);
 
-    fireEvent.click(rows[0]);
+    fireEvent.click(within(rows[0]).getByRole('checkbox'));
 
     const cloneButton = await screen.findByRole('button', { name: 'Clone run' });
     await waitFor(() => expect(cloneButton).toBeEnabled());
@@ -487,7 +523,7 @@ describe('ExperimentDetails', () => {
     const rows = await waitForTableRows(12);
 
     for (let i = 0; i < 12; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const compareButton = screen.getByRole('button', { name: 'Compare runs' });
@@ -507,7 +543,7 @@ describe('ExperimentDetails', () => {
     const rows = await waitForTableRows(4);
 
     for (let i = 0; i < 4; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const cloneButton = screen.getByRole('button', { name: 'Clone run' });
@@ -527,7 +563,7 @@ describe('ExperimentDetails', () => {
     const rows = await waitForTableRows(4);
 
     for (let i = 0; i < 4; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const archiveButton = screen.getByRole('button', { name: 'Archive' });
@@ -546,12 +582,12 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForTableRows(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
     await waitForTableRows(4);
 
     const rows = screen.queryAllByTestId('table-row');
     for (let i = 0; i < 4; i++) {
-      fireEvent.click(rows[i]);
+      fireEvent.click(within(rows[i]).getByRole('checkbox'));
       const selectedCount = i + 1;
       await waitFor(() => {
         const restoreButton = screen.getByRole('button', { name: 'Restore' });
@@ -570,12 +606,12 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForTableRows(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
     await waitForTableRows(4);
     expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Restore' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Active', exact: true }));
     await waitForTableRows(4);
     expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
@@ -587,7 +623,7 @@ describe('ExperimentDetails', () => {
     await waitForTableRows(4);
 
     await mockNRuns(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
     await waitForTableRows(2);
   });
 
@@ -597,12 +633,12 @@ describe('ExperimentDetails', () => {
     await renderExperimentDetails();
     await waitForTableRows(4);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archived' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Archived', exact: true }));
     await waitForTableRows(4);
     expect(screen.queryByRole('button', { name: 'Archive' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Restore' })).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Active' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Active', exact: true }));
     await waitForTableRows(4);
     expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
@@ -610,7 +646,7 @@ describe('ExperimentDetails', () => {
 
   describe('EnhancedExperimentDetails', () => {
     it('renders ExperimentDetails initially', async () => {
-      render(<EnhancedExperimentDetails {...generateProps()}></EnhancedExperimentDetails>);
+      render(<ExperimentDetailsWithContext {...generateProps()}></ExperimentDetailsWithContext>);
       await flushPromisesInAct();
       expect(getExperimentSpy).toHaveBeenCalledWith(MOCK_EXPERIMENT.experiment_id);
     });
@@ -621,7 +657,7 @@ describe('ExperimentDetails', () => {
         <MemoryRouter initialEntries={initialEntries}>
           <RouterLocation />
           <NamespaceContext.Provider value='test-ns-1'>
-            <EnhancedExperimentDetails {...generateProps()} />
+            <ExperimentDetailsWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -629,7 +665,7 @@ describe('ExperimentDetails', () => {
         <MemoryRouter initialEntries={initialEntries}>
           <RouterLocation />
           <NamespaceContext.Provider value='test-ns-2'>
-            <EnhancedExperimentDetails {...generateProps()} />
+            <ExperimentDetailsWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );

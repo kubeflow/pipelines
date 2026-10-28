@@ -14,103 +14,58 @@
  * limitations under the License.
  */
 
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import { Description } from 'src/components/Description';
-import { commonCss } from 'src/Css';
+import { InspectionFields } from 'src/components/inspection/InspectionFields';
 import { formatDateString, sanitizeExternalHref } from 'src/lib/Utils';
-
-import { Button, FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
 
 interface PipelineVersionCardProps {
   pipeline: V2Pipeline | null;
   selectedVersion: V2PipelineVersion | undefined;
-  versions: V2PipelineVersion[];
-  handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
-export function PipelineVersionCard({
-  pipeline,
-  selectedVersion,
-  versions,
-  handleVersionSelected,
-}: PipelineVersionCardProps) {
-  const [summaryShown, setSummaryShown] = useState(false);
+const renderValue = ({ value }: { value?: ReactNode }) => <>{value}</>;
 
-  const createVersionUrl = () => {
-    return sanitizeExternalHref(selectedVersion?.code_source_url);
-  };
-
+export function PipelineVersionCard({ pipeline, selectedVersion }: PipelineVersionCardProps) {
+  if (!pipeline) return null;
+  const sourceUrl = sanitizeExternalHref(selectedVersion?.code_source_url);
   return (
-    <>
-      {!!pipeline && summaryShown && (
-        <Paper className='absolute bottom-3 left-20 p-5 w-136 z-20'>
-          <div className='items-baseline flex justify-between'>
-            <div className={commonCss.header}>Static Pipeline Summary</div>
-            <Button onClick={() => setSummaryShown(false)} color='secondary'>
-              Hide
-            </Button>
-          </div>
-          <div className='text-gray-900 mt-5'>Pipeline ID</div>
-          <div>{pipeline.pipeline_id || 'Unable to obtain Pipeline ID'}</div>
-          {versions.length > 0 && (
-            <>
-              <div className='text-gray-900 mt-5'>
-                <form autoComplete='off'>
-                  <FormControl variant='standard'>
-                    <InputLabel>Version</InputLabel>
-                    <Select
-                      variant='standard'
-                      aria-label='version_selector'
-                      data-testid='version_selector'
-                      value={selectedVersion!.pipeline_version_id}
-                      onChange={(event) => handleVersionSelected(event.target.value as string)}
-                      inputProps={{ id: 'version-selector', name: 'selectedVersion' }}
-                    >
-                      {versions.map((v, _) => (
-                        <MenuItem key={v.pipeline_version_id} value={v.pipeline_version_id}>
-                          {v.display_name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </form>
-              </div>
-              {createVersionUrl() && (
-                <div className='text-blue-500 mt-5'>
-                  <a href={createVersionUrl()} target='_blank' rel='noopener noreferrer'>
-                    Version source
-                  </a>
-                </div>
-              )}
-            </>
-          )}
-          <div className='text-gray-900 mt-5'>Uploaded on</div>
-          <div>
-            {selectedVersion
-              ? formatDateString(selectedVersion.created_at)
-              : formatDateString(pipeline.created_at)}
-          </div>
-
-          <div className='text-gray-900 mt-5'>Pipeline Description</div>
-          <Description description={pipeline.description || 'empty pipeline description'} />
-
-          {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
-          {selectedVersion && selectedVersion.description ? (
-            <>
-              <div className='text-gray-900 mt-5'>Version Description</div>
-              <Description description={selectedVersion.description} />
-            </>
-          ) : null}
-        </Paper>
+    <div className='kfp-detail-sections'>
+      <InspectionFields<ReactNode>
+        title='Pipeline details'
+        valueComponent={renderValue}
+        fields={[
+          ['Pipeline ID', pipeline.pipeline_id || 'Unavailable'],
+          ['Uploaded on', formatDateString(pipeline.created_at)],
+          ['Description', <Description description={pipeline.description || 'No description'} />],
+        ]}
+      />
+      {selectedVersion && (
+        <InspectionFields<ReactNode>
+          title='Version details'
+          valueComponent={renderValue}
+          fields={[
+            ['Version', selectedVersion.display_name || selectedVersion.name || 'Unnamed version'],
+            ['Version ID', selectedVersion.pipeline_version_id || 'Unavailable'],
+            ['Uploaded on', formatDateString(selectedVersion.created_at)],
+            [
+              'Description',
+              <Description description={selectedVersion.description || 'No description'} />,
+            ],
+            ...(sourceUrl
+              ? [
+                  [
+                    'Source',
+                    <a href={sourceUrl} target='_blank' rel='noopener noreferrer'>
+                      Version source
+                    </a>,
+                  ] as [string, ReactNode],
+                ]
+              : []),
+          ]}
+        />
       )}
-      {!summaryShown && (
-        <div className='flex absolute bottom-5 left-10 pb-5 pl-10 bg-transparent z-20'>
-          <Button onClick={() => setSummaryShown(!summaryShown)} color='secondary'>
-            Show Summary
-          </Button>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

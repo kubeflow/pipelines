@@ -14,18 +14,22 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
-import { NameWithTooltip } from './CustomTableNameColumn';
+import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Link } from 'react-router';
+import { NameWithTooltip, NameTooltip } from './CustomTableNameColumn';
 
 describe('NameWithTooltip', () => {
-  it('renders display_name when available', () => {
+  it('reveals the resource name on keyboard focus while retaining its display name', async () => {
     render(
       <NameWithTooltip
         value={{ display_name: 'My Pipeline', name: 'pipeline-123' }}
         id='test-id'
       />,
     );
-    expect(screen.getByText('My Pipeline')).toBeInTheDocument();
+    await userEvent.tab();
+    expect(screen.getByText('My Pipeline')).toHaveFocus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Name: pipeline-123');
   });
 
   it('falls back to name when display_name is not available', () => {
@@ -53,4 +57,28 @@ describe('NameWithTooltip', () => {
     expect(screen.getByText('Display Name')).toBeInTheDocument();
     expect(screen.queryByText('internal-name')).toBeNull();
   });
+});
+
+it('shows the full linked experiment name on focus and preserves navigation', async () => {
+  render(
+    <MemoryRouter>
+      <NameTooltip name='Full experiment name'>
+        <Link to='/experiments/id'>Experiment</Link>
+      </NameTooltip>
+    </MemoryRouter>,
+  );
+  await userEvent.tab();
+  expect(await screen.findByRole('tooltip')).toHaveTextContent('Full experiment name');
+  expect(screen.getByRole('link', { name: 'Experiment' })).toHaveAttribute(
+    'href',
+    '/experiments/id',
+  );
+});
+
+it('reveals the full resource name for touch input', async () => {
+  render(
+    <NameWithTooltip value={{ display_name: 'Short', name: 'full-resource-name' }} id='touch' />,
+  );
+  fireEvent.pointerDown(screen.getByText('Short'), { pointerType: 'touch' });
+  expect(await screen.findByRole('tooltip')).toHaveTextContent('Name: full-resource-name');
 });

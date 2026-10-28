@@ -31,10 +31,30 @@ if [[ -z "${required_files//[[:space:]]/}" ]]; then
 fi
 # Preparation and download must resolve the destination identically. Unlike
 # the download action, shell paths do not expand a tilde stored in a variable.
-case "$DOWNLOAD_PATH" in
+case "${DOWNLOAD_PATH:-}" in
   ""|"~"*)
     echo "::error::required-files needs an absolute or workspace-relative destination without tilde expansion"
     exit 2
+    ;;
+esac
+# The download action returns native Windows paths even for relative inputs.
+# Git Bash needs the equivalent POSIX path before physical-ancestor checks.
+case "$DOWNLOAD_PATH" in
+  [[:alpha:]]:[\\/]*)
+    # cygpath collapses parent components; reject them before conversion so
+    # cleanup cannot hide traversal into a different directory.
+    windows_destination="${DOWNLOAD_PATH//\\//}"
+    case "$windows_destination/" in
+      */../*)
+        echo "::error::Artifact destination must not contain parent traversal: $DOWNLOAD_PATH"
+        exit 2
+        ;;
+    esac
+    if ! command -v cygpath >/dev/null 2>&1; then
+      echo "::error::Windows artifact destinations require Git Bash cygpath"
+      exit 2
+    fi
+    DOWNLOAD_PATH="$(cygpath -u -- "$DOWNLOAD_PATH")"
     ;;
 esac
 # Check the destination before following it or creating anything. Relative

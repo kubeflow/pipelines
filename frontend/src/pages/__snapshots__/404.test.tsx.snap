@@ -2,19 +2,32 @@
 
 exports[`404 > renders a 404 page 1`] = `
 <DocumentFragment>
-  <div
-    style="margin: 100px auto; text-align: center;"
+  <section
+    class="kfp-secondary-page kfp-not-found"
   >
-    <div
-      style="color: rgb(170, 170, 170); font-size: 50px; font-weight: bold;"
+    <p
+      aria-hidden="true"
+      class="kfp-not-found-code"
     >
       404
-    </div>
-    <div
-      style="font-size: 16px;"
+    </p>
+    <h1>
+      Page not found
+    </h1>
+    <p>
+      <code>
+        some bad page
+      </code>
+       is not a Pipelines page.
+    </p>
+    <button
+      class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3"
+      data-slot="button"
+      tabindex="0"
+      type="button"
     >
-      Page Not Found: some bad page
-    </div>
-  </div>
+      Go to pipelines
+    </button>
+  </section>
 </DocumentFragment>
 `;

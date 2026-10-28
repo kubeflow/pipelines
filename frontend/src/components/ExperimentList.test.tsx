@@ -90,7 +90,7 @@ describe('ExperimentList', () => {
     await screen.findByText('experiment with id: testexperiment1');
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
-      10,
+      20,
       ExperimentSortKeys.CREATED_AT + ' desc',
       encodeURIComponent(
         JSON.stringify({
@@ -115,7 +115,7 @@ describe('ExperimentList', () => {
     await screen.findByText('experiment with id: testexperiment1');
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
-      10,
+      20,
       ExperimentSortKeys.CREATED_AT + ' desc',
       encodeURIComponent(
         JSON.stringify({
@@ -200,7 +200,7 @@ describe('ExperimentList', () => {
     });
     expect(listExperimentsSpy).toHaveBeenLastCalledWith(
       '',
-      10,
+      20,
       ExperimentSortKeys.CREATED_AT + ' desc',
       '',
       undefined,
@@ -232,16 +232,24 @@ describe('ExperimentList', () => {
 
   it('loads runs for a given experiment id when it is expanded', async () => {
     mockNExperiments(1);
-    renderExperimentList(generateProps());
+    renderExperimentList({
+      ...generateProps(),
+      scopeControl: (
+        <div aria-label='Experiment scope' role='group'>
+          Active / Archived
+        </div>
+      ),
+    });
     await screen.findByText('experiment with id: testexperiment1');
     listRunsSpy.mockClear();
     await user.click(screen.getAllByRole('button', { name: /expand/i })[0]);
     await waitFor(() => expect(listRunsSpy).toHaveBeenCalled());
+    expect(screen.getAllByRole('group', { name: 'Experiment scope' })).toHaveLength(1);
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',
-      '',
-      10,
+      undefined,
+      5,
       'created_at desc',
       encodeURIComponent(
         JSON.stringify({
@@ -270,8 +278,8 @@ describe('ExperimentList', () => {
     expect(listRunsSpy).toHaveBeenLastCalledWith(
       undefined,
       'testexperiment1',
-      '',
-      10,
+      undefined,
+      5,
       'created_at desc',
       encodeURIComponent(
         JSON.stringify({

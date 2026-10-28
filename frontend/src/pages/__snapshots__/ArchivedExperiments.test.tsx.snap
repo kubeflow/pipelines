@@ -3,7 +3,8 @@
 exports[`ArchivedExperiments > renders archived experiments 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk f9qqjqd"
+    class="kfp-page-container kfp-workflow-page"
+    data-page-layout="canvas"
   >
     <div
       data-testid="experiment-list"

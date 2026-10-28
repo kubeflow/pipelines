@@ -17,7 +17,7 @@
 import { render } from '@testing-library/react';
 import ViewerContainer from './ViewerContainer';
 import { PlotType } from './Viewer';
-import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
+import { stableSnapshotFragment } from 'src/testUtils/snapshot';
 
 describe('ViewerContainer', () => {
   const sampleConfigs: Record<PlotType, any> = {
@@ -70,7 +70,7 @@ describe('ViewerContainer', () => {
         expect(container).toHaveTextContent('tpr');
         return;
       }
-      expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+      expect(stableSnapshotFragment(asFragment())).toMatchSnapshot();
     });
   });
 });

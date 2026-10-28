@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
+vi.mock('src/components/shell/ThemeProvider', () => ({
+  useTheme: () => ({ themeClassName: 'kfp-theme' }),
+}));
+
 import * as Utils from 'src/lib/Utils';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { produce } from 'immer';
@@ -184,6 +189,78 @@ describe('RunList', () => {
     vi.resetAllMocks();
   });
 
+  it('combines status and date predicates and clears them independently', async () => {
+    await renderRunList();
+    await userEvent.click(screen.getByRole('button', { name: 'Filter status' }));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', { name: 'Failed', exact: true }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Filter started' }));
+    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Last 7 days' }));
+    await waitFor(() => {
+      const filter = JSON.parse(decodeURIComponent(listRunsSpy.mock.calls.at(-1)![5] as string));
+      expect(filter.predicates).toEqual(
+        expect.arrayContaining([
+          { key: 'state', operation: 'EQUALS', string_value: 'FAILED' },
+          {
+            key: 'created_at',
+            operation: 'GREATER_THAN_EQUALS',
+            timestamp_value: expect.any(String),
+          },
+        ]),
+      );
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Clear Status: failed filter' }));
+    await waitFor(() => {
+      const filter = JSON.parse(decodeURIComponent(listRunsSpy.mock.calls.at(-1)![5] as string));
+      expect(filter.predicates.some((p: { key: string }) => p.key === 'state')).toBe(false);
+      expect(filter.predicates.some((p: { key: string }) => p.key === 'created_at')).toBe(true);
+    });
+  });
+
+  it('loads experiment metadata while the run response is pending', async () => {
+    await renderRunList();
+    listExperimentsSpy.mockClear();
+    let finishRuns!: (value: { runs: V2Run[] }) => void;
+    listRunsSpy.mockImplementationOnce(() => new Promise((resolve) => (finishRuns = resolve)));
+    let pending!: Promise<string>;
+    act(() => {
+      pending = getRunListInstance()._loadRuns({});
+    });
+    expect(listExperimentsSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('link', { name: 'Concurrent run' })).not.toBeInTheDocument();
+    await act(async () => {
+      finishRuns({ runs: [{ run_id: 'concurrent', display_name: 'Concurrent run' }] });
+      await pending;
+    });
+    expect(await screen.findByRole('link', { name: 'Concurrent run' })).toBeInTheDocument();
+  });
+
+  it('ignores stale metadata when a newer run load completes first', async () => {
+    await renderRunList();
+    let finishExperiments!: (value: { experiments: [] }) => void;
+    listExperimentsSpy.mockImplementationOnce(
+      () => new Promise((resolve) => (finishExperiments = resolve)),
+    );
+    listRunsSpy.mockResolvedValueOnce({
+      runs: [{ run_id: 'old', display_name: 'Old response' }],
+    });
+    let pending!: Promise<string>;
+    act(() => {
+      pending = getRunListInstance()._loadRuns({});
+    });
+    listRunsSpy.mockResolvedValueOnce({
+      runs: [{ run_id: 'new', display_name: 'New response' }],
+    });
+    await callLoadRuns({});
+    await act(async () => {
+      finishExperiments({ experiments: [] });
+      await pending;
+    });
+    expect(screen.getByRole('link', { name: 'New response' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Old response' })).not.toBeInTheDocument();
+  });
+
   it('renders the empty experience', async () => {
     await renderRunList();
     await waitForRunListLoad();
@@ -331,7 +408,7 @@ describe('RunList', () => {
       undefined,
       undefined,
       '',
-      10,
+      20,
       RunSortKeys.CREATED_AT + ' desc',
       '',
       true,
@@ -353,7 +430,7 @@ describe('RunList', () => {
   });
 
   it('calls error callback when loading runs fails', async () => {
-    TestUtils.makeErrorResponseOnce(listRunsSpy as any, 'bad stuff happened');
+    listRunsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
     await renderRunList(props);
     await waitFor(() => {
@@ -368,7 +445,7 @@ describe('RunList', () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
     });
-    TestUtils.makeErrorResponseOnce(listExperimentsSpy as any, 'bad stuff happened');
+    listExperimentsSpy.mockRejectedValue(new Error('bad stuff happened'));
     const props = generateProps();
 
     await renderRunList(props);
@@ -598,13 +675,9 @@ describe('RunList', () => {
 
     expect(screen.getAllByText('shared pipeline version')).toHaveLength(2);
 
-    // CustomTable's reload() overlaps under React Strict Mode in tests (see the
-    // isBusy comment in CustomTable.tsx), so the list loads twice here, one
-    // getPipelineVersion call per load. The property under test is that it's one
-    // call per load per unique (pipeline, version), not one call per run: two runs
-    // referencing the same version never produce more calls than two loads' worth
-    // of unique versions.
-    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+    // A superseded Strict Mode load stops before enrichment; the current load
+    // fetches this shared version once for both rows.
+    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(1);
     expect(getPipelineVersionSpy).toHaveBeenCalledWith(sharedPipelineId, sharedVersionId);
     expect(listPipelineVersionsSpy).not.toHaveBeenCalled();
   });
@@ -641,6 +714,39 @@ describe('RunList', () => {
   // TODO(jlyaoyuli): add back this test (show recurring run config)
   // after the recurring run v2 API integration
 
+  it.each([false, true])(
+    'keeps column headers aligned with row values when hideExperimentColumn=%s',
+    async (hideExperimentColumn) => {
+      mockNRuns(1, {
+        experiment_id: 'test-experiment-id',
+        created_at: '2019-01-02T12:34:56Z',
+      });
+      listExperimentsSpy.mockResolvedValue({
+        experiments: [{ experiment_id: 'test-experiment-id', display_name: 'test experiment' }],
+      });
+      await renderRunList({ ...generateProps(), hideExperimentColumn, disableSelection: true });
+      await screen.findByText('some pipeline version');
+
+      const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
+      expect(headers).toEqual([
+        'Run',
+        'Status',
+        'Pipeline version',
+        ...(hideExperimentColumn ? [] : ['Experiment']),
+        'Duration',
+        'Recurring run',
+        'Started',
+      ]);
+      const cells = within(screen.getByTestId('table-row')).getAllByRole('cell');
+      expect(cells[headers.indexOf('Run')]).toHaveTextContent('run with id: testrun1');
+      expect(cells[headers.indexOf('Pipeline version')]).toHaveTextContent('some pipeline version');
+      if (!hideExperimentColumn) {
+        expect(cells[headers.indexOf('Experiment')]).toHaveTextContent('test experiment');
+      }
+      expect(cells[headers.indexOf('Started')]).toHaveTextContent('1/2/2019, 12:34:56 PM');
+    },
+  );
+
   it('shows experiment name', async () => {
     mockNRuns(1, {
       experiment_id: 'test-experiment-id',
@@ -673,7 +779,7 @@ describe('RunList', () => {
     await renderRunList(props);
     await waitFor(() => {
       expect(listRunsSpy).toHaveBeenCalled();
-      expect(listExperimentsSpy).toHaveBeenCalled();
+      expect(listExperimentsSpy).not.toHaveBeenCalled();
     });
 
     expect(screen.queryByText('test experiment')).toBeNull();
@@ -718,7 +824,7 @@ describe('RunList', () => {
         value: { displayName: 'test pipeline', pipelineId: 'pipeline-id', usePlaceholder: true },
       }),
     );
-    const link = screen.getByText('[View pipeline]');
+    const link = screen.getByText('Inline definition');
     expect(link).toHaveAttribute('href', expect.stringContaining('/pipelines/details/'));
   });
 
@@ -730,7 +836,7 @@ describe('RunList', () => {
         value: { /* no displayName */ usePlaceholder: true },
       }),
     );
-    const link = screen.getByText('[View pipeline]');
+    const link = screen.getByText('Inline definition');
     expect(link).toHaveAttribute('href', expect.stringContaining('/pipelines/details/'));
   });
 
@@ -758,6 +864,20 @@ describe('RunList', () => {
     expect(link).toHaveAttribute('href', '/experiments/details/experiment-id');
   });
 
+  it('encodes raw experiment identifiers in displayed links', () => {
+    const instance = createRunListInstance();
+    renderRenderer(
+      instance._experimentCustomRenderer({
+        id: 'run-id',
+        value: { displayName: 'encoded experiment', id: 'experiment/100%' },
+      }),
+    );
+    expect(screen.getByRole('link', { name: 'encoded experiment' })).toHaveAttribute(
+      'href',
+      '/experiments/details/experiment%2F100%25',
+    );
+  });
+
   it('renders no experiment name', () => {
     const instance = createRunListInstance();
     renderRenderer(
@@ -771,7 +891,7 @@ describe('RunList', () => {
     expect(link).toHaveTextContent('');
   });
 
-  it('renders status as icon', () => {
+  it('renders status by name', () => {
     const instance = createRunListInstance();
     renderRenderer(
       instance._statusCustomRenderer({
@@ -779,7 +899,7 @@ describe('RunList', () => {
         id: 'run-id',
       }),
     );
-    expect(screen.getByTestId('node-status-sign')).toBeInTheDocument();
+    expect(screen.getByText('Succeeded')).toBeVisible();
   });
 
   it('renders pipeline version name as link to its details page', () => {

@@ -65,7 +65,7 @@ You will see a lot of `npm run xxx` commands in the instructions below. The actu
 ## Frontend stack
 
 - React 19 with TypeScript
-- MUI v5 with Emotion
+- Tailwind CSS 4 with Base UI
 - TanStack Query v5
 - React Router v8 (declarative hash routing)
 - Vitest with Testing Library v16 for UI tests
@@ -202,7 +202,7 @@ are failing, you can update them automatically with `npm test -u` or
 
 ## Frontend coding conventions
 
-- Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code. For examples, see [frontend/src/pages/ArtifactDetails.test.tsx](src/pages/ArtifactDetails.test.tsx) and [frontend/src/pages/RunDetailsV2.test.tsx](src/pages/RunDetailsV2.test.tsx).
+- Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code. For examples, see [frontend/src/pages/ArtifactDetails.test.tsx](src/pages/ArtifactDetails.test.tsx) and [frontend/src/pages/RunDetailsView.test.tsx](src/pages/RunDetailsView.test.tsx).
 - Keep snapshot tests small and intentional. Use them as focused regression coverage, not as a substitute for behavioral assertions.
 - Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state. For more detailed guidance used in reviews, see the [React effects guide](../docs/agents/frontend.md#react-effects).
 

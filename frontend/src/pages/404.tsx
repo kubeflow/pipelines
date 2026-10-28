@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
+import { PageContainer } from 'src/components/layout/PageContainer';
 import type * as React from 'react';
 import { Page } from './Page';
-import { ToolbarProps } from '../components/Toolbar';
+import { RoutePage } from '../components/Router';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+import { Button } from '../components/ui/button';
+import './SecondaryPages.css';
 
 export default class Page404 extends Page<{}, {}> {
   public getInitialToolbarState(): ToolbarProps {
@@ -29,10 +33,18 @@ export default class Page404 extends Page<{}, {}> {
 
   public render(): React.JSX.Element {
     return (
-      <div style={{ margin: '100px auto', textAlign: 'center' }}>
-        <div style={{ color: '#aaa', fontSize: 50, fontWeight: 'bold' }}>404</div>
-        <div style={{ fontSize: 16 }}>Page Not Found: {this.props.location.pathname}</div>
-      </div>
+      <PageContainer>
+        <section className='kfp-secondary-page kfp-not-found'>
+          <p className='kfp-not-found-code' aria-hidden>
+            404
+          </p>
+          <h1>Page not found</h1>
+          <p>
+            <code>{this.props.location.pathname}</code> is not a Pipelines page.
+          </p>
+          <Button onClick={() => this.props.navigate(RoutePage.PIPELINES)}>Go to pipelines</Button>
+        </section>
+      </PageContainer>
     );
   }
 }

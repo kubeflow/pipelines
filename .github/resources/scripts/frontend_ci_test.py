@@ -44,10 +44,8 @@ class FrontendCITest(unittest.TestCase):
             self.assertIn(command, commands['static'])
         self.assertIn('npm run test:ui:coverage', commands['ui'])
         self.assertIn('npm run test:server:coverage', commands['server'])
-        self.assertIn('npm run test:bundle:ci', commands['bundle'])
-        self.assertIn(
-            'playwright install --with-deps chromium', commands['bundle']
-        )
+        self.assertIn('npm run build:bundle', commands['bundle'])
+        self.assertIn('npm run test:browser-runner', commands['bundle'])
         self.assertEqual(
             self.scripts['test:static'].split(' && '),
             [
@@ -70,9 +68,10 @@ class FrontendCITest(unittest.TestCase):
 
     def test_bundle_smoke_keeps_build_without_duplicate_static_checks(self):
         script = self.scripts['test:bundle:ci']
-        self.assertIn('npm run build:tailwind', script)
-        self.assertIn('vite build', script)
-        self.assertIn('node --test scripts/production-bundle.smoke.mjs', script)
+        self.assertIn('npm run build:bundle', script)
+        self.assertIn('npm run build:tailwind', self.scripts['build:bundle'])
+        self.assertIn('vite build', self.scripts['build:bundle'])
+        self.assertIn('npm run test:bundle:built', script)
         self.assertNotIn('npm run lint', script)
         self.assertNotIn('npm run typecheck', script)
         # Developer builds retain validation and their existing smoke entrypoint.

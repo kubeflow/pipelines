@@ -15,516 +15,336 @@
  */
 
 import * as React from 'react';
-import { classes, stylesheet } from 'typestyle';
-import { HelpButton } from '../atoms/HelpButton';
-import { ExternalLink } from '../atoms/ExternalLink';
-import Input from '../atoms/Input';
-import Separator from '../atoms/Separator';
-import { color, commonCss, padding } from '../Css';
-import {
-  buildCron,
-  buildTrigger,
-  dateToPickerFormat,
-  PeriodicInterval,
-  TriggerSchedule,
-  pickersToDate,
-  triggers,
-  TriggerType,
-  parseTrigger,
-  ParsedTrigger,
-} from '../lib/TriggerUtils';
-import { logger } from 'src/lib/Utils';
+import { TextField } from './ui/text-field';
+import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
+import { dateToPickerFormat, pickersToDate, TriggerSchedule } from '../lib/TriggerUtils';
+import { scheduleDescription, describeCron } from '../lib/ScheduleDisplay';
+import './RunFormFields.css';
 
-import { Fab, Checkbox, FormControlLabel, MenuItem } from '@mui/material';
-
-type TriggerInitialProps = {
-  maxConcurrentRuns?: string;
-  catchup?: boolean;
+type Preset = 'interval' | 'daily' | 'weekly' | 'monthly' | 'custom';
+const units = { Second: 1, Minute: 60, Hour: 3600, Day: 86400, Week: 604800 };
+type Unit = keyof typeof units;
+interface Config {
   trigger?: TriggerSchedule;
-};
-
-interface TriggerProps {
-  initialProps?: TriggerInitialProps;
-  onChange?: (config: {
-    trigger?: TriggerSchedule;
-    maxConcurrentRuns?: string;
-    catchup: boolean;
-  }) => void;
-}
-
-interface TriggerState {
-  cron: string;
-  editCron: boolean;
-  endDate: string;
-  endTime: string;
-  hasEndDate: boolean;
-  hasStartDate: boolean;
-  intervalCategory: PeriodicInterval;
-  intervalValue: number;
-  maxConcurrentRuns: string;
-  selectedDays: boolean[];
-  startDate: string;
-  startTime: string;
-  type: TriggerType;
+  maxConcurrentRuns?: string;
   catchup: boolean;
-  startTimeMessage: string;
-  endTimeMessage: string;
+}
+interface Props {
+  initialProps?: Partial<Config>;
+  onChange?: (config: Config) => void;
+}
+interface Boundary {
+  enabled: boolean;
+  date: string;
+  time: string;
+  original?: Date;
+}
+interface State {
+  preset: Preset;
+  interval: string;
+  unit: Unit;
+  cron: string;
+  originalCron?: string;
+  runAt: string;
+  days: number[];
+  monthDay: string;
+  start: Boundary;
+  end: Boundary;
+  concurrency: string;
+  catchup: boolean;
+}
+function boundary(value: Date | undefined, fallback: Date): Boundary {
+  const original = value ? new Date(value) : undefined;
+  const [date, time] = dateToPickerFormat(original || fallback);
+  return { enabled: !!value, date, time, original };
+}
+function boundaryValue(value: Boundary): Date | undefined {
+  if (!value.enabled) return undefined;
+  if (!value.date || !value.time) throw new Error('Choose both a date and time.');
+  // Untouched clones retain seconds/milliseconds and their original instant across DST folds.
+  if (value.original) {
+    const [date, time] = dateToPickerFormat(value.original);
+    if (date === value.date && time === value.time) return value.original;
+  }
+  return pickersToDate(true, value.date, value.time);
+}
+function schedule(state: State): { trigger?: TriggerSchedule; error?: string } {
+  try {
+    const start_time = boundaryValue(state.start);
+    const end_time = boundaryValue(state.end);
+    if (start_time && end_time && end_time <= start_time)
+      throw new Error('End must be after start.');
+    if (state.preset === 'interval') {
+      const count = Number(state.interval);
+      const seconds = count * units[state.unit];
+      if (!Number.isSafeInteger(seconds) || seconds < 1 || count <= 0)
+        throw new Error('Enter a positive interval in whole seconds.');
+      return {
+        trigger: { periodic_schedule: { interval_second: String(seconds), start_time, end_time } },
+      };
+    }
+    let cron = state.cron;
+    if (state.preset !== 'custom') {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(state.runAt))
+        throw new Error('Choose a valid run time.');
+      const [hour, minute] = state.runAt.split(':').map(Number);
+      if (state.preset === 'weekly' && !state.days.length)
+        throw new Error('Choose at least one day.');
+      if (
+        state.preset === 'monthly' &&
+        (!/^\d+$/.test(state.monthDay) || +state.monthDay < 1 || +state.monthDay > 31)
+      )
+        throw new Error('Choose a day from 1 to 31.');
+      cron = `0 ${minute} ${hour} ${state.preset === 'monthly' ? state.monthDay : '*'} * ${state.preset === 'weekly' ? state.days.join(',') : '*'}`;
+    }
+    if (cron !== state.originalCron) describeCron(cron);
+    return { trigger: { cron_schedule: { cron, start_time, end_time } } };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Enter a valid cron expression.' };
+  }
 }
 
-const css = stylesheet({
-  noMargin: {
-    margin: 0,
-  },
-  alert: {
-    color: color.alert,
-  },
-});
-
-export default class Trigger extends React.Component<TriggerProps, TriggerState> {
-  public state: TriggerState = (() => {
-    const { maxConcurrentRuns, catchup, trigger } =
-      this.props.initialProps || ({} as TriggerInitialProps);
-    let parsedTrigger: Partial<ParsedTrigger> = {};
-    try {
-      if (trigger) {
-        parsedTrigger = parseTrigger(trigger);
-      }
-    } catch (err) {
-      logger.warn('Failed to parse original trigger: ', trigger);
-      logger.warn(err);
-    }
-    const startDateTime = parsedTrigger.startDateTime ?? new Date();
-    const endDateTime =
-      parsedTrigger.endDateTime ??
-      new Date(
-        startDateTime.getFullYear(),
-        startDateTime.getMonth(),
-        startDateTime.getDate() + 7,
-        startDateTime.getHours(),
-        startDateTime.getMinutes(),
-      );
-    const [startDate, startTime] = dateToPickerFormat(startDateTime);
-    const [endDate, endTime] = dateToPickerFormat(endDateTime);
-
+export default class Trigger extends React.Component<Props, State> {
+  public state: State = (() => {
+    const initial = this.props.initialProps;
+    const trigger = initial?.trigger;
+    const source = trigger?.cron_schedule || trigger?.periodic_schedule;
+    const seconds = Number(trigger?.periodic_schedule?.interval_second || 3600);
+    const unit =
+      (['Week', 'Day', 'Hour', 'Minute', 'Second'] as Unit[]).find(
+        (unit) => seconds > 0 && seconds % units[unit] === 0,
+      ) || 'Second';
+    const today = new Date();
     return {
-      catchup: catchup ?? true,
-      maxConcurrentRuns: maxConcurrentRuns || '10',
-      hasEndDate: !!parsedTrigger?.endDateTime,
-      endDate,
-      endTime,
-      hasStartDate: !!parsedTrigger?.startDateTime,
-      startDate,
-      startTime,
-      selectedDays: new Array(7).fill(true),
-      type: parsedTrigger.type ?? TriggerType.INTERVALED,
-      // cron state
-      editCron: parsedTrigger.type === TriggerType.CRON,
-      cron: parsedTrigger.cron || '',
-      // interval state
-      intervalCategory: parsedTrigger.intervalCategory ?? PeriodicInterval.HOUR,
-      intervalValue: parsedTrigger.intervalValue ?? 1,
-      startTimeMessage: '',
-      endTimeMessage: '',
+      preset: trigger?.cron_schedule ? 'custom' : 'interval',
+      interval: String(seconds / units[unit]),
+      unit,
+      cron: trigger?.cron_schedule?.cron || '',
+      originalCron: trigger?.cron_schedule?.cron,
+      runAt: '09:00',
+      days: [1, 2, 3, 4, 5],
+      monthDay: '1',
+      start: boundary(source?.start_time, today),
+      end: boundary(source?.end_time, new Date(today.getTime() + 7 * 86400000)),
+      concurrency: initial?.maxConcurrentRuns ?? '10',
+      catchup: initial?.catchup ?? true,
     };
   })();
-
   public componentDidMount(): void {
-    // TODO: This is called here because NewRun only updates its Trigger in state when onChange is
-    // called on the Trigger, which without this may never happen if a user doesn't interact with
-    // the Trigger. NewRun should probably keep the Trigger state and pass it down as a prop to this
-    this._updateTrigger();
+    this.publish();
   }
-
-  public render(): React.JSX.Element {
-    const {
-      cron,
-      editCron,
-      endDate,
-      endTime,
-      hasEndDate,
-      hasStartDate,
-      intervalCategory,
-      intervalValue,
-      maxConcurrentRuns,
-      selectedDays,
-      startDate,
-      startTime,
-      type,
-      catchup,
-      startTimeMessage,
-      endTimeMessage,
-    } = this.state;
-
+  private publish = () => {
+    this.props.onChange?.({
+      trigger: schedule(this.state).trigger,
+      maxConcurrentRuns:
+        Number.isInteger(+this.state.concurrency) &&
+        +this.state.concurrency >= 1 &&
+        +this.state.concurrency <= 10
+          ? this.state.concurrency
+          : undefined,
+      catchup: this.state.catchup,
+    });
+  };
+  private change = (patch: Partial<State>) =>
+    this.setState(patch as Pick<State, keyof State>, this.publish);
+  private renderBoundary = (key: 'start' | 'end') => {
+    const value = this.state[key];
+    const label = key === 'start' ? 'Start' : 'End';
+    const update = (patch: Partial<Boundary>) => this.change({ [key]: { ...value, ...patch } });
     return (
-      <div>
-        <Input
-          select={true}
-          label='Trigger type'
-          required={true}
-          onChange={this.handleChange('type')}
-          value={type}
-          variant='outlined'
-        >
-          {Array.from(triggers.entries()).map((trigger, i) => (
-            <MenuItem key={i} value={trigger[0]}>
-              {trigger[1].displayName}
-            </MenuItem>
-          ))}
-        </Input>
-
-        <div>
-          <Input
-            label='Maximum concurrent runs'
-            required={true}
-            onChange={this.handleChange('maxConcurrentRuns')}
-            value={maxConcurrentRuns}
-            variant='outlined'
-          />
-          {!(Number.isInteger(Number(maxConcurrentRuns)) && Number(maxConcurrentRuns) > 0) && (
-            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-              {'Invalid input. The maximum concurrent runs should be a positive integer.'}
-            </div>
-          )}
-
-          <div className={commonCss.flex}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={hasStartDate}
-                  color='primary'
-                  onClick={this.handleChange('hasStartDate')}
-                />
-              }
-              label='Has start date'
-            />
-            <Input
-              label='Start date'
-              type='date'
-              onChange={this.handleChange('startDate')}
-              value={startDate}
-              width={160}
-              variant='outlined'
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
-            />
-            <Separator />
-            <Input
-              label='Start time'
-              type='time'
-              onChange={this.handleChange('startTime')}
-              value={startTime}
-              width={120}
-              variant='outlined'
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
-            />
-          </div>
-          <div
-            data-testid='startTimeMessage'
-            className={css.alert}
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+      <div className='kfp-schedule-window'>
+        <label className='kfp-native-field'>
+          <span>{label}s</span>
+          <select
+            aria-label={`${label}s`}
+            value={value.enabled ? 'date' : key === 'start' ? 'now' : 'never'}
+            onChange={(e) => update({ enabled: e.target.value === 'date' })}
           >
-            {startTimeMessage}
-          </div>
-
-          <div className={commonCss.flex}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={hasEndDate}
-                  color='primary'
-                  onClick={this.handleChange('hasEndDate')}
-                />
-              }
-              label='Has end date'
-            />
-            <Input
-              label='End date'
+            <option value={key === 'start' ? 'now' : 'never'}>
+              {key === 'start' ? 'Start when enabled' : 'No end date'}
+            </option>
+            <option value='date'>Choose date</option>
+          </select>
+        </label>
+        {value.enabled && (
+          <div className='kfp-schedule-date-time'>
+            <TextField
+              label={`${label} date`}
+              error={!value.date || !value.time ? 'Choose both a date and time.' : undefined}
               type='date'
-              onChange={this.handleChange('endDate')}
-              value={endDate}
-              width={160}
-              style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              variant='outlined'
+              value={value.date}
+              onChange={(e) => update({ date: e.target.value, original: undefined })}
             />
-            <Separator />
-            <Input
-              label='End time'
+            <TextField
+              label={`${label} time`}
+              error={!value.date || !value.time ? 'Choose both a date and time.' : undefined}
               type='time'
-              onChange={this.handleChange('endTime')}
-              value={endTime}
-              width={120}
-              style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
-              variant='outlined'
+              value={value.time}
+              onChange={(e) => update({ time: e.target.value, original: undefined })}
             />
-          </div>
-          <div
-            data-testid='endTimeMessage'
-            className={css.alert}
-            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-          >
-            {endTimeMessage}
-          </div>
-          <span className={commonCss.flex}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={catchup}
-                  color='primary'
-                  onClick={this.handleChange('catchup')}
-                />
-              }
-              label='Catchup'
-            />
-            <HelpButton
-              helpText={
-                <div>
-                  <p>
-                    Whether the recurring run should catch up if behind schedule. Defaults to true.
-                  </p>
-                  <p>
-                    For example, if the recurring run is paused for a while and re-enabled
-                    afterwards. If catchup=true, the scheduler will catch up on (backfill) each
-                    missed interval. Otherwise, it only schedules the latest interval if more than
-                    one interval is ready to be scheduled.
-                  </p>
-                  <p>
-                    Usually, if your pipeline handles backfill internally, you should turn catchup
-                    off to avoid duplicate backfill.
-                  </p>
-                </div>
-              }
-            />
-          </span>
-
-          <span className={commonCss.flex}>
-            Run every
-            {type === TriggerType.INTERVALED && (
-              <div className={commonCss.flex}>
-                <Separator />
-                <Input
-                  required={true}
-                  type='number'
-                  inputProps={{ min: 1 }}
-                  onChange={this.handleChange('intervalValue')}
-                  value={intervalValue}
-                  height={30}
-                  width={65}
-                  error={intervalValue < 1}
-                  variant='outlined'
-                />
-              </div>
-            )}
-            <Separator />
-            <Input
-              required={true}
-              select={true}
-              onChange={this.handleChange('intervalCategory')}
-              value={intervalCategory}
-              height={30}
-              width={95}
-              variant='outlined'
-            >
-              {(Object.keys(PeriodicInterval) as Array<keyof typeof PeriodicInterval>).map(
-                (interval, i) => (
-                  <MenuItem key={i} value={PeriodicInterval[interval]}>
-                    {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
-                  </MenuItem>
-                ),
-              )}
-            </Input>
-          </span>
-        </div>
-
-        {type === TriggerType.CRON && (
-          <div>
-            {intervalCategory === PeriodicInterval.WEEK && (
-              <div>
-                <span>On:</span>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={this._isAllDaysChecked()}
-                      color='primary'
-                      onClick={this._toggleCheckAllDays.bind(this)}
-                    />
-                  }
-                  label='All'
-                />
-                <Separator />
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                  <Fab
-                    key={i}
-                    size='small'
-                    onClick={() => this._toggleDay(i)}
-                    color={selectedDays[i] ? 'primary' : 'secondary'}
-                  >
-                    {day}
-                  </Fab>
-                ))}
-              </div>
-            )}
-
-            <div className={commonCss.flex}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={editCron}
-                    color='primary'
-                    onClick={this.handleChange('editCron')}
-                  />
-                }
-                label={
-                  <span>
-                    Allow editing cron expression. (format is specified{' '}
-                    <ExternalLink href='https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format'>
-                      here
-                    </ExternalLink>
-                    )
-                  </span>
-                }
-              />
-            </div>
-
-            <Input
-              label='cron expression'
-              onChange={this.handleChange('cron')}
-              value={cron}
-              width={300}
-              disabled={!editCron}
-              variant='outlined'
-            />
-
-            <div>Note: Start and end dates/times are handled outside of cron.</div>
           </div>
         )}
       </div>
     );
-  }
-
-  public handleChange = (name: string) => (event: any) => {
-    const target = event.target;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-    // Make sure the desired field is set on the state object first, then
-    // use the state values to compute the new trigger
-    this.setState(
-      {
-        [name]: value,
-      } as any,
-      this._updateTrigger,
-    );
   };
-
-  private _updateTrigger = () => {
-    const {
-      hasStartDate,
-      hasEndDate,
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      editCron,
-      intervalCategory,
-      intervalValue,
-      type,
-      cron,
-      selectedDays,
-      catchup,
-    } = this.state;
-
-    var startDateTime: Date | undefined = undefined;
-    var endDateTime: Date | undefined = undefined;
-    var startTimeMessage = '';
-    var endTimeMessage = '';
-
-    try {
-      if (hasStartDate) {
-        startDateTime = pickersToDate(hasStartDate, startDate, startTime);
-      }
-    } catch (e) {
-      if (e instanceof Error && e.message === 'Invalid picker format') {
-        startTimeMessage = "Invalid start date or time, start time won't be set";
-      } else {
-        throw e;
-      }
-    }
-
-    try {
-      if (hasEndDate) {
-        endDateTime = pickersToDate(hasEndDate, endDate, endTime);
-      }
-    } catch (e) {
-      if (e instanceof Error && e.message === 'Invalid picker format') {
-        endTimeMessage = "Invalid end date or time, end time won't be set";
-      } else {
-        throw e;
-      }
-    }
-
-    this.setState({
-      startTimeMessage: startTimeMessage,
-      endTimeMessage: endTimeMessage,
-    });
-
-    // TODO: Why build the cron string unless the TriggerType is not CRON?
-    // Unless cron editing is enabled, calculate the new cron string, set it in state,
-    // then use it to build new trigger object and notify the parent
-    this.setState(
-      {
-        cron: editCron ? cron : buildCron(startDateTime, intervalCategory, selectedDays),
-      },
-      () => {
-        const trigger = buildTrigger(
-          intervalCategory,
-          intervalValue,
-          startDateTime,
-          endDateTime,
-          type,
-          this.state.cron,
-        );
-
-        if (this.props.onChange) {
-          this.props.onChange({
-            catchup,
-            maxConcurrentRuns: trigger ? this.state.maxConcurrentRuns : undefined,
-            trigger,
-          });
-        }
-      },
-    );
-  };
-
-  private _isAllDaysChecked(): boolean {
-    return this.state.selectedDays.every((d) => !!d);
-  }
-
-  private _toggleCheckAllDays(): void {
-    const isAllChecked = this._isAllDaysChecked();
-    this.state.selectedDays.forEach((d, i) => {
-      if (d !== !isAllChecked) {
-        this._toggleDay(i);
-      }
-    });
-  }
-
-  private _toggleDay(index: number): void {
-    const newDays = this.state.selectedDays;
-    newDays[index] = !newDays[index];
-    const startDate = pickersToDate(
-      this.state.hasStartDate,
-      this.state.startDate,
-      this.state.startTime,
-    );
-    const cron = buildCron(startDate, this.state.intervalCategory, this.state.selectedDays);
-
-    this.setState(
-      {
-        cron,
-        selectedDays: newDays,
-      },
-      this._updateTrigger,
+  public render(): React.JSX.Element {
+    const s = this.state;
+    const result = schedule(s);
+    const concurrencyValid =
+      Number.isInteger(Number(s.concurrency)) && +s.concurrency >= 1 && +s.concurrency <= 10;
+    const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return (
+      <fieldset className='kfp-run-form-fields kfp-trigger'>
+        <legend>Schedule</legend>
+        <div className='kfp-schedule-frequency'>
+          <label className='kfp-native-field'>
+            <span>Repeat</span>
+            <select
+              aria-label='Repeat'
+              value={s.preset}
+              onChange={(e) => this.change({ preset: e.target.value as Preset })}
+            >
+              <option value='interval'>Every interval</option>
+              <option value='daily'>Daily</option>
+              <option value='weekly'>Weekly</option>
+              <option value='monthly'>Monthly</option>
+              <option value='custom'>Custom cron</option>
+            </select>
+          </label>
+          {s.preset === 'interval' && (
+            <div className='kfp-schedule-interval'>
+              <TextField
+                label='Interval'
+                type='number'
+                min={1}
+                value={s.interval}
+                onChange={(e) => this.change({ interval: e.target.value })}
+              />
+              <label className='kfp-native-field'>
+                <span>Interval unit</span>
+                <select
+                  aria-label='Interval unit'
+                  value={s.unit}
+                  onChange={(e) => this.change({ unit: e.target.value as Unit })}
+                >
+                  {Object.keys(units).map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit.toLowerCase()}
+                      {Number(s.interval) === 1 ? '' : 's'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+          {['daily', 'weekly', 'monthly'].includes(s.preset) && (
+            <TextField
+              label='Run at'
+              type='time'
+              value={s.runAt}
+              onChange={(e) => this.change({ runAt: e.target.value })}
+            />
+          )}
+          {s.preset === 'monthly' && (
+            <TextField
+              label='Day of month'
+              type='number'
+              min={1}
+              max={31}
+              value={s.monthDay}
+              onChange={(e) => this.change({ monthDay: e.target.value })}
+            />
+          )}
+        </div>
+        {s.preset === 'weekly' && (
+          <div className='kfp-schedule-weekdays' role='group' aria-label='Days of week'>
+            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(
+              (day, index) => (
+                <Button
+                  key={day}
+                  variant={s.days.includes(index) ? 'default' : 'secondary'}
+                  aria-label={day}
+                  aria-pressed={s.days.includes(index)}
+                  onClick={() =>
+                    this.change({
+                      days: s.days.includes(index)
+                        ? s.days.filter((d) => d !== index)
+                        : [...s.days, index].sort(),
+                    })
+                  }
+                >
+                  {day.slice(0, 3)}
+                </Button>
+              ),
+            )}
+          </div>
+        )}
+        {s.preset === 'custom' && (
+          <div>
+            <TextField
+              label='Cron expression'
+              value={s.cron}
+              onChange={(e) => this.change({ cron: e.target.value })}
+              error={result.error}
+            />
+            <p className='kfp-form-help'>
+              Seconds · minutes · hours · day of month · month · day of week. Example: 0 30 9 * *
+              MON-FRI.
+            </p>
+          </div>
+        )}
+        <div className='kfp-schedule-summary' aria-live='polite'>
+          {result.error ? (
+            <p role='alert' className='kfp-form-error'>
+              {result.error}
+            </p>
+          ) : (
+            <strong>{scheduleDescription(result.trigger)}</strong>
+          )}
+          <p>
+            {s.preset === 'interval'
+              ? 'Fixed time between scheduled starts, not between completed runs.'
+              : 'Calendar schedules use the cluster scheduler’s timezone (UTC in the default installation). The cluster does not expose its configured timezone here.'}
+          </p>
+          {s.preset === 'monthly' && +s.monthDay > 28 && (
+            <p>Months without day {s.monthDay} are skipped.</p>
+          )}
+        </div>
+        <div className='kfp-schedule-windows'>
+          {this.renderBoundary('start')}
+          {this.renderBoundary('end')}
+        </div>
+        {(s.start.enabled || s.end.enabled) && (
+          <p className='kfp-form-help'>
+            Start and end dates use your local timezone: {localZone}. They bound the schedule; they
+            do not change its repeat time.
+          </p>
+        )}
+        <details className='kfp-schedule-advanced'>
+          <summary>Advanced execution settings</summary>
+          <div className='kfp-run-form-fields'>
+            <TextField
+              label='Maximum concurrent runs'
+              inputMode='numeric'
+              value={s.concurrency}
+              onChange={(e) => this.change({ concurrency: e.target.value })}
+              error={concurrencyValid ? undefined : 'Enter a whole number from 1 to 10.'}
+            />
+            <label className='kfp-form-check'>
+              <Checkbox
+                checked={s.catchup}
+                onCheckedChange={(catchup) => this.change({ catchup })}
+              />
+              Run missed schedules when resumed
+            </label>
+            <p className='kfp-form-help'>
+              When enabled, missed schedule times are backfilled after a pause or delay. This can
+              create many runs. Turn it off if the pipeline handles backfill itself.
+            </p>
+          </div>
+        </details>
+      </fieldset>
     );
   }
 }

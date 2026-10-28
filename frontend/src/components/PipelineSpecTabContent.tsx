@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
+import { useMemo } from 'react';
 import { dump } from 'js-yaml';
 import { loadYaml } from 'src/lib/YamlLoad';
 import { isSafari } from 'src/lib/Utils';
-import Editor from './Editor';
+import Editor from './LazyEditor';
 
 interface PipelineSpecTabContentProps {
   templateString: string;
@@ -26,9 +27,11 @@ interface PipelineSpecTabContentProps {
 const editorHeightWidth = isSafari() ? '640px' : '100%';
 
 export function PipelineSpecTabContent(props: PipelineSpecTabContentProps) {
+  const value = useMemo(() => dump(loadYaml(props.templateString || '')), [props.templateString]);
   return (
     <Editor
-      value={dump(loadYaml(props.templateString || ''))}
+      value={value}
+      fontSize={12.5}
       height={editorHeightWidth}
       width={editorHeightWidth}
       mode='yaml'

@@ -17,7 +17,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BuildInfoContext } from '../lib/BuildInfo';
 import PrivateSharedSelector, { PrivateSharedSelectorProps } from './PrivateSharedSelector';
-import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
+import { PipelineTabsHeaders } from '../pages/PipelinesPage';
 
 function generateProps(): PrivateSharedSelectorProps {
   return {
@@ -27,8 +27,12 @@ function generateProps(): PrivateSharedSelectorProps {
 
 describe('PrivateSharedSelector', () => {
   it('it renders correctly', async () => {
-    const tree = render(<PrivateSharedSelector {...generateProps()} />);
-    expect(tree).toMatchSnapshot();
+    render(<PrivateSharedSelector {...generateProps()} />);
+    expect(screen.getByRole('radio', { name: 'Private' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Shared' })).not.toBeChecked();
+    expect(
+      screen.getByRole('group', { name: 'Select if the new pipeline will be private or shared.' }),
+    ).toBeVisible();
   });
 
   it('it changes checked input on click', async () => {
@@ -49,5 +53,14 @@ describe('PrivateSharedSelector', () => {
     expect(privateInput.checked).toBe(false);
     expect(sharedInput.checked).toBe(true);
     expect(props.onChange).toHaveBeenCalledWith(false);
+  });
+  it('preserves the controlled visibility choice when remounted', () => {
+    const onChange = vi.fn();
+    const view = render(<PrivateSharedSelector value={false} onChange={onChange} />);
+    expect(screen.getByRole('radio', { name: 'Shared' })).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', { name: 'Private' }));
+    expect(onChange).toHaveBeenCalledWith(true);
+    view.rerender(<PrivateSharedSelector key='remounted' value={false} onChange={onChange} />);
+    expect(screen.getByRole('radio', { name: 'Shared' })).toBeChecked();
   });
 });

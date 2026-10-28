@@ -17,8 +17,10 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
+import { resolve } from 'node:path';
+import { startupDiagnostics } from './production-bundle-diagnostics.mjs';
+import { launchBrowser } from './browser-launch.mjs';
 
 async function routeProductionBundle(page, responses = {}) {
   await page.route('**/*', async (route) => {
@@ -51,7 +53,7 @@ test(
   'dataset and model previews load only when opened, on both artifact surfaces',
   { timeout: 60000 },
   async () => {
-    const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+    const browser = await launchBrowser();
     try {
       const kinds = ['dataset', 'model'];
       const previews = Object.fromEntries(
@@ -169,9 +171,9 @@ test(
               .getByTestId('DagCanvas')
               .getByRole('button', { name: kind, exact: true })
               .click();
-            await page.getByRole('button', { name: 'Artifact Info', exact: true }).waitFor();
+            await page.getByRole('tab', { name: 'Artifact Info', exact: true }).waitFor();
             assert.deepEqual(reads, [], 'Selecting an artifact must not fetch its contents');
-            await page.getByRole('button', { name: 'Visualization', exact: true }).click();
+            await page.getByRole('tab', { name: 'Visualization', exact: true }).click();
           } else {
             await page.goto(`http://kfp.test/#/artifacts/${artifact.artifact_id}`);
             const open = page.getByRole('button', { name: 'Show artifact visualization' });
@@ -247,17 +249,54 @@ test(
 
 // Vitest transforms imports differently from the production bundler. Load the
 // emitted bundle in a browser to catch startup failures such as Ace import order.
-test('production bundle renders the pipeline upload control', { timeout: 30000 }, async () => {
-  const browser = await chromium.launch({
-    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+test('production bundle renders the pipeline upload control', { timeout: 30000 }, async (t) => {
+  const directory = resolve(process.env.KFP_BROWSER_REPORT_DIR || 'browser-results');
+  const diagnostic = startupDiagnostics(directory, {
+    sourceSha: process.env.GITHUB_SHA || null,
+    timeoutMs: 30000,
   });
+  let page;
+  const capture = async () => {
+    if (page && !page.isClosed()) {
+      try {
+        await page.screenshot({
+          path: resolve(directory, 'production-startup-failure.png'),
+          timeout: 2000,
+        });
+      } catch (error) {
+        diagnostic.report.screenshotError = String(error);
+        diagnostic.fail(diagnostic.report.failure?.error || error);
+      }
+    }
+  };
+  const aborted = () => {
+    diagnostic.fail(t.signal.reason);
+    void capture();
+  };
+  t.signal.addEventListener('abort', aborted, { once: true });
+  diagnostic.stage('launch');
+  let browser;
   try {
-    const page = await browser.newPage();
+    browser = await launchBrowser();
+    diagnostic.stage('version');
+    if (process.env.KFP_EXPECTED_BROWSER_VERSION) {
+      assert.equal(
+        browser.version(),
+        process.env.KFP_EXPECTED_BROWSER_VERSION,
+        'Browser version must match KFP_EXPECTED_BROWSER_VERSION; select the intended browser binary',
+      );
+    }
+    diagnostic.stage('new-page');
+    page = await browser.newPage();
     const errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-    // Startup only: empty API responses, without a backend or external network.
+    page.on('pageerror', (error) => {
+      errors.push(error.message);
+      diagnostic.pageError(error.message);
+    });
     await routeProductionBundle(page);
+    diagnostic.stage('navigation');
     await page.goto('http://kfp.test/');
+    diagnostic.stage('upload-control-ready');
     try {
       await page.locator('#createPipelineVersionBtn').waitFor({ state: 'visible', timeout: 10000 });
     } catch (error) {
@@ -265,34 +304,77 @@ test('production bundle renders the pipeline upload control', { timeout: 30000 }
       throw error;
     }
     assert.deepEqual(errors, [], 'production bundle must initialize without uncaught errors');
+  } catch (error) {
+    diagnostic.fail(error);
+    await capture();
+    throw error;
   } finally {
-    await browser.close();
+    diagnostic.stage('browser-close');
+    try {
+      await browser?.close();
+    } catch (error) {
+      diagnostic.fail(error);
+      throw error;
+    }
   }
+  t.signal.removeEventListener('abort', aborted);
+  diagnostic.pass();
 });
 
 test(
   'expanded navigation footer remains accessible in short windows',
   { timeout: 30000 },
-  async () => {
-    const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+  async (t) => {
+    const diagnostic = startupDiagnostics(
+      resolve(process.env.KFP_BROWSER_REPORT_DIR || 'browser-results', 'production-footer'),
+      { sourceSha: process.env.GITHUB_SHA || null, timeoutMs: 30000 },
+    );
+    const aborted = () => diagnostic.fail(t.signal.reason);
+    t.signal.addEventListener('abort', aborted, { once: true });
+    let browser;
     try {
+      diagnostic.stage('launch');
+      browser = await launchBrowser();
+      diagnostic.stage('new-page');
       const page = await browser.newPage({ viewport: { width: 1600, height: 500 } });
+      page.on('pageerror', (error) => diagnostic.pageError(error.message));
       await routeProductionBundle(page);
+      diagnostic.stage('navigation');
       await page.goto('http://kfp.test/');
+      diagnostic.stage('upload-control-ready');
       await page.locator('#createPipelineVersionBtn').waitFor();
-      const navigation = page.getByTestId('sideNav');
-      const reportIssue = navigation.getByRole('link', { name: 'Report an Issue', exact: true });
+      const navigation = page.getByRole('complementary', { name: 'Pipelines sidebar' });
+      const reportIssue = navigation.getByRole('link', { name: 'Report an issue', exact: true });
+      diagnostic.stage('footer-scroll');
       await reportIssue.scrollIntoViewIfNeeded();
+      diagnostic.stage('footer-issue-actionable');
       await reportIssue.click({ trial: true, timeout: 2000 });
-      const version = navigation.getByText('Version:', { exact: true });
+      diagnostic.stage('footer-bounds');
+      const version = navigation.locator('.kfp-shell-footer');
       const bounds = await version.boundingBox();
       assert.ok(bounds && bounds.height > 0 && bounds.y >= 0 && bounds.y + bounds.height <= 500);
-      await navigation.getByTestId('chevron-toggle').click({ trial: true, timeout: 2000 });
+      diagnostic.stage('footer-collapse-actionable');
+      await navigation
+        .getByRole('button', { name: 'Collapse navigation' })
+        .click({ trial: true, timeout: 2000 });
       await reportIssue.click({ trial: true, timeout: 2000 });
+      diagnostic.stage('pipelines-actionable');
       await navigation.locator('#pipelinesBtn').click({ trial: true, timeout: 2000 });
+    } catch (error) {
+      diagnostic.fail(error);
+      throw error;
     } finally {
-      await browser.close();
+      diagnostic.stage('browser-close');
+      try {
+        await browser?.close();
+      } catch (error) {
+        diagnostic.fail(error);
+        throw error;
+      } finally {
+        t.signal.removeEventListener('abort', aborted);
+      }
     }
+    diagnostic.pass();
   },
 );
 
@@ -301,9 +383,7 @@ for (const kind of ['pipeline', 'run']) {
     `${kind} graph is flush with tabs and retains expansion choices across reloads`,
     { timeout: 30000 },
     async () => {
-      const browser = await chromium.launch({
-        channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
-      });
+      const browser = await launchBrowser();
       try {
         const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
         const pipelineSpec = {
@@ -373,7 +453,7 @@ for (const kind of ['pipeline', 'run']) {
           await page.setViewportSize({ width: 1440, height });
           const canvas = await page.getByTestId('DagCanvas').boundingBox();
           const tabsBottom = await page
-            .getByRole('button', { name: 'Graph', exact: true })
+            .getByRole('tab', { name: 'Graph', exact: true })
             .evaluate((button) => button.parentElement.getBoundingClientRect().bottom);
           assert.equal(canvas.y - tabsBottom, 0, 'Graph starts directly below the tab divider');
           const canvasTop = PNG.sync.read(
@@ -390,10 +470,25 @@ for (const kind of ['pipeline', 'run']) {
             canvasTop.data.some((channel) => channel !== 255),
             'The canvas starts without an opaque white strip',
           );
+          assert.ok(canvas.height > 0, 'Canvas retains a usable height');
           assert.ok(
-            canvas.height > 0 && canvas.y + canvas.height <= height,
-            'Canvas still fits the viewport',
+            await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+            'Graph does not introduce horizontal page overflow',
           );
+          // The modern run summary intentionally scrolls on short viewports.
+          // The graph and its controls must remain reachable within that layout.
+          const collapseControl = page.getByRole('button', { name: 'Collapse all', exact: true });
+          await collapseControl.scrollIntoViewIfNeeded();
+          const controlBox = await collapseControl.boundingBox();
+          assert.ok(
+            controlBox && controlBox.y >= 0 && controlBox.y + controlBox.height <= height,
+            'Graph controls remain reachable by scrolling',
+          );
+          await collapseControl.click();
+          await page.getByRole('button', { name: 'Expand Group 0', exact: true }).waitFor();
+          await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+          assert.equal(await page.getByText('Example task', { exact: true }).count(), 25);
+          await page.getByRole('tab', { name: 'Graph', exact: true }).scrollIntoViewIfNeeded();
         }
         await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
         await page.reload();
@@ -418,7 +513,7 @@ test(
   'Timeline keeps task details visible when scrolling long charts',
   { timeout: 60000 },
   async () => {
-    const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+    const browser = await launchBrowser();
     try {
       const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
       const errors = [];
@@ -482,6 +577,54 @@ test(
       const chart = page.getByRole('table', { name: 'Component timeline timings' });
       await chart.waitFor();
       const inspector = page.getByRole('complementary', { name: 'Selected task' });
+      await chart.getByRole('button', { name: 'Component 0', exact: true }).click();
+      // Verify the real production CSS follows theme changes, including inline bar colors.
+      for (const colorScheme of ['dark', 'light']) {
+        await page.emulateMedia({ colorScheme });
+        await page.waitForFunction(
+          (dark) =>
+            document
+              .querySelector('.run-timeline')
+              ?.closest('.kfp-theme')
+              ?.classList.contains('dark') === dark,
+          colorScheme === 'dark',
+        );
+        const colors = await timeline.evaluate((element) => {
+          const matchesToken = (target, property, token) => {
+            const probe = document.createElement('span');
+            probe.style.color = `var(${token})`;
+            element.append(probe);
+            const expected = getComputedStyle(probe).color;
+            probe.remove();
+            return getComputedStyle(target)[property] === expected;
+          };
+          return {
+            background: matchesToken(element, 'backgroundColor', '--background'),
+            text: matchesToken(element, 'color', '--foreground'),
+            panel: matchesToken(element.querySelector('.rt-panel'), 'backgroundColor', '--card'),
+            selected: matchesToken(
+              element.querySelector('.rt-selected'),
+              'backgroundColor',
+              '--primary-soft',
+            ),
+            status: matchesToken(
+              element.querySelector('.rt-status'),
+              'color',
+              '--status-succeeded',
+            ),
+            bar: matchesToken(
+              element.querySelector('.rt-bar'),
+              'backgroundColor',
+              '--status-succeeded',
+            ),
+          };
+        });
+        assert.ok(
+          Object.values(colors).every(Boolean),
+          `${colorScheme} Timeline uses theme tokens: ${JSON.stringify(colors)}`,
+        );
+      }
+
       for (const height of [900, 500]) {
         await page.setViewportSize({ width: 1600, height });
         await timeline.evaluate((element) => {
@@ -529,20 +672,29 @@ test(
         const nextBounds = await inspector.boundingBox();
         assert.ok(nextBounds.y >= 0 && nextBounds.y + nextBounds.height <= height);
         await page
-          .getByTestId('sideNav')
-          .getByRole('link', { name: 'Report an Issue', exact: true })
+          .getByRole('complementary', { name: 'Pipelines sidebar' })
+          .getByRole('link', { name: 'Report an issue', exact: true })
           .click({ trial: true, timeout: 2000 });
       }
       await page.setViewportSize({ width: 1000, height: 900 });
-      const chartBounds = await chart.boundingBox();
-      const detailsBounds = await inspector.boundingBox();
-      assert.equal(
-        await inspector.evaluate((element) => getComputedStyle(element).position),
-        'static',
-      );
-      assert.ok(
-        detailsBounds.y >= chartBounds.y + chartBounds.height,
-        'Narrow layouts stack details below the chart without an overlay',
+      // Resizing also changes the scroll anchor. Read both rectangles together
+      // after the responsive layout settles, rather than across separate frames.
+      await page.waitForFunction(
+        () => {
+          const chart = document.querySelector(
+            '[role="table"][aria-label="Component timeline timings"]',
+          );
+          const details = document.querySelector('[aria-label="Selected task"]');
+          if (!chart || !details) return false;
+          const chartBounds = chart.getBoundingClientRect();
+          const detailsBounds = details.getBoundingClientRect();
+          return (
+            getComputedStyle(details).position === 'static' &&
+            detailsBounds.y >= chartBounds.y + chartBounds.height
+          );
+        },
+        undefined,
+        { timeout: 5000 },
       );
       assert.deepEqual(errors, []);
     } finally {
@@ -550,3 +702,38 @@ test(
     }
   },
 );
+
+test('production creation and transfer routes load on demand', { timeout: 60000 }, async () => {
+  const browser = await launchBrowser();
+  try {
+    const page = await browser.newPage();
+    const requests = [];
+    const errors = [];
+    page.on('request', (request) => requests.push(new URL(request.url()).pathname));
+    page.on('pageerror', (error) => errors.push(error.message));
+    await routeProductionBundle(page);
+    await page.goto('http://kfp.test/');
+    await page.locator('#createPipelineVersionBtn').waitFor();
+    const deferred =
+      /\/(?:CreateRunPage|CreateRunForm|CreateExperimentPage|UploadPipelinePage|MetadataTransfer)-/;
+    assert.equal(
+      requests.some((path) => deferred.test(path)),
+      false,
+    );
+    for (const [route, selector] of [
+      ['/experiments/new', '#experimentName'],
+      ['/runs/new', 'input[required]'],
+      ['/pipeline_versions/new', '#newPipelineName'],
+      ['/export-import', 'text=Export / Import'],
+    ]) {
+      await page.goto(`http://kfp.test/#${route}`);
+      await page.locator(selector).first().waitFor();
+    }
+    assert.ok(requests.some((path) => /\/MetadataTransfer-/.test(path)));
+    assert.ok(requests.some((path) => /\/CreateRunForm-/.test(path)));
+    assert.ok(requests.some((path) => /\/UploadPipelinePage-/.test(path)));
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+  }
+});

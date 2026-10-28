@@ -15,68 +15,12 @@
  */
 
 import * as React from 'react';
-import CloseIcon from '@mui/icons-material/Close';
-import PopOutIcon from '@mui/icons-material/Launch';
-import Separator from '../atoms/Separator';
-import ViewerContainer, { componentMap } from '../components/viewers/ViewerContainer';
-import { ViewerConfig } from '../components/viewers/Viewer';
-import { color, fontsize } from '../Css';
-import { stylesheet, classes } from 'typestyle';
-
-import { Button, Dialog, Paper, Tooltip } from '@mui/material';
-
-const css = stylesheet({
-  dialogTitle: {
-    color: color.strong,
-    fontSize: fontsize.large,
-    width: '100%',
-  },
-  fullscreenCloseBtn: {
-    minHeight: 0,
-    minWidth: 0,
-    padding: 3,
-  },
-  fullscreenDialog: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '80%',
-    minWidth: '80%',
-    padding: 20,
-  },
-  fullscreenViewerContainer: {
-    alignItems: 'center',
-    boxSizing: 'border-box',
-    display: 'flex',
-    flexFlow: 'column',
-    flexGrow: 1,
-    height: '100%',
-    justifyContent: 'center',
-    margin: 20,
-    overflow: 'auto',
-    width: '100%',
-  },
-  plotCard: {
-    flexShrink: 0,
-    margin: 20,
-    minWidth: 250,
-    padding: 20,
-    width: 'auto',
-  },
-  plotHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-    paddingBottom: 10,
-  },
-  plotTitle: {
-    color: color.strong,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  popoutIcon: {
-    fontSize: 18,
-  },
-});
+import { Maximize2, X } from 'lucide-react';
+import ViewerContainer, { componentMap } from './viewers/ViewerContainer';
+import { ViewerConfig } from './viewers/Viewer';
+import { Button } from './ui/button';
+import { ModalDialog } from './ui/dialog';
+import './viewers/ComparisonViewers.css';
 
 export interface PlotCardProps {
   title: string;
@@ -89,13 +33,7 @@ interface PlotCardState {
 }
 
 class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
-  constructor(props: any) {
-    super(props);
-
-    this.state = {
-      fullscreenDialogOpen: false,
-    };
-  }
+  public state = { fullscreenDialogOpen: false };
 
   public shouldComponentUpdate(nextProps: PlotCardProps, nextState: PlotCardState): boolean {
     return (
@@ -105,57 +43,55 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
   }
 
   public render(): React.JSX.Element | null {
-    const { title, configs, maxDimension, ...otherProps } = this.props;
-
-    if (!configs || !configs.length) {
-      return null;
-    }
-
+    const { title, configs, maxDimension } = this.props;
+    if (!configs?.length) return null;
     return (
-      <div>
-        <Paper {...otherProps} className={classes(css.plotCard, 'plotCard')}>
-          <div className={css.plotHeader}>
-            <div className={css.plotTitle} title={title}>
-              {title}
-            </div>
-            <div>
-              <Button
-                onClick={() => this.setState({ fullscreenDialogOpen: true })}
-                style={{ padding: 4, minHeight: 0, minWidth: 0 }}
-                className='popOutButton'
-                data-testid='pop-out-button'
-              >
-                <Tooltip title='Pop out'>
-                  <PopOutIcon classes={{ root: css.popoutIcon }} />
-                </Tooltip>
-              </Button>
-            </div>
-          </div>
+      <section className='kfp-plot-card plotCard'>
+        <header className='kfp-plot-header'>
+          <h3 title={title}>{title}</h3>
+          <Button
+            variant='ghost'
+            size='icon'
+            aria-label={`Expand ${title || 'visualization'}`}
+            onClick={() => this.setState({ fullscreenDialogOpen: true })}
+            className='popOutButton'
+            data-testid='pop-out-button'
+          >
+            <Maximize2 size={16} aria-hidden='true' />
+          </Button>
+        </header>
+        <div className='kfp-plot-content'>
           <ViewerContainer configs={configs} maxDimension={maxDimension} />
-        </Paper>
-
-        <Dialog
-          open={!!this.state.fullscreenDialogOpen}
-          classes={{ paper: css.fullscreenDialog }}
-          onClose={() => this.setState({ fullscreenDialogOpen: false })}
-        >
-          <div className={css.dialogTitle}>
-            <Button
-              onClick={() => this.setState({ fullscreenDialogOpen: false })}
-              className={classes(css.fullscreenCloseBtn, 'fullscreenCloseButton')}
-              data-testid='fullscreen-close-button'
-            >
-              <CloseIcon />
-            </Button>
-            {componentMap[configs[0].type].prototype.getDisplayName()}
-            <Separator />
-            <span style={{ color: color.inactive }}>({title})</span>
-          </div>
-          <div className={css.fullscreenViewerContainer}>
-            <ViewerContainer configs={configs} />
-          </div>
-        </Dialog>
-      </div>
+        </div>
+        {this.state.fullscreenDialogOpen && (
+          <ModalDialog
+            open={true}
+            size='full'
+            title={
+              <>
+                {componentMap[configs[0].type].prototype.getDisplayName()}
+                {title && <> · {title}</>}
+              </>
+            }
+            onClose={() => this.setState({ fullscreenDialogOpen: false })}
+            actions={
+              <Button
+                variant='secondary'
+                onClick={() => this.setState({ fullscreenDialogOpen: false })}
+                className='fullscreenCloseButton'
+                data-testid='fullscreen-close-button'
+              >
+                <X size={16} aria-hidden='true' />
+                Close
+              </Button>
+            }
+          >
+            <div className='kfp-plot-fullscreen'>
+              <ViewerContainer configs={configs} />
+            </div>
+          </ModalDialog>
+        )}
+      </section>
     );
   }
 }

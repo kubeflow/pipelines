@@ -1,0 +1,1620 @@
+{
+  "sourceCommit": "54f78798fea94aecc64006a8296a9473f453d55a",
+  "archiveUrl": "https://raw.githubusercontent.com/kubeflow/pipelines/d9aed93d6184be1f65d36066b40eb92028a2aa25/archives/kfp-ui-evidence-54f78798f.tar.gz",
+  "archiveSha256": "96c1db7580168763eab5e12f41a6d602750dd2c9d4b220c76063599e7381a5e0",
+  "files": [
+    {
+      "path": "frontend/docs/ui-modernization/foundation/primitives-dark.png",
+      "bytes": 61148,
+      "sha256": "fc9b141e19daeaedafc52e1a0be46aa1f1d8ca7d90c25da3167c364c78684cbf"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/foundation/primitives-light.png",
+      "bytes": 65092,
+      "sha256": "05f7d2be9c15bab7dac9b7148b195bf853809cf20e7efd9b3e5bf96ff9a0acd6"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/foundation/shell-dark.png",
+      "bytes": 51693,
+      "sha256": "29cfb2b45db3b702383bf79d566e82ee92965fc24204d79e2789cdae1206aa53"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/foundation/shell-light.png",
+      "bytes": 52119,
+      "sha256": "ada998526b54630877fab20fe81cf3ed9061f4716e29f7aa1f4da36a05f79bca"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/inspection/command-palette-dark.png",
+      "bytes": 80041,
+      "sha256": "e5148954c0dd1277e15308fd53f3d8dbd6f4be51496f60c996b88ef0f89f54ed"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/inspection/run-details-dark.png",
+      "bytes": 97099,
+      "sha256": "653cf48b3673b7cd8bdca703cd7a49e69edf1f2b54b76872690290663cd54240"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/browser-matrix.json",
+      "bytes": 17703,
+      "sha256": "b4b350f5bef1d558c2c5dab8eaf0a8ff5866915e79f1aaadc9ddfa40f3f7a2ef"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/bundle-inventory.json",
+      "bytes": 10306,
+      "sha256": "a93ca443a95c440485f9f258f7173647315a1aa5e8197c3649d142af64f3a793"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/comparison-chromium.json",
+      "bytes": 3320,
+      "sha256": "02ff583eb5461305b047f96ec8b99944a191d7766dcbb6b5c12a7d2c5fca1a9c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/comparison-light.png",
+      "bytes": 92904,
+      "sha256": "94dd742fc2ba0da920872d3f9c10672e1012567515fc206b681cc2f381458970"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/graph-chromium.json",
+      "bytes": 2974,
+      "sha256": "de6ec97aa3b38aae30096db673d083bf8a374b854589d99d1477a7988442ed36"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/hosted-checks.json",
+      "bytes": 23419,
+      "sha256": "16b3460f1310fe0d8c24dcaea88d68a1dc3fa109d56cbbeada6df155b27087be"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/protocol.json",
+      "bytes": 13307,
+      "sha256": "5cc230efb17ae76faf831428c8606d5179c48b6fb0c5061e892b1a6ffe14352d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/run-details-graph.png",
+      "bytes": 106971,
+      "sha256": "f7bac67c23bfbde80b0dcfcbcb932e70852c1c26feee748309ac4b89d8a4a4d9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/run-details-narrow-inspector.png",
+      "bytes": 18157,
+      "sha256": "9cb946948f894deb9674ced98212bbe7231b1af4cd71a39471678833ec634498"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/runs-dark.png",
+      "bytes": 126685,
+      "sha256": "2cd2aa703c2464d3f87b7927d4e7390dbc72db61db87a95e2bf3d1402ca1a29c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/layout-stability/runs-light.png",
+      "bytes": 123498,
+      "sha256": "70ee731a62d88ee244e56760d8fdfb8cfb1adac9e8c1ab812731868a63959181"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/browser-floor-firefox128.json",
+      "bytes": 4498,
+      "sha256": "80f7c16624a02b75700f3a4c39e01a9447955fb53b08d333099e87acdf9ffac1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/browser-matrix.json",
+      "bytes": 7823,
+      "sha256": "ebba78623f54edd030e46123f8fa344dd49915afe95d981c1bf4188e6a823beb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/bundle-sizes.json",
+      "bytes": 6056,
+      "sha256": "aba6f79cd268ef8d99fe3a0a6d0d034788a9d67f83e43898c7c1fbfafe93132e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/comparison-chromium.json",
+      "bytes": 3304,
+      "sha256": "c73fd15d9ba2595467381baea1f0a360753726ecbeadc70fc04447ff6edc48c9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/firefox128/command-dialog-narrow-dark.png",
+      "bytes": 82257,
+      "sha256": "b37f527ad62d3a47d5759078ede60fe8ab4259b016f8d2cd2ec8234b60996a3f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/firefox128/comparison.png",
+      "bytes": 131433,
+      "sha256": "011148bd68f35bb9086791900503e797911d04db7facc6925cb38a1ad42994b5"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/firefox128/feature-switch.png",
+      "bytes": 74500,
+      "sha256": "0f0e63b34b7f35889987818baace185e5733c7e203bafa1d77fb684c0ac0b382"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/firefox128/pipeline-cards.png",
+      "bytes": 84174,
+      "sha256": "18f4be036985c0a2cbba560fe0b60ca329749ebc472fa1dc6a94417a4f0ffddc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/firefox128/run-details-inspector.png",
+      "bytes": 204275,
+      "sha256": "a8b7920d9bb967fb2f8f5beeb96e0eb493aabaf6c5f5e87212ace65bd1285537"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/firefox128/runs-filtered.png",
+      "bytes": 95758,
+      "sha256": "9a999aee9e671e0b3b0eb6631c1fe6dd2204343d598965ebeb3a34d1b6425c2e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/graph-chromium.json",
+      "bytes": 2966,
+      "sha256": "3462e645a1347664f2aadd5cea159e4aab82e3250f4624536ff81948e332ed8e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/hosted-checks.json",
+      "bytes": 3238,
+      "sha256": "db6a59465f25e117490ec48afe14bbe8881d2254d2c6a0f908548fbef7c0167a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/qualification/protocol.json",
+      "bytes": 13383,
+      "sha256": "def01757c99c9e99486f2bfbdea0be72b7dace40747eb398a6e00247190ee271"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/README.md",
+      "bytes": 4377,
+      "sha256": "b3c7247f754cf1beeba5cdd77f1635db016dce6a1bd703be3d86b8bff4992e16"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/engine-audit.json",
+      "bytes": 5924,
+      "sha256": "e0a33a7671e27f8c46fb40b74e8013ec374a0929adbcd5d56af1504a1f4708e0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/hosted-protocol.json",
+      "bytes": 14325,
+      "sha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/performance-audit.json",
+      "bytes": 1956,
+      "sha256": "2681c26b6b256c613b25112f8eead130ef9a2c9ca5924f796fbc3a9750acc12d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/record-hashes.json",
+      "bytes": 5922,
+      "sha256": "e971d334c246ab78bcfcff45e0c0ec354f177abd9b41c2584a1ac8055f0b8a7c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-audit.json",
+      "bytes": 24731,
+      "sha256": "1b9ff0d92b39d0722c8bb6d5799d9eb21ffe3a59323794c5f5578f22cd010292"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-26/environment.json",
+      "bytes": 6113,
+      "sha256": "f783eaee8463d48d306bcbb3c671aa6fdaff17b6aa036e7fb61d5a924950e21c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-26/workflow.json",
+      "bytes": 230,
+      "sha256": "27ac66f48ac05d0e348cb8728eeab850dbce7fbdfd7d0d836acff86b31dd2cee"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-27/environment.json",
+      "bytes": 6109,
+      "sha256": "879d8c75e09621f2a7269237fca11fc51a9ede32f9360c8db433ca36537a8ba4"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-27/workflow.json",
+      "bytes": 230,
+      "sha256": "8df63146c4ab18b9c1538d05daa940698e275b07d12a0c9066ff49fe665df743"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-26/environment.json",
+      "bytes": 35984,
+      "sha256": "f689ed18a680daae83f969fe6f3dca51ded0f31be7f4047175d851855a300097"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-26/workflow.json",
+      "bytes": 227,
+      "sha256": "fa14f576b464ed409eae1aa3d8856fc7759979a18a147ded3700fb54b39221c6"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-27/environment.json",
+      "bytes": 28512,
+      "sha256": "1efe0ed9341348c31f2f6900ac1adf261fa572bc0afbab87098f1a4e459f4da0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-27/workflow.json",
+      "bytes": 227,
+      "sha256": "cb3bb2f89134faacb7071c87be16cc33475f956225c35a718ab1c6875c960ad2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-26/environment.json",
+      "bytes": 36025,
+      "sha256": "f93b9c8f143b458dfd9fbdd655d7533763eba776ae9c6b26cb8a4e6127485d3c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-26/workflow.json",
+      "bytes": 229,
+      "sha256": "543895e3ba65f6f30f7543838b1beb9b81b88b7b1b6c620a133b99805e918065"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-27/environment.json",
+      "bytes": 35193,
+      "sha256": "6ce10c9740f34e1dbcb76e1ddfa185c96c863327399430228825e4f0b02e26f0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-27/workflow.json",
+      "bytes": 229,
+      "sha256": "7fae5f87928e4866b9aef68ab8b44afba1735ab4a35574ea9d54c4b1f6a6ac84"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-chrome-stable/environment.json",
+      "bytes": 4305,
+      "sha256": "ad7a19d87afa967dc2dd171adeadb0fc3f2347483e3b2db30869f26a276b5d13"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-chrome-stable/workflow.json",
+      "bytes": 289,
+      "sha256": "4406d4167b473359c7a1feb009a36592f1c90c495e601b3b0381c831f7a77536"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-chrome-testing-current/environment.json",
+      "bytes": 4347,
+      "sha256": "80e56a9e296a76b0b584c760c3a003c06672e55856ab8d0798f7d1d9219b3a20"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-chrome-testing-current/workflow.json",
+      "bytes": 298,
+      "sha256": "2ae1fd6d7c47e4c772f1c45af2b7a8b82db5d49a8653d758bec197984f9dcada"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-chrome-testing-previous/environment.json",
+      "bytes": 4348,
+      "sha256": "907d3039f4a97d1eb1c5036d19610ac2a2ccb316b109d41e6593a2948a4c85b3"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-chrome-testing-previous/workflow.json",
+      "bytes": 299,
+      "sha256": "c5beb2eb3aea53740433e927501a85d2e2425c6abf82400f50cc6d867db09c42"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-edge-previous/environment.json",
+      "bytes": 4307,
+      "sha256": "acdf444085fa171c6dfcaeebf4be146c01f3531d186717c35a9fd67efad61614"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-edge-previous/workflow.json",
+      "bytes": 289,
+      "sha256": "ebbe33f6d28f89d1ad7f9a99e193ad3c60ec82ea702f14fff22ffdea4570f134"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-edge-stable/environment.json",
+      "bytes": 4305,
+      "sha256": "636907c8fcb8302a801f67432dc55d95f403730d1856998e90c0e63623d63b92"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-edge-stable/workflow.json",
+      "bytes": 287,
+      "sha256": "47d26450189afed8e0dc26a4ceea6f91d3a13606b23be91b4fd2625910032477"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr/workflow.json",
+      "bytes": 287,
+      "sha256": "82889f3256a4b69492e20e71b5aeec9983f5aa387051ab0b1c946830ba55235f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-linux/workflow.json",
+      "bytes": 301,
+      "sha256": "6457017ae3a3ec2bc7aad5a9e1bcaba7c6baa38fe072a86294c6c8adce0fe14e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-overlap/workflow.json",
+      "bytes": 295,
+      "sha256": "2db4df4da5a82ea039cf60f03458b24e1db60f183c5cac34fa221e87a9deb711"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-previous/workflow.json",
+      "bytes": 292,
+      "sha256": "fe385d9283713d89b5215c045182aad84be5554081e07975dd00ed40bbba115b"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable/workflow.json",
+      "bytes": 290,
+      "sha256": "5c0d5ed7db85eab0809ce0702a56dfeadf29b0d9f1062b03a04b8503815fe760"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable-linux/workflow.json",
+      "bytes": 304,
+      "sha256": "e524164c2e4d00553570a216ed18d097b3f248ef6ff0646254738382a107c418"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/README.md",
+      "bytes": 6018,
+      "sha256": "fcb0c55ba8c78ee7efd7b2155a5e6318919d0cd0aa1aba6917a52863aded830d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/authentication.json",
+      "bytes": 383,
+      "sha256": "6db37600012e147af17c98145b30c45ac6364157c315f2342faea35315220bdf"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/baseline-image-identity.json",
+      "bytes": 1054,
+      "sha256": "2c7032f9b2b84cea58ec6027cac477e78adfd57cd964219615932ba12f03fe7a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/baseline-invariants.json",
+      "bytes": 48256,
+      "sha256": "54db8262dbc990a305a5c10b0e3351ea1275ef7d970b719e19dee2b56c5263bb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/baseline-rollout.json",
+      "bytes": 625,
+      "sha256": "9524f8f716f85c7125a46e3519fd164f079648170a21cc2e9e91dac5c2c3720c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/candidate-assets.json",
+      "bytes": 2436,
+      "sha256": "77f87c42b55010fe683635169855cf9e57a670a287b23874ba552a3b6b4e0dc1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/candidate-image-identity.json",
+      "bytes": 1415,
+      "sha256": "a1ae07afa3f05b614d452d249b61050445f72b69800a3cdd8c710a97aebd499d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/candidate-invariants.json",
+      "bytes": 48255,
+      "sha256": "1b0e614a804e7d447ae32ace48ba7afc9418b7d8c333a8808e39abdb43535c7d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/candidate-rollout.json",
+      "bytes": 635,
+      "sha256": "b90602a5a159d4a607c0f85212c76d19a5088e07e00b479b4ef96d1c0a0ac68d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/downloaded-client-hashes.json",
+      "bytes": 3649,
+      "sha256": "511c73f3d8e6ddda9f515d3758059fc13e2c06faa76f2ae7f73f66bd03ab0844"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/images.json",
+      "bytes": 956,
+      "sha256": "f046408fa9df7883b4371c34b7753a2cc6ecf038b72691fce4fbd7979324c900"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/legacy-assets.json",
+      "bytes": 594,
+      "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/mesh-readiness.json",
+      "bytes": 2742,
+      "sha256": "83758d8e723365da6c89a3c3c6861a09e00c278994be172a3569565792af4a69"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/profile-authorization.json",
+      "bytes": 645,
+      "sha256": "497c7122aabe5e9af27e91072e3b42dc248d265e1b17e55a10eb8c289b549491"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/provenance.json",
+      "bytes": 774,
+      "sha256": "1afc47921d10380836b129f460e5f51ea415704d60717171e8a023ee6b270eaa"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/rollback-image-identity.json",
+      "bytes": 1054,
+      "sha256": "e4a2f21ee08a757fcd3a7e3576a511f42de29c45b78b8156753935772930cc00"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/rollback-invariants.json",
+      "bytes": 48254,
+      "sha256": "bd42d49a23c4a5ef9520b0b79ce538ad6e04c4121b9e2b3d1f0a37e55e25a787"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/rollback-rollout.json",
+      "bytes": 626,
+      "sha256": "12af7de3838252be9f1fd12b8a856221bac052a97232dd13ce3a8743b4a6838a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/runtime-manifests/205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016.json",
+      "bytes": 851,
+      "sha256": "205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/runtime-manifests/7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a.json",
+      "bytes": 2392,
+      "sha256": "7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/baseline-image-identity.json",
+      "bytes": 682,
+      "sha256": "d07d1d6db0b4f445fd59651cf47a76458b8f68b9b6c3d980b9c937786b786624"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/baseline-invariants.json",
+      "bytes": 10686,
+      "sha256": "231022394bff6d0b77bd9eedc7eee166c2a67fec3f9739a4bf6a2422370d445d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/baseline-rollout.json",
+      "bytes": 625,
+      "sha256": "b02f20e214bb7f977ff57eed86dcf2bc32b8b911c7dd616cc07e4177cf7377ff"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/candidate-assets.json",
+      "bytes": 2436,
+      "sha256": "77f87c42b55010fe683635169855cf9e57a670a287b23874ba552a3b6b4e0dc1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/candidate-image-identity.json",
+      "bytes": 1043,
+      "sha256": "25bb9e351e568c3f27878e5fc94df0c3efe65c2eb686ab48d813f269ca0cd459"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/candidate-invariants.json",
+      "bytes": 10686,
+      "sha256": "c3097128b30e50dde0ef789b18207b37c02b9023376bdeb67cfc8600df806242"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/candidate-rollout.json",
+      "bytes": 634,
+      "sha256": "c23d1422416757e03c13a93d4151e1c073f32523788739e89588b0f69e5792bf"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/downloaded-client-hashes.json",
+      "bytes": 3649,
+      "sha256": "7e72155b4e96117d754d1951a192fa741b69b5c754899a9f559c4bf6fafe5b29"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/images.json",
+      "bytes": 956,
+      "sha256": "f046408fa9df7883b4371c34b7753a2cc6ecf038b72691fce4fbd7979324c900"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/legacy-assets.json",
+      "bytes": 594,
+      "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/provenance.json",
+      "bytes": 732,
+      "sha256": "4df289677cf8b51f2f9bbcab29372fca1b294a160691f1581d5ef6633ee87c07"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/rollback-image-identity.json",
+      "bytes": 682,
+      "sha256": "f2bf6a09a92eb226d77e93e1fd0c8ab70c2b2f91500fe500c1e0a7a7a69401bb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/rollback-invariants.json",
+      "bytes": 10685,
+      "sha256": "c7aa3fb761ef3b2f1c53d3a2f0f70f2f478f3eedca7151db7d1af3ea8f28ac07"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/rollback-rollout.json",
+      "bytes": 620,
+      "sha256": "fb7f007f066492d5b0f16120def9c6bf659b694681484af05b7037408d9d2344"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/runtime-manifests/205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016.json",
+      "bytes": 851,
+      "sha256": "205cd386722c7db58eae9a97cfac19768e7e139b124c25b39ee3e3401323f016"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/runtime-manifests/7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a.json",
+      "bytes": 2392,
+      "sha256": "7067fcdf846d0e81ce1daedee67b4fbe5409af986fd51533cef201c6e1ad347a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/hosted-protocol.json",
+      "bytes": 14325,
+      "sha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/performance-audit.json",
+      "bytes": 3432,
+      "sha256": "936ccb9a67d1c59d10504b859605701e33d0a8187ff1174d280fdbb3096b0ae1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/record-hashes.json",
+      "bytes": 7409,
+      "sha256": "70e94d2a8735df2072aa323dfe6bd5a2ec3c0e6d29c5be115f4078667645fb2a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/README.md",
+      "bytes": 5921,
+      "sha256": "a177dd27bd5078cd779a73ca1129430ea41240ab7d8ed0cddf7c4522cda7abd0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/browser-status.json",
+      "bytes": 1963,
+      "sha256": "e2bb5d0e0d8c4ac7531481e3ab44644edc5dc198802420ac9617c0ead456742d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-audit.json",
+      "bytes": 12378,
+      "sha256": "d2c3579337a49f69d96deb76b14dfb651cb1b55c7d1bf6a88649ca3c912715fa"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/baseline-image-identity.json",
+      "bytes": 1054,
+      "sha256": "41a99f27e28ba469e7f92ad01b869e582c995421cd7588afa5f67e708adc33bc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/baseline-invariants.json",
+      "bytes": 48254,
+      "sha256": "559ad29e12a8b3830ae3c282bf48037802adc11ebf2aead79271a12c3f0bdb44"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/baseline-rollout.json",
+      "bytes": 626,
+      "sha256": "8e9ccc4c2097d217e77f90ebba899e599e57a8888a1f2a275a4249024029820c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/candidate-assets.json",
+      "bytes": 3058,
+      "sha256": "8afb2fe8c3590ef676ca83cb88f7797fb3a355023606468d43edbd8c4f75a2c2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/candidate-image-identity.json",
+      "bytes": 1415,
+      "sha256": "57e4e8e8b2985c210d38f0a7442489d68f2c331eda61956beb909545f8590da6"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/candidate-invariants.json",
+      "bytes": 48253,
+      "sha256": "55b5f2eca63921d02724e570c17a75d2d4e5e2f5dce9cfee26757b29539de3a5"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/candidate-rollout.json",
+      "bytes": 634,
+      "sha256": "acec81612dc9d528f6084420d6e73aebcbd304d9caca5318a848e26cbd43c1cb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/images.json",
+      "bytes": 956,
+      "sha256": "45f7d03820231599c77b4fa669f6a7a212753517791b43b67def398e478bbeb0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/legacy-assets.json",
+      "bytes": 594,
+      "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/mesh-readiness.json",
+      "bytes": 2742,
+      "sha256": "8a939876c90a2185088f10e816b43fbd3936614498a9b14fb4892d389b461cb2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/profile-authorization.json",
+      "bytes": 645,
+      "sha256": "497c7122aabe5e9af27e91072e3b42dc248d265e1b17e55a10eb8c289b549491"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/rollback-image-identity.json",
+      "bytes": 1054,
+      "sha256": "42fb0491ebb0d94e3a3ce350ea546721c9c9464ca926b67906cbe76658e966ec"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/rollback-invariants.json",
+      "bytes": 48252,
+      "sha256": "c34fb66dd29e86cb18290c824c5376576af872ad71691c8c62bf730d84d3f611"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/rollback-rollout.json",
+      "bytes": 626,
+      "sha256": "a7cf113fb402923a30e6837ebf7352f4e0430a65cc949918aa77c57e7a589941"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/runtime-manifests/11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0.json",
+      "bytes": 851,
+      "sha256": "11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/runtime-manifests/58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40.json",
+      "bytes": 2392,
+      "sha256": "58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/baseline-image-identity.json",
+      "bytes": 682,
+      "sha256": "136c6ff49e2587f5a29e0da0187495918360ecb94c39e2ab52f9a53fc66c6ce4"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/baseline-invariants.json",
+      "bytes": 10686,
+      "sha256": "2d301c4da54b210a5e5025f10674cd06abfb30375f0131002aa21f782bbb3002"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/baseline-rollout.json",
+      "bytes": 625,
+      "sha256": "e6fd088e7b8db40783544a002683364d51e637254b0521b5d1ba45414b26cd78"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/candidate-assets.json",
+      "bytes": 3058,
+      "sha256": "8afb2fe8c3590ef676ca83cb88f7797fb3a355023606468d43edbd8c4f75a2c2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/candidate-image-identity.json",
+      "bytes": 1043,
+      "sha256": "c107418b1f213b8f3ffce9f4ec058cd654dfad0798e9cf14356887f29936a303"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/candidate-invariants.json",
+      "bytes": 10686,
+      "sha256": "779536f1ed60db35c37d94195a683a692cba4e3f7fc094f90e60fa7ea5aae316"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/candidate-rollout.json",
+      "bytes": 635,
+      "sha256": "5e97626fe25d78d689499f97be0df1b46865776ef33e560c7d21b26aac840dc0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/images.json",
+      "bytes": 956,
+      "sha256": "45f7d03820231599c77b4fa669f6a7a212753517791b43b67def398e478bbeb0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/legacy-assets.json",
+      "bytes": 594,
+      "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/rollback-image-identity.json",
+      "bytes": 682,
+      "sha256": "28ca2196502f57ee0f469cfc3ecc1dbf63bb1206970feee9b2cbae39eb955f95"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/rollback-invariants.json",
+      "bytes": 10685,
+      "sha256": "d7776eb1201b39bddf1ec6979f57473b9fd48dba040d47f7aa1ca80f4cce55e0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/rollback-rollout.json",
+      "bytes": 625,
+      "sha256": "1a3c7f2f929589a7e54bf9bc7e4b2f74c04803f02b28db7c085b5edc72673cf5"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/runtime-manifests/11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0.json",
+      "bytes": 851,
+      "sha256": "11f5589a01cfaa9edafa8d86768b5b368a5cdb4aa57b2bffdf69042ce7378ff0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/runtime-manifests/58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40.json",
+      "bytes": 2392,
+      "sha256": "58cae62c0cbeecdc185d26b2d5a52b9dba1fc1e0680f36c5c4027945b89a9d40"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/engine-audit.json",
+      "bytes": 6819,
+      "sha256": "f81ef2fdea85e2199a7a4be91cb8330bd61ae3aa16382e91ada6982bc3fd974b"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/entry-gzip-audit.json",
+      "bytes": 178,
+      "sha256": "36c183776589767b20d99bb9e59744c9ee01284af5b1ca0fa932f4631166415f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/hosted-protocol.json",
+      "bytes": 14325,
+      "sha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/performance-audit.json",
+      "bytes": 3942,
+      "sha256": "1142c40c4455e732694ab3d0f66d79104ed2a3c63042e5953ba82013ef764bf5"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/record-hashes.json",
+      "bytes": 4936,
+      "sha256": "df0f143faddd514e97cf17de295dcb7f4272ca9fcfb2d0a0ebc63eac386eb2ac"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/static-audit.json",
+      "bytes": 1623,
+      "sha256": "d59f28ade640cae1c69d9ae3b25bdf7cd2d22578ddc7ea61f175579024f6ea09"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/tested-merge.json",
+      "bytes": 2602,
+      "sha256": "bb0cc59c7a7f54c4cddfa9558fb0984b16be8c108d77fa9656840dceee8408d1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/README.md",
+      "bytes": 5958,
+      "sha256": "4ff3276013cdce3b0f5a2db98e57dc04a7094a465722bda74b2e230b36f55e0f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-audit.json",
+      "bytes": 12371,
+      "sha256": "1f695fc4f6b5ce53d827c637e300c360c4c358d9e8b4dc08395453b8405e112c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/baseline-image-identity.json",
+      "bytes": 1054,
+      "sha256": "568b9106c46c3f1108d31fa51de36a2fa60661887be8b7dd8853a7d46b45d1c2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/baseline-invariants.json",
+      "bytes": 48254,
+      "sha256": "25ca2375cbcdf148790d00ab1b7b5e24b7c626dddf2ffa03f1d7d38bed907227"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/baseline-rollout.json",
+      "bytes": 625,
+      "sha256": "396999a3640126266732e3f034b464f506fa949bcc7e2fb9e6327a56e065c25e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/candidate-assets.json",
+      "bytes": 3058,
+      "sha256": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/candidate-image-identity.json",
+      "bytes": 1415,
+      "sha256": "0a60706810196bc5cd10f824e5f613f8ed832e5fbe514b6b879d5aa84a5097db"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/candidate-invariants.json",
+      "bytes": 48253,
+      "sha256": "a260ac3f9e2c1c555c0559f50bdb411d613a8b0657c648c51ce85431275e00a7"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/candidate-rollout.json",
+      "bytes": 634,
+      "sha256": "5925559f26fbb48be5b2546c01cf35566477f228caa9bbe1c89b9df291c0e08e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/images.json",
+      "bytes": 956,
+      "sha256": "f46d34d6d76b64063832421bba25fafdc4088c36d4be9ede3fc75dfd2758e6b3"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/legacy-assets.json",
+      "bytes": 594,
+      "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/mesh-readiness.json",
+      "bytes": 2742,
+      "sha256": "78c3844e595cc8fdc521f7adcf64d36f1f5d32e6224bf81f4fca63ab7de10b55"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/profile-authorization.json",
+      "bytes": 645,
+      "sha256": "497c7122aabe5e9af27e91072e3b42dc248d265e1b17e55a10eb8c289b549491"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/rollback-image-identity.json",
+      "bytes": 1054,
+      "sha256": "76edf482f533e6bc1b08d4dbb9584fb17b4e3c15bde31fb9949702a21806654f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/rollback-invariants.json",
+      "bytes": 48252,
+      "sha256": "83e05e6d7fc8fca4be2aa142b70d4189ef8c9a34076fa4db770718078e9819d1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/rollback-rollout.json",
+      "bytes": 625,
+      "sha256": "5647645923448c211b4efd0ee5736f4b13e7ff085be2df5c1345e2c5fe790545"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/runtime-manifests/326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4.json",
+      "bytes": 851,
+      "sha256": "326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/runtime-manifests/d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3.json",
+      "bytes": 2392,
+      "sha256": "d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/baseline-image-identity.json",
+      "bytes": 682,
+      "sha256": "1860da5a4c9868a7aed058308d304fcabd87d7d4a8c8d4ace5bb43e581b6f610"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/baseline-invariants.json",
+      "bytes": 10686,
+      "sha256": "fb1e1bad877a71726126a55ab585e518b52b9bd9bb52c72f68790ebae15e98ae"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/baseline-rollout.json",
+      "bytes": 625,
+      "sha256": "7c30d2165e58aedb15077022f4d6a3cb200d8b8753dad51e83ca3f0af0c02768"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/candidate-assets.json",
+      "bytes": 3058,
+      "sha256": "0b4b36c5ddf57aaeb2f0338b1c02e16c1d793ee658f2f6377464802109156540"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/candidate-image-identity.json",
+      "bytes": 1043,
+      "sha256": "0748af4ecee7bce59fc66bb05582ade31cda85e974ae5d4e7410ea407ef7d657"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/candidate-invariants.json",
+      "bytes": 10686,
+      "sha256": "d3ba4b9664f73c04a839bf4922e8a13e457057ac212771a7bad00801b75fd198"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/candidate-rollout.json",
+      "bytes": 634,
+      "sha256": "2f44fc0effb05bad40743f11f66a6dc628169c0cb2ab461c818dd688058eb908"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/images.json",
+      "bytes": 956,
+      "sha256": "f46d34d6d76b64063832421bba25fafdc4088c36d4be9ede3fc75dfd2758e6b3"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/legacy-assets.json",
+      "bytes": 594,
+      "sha256": "53ebed92acf411d84387d3c4d4344dd479d846355908c780fd5aa58810a8f956"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/rollback-image-identity.json",
+      "bytes": 682,
+      "sha256": "96581457e9d4eb220c383ced9c3cae8a1b70a1b53863bf19690d87816ef96283"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/rollback-invariants.json",
+      "bytes": 10685,
+      "sha256": "56f610a1b0fdadc37fecfc7e90d21a2a6099ef769cb84db32aec8d90e225846e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/rollback-rollout.json",
+      "bytes": 625,
+      "sha256": "27561176f579f51cacf9a55175aa367658a9ae1415b4a023781927f7241665a9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/runtime-manifests/326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4.json",
+      "bytes": 851,
+      "sha256": "326b91b9dbcc9d15e89d68e1d7424c05ee6501806055d3030505b7a1efa0fed4"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/runtime-manifests/d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3.json",
+      "bytes": 2392,
+      "sha256": "d6c13993b0a91a553b8f3d2a5140d7f50865a14cc9e1c662d014c9f90fa017f3"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/engine-audit.json",
+      "bytes": 6569,
+      "sha256": "57ae3e3854e023567ce01b082e8660848241ba02f3ff045619f0b5be813d96bb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/entry-gzip-audit.json",
+      "bytes": 178,
+      "sha256": "36c183776589767b20d99bb9e59744c9ee01284af5b1ca0fa932f4631166415f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/hosted-protocol.json",
+      "bytes": 14325,
+      "sha256": "42837c8f0fd0b71d6cb4b6c5fc746af05d32c3acb1d3b2d0cbe8c7085afd224c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad26/environment.json",
+      "bytes": 35984,
+      "sha256": "c5661ca91e180ce89330b96eec8ece1097122a9b391400b521f9f01152cf6c34"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad27/environment.json",
+      "bytes": 35152,
+      "sha256": "8dfafc91a6a04d67da9e8526d481d4c35dd2b6bfa1d4d3e665b1ee621f91a457"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone26/environment.json",
+      "bytes": 36025,
+      "sha256": "d130ff041e1fdc86e84e8e829660fdb71ac2f8037c463704482c7b0d0818e19a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone27/environment.json",
+      "bytes": 35193,
+      "sha256": "4a1a6cc55352285d057ff9b29bb8b3eccc041758dcbc35887c8d28e63e065dc8"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile-audit.json",
+      "bytes": 6603,
+      "sha256": "9d0b160844dc7ec2083dc7595619d601a26de583ac79f54d53a24fee834819b7"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/performance-audit.json",
+      "bytes": 3932,
+      "sha256": "9173ae100e17e26fa860b2ef9996b67de7555ead4a9c0dda750b484a98f3fce6"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/record-hashes.json",
+      "bytes": 12718,
+      "sha256": "625fa2850f5af3f1e86b7b0798321f10580291a8b3a538b9b933d4882f8ea12f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/static-audit.json",
+      "bytes": 1613,
+      "sha256": "65d4ab1cae3f7e53044f72dd849961c8d1279a06d26318697b42e55b84ce708f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/tested-merge.json",
+      "bytes": 149,
+      "sha256": "54e850607b7c6faeeb480d78ef42b471b4291a7a92feddcf0c506614f76839da"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-26/environment.json",
+      "bytes": 6113,
+      "sha256": "794518eb3b0bc1d37fe75669f8a3ba07a2a9aec527c48d47600e2e41f83048dc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-26/workflow.json",
+      "bytes": 230,
+      "sha256": "95dd65acc29a0d60379818cbbbfa64eae4dbeb868ca34e79855f79c1f618cb5d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-27/environment.json",
+      "bytes": 6109,
+      "sha256": "811d4aac21a5d0e01ded1553a334a30b145a11a7263c78cdf6f2f190da9e940a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-27/workflow.json",
+      "bytes": 230,
+      "sha256": "be69f9e0a2278e920296e9a2af1111d2756a5cca8639a9e353290ae1ad8c065e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-stable/distribution.json",
+      "bytes": 4548,
+      "sha256": "39f52c685a229183a997d2b7cfc76287b77470a4e321fc450726bc3e6832d3aa"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-stable/environment.json",
+      "bytes": 5167,
+      "sha256": "a3a851a55524f35955f57a4b16e14baa86a10cd5cfcf7c8ad28aca9e2fc5cf82"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-stable/production-startup.json",
+      "bytes": 662,
+      "sha256": "b39d30b6260e6bf2d295d2a9051196536346bd7bdcdcde327aed2f48a6e5017e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-stable/workflow.json",
+      "bytes": 289,
+      "sha256": "608277065d8fd3230bb42371416c1a433521f566472b2023d5627ee3486905a8"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-current/distribution.json",
+      "bytes": 4446,
+      "sha256": "a12c8359cb8955e41894306357138fb19ef7df81398c59d489713a98999d8d1e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-current/environment.json",
+      "bytes": 5209,
+      "sha256": "95b458825a9c9c3ac965e28da619f4628428529014884270b2134bd291071f69"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-current/production-startup.json",
+      "bytes": 662,
+      "sha256": "6885623da86224f8a108a874009456a5062b7321f586c7c03f0266fde003f556"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-current/workflow.json",
+      "bytes": 298,
+      "sha256": "0cc21255bba70ce1331a8f73901a9b9ab731250564886dcbd49cb8266b010803"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-previous/distribution.json",
+      "bytes": 4448,
+      "sha256": "cde3b5fc7cfd565b1a9c8d04bae5cf470dde42b10c952346951dca35d81b0523"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-previous/environment.json",
+      "bytes": 5210,
+      "sha256": "f0e428ad62fa071af733b8ea208c51f80c020c659eaaff9b080faa24d8deb79a"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-previous/production-startup.json",
+      "bytes": 662,
+      "sha256": "b35307be754e5774d3a7997e41205146cda65a3f5df258e3481f3cee28f7495e"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-chrome-testing-previous/workflow.json",
+      "bytes": 299,
+      "sha256": "ab4237810f4aa6f83b9c291175a7ddbf106745704e1de839398fd29f98b99662"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-previous/distribution.json",
+      "bytes": 5034,
+      "sha256": "dc8dd909f4fc85da03e43e88fb2198fb575729ccd56647904c1ba5fd468bb092"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-previous/environment.json",
+      "bytes": 5169,
+      "sha256": "52183159a05097e5476fbe114b2ebe5875e4164e66797daa50da14bc8b994e57"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-previous/production-startup.json",
+      "bytes": 662,
+      "sha256": "8e427b23b7f7c2481613ec5f6812e49a1e4c79cfb23806a1efa0f3f4df163fbc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-previous/workflow.json",
+      "bytes": 289,
+      "sha256": "af6051e4fd0557d8825bf98ce4549a85f6663a79662a005d8fbfcfe3f99e6243"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-stable/distribution.json",
+      "bytes": 5023,
+      "sha256": "feb56455bd95c4770b4d3b0f27b67cd3a9a7334d50a69a76a66b4f9be629bfd9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-stable/environment.json",
+      "bytes": 5167,
+      "sha256": "c801255a59fa5ec1e229d4cbf4823b81ffc15d4990ed647b4a70bffbfb993d98"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-stable/production-startup.json",
+      "bytes": 662,
+      "sha256": "51893326f97f5fbb3e96493abdbcb935a363a6ea3f9e3725527db4c2b4d64651"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-edge-stable/workflow.json",
+      "bytes": 287,
+      "sha256": "fc5229251fba406642c70b20a20d61200e2d61ba02e0d9c5df2794019a843ffb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/distribution.json",
+      "bytes": 3579,
+      "sha256": "ec427960555929c53b714db058f0c87928e989909aa094b7eca5587738e75725"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/native/lifecycle.json",
+      "bytes": 176,
+      "sha256": "8e236376d99b380cc87190efa6a14b2aafc3ec171bba91d0ef53f2b04d56b721"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/workflow.json",
+      "bytes": 287,
+      "sha256": "044e7e006343b5a84613bc2dfcbdba564898874f5622a18fa0e8b1b89f8533cb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/distribution.json",
+      "bytes": 2404,
+      "sha256": "d96d1dae3a3301245f03122d2746006e33bf21aa7bc04868279e1f6c08f220e0"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/native/lifecycle.json",
+      "bytes": 176,
+      "sha256": "04a2819f798284afc6230980c4abbe253c9b5b3457c8ffc314a4aa2507255824"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/workflow.json",
+      "bytes": 301,
+      "sha256": "eb0ed77a26d32d4beeea885ace63f3dc4fc517e65fd0589b039d279fad97dede"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/distribution.json",
+      "bytes": 3621,
+      "sha256": "1eae647df620a86126cadc9bbe681f963e973ae922ca0596e0e63ebd23bae0bf"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/native/lifecycle.json",
+      "bytes": 176,
+      "sha256": "a7032003b6ec98abf78c09369bf021e5ad04fcc394ac6c84f988d3d36335b0b8"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/workflow.json",
+      "bytes": 295,
+      "sha256": "a7851cc6d96d7d6a68d3de98b39af27ed20e640a8bdec50bae51cbd8e41aa1d5"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/distribution.json",
+      "bytes": 3575,
+      "sha256": "17151b376a394861262a7e602a722a532ef946cc9035b45877892587e2810ebe"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/native/lifecycle.json",
+      "bytes": 176,
+      "sha256": "28d9748a63c31de407bc6541a76791c5c0b28015a19f226657aeb8e1f0334335"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/workflow.json",
+      "bytes": 292,
+      "sha256": "27a66dda1a06b8fae295a8c507c00f75f379dda2f6672a3ba1de74abb3871fc4"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/distribution.json",
+      "bytes": 3555,
+      "sha256": "92a578f676f8921e8316d9fb9fa04b59e8772ae519e3b7a49dad98f1fe5e2f4f"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/native/lifecycle.json",
+      "bytes": 176,
+      "sha256": "78335df728f0c57753a6d3ebebcc2c42731610ba8d7f4d77e6d976e289e11268"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/workflow.json",
+      "bytes": 290,
+      "sha256": "271aff7c188d31af42d98c6c87522acb1b8ae53a54cc6cec75f9d36dab3d8c7c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/distribution.json",
+      "bytes": 2358,
+      "sha256": "ca54fbca0e007a8118440dead66fbaa411c63a67424164ad0373f289a961b26c"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/native/lifecycle.json",
+      "bytes": 176,
+      "sha256": "b47d0f1d5865255148132acd35d7e600fff2bec7259e547ffe118f6d7467b64d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/workflow.json",
+      "bytes": 304,
+      "sha256": "253f301cff5871f60803cb88fec3645d551718ee950c7a4cdf867e779617f8b2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop-audit.json",
+      "bytes": 9253,
+      "sha256": "2609184d1bd2b9079b58a4ac890a2e18abb41cd90ec2f697d31f068fc54970cb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/runs/runs-dark-archive-dialog.png",
+      "bytes": 141328,
+      "sha256": "9d8a633e41cc686b9510d68d693a6f2ad0992c50841e8513ab27c9f6c593bd4d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/runs/runs-dark.png",
+      "bytes": 134527,
+      "sha256": "d0a718be886b64b16e073d4708c63ae19dc3e42e5e4ae13a2459617ac2f43511"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/runs/runs-light.png",
+      "bytes": 132345,
+      "sha256": "3dc962e328edb21d2e6aeea6d7188b1cd40763f64dcb7fc4aad9d61c29de20cb"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/branded-browser-matrix.json",
+      "bytes": 22415,
+      "sha256": "3a5e8f6585cb090d5f6e66185629c6626db65f65697bc75c11d2f9d7aa5cdf72"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/edge-153.0.4234.48-distribution.json",
+      "bytes": 354,
+      "sha256": "f29203ec0aedcea1d513473e7ce93addf65260cb60be70123ceb9d44253c7944"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/edge-154.0.4258.37-distribution.json",
+      "bytes": 354,
+      "sha256": "8af2c9cd2db738487cbb6876fc5c02dece730d7d945ea2f9a9741e58b762d257"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/command-dialog-narrow-dark.png",
+      "bytes": 78271,
+      "sha256": "efafed02371a1a34082f2bbf8ebc895bd81c81239187cc83e895f09aba65db2b"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/comparison.png",
+      "bytes": 133355,
+      "sha256": "b4ed06e077dc13f94bd00f8dd85e1417864f014336bf949d805e0dabd72e5082"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/feature-switch.png",
+      "bytes": 74591,
+      "sha256": "18855331db18ec4cbf74b91a15177396305d96ba973e6f7bf61a2ef9da0cbc63"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/pipeline-cards.png",
+      "bytes": 84190,
+      "sha256": "e89c614738df032ed93b3b1e0b74e3890bde1bfd9488e4e4160c3fb305c457d2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/result.json",
+      "bytes": 4760,
+      "sha256": "4bc207be1122ed5c295d2a600828391ee19e82eccfae4c75e4da81fe4c25572d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/run-details-inspector.png",
+      "bytes": 203784,
+      "sha256": "b41f7dd98b71d1f037a937e78c0ec8cc94e12fcf3b41928d05f8ccf358eaec38"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox140esr/runs-filtered.png",
+      "bytes": 98409,
+      "sha256": "64651a3727c4d24a268c43c392ee25e4816a7e911b1b945787192bfb07e80157"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/command-dialog-narrow-dark.png",
+      "bytes": 69496,
+      "sha256": "a2d7fd2cc4681f4e382c55560b17994030af8857047f4885b8ccfcb87a8020c9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/comparison.png",
+      "bytes": 112577,
+      "sha256": "8e7eef326b19defa7c1b1b1c0eec38dae2cf1c6a54f844c17b98de2b61445739"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/feature-switch.png",
+      "bytes": 55654,
+      "sha256": "6372b623c84b3c822cf22daf64f3dd3b19bd708d1495335c39debc51818d3279"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/pipeline-cards.png",
+      "bytes": 65018,
+      "sha256": "d7d91d3be86a261d8693ac20e3ae6e012a4e0bcfc80337e66e910da467562c70"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/result.json",
+      "bytes": 4754,
+      "sha256": "7b146bef3bab7b33d2c28840b08632a6bd51d77b2fbc16c1debc0941995bccea"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/run-details-inspector.png",
+      "bytes": 184961,
+      "sha256": "ccd384b77ecb6b6a51a130fcf39f72e03be5976a009c68f19f96440c60b428c7"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox153esr/runs-filtered.png",
+      "bytes": 79537,
+      "sha256": "a1f5c105107afe904e82bca39a0aeacf2d4d4716a0e503ae75f5acf2bb4afabc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/command-dialog-narrow-dark.png",
+      "bytes": 69496,
+      "sha256": "a2d7fd2cc4681f4e382c55560b17994030af8857047f4885b8ccfcb87a8020c9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/comparison.png",
+      "bytes": 112577,
+      "sha256": "8e7eef326b19defa7c1b1b1c0eec38dae2cf1c6a54f844c17b98de2b61445739"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/feature-switch.png",
+      "bytes": 55650,
+      "sha256": "1d866b87bf393a6089ed2a3f20fc4f62db6584d8f1e25d451c62393bf5b3209d"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/pipeline-cards.png",
+      "bytes": 65014,
+      "sha256": "3eeb5a5db221c9feb584140af1bc42f84036c612733fcb8fde4e40bc7f558b95"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/result.json",
+      "bytes": 4742,
+      "sha256": "8bbf60da3de18c07046b0a800a82334f3df652ac8a1b6b7d2d43338da9d546af"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/run-details-inspector.png",
+      "bytes": 184515,
+      "sha256": "87fde4194b0618524a33843daf1908d2ee3bb86eb1cfd226e079d6390b939740"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox155/runs-filtered.png",
+      "bytes": 79537,
+      "sha256": "a1f5c105107afe904e82bca39a0aeacf2d4d4716a0e503ae75f5acf2bb4afabc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/command-dialog-narrow-dark.png",
+      "bytes": 69496,
+      "sha256": "a2d7fd2cc4681f4e382c55560b17994030af8857047f4885b8ccfcb87a8020c9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/comparison.png",
+      "bytes": 112577,
+      "sha256": "8e7eef326b19defa7c1b1b1c0eec38dae2cf1c6a54f844c17b98de2b61445739"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/feature-switch.png",
+      "bytes": 55647,
+      "sha256": "ed7f493483f3a6fb2afab6de94c616a1a344a2f1f384c96179fb0932ca85e93b"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/pipeline-cards.png",
+      "bytes": 64885,
+      "sha256": "c5270aafff1e92964f55acd2cb393313f556b36b0d3e398a18f13d43881c52c1"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/result.json",
+      "bytes": 4742,
+      "sha256": "e399f15755d6111aa678ad12a0c96369351320b3b2553f2bbf8ea9988c350032"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/run-details-inspector.png",
+      "bytes": 184566,
+      "sha256": "a9a65903752e8eab868f341c3e7f353def6cdf677f67ca0c73add2130b69aee9"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/supported-browsers/firefox156/runs-filtered.png",
+      "bytes": 79537,
+      "sha256": "a1f5c105107afe904e82bca39a0aeacf2d4d4716a0e503ae75f5acf2bb4afabc"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/artifact-lineage-dark.png",
+      "bytes": 74622,
+      "sha256": "f3c02764a97b55345ba9a51e45a1eed304f66ca8df42ae631a7dc3cd5d484135"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/browser-matrix.json",
+      "bytes": 10036,
+      "sha256": "fbaf6b0bd317bcfac3e54e2b7512700cc5a92303834c389fff3f0c01c853fd76"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/bundle-sizes.json",
+      "bytes": 5627,
+      "sha256": "db7e77d9cf9aaf2306d33063bc9b3c71892f45feded23f138d0329afcf75dad2"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/large-graph-dark.png",
+      "bytes": 242411,
+      "sha256": "b2f8fd2dcd69073c102baba25f340d307a726db4f7853813423ebcb42d8b4b43"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/new-run-dark.png",
+      "bytes": 100828,
+      "sha256": "27661015ccf267c6b825fbe13d81560be06dfb7036836896977c8414ecd1a2a3"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/performance-protocol.json",
+      "bytes": 7705,
+      "sha256": "58a38223a4238e16861ab93f89b208a2336821410a9e09c61eaa3ebc4943fd60"
+    },
+    {
+      "path": "frontend/docs/ui-modernization/workflows/pipelines-expanded-light.png",
+      "bytes": 125098,
+      "sha256": "8a932bbf2651684389bff357577aa3d469fa0385244554a4aabb70bb9a69c686"
+    }
+  ],
+  "earlierArchive": {
+    "sourceCommit": "a058b10903912eb8bd29fc15a24b63b8e2722987",
+    "sourceTree": "bacd4c6227b6140f3c51092fd4f53fe5cb496563",
+    "archiveUrl": "https://raw.githubusercontent.com/kubeflow/pipelines/d9aed93d6184be1f65d36066b40eb92028a2aa25/archives/kfp-ui-modernization-evidence-a058b109.tar.gz",
+    "archiveSha256": "7cac429d045e7b2870c3199a76642f391667664abfcfb7f29fbc40352ca95bde",
+    "files": [
+      {
+        "path": "frontend/docs/ui-modernization/layout-stability/performance-evidence.json",
+        "bytes": 747313,
+        "sha256": "ea8838a1388eae62db3799f2f8d16e83d1b6cd4b0cba016a6c587bc82d6a8aae",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/layout-stability/performance-evidence.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/qualification/lighthouse-accessibility.json",
+        "bytes": 145583,
+        "sha256": "f28d0b5210c7f71a801c63a1d878acb081d9245ee4dda72914673e6ab648820a",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/qualification/lighthouse-accessibility.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/qualification/performance-evidence.json",
+        "bytes": 370434,
+        "sha256": "02c2578bc8ce138e1284ec72c71785ba83312bf9b8e8c8deac900af7f09c8bb8",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/qualification/performance-evidence.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/performance.json",
+        "bytes": 2942478,
+        "sha256": "afd9c279dbf421148cad9717443e7d54f32bbc090b02bd766bd68fffb2bf3e3c",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/performance.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/artifact-file-hashes.json",
+        "bytes": 44286,
+        "sha256": "4a5f504b4424368b5d6775c3ccd801b9d3679995453cb8a553daf4ae6439fcf5",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/artifact-file-hashes.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-26/checks/result.json",
+        "bytes": 241997,
+        "sha256": "66edb5cd4bd92d69e52d277814f5a52626893c943e0f7e5281a1356a085b5062",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-26/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-27/checks/result.json",
+        "bytes": 241291,
+        "sha256": "cfad214bbac0350bc41073ef38a4a9386164c4f5349088cf2f6005edfab7b7f1",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-desktop-27/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-26/checks/result.json",
+        "bytes": 279474,
+        "sha256": "6eb8000bc076524c3161d767c82eeb6b201d8b7b016f6e95b691151048105b96",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-ipad-26/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-26/checks/result.json",
+        "bytes": 285396,
+        "sha256": "383a92b05ef4c62bb3f16fb3573c66e53ec915f380e601ed5a802dfa22182a71",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-26/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-27/checks/result.json",
+        "bytes": 286458,
+        "sha256": "c6e334630eafcf6e2d68aff5a7dbcfc0f52257f3340c509d84eeb635bb46ef5c",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-apple-iphone-27/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr/native/result.json",
+        "bytes": 239642,
+        "sha256": "e1d92b01c436893727b85d3d6a451d2c5c3320d0f28fef0da13bca93477091ef",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-linux/native/result.json",
+        "bytes": 239583,
+        "sha256": "3fdca3c02a27c83b78f7790eae464f62cf07cdcd88d27785dfe14de1a6ab601f",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-linux/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-overlap/native/result.json",
+        "bytes": 239613,
+        "sha256": "b1e7ae2237732fb3c215ccb7b22d3fdfd93ed421b7fd496b32bbeee28c3767a0",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-esr-overlap/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-previous/native/result.json",
+        "bytes": 239642,
+        "sha256": "050443b996279f5dde87a78d255dcb105b29db93b7570d48b9f67eca0873da86",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-previous/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable/native/result.json",
+        "bytes": 239638,
+        "sha256": "af559c8280da5ee1fb41ba107d3c163cfeaf76da1402289f9492950108c0aee8",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable-linux/native/result.json",
+        "bytes": 239579,
+        "sha256": "67091b812522b22f1bfb530911a884d0e6343238c762e57740f09caef8c88b27",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-09-30/vendor-records/qualification-firefox-stable-linux/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/audit.json",
+        "bytes": 64625,
+        "sha256": "c4fd65794b7d441556a8c340436fd13cdb84230e57284971ee80eaa51d05c88b",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/audit.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/profile-authorization-state.json",
+        "bytes": 59270,
+        "sha256": "49b5f5debb61df1de9fd06d424daafb0693ea2ffe4c70c0c2f78ba72b4ff2330",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/profile-authorization-state.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/result.json",
+        "bytes": 73700,
+        "sha256": "3ade2b9ccdf29c540217b3405fb199ce163748e4a23e9b04d089e92cdb1df50a",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-multiuser/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/audit.json",
+        "bytes": 61905,
+        "sha256": "a2ce6b98f3571c9d5e39133ee6154b003d64555d429863e00fa946f5e7b76003",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/audit.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/result.json",
+        "bytes": 69673,
+        "sha256": "80836c02ff0c460994ba7b2dbcc76a34797043760b95aec8510f3af49b2569fe",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/deployment-standalone/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-02/performance.json",
+        "bytes": 2949737,
+        "sha256": "535cbd6df44a77076a20a48ab9acae9baa2bf68d4666359556a08cc232f86c49",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-02/performance.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/result.json",
+        "bytes": 73799,
+        "sha256": "f75151a0f9e141d25560b16e4720c534f00488307a42676865d8c5a17a9f086a",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-multiuser/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/result.json",
+        "bytes": 70412,
+        "sha256": "271a8a41db30bbf57c7ab999fcde2d202de83dfec3a179d00c5f0c75d8ecc040",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05/deployment-standalone/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05/performance.json",
+        "bytes": 4319217,
+        "sha256": "5b7d34e7b0f5b6c6897b5f261147565d941ea622236cd54a746067854a6429ef",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05/performance.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/result.json",
+        "bytes": 75206,
+        "sha256": "d136282fcc4ba94e38998e784599a2fc0ad650baedd570523e59cff5e2b7bde6",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-multiuser/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/result.json",
+        "bytes": 68488,
+        "sha256": "55a97fa9a2a59eeac8fc728b57c3c93e30563d691e3924a2ad947c319c986a76",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/deployment-standalone/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad26/result.json",
+        "bytes": 279616,
+        "sha256": "82a3ff762857190792d13d1d550347b508116fed3cd8997005c322a567030dd7",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad26/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad27/result.json",
+        "bytes": 279294,
+        "sha256": "e7d06047d811042953fada123043a2f030933f5238fe410dccae3571f117998e",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/ipad27/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone26/result.json",
+        "bytes": 285833,
+        "sha256": "c01af16c0e4943f928338095e49576801c2b52ce5fe5c5738b22d0619d23ab2e",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone26/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone27/result.json",
+        "bytes": 286436,
+        "sha256": "9afa464c89480c52ce5cdb4e213b15c79a09eb160543a02214818f7c16226cac",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/mobile/iphone27/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/performance.json",
+        "bytes": 4318744,
+        "sha256": "ad4d322af38cabe715c8456c334a0902a1f003d2b90a4bc741a3283adf7eb054",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/performance.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-26/checks/result.json",
+        "bytes": 241762,
+        "sha256": "29ce5bf2ff9608fa1a75ce8f7e89b324ae62b62989465432a5b60f732feb058a",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-26/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-27/checks/result.json",
+        "bytes": 241291,
+        "sha256": "62f774f64f48ef69621677d20b7ed21c071ebd468c6058f5cf43b6d623a24e58",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-apple-desktop-27/checks/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/native/result.json",
+        "bytes": 239642,
+        "sha256": "23fba683c6628f091e95369c85511a05fc14f5897572bdf20f1e2aec29c20e35",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/native/result.json",
+        "bytes": 239583,
+        "sha256": "c79150b33c37f7c6200f9e4ea558c4d1a734b41aa521594d9a3ad2d76938f1f8",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-linux/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/native/result.json",
+        "bytes": 239644,
+        "sha256": "577357f81b77fd59aaa88bbf27203e486c6ca8729ca40958b676c6583aea79d8",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-esr-overlap/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/native/result.json",
+        "bytes": 239611,
+        "sha256": "e62dee394efa6c6bce6128566501f072fdc0a3c9a474eba1a47e76f876f0b5f9",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-previous/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/native/result.json",
+        "bytes": 239638,
+        "sha256": "a0d702fd755b29946d18c20d671b572360cafd53a4d6f907a6aa31b6424084a9",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/native/result.json",
+        "bytes": 239579,
+        "sha256": "8c8bf4b65107ec93085b38ef70ac247d0184ceff1d1b08069000137b032d5997",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/release-qualification-2026-10-05-rebased/vendor-desktop/qualification-firefox-stable-linux/native/result.json"
+      },
+      {
+        "path": "frontend/docs/ui-modernization/workflows/performance-evidence.json",
+        "bytes": 115573,
+        "sha256": "abc710c9740645578e5f4ebdc2430ac9b082321a7059ae0de10a0b500ba09365",
+        "url": "https://github.com/kubeflow/pipelines/blob/d9aed93d6184be1f65d36066b40eb92028a2aa25/snapshots/a058b10903912eb8bd29fc15a24b63b8e2722987/frontend/docs/ui-modernization/workflows/performance-evidence.json"
+      }
+    ],
+    "evidenceRepository": "kubeflow/pipelines",
+    "evidenceCommit": "d9aed93d6184be1f65d36066b40eb92028a2aa25"
+  },
+  "evidenceRepository": "kubeflow/pipelines",
+  "evidenceCommit": "d9aed93d6184be1f65d36066b40eb92028a2aa25"
+}

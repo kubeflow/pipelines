@@ -1,0 +1,377 @@
+.kfp-graph-workspace {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  color: var(--foreground);
+}
+.kfp-graph-canvas {
+  min-width: 0;
+  position: relative;
+  flex: 1;
+  min-height: 240px;
+}
+.kfp-graph-canvas .react-flow {
+  --xy-background-color: var(--background);
+  --xy-background-pattern-dots-color: var(--border-strong);
+  --xy-edge-stroke: var(--border-strong);
+  --xy-edge-stroke-selected: var(--primary);
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-minimap-background-color: var(--card);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--muted) 65%, transparent);
+  --xy-minimap-node-background-color: var(--border-strong);
+  --xy-minimap-node-stroke-color: var(--muted-foreground);
+  --xy-attribution-background-color: var(--card);
+}
+.kfp-graph-node {
+  --kfp-node-state-color: var(--status-neutral);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 0;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+  font-family: var(--kfp-font-sans);
+  text-align: center;
+  cursor: pointer;
+}
+.kfp-graph-node:hover {
+  border-color: var(--border-strong);
+}
+.kfp-graph-node[data-tone='succeeded'],
+.kfp-graph-legend [data-tone='succeeded'] {
+  --kfp-node-state-color: var(--status-succeeded);
+}
+.kfp-graph-node[data-tone='running'],
+.kfp-graph-legend [data-tone='running'] {
+  --kfp-node-state-color: var(--status-running);
+}
+.kfp-graph-node[data-tone='failed'],
+.kfp-graph-legend [data-tone='failed'] {
+  --kfp-node-state-color: var(--status-failed);
+}
+.kfp-graph-node[data-tone='warning'] {
+  --kfp-node-state-color: var(--status-warning);
+}
+.kfp-graph-legend [data-tone='neutral'] {
+  --kfp-node-state-color: var(--status-neutral);
+}
+.kfp-graph-node[data-selected='true'],
+.kfp-graph-canvas .react-flow__node.selected .kfp-graph-node {
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 3px var(--primary-soft),
+    0 2px 5px rgb(0 0 0 / 12%);
+}
+.kfp-graph-node-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 24px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+.kfp-graph-node-status[data-empty='true'] {
+  border-color: transparent;
+}
+.kfp-graph-node-copy {
+  flex: 1;
+  min-width: 0;
+}
+.kfp-graph-node-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+}
+.kfp-graph-node-meta {
+  display: block;
+  color: var(--muted-foreground);
+  font-family: var(--kfp-font-mono);
+  font-size: 11px;
+  line-height: 17px;
+}
+.kfp-graph-type-icon {
+  flex: none;
+  color: var(--muted-foreground);
+}
+.kfp-graph-type-icon[data-kind='component'] {
+  color: var(--graph-component);
+}
+.kfp-graph-type-icon[data-kind='artifact'] {
+  color: var(--graph-artifact);
+}
+.kfp-graph-state-icon {
+  display: inline-block;
+  flex: none;
+  color: var(--kfp-node-state-color);
+  vertical-align: -2px;
+}
+.kfp-graph-state-icon[data-state='RUNNING'] {
+  color: var(--status-running);
+  animation: kfp-graph-spin 1s linear infinite;
+}
+.kfp-graph-group {
+  padding: 0;
+  gap: 0;
+  border-style: dashed;
+}
+.kfp-graph-group-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kfp-graph-expand {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 32px;
+  margin-right: 5px;
+  padding: 0;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--foreground-2);
+  background: var(--card);
+  cursor: pointer;
+}
+.kfp-graph-expand:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.kfp-graph-hierarchy {
+  display: flex;
+  flex: none;
+  gap: 14px;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  font-size: 12px;
+}
+.kfp-graph-hierarchy-label {
+  flex: none;
+  color: var(--muted-foreground);
+}
+.kfp-graph-hierarchy ol {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+.kfp-graph-hierarchy li {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+.kfp-graph-hierarchy svg {
+  color: var(--muted-foreground);
+}
+.kfp-graph-hierarchy button {
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--primary);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.kfp-graph-hierarchy button:disabled {
+  color: var(--foreground);
+  cursor: default;
+}
+.kfp-graph-hierarchy button:hover:not(:disabled) {
+  background: var(--primary-soft);
+}
+.kfp-graph-canvas .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+}
+.kfp-graph-canvas .react-flow__controls-button {
+  width: 30px;
+  height: 30px;
+}
+.kfp-graph-canvas .react-flow__controls-button svg {
+  fill: none;
+}
+.kfp-graph-canvas .react-flow__controls-button:disabled {
+  color: var(--muted-foreground);
+  background: var(--muted);
+  cursor: not-allowed;
+}
+.kfp-graph-canvas .react-flow__controls-button:disabled svg {
+  opacity: 0.35;
+}
+.kfp-graph-canvas .react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.kfp-graph-canvas .kfp-graph-legend {
+  max-width: calc(100% - 76px);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  font-size: 12px;
+  pointer-events: none;
+}
+.kfp-graph-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kfp-graph-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+}
+.kfp-graph-edge .react-flow__edge-path {
+  stroke: var(--border-strong);
+}
+.kfp-graph-edge:hover .react-flow__edge-path,
+.kfp-graph-edge:focus-visible .react-flow__edge-path,
+.kfp-graph-edge.selected .react-flow__edge-path {
+  stroke: var(--primary);
+  stroke-width: 2;
+}
+.kfp-graph-node-meta .kfp-graph-state-icon {
+  margin-right: 5px;
+}
+@keyframes kfp-graph-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kfp-graph-state-icon {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .kfp-graph-canvas .react-flow__controls-button:disabled {
+    color: var(--muted-foreground);
+    background: var(--muted);
+    cursor: not-allowed;
+  }
+  .kfp-graph-canvas .react-flow__controls-button:disabled svg {
+    opacity: 0.35;
+  }
+  .kfp-graph-canvas .react-flow__minimap {
+    display: none;
+  }
+}
+
+.kfp-graph-locked .react-flow__edge,
+.kfp-graph-locked .react-flow__edge * {
+  pointer-events: none;
+}
+.kfp-subdag-box {
+  width: 100%;
+  height: 100%;
+  outline: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary-soft) 28%, transparent);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 12%);
+  overflow: hidden;
+}
+.kfp-subdag-box[data-selected='true'],
+.kfp-subdag-box:focus-within {
+  outline: 2px solid var(--primary);
+}
+.kfp-subdag-header {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 30px 27px;
+  gap: 10px;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--card);
+  color: var(--foreground);
+}
+.kfp-subdag-status {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  height: 24px;
+  border-left: 1px solid var(--border);
+  justify-content: center;
+}
+.kfp-subdag-status[data-empty='true'] {
+  border-color: transparent;
+}
+.kfp-subdag-box[data-tone='succeeded'] {
+  --kfp-node-state-color: var(--status-succeeded);
+}
+.kfp-subdag-box[data-tone='failed'] {
+  --kfp-node-state-color: var(--status-failed);
+}
+.kfp-subdag-box[data-tone='running'] {
+  --kfp-node-state-color: var(--status-running);
+}
+.kfp-subdag-box {
+  --kfp-node-state-color: var(--status-neutral);
+}
+.kfp-graph-tooltip {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-card);
+  font-size: 12px;
+}
+
+.kfp-subdag-type {
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+}
+.kfp-subdag-label {
+  min-width: 0;
+  padding: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 13px;
+}
+.kfp-subdag-header .kfp-graph-expand {
+  margin: 0;
+}
+
+.kfp-subdag-label .truncate {
+  display: block;
+}
