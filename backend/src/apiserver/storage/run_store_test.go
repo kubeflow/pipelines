@@ -2581,6 +2581,58 @@ func TestClaimRunForRetry_StoresUnpredictableNonce(t *testing.T) {
 	assert.Equal(t, nonce, run.RetryClaimNonce)
 }
 
+func TestUpdateRunIfClaimStillPending_PreservesCancelingWhileUpdatingIdentity(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-cas-cancel",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-cas-cancel",
+		DisplayName:  "run-cas-cancel",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf-failed-uid1",
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, gen, _, claimErr := runStore.ClaimRunForRetry("run-cas-cancel", false)
+	require.Nil(t, claimErr)
+	require.NoError(t, runStore.TerminateRun("run-cas-cancel"))
+
+	stale := &model.Run{
+		UUID:    "run-cas-cancel",
+		K8SName: "run-cas-cancel",
+		RunDetails: model.RunDetails{
+			State:                   model.RuntimeStateRunning,
+			Conditions:              string(model.RuntimeStateRunning.ToExecutionPhase()),
+			FinishedAtInSec:         0,
+			WorkflowRuntimeManifest: "wf-running-uid2",
+			RetryGeneration:         gen,
+		},
+	}
+	updated, err := runStore.UpdateRunIfClaimStillPending(stale)
+	require.Nil(t, err)
+	assert.True(t, updated)
+
+	persisted, err := runStore.GetRun("run-cas-cancel", false)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persisted.State,
+		"cancellation must survive retry persist")
+	assert.Equal(t, "wf-running-uid2", string(persisted.WorkflowRuntimeManifest),
+		"replacement identity/manifest must still be written")
+}
+
 func TestUpdateRunIfClaimStillPending_RejectsAfterTerminalReport(t *testing.T) {
 	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()

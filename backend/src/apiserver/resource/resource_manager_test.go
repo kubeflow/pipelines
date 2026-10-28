@@ -947,6 +947,27 @@ func (c *retryableUpdateFailureWorkflowClient) Update(ctx context.Context, execS
 	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
 }
 
+// terminateAfterActivationWorkflowClient invokes onActivated once after an
+// Update that stamps retry-generation (activation), modeling TerminateRun
+// racing the retry persist write.
+type terminateAfterActivationWorkflowClient struct {
+	*client.FakeWorkflowClient
+	onActivated func()
+	activated   bool
+}
+
+func (c *terminateAfterActivationWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	updated, err := c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+	if err != nil || c.activated || c.onActivated == nil || updated == nil {
+		return updated, err
+	}
+	if _, ok := updated.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration]; ok {
+		c.activated = true
+		c.onActivated()
+	}
+	return updated, err
+}
+
 func (c *retryableUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
 	c.createCalls++
 	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
@@ -3869,6 +3890,27 @@ func TestRetryRun_LegacyMissingStoredUID_PreservesNodesAfterFailedActivation(t *
 
 	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
 	require.NoError(t, err)
+
+	// Persistence agent can report the unactivated placeholder (Argo may mark
+	// a suspended Workflow Running). That report must not erase retained nodes.
+	livePlaceholder, liveErr := rejectingClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, liveErr)
+	placeholderReport := util.NewWorkflow(livePlaceholder.(*util.Workflow).DeepCopy())
+	placeholderReport.Status.Phase = v1alpha1.WorkflowRunning
+	placeholderReport.Status.Nodes = nil
+	_, err = manager.ReportWorkflowResource(ctx, placeholderReport)
+	require.NoError(t, err)
+	afterReport, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, afterReport.State)
+	assert.Contains(t, string(afterReport.WorkflowRuntimeManifest), "ok-pod",
+		"unactivated placeholder report must not erase retained nodes")
+	assert.Contains(t, string(afterReport.WorkflowRuntimeManifest), "fail-pod")
+	savedAfterReport, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(afterReport.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowFailed), string(savedAfterReport.ExecutionStatus().Condition()),
+		"unactivated placeholder report must preserve the terminal Failed phase")
+
 	rejectingClient.updateFailuresRemaining = 0
 
 	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
@@ -3876,6 +3918,154 @@ func TestRetryRun_LegacyMissingStoredUID_PreservesNodesAfterFailedActivation(t *
 	require.NoError(t, err)
 	assert.Equal(t, model.RuntimeStateRunning, recovered.State)
 	assert.Contains(t, string(recovered.WorkflowRuntimeManifest), "ok-pod")
+}
+
+func TestRetryRun_CancelDuringActivationPersistsReplacementIdentity(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+
+	workflowClient := client.NewWorkflowClientFake()
+	_, err = workflowClient.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "seed-uid"},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NoError(t, workflowClient.Delete(ctx, "seed-uid", v1.DeleteOptions{}))
+
+	termClient := &terminateAfterActivationWorkflowClient{FakeWorkflowClient: workflowClient}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: termClient}
+	termClient.onActivated = func() {
+		require.NoError(t, manager.TerminateRun(ctx, runDetail.UUID))
+	}
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	afterRetry, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, afterRetry.State,
+		"concurrent cancellation must be preserved across retry persist")
+	replacementUID := storedWorkflowUID(t, afterRetry)
+	assert.NotEqual(t, originalUID, replacementUID,
+		"verified replacement identity must be persisted even when Canceling")
+
+	live, err := workflowClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, replacementUID, live.ExecutionObjectMeta().UID)
+	require.NotNil(t, live.(*util.Workflow).Spec.ActiveDeadlineSeconds)
+	assert.Equal(t, int64(0), *live.(*util.Workflow).Spec.ActiveDeadlineSeconds)
+
+	// Terminal report of the canceled replacement must finalize. Update the
+	// same fake client RetryRun used — syncWorkflowReportWithFakeCluster would
+	// write the store's default client, which manager.execClient no longer uses.
+	terminal := util.NewWorkflow(live.(*util.Workflow).DeepCopy())
+	terminal.Status.Phase = v1alpha1.WorkflowFailed
+	terminal.Status.FinishedAt = v1.NewTime(time.Unix(999, 0))
+	terminal.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"ok": {ID: "ok", Name: "ok-pod", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeSucceeded},
+	}
+	_, err = workflowClient.Update(ctx, terminal, v1.UpdateOptions{})
+	require.NoError(t, err)
+	liveTerminal, err := workflowClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, liveTerminal)
+	require.NoError(t, err)
+
+	finalized, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, finalized.State)
+	assert.Equal(t, replacementUID, storedWorkflowUID(t, finalized))
+	assert.Contains(t, string(finalized.WorkflowRuntimeManifest), "ok-pod")
+}
+
+func TestRetryRun_PreNonceExpiredClaimAdoptsMatchingUID(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+
+	_, _, _, claimGeneration, _, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	// Simulate a pre-upgrade claim row: generation set, nonce empty, claim aged out.
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET RetryClaimNonce = '', RetryClaimedAtInSec = 0 WHERE UUID = ?`,
+		runDetail.UUID)
+	require.NoError(t, err)
+
+	// In-place activation keeps the immutable UID while stamping generation.
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	live, err := workflowClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, originalUID, live.ExecutionObjectMeta().UID)
+	live.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	live.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	live.(*util.Workflow).Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"inflight": {ID: "inflight", Name: "inflight-pod", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeRunning},
+	}
+	_, err = workflowClient.Update(ctx, live, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	adopted, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), adopted.RetryGeneration,
+		"pre-nonce claim with matching UID+generation must adopt, not take over")
+	assert.Equal(t, model.RuntimeStateRunning, adopted.State)
+	assert.Contains(t, string(adopted.WorkflowRuntimeManifest), "inflight-pod",
+		"in-flight node from the active pre-nonce retry must survive")
+	assert.Equal(t, originalUID, storedWorkflowUID(t, adopted))
+}
+
+func TestRetryRun_PreNonceExpiredClaimRefusesTakeoverOnUIDMismatch(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+
+	_, _, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET RetryClaimNonce = '', RetryClaimedAtInSec = 0 WHERE UUID = ?`,
+		runDetail.UUID)
+	require.NoError(t, err)
+
+	// Recreate under the same name with a new UID and generation stamp, leaving
+	// the stored row on the old UID (pre-nonce crash before persist).
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	require.NoError(t, workflowClient.Delete(ctx, runDetail.K8SName, v1.DeleteOptions{}))
+	live := util.NewWorkflow(testWorkflow.DeepCopy())
+	live.Name = runDetail.K8SName
+	live.Namespace = run.Namespace
+	live.Labels = map[string]string{util.LabelKeyWorkflowRunId: runDetail.UUID}
+	live.Annotations = map[string]string{util.AnnotationKeyRetryGeneration: "1"}
+	live.Status.Phase = v1alpha1.WorkflowRunning
+	live.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"inflight": {ID: "inflight", Name: "inflight-pod", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeRunning},
+	}
+	created, err := workflowClient.Create(ctx, live, v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NotEqual(t, originalUID, created.ExecutionObjectMeta().UID)
+
+	err = manager.RetryRun(ctx, runDetail.UUID)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	unchanged, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), unchanged.RetryGeneration)
+	assert.Equal(t, model.RuntimeStatePending, unchanged.State)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, unchanged))
 }
 
 func TestRetryRun_ExpiredClaimOwnedPlaceholderResumesActivation(t *testing.T) {
@@ -4325,6 +4515,95 @@ func TestReportWorkflowResource_RecurringOffloadedTerminalHydratesBeforePersist(
 
 	require.NoError(t, manager.RetryRun(ctx, runID),
 		"retry must use the hydrated recurring-run manifest after Workflow and offload GC")
+}
+
+type concurrentHydrateHookHydrator struct {
+	inner interface {
+		IsHydrated(*v1alpha1.Workflow) bool
+		Hydrate(context.Context, *v1alpha1.Workflow) error
+		Dehydrate(context.Context, *v1alpha1.Workflow) error
+		HydrateWithNodes(*v1alpha1.Workflow, v1alpha1.Nodes)
+	}
+	hook func()
+}
+
+func (h *concurrentHydrateHookHydrator) IsHydrated(wf *v1alpha1.Workflow) bool {
+	return h.inner.IsHydrated(wf)
+}
+func (h *concurrentHydrateHookHydrator) Hydrate(ctx context.Context, wf *v1alpha1.Workflow) error {
+	if h.hook != nil && wf.Status.IsOffloadNodeStatus() {
+		h.hook()
+	}
+	return h.inner.Hydrate(ctx, wf)
+}
+func (h *concurrentHydrateHookHydrator) Dehydrate(ctx context.Context, wf *v1alpha1.Workflow) error {
+	return h.inner.Dehydrate(ctx, wf)
+}
+func (h *concurrentHydrateHookHydrator) HydrateWithNodes(wf *v1alpha1.Workflow, nodes v1alpha1.Nodes) {
+	h.inner.HydrateWithNodes(wf, nodes)
+}
+
+func TestReportWorkflowResource_RecurringHydrateCASRejectsStaleOverwrite(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	repo := util.NewMemoryOffloadNodeStatusRepo()
+	inner := util.NewMemoryWorkflowHydrator(repo)
+	const runID = "recurring-cas-run-id"
+	hook := &concurrentHydrateHookHydrator{inner: inner}
+	util.SetWorkflowHydratorForTest(t, hook)
+
+	recurringWorkflow := testWorkflow.DeepCopy()
+	recurringWorkflow.Name = "recurring-cas-workflow"
+	recurringWorkflow.Namespace = job.Namespace
+	recurringWorkflow.UID = "recurring-cas-uid"
+	recurringWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: runID}
+	recurringWorkflow.OwnerReferences = []v1.OwnerReference{{
+		APIVersion: "kubeflow.org/v1beta1",
+		Kind:       "ScheduledWorkflow",
+		Name:       job.K8SName,
+		UID:        types.UID(job.UUID),
+	}}
+	recurringWorkflow.Status = v1alpha1.WorkflowStatus{
+		Phase:                    v1alpha1.WorkflowFailed,
+		OffloadNodeStatusVersion: "offload-hash",
+	}
+	workflow := util.NewWorkflow(recurringWorkflow)
+	workflow.SetServiceAccount(job.ServiceAccount)
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	repo.Put(string(workflow.UID), "offload-hash", map[string]v1alpha1.NodeStatus{
+		"node1": {
+			ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed,
+			Outputs: &v1alpha1.Outputs{Artifacts: []v1alpha1.Artifact{{Name: "a", Deleted: false}}},
+		},
+	})
+
+	hook.hook = func() {
+		// Concurrent report saved a newer hydrated snapshot (artifact GC).
+		newer := util.NewWorkflow(workflow.DeepCopy())
+		newer.Status.OffloadNodeStatusVersion = ""
+		newer.Status.Nodes = map[string]v1alpha1.NodeStatus{
+			"node1": {
+				ID: "node1", Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed,
+				Outputs: &v1alpha1.Outputs{Artifacts: []v1alpha1.Artifact{{Name: "a", Deleted: true}}},
+			},
+		}
+		created, err := manager.GetRun(runID)
+		require.NoError(t, err)
+		created.WorkflowRuntimeManifest = model.LargeText(newer.ToStringForStore())
+		require.NoError(t, store.RunStore().UpdateRun(created))
+	}
+
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
+
+	persisted, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	assert.Contains(t, string(persisted.WorkflowRuntimeManifest), `"deleted":true`,
+		"CAS must keep the newer concurrent snapshot that marked the artifact deleted")
+	assert.NotContains(t, string(persisted.WorkflowRuntimeManifest), `"deleted":false`)
 }
 
 func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {

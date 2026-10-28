@@ -1412,16 +1412,30 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
 		if run.RetryClaimedAtInSec == 0 || claimAge > int64(retryClaimGracePeriod()/time.Second) {
 			liveWorkflow, readError := r.getWorkflowClient(namespace).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
+			storedIdentity, identityErr := r.storedWorkflowIdentityForRun(run)
+			if identityErr != nil {
+				return identityErr
+			}
 			switch {
 			case readError == nil && liveWorkflow != nil &&
-				retryWorkflowActivatedForClaim(liveWorkflow.ExecutionObjectMeta(), run.RetryGeneration, run.RetryClaimNonce):
-				// The previous retry was activated despite the expired claim.
-				// Persist its current state and report success.
+				retryWorkflowActivatedForExpiredClaim(run, storedIdentity.uid, liveWorkflow):
+				// The previous retry was activated despite the expired claim
+				// (including pre-nonce upgrade claims whose live UID+generation
+				// still match). Persist its current state and report success.
 				glog.Warningf("Run %s has an expired retry claim (generation %d) but its workflow is live; adopting it instead of retrying again", runId, run.RetryGeneration)
 				if err := r.persistAdoptedRetryWorkflow(ctx, run, namespace, liveWorkflow); err != nil {
 					return err
 				}
 				return nil
+			case readError == nil && liveWorkflow != nil &&
+				run.RetryClaimNonce == "" &&
+				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == run.RetryGeneration:
+				// Pre-nonce claim with a live matching generation but a
+				// different UID: refuse takeover rather than rewriting an
+				// in-flight retry from the old terminal snapshot.
+				return util.NewUnavailableServerError(
+					fmt.Errorf("pre-nonce retry claim generation %d is live under a different workflow UID", run.RetryGeneration),
+					"Run %s has an expired pre-nonce retry claim with a live retry workflow - try again later", runId)
 			case readError == nil && liveWorkflow != nil &&
 				retryWorkflowOwnedPlaceholderForClaim(liveWorkflow, runId, run.RetryGeneration, run.RetryClaimNonce):
 				// Owned placeholder without activation: resume activation
@@ -1629,6 +1643,8 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if !updated {
 		// A same-generation terminal report already committed. Treat as success
 		// for the caller: the claim's workflow is durable, just not via this write.
+		// Concurrent CANCELING is handled inside UpdateRunIfClaimStillPending by
+		// persisting the replacement identity while preserving cancellation.
 		glog.Warningf("Retry persist for run %s generation %d lost the CAS race to a concurrent report; leaving stored row unchanged",
 			runId, claimGeneration)
 		r.storedWorkflowIdentities.delete(runId)
@@ -2656,6 +2672,23 @@ func (r *ResourceManager) reportWorkflowResource(
 		}
 	}
 
+	// An owned, unactivated retry placeholder can share the stored UID after
+	// legacy identity repair binds the retained terminal snapshot to the
+	// placeholder. Persistence-agent reports of that Running/suspended
+	// placeholder (no retry-generation stamp) must not replace Failed/Error
+	// node data while the claim is still PENDING. Activated retries that
+	// already carry the claim generation remain eligible for persist.
+	if updateError == nil &&
+		run.State == model.RuntimeStatePending &&
+		run.RetryGeneration > 0 &&
+		!execStatus.IsInFinalState() &&
+		reportedRetryGeneration(objMeta) == 0 &&
+		storedRunManifestIsTerminal(run) {
+		glog.Infof("Skipping unactivated placeholder report for run %s during pending retry claim generation %d; preserving retained terminal snapshot",
+			runId, run.RetryGeneration)
+		return execSpec, nil
+	}
+
 	// Fence terminal reports from stale pre-retry workflow snapshots.
 	// A retried workflow carries the claim's RetryGeneration as an
 	// annotation; a snapshot taken before the retry carries an older
@@ -2745,15 +2778,31 @@ func (r *ResourceManager) reportWorkflowResource(
 	if updateError == nil && createdFromRecurringReport {
 		// CreateRun above may have stored a dehydrated offload pointer before
 		// hydrate ran. Rewrite the recurring-run row with hydrated nodes so
-		// RetryRun survives Workflow CR and offload GC.
+		// RetryRun survives Workflow CR and offload GC. Fence on the CreateRun
+		// snapshot so a newer concurrent report cannot be overwritten.
 		if execStatus.IsInFinalState() {
+			expectedWorkflowRuntimeManifest := run.WorkflowRuntimeManifest
+			expectedPipelineRuntimeManifest := run.PipelineRuntimeManifest
 			run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 			run.State = state
 			run.Conditions = string(state.ToExecutionPhase())
 			run.FinishedAtInSec = execStatus.FinishedAt()
-			if err := r.runStore.UpdateRun(run); err != nil {
+			updated, err := r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
+				run,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+			)
+			if err != nil {
 				return nil, util.Wrapf(err,
 					"Failed to preserve hydrated workflow node status for recurring run %s", runId)
+			}
+			if !updated {
+				r.storedWorkflowIdentities.delete(runId)
+				return nil, util.NewUnavailableServerError(
+					errors.New("stored run changed while hydrating recurring workflow report"),
+					"Failed to report workflow for run %s because the stored run changed concurrently - try again later",
+					runId,
+				)
 			}
 		}
 	} else if updateError == nil {
@@ -3542,13 +3591,56 @@ func liveWorkflowOwnedForRetryReconcile(
 }
 
 // retryWorkflowActivatedForClaim reports whether meta carries this claim's
-// activation-generation annotation and matching nonce, proving the activating
-// Update applied for this claim (generation alone is forgeable).
+// activation-generation annotation. When nonce is set, it must also match
+// (generation alone is forgeable). Empty nonce is the pre-upgrade claim shape:
+// callers that authorize adoption must also verify immutable UID ownership via
+// retryWorkflowActivatedForExpiredClaim.
 func retryWorkflowActivatedForClaim(meta *v1.ObjectMeta, generation int64, nonce string) bool {
-	return generation > 0 &&
-		nonce != "" &&
-		reportedRetryGeneration(meta) == generation &&
-		util.RetryClaimNonceMatches(meta, nonce)
+	if generation <= 0 || meta == nil || reportedRetryGeneration(meta) != generation {
+		return false
+	}
+	if nonce == "" {
+		return true
+	}
+	return util.RetryClaimNonceMatches(meta, nonce)
+}
+
+// retryWorkflowActivatedForExpiredClaim reports whether live is the in-flight
+// retry for an expired claim. Modern claims require generation+nonce.
+// Pre-nonce upgrade claims also require the live immutable UID to match the
+// stored run so a foreign same-name Workflow cannot be adopted.
+func retryWorkflowActivatedForExpiredClaim(run *model.Run, storedUID types.UID, live util.ExecutionSpec) bool {
+	if run == nil || live == nil {
+		return false
+	}
+	meta := live.ExecutionObjectMeta()
+	if !retryWorkflowActivatedForClaim(meta, run.RetryGeneration, run.RetryClaimNonce) {
+		return false
+	}
+	if run.RetryClaimNonce != "" {
+		return true
+	}
+	return storedUID != "" && meta != nil && meta.UID == storedUID
+}
+
+// storedRunManifestIsTerminal reports whether the durable runtime snapshot is
+// already Failed/Error/Succeeded (used to refuse unactivated placeholder reports).
+func storedRunManifestIsTerminal(run *model.Run) bool {
+	if run == nil {
+		return false
+	}
+	storedManifest := string(run.WorkflowRuntimeManifest)
+	if storedManifest == "" {
+		storedManifest = string(run.PipelineRuntimeManifest)
+	}
+	if storedManifest == "" {
+		return false
+	}
+	storedSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(storedManifest))
+	if err != nil {
+		return false
+	}
+	return storedSpec.ExecutionStatus().IsInFinalState()
 }
 
 // retryWorkflowOwnedPlaceholderForClaim reports whether live is a suspended

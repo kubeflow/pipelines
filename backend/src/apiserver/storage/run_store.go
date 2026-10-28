@@ -216,9 +216,10 @@ type RunStoreInterface interface {
 		expectedPipelineRuntimeManifest model.LargeText,
 	) (bool, error)
 
-	// UpdateRunIfClaimStillPending applies a retry success/adoption write only
-	// when the row is still PENDING under the caller's RetryGeneration. Returns
-	// false without mutating when a same-generation terminal report already won.
+	// UpdateRunIfClaimStillPending applies a retry success/adoption write when
+	// the row is still PENDING or CANCELING under the caller's RetryGeneration.
+	// CANCELING preserves cancellation while updating workflow identity/manifest.
+	// Returns false without mutating when a same-generation terminal report already won.
 	UpdateRunIfClaimStillPending(run *model.Run) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
@@ -913,16 +914,117 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	return err
 }
 
-// UpdateRunIfClaimStillPending applies a retry-path write only when the row is
-// still PENDING at the caller's RetryGeneration. A current-generation terminal
-// report that committed first must not be overwritten back to Running.
+// UpdateRunIfClaimStillPending applies a retry-path write when the row is still
+// PENDING or CANCELING at the caller's RetryGeneration. PENDING rows take the
+// caller's desired state (usually Running). CANCELING rows keep cancellation
+// while persisting the verified replacement identity/manifest so a concurrent
+// TerminateRun cannot strand the run on the pre-retry Workflow UID. A
+// same-generation terminal report that committed first returns false.
 func (s *RunStore) UpdateRunIfClaimStillPending(run *model.Run) (bool, error) {
-	pending := model.RuntimeStatePending
-	return s.updateRun(run, &runRuntimeManifestPrecondition{
-		retryGeneration: run.RetryGeneration,
-		state:           &pending,
-		ignoreManifests: true,
-	})
+	return s.updateRunForRetryClaim(run)
+}
+
+func (s *RunStore) updateRunForRetryClaim(run *model.Run) (bool, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "transaction creation failed")
+	}
+	defer tx.Rollback()
+
+	lockSQL, lockArgs, err := qb.
+		Select(dialect.QuoteAll(q, []string{"State", "Conditions", "RetryGeneration"})...).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): run.UUID}).
+		ToSql()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to lock run %s before retry claim update", run.UUID)
+	}
+	var currentState sql.NullString
+	var currentConditions sql.NullString
+	var currentRetryGeneration sql.NullInt64
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(lockSQL), lockArgs...).Scan(
+		&currentState, &currentConditions, &currentRetryGeneration); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		}
+		return false, util.NewInternalServerError(err, "Failed to lock run %s before retry claim update", run.UUID)
+	}
+	if currentRetryGeneration.Int64 != run.RetryGeneration {
+		return false, nil
+	}
+	effectiveState := model.RuntimeStateUnspecified
+	if currentState.Valid && currentState.String != "" {
+		effectiveState = model.RuntimeState(currentState.String).ToV2()
+	} else if currentConditions.Valid {
+		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
+	}
+	switch effectiveState {
+	case model.RuntimeStatePending:
+		// Apply the caller's desired state (Running / terminal adoption).
+	case model.RuntimeStateCancelling:
+		// Preserve cancellation; still persist the replacement identity.
+		run.State = model.RuntimeStateCancelling
+		run.Conditions = string(model.RuntimeStateCancelling.ToExecutionPhase())
+	default:
+		// Terminal (or unexpected) same-generation state already committed.
+		return false, nil
+	}
+
+	if len(run.StateHistory) == 0 || run.StateHistory[len(run.StateHistory)-1].State != run.State {
+		run.StateHistory = append(run.StateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           run.State,
+		})
+	}
+	stateHistoryString := ""
+	if historyString, err := json.Marshal(run.StateHistory); err == nil {
+		stateHistoryString = string(historyString)
+	}
+	updateFields := sq.Eq{
+		q("Conditions"):              run.Conditions,
+		q("State"):                   run.State.ToString(),
+		q("StateHistory"):            stateHistoryString,
+		q("FinishedAtInSec"):         run.FinishedAtInSec,
+		q("WorkflowRuntimeManifest"): run.WorkflowRuntimeManifest,
+	}
+	if run.K8SName != "" {
+		updateFields[q("Name")] = run.K8SName
+	}
+	if run.Namespace != "" {
+		updateFields[q("Namespace")] = run.Namespace
+	}
+	if run.PluginsOutputString != nil {
+		updateFields[q("PluginsOutput")] = largeTextToNullableSQL(run.PluginsOutputString)
+	}
+	sql, args, err := qb.
+		Update(q("run_details")).
+		SetMap(updateFields).
+		Where(sq.And{
+			sq.Eq{q("UUID"): run.UUID},
+			sq.Eq{q("RetryGeneration"): run.RetryGeneration},
+		}).
+		ToSql()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to create query to update run %s", run.UUID)
+	}
+	result, err := tx.Exec(sql, args...)
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to update run %s", run.UUID)
+	}
+	r, err := result.RowsAffected()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to update run %s", run.UUID)
+	}
+	if r != 1 {
+		return false, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return false, util.NewInternalServerError(err, "Failed to update run %s", run.UUID)
+	}
+	return true, nil
 }
 
 func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
