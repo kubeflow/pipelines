@@ -1,0 +1,61 @@
+# Applies the `ready` label when a user with triage access or higher comments
+# `/ready` on its own line in an issue. The PR Gate admits external pull
+# requests only for issues with this label, so the command must not grant more
+# than the commenter could already do by labeling the issue directly.
+name: Ready Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  ready:
+    # Pull request comments also emit issue_comment; only issues are admitted.
+    if: >-
+      github.repository == 'kubeflow/pipelines' &&
+      !github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/ready')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+
+    steps:
+      - name: Apply ready label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          # Untrusted input is passed only through the environment.
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+
+          # Match the command only on its own line so prose such as
+          # "is this /ready?" does not label the issue.
+          if ! grep -qxE '[[:space:]]*/ready[[:space:]]*' <<<"${COMMENT_BODY}"; then
+            echo "No /ready command found."
+            exit 0
+          fi
+
+          # Lookup errors fail the job rather than being reported as a denial.
+          role="$(gh api "repos/${GH_REPO}/collaborators/${COMMENTER}/permission" --jq '.role_name')"
+          case "${role}" in
+            admin|maintain|write|triage)
+              gh api --method POST "repos/${GH_REPO}/issues/${ISSUE_NUMBER}/labels" \
+                -f 'labels[]=ready' >/dev/null
+              gh api --method POST "repos/${GH_REPO}/issues/comments/${COMMENT_ID}/reactions" \
+                -f content='+1' >/dev/null
+              echo "Applied ready label for ${COMMENTER} (${role})."
+              ;;
+            *)
+              gh api --method POST "repos/${GH_REPO}/issues/${ISSUE_NUMBER}/comments" \
+                -f body="@${COMMENTER} only users with triage access or higher can use \`/ready\`." \
+                >/dev/null
+              echo "Denied /ready for ${COMMENTER} (${role})."
+              ;;
+          esac

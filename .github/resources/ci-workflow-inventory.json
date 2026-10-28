@@ -641,6 +641,12 @@
       }
     },
     {
+      "path": ".github/workflows/ready-command.yml",
+      "name": "Ready Command",
+      "header_sha256": "e78b97894460946dfb3f90af4e6f0a1885f06671675dcdd7329a3e1b4633154e",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/release-branch-image-scanning.yml",
       "name": "Release Branch Image Scanning",
       "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",

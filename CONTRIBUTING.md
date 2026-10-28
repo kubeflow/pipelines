@@ -96,6 +96,8 @@ PR does not exempt it from the gate.
   applied by a Kubeflow Pipelines maintainer. Find or create an issue, discuss
   the proposed change with maintainers, and wait for that label before opening
   your PR. An open or assigned issue without `ready` does not qualify.
+  Users with triage access or higher apply the label by commenting `/ready` on
+  its own line in the issue; the command does nothing for other users.
 
 For example, replace `1234` with your issue number and include this line in
 your PR description:
