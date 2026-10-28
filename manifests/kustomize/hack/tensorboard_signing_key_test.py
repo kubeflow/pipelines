@@ -23,6 +23,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE = REPO_ROOT / 'manifests/kustomize/base/pipeline'
 SECRET = 'ml-pipeline-ui-tensorboard-proxy'
 INIT = 'ml-pipeline-ui-signing-key-init'
+ROLLING_STRATEGY = {
+    'type': 'RollingUpdate',
+    'rollingUpdate': {'maxUnavailable': 0, 'maxSurge': 1},
+}
 
 
 def render(path, allow_external_patches=False):
@@ -72,7 +76,7 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         )
         self.assertEqual(container.get('imagePullPolicy'), 'IfNotPresent')
         deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
-        self.assertEqual(deployment['spec']['strategy'], {'type': 'Recreate'})
+        self.assertEqual(deployment['spec']['strategy'], ROLLING_STRATEGY)
 
     def test_openshift_allows_namespace_assigned_uid(self):
         resources = render(REPO_ROOT / 'manifests/kustomize/env/openshift/base')
@@ -82,7 +86,7 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         for container in pod['containers'] + pod.get('initContainers', []):
             self.assertNotIn('runAsUser', container.get('securityContext', {}))
         deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
-        self.assertEqual(deployment['spec']['strategy'], {'type': 'Recreate'})
+        self.assertEqual(deployment['spec']['strategy'], ROLLING_STRATEGY)
 
     def test_shared_key_and_least_privilege(self):
         resources = render(PIPELINE)
@@ -91,7 +95,7 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         self.assertNotIn('stringData', secret)
         self.assertNotIn('ownerReferences', secret['metadata'])
         deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
-        self.assertEqual(deployment['spec']['strategy'], {'type': 'Recreate'})
+        self.assertEqual(deployment['spec']['strategy'], ROLLING_STRATEGY)
         env = deployment['spec']['template']['spec']['containers'][0]['env']
         signing = next(
             item
@@ -119,26 +123,35 @@ class TensorboardSigningKeyTest(unittest.TestCase):
             if 'secrets' in rule['resources']:
                 self.assertTrue(set(rule['verbs']) <= {'get', 'list', 'watch'})
 
-    def test_documented_rolling_update_changes_only_strategy(self):
-        guide = (
-            REPO_ROOT / 'docs/operator-guides/server-config.md'
-        ).read_text()
-        section = guide.split('#### Enabling rolling UI updates', 1)[1]
-        patch = section.split('```yaml\n', 1)[1].split('```', 1)[0]
-        migration = render(PIPELINE)
-        with tempfile.TemporaryDirectory() as directory:
-            shutil.copytree(PIPELINE, Path(directory) / 'base')
-            overlay = Path(directory) / 'overlay'
-            overlay.mkdir()
-            config = overlay / 'kustomization.yaml'
-            config.write_text('resources: [../base]\n' + patch)
-            rolling = render(overlay)
-        deployment = resource(migration, 'Deployment', 'ml-pipeline-ui')
-        deployment['spec']['strategy'] = {
-            'type': 'RollingUpdate',
-            'rollingUpdate': {'maxUnavailable': 0, 'maxSurge': 1},
-        }
-        self.assertEqual(rolling, migration)
+    def test_multi_user_overlays_preserve_rolling_strategy_and_shared_key(self):
+        for name in (
+            'plain-multi-user',
+            'platform-agnostic-multi-user',
+            'platform-agnostic-multi-user-postgresql',
+        ):
+            with self.subTest(overlay=name):
+                resources = render(REPO_ROOT / 'manifests/kustomize/env' / name)
+                deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
+                self.assertEqual(
+                    deployment['spec']['strategy'], ROLLING_STRATEGY
+                )
+                container = deployment['spec']['template']['spec'][
+                    'containers'
+                ][0]
+                signing = next(
+                    item
+                    for item in container['env']
+                    if item['name'] == 'TENSORBOARD_PROXY_SIGNING_SECRET'
+                )
+                secret = resource(resources, 'Secret', SECRET)
+                self.assertEqual(
+                    signing['valueFrom']['secretKeyRef'],
+                    {
+                        'name': secret['metadata']['name'],
+                        'key': 'signing-secret',
+                    },
+                )
+                self.assertIn('readinessProbe', container)
 
     def test_job_name_tracks_image_and_template_but_secret_stays_fixed(self):
         with tempfile.TemporaryDirectory() as directory:
