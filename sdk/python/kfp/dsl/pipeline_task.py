@@ -810,7 +810,8 @@ class PipelineTask:
             raise ValueError(
                 "At least one of 'before', 'after' or 'on_error' must be "
                 'True. Got before=False, after=False, on_error=False - '
-                'nothing to pause on.')
+                'nothing to pause on.'
+            )
 
         if before:
             self.set_env_variable('KFP_DEBUG_PAUSE_BEFORE', 'true')
