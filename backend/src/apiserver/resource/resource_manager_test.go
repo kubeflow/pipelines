@@ -8813,7 +8813,7 @@ func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
-	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.True(t, matched)
 	assert.Equal(t, `Back-off pulling image "bad"`, msg)
 }
@@ -8825,7 +8825,7 @@ func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
 		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"parent": "ImagePullBackOff"}
-	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.False(t, matched)
 }
 
@@ -8848,11 +8848,11 @@ func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	}
 	resolved := map[string]string{"node-0": "ImagePullBackOff", "node-1": ""}
 
-	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
+	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved, nil)
 	assert.True(t, matched0)
 	assert.Equal(t, "ImagePullBackOff", msg0)
 
-	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
+	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved, nil)
 	assert.True(t, matched1)
 	assert.Equal(t, "", msg1)
 }
@@ -8863,7 +8863,7 @@ func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": "ImagePullBackOff"}
-	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.False(t, matched)
 }
 
@@ -8878,7 +8878,7 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"node-1": ""}
-	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.True(t, matched)
 	assert.Equal(t, "", msg)
 }
@@ -8944,7 +8944,7 @@ func TestLifecycleMessageForTask_StuckPodMatchedThroughTaskNode(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.task, func(t *testing.T) {
-			msg, phase, matched := lifecycleMessageForTask(agentOnlyTask(t, tc.task), nodes, resolved)
+			msg, phase, matched := lifecycleMessageForTask(agentOnlyTask(t, tc.task), nodes, resolved, nil)
 			assert.True(t, matched)
 			assert.Equal(t, tc.want, msg)
 			assert.Equal(t, tc.phase, phase)
@@ -8960,7 +8960,7 @@ func TestLifecycleMessageForTask_PodNameMatchWinsOverTaskNode(t *testing.T) {
 		{Name: "wf-system-container-impl-1686722696", Type: apiv2.PipelineTask_EXECUTOR},
 	})
 	require.NoError(t, err)
-	msg, _, matched := lifecycleMessageForTask(&model.Task{Name: "bad-image", Pods: pods}, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(&model.Task{Name: "bad-image", Pods: pods}, nodes, resolved, nil)
 	assert.True(t, matched)
 	assert.Equal(t, imagePullMsg, msg)
 }
@@ -8970,7 +8970,79 @@ func TestLifecycleMessageForTask_TaskNodeLeavesAmbiguousNameUnmatched(t *testing
 	nodes := stuckPodNodes()
 	nodes["other-bad-image"] = util.NodeStatus{ID: "other-bad-image", DisplayName: "bad-image", Type: "Retry", State: "Running"}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
-	_, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "bad-image"), nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "bad-image"), nodes, resolved, nil)
+	assert.False(t, matched)
+}
+
+// scopedTask is an agent-only task that sits under parentUUID, as tasks do inside a sub-DAG.
+func scopedTask(t *testing.T, uuid, name, parentUUID string) *model.Task {
+	task := agentOnlyTask(t, name)
+	task.UUID = uuid
+	if parentUUID != "" {
+		task.ParentTaskUUID = &parentUUID
+	}
+	return task
+}
+
+// twoSubDAGNodes has the same group name in two sub-DAGs. Only the group in branch-b ran and got
+// stuck on an image pull. The copy in branch-a was skipped, so it has no node of its own.
+func twoSubDAGNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Succeeded", Children: []string{"branch-a0"}},
+		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Succeeded"},
+		"branch-b":  {ID: "branch-b", DisplayName: "branch-b", Type: "Retry", State: "Running", Children: []string{"branch-b0"}},
+		"branch-b0": {ID: "branch-b0", DisplayName: "branch-b(0)", Type: "DAG", State: "Running", Children: []string{"group-b"}},
+		"group-b":   {ID: "group-b", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"pod-b"}},
+		"pod-b":     {ID: "wf-pod-b", DisplayName: "condition-1(0)", Type: "Pod", State: "Pending", Message: imagePullMsg},
+	}
+}
+
+func twoSubDAGTasks(t *testing.T) map[string]*model.Task {
+	return map[string]*model.Task{
+		"root":    {UUID: "root", Name: "root"},
+		"a":       scopedTask(t, "a", "branch-a", "root"),
+		"b":       scopedTask(t, "b", "branch-b", "root"),
+		"skipped": scopedTask(t, "skipped", "condition-1", "a"),
+		"running": scopedTask(t, "running", "condition-1", "b"),
+	}
+}
+
+func TestLifecycleMessageForTask_TaskNodeStaysInItsOwnSubDAG(t *testing.T) {
+	nodes := twoSubDAGNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := twoSubDAGTasks(t)
+
+	// The task that ran in branch-b gets the failure.
+	msg, phase, matched := lifecycleMessageForTask(tasks["running"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+	assert.Equal(t, "Running", phase)
+
+	// The skipped copy in branch-a shares the name but not the scope, so it is not attributed to
+	// the node in branch-b.
+	_, _, matched = lifecycleMessageForTask(tasks["skipped"], nodes, resolved, tasks)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TopLevelTaskMatchesWithRootInRun(t *testing.T) {
+	// Top-level tasks hang off the root DAG task, which adds no scope.
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root":      {UUID: "root", Name: "root"},
+		"bad-image": scopedTask(t, "bad-image", "bad-image", "root"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["bad-image"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+func TestLifecycleMessageForTask_TaskNodeUnmatchedWhenParentChainBroken(t *testing.T) {
+	// A parent that is not among the run's tasks cannot be checked, so the node is not guessed.
+	nodes := twoSubDAGNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	orphan := scopedTask(t, "orphan", "condition-1", "missing")
+	_, _, matched := lifecycleMessageForTask(orphan, nodes, resolved, twoSubDAGTasks(t))
 	assert.False(t, matched)
 }
 
@@ -8978,7 +9050,7 @@ func TestLifecycleMessageForTask_TaskNodeDoesNotMatchExecutorNodes(t *testing.T)
 	// Every task owns an "executor" Retry node, so a task named "executor" must not be attributed to one.
 	nodes := stuckPodNodes()
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
-	_, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "executor"), nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "executor"), nodes, resolved, nil)
 	assert.False(t, matched)
 }
 
@@ -8990,7 +9062,7 @@ func TestLifecycleMessageForTask_TaskNodeUsesLatestRetryAttempt(t *testing.T) {
 		"t1": {ID: "pod-1", DisplayName: "train(1)", Type: "Pod", State: "Running"},
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
-	msg, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "train"), nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "train"), nodes, resolved, nil)
 	assert.True(t, matched)
 	assert.Equal(t, "", msg)
 }

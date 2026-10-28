@@ -4311,8 +4311,9 @@ func containsString(values []string, want string) bool {
 //
 // A pod that is stuck before the launcher starts (image pull failure, unschedulable) never gets
 // registered on the task, so the task only knows the shared driver pod. In that case the task is
-// matched through its Argo task node instead, see lifecycleMessageForTaskNode.
-func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg, phase string, matched bool) {
+// matched through its Argo task node instead, see lifecycleMessageForTaskNode. tasksByUUID holds the
+// run's tasks and is used to check that node against the task's parent scope.
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
 	if task == nil {
 		return "", "", false
 	}
@@ -4330,7 +4331,7 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		matches = append(matches, podMatch{msg: resolved[id], phase: node.State, createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
-		return lifecycleMessageForTaskNode(task, nodes, resolved)
+		return lifecycleMessageForTaskNode(task, nodes, resolved, tasksByUUID)
 	}
 	// Pick the message from the most recently created pod so that a recovered retry
 	// (no lifecycle event) overrides a stale failure from an earlier attempt.
@@ -4343,24 +4344,91 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 // lifecycleMessageForTaskNode matches a task to the Argo Retry node named after it. That node sits
 // above the task's executor pod (task Retry -> task DAG -> executor Retry -> executor Pod), and
 // resolved already carries the executor pod's message up to it, following only the latest attempt.
-// The phase is the state of that node. The task name alone is not unique across sub-DAGs, so an
-// ambiguous name is left unmatched rather than guessed.
-func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg, phase string, matched bool) {
+// The phase is the state of that node. The task name alone is not unique across sub-DAGs, so a node
+// only counts when it sits inside the same enclosing tasks as the task does, and a name that is
+// still ambiguous is left unmatched rather than guessed. Without that scope check, a skipped task
+// would pick up the failure of a same-named task that ran in another sub-DAG, since the skipped
+// one has no node of its own.
+func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string, tasksByUUID map[string]*model.Task) (msg, phase string, matched bool) {
 	if task.Name == "" {
 		return "", "", false
 	}
+	scope, ok := parentTaskScope(task, tasksByUUID)
+	if !ok {
+		return "", "", false
+	}
+	parents := nodeParents(nodes)
 	var nodeID string
 	count := 0
 	for id, node := range nodes {
-		if node.Type == "Retry" && node.DisplayName == task.Name {
-			nodeID = id
-			count++
+		if node.Type != "Retry" || node.DisplayName != task.Name {
+			continue
 		}
+		if !nodeInScope(id, scope, nodes, parents) {
+			continue
+		}
+		nodeID = id
+		count++
 	}
 	if count != 1 {
 		return "", "", false
 	}
 	return resolved[nodeID], nodes[nodeID].State, true
+}
+
+// parentTaskScope returns the names of the tasks enclosing task, nearest first, leaving out the
+// root DAG task that every run has. A top-level task has an empty scope. It reports false when
+// the parent chain cannot be followed, so the caller does not guess.
+func parentTaskScope(task *model.Task, tasksByUUID map[string]*model.Task) (scope []string, ok bool) {
+	seen := map[string]bool{task.UUID: true}
+	current := task
+	for current.ParentTaskUUID != nil && *current.ParentTaskUUID != "" {
+		parent, found := tasksByUUID[*current.ParentTaskUUID]
+		if !found || seen[parent.UUID] {
+			return nil, false
+		}
+		seen[parent.UUID] = true
+		if parent.ParentTaskUUID == nil || *parent.ParentTaskUUID == "" {
+			// The root DAG task is the top of every run, not a scope of its own.
+			break
+		}
+		scope = append(scope, parent.Name)
+		current = parent
+	}
+	return scope, true
+}
+
+// nodeParents maps every node to the node that lists it as a child.
+func nodeParents(nodes map[string]util.NodeStatus) map[string]string {
+	parents := make(map[string]string, len(nodes))
+	for id, node := range nodes {
+		for _, childID := range node.Children {
+			parents[childID] = id
+		}
+	}
+	return parents
+}
+
+// nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
+// scope, nearest first. Any further ancestors, such as the root, are not compared.
+func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus, parents map[string]string) bool {
+	seen := map[string]bool{id: true}
+	current := id
+	for next := 0; next < len(scope); {
+		parentID, ok := parents[current]
+		if !ok || seen[parentID] {
+			return false
+		}
+		seen[parentID] = true
+		current = parentID
+		if node := nodes[parentID]; node.Type == "Retry" {
+			if node.DisplayName != scope[next] {
+				return false
+			}
+			next++
+		}
+	}
+	return true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
@@ -4375,8 +4443,14 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 		return nil
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasksByUUID := make(map[string]*model.Task, len(tasks))
 	for _, task := range tasks {
-		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved)
+		if task != nil {
+			tasksByUUID[task.UUID] = task
+		}
+	}
+	for _, task := range tasks {
+		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved, tasksByUUID)
 		if !matched {
 			continue
 		}
