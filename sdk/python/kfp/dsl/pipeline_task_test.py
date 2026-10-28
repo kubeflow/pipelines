@@ -466,8 +466,9 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_debug_pause(after=True)
-        self.assertEqual({'KFP_DEBUG_PAUSE_AFTER': 'true'},
-                         task.container_spec.env)
+        self.assertEqual(
+            {'KFP_DEBUG_PAUSE_AFTER': 'true'}, task.container_spec.env
+        )
 
     def test_set_debug_pause_before_only(self):
         task = pipeline_task.PipelineTask(
@@ -477,8 +478,9 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_debug_pause(before=True)
-        self.assertEqual({'KFP_DEBUG_PAUSE_BEFORE': 'true'},
-                         task.container_spec.env)
+        self.assertEqual(
+            {'KFP_DEBUG_PAUSE_BEFORE': 'true'}, task.container_spec.env
+        )
 
     def test_set_debug_pause_before_and_after(self):
         task = pipeline_task.PipelineTask(
@@ -492,7 +494,9 @@ class PipelineTaskTest(parameterized.TestCase):
             {
                 'KFP_DEBUG_PAUSE_BEFORE': 'true',
                 'KFP_DEBUG_PAUSE_AFTER': 'true',
-            }, task.container_spec.env)
+            },
+            task.container_spec.env,
+        )
 
     def test_set_debug_pause_on_error(self):
         task = pipeline_task.PipelineTask(
@@ -502,8 +506,9 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_debug_pause(on_error=True)
-        self.assertEqual({'KFP_DEBUG_PAUSE_ON_ERROR': 'true'},
-                         task.container_spec.env)
+        self.assertEqual(
+            {'KFP_DEBUG_PAUSE_ON_ERROR': 'true'}, task.container_spec.env
+        )
 
     def test_set_debug_pause_on_error_with_after_false(self):
         task = pipeline_task.PipelineTask(
@@ -513,8 +518,9 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_debug_pause(on_error=True, after=False)
-        self.assertEqual({'KFP_DEBUG_PAUSE_ON_ERROR': 'true'},
-                         task.container_spec.env)
+        self.assertEqual(
+            {'KFP_DEBUG_PAUSE_ON_ERROR': 'true'}, task.container_spec.env
+        )
 
     def test_set_debug_pause_raises_when_no_barrier(self):
         task = pipeline_task.PipelineTask(
@@ -524,8 +530,9 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         with self.assertRaisesRegex(
-                ValueError,
-                r"At least one of 'before', 'after' or 'on_error' must be"):
+            ValueError,
+            r"At least one of 'before', 'after' or 'on_error' must be",
+        ):
             task.set_debug_pause()
 
     def test_set_retry_invalid_policy_raises(self):
