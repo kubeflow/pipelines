@@ -150,7 +150,9 @@ type PauseSignaler interface {
 	PublishBarrier(ctx context.Context, barrier DebugPauseBarrier, instance string) error
 
 	// ReadPauseState returns the pause overlay currently persisted on the
-	// task record.
+	// task record. ResumeRequested is only trustworthy once the caller has
+	// confirmed the returned Barrier and Instance belong to its own pause
+	// epoch - the row can still carry residue from an earlier one.
 	ReadPauseState(ctx context.Context) (PauseState, error)
 
 	// ClearBarrier removes the pause, instance, and resume-requested
