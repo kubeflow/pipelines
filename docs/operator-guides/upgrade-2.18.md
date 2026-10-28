@@ -113,15 +113,28 @@ stops that API process with diagnostics rather than falling back to a blocking
 index build. Retention index preparation follows a separate background path,
 described below.
 
-**The pipeline-reference backfill is a separate, one-time operation.** When the
-`backfill_pipeline_refs` completion marker is absent, startup scans `run_details`
-and `jobs` to populate missing pipeline and version IDs from historical references.
-The updates run in one transaction and can make concurrent writes wait until it
-finishes. This can delay the new API Pod's readiness; it is not an index rebuild.
-The transaction also records completion, so later startups skip the scans and an
-interrupted attempt retries without marking partial work complete. For a large
-history, rehearse this first backfill against a representative database and observe
-its duration and write latency. Do not rerun it manually or remove its marker.
+[Lookup-index validation](https://github.com/kubeflow/pipelines/pull/14874) on
+262,144 rows took **17.61 seconds**, with **1,539 concurrent writes** and a maximum
+write latency of **1.21 seconds**. [Retention-index validation](https://github.com/kubeflow/pipelines/pull/14877)
+on the same row count completed both builds in **27.71 seconds**, with **772 and
+228 read/write cycles** during the respective builds and a maximum cycle latency
+of **1.51 seconds**. These measurements demonstrate continued database access
+during index construction, not guaranteed timings for every installation.
+
+**The pipeline-reference backfill runs once.** When its completion marker is
+absent, startup fills missing pipeline and version IDs from historical references
+in one transaction. A [MySQL 8.4 reproduction with 100,000 runs and 10,000 references](https://github.com/kubeflow/pipelines/pull/13680#discussion_r3918298200)
+measured **1.286 seconds for one backfill UPDATE**, not the complete transaction.
+The same reproduction found that repeating the UPDATE, even with no rows to
+change, could cause concurrent writes to time out on locks.
+
+The [completion-marker fix](https://github.com/kubeflow/pipelines/pull/13680#discussion_r3941696759)
+eliminates those repeated scans and locks on later startups and coordinates
+replicas. The marker commits with the updates, so an interrupted transaction can
+retry safely. The initial transaction still holds locks and may delay
+conflicting writes and the new API Pod's readiness; its duration depends on the
+database and workload. It runs automatically; do not rerun it manually or remove
+its marker.
 
 Upgrades from a pre-2.15 schema also take the older column-conversion and backfill
 path. That is a different starting state from the normal 2.17-to-2.18 upgrade;
