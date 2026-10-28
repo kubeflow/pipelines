@@ -75,8 +75,9 @@ def _escape_channel_type(channel_type: str) -> str:
 
 def _unescape_channel_type(channel_type: str) -> str:
     """Inverse of _escape_channel_type."""
-    return _TYPE_UNESCAPE_RE.sub(lambda m: _TYPE_UNESCAPES[m.group()],
-                                 channel_type)
+    return _TYPE_UNESCAPE_RE.sub(
+        lambda m: _TYPE_UNESCAPES[m.group()], channel_type
+    )
 
 
 class PipelineChannel(abc.ABC):
