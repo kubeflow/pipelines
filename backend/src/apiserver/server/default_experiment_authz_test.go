@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -79,12 +79,12 @@ func TestCreateRun_DefaultExperimentGrantScopedToName(t *testing.T) {
 
 	server := createRunServer(defaultOnlyGrantManager(t))
 
-	got, err := server.CreateRun(defaultOnlyGrantContext(), &apiv2beta1.CreateRunRequest{
-		Run: &apiv2beta1.Run{
+	got, err := server.CreateRun(defaultOnlyGrantContext(), &apiv2.CreateRunRequest{
+		Run: &apiv2.Run{
 			DisplayName:    "run1",
 			Namespace:      "ns1",
-			PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: helloWorldSpec(t)},
-			RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineSource: &apiv2.Run_PipelineSpec{PipelineSpec: helloWorldSpec(t)},
+			RuntimeConfig: &apiv2.RuntimeConfig{
 				Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("world")},
 			},
 		},
@@ -101,14 +101,14 @@ func TestCreateRecurringRun_DefaultExperimentGrantScopedToName(t *testing.T) {
 
 	server := createJobServer(defaultOnlyGrantManager(t))
 
-	got, err := server.CreateRecurringRun(defaultOnlyGrantContext(), &apiv2beta1.CreateRecurringRunRequest{
-		RecurringRun: &apiv2beta1.RecurringRun{
+	got, err := server.CreateRecurringRun(defaultOnlyGrantContext(), &apiv2.CreateRecurringRunRequest{
+		RecurringRun: &apiv2.RecurringRun{
 			DisplayName:    "recurring1",
 			Namespace:      "ns1",
-			Mode:           apiv2beta1.RecurringRun_DISABLE,
+			Mode:           apiv2.RecurringRun_DISABLE,
 			MaxConcurrency: 1,
-			PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: helloWorldSpec(t)},
-			RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineSource: &apiv2.RecurringRun_PipelineSpec{PipelineSpec: helloWorldSpec(t)},
+			RuntimeConfig: &apiv2.RuntimeConfig{
 				Parameters: map[string]*structpb.Value{"param1": structpb.NewStringValue("world")},
 			},
 		},

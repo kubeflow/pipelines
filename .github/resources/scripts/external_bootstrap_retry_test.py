@@ -36,7 +36,6 @@ BUILDKIT_CONFIG = REPO_ROOT / '.github/resources/buildkitd.toml'
 
 
 class _RetryHandler(http.server.BaseHTTPRequestHandler):
-
     request_count = 0
 
     def do_GET(self):
@@ -55,7 +54,6 @@ class _RetryHandler(http.server.BaseHTTPRequestHandler):
 
 
 class ExternalBootstrapRetryTest(unittest.TestCase):
-
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.temp_path = pathlib.Path(self.temp_dir.name)
@@ -71,34 +69,39 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
 
     def _write_fake_commands(self):
         docker = self.bin_dir / 'docker'
-        docker.write_text('#!/usr/bin/env bash\n'
-                          'printf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n'
-                          '[[ "$1 $2" == "pull $MIRROR_IMAGE" ]] && '
-                          '  [[ "$FAIL_MIRROR_PULL" == "true" ]] && exit 1\n'
-                          '[[ "$1 $2" == "pull $CANONICAL_IMAGE" ]] && '
-                          '  [[ "$FAIL_CANONICAL_PULL" == "true" ]] && exit 1\n'
-                          'exit 0\n')
+        docker.write_text(
+            '#!/usr/bin/env bash\n'
+            'printf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n'
+            '[[ "$1 $2" == "pull $MIRROR_IMAGE" ]] && '
+            '  [[ "$FAIL_MIRROR_PULL" == "true" ]] && exit 1\n'
+            '[[ "$1 $2" == "pull $CANONICAL_IMAGE" ]] && '
+            '  [[ "$FAIL_CANONICAL_PULL" == "true" ]] && exit 1\n'
+            'exit 0\n'
+        )
         docker.chmod(0o755)
 
         sleep = self.bin_dir / 'sleep'
-        sleep.write_text('#!/usr/bin/env bash\n'
-                         'printf \'%s\\n\' "$1" >> "$SLEEP_LOG"\n')
+        sleep.write_text(
+            '#!/usr/bin/env bash\nprintf \'%s\\n\' "$1" >> "$SLEEP_LOG"\n'
+        )
         sleep.chmod(0o755)
 
-    def _run_setup_buildx(self,
-                          fail_mirror_pull=False,
-                          fail_canonical_pull=False):
+    def _run_setup_buildx(
+        self, fail_mirror_pull=False, fail_canonical_pull=False
+    ):
         environment = os.environ.copy()
-        environment.update({
-            'CANONICAL_IMAGE': BUILDKIT_IMAGE,
-            'COMMAND_LOG': str(self.command_log),
-            'FAIL_CANONICAL_PULL': str(fail_canonical_pull).lower(),
-            'FAIL_MIRROR_PULL': str(fail_mirror_pull).lower(),
-            'GITHUB_OUTPUT': str(self.github_output),
-            'MIRROR_IMAGE': BUILDKIT_MIRROR_IMAGE,
-            'PATH': f'{self.bin_dir}:{environment["PATH"]}',
-            'SLEEP_LOG': str(self.sleep_log),
-        })
+        environment.update(
+            {
+                'CANONICAL_IMAGE': BUILDKIT_IMAGE,
+                'COMMAND_LOG': str(self.command_log),
+                'FAIL_CANONICAL_PULL': str(fail_canonical_pull).lower(),
+                'FAIL_MIRROR_PULL': str(fail_mirror_pull).lower(),
+                'GITHUB_OUTPUT': str(self.github_output),
+                'MIRROR_IMAGE': BUILDKIT_MIRROR_IMAGE,
+                'PATH': f'{self.bin_dir}:{environment["PATH"]}',
+                'SLEEP_LOG': str(self.sleep_log),
+            }
+        )
         return subprocess.run(
             ['bash', str(SETUP_BUILDX_SCRIPT), 'test-builder'],
             capture_output=True,
@@ -122,14 +125,18 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         self.assertIn(
             f'buildx create --name test-builder --driver docker-container '
             f'--driver-opt image={BUILDKIT_IMAGE} '
-            f'--buildkitd-config {BUILDKIT_CONFIG} --use', commands)
+            f'--buildkitd-config {BUILDKIT_CONFIG} --use',
+            commands,
+        )
         self.assertFalse(self.sleep_log.exists())
-        self.assertEqual(self.github_output.read_text(),
-                         'builder_name=test-builder\n')
+        self.assertEqual(
+            self.github_output.read_text(), 'builder_name=test-builder\n'
+        )
 
     def test_buildkit_pull_exhaustion_stops_before_bootstrap(self):
         result = self._run_setup_buildx(
-            fail_mirror_pull=True, fail_canonical_pull=True)
+            fail_mirror_pull=True, fail_canonical_pull=True
+        )
 
         self.assertNotEqual(result.returncode, 0)
         commands = self.command_log.read_text().splitlines()
@@ -138,7 +145,8 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
             [
                 f'pull {BUILDKIT_MIRROR_IMAGE}',
                 f'pull {BUILDKIT_IMAGE}',
-            ] * 5,
+            ]
+            * 5,
         )
         self.assertEqual(self.sleep_log.read_text().splitlines(), ['20'] * 4)
         self.assertNotIn('buildx create', '\n'.join(commands))
@@ -196,14 +204,15 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
     def test_kind_action_scopes_curl_retry_config_to_both_attempts(self):
         action = CREATE_CLUSTER_ACTION.read_text()
         curl_home = (
-            'CURL_HOME: ${{ github.workspace }}/.github/resources/curl-retry')
+            'CURL_HOME: ${{ github.workspace }}/.github/resources/curl-retry'
+        )
         self.assertEqual(action.count(curl_home), 2)
 
     def test_manifest_creation_uses_daemon_backed_buildx_driver(self):
         workflow = CREATE_MANIFEST_WORKFLOW.read_text()
-        setup_step = workflow.split(
-            '- name: Set up Docker Buildx', maxsplit=1)[1].split(
-                '- name: Create and Push Manifest', maxsplit=1)[0]
+        setup_step = workflow.split('- name: Set up Docker Buildx', maxsplit=1)[
+            1
+        ].split('- name: Create and Push Manifest', maxsplit=1)[0]
 
         self.assertIn('uses: docker/setup-buildx-action@', setup_step)
         self.assertIn('driver: docker', setup_step)
@@ -220,8 +229,7 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         self.assertIn('[registry."docker.io"]', buildkit_config)
         self.assertIn('mirrors = ["mirror.gcr.io"]', buildkit_config)
         self.assertIn(
-            'bash ./.github/resources/scripts/'
-            'configure-docker-hub-mirror.sh',
+            'bash ./.github/resources/scripts/configure-docker-hub-mirror.sh',
             action,
         )
         self.assertLess(

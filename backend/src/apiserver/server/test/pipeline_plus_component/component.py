@@ -16,12 +16,11 @@ fixtures."""
 
 import gzip
 import io
-from pathlib import Path
 import tarfile
 import zipfile
+from pathlib import Path
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -29,7 +28,8 @@ def whalesay(param1: str, param2: str):
     return dsl.ContainerSpec(
         image='docker/whalesay:latest',
         command=['cowsay'],
-        args=[param1, param2])
+        args=[param1, param2],
+    )
 
 
 def regenerate():
@@ -37,18 +37,20 @@ def regenerate():
     compiler.Compiler().compile(whalesay, str(directory / 'component.yaml'))
     # Put the decoy first so choosing the first YAML cannot pass the tests.
     names = ('component.yaml', 'pipeline.yaml')
-    with zipfile.ZipFile(directory / 'pipeline_plus_component.zip',
-                         'w') as archive:
+    with zipfile.ZipFile(
+        directory / 'pipeline_plus_component.zip', 'w'
+    ) as archive:
         for name in names:
             entry = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             entry.external_attr = 0o100644 << 16
             archive.writestr(entry, (directory / name).read_bytes())
     with (directory / 'pipeline_plus_component.tar.gz').open('wb') as output:
         with gzip.GzipFile(
-                filename='', fileobj=output, mode='wb', mtime=0) as compressed:
+            filename='', fileobj=output, mode='wb', mtime=0
+        ) as compressed:
             with tarfile.open(
-                    fileobj=compressed, mode='w',
-                    format=tarfile.USTAR_FORMAT) as archive:
+                fileobj=compressed, mode='w', format=tarfile.USTAR_FORMAT
+            ) as archive:
                 for name in names:
                     contents = (directory / name).read_bytes()
                     entry = tarfile.TarInfo(name)

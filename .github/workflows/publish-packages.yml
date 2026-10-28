@@ -24,7 +24,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  UV_VERSION: "0.10.3"
+  UV_VERSION: "0.13.4"
   TWINE_VERSION: "7.0.0"
   TWINE_PYTHON_VERSION: "3.12"
 
@@ -36,9 +36,10 @@ jobs:
     outputs:
       packages: ${{ steps.select.outputs.packages }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.inputs.tag }}
+          persist-credentials: false
       - name: Select distributions owned by the source tag
         id: select
         env:
@@ -65,7 +66,7 @@ jobs:
               output.write(f"packages={json.dumps(packages)}\n")
           PY
 
-  publish:
+  build:
     needs: select-packages
     runs-on: ubuntu-latest
     strategy:
@@ -74,17 +75,17 @@ jobs:
         package: ${{ fromJSON(needs.select-packages.outputs.packages) }}
     permissions:
       contents: read
-      id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.inputs.tag }}
+          persist-credentials: false
 
       # A selected legacy tag need not contain local actions or uv metadata.
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           version: ${{ env.UV_VERSION }}
 
@@ -105,16 +106,115 @@ jobs:
           uvx --python "${TWINE_PYTHON_VERSION}" --from "twine==${TWINE_VERSION}" \
             twine check "$PACKAGE_PATH"/dist/*
 
-      - name: Publish to PyPI
+      - name: Prepare distributions for publication
         if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: pypa/gh-action-pypi-publish@release/v1
+        env:
+          PACKAGE_PATH: ${{ matrix.package.path }}
+        run: |
+          python3 -I - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+
+          source = Path(os.environ['PACKAGE_PATH']) / 'dist'
+          files = []
+          for path in sorted(source.iterdir()):
+              # uv adds this source-control marker beside its distributions.
+              if path.name == '.gitignore' and path.is_file() and not path.is_symlink():
+                  continue
+              files.append(path)
+          if not any(path.name.endswith('.whl') for path in files) or not any(
+              path.name.endswith(('.tar.gz', '.zip')) for path in files
+          ):
+              raise SystemExit('Publication requires both a wheel and a source distribution.')
+          for path in files:
+              if path.is_symlink() or not path.is_file() or not path.stat().st_size:
+                  raise SystemExit(f'Invalid distribution file: {path.name}')
+              if not path.name.endswith(('.whl', '.tar.gz', '.zip')):
+                  raise SystemExit(f'Unexpected distribution file: {path.name}')
+          artifact = Path(os.environ['RUNNER_TEMP']) / 'package-artifact'
+          destination = artifact / 'dist'
+          destination.mkdir(parents=True)
+          manifest = {}
+          for path in files:
+              copied = Path(shutil.copyfile(path, destination / path.name))
+              manifest[path.name] = hashlib.sha256(copied.read_bytes()).hexdigest()
+          (artifact / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True))
+          PY
+
+      - name: Upload distributions for publication
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          packages-dir: ${{ matrix.package.path }}/dist/
-          print-hash: true
+          name: ${{ matrix.package.name }}-publish-dist
+          path: ${{ runner.temp }}/package-artifact/
+          if-no-files-found: error
+          overwrite: true
 
       - name: Upload artifacts (dry run)
         if: ${{ github.event.inputs.dry_run == 'true' }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.package.name }}-dist
           path: ${{ matrix.package.path }}/dist/
+          if-no-files-found: error
+
+  publish:
+    needs: [select-packages, build]
+    if: ${{ github.event.inputs.dry_run == 'false' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.select-packages.outputs.packages) }}
+    permissions:
+      id-token: write
+    steps:
+      # Same-run artifacts let failed publishers retry without rebuilding or
+      # rerunning distributions that have already published successfully.
+      - name: Download distributions
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: ${{ matrix.package.name }}-publish-dist
+          path: package-artifact/
+      - name: Verify distributions before publishing
+        run: |
+          python3 -I - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          artifact = Path('package-artifact')
+          if {path.name for path in artifact.iterdir()} != {'dist', 'manifest.json'}:
+              raise SystemExit('Package artifact must contain only dist/ and manifest.json.')
+          manifest_path = artifact / 'manifest.json'
+          distributions = artifact / 'dist'
+          if manifest_path.is_symlink() or not manifest_path.is_file():
+              raise SystemExit('Package artifact manifest must be a regular file.')
+          if distributions.is_symlink() or not distributions.is_dir():
+              raise SystemExit('Package artifact dist/ must be a directory.')
+          manifest = json.loads(manifest_path.read_text())
+          if not isinstance(manifest, dict) or not manifest:
+              raise SystemExit('Package artifact manifest must be a nonempty object.')
+          files = list(distributions.iterdir())
+          if {path.name for path in files} != set(manifest):
+              raise SystemExit('Distribution inventory differs from the build manifest.')
+          if not any(path.name.endswith('.whl') for path in files) or not any(
+              path.name.endswith(('.tar.gz', '.zip')) for path in files
+          ):
+              raise SystemExit('Publication requires both a wheel and a source distribution.')
+          for path in files:
+              if path.is_symlink() or not path.is_file() or not path.stat().st_size:
+                  raise SystemExit(f'Invalid distribution file: {path.name}')
+              if not path.name.endswith(('.whl', '.tar.gz', '.zip')):
+                  raise SystemExit(f'Unexpected distribution file: {path.name}')
+              if hashlib.sha256(path.read_bytes()).hexdigest() != manifest[path.name]:
+                  raise SystemExit(f'Distribution checksum differs from the build: {path.name}')
+          PY
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
+        with:
+          packages-dir: package-artifact/dist/
+          print-hash: true

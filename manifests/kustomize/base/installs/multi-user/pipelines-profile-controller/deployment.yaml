@@ -65,6 +65,12 @@ spec:
               key: ARTIFACTS_PROXY_ENABLED
               name: pipeline-install-config
               optional: true
+        - name: USERID_HEADER
+          valueFrom:
+            configMapKeyRef:
+              key: USERID_HEADER
+              name: pipeline-install-config
+              optional: true
         - name: HTTP_BASE_URL
           valueFrom:
             configMapKeyRef:

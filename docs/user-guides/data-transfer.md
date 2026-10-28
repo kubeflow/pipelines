@@ -108,12 +108,12 @@ commit can mean the commit succeeded; repeat import detects the existing receipt
 
 These are authenticated HTTP file-transfer endpoints, not gRPC methods. They use
 the installation's normal authentication mechanism. The machine-readable contract
-is maintained in `backend/api/v2beta1/transfer.openapi.yaml`.
+is maintained in `backend/api/v2/transfer.openapi.yaml`.
 
-- `POST /apis/v2beta1/transfer/export?namespace=NAME`, with
+- `POST /apis/v2/transfer/export?namespace=NAME`, with
   `Content-Type: application/json` and body `{}`. Optional `completed_after` and
   `completed_before` values are Unix timestamps in seconds.
-- `POST /apis/v2beta1/transfer/import?namespace=NAME&dry_run=true&name_prefix=imported-`,
+- `POST /apis/v2/transfer/import?namespace=NAME&dry_run=true&name_prefix=imported-`,
   with the raw archive as the `application/json` request body. Validation is the
   default; set `dry_run=false` to apply.
 

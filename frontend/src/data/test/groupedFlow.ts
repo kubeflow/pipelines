@@ -6,8 +6,8 @@ import { PipelineTaskSpec_TriggerPolicy_TriggerStrategy as TriggerStrategy } fro
 import {
   PipelineTaskTaskState as State,
   PipelineTaskTaskType as Type,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 
 const task = (name: string, component: string, dependencies: string[] = []) =>
   PipelineTaskSpec.fromPartial({
@@ -221,7 +221,7 @@ export function deeplyNestedSpec() {
   return spec;
 }
 
-export const loopTasks: V2beta1PipelineTask[] = [
+export const loopTasks: V2PipelineTask[] = [
   { task_id: 'root', name: 'root', type: Type.ROOT, state: State.RUNNING },
   {
     task_id: 'sweep',

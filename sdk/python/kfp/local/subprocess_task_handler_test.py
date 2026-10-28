@@ -12,27 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for subprocess_local_task_handler.py."""
+
 import contextlib
 import io
-from typing import NamedTuple, Optional
 import unittest
+from typing import NamedTuple, Optional
 from unittest import mock
 
 from absl.testing import parameterized
-from kfp import dsl
-from kfp import local
-from kfp.dsl import Artifact
-from kfp.dsl import Dataset
-from kfp.dsl import Output
-from kfp.local import subprocess_task_handler
-from kfp.local import testing_utilities
+
+from kfp import dsl, local
+from kfp.dsl import Artifact, Dataset, Output
+from kfp.local import subprocess_task_handler, testing_utilities
 
 # LocalRunnerEnvironmentTestCase isolates installs from the pytest worker,
 # including tests that disable per-task virtual environments.
 
 
 class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
-
     @mock.patch('sys.stdout', new_callable=io.StringIO)
     def test_basic(self, mock_stdout):
         local.init(runner=local.SubprocessRunner(use_venv=True))
@@ -49,8 +46,8 @@ class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_image_warning(self):
         with self.assertWarnsRegex(
-                RuntimeWarning,
-                r"You may be attempting to run a task that uses custom or non-Python base image \"my_custom_image\" in a Python environment\. This may result in incorrect dependencies and/or incorrect behavior\. Consider using the \"DockerRunner\" to run this task in a container\."
+            RuntimeWarning,
+            r'You may be attempting to run a task that uses custom or non-Python base image \"my_custom_image\" in a Python environment\. This may result in incorrect dependencies and/or incorrect behavior\. Consider using the \"DockerRunner\" to run this task in a container\.',
         ):
             subprocess_task_handler.SubprocessTaskHandler(
                 image='my_custom_image',
@@ -73,8 +70,8 @@ class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
             )
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'The SubprocessRunner only supports running Lightweight Python Components\. You are attempting to run a Container Component\.',
+            RuntimeError,
+            r'The SubprocessRunner only supports running Lightweight Python Components\. You are attempting to run a Container Component\.',
         ):
             comp()
 
@@ -86,22 +83,23 @@ class TestSubprocessRunner(testing_utilities.LocalRunnerEnvironmentTestCase):
             pass
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r'The SubprocessRunner only supports running Lightweight Python Components\. You are attempting to run a Containerized Python Component\.',
+            RuntimeError,
+            r'The SubprocessRunner only supports running Lightweight Python Components\. You are attempting to run a Containerized Python Component\.',
         ):
             comp()
 
 
 class TestRunLocalSubproces(unittest.TestCase):
-
     def test_simple_program(self):
         buffer = io.StringIO()
 
         with contextlib.redirect_stdout(buffer):
-            subprocess_task_handler.run_local_subprocess([
-                'echo',
-                'foo!',
-            ])
+            subprocess_task_handler.run_local_subprocess(
+                [
+                    'echo',
+                    'foo!',
+                ]
+            )
 
         output = buffer.getvalue().strip()
 
@@ -109,8 +107,8 @@ class TestRunLocalSubproces(unittest.TestCase):
 
 
 class TestUseCurrentPythonExecutable(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def test(self):
         full_command = ['python3 -c "from kfp import dsl"']
         actual = subprocess_task_handler.replace_python_executable(
@@ -122,34 +120,41 @@ class TestUseCurrentPythonExecutable(
 
 
 class TestUseVenv(testing_utilities.LocalRunnerEnvironmentTestCase):
-
-    @parameterized.parameters([
-        ({
-            'runner': local.SubprocessRunner(use_venv=True),
-        }),
-        ({
-            'runner': local.SubprocessRunner(use_venv=True),
-        }),
-    ])
+    @parameterized.parameters(
+        [
+            (
+                {
+                    'runner': local.SubprocessRunner(use_venv=True),
+                }
+            ),
+            (
+                {
+                    'runner': local.SubprocessRunner(use_venv=True),
+                }
+            ),
+        ]
+    )
     def test_use_venv_true(self, **kwargs):
         local.init(**kwargs)
 
         @dsl.component(packages_to_install=['cloudpickle'])
         def installer_component():
             import cloudpickle
+
             print('Cloudpickle is installed:', cloudpickle)
 
         installer_component()
 
         # since the module was installed in the virtual environment, it should not exist in the current environment
-        with self.assertRaisesRegex(ModuleNotFoundError,
-                                    r"No module named 'cloudpickle'"):
-            import cloudpickle
+        with self.assertRaisesRegex(
+            ModuleNotFoundError, r"No module named 'cloudpickle'"
+        ):
+            import cloudpickle  # noqa: F401 - verifies installation isolation
 
 
 class TestLightweightPythonComponentLogic(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def test_single_output_simple_case(self):
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
@@ -174,13 +179,14 @@ class TestLightweightPythonComponentLogic(
             l: list,
             d: dict,
         ) -> NamedTuple(
-                'Outputs',
-                string=str,
-                integer=int,
-                decimal=float,
-                boolean=bool,
-                l=list,
-                d=dict):
+            'Outputs',
+            string=str,
+            integer=int,
+            decimal=float,
+            boolean=bool,
+            l=list,
+            d=dict,
+        ):
             Outputs = NamedTuple(
                 'Outputs',
                 string=str,
@@ -188,7 +194,8 @@ class TestLightweightPythonComponentLogic(
                 decimal=float,
                 boolean=bool,
                 l=list,
-                d=dict)
+                d=dict,
+            )
             return Outputs(
                 string=string,
                 integer=integer,
@@ -204,7 +211,8 @@ class TestLightweightPythonComponentLogic(
             decimal=3.14,
             boolean=True,
             l=['a', 'b'],
-            d={'x': 'y'})
+            d={'x': 'y'},
+        )
         self.assertIsInstance(task.outputs['string'], str)
         self.assertEqual(task.outputs['string'], 'foo')
 
@@ -234,8 +242,8 @@ class TestLightweightPythonComponentLogic(
 
         local_task = return_twice(x='foo')
         with self.assertRaisesRegex(
-                AttributeError,
-                r'The task has multiple outputs\. Please reference the output by its name\.'
+            AttributeError,
+            r'The task has multiple outputs\. Please reference the output by its name\.',
         ):
             local_task.output
 
@@ -264,7 +272,8 @@ class TestLightweightPythonComponentLogic(
         @dsl.component
         def artifact_maker(x: str) -> Artifact:
             artifact = Artifact(
-                name='a', uri=dsl.get_uri('a'), metadata={'foo': 'bar'})
+                name='a', uri=dsl.get_uri('a'), metadata={'foo': 'bar'}
+            )
             with open(artifact.path, 'w') as f:
                 f.write(x)
 
@@ -326,10 +335,10 @@ class TestLightweightPythonComponentLogic(
         def double_artifact_maker(
             x: str,
             y: str,
-        ) -> NamedTuple(
-                'Outputs', a=Artifact, b=Dataset):
+        ) -> NamedTuple('Outputs', a=Artifact, b=Dataset):
             a = Artifact(
-                name='a', uri=dsl.get_uri('a'), metadata={'foo': 'bar'})
+                name='a', uri=dsl.get_uri('a'), metadata={'foo': 'bar'}
+            )
             b = Dataset(name='b', uri=dsl.get_uri('b'), metadata={'baz': 'bat'})
 
             with open(a.path, 'w') as f:
@@ -390,7 +399,9 @@ class TestLightweightPythonComponentLogic(
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
         @dsl.component
-        def my_comp(out_param: dsl.OutputPath(str),) -> int:
+        def my_comp(
+            out_param: dsl.OutputPath(str),
+        ) -> int:
             with open(out_param, 'w') as f:
                 f.write('Hello' * 2)
             return 1

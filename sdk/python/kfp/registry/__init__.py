@@ -18,5 +18,4 @@ __all__ = [
     'RegistryClient',
     'ApiAuth',
 ]
-from kfp.registry.registry_client import ApiAuth
-from kfp.registry.registry_client import RegistryClient
+from kfp.registry.registry_client import ApiAuth, RegistryClient

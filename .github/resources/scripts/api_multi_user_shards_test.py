@@ -14,14 +14,14 @@
 # limitations under the License.
 """Keep API multi-user sharding complete and manual inputs unchanged."""
 
-from itertools import product
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
 import unittest
+from itertools import product
+from pathlib import Path
 
 import yaml
 
@@ -54,16 +54,17 @@ def render_references(value, context):
 
 
 class ApiMultiUserShardsTest(unittest.TestCase):
-
     def setUp(self):
         self.workflow = yaml.safe_load(WORKFLOW.read_text(encoding='utf-8'))
         self.job = self.workflow['jobs']['api-test-multi-user']
 
     def test_constants_changes_trigger_api_workflow(self):
         workflow = yaml.load(
-            WORKFLOW.read_text(encoding='utf-8'), Loader=yaml.BaseLoader)
-        self.assertIn('backend/test/constants/**',
-                      workflow['on']['pull_request']['paths'])
+            WORKFLOW.read_text(encoding='utf-8'), Loader=yaml.BaseLoader
+        )
+        self.assertIn(
+            'backend/test/constants/**', workflow['on']['pull_request']['paths']
+        )
 
     def matrix_rows(self, event):
         matrix = self.job['strategy']['matrix']
@@ -72,13 +73,17 @@ class ApiMultiUserShardsTest(unittest.TestCase):
         # implement the GitHub Actions expression language.
         branches = re.fullmatch(
             r"\$\{\{ fromJSON\(github\.event_name == 'workflow_dispatch' && "
-            r"'([^']+)' \|\| '([^']+)'\) \}\}", matrix['test_shard'])
+            r"'([^']+)' \|\| '([^']+)'\) \}\}",
+            matrix['test_shard'],
+        )
         self.assertIsNotNone(branches)
         shard_values = json.loads(
-            branches.group(1 if event == 'workflow_dispatch' else 2))
+            branches.group(1 if event == 'workflow_dispatch' else 2)
+        )
         self.assertEqual(
             shard_values,
-            ['all'] if event == 'workflow_dispatch' else ['A', 'B'])
+            ['all'] if event == 'workflow_dispatch' else ['A', 'B'],
+        )
         axes = {
             key: shard_values if key == 'test_shard' else value
             for key, value in matrix.items()
@@ -88,18 +93,23 @@ class ApiMultiUserShardsTest(unittest.TestCase):
             dict(zip(axes, values)) for values in product(*axes.values())
         ]
         originals = [
-            row for row in originals if not any(
-                all(row.get(key) == value
-                    for key, value in rule.items())
-                for rule in matrix.get('exclude', []))
+            row
+            for row in originals
+            if not any(
+                all(row.get(key) == value for key, value in rule.items())
+                for rule in matrix.get('exclude', [])
+            )
         ]
         rows = [row.copy() for row in originals]
         additions = []
         for rule in matrix.get('include', []):
             matches = [
-                index for index, row in enumerate(originals)
-                if all(key not in row or row[key] == value
-                       for key, value in rule.items())
+                index
+                for index, row in enumerate(originals)
+                if all(
+                    key not in row or row[key] == value
+                    for key, value in rule.items()
+                )
             ]
             if not matches:
                 additions.append(rule.copy())
@@ -108,25 +118,39 @@ class ApiMultiUserShardsTest(unittest.TestCase):
         return rows + additions
 
     def test_automatic_and_manual_matrices_preserve_deployment_coverage(self):
-        for event, shards in (('pull_request', ['A', 'B']),
-                              ('workflow_dispatch', ['all'])):
+        for event, shards in (
+            ('pull_request', ['A', 'B']),
+            ('workflow_dispatch', ['all']),
+        ):
             with self.subTest(event=event):
                 rows = self.matrix_rows(event)
                 self.assertCountEqual(
-                    [(row['db_type'], row['cache_enabled'], row['test_shard'])
-                     for row in rows], [(*configuration, shard)
-                                        for configuration in CONFIGURATIONS
-                                        for shard in shards])
+                    [
+                        (
+                            row['db_type'],
+                            row['cache_enabled'],
+                            row['test_shard'],
+                        )
+                        for row in rows
+                    ],
+                    [
+                        (*configuration, shard)
+                        for configuration in CONFIGURATIONS
+                        for shard in shards
+                    ],
+                )
                 for row in rows:
                     self.assertEqual(row['multi_user'], 'true')
                     self.assertEqual(row['k8s_version'], 'v1.36.1')
-                    self.assertEqual(row['test_label'],
-                                     BASE_FILTERS[row['cache_enabled']])
+                    self.assertEqual(
+                        row['test_label'], BASE_FILTERS[row['cache_enabled']]
+                    )
         self.assertFalse(self.job['strategy']['fail-fast'])
 
     def test_job_and_report_names_are_unique_for_each_matrix_row(self):
-        report = next(step for step in self.job['steps']
-                      if step.get('id') == 'test-run')['with']['report_name']
+        report = next(
+            step for step in self.job['steps'] if step.get('id') == 'test-run'
+        )['with']['report_name']
         for event in ('pull_request', 'workflow_dispatch'):
             for template in (self.job['name'], report):
                 with self.subTest(event=event, template=template):
@@ -138,59 +162,94 @@ class ApiMultiUserShardsTest(unittest.TestCase):
 
     def configure(self, row, event, inputs):
         step = next(
-            step for step in self.job['steps'] if step.get('id') == 'configure')
+            step for step in self.job['steps'] if step.get('id') == 'configure'
+        )
         context = {
             'matrix': row,
-            'github': {
-                'event_name': event
-            },
+            'github': {'event_name': event},
             'env': self.workflow['env'],
             'inputs': inputs,
         }
         environment = os.environ.copy()
-        environment.update({
-            key: render_references(value, context)
-            for key, value in step.get('env', {}).items()
-        })
+        environment.update(
+            {
+                key: render_references(value, context)
+                for key, value in step.get('env', {}).items()
+            }
+        )
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'github-output'
             environment['GITHUB_OUTPUT'] = str(output)
-            result = subprocess.run([
-                'bash', '-e', '-o', 'pipefail', '-c',
-                render_references(step['run'], context)
-            ],
-                                    cwd=directory,
-                                    env=environment,
-                                    capture_output=True,
-                                    text=True,
-                                    timeout=10,
-                                    check=False)
-            self.assertEqual(result.returncode, 0,
-                             result.stdout + result.stderr)
+            result = subprocess.run(
+                [
+                    'bash',
+                    '-e',
+                    '-o',
+                    'pipefail',
+                    '-c',
+                    render_references(step['run'], context),
+                ],
+                cwd=directory,
+                env=environment,
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            self.assertEqual(
+                result.returncode, 0, result.stdout + result.stderr
+            )
             return dict(
-                line.split('=', 1) for line in output.read_text().splitlines())
+                line.split('=', 1) for line in output.read_text().splitlines()
+            )
 
     def test_manual_dispatch_preserves_requested_label_nodes_and_namespace(
-            self):
+        self,
+    ):
         inputs = {
-            'number_of_parallel_tests':
-                '7',
-            'test_label':
-                'ApiServerTests && (PipelineUpload || PipelineRun) && !Smoke',
-            'namespace':
-                'custom-kfp-namespace',
+            'number_of_parallel_tests': '7',
+            'test_label': 'ApiServerTests && (PipelineUpload || PipelineRun) && !Smoke',
+            'namespace': 'custom-kfp-namespace',
         }
         for row in self.matrix_rows('workflow_dispatch'):
             with self.subTest(row=row):
                 actual = self.configure(row, 'workflow_dispatch', inputs)
                 self.assertEqual(
-                    actual, {
+                    actual,
+                    {
                         'NUMBER_OF_NODES': inputs['number_of_parallel_tests'],
-                        'TEST_LABEL': inputs['test_label'],
+                        'TEST_LABEL': (
+                            f'({inputs["test_label"]}) && !LegacyCache'
+                            if row['cache_enabled'] == 'false'
+                            else inputs['test_label']
+                        ),
                         'NAMESPACE': inputs['namespace'],
-                    })
+                    },
+                )
 
-    def test_automatic_runs_combine_cache_and_shard_filters(self):
+    def test_manual_default_and_explicit_cache_labels_respect_disabled_cache(
+        self,
+    ):
+        for label in ('ApiServerTests', 'LegacyCache'):
+            for row in self.matrix_rows('workflow_dispatch'):
+                with self.subTest(label=label, row=row):
+                    actual = self.configure(
+                        row,
+                        'workflow_dispatch',
+                        {
+                            'number_of_parallel_tests': '5',
+                            'test_label': label,
+                            'namespace': 'kubeflow',
+                        },
+                    )
+                    expected = (
+                        f'({label}) && !LegacyCache'
+                        if row['cache_enabled'] == 'false'
+                        else label
+                    )
+                    self.assertEqual(actual['TEST_LABEL'], expected)
+
+    def test_automatic_runs_combine_cache_shards_and_legacy_compatibility(self):
         # Populated dispatch inputs must have no effect on an automatic run.
         inputs = {
             'number_of_parallel_tests': '7',
@@ -200,22 +259,36 @@ class ApiMultiUserShardsTest(unittest.TestCase):
         for row in self.matrix_rows('pull_request'):
             with self.subTest(row=row):
                 actual = self.configure(row, 'pull_request', inputs)
+                expected_label = (
+                    f'({BASE_FILTERS[row["cache_enabled"]]}) && '
+                    f'{SHARD_FILTERS[row["test_shard"]]}'
+                )
+                expected_label = f'({expected_label}) || LegacyAPICompatibility'
+                if row['cache_enabled'] == 'false':
+                    expected_label = f'({expected_label}) && !LegacyCache'
                 self.assertEqual(
-                    actual, {
+                    actual,
+                    {
                         'NUMBER_OF_NODES': '2',
-                        'TEST_LABEL':
-                            f"({BASE_FILTERS[row['cache_enabled']]}) && "
-                            f"{SHARD_FILTERS[row['test_shard']]}",
+                        'TEST_LABEL': expected_label,
                         'NAMESPACE': 'kubeflow',
-                    })
-        test_inputs = next(step for step in self.job['steps']
-                           if step.get('id') == 'test-run')['with']
-        self.assertEqual(test_inputs['test_label'],
-                         '${{ steps.configure.outputs.TEST_LABEL }}')
-        self.assertEqual(test_inputs['num_parallel_nodes'],
-                         '${{ steps.configure.outputs.NUMBER_OF_NODES }}')
-        self.assertEqual(test_inputs['default_namespace'],
-                         '${{ steps.configure.outputs.NAMESPACE }}')
+                    },
+                )
+        test_inputs = next(
+            step for step in self.job['steps'] if step.get('id') == 'test-run'
+        )['with']
+        self.assertEqual(
+            test_inputs['test_label'],
+            '${{ steps.configure.outputs.TEST_LABEL }}',
+        )
+        self.assertEqual(
+            test_inputs['num_parallel_nodes'],
+            '${{ steps.configure.outputs.NUMBER_OF_NODES }}',
+        )
+        self.assertEqual(
+            test_inputs['default_namespace'],
+            '${{ steps.configure.outputs.NAMESPACE }}',
+        )
 
 
 if __name__ == '__main__':

@@ -26,8 +26,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	apimodel "github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -68,8 +68,8 @@ func (c *PipelineUploadClientKubernetes) cleanupFailedPipelineUpload(pipeline *k
 	return uploadErr
 }
 
-func pipelineUploadModelFromPipeline(pipelineModel *apimodel.Pipeline) *model.V2beta1Pipeline {
-	return &model.V2beta1Pipeline{
+func pipelineUploadModelFromPipeline(pipelineModel *apimodel.Pipeline) *model.V2Pipeline {
+	return &model.V2Pipeline{
 		CreatedAt:   strfmt.DateTime(time.Unix(pipelineModel.CreatedAtInSec, 0).UTC()),
 		Description: string(pipelineModel.Description),
 		DisplayName: pipelineModel.DisplayName,
@@ -121,7 +121,7 @@ func NewPipelineUploadClientKubernetes(clientConfig clientcmd.ClientConfig, name
 }
 
 func (c *PipelineUploadClientKubernetes) UploadFile(filePath string, parameters *params.UploadPipelineParams) (
-	*model.V2beta1Pipeline, error,
+	*model.V2Pipeline, error,
 ) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -141,7 +141,7 @@ func (c *PipelineUploadClientKubernetes) UploadFile(filePath string, parameters 
 	return c.Upload(parameters)
 }
 
-func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline,
+func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelineParams) (*model.V2Pipeline,
 	error,
 ) {
 	if parameters.Namespace != nil && *parameters.Namespace != c.namespace {
@@ -239,7 +239,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 }
 
 // UploadPipelineVersion uploads pipeline version from local file.
-func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion,
+func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2PipelineVersion,
 	error,
 ) {
 	if parameters.Pipelineid == nil {
@@ -339,7 +339,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 			"Encountered an invalid pipeline version")
 	}
 
-	rv := &model.V2beta1PipelineVersion{
+	rv := &model.V2PipelineVersion{
 		CreatedAt:         strfmt.DateTime(pipelineVersion.CreationTimestamp.Time),
 		Description:       string(pipelineVersionModel.Description),
 		DisplayName:       pipelineVersionModel.DisplayName,

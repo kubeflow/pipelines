@@ -17,7 +17,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2Experiment } from 'src/apisv2/experiment';
 import BusyButton from 'src/atoms/BusyButton';
 import Input from 'src/atoms/Input';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
@@ -65,13 +65,13 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   }, []);
 
   const newExperimentMutation = useMutation({
-    mutationFn: (experiment: V2beta1Experiment) => {
+    mutationFn: (experiment: V2Experiment) => {
       return Apis.experimentServiceApiV2.createExperiment(experiment);
     },
   });
 
   const createExperiment = async () => {
-    let newExperiment: V2beta1Experiment = {
+    let newExperiment: V2Experiment = {
       display_name: experimentName,
       description: description,
       namespace: namespace,

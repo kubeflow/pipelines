@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
@@ -53,7 +53,7 @@ func (*concurrentCreationPluginHandler) ResolveRunPluginConfig(context.Context, 
 func (*concurrentCreationPluginHandler) GetPluginOperationTimeout(interface{}) time.Duration {
 	return time.Minute
 }
-func (h *concurrentCreationPluginHandler) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, interface{}, interface{}) (*apiv2beta1.PluginOutput, []corev1.EnvVar, error) {
+func (h *concurrentCreationPluginHandler) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, interface{}, interface{}) (*apiv2.PluginOutput, []corev1.EnvVar, error) {
 	call := h.calls.Add(1)
 	parentID := fmt.Sprintf("parent-%d", call)
 	if h.sharedParent {
@@ -63,7 +63,7 @@ func (h *concurrentCreationPluginHandler) OnBeforeRunCreation(context.Context, *
 		close(h.secondHook)
 		<-h.resumeSecond
 	}
-	return &apiv2beta1.PluginOutput{Entries: map[string]*apiv2beta1.MetadataValue{
+	return &apiv2.PluginOutput{Entries: map[string]*apiv2.MetadataValue{
 		apiserverPlugins.EntryRootRunID: {Value: structpb.NewStringValue(parentID)},
 	}}, nil, nil
 }
@@ -72,10 +72,10 @@ func (*concurrentCreationPluginHandler) HandleRetry(context.Context, *apiserverP
 }
 func (h *concurrentCreationPluginHandler) OnRunEnd(_ context.Context, run *apiserverPlugins.PersistedRun, _ interface{}) (bool, error) {
 	h.endedParents <- apiserverPlugins.GetParentRunID(run.PluginsOutput[h.Name()])
-	run.PluginsOutput[h.Name()].State = apiv2beta1.PluginState_PLUGIN_SUCCEEDED
+	run.PluginsOutput[h.Name()].State = apiv2.PluginState_PLUGIN_SUCCEEDED
 	return false, nil
 }
-func (*concurrentCreationPluginHandler) GetGenericFailedPluginOutput(string, string, interface{}) *apiv2beta1.PluginOutput {
+func (*concurrentCreationPluginHandler) GetGenericFailedPluginOutput(string, string, interface{}) *apiv2.PluginOutput {
 	return nil
 }
 

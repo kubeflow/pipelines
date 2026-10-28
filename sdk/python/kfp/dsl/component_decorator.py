@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, List, Optional, Union
 import warnings
+from typing import Callable, List, Optional, Union
 
 from kfp.dsl import component_factory
-from kfp.dsl.component_task_config import TaskConfigField
-from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.component_task_config import TaskConfigField, TaskConfigPassthrough
 
 
 def component(
@@ -35,8 +34,12 @@ def component(
     use_venv: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
     embedded_artifact_path: Optional[str] = None,
-    task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
-                                                  TaskConfigField]]] = None):
+    task_config_passthroughs: Optional[
+        List[Union[TaskConfigPassthrough, TaskConfigField]]
+    ] = None,
+    artifact_previews: bool = True,
+    artifact_preview_rows: bool = True,
+):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -102,6 +105,18 @@ def component(
         task_config_passthroughs: List of task configurations (e.g. resources, env, volumes etc.) to pass through
             to the component. This is useful when the component launches another Kubernetes resource (for example,
             a Kubeflow Trainer job). Use this in conjunction with dsl.TaskConfig.
+        artifact_previews: Automatically generates bounded previews for directory
+            Dataset and Model outputs by default. Set to ``False`` to disable
+            previews for this component. A pipeline with
+            ``PipelineConfig(artifact_previews=False)`` also disables generation;
+            setting this component option to ``True`` does not override it.
+            Supports Parquet, CSV, JSON,
+            JSONL, Arrow/Feather, XGBoost, PyTorch, and Transformers outputs.
+            Scientific libraries remain optional component dependencies.
+            Model save hooks are scoped to execution and restored afterwards.
+            Preview failures are logged without failing successful artifact production.
+        artifact_preview_rows: Includes up to ten dataset rows when previews
+            are enabled. Set to ``False`` for schema-only dataset previews.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
@@ -131,10 +146,12 @@ def component(
         warnings.warn(
             'output_component_file parameter is deprecated and will eventually be removed. Please use `Compiler().compile()` to compile a component instead.',
             DeprecationWarning,
-            stacklevel=2)
+            stacklevel=2,
+        )
 
     task_config_passthroughs_formatted: Optional[
-        List[TaskConfigPassthrough]] = None
+        List[TaskConfigPassthrough]
+    ] = None
     if task_config_passthroughs is not None:
         task_config_passthroughs_formatted = []
 
@@ -142,7 +159,9 @@ def component(
             if isinstance(passthrough, TaskConfigField):
                 task_config_passthroughs_formatted.append(
                     TaskConfigPassthrough(
-                        field=passthrough, apply_to_task=False))
+                        field=passthrough, apply_to_task=False
+                    )
+                )
             else:
                 task_config_passthroughs_formatted.append(passthrough)
 
@@ -160,7 +179,10 @@ def component(
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
             additional_funcs=additional_funcs,
-            task_config_passthroughs=task_config_passthroughs_formatted)
+            artifact_previews=artifact_previews,
+            artifact_preview_rows=artifact_preview_rows,
+            task_config_passthroughs=task_config_passthroughs_formatted,
+        )
 
     return component_factory.create_component_from_func(
         func,
@@ -175,4 +197,7 @@ def component(
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
         additional_funcs=additional_funcs,
-        task_config_passthroughs=task_config_passthroughs_formatted)
+        artifact_previews=artifact_previews,
+        artifact_preview_rows=artifact_preview_rows,
+        task_config_passthroughs=task_config_passthroughs_formatted,
+    )

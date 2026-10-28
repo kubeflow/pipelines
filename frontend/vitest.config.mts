@@ -26,7 +26,8 @@ export default defineConfig({
     environmentMatchGlobs: [['scripts/**/*.{test,spec}.{js,cjs,mjs,ts}', 'node']],
     server: {
       deps: {
-        inline: ['@xyflow/react', '@xyflow/system'],
+        // Bundle react-virtualized's dom-helpers imports for Node's ESM loader.
+        inline: ['@xyflow/react', '@xyflow/system', 'react-virtualized'],
       },
     },
     coverage: {
@@ -38,7 +39,7 @@ export default defineConfig({
         'src/**/__snapshots__/**',
         'src/**/__mocks__/**',
         'src/third_party/**',
-        'src/apisv2beta1/**',
+        'src/apisv2/**',
         'src/build/**',
       ],
     },

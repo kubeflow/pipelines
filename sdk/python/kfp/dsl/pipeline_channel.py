@@ -32,6 +32,7 @@ class ConditionOperation:
       right_operand: The right operand.
       negate: Whether to negate the result of the binary operation.
     """
+
     operator: str
     left_operand: Union['PipelineParameterChannel', type_utils.PARAMETER_TYPES]
     right_operand: Union['PipelineParameterChannel', type_utils.PARAMETER_TYPES]
@@ -39,8 +40,7 @@ class ConditionOperation:
 
 
 # The string template used to generate the placeholder of a PipelineChannel.
-_PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
-    '{{channel:task=%s;name=%s;type=%s;}}')
+_PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = '{{channel:task=%s;name=%s;type=%s;}}'
 # The regex for parsing PipelineChannel placeholders from a string.
 # `type=` uses a non-greedy match up to the closing `;}}` rather than a
 # character whitelist, since stringified type annotations (especially
@@ -49,7 +49,8 @@ _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
 # construction (see _escape_channel_type) so it cannot contain
 # ';', '{', or '}'; the first ';}}' is always the real terminator.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
-    r"{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=(.*?);}}")
+    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=(.*?);}}'
+)
 
 # Characters in a channel type that could collide with the placeholder
 # delimiters are percent-encoded. '%' is encoded too so decoding is
@@ -150,6 +151,7 @@ class PipelineChannel(abc.ABC):
             return self.pipeline.tasks[self.task_name]
 
         from kfp.compiler import compiler_utils
+
         all_groups = compiler_utils.get_all_groups(self.pipeline.groups[0])
         # pipeline hasn't exited, so it doesn't have a name
         all_groups_no_pipeline = all_groups[1:]
@@ -187,7 +189,10 @@ class PipelineChannel(abc.ABC):
         name = self.name
         channel_type = self.channel_type or ''
         return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (
-            task_name, name, _escape_channel_type(channel_type))
+            task_name,
+            name,
+            _escape_channel_type(channel_type),
+        )
 
     def __repr__(self) -> str:
         """Representation of the PipelineChannel.
@@ -322,8 +327,10 @@ class OneOfMixin(PipelineChannel):
     """Shared functionality for OneOfParameter and OneOfAritfact."""
 
     def _set_condition_branches_group(
-        self, channels: List[Union[PipelineParameterChannel,
-                                   PipelineArtifactChannel]]
+        self,
+        channels: List[
+            Union[PipelineParameterChannel, PipelineArtifactChannel]
+        ],
     ) -> None:
         # avoid circular import
         from kfp.dsl import tasks_group
@@ -335,7 +342,8 @@ class OneOfMixin(PipelineChannel):
         # attribute name. When the code is trying to treat the OneOfMixin like
         # a typical PipelineChannel, it aids to reference task.
         self.condition_branches_group: tasks_group.ConditionBranches = channels[
-            0].task.parent_task_group.parent_task_group
+            0
+        ].task.parent_task_group.parent_task_group
 
     def _make_oneof_name(self) -> str:
         # avoid circular imports
@@ -352,8 +360,9 @@ class OneOfMixin(PipelineChannel):
 
     def _validate_channels(
         self,
-        channels: List[Union[PipelineParameterChannel,
-                             PipelineArtifactChannel]],
+        channels: List[
+            Union[PipelineParameterChannel, PipelineArtifactChannel]
+        ],
     ):
         self._validate_no_collected_channel(channels)
         self._validate_no_oneof_channel(channels)
@@ -361,19 +370,24 @@ class OneOfMixin(PipelineChannel):
         self._validate_has_else_group(self.condition_branches_group)
 
     def _validate_no_collected_channel(
-        self, channels: List[Union[PipelineParameterChannel,
-                                   PipelineArtifactChannel]]
+        self,
+        channels: List[
+            Union[PipelineParameterChannel, PipelineArtifactChannel]
+        ],
     ) -> None:
         # avoid circular imports
         from kfp.dsl import for_loop
+
         if any(isinstance(channel, for_loop.Collected) for channel in channels):
             raise ValueError(
                 f'dsl.{for_loop.Collected.__name__} cannot be used inside of dsl.{OneOf.__name__}.'
             )
 
     def _validate_no_oneof_channel(
-        self, channels: List[Union[PipelineParameterChannel,
-                                   PipelineArtifactChannel]]
+        self,
+        channels: List[
+            Union[PipelineParameterChannel, PipelineArtifactChannel]
+        ],
     ) -> None:
         if any(isinstance(channel, OneOfMixin) for channel in channels):
             raise ValueError(
@@ -381,8 +395,10 @@ class OneOfMixin(PipelineChannel):
             )
 
     def _validate_no_mix_of_parameters_and_artifacts(
-        self, channels: List[Union[PipelineParameterChannel,
-                                   PipelineArtifactChannel]]
+        self,
+        channels: List[
+            Union[PipelineParameterChannel, PipelineArtifactChannel]
+        ],
     ) -> None:
 
         first_channel = channels[0]
@@ -405,6 +421,7 @@ class OneOfMixin(PipelineChannel):
     ) -> None:
         # avoid circular imports
         from kfp.dsl import tasks_group
+
         if not isinstance(parent_group.groups[-1], tasks_group.Else):
             raise ValueError(
                 f'dsl.{OneOf.__name__} must include an output from a task in a dsl.{tasks_group.Else.__name__} group to ensure at least one output is available at runtime.'
@@ -419,7 +436,8 @@ class OneOfMixin(PipelineChannel):
         # the combination of OneOf and an f-string is not common, so prefer
         # deferring implementation
         raise NotImplementedError(
-            f'dsl.{OneOf.__name__} does not support string interpolation.')
+            f'dsl.{OneOf.__name__} does not support string interpolation.'
+        )
 
     @property
     def pattern(self) -> str:
@@ -429,7 +447,10 @@ class OneOfMixin(PipelineChannel):
         name = self.name
         channel_type = self.channel_type or ''
         return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (
-            task_name, name, _escape_channel_type(channel_type))
+            task_name,
+            name,
+            _escape_channel_type(channel_type),
+        )
 
 
 # splitting out OneOf into subclasses significantly decreases the amount of
@@ -453,7 +474,8 @@ class OneOfParameter(PipelineParameterChannel, OneOfMixin):
         self._validate_same_kfp_type(channels)
 
     def _validate_same_kfp_type(
-            self, channels: List[PipelineParameterChannel]) -> None:
+        self, channels: List[PipelineParameterChannel]
+    ) -> None:
         expected_type = channels[0].channel_type
         for i, channel in enumerate(channels[1:], start=1):
             if channel.channel_type != expected_type:
@@ -479,7 +501,8 @@ class OneOfArtifact(PipelineArtifactChannel, OneOfMixin):
         self._validate_same_kfp_type(channels)
 
     def _validate_same_kfp_type(
-            self, channels: List[PipelineArtifactChannel]) -> None:
+        self, channels: List[PipelineArtifactChannel]
+    ) -> None:
         # Unlike for component interface type checking where anything is
         # passable to Artifact, we should require the output artifacts for a
         # OneOf to be the same. This reduces the complexity/ambiguity for the
@@ -490,7 +513,10 @@ class OneOfArtifact(PipelineArtifactChannel, OneOfMixin):
         expected_type = channels[0].channel_type
         expected_is_list = channels[0].is_artifact_list
         for i, channel in enumerate(channels[1:], start=1):
-            if channel.channel_type != expected_type or channel.is_artifact_list != expected_is_list:
+            if (
+                channel.channel_type != expected_type
+                or channel.is_artifact_list != expected_is_list
+            ):
                 raise TypeError(
                     f'Task outputs passed to dsl.{OneOf.__name__} must be the same type. Got two channels with different types: {expected_type} at index 0 and {channel.channel_type} at index {i}.'
                 )
@@ -574,7 +600,8 @@ def create_pipeline_channel(
 
 
 def extract_pipeline_channels_from_string(
-        payload: str) -> List[PipelineChannel]:
+    payload: str,
+) -> List[PipelineChannel]:
     """Extracts a list of PipelineChannel instances from the payload string.
 
     Note: this function removes all duplicate matches.
@@ -611,7 +638,7 @@ def extract_pipeline_channels_from_string(
 
 
 def extract_pipeline_channels_from_any(
-    payload: Union[PipelineChannel, str, int, float, bool, list, tuple, dict]
+    payload: Union[PipelineChannel, str, int, float, bool, list, tuple, dict],
 ) -> List[PipelineChannel]:
     """Recursively extract PipelineChannels from any object or list of objects.
 

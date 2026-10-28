@@ -2,6 +2,16 @@
 name: CI Check
 
 on:
+  workflow_dispatch:
+    inputs:
+      merged_pr:
+        description: Merged release PR whose pending aggregate needs recovery
+        type: string
+        required: true
+      head_sha:
+        description: Exact 40-character tested PR head SHA
+        type: string
+        required: true
   schedule:
     - cron: '7,22,37,52 * * * *'
   pull_request_target:
@@ -27,18 +37,20 @@ on:
       - 'KFP SDK Tests'
       - 'KFP SDK Unit Tests'
       - 'KFP Webhook Integration'
+      # Release branches still run legacy CI; their reruns must update ci-passed.
+      - 'KFP API Integration V2 (Legacy)'
       - 'KFP Manifests'
       - 'KFP Kubernetes Native Migration Tests'
-      - 'KFP API Integration V2 (Legacy)'
       - 'pre-commit'
       - 'KFP Backend Tests'
       - 'Python Syntax'
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
+      - 'Third-party Image Upgrade Checks'
       - 'KFP SDK Docformatter Test'
-      - 'KFP SDK Isort Test'
+      - 'Python Ruff Lint'
       - 'KFP SDK Upgrade Test'
-      - 'KFP SDK YAPF Tests'
+      - 'Python Ruff Format'
       - 'KFP upgrade tests'
       - 'Validate Generated Files'
     types: [requested, in_progress, completed]
@@ -58,7 +70,7 @@ jobs:
     outputs:
       candidates: ${{ steps.list.outputs.result }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
@@ -95,13 +107,12 @@ jobs:
       actions: read
       checks: read
       contents: read
-      issues: write
       pull-requests: write
       statuses: write
     steps:
       - name: Check out the trusted workflow revision
         if: github.event_name != 'pull_request_target' || github.event.action != 'closed'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.sha }}
@@ -109,7 +120,7 @@ jobs:
 
       - name: Check out the trusted default branch for a closed PR
         if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # After merge, github.sha equals the PR merge SHA and checkout's
           # fork guard rejects it. Use the base repo's named trusted branch.
@@ -118,7 +129,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up trusted workflow inventory parser
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
 
@@ -145,7 +156,7 @@ jobs:
         id: poll
         if: steps.prepare.outputs.ready == 'true'
         continue-on-error: true
-        uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
+        uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
         with:
           commit_sha: ${{ steps.prepare.outputs.head_sha }}
           # Completion events and scheduled sweeps drive recovery. Never hold
@@ -178,3 +189,58 @@ jobs:
               before: process.env.CI_PR_SNAPSHOT,
               pollPassed: process.env.CI_POLL_PASSED === 'true',
               pollSkipped: process.env.CI_POLL_SKIPPED === 'true'});
+
+  recover_merged_release:
+    if: github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: ci-passed-reconcile-${{ inputs.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - id: prepare
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          RECOVERY_PR: ${{ inputs.merged_pr }}
+          RECOVERY_HEAD: ${{ inputs.head_sha }}
+        with:
+          script: |
+            const {prepareMergedRecovery} = require('./.github/resources/scripts/ci_passed.js');
+            await prepareMergedRecovery({github, context, core,
+              number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD});
+      - id: poll
+        if: steps.prepare.outputs.ready == 'true'
+        uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
+        with:
+          commit_sha: ${{ steps.prepare.outputs.head_sha }}
+          poll: 'false'
+          delay: '0'
+          ignore_superseded_runs: 'true'
+          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          token: ${{ github.token }}
+      - if: steps.prepare.outputs.ready == 'true' && steps.poll.outcome == 'success'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          RECOVERY_PR: ${{ steps.prepare.outputs.pr_number }}
+          RECOVERY_HEAD: ${{ steps.prepare.outputs.head_sha }}
+          RECOVERY_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
+        with:
+          script: |
+            const {finalizeMergedRecovery} = require('./.github/resources/scripts/ci_passed.js');
+            await finalizeMergedRecovery({github, context, core,
+              number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD,
+              before: process.env.RECOVERY_SNAPSHOT, pollPassed: true});

@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-API_VERSION=${API_VERSION:-v2beta1}
-if [[ "$API_VERSION" != "v2beta1" ]]; then
-    echo "Only the v2beta1 API is supported." >&2
+API_VERSION=${API_VERSION:-v2}
+if [[ "$API_VERSION" != "v2" ]]; then
+    echo "Generate the canonical v2 API; v2beta1 is a frozen compatibility contract." >&2
     exit 1
 fi
 
@@ -60,6 +60,11 @@ pushd "$(dirname "$0")"
 CURRENT_DIR="$(pwd)"
 DIR="$CURRENT_DIR/$API_VERSION/python_http_client"
 swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json"
+# Keep SDK upgrades usable with servers that predate the stable HTTP prefix.
+python_swagger_file=$(mktemp)
+trap 'rm -f "$python_swagger_file"' EXIT
+jq '.paths |= with_entries(.key |= sub("^/apis/v2/"; "/apis/v2beta1/"))' \
+    "$swagger_file" > "$python_swagger_file"
 
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
@@ -69,7 +74,7 @@ rm -rf "$DIR"
 generator_options=(--global-property apiTests=false,modelTests=false)
 
 echo "Generating python code from swagger json in $DIR."
-java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$swagger_file" -o "$DIR" \
+java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$python_swagger_file" -o "$DIR" \
     "${generator_options[@]}" -c <(echo '{
     "packageName": "'"$package_name"'",
     "packageVersion": "'"$VERSION"'",
@@ -154,6 +159,7 @@ cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 SDK_CLIENT="$REPO_ROOT/sdk/python/kfp/server_api"
 rm -rf "$SDK_CLIENT"
 mv "$DIR/kfp/server_api" "$SDK_CLIENT"
+python3 "$CURRENT_DIR/hack/generate_python_compat.py" "$SDK_CLIENT"
 rm -rf "$DIR/kfp" "$DIR/test" "$DIR/.openapi-generator"
 rm -f "$DIR/setup.py" "$DIR/setup.cfg" "$DIR/tox.ini" \
     "$DIR/requirements.txt" "$DIR/test-requirements.txt" \

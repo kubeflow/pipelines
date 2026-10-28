@@ -15,6 +15,7 @@
 from typing import Dict, List, Optional
 
 from google.protobuf import json_format
+
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
@@ -79,7 +80,7 @@ def add_init_container(
         raise ValueError(
             f'Argument for "restart_policy" must be "Always" if provided. Got: {restart_policy}.'
         )
-    for env_name in (env or {}):
+    for env_name in env or {}:
         if not env_name:
             raise ValueError(
                 'Environment variable names in "env" must be non-empty strings.'
@@ -87,13 +88,16 @@ def add_init_container(
     for volume_name, mount_path in (volume_mounts or {}).items():
         if not volume_name:
             raise ValueError(
-                'Volume names in "volume_mounts" must be non-empty strings.')
+                'Volume names in "volume_mounts" must be non-empty strings.'
+            )
         if not mount_path or not mount_path.startswith('/'):
             raise ValueError(
                 f'Mount path for volume "{volume_name}" must be an absolute path. Got: {mount_path}.'
             )
-    for argument_name, quantities in (('resource_requests', resource_requests),
-                                      ('resource_limits', resource_limits)):
+    for argument_name, quantities in (
+        ('resource_requests', resource_requests),
+        ('resource_limits', resource_limits),
+    ):
         for resource_name, quantity in (quantities or {}).items():
             if not resource_name or not quantity:
                 raise ValueError(
@@ -122,11 +126,14 @@ def add_init_container(
         init_container.resources.limits.update(resource_limits)
     for env_name, env_value in (env or {}).items():
         init_container.env.append(
-            pb.InitContainer.EnvVar(name=env_name, value=env_value))
+            pb.InitContainer.EnvVar(name=env_name, value=env_value)
+        )
     for volume_name, mount_path in (volume_mounts or {}).items():
         init_container.volume_mounts.append(
             pb.InitContainer.VolumeMount(
-                volume_name=volume_name, mount_path=mount_path))
+                volume_name=volume_name, mount_path=mount_path
+            )
+        )
 
     msg.init_containers.append(init_container)
 

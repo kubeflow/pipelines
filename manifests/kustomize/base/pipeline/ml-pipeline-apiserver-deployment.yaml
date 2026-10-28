@@ -227,6 +227,17 @@ spec:
                   name: pipeline-install-config
                   key: defaultSecurityContextHostUsers
                   optional: true
+            # Default StorageClass for PVCs created by CreatePVC pipeline tasks.
+            # Precedence: a pipeline-supplied storage_class_name (including an
+            # explicit empty string, which opts out) always wins; then this
+            # configured default when the task omits its class; when unset,
+            # Kubernetes cluster defaulting applies.
+            - name: DEFAULT_PVC_STORAGE_CLASS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: defaultPVCStorageClass
+                  optional: true
             # Driver pod labels and annotations. Viper reads these config keys from the
             # environment, so the variable names must match the keys defined in
             # backend/src/apiserver/common/driver_config.go.
@@ -276,14 +287,14 @@ spec:
               containerPort: 8887
           readinessProbe:
             httpGet:
-              path: /apis/v2beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
           livenessProbe:
             httpGet:
-              path: /apis/v2beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
@@ -293,7 +304,7 @@ spec:
           # migration.
           startupProbe:
             httpGet:
-              path: /apis/v2beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
             failureThreshold: 12
             periodSeconds: 5

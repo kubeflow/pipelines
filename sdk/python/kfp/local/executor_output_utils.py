@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for reading and processing the ExecutorOutput message."""
+
 import json
 import os
 from typing import Any, Dict, List, Union
 
-from google.protobuf import json_format
-from google.protobuf import struct_pb2
+from google.protobuf import json_format, struct_pb2
+
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import executor
@@ -25,7 +26,8 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def load_executor_output(
-        executor_output_path: str) -> pipeline_spec_pb2.ExecutorOutput:
+    executor_output_path: str,
+) -> pipeline_spec_pb2.ExecutorOutput:
     """Loads the ExecutorOutput message from a path."""
     executor_output = pipeline_spec_pb2.ExecutorOutput()
 
@@ -40,7 +42,8 @@ def load_executor_output(
 def cast_protobuf_numbers(
     output_parameters: Dict[str, Any],
     output_parameter_types: Dict[
-        str, pipeline_spec_pb2.ComponentOutputsSpec.ParameterSpec],
+        str, pipeline_spec_pb2.ComponentOutputsSpec.ParameterSpec
+    ],
 ) -> Dict[str, Any]:
     """Casts output fields that are typed as NUMBER_INTEGER to a Python int.
 
@@ -52,14 +55,15 @@ def cast_protobuf_numbers(
     int_output_keys = [
         output_param_name
         for output_param_name, parameter_spec in output_parameter_types.items()
-        if parameter_spec.parameter_type ==
-        pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
+        if parameter_spec.parameter_type
+        == pipeline_spec_pb2.ParameterType.ParameterTypeEnum.NUMBER_INTEGER
     ]
     for int_output_key in int_output_keys:
         # avoid KeyError when the user never writes to the dsl.OutputPath
         if int_output_key in output_parameters:
             output_parameters[int_output_key] = int(
-                output_parameters[int_output_key])
+                output_parameters[int_output_key]
+            )
     return output_parameters
 
 
@@ -96,12 +100,12 @@ def get_outputs_from_executor_output(
     # collect artifact outputs from executor output
     output_artifact_definitions = component_spec.output_definitions.artifacts
     output_artifacts = {
-        artifact_name:
-            artifact_list_to_dsl_artifact(
-                artifact_list,
-                is_artifact_list=output_artifact_definitions[artifact_name]
-                .is_artifact_list,
-            )
+        artifact_name: artifact_list_to_dsl_artifact(
+            artifact_list,
+            is_artifact_list=output_artifact_definitions[
+                artifact_name
+            ].is_artifact_list,
+        )
         for artifact_name, artifact_list in executor_output.artifacts.items()
     }
     return {**output_parameters, **output_artifacts}
@@ -142,17 +146,21 @@ def merge_dsl_output_file_parameters_to_executor_output(
 ) -> pipeline_spec_pb2.ExecutorOutput:
     """Merges and output parameters specified via dsl.OutputPath with the rest
     of the ExecutorOutput message."""
-    for parameter_key, output_parameter in executor_input.outputs.parameters.items(
-    ):
+    for (
+        parameter_key,
+        output_parameter,
+    ) in executor_input.outputs.parameters.items():
         if os.path.exists(output_parameter.output_file):
             parameter_value = special_dsl_outputpath_read(
                 parameter_name=parameter_key,
                 output_file=output_parameter.output_file,
-                dtype=component_spec.output_definitions
-                .parameters[parameter_key].parameter_type,
+                dtype=component_spec.output_definitions.parameters[
+                    parameter_key
+                ].parameter_type,
             )
             executor_output.parameter_values[parameter_key].CopyFrom(
-                pipeline_spec_builder.to_protobuf_value(parameter_value))
+                pipeline_spec_builder.to_protobuf_value(parameter_value)
+            )
 
     return executor_output
 
@@ -181,11 +189,13 @@ def pb2_struct_to_python(struct: struct_pb2.Struct) -> Dict[str, Any]:
 
 
 def runtime_artifact_to_dsl_artifact(
-        runtime_artifact: pipeline_spec_pb2.RuntimeArtifact) -> dsl.Artifact:
+    runtime_artifact: pipeline_spec_pb2.RuntimeArtifact,
+) -> dsl.Artifact:
     """Converts a single RuntimeArtifact instance to the corresponding
     dsl.Artifact instance."""
     return executor.create_artifact_instance(
-        json_format.MessageToDict(runtime_artifact))
+        json_format.MessageToDict(runtime_artifact)
+    )
 
 
 def artifact_list_to_dsl_artifact(
@@ -218,7 +228,8 @@ def add_type_to_executor_output(
     for key, artifact_list in executor_output.artifacts.items():
         for artifact in artifact_list.artifacts:
             artifact.type.CopyFrom(
-                executor_input.outputs.artifacts[key].artifacts[0].type)
+                executor_input.outputs.artifacts[key].artifacts[0].type
+            )
     return executor_output
 
 
@@ -229,7 +240,8 @@ def get_outputs_for_task(
     """Gets outputs from a recently executed task, if available, using the
     ExecutorInput and ComponentSpec of the task."""
     executor_output = load_executor_output(
-        executor_output_path=executor_input.outputs.output_file)
+        executor_output_path=executor_input.outputs.output_file
+    )
     return get_outputs_from_executor_output(
         executor_output=executor_output,
         executor_input=executor_input,

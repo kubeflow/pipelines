@@ -15,15 +15,11 @@
 
 import logging
 import time
-from typing import Any, Dict, List, Tuple
 import warnings
+from typing import Any, Dict, List, Tuple
 
 from kfp.local import cache as cache_module
-from kfp.local import config
-from kfp.local import importer_handler
-from kfp.local import io
-from kfp.local import status
-from kfp.local import task_dispatcher
+from kfp.local import config, importer_handler, io, status, task_dispatcher
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 from .orchestrator_utils import OrchestratorUtils
@@ -39,8 +35,11 @@ def _warn_local_only_noops(
     """Emit warnings for task settings that have no local effect."""
     no_op_settings: List[str] = []
 
-    if (task_spec.HasField('task_info') and task_spec.task_info.name and
-            task_spec.task_info.name != task_name):
+    if (
+        task_spec.HasField('task_info')
+        and task_spec.task_info.name
+        and task_spec.task_info.name != task_name
+    ):
         no_op_settings.append('display_name')
 
     if container.HasField('resources'):
@@ -54,10 +53,11 @@ def _warn_local_only_noops(
         if resources.memory_request or resources.resource_memory_request:
             no_op_settings.append('memory_request')
         if resources.HasField('accelerator') and (
-                resources.accelerator.type or
-                resources.accelerator.resource_type or
-                resources.accelerator.count or
-                resources.accelerator.resource_count):
+            resources.accelerator.type
+            or resources.accelerator.resource_type
+            or resources.accelerator.count
+            or resources.accelerator.resource_count
+        ):
             no_op_settings.append('accelerator')
 
     if no_op_settings:
@@ -73,8 +73,9 @@ def execute_single_task(
     task_spec: pipeline_spec_pb2.PipelineTaskSpec,
     pipeline_resource_name: str,
     components: Dict[str, pipeline_spec_pb2.ComponentSpec],
-    executors: Dict[str,
-                    pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+    executors: Dict[
+        str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec
+    ],
     io_store: io.IOStore,
     pipeline_root: str,
     runner: config.LocalRunnerType,
@@ -88,7 +89,8 @@ def execute_single_task(
 
     if implementation != 'executor_label':
         raise ValueError(
-            f'Got unknown component implementation: {implementation}')
+            f'Got unknown component implementation: {implementation}'
+        )
 
     executor_spec = executors[component_spec.executor_label]
     task_arguments = OrchestratorUtils.make_task_arguments(
@@ -102,8 +104,11 @@ def execute_single_task(
     local_cache = cache_module.get_local_cache()
     cache_enabled_for_task = task_spec.caching_options.enable_cache
     cache_key = None
-    if (local_cache is not None and cache_enabled_for_task and
-            executor_spec.WhichOneof('spec') == 'container'):
+    if (
+        local_cache is not None
+        and cache_enabled_for_task
+        and executor_spec.WhichOneof('spec') == 'container'
+    ):
         container = executor_spec.container
         full_command = list(container.command) + list(container.args)
         env_vars = {env_var.name: env_var.value for env_var in container.env}
@@ -117,17 +122,29 @@ def execute_single_task(
         )
         cached_outputs = local_cache.get(cache_key)
         if cached_outputs is not None:
-            logging.info(f'Task {task_name} cache hit (key={cache_key[:12]}); '
-                         'skipping execution.')
+            logging.info(
+                f'Task {task_name} cache hit (key={cache_key[:12]}); '
+                'skipping execution.'
+            )
             return cached_outputs, status.Status.SUCCESS
 
     retry_policy = task_spec.retry_policy
-    max_retries = retry_policy.max_retry_count if retry_policy.max_retry_count > 0 else 0
-    backoff_duration = retry_policy.backoff_duration.seconds if retry_policy.HasField(
-        'backoff_duration') else 0
-    backoff_factor = retry_policy.backoff_factor if retry_policy.backoff_factor > 0 else 2.0
-    backoff_max_duration = retry_policy.backoff_max_duration.seconds if retry_policy.HasField(
-        'backoff_max_duration') else 3600
+    max_retries = (
+        retry_policy.max_retry_count if retry_policy.max_retry_count > 0 else 0
+    )
+    backoff_duration = (
+        retry_policy.backoff_duration.seconds
+        if retry_policy.HasField('backoff_duration')
+        else 0
+    )
+    backoff_factor = (
+        retry_policy.backoff_factor if retry_policy.backoff_factor > 0 else 2.0
+    )
+    backoff_max_duration = (
+        retry_policy.backoff_max_duration.seconds
+        if retry_policy.HasField('backoff_max_duration')
+        else 3600
+    )
 
     for attempt in range(max_retries + 1):
         if executor_spec.WhichOneof('spec') == 'importer':
@@ -141,37 +158,47 @@ def execute_single_task(
                 unique_pipeline_id=unique_pipeline_id,
             )
         elif executor_spec.WhichOneof('spec') == 'container':
-            outputs, task_status = task_dispatcher.run_single_task_implementation(
-                pipeline_resource_name=pipeline_resource_name,
-                component_name=component_name,
-                component_spec=component_spec,
-                executor_spec=executor_spec,
-                arguments=task_arguments,
-                pipeline_root=pipeline_root,
-                runner=runner,
-                raise_on_error=False,
-                block_input_artifact=False,
-                unique_pipeline_id=unique_pipeline_id,
+            outputs, task_status = (
+                task_dispatcher.run_single_task_implementation(
+                    pipeline_resource_name=pipeline_resource_name,
+                    component_name=component_name,
+                    component_spec=component_spec,
+                    executor_spec=executor_spec,
+                    arguments=task_arguments,
+                    pipeline_root=pipeline_root,
+                    runner=runner,
+                    raise_on_error=False,
+                    block_input_artifact=False,
+                    unique_pipeline_id=unique_pipeline_id,
+                )
             )
         else:
             raise ValueError(
                 "Got unknown spec in ExecutorSpec. Only 'dsl.component', "
-                "'dsl.container_component', and 'dsl.importer' are supported.")
+                "'dsl.container_component', and 'dsl.importer' are supported."
+            )
 
         if task_status == status.Status.SUCCESS or attempt >= max_retries:
-            if (task_status == status.Status.SUCCESS and
-                    local_cache is not None and cache_key is not None):
+            if (
+                task_status == status.Status.SUCCESS
+                and local_cache is not None
+                and cache_key is not None
+            ):
                 try:
                     local_cache.put(cache_key, outputs)
                 except Exception as exc:  # pragma: no cover - defensive
-                    logging.warning(f'Failed to write cache entry for task '
-                                    f'{task_name}: {exc}')
+                    logging.warning(
+                        f'Failed to write cache entry for task '
+                        f'{task_name}: {exc}'
+                    )
             return outputs, task_status
 
         delay = backoff_duration * (backoff_factor**attempt)
         delay = min(delay, backoff_max_duration)
-        logging.info(f'Task {task_name} failed (attempt {attempt + 1}/'
-                     f'{max_retries + 1}). Retrying in {delay:.1f}s...')
+        logging.info(
+            f'Task {task_name} failed (attempt {attempt + 1}/'
+            f'{max_retries + 1}). Retrying in {delay:.1f}s...'
+        )
         time.sleep(delay)
 
     return outputs, task_status

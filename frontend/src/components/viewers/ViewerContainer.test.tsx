@@ -60,7 +60,16 @@ describe('ViewerContainer', () => {
     const isROC = type === 'ROC';
     return it('renders a viewer of type ' + type, isROC ? { timeout: 10000 } : {}, () => {
       const plotType = PlotType[type as keyof typeof PlotType];
-      const { asFragment } = render(<ViewerContainer configs={[sampleConfigs[plotType]]} />);
+      const { container, asFragment } = render(
+        <ViewerContainer configs={[sampleConfigs[plotType]]} />,
+      );
+      if (isROC) {
+        // The ROC suite tests geometry and interactions; this tests viewer dispatch.
+        expect(container.querySelector('.recharts-surface')).toBeInTheDocument();
+        expect(container).toHaveTextContent('fpr');
+        expect(container).toHaveTextContent('tpr');
+        return;
+      }
       expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     });
   });

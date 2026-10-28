@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for kfp.local.cache."""
+
 import os
 import tempfile
 import threading
@@ -22,7 +23,6 @@ from kfp.local import cache
 
 
 class LocalCacheKeyTest(unittest.TestCase):
-
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix='kfp-cache-test-')
         self.addCleanup(self._rmtree)
@@ -30,6 +30,7 @@ class LocalCacheKeyTest(unittest.TestCase):
 
     def _rmtree(self):
         import shutil
+
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_same_inputs_same_key(self):
@@ -37,19 +38,13 @@ class LocalCacheKeyTest(unittest.TestCase):
             component_name='c',
             image='python:3.11',
             full_command=['python', '-c', 'print(1)'],
-            arguments={
-                'a': 1,
-                'b': 'x'
-            },
+            arguments={'a': 1, 'b': 'x'},
         )
         k2 = self.cache.compute_key(
             component_name='c',
             image='python:3.11',
             full_command=['python', '-c', 'print(1)'],
-            arguments={
-                'b': 'x',
-                'a': 1
-            },
+            arguments={'b': 'x', 'a': 1},
         )
         self.assertEqual(k1, k2)
 
@@ -152,7 +147,6 @@ class LocalCacheKeyTest(unittest.TestCase):
 
 
 class LocalCachePutGetTest(unittest.TestCase):
-
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix='kfp-cache-test-')
         self.addCleanup(self._rmtree)
@@ -160,6 +154,7 @@ class LocalCachePutGetTest(unittest.TestCase):
 
     def _rmtree(self):
         import shutil
+
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_miss_returns_none(self):
@@ -176,9 +171,9 @@ class LocalCachePutGetTest(unittest.TestCase):
         with open(artifact_path, 'w') as f:
             f.write('hi')
         outputs = {
-            'out_art':
-                dsl.Artifact(
-                    name='out_art', uri=artifact_path, metadata={'k': 'v'}),
+            'out_art': dsl.Artifact(
+                name='out_art', uri=artifact_path, metadata={'k': 'v'}
+            ),
         }
         self.cache.put('k', outputs)
         got = self.cache.get('k')
@@ -233,17 +228,20 @@ class LocalCacheSingletonTest(unittest.TestCase):
         import shutil
 
         from kfp.local import config as local_config
+
         shutil.rmtree(self.tmpdir, ignore_errors=True)
         local_config.LocalExecutionConfig.instance = None
         cache.reset_local_cache_singleton()
 
     def test_none_when_no_config(self):
         from kfp.local import config as local_config
+
         local_config.LocalExecutionConfig.instance = None
         self.assertIsNone(cache.get_local_cache())
 
     def test_none_when_caching_disabled(self):
         from kfp.local import config as local_config
+
         local_config.init(
             runner=local_config.SubprocessRunner(use_venv=False),
             pipeline_root=self.tmpdir,
@@ -253,6 +251,7 @@ class LocalCacheSingletonTest(unittest.TestCase):
 
     def test_singleton_when_enabled(self):
         from kfp.local import config as local_config
+
         local_config.init(
             runner=local_config.SubprocessRunner(use_venv=False),
             pipeline_root=self.tmpdir,
@@ -267,6 +266,7 @@ class LocalCacheSingletonTest(unittest.TestCase):
 
     def test_custom_cache_root_respected(self):
         from kfp.local import config as local_config
+
         custom = os.path.join(self.tmpdir, 'custom-cache')
         local_config.init(
             runner=local_config.SubprocessRunner(use_venv=False),

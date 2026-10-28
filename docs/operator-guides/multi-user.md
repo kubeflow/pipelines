@@ -93,20 +93,20 @@ parent experiment by `experiment_id` and their uploaded pipeline version by
 
 ```python
 import kfp
-from kfp.server_api import V2beta1Experiment, V2beta1PipelineVersionReference, V2beta1Run
+from kfp.server_api import V2Experiment, V2PipelineVersionReference, V2Run
 
 user_namespace = "jane-doe"
 credentials = kfp.client.ServiceAccountTokenVolumeCredentials(path=None)
 client = kfp.Client(host="http://ml-pipeline-ui.kubeflow", credentials=credentials)
 
 experiment = client._experiment_api.experiment_service_create_experiment(
-    experiment=V2beta1Experiment(display_name="My experiment", namespace=user_namespace)
+    experiment=V2Experiment(display_name="My experiment", namespace=user_namespace)
 )
 run = client._run_api.run_service_create_run(
-    run=V2beta1Run(
+    run=V2Run(
         display_name="My run",
         experiment_id=experiment.experiment_id,
-        pipeline_version_reference=V2beta1PipelineVersionReference(
+        pipeline_version_reference=V2PipelineVersionReference(
             pipeline_id="<YOUR_PIPELINE_ID>",
             pipeline_version_id="<YOUR_PIPELINE_VERSION_ID>",
         ),
@@ -116,6 +116,39 @@ runs = client._run_api.run_service_list_runs(
     namespace=user_namespace, experiment_id=experiment.experiment_id
 )
 ```
+
+## Pipeline workload credentials
+
+Pipeline pods record tasks and artifacts through the API server. In multi-user
+mode, these writes are authorized against the owning run:
+
+| Operation | Required permission | Namespace checked |
+| --- | --- | --- |
+| Create or update tasks | `update` on `runs.pipelines.kubeflow.org` | Run namespace |
+| Create artifacts or artifact-task links | `create` on `artifacts.pipelines.kubeflow.org` and `update` on `runs.pipelines.kubeflow.org` | Run namespace |
+
+The shipped `pipeline-runner` and `kubeflow-pipelines-edit` roles grant these
+permissions. Custom workload roles need the same rules. KFP sends only the
+username, not groups, in its SubjectAccessReview for token-authenticated callers,
+so bind the role to the workload service account rather than relying on a
+group-only grant.
+
+Launcher and importer containers receive a projected service account token at
+`/var/run/secrets/kfp/token` with audience
+`<TOKEN_REVIEW_AUDIENCE>/runs/<run ID>`, normally
+`pipelines.kubeflow.org/runs/<run ID>`. The driver requests a Pod-bound token with
+the same audience through the TokenRequest API. The API server accepts such a
+token only for requests bound to that run, including cache lookups in the run's
+namespace; it cannot authorize requests for another run or other namespace-wide
+requests. It can authorize any operation on its own run that the service
+account's RBAC allows. The launcher runs in the component's main container, so
+component code can read this token.
+
+The API server checks the identity header configured by `USERID_HEADER`
+(`kubeflow-userid` by default) before bearer tokens. Allow direct access to the
+API server only from trusted proxies and workloads, using the deployment's network
+and Istio policies, and strip caller-supplied identity headers at that trust
+boundary. On an untrusted path, a forged identity header is not proof of identity.
 
 ## Current limitations
 

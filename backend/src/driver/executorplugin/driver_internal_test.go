@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverlogs"
@@ -118,6 +118,7 @@ func TestDriveSetupAndExecution(t *testing.T) {
 				args.RuntimeConfig = `{"parameterValues":{"input":"value"}}`
 				args.DefaultRunAsNonRoot = "false"
 				args.DefaultHostUsers = "true"
+				args.DefaultPVCStorageClass = "server-default"
 				args.KubernetesConfig = `{"imagePullSecret":[{"secretName":"pull-secret"}]}`
 				execution := &driver.Execution{TaskID: "task-id"}
 				var events []string
@@ -141,6 +142,8 @@ func TestDriveSetupAndExecution(t *testing.T) {
 						assert.False(t, *options.DefaultRunAsNonRoot)
 						require.NotNil(t, options.DefaultHostUsers)
 						assert.True(t, *options.DefaultHostUsers)
+						require.NotNil(t, options.DefaultPVCStorageClass)
+						assert.Equal(t, "server-default", *options.DefaultPVCStorageClass)
 						assert.NotEmpty(t, options.OutputPathPrefix)
 					}
 					util.GetLoggerFrom(ctx).Info("execution log line")
@@ -348,6 +351,32 @@ func TestPluginDispatcherWithoutRuntimeArgsReturnsNonNil(t *testing.T) {
 	// With no plugins enabled in unit tests, this should be a usable no-op dispatcher.
 	_, err = dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
 	assert.NoError(t, err)
+}
+
+// TestDriveEmptyPVCStorageClassArgIsNil verifies that an absent or empty
+// default_pvc_storage_class wire argument maps to a nil Options pointer, so
+// the driver treats it as unconfigured.
+func TestDriveEmptyPVCStorageClassArgIsNil(t *testing.T) {
+	for _, argValue := range []string{"", "server-default"} {
+		t.Run("arg="+argValue, func(t *testing.T) {
+			runner, args, _, _ := invocationFixture(t, driverapi.ContainerDriver)
+			args.DefaultPVCStorageClass = argValue
+			var captured drivercommon.Options
+			runner.execute = func(_ context.Context, options drivercommon.Options, _ client_manager.ClientManagerInterface) (*driver.Execution, error) {
+				captured = options
+				return &driver.Execution{TaskID: "task"}, nil
+			}
+			runner.uploadLogs = func(context.Context, *driverlogs.ArtifactContext, kubernetes.Interface) error { return nil }
+			_, err := runner.drive(context.Background(), args)
+			require.NoError(t, err)
+			if argValue == "" {
+				assert.Nil(t, captured.DefaultPVCStorageClass)
+			} else {
+				require.NotNil(t, captured.DefaultPVCStorageClass)
+				assert.Equal(t, argValue, *captured.DefaultPVCStorageClass)
+			}
+		})
+	}
 }
 
 func TestDriveSkipsLogStorageWhenPublishLogsDisabled(t *testing.T) {

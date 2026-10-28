@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -27,9 +26,11 @@ def my_pipeline():
     kubernetes.use_field_path_as_env(
         task,
         env_name='KFP_RUN_NAME',
-        field_path="metadata.annotations['pipelines.kubeflow.org/run_name']")
+        field_path="metadata.annotations['pipelines.kubeflow.org/run_name']",
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))

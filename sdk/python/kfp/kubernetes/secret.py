@@ -15,8 +15,8 @@
 from typing import Dict, Union
 
 from google.protobuf import json_format
-from kfp.dsl import pipeline_channel
-from kfp.dsl import PipelineTask
+
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
@@ -46,7 +46,8 @@ def use_secret_as_env(
         pb.SecretAsEnv.SecretKeyToEnvMap(
             secret_key=secret_key,
             env_var=env_var,
-        ) for secret_key, env_var in secret_key_to_env.items()
+        )
+        for secret_key, env_var in secret_key_to_env.items()
     ]
     secret_as_env = pb.SecretAsEnv(key_to_env=key_to_env, optional=optional)
 

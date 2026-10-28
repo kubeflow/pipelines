@@ -20,8 +20,8 @@ import { CircularProgress } from '@mui/material';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { queryKeys } from 'src/hooks/queryKeys';
 import DetailsTable from 'src/components/DetailsTable';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
+import { V2Experiment } from 'src/apisv2/experiment';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
@@ -42,7 +42,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     data: recurringRun,
     error: getRecurringRunError,
     refetch: refetchRecurringRun,
-  } = useQuery<V2beta1RecurringRun, Error>({
+  } = useQuery<V2RecurringRun, Error>({
     queryKey: queryKeys.recurringRun(recurringRunId),
     queryFn: async () => {
       return await Apis.recurringRunServiceApi.getRecurringRun(recurringRunId);
@@ -58,7 +58,7 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     data: experiment,
     error: getExperimentError,
     refetch: refetchExperiment,
-  } = useQuery<V2beta1Experiment, Error>({
+  } = useQuery<V2Experiment, Error>({
     queryKey: queryKeys.experiment(experimentId),
     queryFn: async () => {
       if (!experimentId) {
@@ -112,9 +112,9 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     const toolbarState = getInitialToolbarState();
 
     toolbarState.actions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-      recurringRun?.status === V2beta1RecurringRunStatus.ENABLED;
+      recurringRun?.status === V2RecurringRunStatus.ENABLED;
     toolbarState.actions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-      recurringRun?.status !== V2beta1RecurringRunStatus.ENABLED;
+      recurringRun?.status !== V2RecurringRunStatus.ENABLED;
     toolbarState.pageTitle =
       recurringRun?.display_name || recurringRun?.recurring_run_id || 'Unknown recurring run';
     toolbarState.breadcrumbs = getBreadcrumbs(experiment?.experiment_id, experiment?.display_name);
@@ -211,7 +211,7 @@ function getBreadcrumbs(experimentId?: string, experimentName?: string): Breadcr
   return breadcrumbs;
 }
 
-function getRecurringRunDetails(recurringRun: V2beta1RecurringRun): Array<KeyValue<string>> {
+function getRecurringRunDetails(recurringRun: V2RecurringRun): Array<KeyValue<string>> {
   let details: Array<KeyValue<string>> = [];
 
   details.push(['Description', recurringRun.description!]);
@@ -220,7 +220,7 @@ function getRecurringRunDetails(recurringRun: V2beta1RecurringRun): Array<KeyVal
   return details;
 }
 
-function getRunTriggers(recurringRun: V2beta1RecurringRun): Array<KeyValue<string>> {
+function getRunTriggers(recurringRun: V2RecurringRun): Array<KeyValue<string>> {
   let triggers: Array<KeyValue<string>> = [];
 
   triggers.push(['Enabled', enabledDisplayStringV2(recurringRun.trigger, recurringRun.status!)]);
@@ -232,7 +232,7 @@ function getRunTriggers(recurringRun: V2beta1RecurringRun): Array<KeyValue<strin
   return triggers;
 }
 
-function getRunParameters(recurringRun: V2beta1RecurringRun): Array<KeyValue<string>> {
+function getRunParameters(recurringRun: V2RecurringRun): Array<KeyValue<string>> {
   const parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(
     ([key, value]) => {
       const displayValue =

@@ -15,17 +15,16 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('load-kind-image-archives.sh')
 
 
 class LoadKindImageArchivesTest(unittest.TestCase):
-
     def _run(
         self,
         archive_names: tuple[str, ...],
@@ -40,17 +39,13 @@ class LoadKindImageArchivesTest(unittest.TestCase):
         fake_bin.mkdir()
         state_path = root / 'state.json'
         state_path.write_text(
-            json.dumps({
-                'active': 0,
-                'maximum': 0,
-                'archives': []
-            }),
+            json.dumps({'active': 0, 'maximum': 0, 'archives': []}),
             encoding='utf-8',
         )
 
         fake_kind = fake_bin / 'kind'
         fake_kind.write_text(
-            textwrap.dedent('''\
+            textwrap.dedent("""\
                 #!/usr/bin/env python3
                 import fcntl
                 import json
@@ -80,7 +75,7 @@ class LoadKindImageArchivesTest(unittest.TestCase):
                     state_file.truncate()
                 if archive == os.environ.get('FAIL_ARCHIVE'):
                     sys.exit(42)
-            '''),
+            """),
             encoding='utf-8',
         )
         fake_kind.chmod(0o755)
@@ -92,11 +87,13 @@ class LoadKindImageArchivesTest(unittest.TestCase):
             archives.append(archive)
 
         environment = os.environ.copy()
-        environment.update({
-            'FAIL_ARCHIVE': fail_archive,
-            'KIND_STATE': str(state_path),
-            'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
-        })
+        environment.update(
+            {
+                'FAIL_ARCHIVE': fail_archive,
+                'KIND_STATE': str(state_path),
+                'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
+            }
+        )
         result = subprocess.run(
             [
                 'bash',
@@ -124,8 +121,9 @@ class LoadKindImageArchivesTest(unittest.TestCase):
             self.assertFalse((root / name).exists())
 
     def test_preserves_failed_archive_and_returns_failure(self):
-        result, root, state = self._run(('one.tar', 'two.tar'),
-                                        fail_archive='two.tar')
+        result, root, state = self._run(
+            ('one.tar', 'two.tar'), fail_archive='two.tar'
+        )
 
         self.assertEqual(result.returncode, 1)
         self.assertIn('Failed to load Kind image archive', result.stderr)

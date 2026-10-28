@@ -19,9 +19,9 @@ import (
 	"path/filepath"
 	"time"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -45,8 +45,8 @@ const (
 var _ = BeforeEach(func() {
 	logger.Log("################### Setup before each test #####################")
 	testStartTime, _ := strfmt.ParseDateTime(time.Now().Format(time.DateTime))
-	testContext.Pipeline.CreatedPipelines = []*model.V2beta1Pipeline{}
-	testContext.Pipeline.ExpectedPipeline = new(model.V2beta1Pipeline)
+	testContext.Pipeline.CreatedPipelines = []*model.V2Pipeline{}
+	testContext.Pipeline.ExpectedPipeline = new(model.V2Pipeline)
 	testContext.Pipeline.ExpectedPipeline.CreatedAt = testStartTime
 	testContext.Pipeline.PipelineGeneratedName = "apitest-" + randomName
 	if *config.KubeflowMode || *config.MultiUserMode {
@@ -161,7 +161,7 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := uploadparams.NewUploadPipelineVersionParams()
-			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			expectedPipelineVersion := new(model.V2PipelineVersion)
 			versionName := createdPipeline.DisplayName + "-v2-tagged"
 			parameters.Pipelineid = &(createdPipeline.PipelineID)
 			parameters.SetName(&versionName)
@@ -183,7 +183,7 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := uploadparams.NewUploadPipelineVersionParams()
-			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			expectedPipelineVersion := new(model.V2PipelineVersion)
 			versionName := createdPipeline.DisplayName + "-v2-tagged-get"
 			parameters.Pipelineid = &(createdPipeline.PipelineID)
 			parameters.SetName(&versionName)
@@ -212,7 +212,7 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := uploadparams.NewUploadPipelineVersionParams()
-			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			expectedPipelineVersion := new(model.V2PipelineVersion)
 			versionName := createdPipeline.DisplayName + "-v2-tagged-list"
 			parameters.Pipelineid = &(createdPipeline.PipelineID)
 			parameters.SetName(&versionName)
@@ -251,7 +251,7 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := uploadparams.NewUploadPipelineVersionParams()
-			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			expectedPipelineVersion := new(model.V2PipelineVersion)
 			versionName := createdPipeline.DisplayName + "-v2-no-tags"
 			parameters.Pipelineid = &(createdPipeline.PipelineID)
 			parameters.SetName(&versionName)
@@ -268,7 +268,7 @@ var _ = Describe("Verify Pipeline Upload Version with Tags >", Label(constants.P
 			createdPipeline := uploadPipelineAndVerify(helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := uploadparams.NewUploadPipelineVersionParams()
-			expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+			expectedPipelineVersion := new(model.V2PipelineVersion)
 			versionName := createdPipeline.DisplayName + "-v2-empty-tags"
 			parameters.Pipelineid = &(createdPipeline.PipelineID)
 			parameters.SetName(&versionName)
@@ -411,7 +411,7 @@ func uploadPipelineAndChangePipelineVersion(pipelineFilePathForCreation string, 
 
 	// Construct a payload to create new pipeline version
 	parameters := uploadparams.NewUploadPipelineVersionParams()
-	expectedPipelineVersion := new(model.V2beta1PipelineVersion)
+	expectedPipelineVersion := new(model.V2PipelineVersion)
 	descriptionNew := "Some changed pipeline description"
 	pipelineNameNew := createdPipeline.DisplayName + "-1"
 	parameters.Pipelineid = &(createdPipeline.PipelineID)
@@ -428,7 +428,7 @@ func uploadPipelineAndChangePipelineVersion(pipelineFilePathForCreation string, 
 	uploadPipelineVersionAndVerify(pipelineFilePathWhenChangingVersion, parameters, expectedPipelineVersion)
 }
 
-func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
+func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2Pipeline, error) {
 	testContext.Pipeline.UploadParams.SetName(pipelineName)
 	if pipelineDisplayName != nil {
 		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineDisplayName
@@ -445,7 +445,7 @@ func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDispl
 	return pipelineUploadClient.UploadFile(pipelineFilePath, testContext.Pipeline.UploadParams)
 }
 
-func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) *model.V2beta1Pipeline {
+func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) *model.V2Pipeline {
 	createdPipeline, err := uploadPipeline(pipelineFilePath, pipelineName, pipelineDisplayName)
 	logger.Log("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
@@ -478,12 +478,12 @@ func uploadPipelineAndVerifyFailure(pipelineFilePath string, pipelineName *strin
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
 
-func uploadPipelineVersion(pipelineFilePath string, parameters *uploadparams.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
+func uploadPipelineVersion(pipelineFilePath string, parameters *uploadparams.UploadPipelineVersionParams) (*model.V2PipelineVersion, error) {
 	logger.Log("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFilePath)
 	return pipelineUploadClient.UploadPipelineVersion(pipelineFilePath, parameters)
 }
 
-func uploadPipelineVersionAndVerify(pipelineFilePath string, parameters *uploadparams.UploadPipelineVersionParams, expectedPipelineVersion *model.V2beta1PipelineVersion) *model.V2beta1PipelineVersion {
+func uploadPipelineVersionAndVerify(pipelineFilePath string, parameters *uploadparams.UploadPipelineVersionParams, expectedPipelineVersion *model.V2PipelineVersion) *model.V2PipelineVersion {
 	createdPipelineVersion, err := uploadPipelineVersion(pipelineFilePath, parameters)
 	logger.Log("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())

@@ -34,9 +34,9 @@ class InputOutputsIOParameter(object):
     """
     openapi_types = {
         'value': 'object',
-        'type': 'V2beta1IOType',
+        'type': 'V2IOType',
         'parameter_key': 'str',
-        'producer': 'V2beta1IOProducer'
+        'producer': 'V2IOProducer'
     }
 
     attribute_map = {
@@ -94,7 +94,7 @@ class InputOutputsIOParameter(object):
 
 
         :return: The type of this InputOutputsIOParameter.  # noqa: E501
-        :rtype: V2beta1IOType
+        :rtype: V2IOType
         """
         return self._type
 
@@ -104,7 +104,7 @@ class InputOutputsIOParameter(object):
 
 
         :param type: The type of this InputOutputsIOParameter.  # noqa: E501
-        :type type: V2beta1IOType
+        :type type: V2IOType
         """
 
         self._type = type
@@ -136,7 +136,7 @@ class InputOutputsIOParameter(object):
 
 
         :return: The producer of this InputOutputsIOParameter.  # noqa: E501
-        :rtype: V2beta1IOProducer
+        :rtype: V2IOProducer
         """
         return self._producer
 
@@ -146,7 +146,7 @@ class InputOutputsIOParameter(object):
 
 
         :param producer: The producer of this InputOutputsIOParameter.  # noqa: E501
-        :type producer: V2beta1IOProducer
+        :type producer: V2IOProducer
         """
 
         self._producer = producer

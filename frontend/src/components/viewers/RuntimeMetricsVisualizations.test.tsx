@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, V2Artifact } from 'src/apisv2/run';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/StoragePath';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType, ViewerConfig } from './Viewer';
+import datasetPreview from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 import {
   buildConfusionMatrixResult,
   buildRocCurves,
@@ -29,7 +30,7 @@ import {
 
 describe('RuntimeMetricsVisualizations', () => {
   it('builds ROC curve configurations from native artifact metadata', () => {
-    const artifact: V2beta1Artifact = {
+    const artifact: V2Artifact = {
       artifact_id: 'roc-1',
       name: 'roc',
       type: ArtifactArtifactType.ClassificationMetric,
@@ -57,14 +58,14 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('keeps valid ROC curves after an invalid artifact', () => {
-    const invalid: V2beta1Artifact = {
+    const invalid: V2Artifact = {
       name: 'invalid ROC',
       type: ArtifactArtifactType.ClassificationMetric,
       metadata: {
         confidenceMetrics: [{ confidenceThreshold: 0.8, falsePositiveRate: 0.1 }],
       },
     };
-    const valid: V2beta1Artifact = {
+    const valid: V2Artifact = {
       name: 'valid ROC',
       type: ArtifactArtifactType.ClassificationMetric,
       metadata: {
@@ -84,7 +85,7 @@ describe('RuntimeMetricsVisualizations', () => {
       annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
       rows: [{ row: [3, 1] }, { row: [0, 4] }],
     };
-    const artifacts: V2beta1Artifact[] = [
+    const artifacts: V2Artifact[] = [
       {
         artifact_id: 'matrix-1',
         name: 'wrapped',
@@ -143,7 +144,7 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('renders recovered confusion matrix data instead of retaining the initial config', () => {
-    const artifact = (value: number): V2beta1Artifact => ({
+    const artifact = (value: number): V2Artifact => ({
       artifact_id: 'matrix-recovery',
       name: 'recovered matrix',
       type: ArtifactArtifactType.ClassificationMetric,
@@ -176,7 +177,7 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('reports dimension and cell errors in malformed confusion matrices', () => {
-    const artifacts: V2beta1Artifact[] = [
+    const artifacts: V2Artifact[] = [
       {
         artifact_id: 'matrix-dimension',
         name: 'wrong dimensions',
@@ -282,7 +283,7 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('expands sliced classification metrics into one visualization artifact per slice', () => {
-    const artifact: V2beta1Artifact = {
+    const artifact: V2Artifact = {
       artifact_id: 'sliced-1',
       name: 'evaluation',
       type: ArtifactArtifactType.SlicedClassificationMetric,
@@ -333,7 +334,7 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('assigns distinct keys to classification artifacts with the same URI', () => {
-    const artifacts: V2beta1Artifact[] = [
+    const artifacts: V2Artifact[] = [
       {
         name: 'first',
         type: ArtifactArtifactType.ClassificationMetric,
@@ -357,7 +358,7 @@ describe('RuntimeMetricsVisualizations', () => {
 
   it('does not download multiple files of one type until one is selected', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile');
-    const artifacts: V2beta1Artifact[] = [
+    const artifacts: V2Artifact[] = [
       {
         artifact_id: 'html-1',
         name: 'report',
@@ -442,17 +443,17 @@ describe('RuntimeMetricsVisualizations', () => {
 
   it('preserves file selection when polling inserts or reorders other artifacts', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Dashboard</h1>');
-    const report: V2beta1Artifact = {
+    const report: V2Artifact = {
       name: 'report',
       type: ArtifactArtifactType.HTML,
       uri: 's3://reports/report.html',
     };
-    const dashboard: V2beta1Artifact = {
+    const dashboard: V2Artifact = {
       name: 'dashboard',
       type: ArtifactArtifactType.HTML,
       uri: 's3://reports/dashboard.html',
     };
-    const wrapper = ({ artifacts }: { artifacts: V2beta1Artifact[] }) => (
+    const wrapper = ({ artifacts }: { artifacts: V2Artifact[] }) => (
       <CommonTestWrapper>
         <RuntimeMetricsVisualizations artifacts={artifacts} />
       </CommonTestWrapper>
@@ -515,7 +516,7 @@ describe('RuntimeMetricsVisualizations', () => {
       .mockResolvedValueOnce('<h1>Running</h1>')
       .mockResolvedValueOnce('<h1>Complete</h1>');
     readFileSpy.mockClear();
-    const artifact: V2beta1Artifact = {
+    const artifact: V2Artifact = {
       artifact_id: 'live-html',
       name: 'report',
       type: ArtifactArtifactType.HTML,
@@ -572,7 +573,7 @@ describe('RuntimeMetricsVisualizations', () => {
 
   it('downloads one selected visualization with native storage metadata', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('# Summary');
-    const artifact: V2beta1Artifact = {
+    const artifact: V2Artifact = {
       artifact_id: 'markdown-1',
       name: 'summary',
       type: ArtifactArtifactType.Markdown,
@@ -593,7 +594,46 @@ describe('RuntimeMetricsVisualizations', () => {
     );
   });
 
-  it('renders legacy UI metadata viewers from a native artifact and output key', async () => {
+  it('keeps explicit Dataset previews lazy even when an artifact has a legacy metadata name', async () => {
+    const legacyRead = vi
+      .spyOn(OutputArtifactLoader, 'loadResult')
+      .mockResolvedValue({ configs: [], errors: [] });
+    const previewRead = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const artifact: V2Artifact = {
+      artifact_id: 'dataset-preview',
+      name: 'mlpipeline-ui-metadata',
+      type: ArtifactArtifactType.Dataset,
+      uri: 's3://bucket/dataset',
+      metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+    };
+    const view = (active: boolean, selectedArtifact = artifact) => (
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations artifacts={[selectedArtifact]} active={active} />
+      </CommonTestWrapper>
+    );
+    const { rerender } = render(view(false));
+    expect(legacyRead).not.toHaveBeenCalled();
+    expect(previewRead).not.toHaveBeenCalled();
+    rerender(view(true));
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(legacyRead).not.toHaveBeenCalled();
+    rerender(
+      view(true, {
+        ...artifact,
+        metadata: { _kfp_preview: { version: 2, path: '_kfp_preview.json' } },
+      }),
+    );
+    expect(screen.getByText('Invalid artifact preview declaration.')).toBeVisible();
+    expect(legacyRead).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ArtifactArtifactType.Artifact,
+    ArtifactArtifactType.Dataset,
+    ArtifactArtifactType.Model,
+  ])('renders legacy UI metadata viewers without a preview descriptor (%s)', async (type) => {
     const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
       configs: [
         {
@@ -604,10 +644,11 @@ describe('RuntimeMetricsVisualizations', () => {
       ],
       errors: [],
     });
-    const artifact: V2beta1Artifact = {
+    loadSpy.mockClear();
+    const artifact: V2Artifact = {
       artifact_id: 'legacy-metadata-1',
       name: 'legacy-output',
-      type: ArtifactArtifactType.Artifact,
+      type,
       uri: 's3://reports/mlpipeline-ui-metadata.json',
       metadata: { store_session_info: 'stale-session' } as any,
     };
@@ -623,6 +664,7 @@ describe('RuntimeMetricsVisualizations', () => {
     );
 
     expect(await screen.findByText('restored')).toBeVisible();
+    expect(screen.queryByText(/No preview is enabled/)).toBeNull();
     expect(loadSpy).toHaveBeenCalledWith(
       {
         bucket: 'reports',
@@ -641,7 +683,8 @@ describe('RuntimeMetricsVisualizations', () => {
       configs: [],
       errors: [],
     });
-    const artifact: V2beta1Artifact = {
+    loadSpy.mockClear();
+    const artifact: V2Artifact = {
       name: 'mlpipeline-ui-metadata',
       uri: 's3://reports/shared-metadata.json',
     };
@@ -656,7 +699,13 @@ describe('RuntimeMetricsVisualizations', () => {
         </CommonTestWrapper>,
       );
 
-      await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(2));
+      expect(
+        await screen.findAllByText(
+          'The legacy UI metadata artifact contains no supported visualizations.',
+        ),
+      ).toHaveLength(2);
+      // Identical query keys share one request, but both artifacts must render.
+      expect(loadSpy).toHaveBeenCalledTimes(1);
       expect(
         consoleErrorSpy.mock.calls.some(([message]) =>
           String(message).includes('Encountered two children with the same key'),
@@ -673,7 +722,7 @@ describe('RuntimeMetricsVisualizations', () => {
       errors: [],
     });
     loadSpy.mockClear();
-    const artifact: V2beta1Artifact = {
+    const artifact: V2Artifact = {
       artifact_id: 'live-legacy-metadata',
       name: 'mlpipeline-ui-metadata',
       uri: 's3://reports/metadata.json',

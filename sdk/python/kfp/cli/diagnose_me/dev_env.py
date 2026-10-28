@@ -20,6 +20,7 @@ from kfp.cli.diagnose_me import utility
 
 class Commands(enum.Enum):
     """Enum for gcloud and gsutil commands."""
+
     PIP3_LIST = 1
     PYTHON3_PIP_LIST = 2
     PIP3_VERSION = 3
@@ -39,8 +40,8 @@ _command_string = {
 
 
 def get_dev_env_configuration(
-        configuration: Commands,
-        human_readable: bool = False) -> utility.ExecutorResponse:
+    configuration: Commands, human_readable: bool = False
+) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
     Captures the development environment configuration including PIP version and
@@ -61,10 +62,10 @@ def get_dev_env_configuration(
     """
     command_list = _command_string[configuration].split(' ')
     if not human_readable and configuration not in (
-            Commands.PIP3_VERSION,
-            Commands.PYHYON3_PIP_VERSION,
-            Commands.WHICH_PYHYON3,
-            Commands.WHICH_PIP3,
+        Commands.PIP3_VERSION,
+        Commands.PYHYON3_PIP_VERSION,
+        Commands.WHICH_PYHYON3,
+        Commands.WHICH_PIP3,
     ):
         command_list.extend(['--format', 'json'])
 
