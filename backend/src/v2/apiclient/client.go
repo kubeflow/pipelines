@@ -36,6 +36,12 @@ const (
 	KFPAPIGRPCBackoffJitterEnvVar     = "ML_PIPELINE_GRPC_BACKOFF_JITTER"
 	KFPAPIGRPCBackoffMaxDelayEnvVar   = "ML_PIPELINE_GRPC_BACKOFF_MAX_DELAY"
 	KFPAPIGRPCMinConnectTimeoutEnvVar = "ML_PIPELINE_GRPC_MIN_CONNECT_TIMEOUT"
+	// Runtime RPC deadline and retry settings; see kfpapi.RetryPolicyFromEnv.
+	KFPRuntimeRPCAttemptTimeoutEnvVar = "KFP_RUNTIME_RPC_ATTEMPT_TIMEOUT"
+	KFPRuntimeRPCTotalTimeoutEnvVar   = "KFP_RUNTIME_RPC_TOTAL_TIMEOUT"
+	KFPRuntimeRPCMaxAttemptsEnvVar    = "KFP_RUNTIME_RPC_MAX_ATTEMPTS"
+	KFPRuntimeRPCInitialBackoffEnvVar = "KFP_RUNTIME_RPC_INITIAL_BACKOFF"
+	KFPRuntimeRPCMaxBackoffEnvVar     = "KFP_RUNTIME_RPC_MAX_BACKOFF"
 	defaultMaxCallRecvMsgSize         = 100 * 1024 * 1024
 	defaultMinConnectTimeout          = 20 * time.Second
 )

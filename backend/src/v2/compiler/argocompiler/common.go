@@ -163,6 +163,29 @@ func mlPipelineAPIClientEnvVars() []k8score.EnvVar {
 	return envVars
 }
 
+// runtimeRPCRetryEnvVars forwards the API server's runtime RPC deadline and
+// retry settings to launcher pods, which read them in kfpapi.RetryPolicyFromEnv.
+// It is deliberately separate from mlPipelineAPIClientEnvVars: that list is also
+// serialized into the driver plugin arguments, which have a fixed schema.
+func runtimeRPCRetryEnvVars() []k8score.EnvVar {
+	envVars := []k8score.EnvVar{}
+	for _, entry := range []struct {
+		name  string
+		value string
+	}{
+		{name: apiclient.KFPRuntimeRPCAttemptTimeoutEnvVar, value: common.GetKFPRuntimeRPCAttemptTimeout()},
+		{name: apiclient.KFPRuntimeRPCTotalTimeoutEnvVar, value: common.GetKFPRuntimeRPCTotalTimeout()},
+		{name: apiclient.KFPRuntimeRPCMaxAttemptsEnvVar, value: common.GetKFPRuntimeRPCMaxAttempts()},
+		{name: apiclient.KFPRuntimeRPCInitialBackoffEnvVar, value: common.GetKFPRuntimeRPCInitialBackoff()},
+		{name: apiclient.KFPRuntimeRPCMaxBackoffEnvVar, value: common.GetKFPRuntimeRPCMaxBackoff()},
+	} {
+		if entry.value != "" {
+			envVars = append(envVars, k8score.EnvVar{Name: entry.name, Value: entry.value})
+		}
+	}
+	return envVars
+}
+
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
 func ConfigureCustomCABundle(tmpl *wfapi.Template) {
 	caBundleSecretName := common.GetCaBundleSecretName()

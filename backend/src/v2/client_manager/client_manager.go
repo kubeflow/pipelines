@@ -86,8 +86,12 @@ func (cm *ClientManager) init(opts *Options) error {
 	if apiErr != nil {
 		return fmt.Errorf("failed to init KFP API client: %w", apiErr)
 	}
-	var kfpAPI = kfpapi.New(kfpAPIClient)
-	cm.kfpAPIClient = kfpAPI
+	retryPolicy, err := kfpapi.RetryPolicyFromEnv()
+	if err != nil {
+		_ = kfpAPIClient.Close()
+		return fmt.Errorf("failed to configure runtime RPC retries: %w", err)
+	}
+	cm.kfpAPIClient = kfpapi.NewWithRetryPolicy(kfpAPIClient, retryPolicy)
 	cm.apiClient = kfpAPIClient
 	return nil
 }
