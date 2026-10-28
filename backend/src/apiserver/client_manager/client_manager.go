@@ -550,26 +550,9 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	util.TerminateIfError(err)
 	dbDialect := sqldrv.NewDBDialect(driverName)
 
-	legacy, err := isLegacySchema(db)
-	if err != nil {
-		glog.Fatalf("failed to detect schema version: %v", err)
-	}
-	if legacy {
-		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
-		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
-	} else {
-		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
-		// upgrades between >=2.15 versions.
-		util.TerminateIfError(autoMigrate(db))
-	}
-
-	// Runs on both paths: a deployment that took the legacy upgrade before this
-	// backfill existed is no longer detected as legacy, but can still hold
-	// reference-only rows. Recorded in migration_statuses once complete, so
-	// later startups return before touching run_details.
-	util.TerminateIfError(backfillPipelineRefsToRunTable(db, dbDialect))
-	createExpressionIndexes(db, dbDialect)
+	util.TerminateIfError(withStartupMigrationLock(db, dbDialect, initConnectionTimeout, func(lockedSession *gorm.DB) error {
+		return runStartupMigrations(lockedSession, dbDialect)
+	}))
 
 	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
 	// the connection pool with the returned *sql.DB. The GC loop calls
@@ -593,6 +576,38 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
 	return newdb, dbDialect, gcIndexChecker
+}
+
+// runStartupMigrations brings the schema up to date. InitDBClient runs it under
+// the startup migration lock.
+func runStartupMigrations(db *gorm.DB, dbDialect sqldrv.DBDialect) error {
+	legacy, err := isLegacySchema(db)
+	if err != nil {
+		return fmt.Errorf("failed to detect schema version: %w", err)
+	}
+	if legacy {
+		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
+		// clean up legacy indexes/constraints, and perform backfills.
+		if err := runLegacyUpgradeFlow(db, dbDialect); err != nil {
+			return err
+		}
+	} else {
+		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
+		// upgrades between >=2.15 versions.
+		if err := autoMigrate(db); err != nil {
+			return err
+		}
+	}
+
+	// Runs on both paths: a deployment that took the legacy upgrade before this
+	// backfill existed is no longer detected as legacy, but can still hold
+	// reference-only rows. Recorded in migration_statuses once complete, so
+	// later startups return before touching run_details.
+	if err := backfillPipelineRefsToRunTable(db, dbDialect); err != nil {
+		return err
+	}
+	createExpressionIndexes(db, dbDialect)
+	return nil
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
@@ -1927,12 +1942,10 @@ func backfillPipelineIDFromVersionSQL(dialect sqldrv.DBDialect, table string) st
 }
 
 func backfillExperimentIDToRunTable(db *gorm.DB) error {
-	// check if there is any row in the run table has experiment ID being empty
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
-	rows, err := sqlDB.Query("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1")
+	// check if there is any row in the run table has experiment ID being empty.
+	// Statements go through db, not db.DB(): db is bound to the connection that
+	// holds the startup migration lock.
+	rows, err := db.Raw("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1").Rows()
 	if err != nil {
 		return err
 	}
@@ -1945,8 +1958,11 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	if !rows.Next() {
 		return nil
 	}
+	// Close before the UPDATE: the locked session has one connection, and an
+	// open result set would block the next statement.
+	rows.Close()
 
-	_, err = sqlDB.Exec(`
+	err = db.Exec(`
 		UPDATE
 			run_details, resource_references
 		SET
@@ -1956,7 +1972,7 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 			AND resource_references.ResourceType = 'Run'
 			AND resource_references.ReferenceType = 'Experiment'
 			AND run_details.ExperimentUUID = ''
-	`)
+	`).Error
 	return err
 }
 
