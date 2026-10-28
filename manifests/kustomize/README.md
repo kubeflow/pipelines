@@ -434,16 +434,20 @@ Checklist:
    `Argo offload hydrator initialized`, or dry-run hydrate a known offloaded
    Workflow. Only then enable aggressive Workflow/offload cleanup expectations.
 
-Example Role patch fragment (replace Secret names and namespace with values from
-your controller ConfigMap):
+Example additive Role patch for the installed Role (`ml-pipeline`, bound by
+`ml-pipeline` RoleBinding). Replace Secret names and namespace with values from
+your controller ConfigMap; do not create a differently named Role that would
+leave the ServiceAccount unbound:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: ml-pipeline-apiserver-role
+  name: ml-pipeline
   namespace: kubeflow
 rules:
+  # Keep existing rules from manifests/kustomize/base/pipeline/ml-pipeline-apiserver-role.yaml
+  # and add:
   - apiGroups: [""]
     resources: ["secrets"]
     resourceNames: ["argo-postgres-config"] # from persistence.*.*Secret
@@ -456,7 +460,7 @@ persisting a bare offload pointer; fix RBAC/DB connectivity and re-report.
 ### Validation (before / after upgrade)
 
 Unit CI covers the fail-closed and durable-snapshot contracts with an in-memory
-offload repo (no flaky external DB):
+offload repo and fake Kubernetes clients (no external DB or live cluster):
 
 | Concern | Test |
 | ------- | ---- |
@@ -469,15 +473,14 @@ offload repo (no flaky external DB):
 | ConfigMap offload on, Secret missing: compressed OK / offload fail-closed | `TestInitWorkflowHydrator_OffloadEnabledSecretMissing_CompressedHydrateWorks` |
 | Secret appears → offloaded hydrate via lazy retry (memory) | `TestLazyOffloadHydrator_SecretMissingThenPresent` |
 
-Optional real Postgres/MySQL path (skipped by default):
+Optional real Postgres path (skipped by default). Starts an isolated Postgres
+testcontainer and a fake Kubernetes clientset seeded with username/password
+Secrets — no external kubeconfig or shared DB required:
 
 ```bash
 export KFP_ARGO_OFFLOAD_IT=1
-export KFP_ARGO_OFFLOAD_PERSIST_CONFIG=/path/to/persistence.yaml
-export KFP_ARGO_OFFLOAD_SECRETS_NAMESPACE=kubeflow
-# Use a kubeconfig that can get the configured persist Secrets, then:
+# Requires Docker for testcontainers.
 go test ./backend/src/common/util/ -count=1 -run TestOffloadHydration_RealDB_OptIn -v
 ```
 
-See `backend/src/common/util/workflow_hydrator_offload_it_test.go` for the
-opt-in stub and how to wire a real clientset.
+See `backend/src/common/util/workflow_hydrator_offload_it_test.go`.
