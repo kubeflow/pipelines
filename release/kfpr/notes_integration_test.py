@@ -3,6 +3,7 @@
 import contextlib
 import io
 import json
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -341,9 +342,14 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             json.loads(sidecar.read_text())['generated_notes'], original
         )
         path.write_text(
-            original.replace(
-                editorial_scaffold(),
-                '## Highlights\n\nHandwritten upgrade advice.\n\n',
+            re.sub(
+                r'<!-- TODO:.*?-->',
+                '',
+                original.replace(
+                    editorial_scaffold('sdk').splitlines()[2],
+                    'Handwritten upgrade advice.',
+                ),
+                flags=re.DOTALL,
             )
         )
         self.context.release_target = 'HEAD'
@@ -391,10 +397,16 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
         ):
             selected = steps._notes_range(self.context, product)
             body = render(self.context, selected)
-            self.assertTrue(body.startswith(editorial_scaffold()))
+            self.assertTrue(body.startswith('## Highlights\n'))
+            self.assertIn('## Bug fixes', body)
+            self.assertIn('## Contributors', body)
+            self.assertIn('## Assets', body)
+            self.assertEqual(
+                body.count('## Installation'), int(product == 'sdk')
+            )
             self.assertLess(
                 body.index('## Action required'),
-                body.index("## What's Changed"),
+                body.index('Commit reference for editors'),
             )
         selected = steps._notes_range(self.context, 'backend')
         self.context.runner.dry_run = False
@@ -501,9 +513,45 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
                     Path(create[create.index('--notes-file') + 1]).resolve(),
                     path.resolve(),
                 )
-                self.assertEqual(
-                    path.read_text(), 'Reviewed user-facing changes.\n'
+                self.assertTrue(
+                    path.read_text().startswith(
+                        'Reviewed user-facing changes.\n'
+                    )
                 )
+                self.assertIn('## Contributors', path.read_text())
+                self.assertIn('## Assets', path.read_text())
+
+    def test_tag_moving_during_review_cannot_publish(self):
+        self.context.runner.dry_run = False
+        with (
+            mock.patch.object(
+                self.context.runner,
+                'run',
+                return_value=subprocess.CompletedProcess([], 1),
+            ) as run,
+            mock.patch.object(steps, 'confirm'),
+            mock.patch.object(
+                steps,
+                '_remote_release_sha',
+                side_effect=[self.target, 'f' * 40],
+            ),
+        ):
+            with self.assertRaisesRegex(ValueError, 'differs'):
+                steps.step_create_sdk_release(self.context)
+        self.assertFalse(
+            any(
+                call.args[0][:3]
+                in (['gh', 'release', 'create'], ['gh', 'release', 'delete'])
+                for call in run.call_args_list
+            )
+        )
+
+    def test_dry_run_does_not_restore_deleted_blocks_in_existing_draft(self):
+        steps.step_create_sdk_release(self.context)
+        path = self.root / 'release-state-notes/sdk-2.1.1.md'
+        path.write_text('My complete rewrite.\n')
+        steps.step_create_sdk_release(self.context)
+        self.assertEqual(path.read_text(), 'My complete rewrite.\n')
 
     def test_remote_tag_mismatch_or_missing_sdk_blocks_publication(self):
         for product, remote_sha, publish in (

@@ -1257,7 +1257,7 @@ class ValidateNotesTest(unittest.TestCase):
                         app, ['validate-notes', str(path)]
                     )
                 self.assertEqual(result.exit_code, 0, result.output)
-                validate.assert_called_once_with(content)
+                validate.assert_called_once_with(content, product=None)
                 for warning in warnings:
                     self.assertIn(f'Warning: {warning}', result.output)
                 if not warnings:
@@ -1265,6 +1265,25 @@ class ValidateNotesTest(unittest.TestCase):
                 self.assertEqual(path.read_text(), content)
                 save.assert_not_called()
                 run.assert_not_called()
+
+    def test_product_is_forwarded_to_editorial_validation(self):
+        for product in ('backend', 'sdk', 'upgrade'):
+            with (
+                self.subTest(product=product),
+                TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / 'notes.md'
+                content = 'Reviewed release notes.\n'
+                path.write_text(content)
+                with mock.patch(
+                    'kfpr.cli.validate_notes', return_value=[]
+                ) as validate:
+                    result = CliRunner().invoke(
+                        app, ['validate-notes', str(path), '--product', product]
+                    )
+                self.assertEqual(result.exit_code, 0, result.output)
+                validate.assert_called_once_with(content, product=product)
+                self.assertEqual(path.read_text(), content)
 
     def test_missing_or_invalid_utf8_file_has_friendly_error(self):
         for invalid_utf8 in (False, True):

@@ -13,6 +13,13 @@ from kfpr.ranges import ReleaseRange
 
 class LatestReleaseTest(unittest.TestCase):
     def setUp(self):
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         root = Path(directory.name)
