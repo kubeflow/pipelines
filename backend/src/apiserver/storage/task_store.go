@@ -87,6 +87,11 @@ type TaskStoreInterface interface {
 	// UpdateTask Updates an existing task entry in the database.
 	UpdateTask(new *model.Task) (*model.Task, error)
 
+	// UpdateTaskIfState behaves like UpdateTask but only applies the update while the task is still
+	// in the expected state. The check and the write share one row lock, so a report that moved the
+	// task on first is never overwritten. applied is false, with no error, when the state differs.
+	UpdateTaskIfState(expected model.TaskStatus, new *model.Task) (updated *model.Task, applied bool, err error)
+
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
 	// from a clean RUNNING attempt while preserving task history.
 	ResetTasksForRetry(taskIDs []string) error
@@ -1073,10 +1078,33 @@ func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error)
 	return task, nil
 }
 
+// errTaskStateMismatch is returned by updateTask when the task is not in the state the caller expected.
+var errTaskStateMismatch = errors.New("task is not in the expected state")
+
 // UpdateTask updates an existing task in the tasks table and returns the updated task.
 // Uses row-level locking to prevent race conditions when multiple concurrent updates
 // try to modify the same task (e.g., loop iterations propagating parameters to parent task).
 func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
+	return s.updateTask(new, nil)
+}
+
+// UpdateTaskIfState updates a task like UpdateTask, but only while the task is in the expected
+// state. It is for writers that infer a state from outside evidence and must not overwrite a
+// report that arrived first. applied is false, with no error, when the task is in another state.
+func (s *TaskStore) UpdateTaskIfState(expected model.TaskStatus, new *model.Task) (*model.Task, bool, error) {
+	updated, err := s.updateTask(new, &expected)
+	if errors.Is(err, errTaskStateMismatch) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return updated, true, nil
+}
+
+// updateTask implements UpdateTask. When expected is not nil the update is skipped, and
+// errTaskStateMismatch returned, unless the locked task is in that state.
+func (s *TaskStore) updateTask(new *model.Task, expected *model.TaskStatus) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if new == nil {
@@ -1102,6 +1130,9 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
 	if err != nil {
 		return nil, err
+	}
+	if expected != nil && lockedOld.State != *expected {
+		return nil, errTaskStateMismatch
 	}
 
 	// Use the locked version for merging instead of the 'old' parameter
