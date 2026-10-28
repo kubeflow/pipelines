@@ -8,8 +8,6 @@ normalize_node_version() {
 }
 
 DEFAULT_BASE_COMMIT="dbc2319f4"
-DEFAULT_NODE_VERSION="${DEFAULT_NODE_VERSION:-$(tr -d '\r\n' < "$ROOT/frontend/.nvmrc")}"
-DEFAULT_NODE_VERSION="$(normalize_node_version "$DEFAULT_NODE_VERSION")"
 BASE_COMMIT="${1:-$DEFAULT_BASE_COMMIT}"
 if [[ -z "$BASE_COMMIT" ]]; then
   echo "Usage: $0 <base-commit>"
@@ -21,6 +19,8 @@ if [[ -z "$BASE_COMMIT" ]]; then
   echo "  USE_MOCK        (default: 1)"
   echo "  SKIP_INSTALL    (default: 0)"
   echo "  ROUTES          (default: frontend/scripts/visual-compare.routes.json)"
+  echo "  BASE_ROUTES    (default: ROUTES; use a compatible manifest for older baselines)"
+  echo "  FIXED_TIME      (default: 2026-09-26T12:00:00.000Z; empty uses the real clock)"
   exit 1
 fi
 
@@ -31,6 +31,19 @@ MOCK_PORT="${MOCK_PORT:-3001}"
 USE_MOCK="${USE_MOCK:-1}"
 SKIP_INSTALL="${SKIP_INSTALL:-0}"
 ROUTES="${ROUTES:-$ROOT/frontend/scripts/visual-compare.routes.json}"
+# Resolve caller-supplied routes before npm changes its working directory.
+if [[ "$ROUTES" != /* ]]; then
+  ROUTES="$PWD/$ROUTES"
+fi
+BASE_ROUTES="${BASE_ROUTES:-$ROUTES}"
+if [[ "$BASE_ROUTES" != /* ]]; then
+  BASE_ROUTES="$PWD/$BASE_ROUTES"
+fi
+FIXED_TIME="${FIXED_TIME-2026-09-26T12:00:00.000Z}"
+clock_args=()
+if [[ -n "$FIXED_TIME" ]]; then
+  clock_args=(--fixed-time "$FIXED_TIME")
+fi
 OUT_DIR="$ROOT/frontend/.visual"
 
 pids=()
@@ -44,9 +57,12 @@ trap cleanup EXIT INT TERM
 resolve_node_version() {
   local dir="$1"
   if [[ -f "$dir/frontend/.nvmrc" ]]; then
-    normalize_node_version "$(tr -d '\r\n' < "$dir/frontend/.nvmrc")"
+    local version
+    version="$(tr -d '\r\n' < "$dir/frontend/.nvmrc")" || return $?
+    normalize_node_version "$version"
   else
-    echo "$DEFAULT_NODE_VERSION"
+    # Historical checkouts without a pin use the current checkout's version.
+    echo "$CURRENT_NODE_VERSION"
   fi
 }
 
@@ -70,10 +86,10 @@ run_with_node() {
   local dir="$1"
   shift
   local version
-  version="$(resolve_node_version "$dir")"
-  ensure_node_version "$version"
+  version="$(resolve_node_version "$dir")" || return $?
+  ensure_node_version "$version" || return $?
   local bin_dir
-  bin_dir="$(node_bin_dir "$version")"
+  bin_dir="$(node_bin_dir "$version")" || return $?
   if [[ -n "$bin_dir" ]]; then
     PATH="$bin_dir:$PATH" "$@"
   else
@@ -101,6 +117,40 @@ wait_url() {
   done
 }
 
+# Initialize the capture/report toolchain before launching any servers. Setup
+# failures are not capture failures and cannot produce useful report diagnostics.
+prepare_current_node() {
+  local version
+  version="$(tr -d '\r\n' < "$ROOT/frontend/.nvmrc")" || return $?
+  version="$(normalize_node_version "$version")"
+  ensure_node_version "$version" || return $?
+  local bin_dir
+  bin_dir="$(node_bin_dir "$version")" || return $?
+  CURRENT_NODE_VERSION="$version"
+  CURRENT_NODE_PATH="$PATH"
+  if [[ -n "$bin_dir" ]]; then
+    CURRENT_NODE_PATH="$bin_dir:$PATH"
+  fi
+  local actual_version
+  actual_version="$(PATH="$CURRENT_NODE_PATH" node -p 'process.versions.node')" || return $?
+  if [[ ! "$actual_version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] ||
+    (( BASH_REMATCH[1] < 24 || (BASH_REMATCH[1] == 24 && BASH_REMATCH[2] < 2) )); then
+    setup_error="Node >=24.2.0 is required for capture/report; found $actual_version."
+    return 1
+  fi
+}
+setup_error=""
+setup_status=0
+prepare_current_node || setup_status=$?
+if [[ "$setup_status" -ne 0 ]]; then
+  echo "Node toolchain setup failed (exit $setup_status); comparison not started.${setup_error:+ $setup_error}" >&2
+  exit "$setup_status"
+fi
+
+run_current_node() {
+  PATH="$CURRENT_NODE_PATH" "$@"
+}
+
 mkdir -p "$OUT_DIR"
 
 if [[ ! -e "$BASE_WORKTREE/.git" ]]; then
@@ -110,12 +160,12 @@ else
 fi
 
 if [[ "$SKIP_INSTALL" != "1" ]]; then
-  run_with_node "$ROOT" npm --prefix "$ROOT/frontend" ci
+  run_current_node npm --prefix "$ROOT/frontend" ci
   run_with_node "$BASE_WORKTREE" npm --prefix "$BASE_WORKTREE/frontend" ci
 fi
 
 if [[ "$USE_MOCK" == "1" ]]; then
-  run_with_node "$ROOT" npm --prefix "$ROOT/frontend" run mock:api >"$OUT_DIR/mock-api.log" 2>&1 &
+  run_current_node npm --prefix "$ROOT/frontend" run mock:api >"$OUT_DIR/mock-api.log" 2>&1 &
   pids+=("$!")
 fi
 
@@ -130,14 +180,32 @@ else
 fi
 pids+=("$!")
 
-run_with_node "$ROOT" npm --prefix "$ROOT/frontend" run start -- --port "$CURRENT_PORT" >"$CURRENT_LOG" 2>&1 &
+run_current_node npm --prefix "$ROOT/frontend" run start -- --port "$CURRENT_PORT" >"$CURRENT_LOG" 2>&1 &
 pids+=("$!")
 
 wait_url "http://localhost:$BASE_PORT" "baseline dev server" "$BASELINE_LOG"
 wait_url "http://localhost:$CURRENT_PORT" "current dev server" "$CURRENT_LOG"
 
-run_with_node "$ROOT" npm --prefix "$ROOT/frontend" run visual:baseline -- --base-url "http://localhost:$BASE_PORT" --routes "$ROUTES"
-run_with_node "$ROOT" npm --prefix "$ROOT/frontend" run visual:current -- --base-url "http://localhost:$CURRENT_PORT" --routes "$ROUTES"
-run_with_node "$ROOT" npm --prefix "$ROOT/frontend" run visual:diff
+# Capture failures still produce useful screenshots and diagnostics. Run both sides
+# and build the report before propagating any failure to the caller.
+comparison_status=0
+run_comparison_step() {
+  local label="$1"
+  shift
+  local status=0
+  run_current_node npm --prefix "$ROOT/frontend" run "$@" || status=$?
+  if [[ "$status" -ne 0 ]]; then
+    echo "$label failed (exit $status); continuing to collect comparison diagnostics." >&2
+    comparison_status=1
+  fi
+}
 
-echo "Side-by-side PNGs: $ROOT/frontend/.visual/side-by-side"
+run_comparison_step "Baseline capture" visual:baseline -- --base-url "http://localhost:$BASE_PORT" --routes "$BASE_ROUTES" --out-dir "$OUT_DIR/baseline" ${clock_args[@]+"${clock_args[@]}"}
+run_comparison_step "Current capture" visual:current -- --base-url "http://localhost:$CURRENT_PORT" --routes "$ROUTES" --out-dir "$OUT_DIR/current" ${clock_args[@]+"${clock_args[@]}"}
+run_comparison_step "Visual diff/report" visual:diff -- \
+  --baseline-dir "$OUT_DIR/baseline" --current-dir "$OUT_DIR/current" \
+  --diff-dir "$OUT_DIR/diff" --side-by-side-dir "$OUT_DIR/side-by-side" \
+  --report "$OUT_DIR/report.html"
+
+echo "Comparison output: $OUT_DIR"
+exit "$comparison_status"

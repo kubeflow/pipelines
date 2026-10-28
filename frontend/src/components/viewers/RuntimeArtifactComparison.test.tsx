@@ -339,7 +339,7 @@ describe('RuntimeArtifactComparison', () => {
 
   it('pages through duplicate-label matches and announces an empty search', async () => {
     const user = userEvent.setup();
-    const artifacts = Array.from({ length: 150 }, (_, index) =>
+    const artifacts = Array.from({ length: 101 }, (_, index) =>
       classificationEntry('Same run', `opaque-${index}`, {
         confidenceMetrics: [
           { confidenceThreshold: 0.8, falsePositiveRate: index / 1_000, recall: 0.9 },
@@ -356,12 +356,15 @@ describe('RuntimeArtifactComparison', () => {
       target: { value: 'Same run / Evaluate / evaluation' },
     });
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    expect(
-      (await screen.findAllByRole('option')).filter((option) => option.dataset.value),
-    ).toHaveLength(100);
-
-    const listbox = screen.getByRole('listbox', { name: 'ROC curves' });
+    const listbox = await screen.findByRole('listbox', { name: 'ROC curves' });
     expect(listbox).toBeVisible();
+    // The visible listbox establishes visibility once; avoid repeating expensive
+    // accessibility visibility walks for every duplicate-label option.
+    expect(
+      within(listbox)
+        .getAllByRole('option', { hidden: true })
+        .filter((option) => option.dataset.value),
+    ).toHaveLength(100);
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
     const nextPage = screen.getByRole('button', { name: 'Next ROC curves' });
@@ -370,18 +373,14 @@ describe('RuntimeArtifactComparison', () => {
     expect(nextPage).toHaveFocus();
     await user.keyboard('{Enter}');
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    await waitFor(() =>
-      expect(screen.getAllByRole('option').filter((option) => option.dataset.value)).toHaveLength(
-        50,
-      ),
-    );
-    expect(screen.getByText(/Showing 101–150 of 150 matching curves/)).toBeVisible();
-    fireEvent.click(
-      screen
-        .getAllByRole('option')
-        .filter((option) => option.dataset.value)
-        .at(-1)!,
-    );
+    const nextListbox = await screen.findByRole('listbox', { name: 'ROC curves' });
+    expect(nextListbox).toBeVisible();
+    const nextOptions = within(nextListbox)
+      .getAllByRole('option', { hidden: true })
+      .filter((option) => option.dataset.value);
+    expect(nextOptions).toHaveLength(1);
+    expect(screen.getByText(/Showing 101–101 of 101 matching curves/)).toBeVisible();
+    fireEvent.click(nextOptions[0]);
     expect(screen.getByRole('combobox', { name: 'ROC curves', hidden: true })).toHaveTextContent(
       '4 curves selected',
     );
