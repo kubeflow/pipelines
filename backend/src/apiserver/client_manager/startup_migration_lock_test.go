@@ -292,6 +292,19 @@ func TestStartupMigrationLock_MigrationUsesLockedSession(t *testing.T) {
 	})
 }
 
+// InitDBClient keeps using its handle after the migrations, so binding the
+// locked session to one connection must not change that handle.
+func TestStartupMigrationLock_CallerHandleStillUsesPool(t *testing.T) {
+	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {
+		replica := database.open(t)
+		require.NoError(t, withStartupMigrationLock(replica, database.dialect, 0, func(*gorm.DB) error { return nil }))
+		pool, poolError := replica.DB()
+		require.NoError(t, poolError)
+		assert.NoError(t, pool.Ping())
+		assert.NoError(t, replica.Exec("SELECT 1").Error)
+	})
+}
+
 // The legacy upgrade's experiment backfill must not need the connection pool,
 // which a session bound to one connection cannot return.
 func TestStartupMigrationLock_LegacyExperimentBackfillRunsOnLockedSession(t *testing.T) {

@@ -89,7 +89,10 @@ func withStartupMigrationLock(
 	}
 	defer releaseStartupMigrationLock(connection, statements)
 
-	lockedSession := database.Session(&gorm.Session{NewDB: true})
+	// Setting Context makes gorm copy the statement, so the ConnPool change
+	// below does not leak into database, which the caller keeps using after
+	// this connection is closed.
+	lockedSession := database.Session(&gorm.Session{NewDB: true, Context: context.Background()})
 	lockedSession.Statement.ConnPool = connection
 	return migrate(lockedSession)
 }
