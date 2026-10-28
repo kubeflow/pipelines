@@ -13,10 +13,10 @@
 # limitations under the License.
 """Keep the analyzer lockfile's runtime action on its compiler's version.
 
-The gh-aw setup action only trusts the tool releases (firewall, Copilot CLI)
-that the matching compiler pins into the lockfile. Bumping the setup action
-without recompiling leaves tool versions it has no reviewed checksums for, and
-every analyzer run fails before the agent starts.
+The gh-aw setup action only trusts the tool releases (firewall, Copilot
+CLI) that the matching compiler pins into the lockfile. Bumping the
+setup action without recompiling leaves tool versions it has no reviewed
+checksums for, and every analyzer run fails before the agent starts.
 """
 
 import json
