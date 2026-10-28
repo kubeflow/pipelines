@@ -39,6 +39,7 @@ on:
       # Artifact authorization changes must exercise the multi-user artifact
       # proxy and SeaweedFS namespace-isolation checks below.
       - 'frontend/server/handlers/artifacts.ts'
+      - 'test/seaweedfs/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
       # The artifact-proxy E2E script is exercised only by this workflow, so
@@ -73,8 +74,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   end-to-end-scenario-tests:
@@ -86,7 +93,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v4.0.13", "v4.1.5" ]
+        argo_version: [ "v4.0.13", "v4.1.6" ]
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
@@ -127,7 +134,7 @@ jobs:
           # TODO: expand when additional standalone/postgresql/* overlays exist.
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
-            argo_version: "v4.1.5"
+            argo_version: "v4.1.6"
             proxy: "false"
             pod_to_pod_tls_enabled: "false"
             db_type: "pgx"
@@ -136,7 +143,9 @@ jobs:
     name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -172,7 +181,18 @@ jobs:
             --component-filepattern dra_passthrough_check.py \
             --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
             --no-push-image
-          kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
+          platform=$(runtime_image_platform "${{ env.CLUSTER_NAME }}")
+          dra_archive=$(mktemp)
+          trap 'rm -f "${dra_archive}"' EXIT
+          # kfp component build uses Docker's classic builder. On the containerd
+          # image store its manifest records no platform, so neither docker save
+          # --platform nor an all-platforms import can load it. Re-export it
+          # through BuildKit for the Kind node platform first.
+          printf 'FROM kfp-dra-sdk:test\n' | docker buildx build --builder default \
+            --platform "${platform}" --provenance=false --sbom=false \
+            --load -t kfp-dra-sdk:test -
+          docker save "--platform=${platform}" kfp-dra-sdk:test -o "${dra_archive}"
+          kind --name "${{ env.CLUSTER_NAME }}" load image-archive "${dra_archive}"
 
       - name: Install DRA Example Driver
         uses: ./.github/actions/install-dra-driver
@@ -275,7 +295,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -287,7 +309,7 @@ jobs:
         uses: ./.github/actions/deploy
         with:
           cache_enabled: "false"
-          argo_version: "v4.1.5"
+          argo_version: "v4.1.6"
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -327,7 +349,9 @@ jobs:
     name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy || matrix.cache_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -458,7 +482,9 @@ jobs:
     name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -485,7 +511,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@e0560763494dc93f858f479d7ef973c81cb5747a
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8ca494fb673d6c974a4ba7c567e7e4ef3c3572f3
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'

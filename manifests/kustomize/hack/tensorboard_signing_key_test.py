@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE = REPO_ROOT / 'manifests/kustomize/base/pipeline'
@@ -30,9 +30,9 @@ def render(path, allow_external_patches=False):
     if allow_external_patches:
         command.append('--load-restrictor=LoadRestrictionsNone')
     yaml = subprocess.check_output(command, text=True)
-    encoded = subprocess.check_output(['yq', 'r', '-d', '*', '-j', '-'],
-                                      input=yaml,
-                                      text=True)
+    encoded = subprocess.check_output(
+        ['yq', 'eval', '-o=json', '.', '-'], input=yaml, text=True
+    )
     decoder = json.JSONDecoder()
     resources = []
     while encoded.strip():
@@ -44,13 +44,15 @@ def render(path, allow_external_patches=False):
 
 def resource(resources, kind, prefix):
     exact = [
-        item for item in resources
+        item
+        for item in resources
         if item['kind'] == kind and item['metadata']['name'] == prefix
     ]
     if exact:
         return exact[0]
     matches = [
-        item for item in resources
+        item
+        for item in resources
         if item['kind'] == kind and item['metadata']['name'].startswith(prefix)
     ]
     assert len(matches) == 1, (kind, prefix, len(matches))
@@ -58,15 +60,16 @@ def resource(resources, kind, prefix):
 
 
 class TensorboardSigningKeyTest(unittest.TestCase):
-
     def test_ci_uses_preloaded_initializer_image(self):
         resources = render(
             REPO_ROOT / '.github/resources/manifests/standalone/default',
-            allow_external_patches=True)
+            allow_external_patches=True,
+        )
         job = resource(resources, 'Job', INIT)
         container = job['spec']['template']['spec']['containers'][0]
-        self.assertEqual(container['image'],
-                         'kind-registry:5000/frontend:latest')
+        self.assertEqual(
+            container['image'], 'kind-registry:5000/frontend:latest'
+        )
         self.assertEqual(container.get('imagePullPolicy'), 'IfNotPresent')
         deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
         self.assertEqual(deployment['spec']['strategy'], {'type': 'Recreate'})
@@ -90,27 +93,36 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
         self.assertEqual(deployment['spec']['strategy'], {'type': 'Recreate'})
         env = deployment['spec']['template']['spec']['containers'][0]['env']
-        signing = next(item for item in env
-                       if item['name'] == 'TENSORBOARD_PROXY_SIGNING_SECRET')
-        self.assertEqual(signing['valueFrom']['secretKeyRef'], {
-            'name': SECRET,
-            'key': 'signing-secret'
-        })
+        signing = next(
+            item
+            for item in env
+            if item['name'] == 'TENSORBOARD_PROXY_SIGNING_SECRET'
+        )
+        self.assertEqual(
+            signing['valueFrom']['secretKeyRef'],
+            {'name': SECRET, 'key': 'signing-secret'},
+        )
         role = resource(resources, 'Role', INIT)
-        self.assertEqual(role['rules'], [{
-            'apiGroups': [''],
-            'resources': ['secrets'],
-            'resourceNames': [SECRET],
-            'verbs': ['get', 'update']
-        }])
+        self.assertEqual(
+            role['rules'],
+            [
+                {
+                    'apiGroups': [''],
+                    'resources': ['secrets'],
+                    'resourceNames': [SECRET],
+                    'verbs': ['get', 'update'],
+                }
+            ],
+        )
         ui_role = resource(resources, 'Role', 'ml-pipeline-ui')
         for rule in ui_role['rules']:
             if 'secrets' in rule['resources']:
                 self.assertTrue(set(rule['verbs']) <= {'get', 'list', 'watch'})
 
     def test_documented_rolling_update_changes_only_strategy(self):
-        guide = (REPO_ROOT /
-                 'docs/operator-guides/server-config.md').read_text()
+        guide = (
+            REPO_ROOT / 'docs/operator-guides/server-config.md'
+        ).read_text()
         section = guide.split('#### Enabling rolling UI updates', 1)[1]
         patch = section.split('```yaml\n', 1)[1].split('```', 1)[0]
         migration = render(PIPELINE)
@@ -124,10 +136,7 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         deployment = resource(migration, 'Deployment', 'ml-pipeline-ui')
         deployment['spec']['strategy'] = {
             'type': 'RollingUpdate',
-            'rollingUpdate': {
-                'maxUnavailable': 0,
-                'maxSurge': 1
-            }
+            'rollingUpdate': {'maxUnavailable': 0, 'maxSurge': 1},
         }
         self.assertEqual(rolling, migration)
 
@@ -138,39 +147,49 @@ class TensorboardSigningKeyTest(unittest.TestCase):
             overlay = Path(directory) / 'overlay'
             overlay.mkdir()
             config = overlay / 'kustomization.yaml'
-            template = ('resources: [../base]\n'
-                        'namespace: signing-test\n'
-                        'namePrefix: custom-\n'
-                        'images:\n'
-                        '- name: ghcr.io/kubeflow/kfp-frontend\n'
-                        '  newTag: {tag}\n')
+            template = (
+                'resources: [../base]\n'
+                'namespace: signing-test\n'
+                'namePrefix: custom-\n'
+                'images:\n'
+                '- name: ghcr.io/kubeflow/kfp-frontend\n'
+                '  newTag: {tag}\n'
+            )
             config.write_text(template.format(tag='first'))
             first = render(overlay)
             self.assertEqual(first, render(overlay))
             config.write_text(template.format(tag='second'))
             second = render(overlay)
             job_path = base / 'job.yaml'
-            job_path.write_text(job_path.read_text().replace(
-                'memory: 128Mi', 'memory: 192Mi'))
+            job_path.write_text(
+                job_path.read_text().replace('memory: 128Mi', 'memory: 192Mi')
+            )
             third = render(overlay)
             names = []
             for resources in (first, second, third):
                 job = resource(resources, 'Job', 'custom-' + INIT)
                 names.append(job['metadata']['name'])
                 configmap = resource(resources, 'ConfigMap', 'custom-' + INIT)
-                self.assertEqual(job['metadata']['name'],
-                                 configmap['metadata']['name'])
+                self.assertEqual(
+                    job['metadata']['name'], configmap['metadata']['name']
+                )
                 self.assertEqual(job['metadata']['namespace'], 'signing-test')
                 secret = resource(resources, 'Secret', 'custom-' + SECRET)
                 self.assertEqual(secret['metadata']['name'], 'custom-' + SECRET)
-                self.assertEqual(configmap['data']['secretName'],
-                                 secret['metadata']['name'])
-                role = resource(resources, 'Role', 'custom-' + INIT)
-                self.assertEqual(role['rules'][0]['resourceNames'],
-                                 [secret['metadata']['name']])
                 self.assertEqual(
-                    job['spec']['template']['metadata']['labels']
-                    ['sidecar.istio.io/inject'], 'false')
+                    configmap['data']['secretName'], secret['metadata']['name']
+                )
+                role = resource(resources, 'Role', 'custom-' + INIT)
+                self.assertEqual(
+                    role['rules'][0]['resourceNames'],
+                    [secret['metadata']['name']],
+                )
+                self.assertEqual(
+                    job['spec']['template']['metadata']['labels'][
+                        'sidecar.istio.io/inject'
+                    ],
+                    'false',
+                )
                 pod = job['spec']['template']['spec']
                 self.assertEqual(pod['serviceAccountName'], 'custom-' + INIT)
                 container = pod['containers'][0]
@@ -178,7 +197,8 @@ class TensorboardSigningKeyTest(unittest.TestCase):
                 for env in container['env'][1:]:
                     self.assertEqual(
                         env['valueFrom']['configMapKeyRef']['name'],
-                        configmap['metadata']['name'])
+                        configmap['metadata']['name'],
+                    )
             self.assertEqual(len(set(names)), 3)
 
 

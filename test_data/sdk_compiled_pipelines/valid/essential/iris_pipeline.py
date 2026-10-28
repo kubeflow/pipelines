@@ -1,17 +1,13 @@
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import ClassificationMetrics
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Model
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import ClassificationMetrics, Dataset, Input, Model, Output
 
 common_base_image = 'python:3.11'
 # common_base_image = "quay.io/opendatahub/ds-pipelines-sample-base:v1.0"
 
 
 @dsl.component(
-    base_image=common_base_image, packages_to_install=["pandas==2.2.0"])
+    base_image=common_base_image, packages_to_install=['pandas==2.2.0']
+)
 def create_dataset(iris_dataset: Output[Dataset]):
     from io import StringIO  # noqa: PLC0415
 
@@ -73,17 +69,21 @@ def create_dataset(iris_dataset: Output[Dataset]):
     5.9,3.0,5.1,1.8,Iris-virginica
     """
     col_names = [
-        "Sepal_Length", "Sepal_Width", "Petal_Length", "Petal_Width", "Labels"
+        'Sepal_Length',
+        'Sepal_Width',
+        'Petal_Length',
+        'Petal_Width',
+        'Labels',
     ]
     df = pd.read_csv(StringIO(data), names=col_names)
 
-    with open(iris_dataset.path, "w") as f:
+    with open(iris_dataset.path, 'w') as f:
         df.to_csv(f)
 
 
 @dsl.component(
     base_image=common_base_image,
-    packages_to_install=["pandas==2.2.0", "scikit-learn==1.4.0"],
+    packages_to_install=['pandas==2.2.0', 'scikit-learn==1.4.0'],
 )
 def normalize_dataset(
     input_iris_dataset: Input[Dataset],
@@ -91,25 +91,27 @@ def normalize_dataset(
     standard_scaler: bool,
 ):
     import pandas as pd  # noqa: PLC0415
-    from sklearn.preprocessing import MinMaxScaler  # noqa: PLC0415
-    from sklearn.preprocessing import StandardScaler
+    from sklearn.preprocessing import (
+        MinMaxScaler,  # noqa: PLC0415
+        StandardScaler,
+    )
 
     with open(input_iris_dataset.path) as f:
         df = pd.read_csv(f)
-    labels = df.pop("Labels")
+    labels = df.pop('Labels')
 
     scaler = StandardScaler() if standard_scaler else MinMaxScaler()
 
     df = pd.DataFrame(scaler.fit_transform(df))
-    df["Labels"] = labels
-    normalized_iris_dataset.metadata["state"] = "Normalized"
-    with open(normalized_iris_dataset.path, "w") as f:
+    df['Labels'] = labels
+    normalized_iris_dataset.metadata['state'] = 'Normalized'
+    with open(normalized_iris_dataset.path, 'w') as f:
         df.to_csv(f)
 
 
 @dsl.component(
     base_image=common_base_image,
-    packages_to_install=["pandas==2.2.0", "scikit-learn==1.4.0"],
+    packages_to_install=['pandas==2.2.0', 'scikit-learn==1.4.0'],
 )
 def train_model(
     normalized_iris_dataset: Input[Dataset],
@@ -121,36 +123,37 @@ def train_model(
 
     import pandas as pd  # noqa: PLC0415
     from sklearn.metrics import confusion_matrix  # noqa: PLC0415
-    from sklearn.model_selection import cross_val_predict  # noqa: PLC0415
-    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import (
+        cross_val_predict,  # noqa: PLC0415
+        train_test_split,
+    )
     from sklearn.neighbors import KNeighborsClassifier  # noqa: PLC0415
 
     with open(normalized_iris_dataset.path) as f:
         df = pd.read_csv(f)
 
-    y = df.pop("Labels")
+    y = df.pop('Labels')
     X = df
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, random_state=0)  # noqa: F841
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)  # noqa: F841
 
     clf = KNeighborsClassifier(n_neighbors=n_neighbors)
     clf.fit(X_train, y_train)
 
     predictions = cross_val_predict(clf, X_train, y_train, cv=3)
     metrics.log_confusion_matrix(
-        ["Iris-Setosa", "Iris-Versicolour", "Iris-Virginica"],
+        ['Iris-Setosa', 'Iris-Versicolour', 'Iris-Virginica'],
         confusion_matrix(
-            y_train,
-            predictions).tolist(),  # .tolist() to convert np array to list.
+            y_train, predictions
+        ).tolist(),  # .tolist() to convert np array to list.
     )
 
-    model.metadata["framework"] = "scikit-learn"
-    with open(model.path, "wb") as f:
+    model.metadata['framework'] = 'scikit-learn'
+    with open(model.path, 'wb') as f:
         pickle.dump(clf, f)
 
 
-@dsl.pipeline(name="iris-training-pipeline")
+@dsl.pipeline(name='iris-training-pipeline')
 def my_pipeline(
     standard_scaler: bool = True,
     neighbors: int = 3,
@@ -158,15 +161,19 @@ def my_pipeline(
     create_dataset_task = create_dataset().set_caching_options(False)
 
     normalize_dataset_task = normalize_dataset(
-        input_iris_dataset=create_dataset_task.outputs["iris_dataset"],
-        standard_scaler=standard_scaler).set_caching_options(False)
+        input_iris_dataset=create_dataset_task.outputs['iris_dataset'],
+        standard_scaler=standard_scaler,
+    ).set_caching_options(False)
 
     train_model(
-        normalized_iris_dataset=normalize_dataset_task
-        .outputs["normalized_iris_dataset"],
-        n_neighbors=neighbors).set_caching_options(False)
+        normalized_iris_dataset=normalize_dataset_task.outputs[
+            'normalized_iris_dataset'
+        ],
+        n_neighbors=neighbors,
+    ).set_caching_options(False)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     compiler.Compiler().compile(
-        my_pipeline, package_path=__file__.replace(".py", "_compiled.yaml"))
+        my_pipeline, package_path=__file__.replace('.py', '_compiled.yaml')
+    )

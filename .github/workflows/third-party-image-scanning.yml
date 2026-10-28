@@ -1,0 +1,230 @@
+name: Third-party Image Security
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.inventory.outputs.matrix }}
+      uploads: ${{ steps.inventory.outputs.uploads }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Install Kustomize
+        env:
+          KUSTOMIZE_VERSION: '5.8.1'
+          KUSTOMIZE_SHA256: '029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d'
+        run: |
+          kustomize_archive="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/${kustomize_archive}" \
+            --output "${RUNNER_TEMP}/${kustomize_archive}"
+          echo "${KUSTOMIZE_SHA256}  ${RUNNER_TEMP}/${kustomize_archive}" | \
+            sha256sum --check --strict
+          tar -xzf "${RUNNER_TEMP}/${kustomize_archive}" -C "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/kustomize"
+
+      - name: Resolve branch heads and render third-party inventory
+        id: inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PYTHONPATH: release
+        run: |
+          python .github/resources/scripts/third_party_image_scan.py discover \
+            --repository "$REPOSITORY" --kustomize "$RUNNER_TEMP/kustomize" \
+            --output third-party-inventory
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: third-party-inventory-${{ github.run_attempt }}
+          path: third-party-inventory
+          if-no-files-found: error
+          retention-days: 7
+
+  scan:
+    needs: inventory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.inventory.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - uses: ./.github/actions/setup-osv-scanner
+        with:
+          arch: amd64
+      - name: Scan exact pulled image with full package inventory
+        env:
+          IMAGE: ${{ matrix.image }}
+          IMAGE_KEY: ${{ matrix.key }}
+          PYTHONPATH: release
+        run: |
+          python .github/resources/scripts/third_party_image_scan.py scan \
+            --image "$IMAGE" --output "evidence/$IMAGE_KEY"
+      - name: Preserve raw evidence and diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: third-party-scan-${{ matrix.key }}-${{ github.run_attempt }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 7
+
+  report:
+    if: always()
+    needs: [inventory, scan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: third-party-inventory-${{ github.run_attempt }}
+          path: inventory
+          required-files: inventory.json
+      - name: List required scan evidence
+        id: files
+        run: |
+          python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          import json
+          inventory = json.load(open('inventory/inventory.json'))
+          print('required<<EOF')
+          for scan in inventory['scans']:
+              for filename in ('subject.json', 'coverage.json'):
+                  print(scan['key'] + '/' + filename)
+          print('EOF')
+          PYCODE
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          required-files: ${{ steps.files.outputs.required }}
+          pattern: third-party-scan-*-${{ github.run_attempt }}
+          path: evidence
+          merge-multiple: 'true'
+      - name: Report verified counts and explicit coverage gaps
+        env:
+          PYTHONPATH: release
+          INVENTORY_RESULT: ${{ needs.inventory.result }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          test "$INVENTORY_RESULT" = success
+          python .github/resources/scripts/third_party_image_report.py \
+            --inventory inventory/inventory.json --evidence evidence --output report
+          cat report/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: third-party-image-report-${{ github.run_attempt }}
+          path: report
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Require complete coverage before Security uploads
+        env:
+          SCAN_RESULT: ${{ needs.scan.result }}
+        run: |
+          test "$SCAN_RESULT" = success
+          python - <<'PYCODE'
+          import json
+          if not json.load(open('report/summary.json'))['coverage_complete']:
+              raise SystemExit('Incomplete image coverage; all Security uploads blocked. See retained report and scanner diagnostics.')
+          PYCODE
+
+  upload:
+    needs: [inventory, scan, report]
+    # Candidate runs validate evidence without changing production alert state.
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.inventory.outputs.uploads) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+      - uses: ./.github/actions/download-artifact-with-retry
+        with:
+          name: third-party-scan-${{ matrix.key }}-${{ github.run_attempt }}
+          path: evidence
+          required-files: |
+            ${{ matrix.key }}/subject.json
+            ${{ matrix.key }}/github/scan.json
+            ${{ matrix.key }}/github/scan.sarif
+      - name: Validate immutable evidence and summarize image findings
+        env:
+          IMAGE: ${{ matrix.image }}
+          IMAGE_KEY: ${{ matrix.key }}
+          IMAGE_CATEGORY: ${{ matrix.category }}
+          EVIDENCE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          PYTHONPATH: release
+        run: |
+          python - <<'PYCODE'
+          import json
+          import os
+          from pathlib import Path
+          from kfpr.osv_image_scan import validate_report
+          root = Path('evidence') / os.environ['IMAGE_KEY']
+          subject = json.loads((root / 'subject.json').read_text())
+          if subject['image'] != os.environ['IMAGE']:
+              raise ValueError('Scan image differs from inventory')
+          envelope = json.loads((root / 'github/scan.json').read_text())
+          validate_report(envelope, subject['image_id'], 'sarif')
+          raw = json.loads((root / 'github/scan.sarif').read_text())
+          if raw != envelope['sarif']:
+              raise ValueError('Raw SARIF differs from verified scan envelope')
+          PYCODE
+          python -m kfpr.image_summary \
+            --input "evidence/$IMAGE_KEY/github/scan.sarif" \
+            --identity "$IMAGE_CATEGORY" --image "$IMAGE" \
+            --platform linux/amd64 --evidence-url "$EVIDENCE_URL" \
+            --output findings.sarif
+      - name: Checkout scanned source for attribution only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ matrix.sha }}
+          path: source
+          persist-credentials: false
+      - name: Publish third-party findings to GitHub Security
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: findings.sarif
+          category: ${{ matrix.category }}
+          sha: ${{ matrix.sha }}
+          ref: refs/heads/${{ matrix.branch }}
+          checkout_path: source

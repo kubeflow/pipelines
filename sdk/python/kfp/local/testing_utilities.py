@@ -22,19 +22,17 @@ import shutil
 import site
 import sysconfig
 import tempfile
-from typing import Any, Callable, Dict, Iterator, Optional
 import unittest
-from unittest import mock
 import venv
+from typing import Any, Callable, Dict, Iterator, Optional
+from unittest import mock
 
 from absl.testing import parameterized
-from google.protobuf import json_format
-from google.protobuf import message
-from kfp import components
-from kfp import dsl
+from google.protobuf import json_format, message
+
+from kfp import components, dsl
 from kfp.local import config as local_config
-from kfp.local import docker_task_handler
-from kfp.local import subprocess_task_handler
+from kfp.local import docker_task_handler, subprocess_task_handler
 
 _LOCAL_KFP_PACKAGE_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -47,15 +45,13 @@ def create_modify_volumes_decorator(isolated_kfp_path: str):
     """Creates a volume decorator for a specific isolated KFP path."""
 
     def modify_volumes_decorator(
-            original_method: Callable[..., Any]) -> Callable[..., Any]:
+        original_method: Callable[..., Any],
+    ) -> Callable[..., Any]:
 
         def wrapper(self, *args, **kwargs) -> Dict[str, Any]:
             original_volumes = original_method(self, *args, **kwargs)
             LOCAL_KFP_VOLUME = {
-                isolated_kfp_path: {
-                    'bind': isolated_kfp_path,
-                    'mode': 'rw'
-                }
+                isolated_kfp_path: {'bind': isolated_kfp_path, 'mode': 'rw'}
             }
             original_volumes.update(LOCAL_KFP_VOLUME)
             return original_volumes
@@ -87,29 +83,44 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
         shutil.copytree(
             _LOCAL_KFP_PACKAGE_PATH,
             os.path.join(self.isolated_kfp_dir, 'kfp_source'),
-            ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '.git',
-                                          'build', 'dist', '*.egg-info'))
-        self.isolated_kfp_package_path = os.path.join(self.isolated_kfp_dir,
-                                                      'kfp_source')
+            ignore=shutil.ignore_patterns(
+                '*.pyc', '__pycache__', '.git', 'build', 'dist', '*.egg-info'
+            ),
+        )
+        self.isolated_kfp_package_path = os.path.join(
+            self.isolated_kfp_dir, 'kfp_source'
+        )
 
         self.isolated_current_python = self._create_current_python()
-        self.original_subprocess_environment = subprocess_task_handler.environment
-        environment_patch = mock.patch.object(subprocess_task_handler,
-                                              'environment',
-                                              self._isolated_environment)
+        self.original_subprocess_environment = (
+            subprocess_task_handler.environment
+        )
+        environment_patch = mock.patch.object(
+            subprocess_task_handler, 'environment', self._isolated_environment
+        )
         environment_patch.start()
         self.addCleanup(environment_patch.stop)
 
         # ENTER: use isolated KFP package path for this test
-        self.original_component, dsl.component = dsl.component, functools.partial(
-            dsl.component, kfp_package_path=self.isolated_kfp_package_path)
+        self.original_component, dsl.component = (
+            dsl.component,
+            functools.partial(
+                dsl.component, kfp_package_path=self.isolated_kfp_package_path
+            ),
+        )
 
         # ENTER: mount isolated KFP dir to enable install from source for docker runner
-        self.original_get_volumes_to_mount = docker_task_handler.DockerTaskHandler.get_volumes_to_mount
+        self.original_get_volumes_to_mount = (
+            docker_task_handler.DockerTaskHandler.get_volumes_to_mount
+        )
         modify_volumes_decorator = create_modify_volumes_decorator(
-            self.isolated_kfp_package_path)
-        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = modify_volumes_decorator(
-            docker_task_handler.DockerTaskHandler.get_volumes_to_mount)
+            self.isolated_kfp_package_path
+        )
+        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = (
+            modify_volumes_decorator(
+                docker_task_handler.DockerTaskHandler.get_volumes_to_mount
+            )
+        )
 
     def _create_current_python(self) -> str:
         """Create a test-local interpreter that reuses worker dependencies."""
@@ -119,14 +130,14 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
             sysconfig.get_path(
                 'purelib',
                 scheme='venv',
-                vars={
-                    'base': str(directory),
-                    'platbase': str(directory)
-                }))
+                vars={'base': str(directory), 'platbase': str(directory)},
+            )
+        )
         # A source copy alone does not isolate pip's installation destination.
         dependencies = [self.isolated_kfp_package_path, *site.getsitepackages()]
         (site_packages / 'test-dependencies.pth').write_text(
-            '\n'.join(dependencies) + '\n', encoding='utf-8')
+            '\n'.join(dependencies) + '\n', encoding='utf-8'
+        )
         return str(directory / 'bin/python')
 
     @contextlib.contextmanager
@@ -139,9 +150,10 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
         """Isolate test installs while preserving real runner setup and
         locking."""
         with self.original_subprocess_environment(
-                use_venv=use_venv,
-                runner_config=runner_config,
-                has_pip_install=has_pip_install) as python:
+            use_venv=use_venv,
+            runner_config=runner_config,
+            has_pip_install=has_pip_install,
+        ) as python:
             yield python if use_venv else self.isolated_current_python
 
     def tearDown(self):
@@ -156,11 +168,12 @@ class LocalRunnerEnvironmentTestCase(parameterized.TestCase):
         os.chdir(self.working_dir)
 
         # EXIT: mount KFP dir to enable install from source for docker runner
-        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = self.original_get_volumes_to_mount
+        docker_task_handler.DockerTaskHandler.get_volumes_to_mount = (
+            self.original_get_volumes_to_mount
+        )
 
 
 class MockedDatetimeTestCase(unittest.TestCase):
-
     def setUp(self):
         # set up patch, cleanup, and start
         patcher = mock.patch('kfp.local.executor_input_utils.datetime.datetime')
@@ -169,7 +182,8 @@ class MockedDatetimeTestCase(unittest.TestCase):
 
         # set mock return values
         mock_now = mock.MagicMock(
-            wraps=datetime.datetime(2023, 10, 10, 13, 32, 59, 420710))
+            wraps=datetime.datetime(2023, 10, 10, 13, 32, 59, 420710)
+        )
         self.mock_datetime.now.return_value = mock_now
         mock_now.strftime.return_value = '2023-10-10-13-32-59-420710'
 
@@ -191,4 +205,5 @@ def compile_and_load_component(
     """Compiles a component to PipelineSpec and reloads it as a
     YamlComponent."""
     return components.load_component_from_text(
-        json_format.MessageToJson(base_component.pipeline_spec))
+        json_format.MessageToJson(base_component.pipeline_spec)
+    )

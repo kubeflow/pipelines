@@ -2,13 +2,13 @@
 """Validate unified SDK artifacts and install them outside the source tree."""
 
 import argparse
-from email.parser import Parser
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import zipfile
+from email.parser import Parser
+from pathlib import Path
 
 REQUIRED_MODULES = {
     'kfp/pipeline_spec/pipeline_spec_pb2.py',
@@ -18,9 +18,11 @@ REQUIRED_MODULES = {
     'kfp/server_api/api/run_service_api.py',
 }
 RETIRED_DISTRIBUTIONS = {
-    'kfp-pipeline-spec', 'kfp-server-api', 'kfp-kubernetes'
+    'kfp-pipeline-spec',
+    'kfp-server-api',
+    'kfp-kubernetes',
 }
-IMPORT_CHECK = '''
+IMPORT_CHECK = """
 from importlib import metadata
 import kfp
 from kfp import kubernetes, server_api
@@ -38,7 +40,7 @@ for name in ("kfp-pipeline-spec", "kfp-server-api", "kfp-kubernetes"):
     except metadata.PackageNotFoundError:
         continue
     raise AssertionError(f"Retired distribution is still installed: {name}")
-'''
+"""
 
 
 def check_wheel(path: Path) -> None:
@@ -54,20 +56,25 @@ def check_wheel(path: Path) -> None:
         if len(metadata_files) != 1:
             raise AssertionError(f'{path}: expected one distribution')
         metadata = Parser().parsestr(
-            wheel.read(metadata_files[0]).decode('utf-8'))
+            wheel.read(metadata_files[0]).decode('utf-8')
+        )
         if metadata['Name'] != 'kfp':
             raise AssertionError(f'{path}: not a kfp distribution')
         for dependency in metadata.get_all('Requires-Dist', []):
             if any(
-                    dependency.startswith(name)
-                    for name in RETIRED_DISTRIBUTIONS):
+                dependency.startswith(name) for name in RETIRED_DISTRIBUTIONS
+            ):
                 raise AssertionError(
-                    f'{path}: retired dependency: {dependency}')
+                    f'{path}: retired dependency: {dependency}'
+                )
         for name in names:
             filename = Path(name).name
-            if (filename.startswith('test_') or filename.endswith(
-                ('_test.py', '_tests.py')) or '/testdata/' in name or
-                    '/test_data/' in name):
+            if (
+                filename.startswith('test_')
+                or filename.endswith(('_test.py', '_tests.py'))
+                or '/testdata/' in name
+                or '/test_data/' in name
+            ):
                 raise AssertionError(f'{path}: contains test payload: {name}')
 
 
@@ -100,17 +107,33 @@ def main() -> None:
         run([python, '-I', '-c', IMPORT_CHECK], root)
         run([python, '-m', 'pip', 'check'], root)
         # pip builds in isolation from the archive, without the monorepo/protoc.
-        run([
-            python, '-m', 'pip', 'wheel', '--no-deps',
-            str(sdists[0]), '--wheel-dir',
-            str(root / 'rebuilt')
-        ], root)
+        run(
+            [
+                python,
+                '-m',
+                'pip',
+                'wheel',
+                '--no-deps',
+                str(sdists[0]),
+                '--wheel-dir',
+                str(root / 'rebuilt'),
+            ],
+            root,
+        )
         rebuilt = next((root / 'rebuilt').glob('kfp-*.whl'))
         check_wheel(rebuilt)
-        run([
-            python, '-m', 'pip', 'install', '--force-reinstall', '--no-deps',
-            str(rebuilt)
-        ], root)
+        run(
+            [
+                python,
+                '-m',
+                'pip',
+                'install',
+                '--force-reinstall',
+                '--no-deps',
+                str(rebuilt),
+            ],
+            root,
+        )
         run([python, '-I', '-c', IMPORT_CHECK], root)
 
 

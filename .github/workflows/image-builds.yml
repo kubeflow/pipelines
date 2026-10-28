@@ -20,8 +20,10 @@ on:
 env:
   IMAGE_TAG: "latest"
   REGISTRY: "kind-registry:5000"
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GITHUB_SHA: ${{ github.sha }}
+
+permissions:
+  contents: read
 
 jobs:
   runtime-base-images:
@@ -40,21 +42,16 @@ jobs:
         modelcar.tar
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Configure runtime base image artifact
         id: configure-runtime-base-images
         shell: bash
         run: |
           set -euo pipefail
-          archive_fingerprint=$(python3 \
-            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
-            .github/resources/runtime-base-images.txt \
-            .github/resources/scripts/helper-functions.sh \
-            .github/resources/scripts/build-runtime-base-images.sh \
-            .github/workflows/runtime-base-images.yml \
-            test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
-          echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
+          python3 .github/resources/scripts/runtime_base_image_artifacts.py identity >> "$GITHUB_OUTPUT"
 
       - name: Find runtime base image producer
         id: runtime-base-images-producer
@@ -133,7 +130,7 @@ jobs:
           echo "path=$rebuilt_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
@@ -183,7 +180,9 @@ jobs:
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Read frontend Node version
         id: frontend_node
@@ -234,7 +233,7 @@ jobs:
 
       - name: Build and save Docker image
         if: ${{ matrix.image != 'frontend' }}
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         id: save-image
         continue-on-error: true
         env:
@@ -258,7 +257,7 @@ jobs:
         run: sleep 10
 
       - name: Rebuild Images in case of failure
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
         env:
@@ -288,7 +287,7 @@ jobs:
           "$ARTIFACTS_PATH/$ARTIFACT_NAME.json"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}

@@ -1,0 +1,9 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+pyarrow==23.0.1
+xgboost==3.0.5
+scikit-learn==1.7.2
+pandas==3.0.6
+polars==2.0.0
+torch==2.14.1+cpu; sys_platform == "linux"
+torch==2.14.1; sys_platform != "linux"
+transformers==5.20.0

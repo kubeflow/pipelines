@@ -9,8 +9,10 @@ on:
       - master
   pull_request:
     paths:
+      # The offline cache fixture image copies this SDK source tree.
       - '.github/dependabot.yml'
       - '**/go.mod'
+      - 'backend/api/hack/uv.sh'
       - '**/package.json'
       - '**/requirements*.txt'
       - '**/setup.py'
@@ -29,6 +31,8 @@ on:
       - '.github/resources/scripts/*.py'
       - '.github/resources/scripts/*.js'
       - '.github/resources/ci-workflow-inventory.json'
+      - '.github/resources/legacy-v2-migration-specs.json'
+      - '.github/resources/legacy-v2-service-account-specs.json'
       - 'test/presubmit-backend-test.sh'
       - 'hack/update-all-requirements.sh'
       # Any trigger change must update the expected-workflow inventory.
@@ -52,6 +56,7 @@ on:
       - '.github/workflows/build-tools-images.yml'
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/third-party-image-upgrades.yml'
       - '.github/workflows/check-requirements-txt.yml'
       - '.github/workflows/check-uv-lock.yml'
       - '.github/workflows/publish-packages.yml'
@@ -71,13 +76,15 @@ on:
       - 'Makefile'
       - 'api/Makefile'
       - 'backend/src/v2/Makefile'
-      - 'release/kfpr/core.py'
+      - 'release/kfpr/**'
+      - 'release/pyproject.toml'
+      - '.github/workflows/release-branch-image-scanning.yml'
+      - '.github/workflows/release-qualification.yml'
       - 'test_data/sdk_compiled_pipelines/valid/**'
       - 'backend/test/end2end/pipeline_e2e_test.go'
       - 'backend/test/v2/resources/env-var.yaml'
       - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
       - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'
-      - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - 'backend/Dockerfile'
       - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'api/v2alpha1/python/generate_proto.py'
@@ -110,8 +117,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
       - name: Run profile-controller tests
@@ -123,17 +132,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup-go
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
       - name: Install workflow script dependencies
-        run: python3 -m pip install -r .github/scripts/requirements.txt
+        run: python3 -m pip install -r .github/scripts/requirements.txt ./release
       - name: Run Python resource script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run release image scanning and qualification tests
+        env:
+          PYTHONPATH: release
+        run: >-
+          python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test
+          kfpr.image_summary_test kfpr.osv_image_scan_test kfpr.osv_reports_test
+          kfpr.ci_security_runner_test kfpr.ci_qualification_runner_test
+          kfpr.ci_qualification_client_test kfpr.qualification_test
+          kfpr.qualification_exceptions_test kfpr.security_test
+          kfpr.security_exceptions_test kfpr.third_party_test
       - name: Run repo-local workflow script unit tests
         working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

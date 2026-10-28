@@ -13,19 +13,17 @@
 # limitations under the License.
 
 import os
-from unittest.mock import ANY
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import ANY, MagicMock, patch
 
-from absl.testing import parameterized
 import google.auth.compute_engine.credentials
 import google.oauth2.credentials
 import google.oauth2.service_account
+from absl.testing import parameterized
+
 from kfp.client import auth
 
 
 class TestAuth(parameterized.TestCase):
-
     @patch('kfp.client.auth.google.auth.default')
     def test_user_credentials_skip_service_account_auth(self, mock_default):
         credentials = MagicMock(spec=google.oauth2.credentials.Credentials)
@@ -34,20 +32,26 @@ class TestAuth(parameterized.TestCase):
         self.assertIsNone(auth.get_service_account_credentials('audience'))
         credentials.refresh.assert_not_called()
 
-    @parameterized.named_parameters(('compute_engine', True),
-                                    ('service_account', False))
+    @parameterized.named_parameters(
+        ('compute_engine', True), ('service_account', False)
+    )
     @patch('kfp.client.auth.google.auth.iam.Signer')
     @patch('kfp.client.auth.google.auth.default')
     def test_service_account_credentials_use_modern_signer(
-            self, compute_engine, mock_default, mock_iam_signer):
+        self, compute_engine, mock_default, mock_iam_signer
+    ):
         credential_type = (
             google.auth.compute_engine.credentials.Credentials
-            if compute_engine else google.oauth2.service_account.Credentials)
+            if compute_engine
+            else google.oauth2.service_account.Credentials
+        )
         credentials = MagicMock(spec=credential_type)
         credentials.service_account_email = None
 
         def refresh(request):
-            credentials.service_account_email = 'test@example.iam.gserviceaccount.com'
+            credentials.service_account_email = (
+                'test@example.iam.gserviceaccount.com'
+            )
 
         credentials.refresh.side_effect = refresh
         mock_default.return_value = (credentials, 'project')
@@ -55,13 +59,16 @@ class TestAuth(parameterized.TestCase):
 
         mock_default.assert_called_once_with(scopes=[auth.IAM_SCOPE])
         credentials.refresh.assert_called_once()
-        self.assertEqual(result.service_account_email,
-                         'test@example.iam.gserviceaccount.com')
-        self.assertEqual(result._additional_claims,
-                         {'target_audience': 'audience'})
+        self.assertEqual(
+            result.service_account_email, 'test@example.iam.gserviceaccount.com'
+        )
+        self.assertEqual(
+            result._additional_claims, {'target_audience': 'audience'}
+        )
         if compute_engine:
             mock_iam_signer.assert_called_once_with(
-                ANY, credentials, 'test@example.iam.gserviceaccount.com')
+                ANY, credentials, 'test@example.iam.gserviceaccount.com'
+            )
             self.assertIs(result.signer, mock_iam_signer.return_value)
         else:
             mock_iam_signer.assert_not_called()
@@ -86,8 +93,11 @@ class TestAuth(parameterized.TestCase):
             self.assertFalse(auth.is_ipython())
 
     @patch(
-        'builtins.input', lambda *args:
-        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
+        'builtins.input',
+        lambda *args: (
+            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
+        ),
+    )
     @patch('kfp.client.auth.is_ipython', lambda *args: True)
     @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_ipython(self):
@@ -96,8 +106,11 @@ class TestAuth(parameterized.TestCase):
         self.assertEqual(redirect_uri, 'http://localhost:9901')
 
     @patch(
-        'builtins.input', lambda *args:
-        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
+        'builtins.input',
+        lambda *args: (
+            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
+        ),
+    )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, {'SSH_CONNECTION': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_connection(self):
@@ -106,8 +119,11 @@ class TestAuth(parameterized.TestCase):
         self.assertEqual(redirect_uri, 'http://localhost:9901')
 
     @patch(
-        'builtins.input', lambda *args:
-        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
+        'builtins.input',
+        lambda *args: (
+            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
+        ),
+    )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, {'SSH_CLIENT': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_client(self):
@@ -122,8 +138,11 @@ class TestAuth(parameterized.TestCase):
         self.assertRaises(KeyError, auth.get_auth_code, 'sample-client-id')
 
     @patch(
-        'kfp.client.auth.get_auth_response_local', lambda *args:
-        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
+        'kfp.client.auth.get_auth_response_local',
+        lambda *args: (
+            'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
+        ),
+    )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_local(self):
@@ -137,8 +156,10 @@ class TestAuth(parameterized.TestCase):
     def test_get_auth_code_from_local_empty_response(self):
         self.assertRaises(ValueError, auth.get_auth_code, 'sample-client-id')
 
-    @patch('kfp.client.auth.get_auth_response_local',
-           lambda *args: 'this-is-an-invalid-response')
+    @patch(
+        'kfp.client.auth.get_auth_response_local',
+        lambda *args: 'this-is-an-invalid-response',
+    )
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_local_invalid_response(self):

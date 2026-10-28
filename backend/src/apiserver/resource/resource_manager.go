@@ -140,14 +140,15 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManagerOptions struct {
-	CollectMetrics       bool                              `json:"collect_metrics,omitempty"`
-	CacheDisabled        bool                              `json:"cache_disabled,omitempty"`
-	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
-	MLPipelineTLSEnabled bool                              `json:"ml_pipeline_tls_enabled,omitempty"`
-	DefaultRunAsUser     *int64                            `json:"default_run_as_user,omitempty"`
-	DefaultRunAsGroup    *int64                            `json:"default_run_as_group,omitempty"`
-	DefaultRunAsNonRoot  *bool                             `json:"default_run_as_non_root,omitempty"`
-	DefaultHostUsers     *bool                             `json:"default_host_users,omitempty"`
+	CollectMetrics         bool                              `json:"collect_metrics,omitempty"`
+	CacheDisabled          bool                              `json:"cache_disabled,omitempty"`
+	DefaultWorkspace       *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
+	MLPipelineTLSEnabled   bool                              `json:"ml_pipeline_tls_enabled,omitempty"`
+	DefaultRunAsUser       *int64                            `json:"default_run_as_user,omitempty"`
+	DefaultRunAsGroup      *int64                            `json:"default_run_as_group,omitempty"`
+	DefaultRunAsNonRoot    *bool                             `json:"default_run_as_non_root,omitempty"`
+	DefaultHostUsers       *bool                             `json:"default_host_users,omitempty"`
+	DefaultPVCStorageClass *string                           `json:"default_pvc_storage_class,omitempty"`
 }
 
 type ResourceManager struct {
@@ -620,13 +621,14 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 		pv.PipelineSpecURI = model.LargeText(pipelineSpecURI)
 	}
 	templateOptions := template.TemplateOptions{
-		CacheDisabled:        r.options.CacheDisabled,
-		DefaultWorkspace:     r.options.DefaultWorkspace,
-		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
-		DefaultRunAsUser:     r.options.DefaultRunAsUser,
-		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
-		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
-		DefaultHostUsers:     r.options.DefaultHostUsers,
+		CacheDisabled:          r.options.CacheDisabled,
+		DefaultWorkspace:       r.options.DefaultWorkspace,
+		MLPipelineTLSEnabled:   r.options.MLPipelineTLSEnabled,
+		DefaultRunAsUser:       r.options.DefaultRunAsUser,
+		DefaultRunAsGroup:      r.options.DefaultRunAsGroup,
+		DefaultRunAsNonRoot:    r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:       r.options.DefaultHostUsers,
+		DefaultPVCStorageClass: r.options.DefaultPVCStorageClass,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
@@ -1206,29 +1208,41 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	if err := importedRunMutationError(run); err != nil {
 		return nil, err
 	}
-	if run.ExperimentId == "" {
-		defaultExperimentId, err := r.GetDefaultExperimentId()
+	if common.IsMultiUserMode() {
+		// Use the same persisted ownership that authorizes this run, so a task
+		// cannot be stored (and become a cache hit) in another namespace. The
+		// experiment is deliberately not consulted unless the run has no owner.
+		namespace, err := r.getNamespaceFromRun(run)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunUUID)
+			return nil, util.Wrapf(err, "Failed to resolve task namespace for run %v", t.RunUUID)
 		}
-		run.ExperimentId = defaultExperimentId
-	}
-
-	// Validate namespace
-	if t.Namespace == "" {
-		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
-		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+		if r.IsEmptyNamespace(namespace) {
+			return nil, util.NewInvalidInputError("Run %v has no owning namespace in multi-user mode; set the namespace of the run or its experiment", t.RunUUID)
+		}
+		if t.Namespace != "" && t.Namespace != namespace {
+			return nil, util.NewInvalidInputError("Task namespace %q does not match run namespace %q; omit the task namespace or use the run namespace", t.Namespace, namespace)
 		}
 		t.Namespace = namespace
-	}
-	if common.IsMultiUserMode() {
-		if t.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunUUID)
+	} else {
+		// Single-user task namespaces retain their experiment-based meaning;
+		// the execution namespace is not a tenant ownership boundary.
+		if run.ExperimentId == "" {
+			defaultExperimentID, err := r.GetDefaultExperimentId()
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunUUID)
+			}
+			run.ExperimentId = defaultExperimentID
 		}
-	}
-	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+		if t.Namespace == "" {
+			namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
+			if err != nil {
+				return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+			}
+			t.Namespace = namespace
+		}
+		if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
+			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunUUID)
+		}
 	}
 
 	newTask, err := r.taskStore.CreateTask(t)
@@ -1928,13 +1942,14 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 		}
 
 		templateOptions := template.TemplateOptions{
-			CacheDisabled:        r.options.CacheDisabled,
-			DefaultWorkspace:     r.options.DefaultWorkspace,
-			MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     r.options.DefaultRunAsUser,
-			DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
-			DefaultHostUsers:     r.options.DefaultHostUsers,
+			CacheDisabled:          r.options.CacheDisabled,
+			DefaultWorkspace:       r.options.DefaultWorkspace,
+			MLPipelineTLSEnabled:   r.options.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       r.options.DefaultRunAsUser,
+			DefaultRunAsGroup:      r.options.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    r.options.DefaultRunAsNonRoot,
+			DefaultHostUsers:       r.options.DefaultHostUsers,
+			DefaultPVCStorageClass: r.options.DefaultPVCStorageClass,
 		}
 		latestTemplate, err := template.New(manifest, templateOptions)
 		if err != nil {
@@ -2412,7 +2427,14 @@ func (r *ResourceManager) reportWorkflowResource(
 	if jobId != "" && updateError != nil {
 		experimentID := recurringExperimentID
 		namespace := recurringNamespace
-		pipelineSpec := recurringJob.PipelineSpec
+		pipelineSpec, err := r.recurringRunReportPipelineSpec(recurringJob, execSpec, runId)
+		if err != nil {
+			return nil, err
+		}
+		displayName := execSpec.ExecutionName()
+		if !common.IsMultiUserMode() && objMeta.Annotations[util.AnnotationKeyRunName] != "" {
+			displayName = objMeta.Annotations[util.AnnotationKeyRunName]
+		}
 		scheduledTimeInSec := execSpec.ScheduledAtInSecOr0()
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
@@ -2421,7 +2443,7 @@ func (r *ResourceManager) reportWorkflowResource(
 			UUID:           runId,
 			ExperimentId:   experimentID,
 			RecurringRunId: jobId,
-			DisplayName:    execSpec.ExecutionName(),
+			DisplayName:    displayName,
 			K8SName:        execSpec.ExecutionName(),
 			StorageState:   model.StorageStateAvailable,
 			Namespace:      namespace,
@@ -2448,6 +2470,11 @@ func (r *ResourceManager) reportWorkflowResource(
 		); err != nil {
 			return nil, err
 		}
+
+		if startedAt := execStatus.StartedAtTime().Time; r.options.CollectMetrics && !startedAt.IsZero() {
+			recurringPipelineRunReportGap.Observe(time.Since(startedAt).Seconds())
+		}
+
 		run = createdRun
 		runId = run.UUID
 		updateError = nil
@@ -3362,13 +3389,14 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		}
 	}
 	templateOptions := template.TemplateOptions{
-		CacheDisabled:        r.options.CacheDisabled,
-		DefaultWorkspace:     r.options.DefaultWorkspace,
-		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
-		DefaultRunAsUser:     r.options.DefaultRunAsUser,
-		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
-		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
-		DefaultHostUsers:     r.options.DefaultHostUsers,
+		CacheDisabled:          r.options.CacheDisabled,
+		DefaultWorkspace:       r.options.DefaultWorkspace,
+		MLPipelineTLSEnabled:   r.options.MLPipelineTLSEnabled,
+		DefaultRunAsUser:       r.options.DefaultRunAsUser,
+		DefaultRunAsGroup:      r.options.DefaultRunAsGroup,
+		DefaultRunAsNonRoot:    r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:       r.options.DefaultHostUsers,
+		DefaultPVCStorageClass: r.options.DefaultPVCStorageClass,
 	}
 	tmpl, err := template.New([]byte(manifest), templateOptions)
 	if err != nil {
@@ -3661,13 +3689,14 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 
 	// Create a template
 	templateOptions := template.TemplateOptions{
-		CacheDisabled:        r.options.CacheDisabled,
-		DefaultWorkspace:     r.options.DefaultWorkspace,
-		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
-		DefaultRunAsUser:     r.options.DefaultRunAsUser,
-		DefaultRunAsGroup:    r.options.DefaultRunAsGroup,
-		DefaultRunAsNonRoot:  r.options.DefaultRunAsNonRoot,
-		DefaultHostUsers:     r.options.DefaultHostUsers,
+		CacheDisabled:          r.options.CacheDisabled,
+		DefaultWorkspace:       r.options.DefaultWorkspace,
+		MLPipelineTLSEnabled:   r.options.MLPipelineTLSEnabled,
+		DefaultRunAsUser:       r.options.DefaultRunAsUser,
+		DefaultRunAsGroup:      r.options.DefaultRunAsGroup,
+		DefaultRunAsNonRoot:    r.options.DefaultRunAsNonRoot,
+		DefaultHostUsers:       r.options.DefaultHostUsers,
+		DefaultPVCStorageClass: r.options.DefaultPVCStorageClass,
 	}
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
@@ -3948,12 +3977,17 @@ func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
 	if err != nil {
 		return "", util.Wrapf(err, "Failed to fetch namespace from run %v due to fetching error", runId)
 	}
+	return r.getNamespaceFromRun(run)
+}
+
+// getNamespaceFromRun uses persisted run ownership, falling back to legacy experiment references.
+func (r *ResourceManager) getNamespaceFromRun(run *model.Run) (string, error) {
 	if !r.IsEmptyNamespace(run.Namespace) {
 		return run.Namespace, nil
 	}
 	namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 	if err != nil {
-		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", runId)
+		return "", util.Wrapf(err, "Failed to fetch namespace from run %v", run.UUID)
 	}
 	return namespace, nil
 }
@@ -4272,19 +4306,20 @@ func containsString(values []string, want string) bool {
 }
 
 // lifecycleMessageForTask matches a task to its pod node(s) (executor or driver) via pod identity
-// and returns the resolved message from the most recently created pod. matched is true when at
-// least one node was attributed to this task by pod name.
+// and returns the resolved message and phase from the most recently created pod. matched is true
+// when at least one node was attributed to this task by pod name.
 //
 // A pod that is stuck before the launcher starts (image pull failure, unschedulable) never gets
 // registered on the task, so the task only knows the shared driver pod. In that case the task is
 // matched through its Argo task node instead, see lifecycleMessageForTaskNode.
-func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg, phase string, matched bool) {
 	if task == nil {
-		return "", false
+		return "", "", false
 	}
 	podNames := podNamesFromTask(task)
 	type podMatch struct {
 		msg        string
+		phase      string
 		createTime int64
 	}
 	var matches []podMatch
@@ -4292,7 +4327,7 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 		if !containsString(podNames, node.ID) {
 			continue
 		}
-		matches = append(matches, podMatch{msg: resolved[id], createTime: node.CreateTime})
+		matches = append(matches, podMatch{msg: resolved[id], phase: node.State, createTime: node.CreateTime})
 	}
 	if len(matches) == 0 {
 		return lifecycleMessageForTaskNode(task, nodes, resolved)
@@ -4302,17 +4337,17 @@ func lifecycleMessageForTask(task *model.Task, nodes map[string]util.NodeStatus,
 	sort.Slice(matches, func(i, j int) bool {
 		return matches[i].createTime > matches[j].createTime
 	})
-	return matches[0].msg, true
+	return matches[0].msg, matches[0].phase, true
 }
 
 // lifecycleMessageForTaskNode matches a task to the Argo Retry node named after it. That node sits
 // above the task's executor pod (task Retry -> task DAG -> executor Retry -> executor Pod), and
 // resolved already carries the executor pod's message up to it, following only the latest attempt.
-// The task name alone is not unique across sub-DAGs, so an ambiguous name is left unmatched
-// rather than guessed.
-func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg string, matched bool) {
+// The phase is the state of that node. The task name alone is not unique across sub-DAGs, so an
+// ambiguous name is left unmatched rather than guessed.
+func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (msg, phase string, matched bool) {
 	if task.Name == "" {
-		return "", false
+		return "", "", false
 	}
 	var nodeID string
 	count := 0
@@ -4323,9 +4358,9 @@ func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeSta
 		}
 	}
 	if count != 1 {
-		return "", false
+		return "", "", false
 	}
-	return resolved[nodeID], true
+	return resolved[nodeID], nodes[nodeID].State, true
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them
@@ -4341,21 +4376,31 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
 	for _, task := range tasks {
-		msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved)
 		if !matched {
 			continue
+		}
+		// An empty message is recovery: clear the category instead of storing "unknown".
+		category := ""
+		if msg != "" {
+			category = string(util.ClassifyPodFailure(msg, phase).Category)
 		}
 		currentMsg := ""
 		if task.LifecycleMessage != nil {
 			currentMsg = string(*task.LifecycleMessage)
 		}
-		if currentMsg == msg {
+		currentCategory := ""
+		if task.LifecycleCategory != nil {
+			currentCategory = *task.LifecycleCategory
+		}
+		if currentMsg == msg && currentCategory == category {
 			continue
 		}
 		lm := model.LargeText(msg)
 		if _, err := r.taskStore.UpdateTask(&model.Task{
-			UUID:             task.UUID,
-			LifecycleMessage: &lm,
+			UUID:              task.UUID,
+			LifecycleMessage:  &lm,
+			LifecycleCategory: &category,
 		}); err != nil {
 			return err
 		}

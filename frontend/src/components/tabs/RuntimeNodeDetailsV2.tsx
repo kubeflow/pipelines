@@ -51,7 +51,7 @@ import {
   isTaskFinished,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
-import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
 import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -60,6 +60,39 @@ export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
+export const LIFECYCLE_WARNING_MESSAGE =
+  "Kubernetes reported a problem with this task's pod. The task has not failed yet and may recover. Select Details to see the raw message.";
+export const LIFECYCLE_ENDED_MESSAGE =
+  "Kubernetes reported a problem with this task's pod before the run ended. Select Details to see the raw message.";
+export const LIFECYCLE_FAILURE_MESSAGE =
+  'The task failed after Kubernetes reported a problem with its pod. Select Details to see the raw message.';
+
+function LifecycleBanner({
+  task,
+  sourceFinished,
+}: {
+  task?: V2PipelineTask;
+  sourceFinished?: boolean;
+}) {
+  const lifecycleMessage = getTaskLifecycleMessage(task);
+  if (!lifecycleMessage) {
+    return null;
+  }
+  const failed = task?.state === PipelineTaskTaskState.FAILED;
+  return (
+    <Banner
+      mode={failed ? 'error' : 'warning'}
+      message={
+        failed
+          ? LIFECYCLE_FAILURE_MESSAGE
+          : sourceFinished
+            ? LIFECYCLE_ENDED_MESSAGE
+            : LIFECYCLE_WARNING_MESSAGE
+      }
+      additionalInfo={lifecycleMessage}
+    />
+  );
+}
 
 const SYSTEM_LOGS_UNAVAILABLE: ReadonlyMap<string, string> = new Map([
   [LOGS_BANNER_MESSAGE, 'System logs are not available yet.'],
@@ -128,7 +161,12 @@ export function RuntimeNodeDetailsV2({
   }
   if (element.type === NodeTypeNames.SUB_DAG) {
     return (
-      <SubDAGNodeDetail element={element} task={elementRuntimeInfo?.task} namespace={namespace} />
+      <SubDAGNodeDetail
+        element={element}
+        task={elementRuntimeInfo?.task}
+        namespace={namespace}
+        sourceFinished={sourceFinished}
+      />
     );
   }
   return NODE_INFO_UNKNOWN;
@@ -237,6 +275,7 @@ function TaskNodeDetail({
 
   return (
     <div className={commonCss.page}>
+      <LifecycleBanner task={task} sourceFinished={sourceFinished} />
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs', 'System Logs']}
         selectedTab={selectedTab}
@@ -632,6 +671,7 @@ function ArtifactNodeDetail({
           <div hidden={selectedTab !== 1}>
             <RuntimeMetricsVisualizations
               artifacts={artifacts}
+              active={selectedTab === 1}
               artifactKey={artifactGroup.artifact_key}
               namespace={namespace}
               sourceFinished={sourceFinished || isTaskFinished(task.state)}
@@ -679,12 +719,14 @@ interface SubDAGNodeDetailProps {
   element: PipelineFlowElement;
   task?: V2PipelineTask;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
-function SubDAGNodeDetail({ element, task, namespace }: SubDAGNodeDetailProps) {
+function SubDAGNodeDetail({ element, task, namespace, sourceFinished }: SubDAGNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   return (
     <div className={commonCss.page}>
+      <LifecycleBanner task={task} sourceFinished={sourceFinished} />
       <MD2Tabs
         tabs={['Input/Output', 'Task Details']}
         selectedTab={selectedTab}

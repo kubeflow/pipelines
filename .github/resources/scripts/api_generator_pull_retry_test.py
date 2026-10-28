@@ -14,28 +14,29 @@
 """Exercise API generator acquisition without Docker or network access."""
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 REMOTE_IMAGE = 'ghcr.io/kubeflow/kfp-api-generator:master'
 
 
 class ApiGeneratorPullRetryTest(unittest.TestCase):
-
-    def run_make(self,
-                 *targets,
-                 cached=False,
-                 pull_failures=0,
-                 run_exit=0,
-                 prebuilt=True,
-                 image=REMOTE_IMAGE):
+    def run_make(
+        self,
+        *targets,
+        cached=False,
+        pull_failures=0,
+        run_exit=0,
+        prebuilt=True,
+        image=REMOTE_IMAGE,
+    ):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             docker = root / 'docker'
-            docker.write_text('''#!/usr/bin/env bash
+            docker.write_text("""#!/usr/bin/env bash
 set -eu
 printf '%s\\n' "$*" >> "$TEST_DOCKER_LOG"
 case "$1" in
@@ -58,12 +59,12 @@ case "$1" in
   run) exit "$TEST_RUN_EXIT" ;;
   *) echo "Unexpected Docker command: $*" >&2; exit 99 ;;
 esac
-''')
+""")
             docker.chmod(0o755)
             sleep = root / 'sleep'
-            sleep.write_text('''#!/usr/bin/env bash
+            sleep.write_text("""#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
-''')
+""")
             sleep.chmod(0o755)
             docker_log = root / 'docker.log'
             sleep_log = root / 'sleep.log'
@@ -80,34 +81,49 @@ printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
                 TEST_PULL_FAILURES=str(pull_failures),
                 TEST_RUN_EXIT=str(run_exit),
             )
-            result = subprocess.run([
-                'make', '--no-print-directory', '-o', 'fetch-protos', '-o',
-                'ensure-api-generator-image', *targets,
-                'MAKE=make --no-print-directory -o fetch-protos -o ensure-api-generator-image',
-                f'USE_PREBUILT_IMAGE={str(prebuilt).lower()}',
-                f'PREBUILT_REMOTE_IMAGE={image}'
-            ],
-                                    cwd=REPO_ROOT / 'api',
-                                    env=environment,
-                                    text=True,
-                                    capture_output=True,
-                                    timeout=15)
-            commands = docker_log.read_text().splitlines() if docker_log.exists(
-            ) else []
-            sleeps = sleep_log.read_text().splitlines() if sleep_log.exists(
-            ) else []
+            result = subprocess.run(
+                [
+                    'make',
+                    '--no-print-directory',
+                    '-o',
+                    'fetch-protos',
+                    '-o',
+                    'ensure-api-generator-image',
+                    *targets,
+                    'MAKE=make --no-print-directory -o fetch-protos -o ensure-api-generator-image',
+                    f'USE_PREBUILT_IMAGE={str(prebuilt).lower()}',
+                    f'PREBUILT_REMOTE_IMAGE={image}',
+                ],
+                cwd=REPO_ROOT / 'api',
+                env=environment,
+                text=True,
+                capture_output=True,
+                timeout=15,
+            )
+            commands = (
+                docker_log.read_text().splitlines()
+                if docker_log.exists()
+                else []
+            )
+            sleeps = (
+                sleep_log.read_text().splitlines() if sleep_log.exists() else []
+            )
             return result, commands, sleeps
 
     def test_transient_pull_failure_recovers_for_both_generators(self):
         for target in ('golang', 'python'):
             with self.subTest(target=target):
                 result, commands, sleeps = self.run_make(
-                    target, pull_failures=2)
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
-                self.assertEqual(commands[:4],
-                                 [f'image inspect {REMOTE_IMAGE}'] +
-                                 [f'pull {REMOTE_IMAGE}'] * 3)
+                    target, pull_failures=2
+                )
+                self.assertEqual(
+                    result.returncode, 0, result.stdout + result.stderr
+                )
+                self.assertEqual(
+                    commands[:4],
+                    [f'image inspect {REMOTE_IMAGE}']
+                    + [f'pull {REMOTE_IMAGE}'] * 3,
+                )
                 self.assertEqual(len(commands), 5)
                 self.assertTrue(commands[-1].startswith('run '))
                 self.assertIn('--pull=never', commands[-1])
@@ -118,10 +134,14 @@ printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
         for target in ('golang', 'python'):
             with self.subTest(target=target):
                 result, commands, sleeps = self.run_make(
-                    target, pull_failures=3)
+                    target, pull_failures=3
+                )
                 self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(commands, [f'image inspect {REMOTE_IMAGE}'] +
-                                 [f'pull {REMOTE_IMAGE}'] * 3)
+                self.assertEqual(
+                    commands,
+                    [f'image inspect {REMOTE_IMAGE}']
+                    + [f'pull {REMOTE_IMAGE}'] * 3,
+                )
                 self.assertEqual(sleeps, ['20', '20'])
                 self.assertIn('503 Service Unavailable', result.stderr)
 
@@ -129,8 +149,9 @@ printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
         for target in ('golang', 'python'):
             with self.subTest(target=target):
                 result, commands, sleeps = self.run_make(target, cached=True)
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
+                self.assertEqual(
+                    result.returncode, 0, result.stdout + result.stderr
+                )
                 self.assertEqual(commands[0], f'image inspect {REMOTE_IMAGE}')
                 self.assertEqual(len(commands), 2)
                 self.assertIn('--pull=never', commands[1])
@@ -142,7 +163,8 @@ printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
                 result, commands, sleeps = self.run_make(target, run_exit=42)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(
-                    len([c for c in commands if c.startswith('run ')]), 1)
+                    len([c for c in commands if c.startswith('run ')]), 1
+                )
                 self.assertEqual(commands.count(f'pull {REMOTE_IMAGE}'), 1)
                 self.assertEqual(sleeps, [])
 
@@ -158,8 +180,9 @@ printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
         image = 'example.com/generator@sha256:' + 'a' * 64
         result, commands, _ = self.run_make('golang', image=image)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(commands[:2],
-                         [f'image inspect {image}', f'pull {image}'])
+        self.assertEqual(
+            commands[:2], [f'image inspect {image}', f'pull {image}']
+        )
         self.assertIn(image, commands[-1])
         self.assertNotIn(REMOTE_IMAGE, '\n'.join(commands))
 
@@ -167,8 +190,9 @@ printf '%s\\n' "$*" >> "$TEST_SLEEP_LOG"
         for target in ('golang', 'python'):
             with self.subTest(target=target):
                 result, commands, sleeps = self.run_make(target, prebuilt=False)
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
+                self.assertEqual(
+                    result.returncode, 0, result.stdout + result.stderr
+                )
                 self.assertEqual(len(commands), 1)
                 self.assertTrue(commands[0].startswith('run '))
                 self.assertIn(' kfp-api-generator ', commands[0])

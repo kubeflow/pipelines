@@ -13,16 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections.abc import Callable, Iterable
 import subprocess
 import time
+from collections.abc import Callable, Iterable
 
 PodIdentity = tuple[str, str]
 
 
 def container_creating_pod_identities(
-        pods: Iterable[object]) -> set[PodIdentity]:
-    """Return pod identities with an init or regular container being created."""
+    pods: Iterable[object],
+) -> set[PodIdentity]:
+    """Return pod identities with an init or regular container being
+    created."""
     identities = set()
     for pod in pods:
         pod_status = getattr(pod, 'status', None)
@@ -30,8 +32,8 @@ def container_creating_pod_identities(
         if pod_status is None or metadata is None:
             continue
         container_statuses = (
-            (getattr(pod_status, 'init_container_statuses', None) or []) +
-            (getattr(pod_status, 'container_statuses', None) or []))
+            getattr(pod_status, 'init_container_statuses', None) or []
+        ) + (getattr(pod_status, 'container_statuses', None) or [])
         for container_status in container_statuses:
             state = getattr(container_status, 'state', None)
             waiting = getattr(state, 'waiting', None)
@@ -42,13 +44,16 @@ def container_creating_pod_identities(
 
 
 class SlowContainerCreatingDiagnostics:
-    """Capture one bounded snapshot for each sustained ContainerCreating episode."""
+    """Capture one bounded snapshot for each sustained ContainerCreating
+    episode."""
 
     def __init__(
         self,
         threshold_seconds: float = 60,
         clock: Callable[[], float] = time.monotonic,
-        command_runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+        command_runner: Callable[
+            ..., subprocess.CompletedProcess[str]
+        ] = subprocess.run,
         output: Callable[[str], None] = print,
     ) -> None:
         self._threshold_seconds = threshold_seconds
@@ -58,9 +63,11 @@ class SlowContainerCreatingDiagnostics:
         self._first_seen: dict[PodIdentity, float] = {}
         self._reported: set[PodIdentity] = set()
 
-    def observe(self, namespace: str,
-                container_creating_pods: Iterable[PodIdentity]) -> None:
-        """Observe the current stalled pods and report newly sustained stalls."""
+    def observe(
+        self, namespace: str, container_creating_pods: Iterable[PodIdentity]
+    ) -> None:
+        """Observe the current stalled pods and report newly sustained
+        stalls."""
         now = self._clock()
         current_pods = set(container_creating_pods)
 
@@ -70,8 +77,10 @@ class SlowContainerCreatingDiagnostics:
 
         for pod in current_pods:
             first_seen = self._first_seen.setdefault(pod, now)
-            if (pod in self._reported or
-                    now - first_seen < self._threshold_seconds):
+            if (
+                pod in self._reported
+                or now - first_seen < self._threshold_seconds
+            ):
                 continue
 
             self._capture(namespace, *pod)
@@ -87,17 +96,27 @@ class SlowContainerCreatingDiagnostics:
             (
                 'describe',
                 [
-                    'kubectl', '--request-timeout=10s', '-n', namespace,
-                    'describe', 'pod', pod_name
+                    'kubectl',
+                    '--request-timeout=10s',
+                    '-n',
+                    namespace,
+                    'describe',
+                    'pod',
+                    pod_name,
                 ],
             ),
             (
                 'events',
                 [
-                    'kubectl', '--request-timeout=10s', '-n', namespace,
-                    'get', 'events', '--field-selector',
+                    'kubectl',
+                    '--request-timeout=10s',
+                    '-n',
+                    namespace,
+                    'get',
+                    'events',
+                    '--field-selector',
                     f'involvedObject.uid={pod_uid}',
-                    '--sort-by=.metadata.creationTimestamp'
+                    '--sort-by=.metadata.creationTimestamp',
                 ],
             ),
         )
@@ -119,7 +138,9 @@ class SlowContainerCreatingDiagnostics:
                 if result.returncode != 0:
                     self._output(
                         f'WARNING: {label} diagnostics exited with status '
-                        f'{result.returncode}.')
+                        f'{result.returncode}.'
+                    )
             except (OSError, subprocess.SubprocessError) as error:
                 self._output(
-                    f'WARNING: unable to collect {label} diagnostics: {error}')
+                    f'WARNING: unable to collect {label} diagnostics: {error}'
+                )

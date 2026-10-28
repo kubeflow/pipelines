@@ -2,11 +2,11 @@ module github.com/kubeflow/pipelines/test/tools/project-cleaner
 
 go 1.27.0
 
-toolchain go1.27.2
+toolchain go1.27.3
 
 require (
 	cloud.google.com/go/compute v1.73.0
-	google.golang.org/api v0.304.0
+	google.golang.org/api v0.307.0
 	google.golang.org/genproto v0.0.0-20260715232425-e75dac1f907d
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -34,7 +34,7 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260715232425-e75dac1f907d // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )

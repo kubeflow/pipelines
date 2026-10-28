@@ -215,6 +215,27 @@ describe('PipelineDetailsV2', () => {
     expect(screen.getByText('Deploy model')).toBeInTheDocument();
   });
 
+  it('retains the selected node when switching to the spec tab and back', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          templateString={JSON.stringify(PipelineSpec.toJSON(nestedArtifactSpec))}
+          pipelineFlowElements={convertFlowElements(nestedArtifactSpec)}
+          pipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={async () => {}}
+        />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByText('Train model'));
+    expect(screen.getByText('Output Artifacts')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Pipeline Spec' }));
+    expect(screen.queryByTestId('DagCanvas')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Graph', exact: true }));
+    expect(screen.getByText('Output Artifacts')).toBeInTheDocument();
+  });
+
   it('Show Side panel when select node', async () => {
     render(
       <CommonTestWrapper>

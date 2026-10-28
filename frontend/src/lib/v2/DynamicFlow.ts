@@ -40,7 +40,7 @@ import {
   NodeTypeNames,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
-import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
 import {
   formatRuntimeIterationLayer,
   isRuntimeIterationLayer,
@@ -216,6 +216,8 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      // Always assign so the warning clears when the message is cleared on recovery.
+      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = getRuntimeTaskState(
@@ -225,6 +227,7 @@ export function updateFlowElementsState(
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
+      data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
       data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
@@ -557,9 +560,7 @@ function getArtifactRuntimeInfo(
   const [taskName, artifactKey] = getKeysFromArtifactNodeKey(element.id);
 
   if (!taskName) {
-    const artifactGroup = runtimeContext.task?.inputs?.artifacts?.find(
-      (group) => group.artifact_key === artifactKey,
-    );
+    const artifactGroup = findArtifactGroup(runtimeContext.task?.inputs?.artifacts, artifactKey);
     return artifactGroup ? { task: runtimeContext.task, artifactGroup } : {};
   }
 
@@ -570,17 +571,32 @@ function getArtifactRuntimeInfo(
     return {};
   }
 
-  let artifactGroup = task.outputs?.artifacts?.find((group) => group.artifact_key === artifactKey);
+  let artifactGroup = findArtifactGroup(task.outputs?.artifacts, artifactKey);
   if (!artifactGroup && artifactData.producerSubtask && artifactData.outputArtifactKey) {
     const producerTask = getTasksUnderContext({ task }, taskIndex).find(
       (candidate) => candidate.name === artifactData.producerSubtask,
     );
-    artifactGroup = producerTask?.outputs?.artifacts?.find(
-      (group) => group.artifact_key === artifactData.outputArtifactKey,
+    artifactGroup = findArtifactGroup(
+      producerTask?.outputs?.artifacts,
+      artifactData.outputArtifactKey,
     );
     return artifactGroup ? { task: producerTask, artifactGroup } : { task };
   }
   return artifactGroup ? { task, artifactGroup } : { task };
+}
+
+/** Native task hydration can return a separate group for each collected list member. */
+function findArtifactGroup(
+  groups: InputOutputsIOArtifact[] | undefined,
+  artifactKey: string,
+): InputOutputsIOArtifact | undefined {
+  const matches = groups?.filter((group) => group.artifact_key === artifactKey);
+  if (!matches?.length) {
+    return undefined;
+  }
+  return matches.length === 1
+    ? matches[0]
+    : { ...matches[0], artifacts: matches.flatMap((group) => group.artifacts || []) };
 }
 
 function getTasksUnderContext(
@@ -706,6 +722,19 @@ function getIterationState(
     return PipelineTaskTaskState.SUCCEEDED;
   }
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+}
+
+// The amber warning has to agree with the state the node is drawn in. When the state was
+// reset because the run or a parent scope already finished, the old diagnostic no longer
+// describes an unresolved problem, so the node stays neutral instead of turning amber.
+function getNodeLifecycleMessage(
+  task: V2PipelineTask,
+  displayedState: PipelineTaskTaskState | undefined,
+): string | undefined {
+  if (displayedState !== task.state) {
+    return undefined;
+  }
+  return getTaskLifecycleMessage(task);
 }
 
 function getRuntimeTaskState(

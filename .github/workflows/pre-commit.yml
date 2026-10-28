@@ -23,16 +23,16 @@ jobs:
     env:
       SKIP: no-commit-to-branch
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
-          version: '0.10.3'
+          version: '0.13.4'
       - uses: ./.github/actions/setup-go
       - name: Check repository Go version policy
         run: make check-go-version
@@ -57,12 +57,35 @@ jobs:
             config_changed=false
           fi
 
-          echo "base-sha=${base_sha}" >> "${GITHUB_OUTPUT}"
-          echo "config-changed=${config_changed}" >> "${GITHUB_OUTPUT}"
+          # Configuration smoke tests include frontend/package.json even on Python-only changes.
+          viewer_required="${config_changed}"
+          if ! git diff --quiet "${base_sha}" HEAD -- frontend sdk/python/kfp/cli/viewer_assets .github/workflows/pre-commit.yml; then
+            viewer_required=true
+          fi
+          {
+            echo "viewer-required=${viewer_required}"
+            echo "base-sha=${base_sha}"
+            echo "config-changed=${config_changed}"
+          } >> "${GITHUB_OUTPUT}"
           echo "PRE_COMMIT_FROM_REF=${base_sha}" >> "${GITHUB_ENV}"
 
+      - name: Set up Node.js for viewer assets
+        if: steps.pre-commit-range.outputs.viewer-required == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install viewer build dependencies
+        if: steps.pre-commit-range.outputs.viewer-required == 'true'
+        working-directory: frontend
+        run: |
+          npm install --global "$(node -p 'require("./package.json").packageManager')"
+          npm ci
+
       - name: Run pre-commit on changed files
-        uses: pre-commit/action@v3.0.1
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
         with:
           extra_args: --from-ref ${{ steps.pre-commit-range.outputs.base-sha }} --to-ref HEAD
 

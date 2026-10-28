@@ -13,8 +13,8 @@
 # limitations under the License.
 """Pipeline with a long name and CreatePVC to verify that pod name resolution
 works correctly when pod names exceed the 63-character hostname limit."""
-from kfp import dsl
-from kfp import kubernetes
+
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -36,6 +36,8 @@ def pipeline_with_volume_long_name():
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_volume_long_name,
-        package_path='pipeline_with_volume_long_name.yaml')
+        package_path='pipeline_with_volume_long_name.yaml',
+    )

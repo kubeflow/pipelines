@@ -24,13 +24,15 @@ PROTO_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 PKG_DIR = os.path.realpath(
     os.path.join(
-        os.path.dirname(__file__), "../../../sdk/python/kfp/pipeline_spec"))
+        os.path.dirname(__file__), '../../../sdk/python/kfp/pipeline_spec'
+    )
+)
 
 # Find the Protocol Compiler. (Taken from protobuf/python/setup.py)
-if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
-    PROTOC = os.environ["PROTOC"]
+if 'PROTOC' in os.environ and os.path.exists(os.environ['PROTOC']):
+    PROTOC = os.environ['PROTOC']
 else:
-    PROTOC = find_executable("protoc")
+    PROTOC = find_executable('protoc')
 
 
 def generate_proto(source: str) -> None:
@@ -47,13 +49,15 @@ def generate_proto(source: str) -> None:
         raise FileNotFoundError(f"Can't find required file: {source}")
     if PROTOC is None:
         raise RuntimeError(
-            'protoc is not found. Install the protobuf compiler.')
+            'protoc is not found. Install the protobuf compiler.'
+        )
     os.makedirs(PKG_DIR, exist_ok=True)
     subprocess.run(
         [PROTOC, f'-I{PROTO_DIR}', f'--python_out={PKG_DIR}', source],
-        check=True)
+        check=True,
+    )
 
 
 if __name__ == '__main__':
     # Generate the protobuf files that we depend on.
-    generate_proto(os.path.join(PROTO_DIR, "pipeline_spec.proto"))
+    generate_proto(os.path.join(PROTO_DIR, 'pipeline_spec.proto'))

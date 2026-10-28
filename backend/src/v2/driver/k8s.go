@@ -62,7 +62,7 @@ func validateResourceClaimTemplateName(templateName *string) error {
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
 // delete PVC, etc. In these operations we skip the launcher due to there being no user container.
 // It also prepublishes and publishes the execution, which are usually done in the launcher.
-func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2.PipelineTask, opts *common.Options) (err error) {
+func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.ClientManagerInterface, execution *Execution, taskToCreate *apiV2.PipelineTask, opts *common.Options, defaultInjectedInputs map[string]bool) (err error) {
 	log := driverLogger(ctx)
 	dispatcher := opts.PluginDispatcher
 	if dispatcher == nil {
@@ -101,7 +101,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 	}()
 	switch opts.Container.Image {
 	case "argostub/createpvc":
-		err = createPVCTask(ctx, clientManager, execution, opts, taskToCreate)
+		err = createPVCTask(ctx, clientManager, execution, opts, taskToCreate, defaultInjectedInputs)
 		if err != nil {
 			return err
 		}
@@ -1068,6 +1068,7 @@ func createPVCTask(
 	execution *Execution,
 	opts *common.Options,
 	taskToCreate *apiV2.PipelineTask,
+	defaultInjectedInputs map[string]bool,
 ) (err error) {
 	log := driverLogger(ctx)
 	taskCreated := false
@@ -1168,13 +1169,25 @@ func createPVCTask(
 	}
 
 	// Optional input: storage_class_name
-	// When not provided, use default value `standard`
-	storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]
-	var storageClassName string
-	if !ok {
-		storageClassName = "standard"
-	} else {
-		storageClassName = storageClassNameInput.GetStringValue()
+	// Precedence: (1) a value supplied by the pipeline, including an explicit
+	// empty string, which opts out of default storage-class selection; (2) the
+	// server-configured default StorageClass when the task omits the class,
+	// including a component-default empty string injected by the parameter
+	// resolver (pipelines compiled with an older SDK that defaulted
+	// storage_class_name to ''); (3) Kubernetes defaulting, by leaving the
+	// PVC's StorageClassName unset, when neither supplies a class.
+	var storageClassName *string
+	if storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]; ok && storageClassNameInput != nil {
+		name := storageClassNameInput.GetStringValue()
+		if name != "" || !defaultInjectedInputs["storage_class_name"] {
+			storageClassName = &name
+		}
+	}
+	// A non-nil storageClassName, including an explicit "", was supplied by
+	// the pipeline and must not be overridden.
+	if storageClassName == nil && opts.DefaultPVCStorageClass != nil && *opts.DefaultPVCStorageClass != "" {
+		serverDefault := *opts.DefaultPVCStorageClass
+		storageClassName = &serverDefault
 	}
 
 	// Optional input: annotations
@@ -1298,7 +1311,7 @@ func createPVCTask(
 					k8score.ResourceStorage: pvcStorageQuantity,
 				},
 			},
-			StorageClassName: &storageClassName,
+			StorageClassName: storageClassName,
 			VolumeName:       volumeName,
 			DataSource:       dataSource,
 		},

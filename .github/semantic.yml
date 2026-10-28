@@ -21,6 +21,10 @@ types:
   - style
   - refactor
   - perf
+  - security
+  - deprecate
+  - deprecated
+  - deprecation
   - test
   - build
   - chore

@@ -22,7 +22,7 @@ runs:
 
     - name: Restore Kind node image cache
       id: kind-node-cache
-      uses: actions/cache@v6
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
       with:
         path: /tmp/kind-node-${{ inputs.k8s_version }}.tar
         key: kind-node-${{ runner.os }}-${{ runner.arch }}-${{ inputs.k8s_version }}
@@ -43,7 +43,7 @@ runs:
         docker save kindest/node:${{ inputs.k8s_version }} -o /tmp/kind-node-${{ inputs.k8s_version }}.tar
 
     - name: Create k8s Kind Cluster
-      uses: helm/kind-action@v1.15.1
+      uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
       id: cluster-create
       continue-on-error: true
       env:
@@ -55,7 +55,7 @@ runs:
         node_image: kindest/node:${{ inputs.k8s_version }}
 
     - name: Retry Create k8s Kind Cluster
-      uses: helm/kind-action@v1.15.1
+      uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
       if: ${{ steps.cluster-create.outcome == 'failure' }}
       env:
         CURL_HOME: ${{ github.workspace }}/.github/resources/curl-retry

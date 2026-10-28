@@ -49,7 +49,6 @@ class MyClass:
 
 
 class TestGetParamDescr(unittest.TestCase):
-
     def test_function(self):
 
         def fn(a: str, b: str):
@@ -128,7 +127,7 @@ class TestGetParamDescr(unittest.TestCase):
 
         self.assertEqual(
             host_descr,
-            "Host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster service DNS name will be used, which only works if the current environment is a pod in the same cluster (such as a Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/>`_)"
+            "Host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster service DNS name will be used, which only works if the current environment is a pod in the same cluster (such as a Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/user-guides/core-functions/connect-api/>`_)",
         )
 
 
@@ -170,20 +169,21 @@ class TestParseParameterValue(unittest.TestCase):
 
     def test_list_strings(self):
         self.assertEqual(
-            parsing.parse_parameter_value('["a", "b", "c"]'), ['a', 'b', 'c'])
+            parsing.parse_parameter_value('["a", "b", "c"]'), ['a', 'b', 'c']
+        )
 
     def test_list_empty(self):
         self.assertEqual(parsing.parse_parameter_value('[]'), [])
 
     def test_dict_simple(self):
         self.assertEqual(
-            parsing.parse_parameter_value('{"key": "value"}'), {'key': 'value'})
+            parsing.parse_parameter_value('{"key": "value"}'), {'key': 'value'}
+        )
 
     def test_dict_nested(self):
         self.assertEqual(
-            parsing.parse_parameter_value('{"a": {"b": 1}}'), {'a': {
-                'b': 1
-            }})
+            parsing.parse_parameter_value('{"a": {"b": 1}}'), {'a': {'b': 1}}
+        )
 
     def test_dict_empty(self):
         self.assertEqual(parsing.parse_parameter_value('{}'), {})
@@ -196,7 +196,8 @@ class TestParseParameterValue(unittest.TestCase):
 
     def test_string_with_spaces(self):
         self.assertEqual(
-            parsing.parse_parameter_value('hello world'), 'hello world')
+            parsing.parse_parameter_value('hello world'), 'hello world'
+        )
 
     def test_json_quoted_string_preserves_value(self):
         self.assertEqual(parsing.parse_parameter_value('"007"'), '007')
@@ -205,12 +206,14 @@ class TestParseParameterValue(unittest.TestCase):
     def test_string_that_looks_like_number(self):
         self.assertEqual(parsing.parse_parameter_value('007'), 7)
         self.assertEqual(
-            parsing.parse_parameter_value('+1-555-1234'), '+1-555-1234')
+            parsing.parse_parameter_value('+1-555-1234'), '+1-555-1234'
+        )
 
     def test_string_preserves_value(self):
         self.assertEqual(
             parsing.parse_parameter_value('some-pipeline-name'),
-            'some-pipeline-name')
+            'some-pipeline-name',
+        )
 
 
 if __name__ == '__main__':

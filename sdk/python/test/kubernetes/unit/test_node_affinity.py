@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestNodeAffinity:
-
     def test_add_match_expressions(self):
         """Test adding node affinity with matchExpressions (required
         scheduling)."""
@@ -28,11 +26,14 @@ class TestNodeAffinity:
             task = comp()
             kubernetes.add_node_affinity(
                 task,
-                match_expressions=[{
-                    'key': 'disktype',
-                    'operator': 'In',
-                    'values': ['ssd', 'nvme']
-                }])
+                match_expressions=[
+                    {
+                        'key': 'disktype',
+                        'operator': 'In',
+                        'values': ['ssd', 'nvme'],
+                    }
+                ],
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -40,13 +41,17 @@ class TestNodeAffinity:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchExpressions': [{
-                                        'key': 'disktype',
-                                        'operator': 'In',
-                                        'values': ['ssd', 'nvme']
-                                    }]
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchExpressions': [
+                                            {
+                                                'key': 'disktype',
+                                                'operator': 'In',
+                                                'values': ['ssd', 'nvme'],
+                                            }
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -62,11 +67,14 @@ class TestNodeAffinity:
             task = comp()
             kubernetes.add_node_affinity(
                 task,
-                match_fields=[{
-                    'key': 'metadata.name',
-                    'operator': 'In',
-                    'values': ['node-1', 'node-2']
-                }])
+                match_fields=[
+                    {
+                        'key': 'metadata.name',
+                        'operator': 'In',
+                        'values': ['node-1', 'node-2'],
+                    }
+                ],
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -74,13 +82,17 @@ class TestNodeAffinity:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchFields': [{
-                                        'key': 'metadata.name',
-                                        'operator': 'In',
-                                        'values': ['node-1', 'node-2']
-                                    }]
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchFields': [
+                                            {
+                                                'key': 'metadata.name',
+                                                'operator': 'In',
+                                                'values': ['node-1', 'node-2'],
+                                            }
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -96,12 +108,11 @@ class TestNodeAffinity:
             task = comp()
             kubernetes.add_node_affinity(
                 task,
-                match_expressions=[{
-                    'key': 'zone',
-                    'operator': 'In',
-                    'values': ['us-west-1']
-                }],
-                weight=100)
+                match_expressions=[
+                    {'key': 'zone', 'operator': 'In', 'values': ['us-west-1']}
+                ],
+                weight=100,
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -109,14 +120,18 @@ class TestNodeAffinity:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchExpressions': [{
-                                        'key': 'zone',
-                                        'operator': 'In',
-                                        'values': ['us-west-1']
-                                    }],
-                                    'weight': 100
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchExpressions': [
+                                            {
+                                                'key': 'zone',
+                                                'operator': 'In',
+                                                'values': ['us-west-1'],
+                                            }
+                                        ],
+                                        'weight': 100,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -133,19 +148,18 @@ class TestNodeAffinity:
             task = comp()
             kubernetes.add_node_affinity(
                 task,
-                match_expressions=[{
-                    'key': 'disktype',
-                    'operator': 'In',
-                    'values': ['ssd']
-                }, {
-                    'key': 'gpu',
-                    'operator': 'Exists'
-                }],
-                match_fields=[{
-                    'key': 'metadata.name',
-                    'operator': 'NotIn',
-                    'values': ['node-5', 'node-6']
-                }])
+                match_expressions=[
+                    {'key': 'disktype', 'operator': 'In', 'values': ['ssd']},
+                    {'key': 'gpu', 'operator': 'Exists'},
+                ],
+                match_fields=[
+                    {
+                        'key': 'metadata.name',
+                        'operator': 'NotIn',
+                        'values': ['node-5', 'node-6'],
+                    }
+                ],
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -153,21 +167,28 @@ class TestNodeAffinity:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchExpressions': [{
-                                        'key': 'disktype',
-                                        'operator': 'In',
-                                        'values': ['ssd']
-                                    }, {
-                                        'key': 'gpu',
-                                        'operator': 'Exists'
-                                    }],
-                                    'matchFields': [{
-                                        'key': 'metadata.name',
-                                        'operator': 'NotIn',
-                                        'values': ['node-5', 'node-6']
-                                    }]
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchExpressions': [
+                                            {
+                                                'key': 'disktype',
+                                                'operator': 'In',
+                                                'values': ['ssd'],
+                                            },
+                                            {
+                                                'key': 'gpu',
+                                                'operator': 'Exists',
+                                            },
+                                        ],
+                                        'matchFields': [
+                                            {
+                                                'key': 'metadata.name',
+                                                'operator': 'NotIn',
+                                                'values': ['node-5', 'node-6'],
+                                            }
+                                        ],
+                                    }
+                                ]
                             }
                         }
                     }
@@ -183,18 +204,20 @@ class TestNodeAffinity:
             task = comp()
             kubernetes.add_node_affinity(
                 task,
-                match_expressions=[{
-                    'key': 'disktype',
-                    'operator': 'In',
-                    'values': ['ssd']
-                }])
+                match_expressions=[
+                    {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                ],
+            )
             kubernetes.add_node_affinity(
                 task,
-                match_fields=[{
-                    'key': 'metadata.name',
-                    'operator': 'In',
-                    'values': ['node-1']
-                }])
+                match_fields=[
+                    {
+                        'key': 'metadata.name',
+                        'operator': 'In',
+                        'values': ['node-1'],
+                    }
+                ],
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -202,19 +225,26 @@ class TestNodeAffinity:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchExpressions': [{
-                                        'key': 'disktype',
-                                        'operator': 'In',
-                                        'values': ['ssd']
-                                    }]
-                                }, {
-                                    'matchFields': [{
-                                        'key': 'metadata.name',
-                                        'operator': 'In',
-                                        'values': ['node-1']
-                                    }]
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchExpressions': [
+                                            {
+                                                'key': 'disktype',
+                                                'operator': 'In',
+                                                'values': ['ssd'],
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        'matchFields': [
+                                            {
+                                                'key': 'metadata.name',
+                                                'operator': 'In',
+                                                'values': ['node-1'],
+                                            }
+                                        ]
+                                    },
+                                ]
                             }
                         }
                     }
@@ -229,14 +259,14 @@ class TestNodeAffinity:
         def my_pipeline():
             task = comp()
             kubernetes.use_secret_as_volume(
-                task, secret_name='my-secret', mount_path='/mnt/my_vol')
+                task, secret_name='my-secret', mount_path='/mnt/my_vol'
+            )
             kubernetes.add_node_affinity(
                 task,
-                match_expressions=[{
-                    'key': 'disktype',
-                    'operator': 'In',
-                    'values': ['ssd']
-                }])
+                match_expressions=[
+                    {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                ],
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -244,23 +274,29 @@ class TestNodeAffinity:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchExpressions': [{
-                                        'key': 'disktype',
-                                        'operator': 'In',
-                                        'values': ['ssd']
-                                    }]
-                                }],
-                                'secretAsVolume': [{
-                                    'secretName': 'my-secret',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'my-secret'
-                                        }
-                                    },
-                                    'mountPath': '/mnt/my_vol',
-                                    'optional': False
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchExpressions': [
+                                            {
+                                                'key': 'disktype',
+                                                'operator': 'In',
+                                                'values': ['ssd'],
+                                            }
+                                        ]
+                                    }
+                                ],
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'my-secret',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'my-secret'
+                                            }
+                                        },
+                                        'mountPath': '/mnt/my_vol',
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }
@@ -276,10 +312,8 @@ class TestNodeAffinity:
             try:
                 kubernetes.add_node_affinity(
                     task,
-                    match_expressions=[{
-                        'operator': 'In',
-                        'values': ['ssd']
-                    }])
+                    match_expressions=[{'operator': 'In', 'values': ['ssd']}],
+                )
             except ValueError as e:
                 assert "non-empty 'key'" in str(e)
             else:
@@ -293,10 +327,8 @@ class TestNodeAffinity:
             try:
                 kubernetes.add_node_affinity(
                     task,
-                    match_expressions=[{
-                        'key': 'disktype',
-                        'values': ['ssd']
-                    }])
+                    match_expressions=[{'key': 'disktype', 'values': ['ssd']}],
+                )
             except ValueError as e:
                 assert "non-empty 'operator'" in str(e)
             else:
@@ -310,13 +342,16 @@ class TestNodeAffinity:
             try:
                 kubernetes.add_node_affinity(
                     task,
-                    match_expressions=[{
-                        'key': 'disktype',
-                        'operator': 'INVALID',
-                        'values': ['ssd']
-                    }])
+                    match_expressions=[
+                        {
+                            'key': 'disktype',
+                            'operator': 'INVALID',
+                            'values': ['ssd'],
+                        }
+                    ],
+                )
             except ValueError as e:
-                assert "Invalid operator" in str(e)
+                assert 'Invalid operator' in str(e)
             else:
                 assert False, 'Expected ValueError for invalid operator'
 
@@ -328,14 +363,13 @@ class TestNodeAffinity:
             try:
                 kubernetes.add_node_affinity(
                     task,
-                    match_expressions=[{
-                        'key': 'disktype',
-                        'operator': 'In',
-                        'values': ['ssd']
-                    }],
-                    weight=0)
+                    match_expressions=[
+                        {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                    ],
+                    weight=0,
+                )
             except ValueError as e:
-                assert "weight must be between 1 and 100" in str(e)
+                assert 'weight must be between 1 and 100' in str(e)
             else:
                 assert False, 'Expected ValueError for weight < 1'
 
@@ -347,20 +381,18 @@ class TestNodeAffinity:
             try:
                 kubernetes.add_node_affinity(
                     task,
-                    match_expressions=[{
-                        'key': 'disktype',
-                        'operator': 'In',
-                        'values': ['ssd']
-                    }],
-                    weight=101)
+                    match_expressions=[
+                        {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                    ],
+                    weight=101,
+                )
             except ValueError as e:
-                assert "weight must be between 1 and 100" in str(e)
+                assert 'weight must be between 1 and 100' in str(e)
             else:
                 assert False, 'Expected ValueError for weight > 100'
 
 
 class TestNodeAffinityJSON:
-
     def test_component_pipeline_input_required_scheduling(self):
         """Test JSON-based node affinity with pipeline input for required
         scheduling."""
@@ -379,12 +411,13 @@ class TestNodeAffinityJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'nodeAffinityJson': {
-                                        'componentInputParameter':
-                                            'affinity_input'
+                                'nodeAffinity': [
+                                    {
+                                        'nodeAffinityJson': {
+                                            'componentInputParameter': 'affinity_input'
+                                        }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -416,21 +449,23 @@ class TestNodeAffinityJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'nodeAffinityJson': {
-                                        'componentInputParameter':
-                                            'affinity_input_1'
+                                'nodeAffinity': [
+                                    {
+                                        'nodeAffinityJson': {
+                                            'componentInputParameter': 'affinity_input_1'
+                                        }
                                     }
-                                }]
+                                ]
                             },
                             'exec-comp-2': {
-                                'nodeAffinity': [{
-                                    'nodeAffinityJson': {
-                                        'componentInputParameter':
-                                            'affinity_input_2'
+                                'nodeAffinity': [
+                                    {
+                                        'nodeAffinityJson': {
+                                            'componentInputParameter': 'affinity_input_2'
+                                        }
                                     }
-                                }]
-                            }
+                                ]
+                            },
                         }
                     }
                 }
@@ -456,14 +491,16 @@ class TestNodeAffinityJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'nodeAffinityJson': {
-                                        'taskOutputParameter': {
-                                            'producerTask': 'comp-with-output',
-                                            'outputParameterKey': 'Output'
+                                'nodeAffinity': [
+                                    {
+                                        'nodeAffinityJson': {
+                                            'taskOutputParameter': {
+                                                'producerTask': 'comp-with-output',
+                                                'outputParameterKey': 'Output',
+                                            }
                                         }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -494,12 +531,13 @@ class TestNodeAffinityJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'nodeAffinityJson': {
-                                        'componentInputParameter':
-                                            'affinity_input_2'
+                                'nodeAffinity': [
+                                    {
+                                        'nodeAffinityJson': {
+                                            'componentInputParameter': 'affinity_input_2'
+                                        }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -515,11 +553,10 @@ class TestNodeAffinityJSON:
             task = comp()
             kubernetes.add_node_affinity(
                 task,
-                match_expressions=[{
-                    'key': 'disktype',
-                    'operator': 'In',
-                    'values': ['ssd']
-                }])
+                match_expressions=[
+                    {'key': 'disktype', 'operator': 'In', 'values': ['ssd']}
+                ],
+            )
             kubernetes.add_node_affinity_json(
                 task,
                 node_affinity_json=affinity_input,
@@ -531,18 +568,22 @@ class TestNodeAffinityJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'nodeAffinity': [{
-                                    'matchExpressions': [{
-                                        'key': 'disktype',
-                                        'operator': 'In',
-                                        'values': ['ssd']
-                                    }]
-                                }, {
-                                    'nodeAffinityJson': {
-                                        'componentInputParameter':
-                                            'affinity_input'
-                                    }
-                                }]
+                                'nodeAffinity': [
+                                    {
+                                        'matchExpressions': [
+                                            {
+                                                'key': 'disktype',
+                                                'operator': 'In',
+                                                'values': ['ssd'],
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        'nodeAffinityJson': {
+                                            'componentInputParameter': 'affinity_input'
+                                        }
+                                    },
+                                ]
                             }
                         }
                     }
@@ -556,14 +597,17 @@ class TestNodeAffinityJSON:
         def my_pipeline():
             task = comp()
             # Missing required fields for V1NodeAffinity
-            invalid_json = {"foo": "bar"}
+            invalid_json = {'foo': 'bar'}
             try:
                 kubernetes.add_node_affinity_json(
-                    task, node_affinity_json=invalid_json)
+                    task, node_affinity_json=invalid_json
+                )
             except ValueError as e:
-                assert "Invalid V1NodeAffinity JSON" in str(e)
+                assert 'Invalid V1NodeAffinity JSON' in str(e)
             else:
-                assert False, 'Expected ValueError for invalid node_affinity_json'
+                assert False, (
+                    'Expected ValueError for invalid node_affinity_json'
+                )
 
 
 @dsl.component
@@ -573,4 +617,4 @@ def comp():
 
 @dsl.component()
 def comp_with_output() -> str:
-    return "test_output"
+    return 'test_output'

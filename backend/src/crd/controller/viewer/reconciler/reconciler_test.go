@@ -36,8 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var viewer *Reconciler
-
 const tensorflowImage = "potentially_custom_tensorflow:dummy"
 
 func TestMain(m *testing.M) {

@@ -20,7 +20,7 @@ import {
   PipelineTaskTaskType,
   V2PipelineTask,
 } from 'src/apisv2/run';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { convertFlowElements, NodeTypeNames } from './StaticFlow';
@@ -65,6 +65,39 @@ describe('DynamicFlow', () => {
         ],
       );
       expect(graph[0].data?.label).toBe('parallel-loop (Loop)');
+    });
+
+    it('sets the lifecycle message on a sub-DAG node and clears it on recovery', () => {
+      const subDagElement = {
+        id: 'task.inner-dag',
+        type: NodeTypeNames.SUB_DAG,
+        position: { x: 0, y: 0 },
+        data: { label: 'inner-dag' },
+      };
+      const subDagTask: V2PipelineTask = {
+        task_id: 'inner-dag-task',
+        parent_task_id: rootTask.task_id,
+        name: 'inner-dag',
+        type: PipelineTaskTaskType.DAG,
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled',
+      };
+
+      const withWarning = updateFlowElementsState(
+        ['root'],
+        [subDagElement],
+        [rootTask, subDagTask],
+      );
+      expect(withWarning[0].data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycleMessage: 'OOMKilled',
+      });
+
+      const recovered = updateFlowElementsState(['root'], withWarning, [
+        rootTask,
+        { ...subDagTask, lifecycle_message: undefined },
+      ]);
+      expect((recovered[0].data as any).lifecycleMessage).toBeUndefined();
     });
 
     it('updates task and artifact nodes from hydrated task data', () => {
@@ -146,6 +179,110 @@ describe('DynamicFlow', () => {
       ).toMatchObject({ hasArtifact: true });
     });
 
+    it('sets the lifecycle message on a task node without changing its state', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const stuckTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      };
+
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycleMessage: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      });
+    });
+
+    it('clears the lifecycle message when the task recovers', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const stuckTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'ImagePullBackOff',
+      };
+      const withWarning = updateFlowElementsState(['root'], graph, [rootTask, stuckTask]);
+      const recoveredTask = { ...stuckTask, lifecycle_message: undefined };
+
+      const recovered = updateFlowElementsState(['root'], withWarning, [rootTask, recoveredTask]);
+
+      expect(
+        (recovered.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleMessage,
+      ).toBeUndefined();
+    });
+
+    it('drops the lifecycle message when a stale running task is shown as unresolved in a finished run', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const staleTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled',
+      };
+      const tasks = [rootTask, staleTask];
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true),
+      );
+
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        state: PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+        lifecycleMessage: undefined,
+      });
+    });
+
+    it('keeps the lifecycle message on a failed task in a finished run so the node stays red', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const failedTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled',
+      };
+      const tasks = [rootTask, failedTask];
+
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true),
+      );
+
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        state: PipelineTaskTaskState.FAILED,
+        lifecycleMessage: 'OOMKilled',
+      });
+    });
+
+    it('does not set a lifecycle message on a task that finished successfully', () => {
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const doneTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        lifecycle_message: 'ImagePullBackOff',
+      };
+
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, doneTask]);
+
+      expect(
+        (runtimeGraph.find((element) => element.id === 'task.preprocess')?.data as any)
+          .lifecycleMessage,
+      ).toBeUndefined();
+    });
+
     it('does not preserve React Flow hidden flags when applying task state', () => {
       const preprocessTask: V2PipelineTask = {
         task_id: 'preprocess-task',
@@ -210,6 +347,56 @@ describe('DynamicFlow', () => {
         artifactGroup,
       });
     });
+
+    it.each(['input', 'output', 'subtask output'])(
+      'retains every separately hydrated collected member for an %s node',
+      (source) => {
+        const artifacts = [1, 2, 3].map((index) => ({
+          artifact_id: `dataset-${index}`,
+          name: 'dataset',
+          type: ArtifactArtifactType.Dataset,
+        }));
+        const groups = [
+          { artifact_key: 'datasets', artifacts: artifacts.slice(0, 1) },
+          { artifact_key: 'unrelated', artifacts: [{ artifact_id: 'excluded' }] },
+          { artifact_key: 'datasets', artifacts: artifacts.slice(1) },
+        ];
+        const root = { ...rootTask };
+        const task: V2PipelineTask = {
+          task_id: 'producer',
+          parent_task_id: root.task_id,
+          name: 'exec',
+        };
+        const child: V2PipelineTask = {
+          task_id: 'child',
+          parent_task_id: task.task_id,
+          name: 'child',
+        };
+        const element: Node<ArtifactFlowElementData> = {
+          id: source === 'input' ? 'artifact..datasets' : 'artifact.exec.datasets',
+          data: { label: 'datasets' },
+          type: NodeTypeNames.ARTIFACT,
+          position: { x: 0, y: 0 },
+        };
+        let producer = task;
+        if (source === 'input') {
+          root.inputs = { artifacts: groups };
+          producer = root;
+        } else if (source === 'subtask output') {
+          child.outputs = { artifacts: groups };
+          element.data.producerSubtask = 'child';
+          element.data.outputArtifactKey = 'datasets';
+          producer = child;
+        } else {
+          task.outputs = { artifacts: groups };
+        }
+        expect(getNodeRuntimeInfo(element, [root, task, child], ['root'])).toEqual({
+          task: producer,
+          artifactGroup: { artifact_key: 'datasets', artifacts },
+        });
+        expect(groups[0].artifacts).toHaveLength(1);
+      },
+    );
 
     it('filters loop body tasks by selected iteration', () => {
       const loopTask: V2PipelineTask = {
@@ -1042,6 +1229,50 @@ describe('DynamicFlow', () => {
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       ]);
+    });
+
+    it('does not show an amber warning for stale task rows after a successful run', () => {
+      const staleExecution: V2PipelineTask = {
+        task_id: 'execution-task',
+        parent_task_id: rootTask.task_id,
+        name: 'execution',
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled',
+      };
+      const staleSubDag: V2PipelineTask = {
+        task_id: 'sub-dag-task',
+        parent_task_id: rootTask.task_id,
+        name: 'sub-dag',
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled',
+      };
+      const elements: Node<FlowElementDataBase>[] = [
+        {
+          id: 'task.execution',
+          data: { label: 'execution' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.EXECUTION,
+        },
+        {
+          id: 'task.sub-dag',
+          data: { label: 'sub-dag' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.SUB_DAG,
+        },
+      ];
+      const tasks = [rootTask, staleExecution, staleSubDag];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        elements,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true, true),
+      );
+
+      graph.forEach((element) => {
+        expect(element.data?.state).toBe(PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED);
+        expect((element.data as any).lifecycleMessage).toBeUndefined();
+      });
     });
 
     it('does not show stale failed or running children below a successful nested DAG', () => {

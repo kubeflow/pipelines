@@ -13,38 +13,40 @@
 # limitations under the License.
 """Regression coverage for local-runner test environment isolation."""
 
-from importlib import metadata
 import json
-from pathlib import Path
 import sys
 import unittest
+from importlib import metadata
+from pathlib import Path
 
-from kfp import dsl
-from kfp import local
+from kfp import dsl, local
 from kfp.local import testing_utilities
 
 
-class TestLocalRunnerIsolation(testing_utilities.LocalRunnerEnvironmentTestCase
-                              ):
-
+class TestLocalRunnerIsolation(
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def test_no_venv_installs_outside_the_worker(self) -> None:
         """Exercise real SDK installs without replacing the worker's SDK."""
         original_source = metadata.distribution('kfp').read_text(
-            'direct_url.json')
+            'direct_url.json'
+        )
         local.init(local.SubprocessRunner(use_venv=False))
 
         @dsl.component
         def installation_paths() -> str:
-            from importlib import metadata
             import json
             import sys
+            from importlib import metadata
 
-            return json.dumps({
-                'prefix':
-                    sys.prefix,
-                'package_root':
-                    str(metadata.distribution('kfp').locate_file('')),
-            })
+            return json.dumps(
+                {
+                    'prefix': sys.prefix,
+                    'package_root': str(
+                        metadata.distribution('kfp').locate_file('')
+                    ),
+                }
+            )
 
         first = json.loads(installation_paths().output)
         second = json.loads(installation_paths().output)
@@ -53,12 +55,15 @@ class TestLocalRunnerIsolation(testing_utilities.LocalRunnerEnvironmentTestCase
         self.assertEqual(first, second)
         prefix = Path(first['prefix']).resolve()
         self.assertTrue(
-            prefix.is_relative_to(Path(self.isolated_kfp_dir).resolve()))
+            prefix.is_relative_to(Path(self.isolated_kfp_dir).resolve())
+        )
         self.assertTrue(
-            Path(first['package_root']).resolve().is_relative_to(prefix))
+            Path(first['package_root']).resolve().is_relative_to(prefix)
+        )
         self.assertEqual(
             metadata.distribution('kfp').read_text('direct_url.json'),
-            original_source)
+            original_source,
+        )
 
 
 if __name__ == '__main__':

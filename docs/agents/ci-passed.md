@@ -217,6 +217,22 @@ maintainer decides the next step, such as merging a follow-up through a pull
 request to restore provenance. Do not weaken the freshness check to admit
 stale evidence.
 
+For stacked pull requests, retarget each dependent PR to `master` after its
+parent merges, then merge it through that PR. Merging into a staging branch and
+fast-forwarding `master` to the resulting commit does not create a merge record
+for `master`. The staging PR's timestamp proves arrival only on its own base
+branch and must not be reused as the arrival time on `master`.
+
+A recovery PR targeting `master` is subject to the same missing-base blocker.
+After reviewing its diff and available CI evidence, a maintainer must explicitly
+authorize any exceptional merge required to restore provenance. Keep required
+checks and the freshness validator intact; do not synthesize a successful
+`ci-passed` status. Verify the recovery PR's authoritative merged record names
+`master` and its merge SHA matches the new base tip. Then update affected PR
+branches to include that tip and trigger new CI executions. Rerunning executions
+created before the recovery merge does not establish freshness against the new
+base.
+
 ## Validation and coordinated rollout
 
 Publisher code always executes from the trusted base revision. A PR changing the
@@ -246,3 +262,40 @@ Never remove or revert a required status's publisher without coordinating the
 corresponding protection and merge policy. If rollback is needed, retain a working
 publisher and restore containment before changing merge requirements. Holds only
 protect PRs that actually carry them; audit existing PRs as well as creation labels.
+
+## Recover a pending aggregate after a release merge
+
+Ordinary reconciliation preserves a merged PR's published status. If a release
+PR merges while `ci-passed` is pending, later successful constituent runs cannot
+repair that aggregate through the open-PR sweep. Release qualification still
+requires green CI; do not bypass the gate or manually create a success status.
+
+After verifying the PR number and exact tested head, dispatch **CI Check** from
+the default branch with `merged_pr` and `head_sha`. For example:
+
+```sh
+gh workflow run ci-checks.yml --ref master -f merged_pr=12345 -f head_sha=<40-character-head-SHA>
+```
+
+This explicit recovery accepts only merged `release-X.Y` PRs in this repository
+whose aggregate is pending, or whose leftover success/failure is proven to come
+from an interrupted recovery run. It binds the head, merge commit, repository and branch,
+and accepts only single-commit PRs whose tested head and merged commit have
+identical trees and identical sole parents. This proves the immutable pre-PR
+base without trusting a subsequently advancing PR base field. Multi-commit PRs,
+merge commits with multiple parents, and changed parents or trees fail closed;
+a first parent alone is not proof because a multi-commit rebase can put it inside
+the PR. The required workflow inventory comes from this verified parent. Other green or failed aggregate statuses are left untouched. The pinned independent checker,
+required-workflow validation and external-check reader must all pass. Identity
+changes, unavailable evidence and pending or failed checks cannot authorize a
+success. Recovery does not change PR labels. No release tag or package is published by this workflow.
+
+Cleanup retries the exact status-ID ownership lookup/write three times. A
+transient error cannot silently skip rollback; a persistent API outage fails the
+job explicitly. Once GitHub is available, start a **fresh dispatch**, rather than
+rerunning the failed run. Recovery authenticates the old status URL against the
+Actions run's repository, workflow path, dispatch event, default branch and
+completed failure/interruption outcome, then resets only that exact status to
+pending before checking evidence. A running owner fails explicitly, including a
+rerun of the same run ID. Newer writers are preserved. Do not proceed with release
+publication while cleanup is outstanding.

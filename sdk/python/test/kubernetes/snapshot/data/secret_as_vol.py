@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -25,9 +24,11 @@ def comp():
 def my_pipeline():
     task = comp()
     kubernetes.use_secret_as_volume(
-        task, secret_name='my-secret', mount_path='/mnt/my_vol')
+        task, secret_name='my-secret', mount_path='/mnt/my_vol'
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(my_pipeline, __file__.replace('.py', '.yaml'))
