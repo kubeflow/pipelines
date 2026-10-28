@@ -533,3 +533,44 @@ warnings, restoring the associated security exposure. It does not disable
 existing authentication or namespace authorization. See the
 [scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
 Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).
+
+## Runtime API RPC deadlines and retries
+
+Every call that the v2 runtime (driver and launcher) makes to the KFP API server is time-bounded, so a server that accepts a call but never replies cannot leave a runtime component waiting forever. The policy is method-aware:
+
+- **Reads** (`GetRun`, `ListRuns`, `GetTask`, `ListTasks`, `FindCachedTask`, `ListArtifacts`, `ListArtifactTasks` and `GetPipelineVersion`) are retried with randomized, capped exponential backoff. Only `UNAVAILABLE` and a locally enforced per-attempt timeout are retried. Every other status, including `PERMISSION_DENIED`, `UNAUTHENTICATED`, `INVALID_ARGUMENT`, `NOT_FOUND` and a `DEADLINE_EXCEEDED` returned by the server, is returned after the first attempt.
+- **Writes** (`CreateTask`, `UpdateTask`, `UpdateTasksBulk`, `CreateArtifact`, `CreateArtifactsBulk`, `CreateArtifactTask` and `CreateArtifactTasksBulk`) get a single attempt bounded by `KFP_RUNTIME_RPC_WRITE_TIMEOUT` and are never retried automatically. A write that times out may still have been committed by the server.
+- The caller's own deadline and cancellation always take precedence, including while waiting between retries.
+- The timeouts apply to individual RPCs only. They are never applied to the execution of a user component.
+
+The following environment variables configure the policy:
+
+| Environment variable | Description | Default |
+| --- | --- | --- |
+| `KFP_RUNTIME_RPC_ATTEMPT_TIMEOUT` | Maximum duration of one read attempt | `5s` |
+| `KFP_RUNTIME_RPC_TOTAL_TIMEOUT` | Maximum total duration of a read, including all attempts and backoff. It is not reset between attempts | `15s` |
+| `KFP_RUNTIME_RPC_MAX_ATTEMPTS` | Maximum read attempts, including the initial call | `3` |
+| `KFP_RUNTIME_RPC_INITIAL_BACKOFF` | Initial upper bound for the randomized retry delay | `100ms` |
+| `KFP_RUNTIME_RPC_MAX_BACKOFF` | Maximum upper bound for the randomized retry delay | `1s` |
+| `KFP_RUNTIME_RPC_WRITE_TIMEOUT` | Maximum duration of the single attempt of a write | `30s` |
+
+Duration values use Go duration syntax, such as `500ms`, `5s`, or `1m`. Timeouts must be positive, the maximum attempts value must be a positive integer, and the maximum backoff must not be smaller than the initial backoff. Invalid configuration makes runtime API client initialization fail with an error that names the setting or constraint.
+
+The write timeout is longer than the read budget because a timed-out write is not retried and its outcome is unknown, so a timeout that is too short turns a slow but successful write into a task failure.
+
+### Where to set the values
+
+- **Launcher** (container and importer executors): set the variables on the API server. Like the `ML_PIPELINE_GRPC_*` settings, values that are set are written into the launcher containers when a run is compiled, so a change applies to runs created after the API server picks it up. Unset variables keep the defaults above.
+- **Driver**: the Argo executor driver plugin reads the variables from its own environment. Add them to the `env` list of `sidecar.container` in the `ml-pipeline-driver-agent` ConfigMap.
+
+### Results and logs
+
+| Situation | Result returned to the driver or launcher |
+| --- | --- |
+| The caller's deadline passes or the caller cancels | The caller's error (`context.DeadlineExceeded` or `context.Canceled`); no further attempt is made |
+| A read exhausts `KFP_RUNTIME_RPC_TOTAL_TIMEOUT` | `context.DeadlineExceeded` |
+| A read exhausts `KFP_RUNTIME_RPC_MAX_ATTEMPTS` | The status of the last attempt |
+| A write exceeds `KFP_RUNTIME_RPC_WRITE_TIMEOUT` | gRPC `DEADLINE_EXCEEDED`, with a message that the write may or may not have been committed |
+| Any other error | The server's status, unchanged, after one attempt |
+
+Each retry and each success after a retry is logged at the default (info) level, and every call that ends in a final failure, an exhausted budget or a caller cancellation after it started is logged as a warning. Log lines contain the operation name, attempt count, gRPC status code and elapsed time. Credentials and request payloads are not logged.

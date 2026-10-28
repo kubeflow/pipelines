@@ -529,7 +529,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 					MountPath: dotConfigScratchLocation,
 				},
 			},
-			Env: append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+			Env: append(append(commonEnvs, mlPipelineAPIClientEnvVars()...), runtimeRPCRetryEnvVars()...),
 		},
 	}
 	setRuntimeRole(executor, util.ExecutionRuntimeRoleLauncher)
