@@ -79,6 +79,12 @@ jobs:
       # Recover the intermittent npm cache race without discarding warm caches.
       run: npm ci || (npm cache clean --force && npm ci)
 
+    - name: Install UI smoke-test dependencies
+      run: npm ci --prefix ./frontend/scripts/ui-smoke-test
+
+    - name: Test UI smoke-test utilities
+      run: npm test --prefix ./frontend/scripts/ui-smoke-test
+
     - name: Verify generated API clients are up to date
       if: matrix.check == 'static'
       run: |

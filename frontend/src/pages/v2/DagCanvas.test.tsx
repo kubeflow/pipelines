@@ -6,7 +6,9 @@ import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver } from 'src/TestUtils';
 import { deeplyNestedSpec, manySubDagsSpec, nestedArtifactSpec } from 'src/data/test/groupedFlow';
-import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
+import type { PipelineFlowElement } from 'src/lib/v2/FlowTypes';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { NodeTypeNames, convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
 import DagCanvas, { DagCanvasProps } from './DagCanvas';
 
 const resolve = (layers: string[]) => convertSubDagToFlowElements(nestedArtifactSpec, layers);
@@ -414,3 +416,67 @@ it('supports keyboard collapse and expansion', async () => {
   await userEvent.keyboard(' ');
   expect(screen.getByText('Train model')).toBeInTheDocument();
 });
+
+// These are the native runtime labels consumed by UI comparison topology journeys.
+it.each(['parallel-loop (Loop)', 'nested-dag'])(
+  'expands %s inline after collapsing all without losing root context',
+  (target) => {
+    const node = (id: string, label: string, group = false): PipelineFlowElement => ({
+      id: `task.${id}`,
+      type: group ? NodeTypeNames.SUB_DAG : NodeTypeNames.EXECUTION,
+      position: { x: 0, y: 0 },
+      data: { label, state: PipelineTaskTaskState.SUCCEEDED },
+    });
+    const layers: Record<string, PipelineFlowElement[]> = {
+      root: [
+        node('write-metrics', 'write-metrics'),
+        node('parallel-loop', 'parallel-loop (Loop)', true),
+        node('nested-dag', 'nested-dag', true),
+      ],
+      'parallel-loop': [
+        node('parallel-loop.0', 'parallel-loop.0', true),
+        node('parallel-loop.1', 'parallel-loop.1', true),
+      ],
+      'parallel-loop.0': [node('loop-worker', 'loop-worker')],
+      'parallel-loop.1': [node('loop-worker', 'loop-worker')],
+      'nested-dag': [node('nested-worker', 'nested-worker')],
+    };
+    render(
+      <CommonTestWrapper>
+        <DagCanvas
+          layers={['root']}
+          elements={layers.root}
+          getSubDagElements={(path) => layers[path[path.length - 1]] || []}
+          onElementClick={vi.fn()}
+        />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all', exact: true }));
+    expect(screen.queryByText('loop-worker')).not.toBeInTheDocument();
+    expect(screen.queryByText('nested-worker')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: `Expand ${target}`, exact: true }));
+    if (target === 'parallel-loop (Loop)') {
+      fireEvent.click(screen.getByRole('button', { name: 'Expand parallel-loop.0', exact: true }));
+      expect(screen.getAllByText('loop-worker')).toHaveLength(1);
+      expect(
+        screen.getByRole('button', { name: 'Expand parallel-loop.1', exact: true }),
+      ).toHaveAttribute('aria-expanded', 'false');
+    } else {
+      expect(screen.getByText('nested-worker')).toBeInTheDocument();
+    }
+    expect(screen.getByRole('button', { name: `Collapse ${target}`, exact: true })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(screen.getByText('write-metrics')).toBeInTheDocument();
+    // Match the journey's nodeDataSelector: named ReactFlow node plus live icon.
+    for (const label of [
+      'write-metrics',
+      target === 'nested-dag' ? 'nested-worker' : 'loop-worker',
+    ]) {
+      const node = screen.getByText(label).closest('.react-flow__node');
+      expect(node).not.toBeNull();
+      expect(node?.querySelector('[data-testid="execution-icon-active"]')).not.toBeNull();
+    }
+  },
+);
