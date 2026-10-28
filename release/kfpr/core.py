@@ -733,6 +733,16 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
         time.sleep(60)
 
 
+def is_pending_merge_queue_check(check: dict) -> bool:
+    """Tide's pending merge eligibility is not an unfinished CI test."""
+    return (
+        check.get('__typename') == 'StatusContext'
+        and check.get('context') == 'tide'
+        and check.get('targetUrl') == 'https://oss.gprow.dev/tide'
+        and check.get('state') == 'PENDING'
+    )
+
+
 def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     """Poll PR checks until one fails or all reported checks complete.
 
@@ -760,6 +770,9 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                 ]
             )
         )
+        checks = [
+            check for check in checks if not is_pending_merge_queue_check(check)
+        ]
         if not checks:
             print('No CI gates reported yet')
             time.sleep(60)

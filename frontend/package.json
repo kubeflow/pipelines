@@ -35,7 +35,7 @@
     "react-virtualized-auto-sizer": "^2.0.4",
     "recharts": "^3.10.1",
     "runtypes": "^7.0.5",
-    "ts-proto": "^2.18.0",
+    "ts-proto": "^2.18.3",
     "typestyle": "^2.4.0",
     "url": "^0.11.4"
   },
@@ -138,9 +138,9 @@
     "tailwindcss": "^3.0.11",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5",
-    "yaml": "^2.8.3"
+    "yaml": "^2.9.1"
   },
   "overrides": {
     "recharts": {

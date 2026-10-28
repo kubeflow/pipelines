@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 import os
 import subprocess
 import unittest
@@ -358,6 +359,27 @@ class GithubCommandTest(unittest.TestCase):
             1,
         )
         self.assertNotIn('done-job:', output.getvalue())
+
+    def test_pending_merge_queue_alone_is_not_successful_ci(self):
+        runner = mock.Mock(spec=core.CommandRunner)
+        runner.dry_run = False
+        runner.capture.return_value = json.dumps(
+            [
+                {
+                    '__typename': 'StatusContext',
+                    'context': 'tide',
+                    'targetUrl': 'https://oss.gprow.dev/tide',
+                    'state': 'PENDING',
+                }
+            ]
+        )
+        with mock.patch.object(
+            core.time, 'sleep', side_effect=RuntimeError('still waiting')
+        ):
+            with self.assertRaisesRegex(RuntimeError, 'still waiting'):
+                core.watch_pr_ci(
+                    runner, 'https://github.com/kubeflow/pipelines/pull/1'
+                )
 
     def test_watch_pr_ci_waits_for_pending_ci_passed_status(self):
         runner = mock.Mock(dry_run=False)

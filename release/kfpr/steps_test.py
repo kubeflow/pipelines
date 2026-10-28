@@ -1245,6 +1245,8 @@ class SyncMasterStepTest(QualifiedPublicationTest):
             ):
                 steps.step_sync_master(context)
 
+            self.assertEqual((root / 'VERSION').read_bytes(), b'3.2.0\n')
+
             status_index = context.runner.commands.index(
                 ['git', 'status', '--short']
             )
@@ -1806,6 +1808,15 @@ class StepPRCreationTest(unittest.TestCase):
             with mock.patch('builtins.input', return_value='u'):
                 steps.step_merge_version_pr(context)
 
+            self.assertIn(
+                [
+                    'git',
+                    'push',
+                    'git@github.com:testuser/pipelines.git',
+                    '1.3.0-update-version-tags',
+                ],
+                runner.commands,
+            )
             self.assertNotIn(
                 [
                     'git',
@@ -2561,6 +2572,8 @@ class DryRunOutputTest(unittest.TestCase):
             # This runner records builds without producing wheel artifacts.
             with mock.patch('kfpr.steps.validate_legacy_wheels'):
                 steps.step_update_version_tags(context)
+
+            self.assertEqual((root / 'VERSION').read_bytes(), b'3.2.0\n')
 
             self.assertEqual(
                 context.runner.commands[0], ['git', 'checkout', 'release-3.2']

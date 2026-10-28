@@ -241,6 +241,11 @@ jobs:
         id: test-run
         env:
           ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.6' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
+          # deploy-kfp.sh selects the standalone `default` overlay for exactly
+          # these inputs (`include` entries leave proxy and TLS unset, which the
+          # script treats as false). That overlay opts into image pull failure
+          # handling, so its ImagePullFailure specs must run rather than skip.
+          IMAGE_PULL_FAILURE_HANDLING_EXPECTED: ${{ matrix.cache_enabled == 'true' && matrix.proxy != 'true' && matrix.pod_to_pod_tls_enabled != 'true' && matrix.db_type == 'mysql' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}

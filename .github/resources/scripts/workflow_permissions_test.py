@@ -25,7 +25,11 @@ WORKFLOWS = ROOT / '.github/workflows'
 # Each write grant must have an identified consumer. The generated analyzer's
 # issue output, cancellation, and inference grants stay in its source contract.
 WRITE_PERMISSIONS = {
-    'release-branch-image-scanning.yml': {'upload': {'security-events'}},
+    'release-branch-image-scanning.yml': {
+        'upload': {'security-events'},
+        'third-party-evidence': {'security-events'},
+    },
+    'third-party-image-scanning.yml': {'upload': {'security-events'}},
     'release-promote-latest.yml': {'promote': {'packages'}},
     'ai-analyzer.lock.yml': {
         'activation': {'issues'},
@@ -45,6 +49,7 @@ WRITE_PERMISSIONS = {
     },
     'ci-checks.yml': {
         'check_ci_status': {'pull-requests', 'statuses'},
+        'recover_merged_release': {'statuses'},
     },
     'ci-health-report.yml': {
         'report': {'issues'},
@@ -76,12 +81,16 @@ WRITE_PERMISSIONS = {
     'osv-scanner.yml': {
         'scan-source': {'security-events'},
         'scan-images': {'security-events'},
+        'third-party-evidence': {'security-events'},
     },
     'pr-gate.yml': {
         'check-pr-author': {'actions', 'pull-requests'},
     },
     'publish-packages.yml': {
         'publish': {'id-token'},
+    },
+    'ready-command.yml': {
+        'ready': {'issues'},
     },
     'runtime-base-images.yml': {
         'prune-runtime-base-image-caches': {'actions'},

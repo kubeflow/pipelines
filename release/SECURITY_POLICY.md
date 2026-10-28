@@ -35,6 +35,36 @@ qualify again.
 }
 ```
 
+Schema 1 requires a UTC expiry for every entry. When an approval is instead
+limited to one final release, use schema 2 with a top-level `release_version`
+and omit `expires` from every entry:
+
+```json
+{
+  "schema": 2,
+  "release_version": "2.18.0",
+  "exceptions": [
+    {
+      "scope": "python",
+      "artifact": "3.9",
+      "vulnerability": "GHSA-example",
+      "package": "example",
+      "installed_version": "1.2.3",
+      "justification": "Explicitly reviewed compatibility constraint for this release."
+    }
+  ]
+}
+```
+
+Schema 2 requires an exact final `X.Y.Z` version. Branches, version ranges,
+prereleases, missing release versions and mixed calendar/release fields are
+rejected. An approval for `2.18.0` cannot qualify `2.18.1`, `2.19.0`, or
+`2.18.0-rc.1`. It has no calendar deadline, but still requires fresh scan evidence
+and the same exact finding identities. Publication rechecks the selected release
+against the document; a changed installed version or image ID needs a new approval.
+Use schema 1 when a calendar deadline is part of the approval. Never substitute
+an arbitrary future date for a release-scoped decision.
+
 Copy identities from the retained scanner report. Every field is required;
 unknown fields, duplicate identities and wildcards are rejected. `scope` is
 `source`, `python`, or `image`. `artifact` is the exact scanner target path for
@@ -43,10 +73,10 @@ source, the audited interpreter minor such as `3.9` for Python, or the immutable
 scanned image, not all future builds of its tag. Use the exact advisory ID the
 scanner reports, including PYSEC or GHSA identifiers where applicable.
 
-Expiry is a UTC calendar date, inclusive through that day. An expired file
+For schema 1, expiry is a UTC calendar date, inclusive through that day. An expired file
 blocks both qualification and publication. Qualification records the full
 exception document and its canonical SHA256 alongside all findings and reasons;
-publication rereads the file and verifies that content and expiry still match.
+publication rereads the file and verifies the content and calendar or release bound.
 Editing the exception file requires fresh qualification. Keep the file available
 until publication finishes. Exceptions never waive scanner errors, malformed
 reports, missing targets, missing Python lanes or incomplete image coverage.

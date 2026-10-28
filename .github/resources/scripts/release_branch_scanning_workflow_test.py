@@ -78,6 +78,9 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         self.assertEqual(workflow['permissions'], {})
         for name, job in workflow['jobs'].items():
             permissions = {'contents': 'read'}
+            if name == 'third-party-evidence':
+                permissions['actions'] = 'read'
+                permissions['security-events'] = 'write'
             if name == 'upload':
                 permissions['security-events'] = 'write'
             self.assertEqual(job['permissions'], permissions)
@@ -85,13 +88,25 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         self.assertEqual(upload['needs'], ['inventory', 'aggregate'])
         self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
         scripts = [step for step in upload['steps'] if 'run' in step]
-        self.assertEqual(len(scripts), 1)
-        self.assertEqual(scripts[0]['name'], 'Verify exact release source')
+        self.assertEqual(
+            [step['name'] for step in scripts],
+            [
+                'Verify exact release source',
+                'Confirm GitHub processed the combined summary',
+            ],
+        )
         self.assertNotIn('packages: write', str(workflow))
 
     def test_source_and_tool_checkouts_are_separate_and_immutable(self):
         workflow = self.workflow()
         for name, job in workflow['jobs'].items():
+            if name == 'third-party-evidence':
+                self.assertEqual(job['needs'], 'inventory')
+                self.assertEqual(
+                    job['uses'],
+                    './.github/workflows/third-party-image-scanning.yml',
+                )
+                continue
             checkouts = [
                 step['with']
                 for step in job['steps']
@@ -149,6 +164,8 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
                 text=True,
             ).strip()
             for name, job in self.workflow()['jobs'].items():
+                if name == 'third-party-evidence':
+                    continue
                 guard = next(
                     step
                     for step in job['steps']
@@ -217,25 +234,101 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         upload = self.workflow()['jobs']['upload']
         self.assertEqual(
             upload['strategy']['matrix'],
-            '${{ fromJSON(needs.inventory.outputs.matrix) }}',
+            '${{ fromJSON(needs.inventory.outputs.upload-matrix) }}',
         )
-        config = upload['steps'][-1]['with']
+        summaries = next(
+            step
+            for step in upload['steps']
+            if step.get('id') == 'publish-summary'
+        )
+        retired = upload['steps'][-1]
+        self.assertTrue(summaries['with']['wait-for-processing'])
+        self.assertNotIn('if', summaries)
+        self.assertIn('hashFiles(', retired['if'])
+        self.assertIn('-retire-arm64.sarif', retired['if'])
+        self.assertNotIn('always()', retired['if'])
         self.assertEqual(
-            config['sha'], '${{ needs.inventory.outputs.source-sha }}'
+            summaries['with']['sarif_file'],
+            'qualified/image-summaries/${{ matrix.name }}.sarif',
         )
-        self.assertEqual(config['ref'], 'refs/heads/release-2.18')
-        self.assertEqual(config['checkout_path'], 'source')
-        self.assertIn(
-            'release-2.18-image-${{ matrix.name }}', config['category']
+        self.assertEqual(
+            retired['with']['category'],
+            'release-2.18-image-${{ matrix.name }}-arm64',
         )
-        for unstable in (
-            'source-sha',
-            'run_attempt',
-            'version',
-            'request-id',
-            'runner',
-        ):
-            self.assertNotIn(unstable, config['category'])
+        for config in (summaries['with'], retired['with']):
+            self.assertEqual(
+                config['sha'], '${{ needs.inventory.outputs.source-sha }}'
+            )
+            self.assertEqual(config['ref'], 'refs/heads/release-2.18')
+            self.assertEqual(config['checkout_path'], 'source')
+            self.assertIn(
+                'release-2.18-image-${{ matrix.name }}', config['category']
+            )
+            for unstable in (
+                'source-sha',
+                'run_attempt',
+                'version',
+                'request-id',
+                'runner',
+            ):
+                self.assertNotIn(unstable, config['category'])
+
+    def test_arm_retirement_requires_confirmed_processing(self):
+        steps = self.workflow()['jobs']['upload']['steps']
+        confirmation = next(
+            step for step in steps if step.get('id') == 'confirm-summary'
+        )
+        self.assertEqual(
+            confirmation['env']['SARIF_ID'],
+            '${{ steps.publish-summary.outputs.sarif-id }}',
+        )
+        self.assertEqual(
+            confirmation['env']['GH_REPO'], '${{ github.repository }}'
+        )
+        self.assertNotIn('continue-on-error', confirmation)
+        self.assertNotIn('if', confirmation)
+        self.assertLess(steps.index(confirmation), len(steps) - 1)
+        with tempfile.TemporaryDirectory() as directory:
+            gh = Path(directory) / 'gh'
+            gh.write_text(
+                '#!/bin/sh\n[ "$*" = "api repos/{owner}/{repo}/code-scanning/sarifs/upload-123 --jq .processing_status" ] || exit 90\nprintf "%s\\n" "$TEST_STATUS"\nexit "$TEST_EXIT"\n'
+            )
+            gh.chmod(0o755)
+            for status, exit_code, sarif_id, accepted in (
+                ('complete', '0', 'upload-123', True),
+                ('pending', '0', 'upload-123', False),
+                ('failed', '0', 'upload-123', False),
+                ('', '1', 'upload-123', False),
+                ('null', '0', 'upload-123', False),
+                ('complete', '0', '', False),
+            ):
+                with self.subTest(
+                    status=status, exit_code=exit_code, sarif_id=sarif_id
+                ):
+                    result = subprocess.run(
+                        [
+                            'bash',
+                            '-e',
+                            '-o',
+                            'pipefail',
+                            '-c',
+                            confirmation['run'],
+                        ],
+                        env={
+                            **os.environ,
+                            'PATH': directory + os.pathsep + os.environ['PATH'],
+                            'SARIF_ID': sarif_id,
+                            'TEST_STATUS': status,
+                            'TEST_EXIT': exit_code,
+                        },
+                        text=True,
+                        capture_output=True,
+                    )
+                    self.assertEqual(
+                        result.returncode == 0,
+                        accepted,
+                        result.stdout + result.stderr,
+                    )
 
     def test_shared_scanner_installer_preserves_pins_and_checksum_verification(
         self,
@@ -265,6 +358,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             "'.github/workflows/release-branch-image-scanning.yml'", workflow
         )
         self.assertIn("'release/kfpr/**'", workflow)
+        self.assertIn('kfpr.image_summary_test', workflow)
         self.assertIn(
             'python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test',
             workflow,

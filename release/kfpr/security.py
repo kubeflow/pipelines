@@ -155,7 +155,8 @@ def evaluate_policy(
     exceptions: dict | None = None,
     now: datetime | None = None,
 ) -> dict:
-    """Recompute dispositions and revalidate all explicit exception expiry."""
+    """Recompute dispositions and revalidate calendar or exact release
+    bounds."""
     if policy not in (
         'zero-fixable',
         '2.17.3-approved-exceptions-v1',
@@ -165,6 +166,14 @@ def evaluate_policy(
     approved = {}
     if policy == 'approved-exceptions':
         document = validate_exceptions(exceptions, now=now)
+        if (
+            document['schema'] == 2
+            and release_version != document['release_version']
+        ):
+            raise ValueError(
+                f'These security exceptions apply only to release {document["release_version"]}; '
+                'select the matching release or provide a separately approved document'
+            )
         approved = {
             (
                 entry['scope'],
@@ -172,7 +181,14 @@ def evaluate_policy(
                 entry['package'],
                 entry['vulnerability'],
                 entry['installed_version'],
-            ): {'reason': entry['justification'], 'expires': entry['expires']}
+            ): {
+                'reason': entry['justification'],
+                **(
+                    {'release_version': document['release_version']}
+                    if document['schema'] == 2
+                    else {'expires': entry['expires']}
+                ),
+            }
             for entry in document['exceptions']
         }
     else:

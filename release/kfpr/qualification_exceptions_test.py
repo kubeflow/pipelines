@@ -119,6 +119,20 @@ class QualificationExceptionsTest(unittest.TestCase):
         self.save(report)
         return report
 
+    def test_release_scoped_document_is_rechecked_at_publication(self):
+        self.document.update(schema=2, release_version='2.17.3')
+        del self.document['exceptions'][0]['expires']
+        self.write_document()
+        report = self.evidence()
+        q.require_qualification(self.context)
+        self.context.metadata = ReleaseMetadata.from_version('patch', '2.17.4')
+        # Even consistently relabeled receipts cannot extend an approval.
+        report['version'] = '2.17.4'
+        report['security']['release_version'] = '2.17.4'
+        self.save(report)
+        with self.assertRaisesRegex(ValueError, 'apply only to release 2.17.3'):
+            q.require_qualification(self.context)
+
     def test_identity_binds_configured_document(self):
         identity = q._identity(self.context, SHA)
         self.assertEqual(identity.get('exceptions'), self.document)

@@ -27,8 +27,8 @@ def _name(name, ecosystem):
 
 
 def _ecosystem(ecosystem):
-    # OSV normalizes Ubuntu's optional LTS suffix. Keep both the exact release
-    # and Pro channel: fixes in another release/support channel are not ours.
+    # OSV query indexing removes both Pro and LTS. Fix availability must
+    # still preserve the release and support channel.
     # https://github.com/google/osv.dev/blob/master/go/internal/models/ubuntu_package_mapping.go
     match = re.fullmatch(
         r'(Ubuntu:(?:Pro:)?[0-9]{2}\.[0-9]{2})(?::LTS)?', ecosystem
@@ -99,6 +99,7 @@ def _fixed_versions(vulnerability, name, ecosystem):
     affected = _list(vulnerability.get('affected'), 'affected packages')
     matched = False
     fixed = set()
+    support_channels = {}
     for entry in affected:
         entry = _object(entry, 'affected entry')
         package = _object(entry.get('package'), 'affected package')
@@ -106,11 +107,23 @@ def _fixed_versions(vulnerability, name, ecosystem):
         affected_ecosystem = _text(
             package.get('ecosystem'), 'affected ecosystem'
         )
-        if _ecosystem(affected_ecosystem) != _ecosystem(ecosystem) or _name(
-            affected_name, ecosystem
-        ) != _name(name, ecosystem):
+        if _name(affected_name, ecosystem) != _name(name, ecosystem):
+            continue
+        scanned_channel = _ecosystem(ecosystem)
+        affected_channel = _ecosystem(affected_ecosystem)
+        same_channel = affected_channel == scanned_channel
+        # OSV indexes Pro advisories under the standard release as well:
+        # https://github.com/google/osv.dev/blob/master/go/internal/database/datastore/affected_versions.go
+        # Retain these matches, but never advertise a Pro fix as a standard fix.
+        pro_channel = re.fullmatch(
+            r'Ubuntu:[0-9]{2}\.[0-9]{2}', scanned_channel
+        ) and affected_channel == scanned_channel.replace(
+            'Ubuntu:', 'Ubuntu:Pro:', 1
+        )
+        if not same_channel and not pro_channel:
             continue
         matched = True
+        entry_fixes = set()
         versions = _list(entry.get('versions', []), 'affected versions')
         for version in versions:
             _text(version, 'affected version')
@@ -119,7 +132,11 @@ def _fixed_versions(vulnerability, name, ecosystem):
             raise ValueError('OSV affected package has no ranges or versions')
         for affected_range in ranges:
             affected_range = _object(affected_range, 'range')
-            if affected_range.get('type') not in ('SEMVER', 'ECOSYSTEM', 'GIT'):
+            if affected_range.get('type') not in (
+                'SEMVER',
+                'ECOSYSTEM',
+                'GIT',
+            ):
                 raise ValueError('Unsupported OSV affected range type')
             events = _list(affected_range.get('events'), 'range events')
             if not events:
@@ -139,14 +156,27 @@ def _fixed_versions(vulnerability, name, ecosystem):
                 value = _text(event[kind], 'range event version')
                 introduced |= kind == 'introduced'
                 if kind == 'fixed':
-                    fixed.add(value)
+                    entry_fixes.add(value)
             if not introduced:
                 raise ValueError('OSV range is missing its introduction event')
+        if same_channel:
+            fixed.update(entry_fixes)
+        else:
+            support_channels.setdefault(affected_channel, set()).update(
+                entry_fixes
+            )
     if not matched:
         raise ValueError(
             'OSV advisory does not identify the scanned package and ecosystem'
         )
-    return sorted(fixed)
+    return sorted(fixed), [
+        {
+            'ecosystem': channel,
+            'fixed_versions': sorted(versions),
+            'requires_support_channel': True,
+        }
+        for channel, versions in sorted(support_channels.items())
+    ]
 
 
 def findings(report: dict, *, allow_unresolved=False) -> list[dict]:
@@ -163,7 +193,9 @@ def findings(report: dict, *, allow_unresolved=False) -> list[dict]:
             aliases = _list(vulnerability.get('aliases', []), 'aliases')
             for alias in aliases:
                 _text(alias, 'alias')
-            fixes = _fixed_versions(vulnerability, name, ecosystem)
+            fixes, support_channels = _fixed_versions(
+                vulnerability, name, ecosystem
+            )
             findings.append(
                 {
                     'target': path,
@@ -173,6 +205,14 @@ def findings(report: dict, *, allow_unresolved=False) -> list[dict]:
                     'installed_version': version,
                     'fixed_versions': fixes,
                     'fixable': bool(fixes),
+                    **(
+                        {
+                            'support_channel_evidence': support_channels,
+                            'scanned_ecosystem': ecosystem,
+                        }
+                        if support_channels
+                        else {}
+                    ),
                 }
             )
     return findings

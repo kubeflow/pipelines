@@ -120,7 +120,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "c70e586db7dc9c84c6dbbbbb73eecc09522478e5d023456fa8c735d45150811d",
+      "header_sha256": "bd982c49b5acbab574767638ed892cba1fb1d1c2f88d9758f7742192326de8d1",
       "pull_request": null
     },
     {
@@ -138,7 +138,7 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "e58434025cfdd63212dedf319c2fafb2f232a2c1fd39aabd256b963c1aee00bc",
+      "header_sha256": "cdf9daced0c82bc41f34f977070e6a5285d198fa3c65ba6b1d3fc08be6875fa5",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
@@ -185,6 +185,7 @@
           ".github/workflows/build-tools-images.yml",
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/ci-scripts-tests.yml",
+          ".github/workflows/third-party-image-upgrades.yml",
           ".github/workflows/check-requirements-txt.yml",
           ".github/workflows/check-uv-lock.yml",
           ".github/workflows/publish-packages.yml",
@@ -640,6 +641,12 @@
       }
     },
     {
+      "path": ".github/workflows/ready-command.yml",
+      "name": "Ready Command",
+      "header_sha256": "e78b97894460946dfb3f90af4e6f0a1885f06671675dcdd7329a3e1b4633154e",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/release-branch-image-scanning.yml",
       "name": "Release Branch Image Scanning",
       "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
@@ -755,6 +762,26 @@
       "name": "Mark stale issues and pull requests",
       "header_sha256": "8ed5e6b29dad78ca14bebe3f08006c01c1732ce9554497332229d6a33b4b1a5f",
       "pull_request": null
+    },
+    {
+      "path": ".github/workflows/third-party-image-scanning.yml",
+      "name": "Third-party Image Security",
+      "header_sha256": "9162eb1ecd0c71c55eae7338c45999a6905ed50e1a9a41ff71b884173bda77c1",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/third-party-image-upgrades.yml",
+      "name": "Third-party Image Upgrade Checks",
+      "header_sha256": "51af41f636629c336ead7a3d33ccd4f9ee130662a06b7cddb369260e74151cda",
+      "pull_request": {
+        "paths": [
+          "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
+          "manifests/kustomize/third-party/seaweedfs/**",
+          "manifests/kustomize/third-party/argo/**",
+          ".github/resources/scripts/third_party_upgrade_*.py",
+          ".github/workflows/third-party-image-upgrades.yml"
+        ]
+      }
     },
     {
       "path": ".github/workflows/upgrade-test.yml",
