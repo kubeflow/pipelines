@@ -17,6 +17,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"io"
 	"sort"
 	"sync"
 	"testing"
@@ -137,7 +138,33 @@ func ArgoPersistSecretNames(persist *argoconfig.PersistConfig) []string {
 	return names
 }
 
+// closableOffloadHydrator wraps Argo's hydrator so LazyOffloadHydrator can close
+// the SessionProxy connection pool when a ConfigMap revision replaces it.
+// Argo's hydrator.New return value does not implement io.Closer in v4.1.5.
+type closableOffloadHydrator struct {
+	hydrator.Interface
+	closer io.Closer
+}
+
+func (h closableOffloadHydrator) Close() error {
+	if h.closer == nil {
+		return nil
+	}
+	return h.closer.Close()
+}
+
+// newClosableOffloadHydrator retains closer alongside the hydrator used for
+// hydrate/dehydrate. Used by CreateWorkflowHydrator and tests that exercise
+// production-factory cleanup without a live database.
+func newClosableOffloadHydrator(inner hydrator.Interface, closer io.Closer) hydrator.Interface {
+	if inner == nil || inner == hydratorfake.Noop {
+		return hydratorfake.Noop
+	}
+	return closableOffloadHydrator{Interface: inner, closer: closer}
+}
+
 // CreateWorkflowHydrator connects to Argo's offload database and returns the hydrator used by retry.
+// The returned value implements io.Closer so ConfigMap reloads can release the SessionProxy pool.
 func CreateWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, persist *argoconfig.PersistConfig, secretsNamespace string) (hydrator.Interface, error) {
 	if persist == nil || !persist.NodeStatusOffload {
 		return hydratorfake.Noop, nil
@@ -164,9 +191,10 @@ func CreateWorkflowHydrator(ctx context.Context, kube kubernetes.Interface, pers
 		tableName,
 	)
 	if err != nil {
+		_ = sessionProxy.Close()
 		return nil, fmt.Errorf("failed to create Argo offload node status repo: %w", err)
 	}
-	return hydrator.New(repo), nil
+	return newClosableOffloadHydrator(hydrator.New(repo), sessionProxy), nil
 }
 
 // InitWorkflowHydrator connects to Argo's offload database and installs the hydrator used by retry.

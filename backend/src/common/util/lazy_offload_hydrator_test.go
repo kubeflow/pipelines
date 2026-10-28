@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -34,6 +35,61 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
+
+type trackingCloser struct {
+	closed atomic.Int32
+}
+
+func (c *trackingCloser) Close() error {
+	c.closed.Add(1)
+	return nil
+}
+
+func TestNewClosableOffloadHydrator_ImplementsCloser(t *testing.T) {
+	repo := NewMemoryOffloadNodeStatusRepo()
+	closer := &trackingCloser{}
+	h := newClosableOffloadHydrator(NewMemoryWorkflowHydrator(repo), closer)
+	c, ok := h.(io.Closer)
+	require.True(t, ok, "CreateWorkflowHydrator must return an io.Closer wrapper")
+	require.NoError(t, c.Close())
+	assert.Equal(t, int32(1), closer.closed.Load())
+}
+
+func TestLazyOffloadHydrator_ProductionClosableWrapperReleasedOnRevisionChange(t *testing.T) {
+	// Uses newClosableOffloadHydrator — the same wrapper CreateWorkflowHydrator
+	// returns around Argo's bare hydrator (which does not implement io.Closer).
+	repo := NewMemoryOffloadNodeStatusRepo()
+	repo.Put("wf-uid", "offload-hash", workflowapi.Nodes{
+		"ok": {ID: "ok", Name: "my-wf", Phase: workflowapi.NodeSucceeded, Type: workflowapi.NodeTypePod},
+	})
+	closer1 := &trackingCloser{}
+	closer2 := &trackingCloser{}
+	revision := "rv1"
+	call := 0
+	lazy := newLazyOffloadHydrator(func(ctx context.Context) (hydrator.Interface, string, error) {
+		call++
+		if call == 1 {
+			return newClosableOffloadHydrator(NewMemoryWorkflowHydrator(repo), closer1), revision, nil
+		}
+		return newClosableOffloadHydrator(NewMemoryWorkflowHydrator(repo), closer2), revision, nil
+	})
+
+	ctx := context.Background()
+	wf := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", UID: "wf-uid"},
+		Status:     workflowapi.WorkflowStatus{OffloadNodeStatusVersion: "offload-hash"},
+	}
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, int32(0), closer1.closed.Load())
+
+	revision = "rv2"
+	wf.Status.OffloadNodeStatusVersion = "offload-hash"
+	wf.Status.Nodes = nil
+	require.NoError(t, lazy.Hydrate(ctx, wf))
+	assert.Equal(t, int32(1), closer1.closed.Load(),
+		"ConfigMap revision change must Close the previous SessionProxy wrapper")
+	assert.Equal(t, int32(0), closer2.closed.Load())
+}
 
 func TestLazyOffloadHydrator_InitFailureThenSuccess(t *testing.T) {
 	repo := NewMemoryOffloadNodeStatusRepo()

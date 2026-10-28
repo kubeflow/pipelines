@@ -23,6 +23,7 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/workflow/packer"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -130,6 +131,15 @@ postgresql:
 
 	h, err := CreateWorkflowHydrator(ctx, kube, persist, secretNS)
 	require.NoError(t, err)
+	if closer, ok := h.(interface{ Close() error }); ok {
+		t.Cleanup(func() { _ = closer.Close() })
+	}
+
+	// Argo's hydrator requires a logger in context. Force offload even for this
+	// tiny fixture: the default size threshold keeps one-node workflows inline.
+	hydrateCtx := withArgoLogger(ctx)
+	cleanupSize := packer.SetMaxWorkflowSize(1)
+	t.Cleanup(cleanupSize)
 
 	wf := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{Name: "offload-it-wf", UID: "offload-it-uid", Namespace: secretNS},
@@ -139,11 +149,11 @@ postgresql:
 			},
 		},
 	}
-	require.NoError(t, h.Dehydrate(ctx, wf))
+	require.NoError(t, h.Dehydrate(hydrateCtx, wf))
 	require.NotEmpty(t, wf.Status.OffloadNodeStatusVersion)
 	require.Empty(t, wf.Status.Nodes)
 
-	require.NoError(t, h.Hydrate(ctx, wf))
+	require.NoError(t, h.Hydrate(hydrateCtx, wf))
 	require.Empty(t, wf.Status.OffloadNodeStatusVersion)
 	require.Equal(t, workflowapi.NodeSucceeded, wf.Status.Nodes["n1"].Phase)
 }
