@@ -166,26 +166,32 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
 }
 
-async function publish(github, context, pr, state, description, provisional = false) {
+async function publish(github, context, pr, state, description, provisional = false, expectedState = null, expectedId = null, updateLabels = true) {
   let current;
   try {
     current = await currentStatus(github, context, pr.head.sha);
   } catch (error) {
     // A failed read must not prevent invalidating a previously green head.
-    if (state === 'success') throw error;
+    if (state === 'success' || expectedId !== null) throw error;
   }
+  // Explicit merged recovery must not overwrite a status changed by another
+  // writer after verification. Ordinary reconciliation keeps its existing rules.
+  if ((expectedState !== null && current?.state !== expectedState) ||
+      (expectedId !== null && current?.id !== expectedId)) return;
+  let written;
   // Revoke green immediately without creating two statuses for every event
   // on an unchanged pending/failing head. Authoritative evidence may still
   // move an earlier failure to pending when its rerun starts.
   const preserve = provisional && current && current.state !== 'success';
   const boundedDescription = description.slice(0, 140);
   if (!preserve && (current?.state !== state || current.description !== boundedDescription)) {
-    await github.rest.repos.createCommitStatus({
+    written = (await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
       description: boundedDescription,
       target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-    });
+    })).data;
   }
+  if (!updateLabels) return written;
   if (state === 'success') {
     await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
   } else {
@@ -195,6 +201,7 @@ async function publish(github, context, pr, state, description, provisional = fa
       if (error.status !== 404) throw error;
     }
   }
+  return written;
 }
 
 async function freshAfter(github, context, pr) {
@@ -349,4 +356,135 @@ async function finalize({github, context, core, number, head, before, pollPassed
   }
 }
 
-module.exports = {recoveryCandidates, revokeStaleGreens, snapshot, resolve, freshAfter, prepare, finalize};
+// Explicit recovery never changes ordinary PR reconciliation. Only trusted
+// default-branch dispatches may revisit a pending aggregate after a release merge.
+async function mergedRecoveryBinding(github, context, number, head) {
+  const repository = `${context.repo.owner}/${context.repo.repo}`;
+  if (context.eventName !== 'workflow_dispatch' ||
+      context.payload.repository?.full_name !== repository ||
+      context.ref !== `refs/heads/${context.payload.repository.default_branch}` ||
+      !Number.isSafeInteger(Number(number)) || Number(number) <= 0 ||
+      !/^[0-9a-f]{40}$/.test(head || '')) {
+    throw new Error('Merged release recovery requires trusted default-branch dispatch, PR number and exact head.');
+  }
+  const pr = await readPR(github, context, Number(number));
+  if (pr.number !== Number(number) || pr.merged !== true || pr.state !== 'closed' ||
+      pr.head.sha !== head || pr.commits !== 1 || !pr.head.repo?.full_name ||
+      pr.base.repo?.full_name !== repository || !/^release-\d+\.\d+$/.test(pr.base.ref) ||
+      !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '') || blocked(pr)) {
+    throw new Error('Recovery identity is not an eligible merged release PR.');
+  }
+  const {data: commit} = await github.rest.repos.getCommit({
+    ...context.repo, ref: pr.merge_commit_sha,
+  });
+  const {data: tested} = await github.rest.repos.getCommit({...context.repo, ref: head});
+  if (commit.sha !== pr.merge_commit_sha || tested.sha !== head ||
+      !Array.isArray(commit.parents) || commit.parents.length !== 1 ||
+      !Array.isArray(tested.parents) || tested.parents.length !== 1 ||
+      !/^[0-9a-f]{40}$/.test(commit.parents[0].sha || '') ||
+      commit.parents[0].sha !== tested.parents[0].sha ||
+      !/^[0-9a-f]{40}$/.test(commit.commit?.tree?.sha || '') ||
+      commit.commit.tree.sha !== tested.commit?.tree?.sha) {
+    throw new Error('Recovery requires a single-commit PR with matching tested/merged parents and trees.');
+  }
+  // Multi-commit rebase merges make the last commit's parent part of the PR.
+  // Restrict recovery to one tested commit with an unchanged parent and tree;
+  // this proves the immutable base without trusting GitHub's mutable base.sha.
+  const bound = {...pr, base: {...pr.base, sha: commit.parents[0].sha}};
+  const identity = JSON.stringify([bound.number, head, pr.head.repo.full_name,
+    pr.base.repo.full_name, pr.base.ref, pr.merge_commit_sha, bound.base.sha, commit.commit.tree.sha]);
+  return {pr: bound, identity};
+}
+
+async function resetRecoveryStatus(github, context, pr, status) {
+  // A status read must succeed before every conditional write. Never trade
+  // another writer's safety for availability during a GitHub API outage.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await publish(github, context, pr, 'pending',
+        'Merged recovery needs revalidation; rerun trusted recovery.',
+        false, status.state, status.id, false);
+    } catch (error) {
+      if (attempt === 2) throw new Error(`Recovery cleanup could not verify its status; rerun trusted recovery: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+}
+
+async function repairInterruptedRecovery(github, context, pr, status) {
+  if (!status || !['success', 'failure'].includes(status.state) ||
+      !Number.isSafeInteger(status.id) || status.id <= 0) return;
+  const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+  if (typeof status.target_url !== 'string' || !status.target_url.startsWith(prefix)) return;
+  const id = status.target_url.slice(prefix.length);
+  if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) return;
+  const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: Number(id)});
+  const repository = `${context.repo.owner}/${context.repo.repo}`;
+  if (run.id !== Number(id) || run.path !== '.github/workflows/ci-checks.yml' ||
+      run.event !== 'workflow_dispatch' || run.head_branch !== context.payload.repository.default_branch ||
+      run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) return;
+  // Rerunning the same Actions run changes its state to in_progress. Do not
+  // let that no-op turn a failed owner into a successful run and strand green.
+  if (run.status !== 'completed') throw new Error('Recovery owner is still running; dispatch a fresh recovery after it finishes.');
+  if (!['failure', 'cancelled', 'timed_out', 'startup_failure', 'action_required'].includes(run.conclusion)) return;
+  // Cleanup precedes evidence reads and the independent poll, so even another
+  // validation failure leaves a retryable, non-green aggregate.
+  await resetRecoveryStatus(github, context, pr, status);
+}
+
+async function prepareMergedRecovery({github, context, core, number, head,
+  root = process.env.GITHUB_WORKSPACE}) {
+  const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
+  const initial = await currentStatus(github, context, head);
+  if (initial?.state !== 'pending') {
+    await repairInterruptedRecovery(github, context, pr, initial);
+    if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  }
+  const workflows = await evidence(github, context, pr, root);
+  core.info(JSON.stringify(workflows));
+  if (!workflows.passed) throw new Error('Required merged-head workflows have not passed.');
+  core.setOutput('pr_number', String(pr.number));
+  core.setOutput('head_sha', head);
+  core.setOutput('snapshot', identity);
+  core.setOutput('ready', 'true');
+}
+
+async function finalizeMergedRecovery({github, context, core, number, head, before,
+  pollPassed, root = process.env.GITHUB_WORKSPACE}) {
+  if (!number || !head || !pollPassed) return;
+  const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
+  if (identity !== before) throw new Error('Merged recovery identity changed.');
+  if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  const [workflows, checks] = await Promise.all([
+    evidence(github, context, pr, root),
+    verifyCheckRuns({github, ...context.repo, sha: head}),
+  ]);
+  core.info(JSON.stringify({workflows, checks}));
+  if (!workflows.passed || checks.state !== 'success') {
+    throw new Error('Required merged-head CI evidence is not green.');
+  }
+  const after = await mergedRecoveryBinding(github, context, number, head);
+  if (after.identity !== before) throw new Error('Merged recovery identity changed before publication.');
+  if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  const written = await publish(github, context, after.pr, 'success',
+    successDescription(after.pr, workflows.baseSha), false, 'pending', null, false);
+  if (!written) return;
+  // Publication is not atomic with GitHub's CI state. Recheck and revoke only
+  // the exact status this attempt wrote, preserving another writer's update.
+  try {
+    const final = await mergedRecoveryBinding(github, context, number, head);
+    if (final.identity !== before) throw new Error('Merged identity changed during publication.');
+    const results = await Promise.all([
+      evidence(github, context, final.pr, root),
+      verifyCheckRuns({github, ...context.repo, sha: head}),
+    ]);
+    if (results.some(result => result.state !== 'success')) {
+      throw new Error('CI evidence changed during merged recovery publication.');
+    }
+  } catch (error) {
+    await resetRecoveryStatus(github, context, after.pr, {state: 'success', id: written.id});
+    throw error;
+  }
+}
+
+module.exports = {prepareMergedRecovery, finalizeMergedRecovery, recoveryCandidates, revokeStaleGreens, snapshot, resolve, freshAfter, prepare, finalize};

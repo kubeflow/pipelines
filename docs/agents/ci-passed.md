@@ -262,3 +262,40 @@ Never remove or revert a required status's publisher without coordinating the
 corresponding protection and merge policy. If rollback is needed, retain a working
 publisher and restore containment before changing merge requirements. Holds only
 protect PRs that actually carry them; audit existing PRs as well as creation labels.
+
+## Recover a pending aggregate after a release merge
+
+Ordinary reconciliation preserves a merged PR's published status. If a release
+PR merges while `ci-passed` is pending, later successful constituent runs cannot
+repair that aggregate through the open-PR sweep. Release qualification still
+requires green CI; do not bypass the gate or manually create a success status.
+
+After verifying the PR number and exact tested head, dispatch **CI Check** from
+the default branch with `merged_pr` and `head_sha`. For example:
+
+```sh
+gh workflow run ci-checks.yml --ref master -f merged_pr=12345 -f head_sha=<40-character-head-SHA>
+```
+
+This explicit recovery accepts only merged `release-X.Y` PRs in this repository
+whose aggregate is pending, or whose leftover success/failure is proven to come
+from an interrupted recovery run. It binds the head, merge commit, repository and branch,
+and accepts only single-commit PRs whose tested head and merged commit have
+identical trees and identical sole parents. This proves the immutable pre-PR
+base without trusting a subsequently advancing PR base field. Multi-commit PRs,
+merge commits with multiple parents, and changed parents or trees fail closed;
+a first parent alone is not proof because a multi-commit rebase can put it inside
+the PR. The required workflow inventory comes from this verified parent. Other green or failed aggregate statuses are left untouched. The pinned independent checker,
+required-workflow validation and external-check reader must all pass. Identity
+changes, unavailable evidence and pending or failed checks cannot authorize a
+success. Recovery does not change PR labels. No release tag or package is published by this workflow.
+
+Cleanup retries the exact status-ID ownership lookup/write three times. A
+transient error cannot silently skip rollback; a persistent API outage fails the
+job explicitly. Once GitHub is available, start a **fresh dispatch**, rather than
+rerunning the failed run. Recovery authenticates the old status URL against the
+Actions run's repository, workflow path, dispatch event, default branch and
+completed failure/interruption outcome, then resets only that exact status to
+pending before checking evidence. A running owner fails explicitly, including a
+rerun of the same run ID. Newer writers are preserved. Do not proceed with release
+publication while cleanup is outstanding.
