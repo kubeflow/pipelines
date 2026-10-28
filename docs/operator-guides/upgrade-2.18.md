@@ -2,9 +2,9 @@
 
 Upgrade KFP through your usual deployment process using the
 [2.18 release manifests](https://github.com/kubeflow/pipelines/releases/tag/2.18.0).
-The standard deployment handles recurring-run adoption and UI signing-key
-initialization automatically. You do not need a separate migration Job, manual
-API-server/controller ordering, or blanket schedule recreation.
+The standard multi-user deployment handles recurring-run adoption automatically,
+and the UI manifests initialize the shared signing key. You do not need a separate
+migration Job, manual API-server/controller ordering, or blanket schedule recreation.
 
 This guide covers preparation, expected rollout behavior, and checks after the
 upgrade. Use the feature-specific sections for the integrations you have enabled.
@@ -12,21 +12,20 @@ upgrade. Use the feature-specific sections for the integrations you have enabled
 ## Before upgrading
 
 1. **Back up your databases and deployment configuration.** Include the UI signing
-   Secret if it already exists. Rehearse the upgrade against a representative
-   database: startup schema changes and backfills can delay readiness and block
-   writes, especially with large histories. See [database preparation](#database-migration-paths).
+   Secret if it already exists. See [database preparation](#database-migration-paths)
+   for the automatic index builds and the separate, one-time reference backfill.
 2. **Review your customizations.** Compare custom overlays with the complete release
    manifests, including RBAC, environment variables, Secret references, and Jobs.
    Use the [compatibility checklist](#check-applicable-compatibility-changes) below
    for custom roles, storage, clients, and enabled retention.
-3. **Plan for interrupted access.** The UI uses `Recreate` by default. Its first
-   shared-key adoption invalidates old TensorBoard URLs. Database initialization
-   can also affect availability; automatic migration does not guarantee a
-   zero-downtime rollout.
-4. **Update SDK environments separately.** A server upgrade does not update users'
-   installed packages or previously compiled components. Review the
+3. **Expect a brief UI interruption.** The default `Recreate` strategy replaces
+   the old UI Pods before starting the new ones. First shared-key adoption also
+   invalidates old TensorBoard URLs; reopen viewers after the rollout.
+4. **If you also upgrade SDKs, update those environments separately.** A server
+   upgrade does not update installed SDK packages or previously compiled
+   components. Before recompiling with the new SDK, review the
    [SDK changes](#sdk-and-custom-client-migration), particularly preview privacy
-   and private package mirrors, before recompiling pipelines.
+   and private package mirrors.
 
 ## What happens during a normal upgrade
 
@@ -37,8 +36,8 @@ its image versions.
 
 | Component | Expected behavior | What to check |
 | --- | --- | --- |
-| API server and database | Each new API process completes schema initialization and reference backfills before serving requests. | Startup logs, readiness, database load, and lock waits. See [database migration paths](#database-migration-paths). |
-| Recurring runs | The API and controller coordinate the writer handoff and adopt eligible stored schedules in the background. Enabled/disabled state and retained execution progress are preserved. | Enabled schedules resume, disabled schedules stay disabled, and no duplicate execution appears. Schedule changes may wait up to 30 seconds during handoff. |
+| API server and database | New API Pods finish startup schema checks, lookup-index preparation, and any pending reference backfill before becoming ready. Retention indexes are prepared afterward in the background. | New Pod readiness and database load. Online index construction does not require stopping existing API replicas. See [database migration paths](#database-migration-paths). |
+| Multi-user recurring runs | The API and controller coordinate the writer handoff and adopt eligible stored schedules in the background. Enabled/disabled state and retained execution progress are preserved. | Enabled schedules resume, disabled schedules stay disabled, and no duplicate execution appears. Schedule changes may wait up to 30 seconds during handoff. |
 | UI and TensorBoard | The initializer creates the signing key if absent; the UI starts when it is available. Existing valid keys are preserved. | Wait for UI rollout, then reopen TensorBoard if an old URL no longer works. |
 
 To check the standard deployments, replace `kubeflow` with your installation
@@ -58,15 +57,19 @@ check; also verify the workloads and integrations below.
 
 - Submit a representative pipeline and confirm that its terminal status appears
   in KFP. Check retained runs as well as newly submitted ones.
-- Check an enabled recurring run's next execution, a disabled schedule, retained
-  progress, and concurrency behavior. Confirm there are no duplicate runs.
-- Open the UI and TensorBoard. Verify an artifact preview, an ordinary download,
-  and an archived log whose original Pod has been removed.
+- If you use recurring runs, check an enabled schedule's next execution and that
+  a disabled schedule stays disabled. Check retained progress and concurrency
+  behavior for those schedules.
+- Open the UI and test the viewers and storage paths you use: TensorBoard,
+  artifact previews/downloads, and archived logs after their original Pod is gone.
+  You do not need to enable unused features to verify the upgrade.
 - Test applicable custom service accounts, roles, storage integrations, and
   private-pipeline lookups. The [RBAC guide](rbac-migration-2.18.md) provides
   permission checks.
-- If retention is enabled, confirm the intended windows and inspect index
-  preparation and collection activity before allowing catch-up on a large backlog.
+- If retention is enabled, confirm the configured windows and inspect index
+  preparation and collection activity. To review a backlog before collection
+  resumes, configure [prepare-only mode](#automatic-retention-index-preparation)
+  before rollout.
 
 Keep original Workflows until KFP has recorded their terminal state. If reporting
 or schedule adoption stalls, preserve the affected records and logs and follow
@@ -89,24 +92,40 @@ Do not delete history, reset counters, or edit ownership fields to force progres
 
 ## Database migration paths
 
-KFP 2.18 retains MLMD. Back up the databases and assess upgrade duration, capacity,
-and lock behavior with representative data before changing database images or
-starting the API rollout.
+KFP 2.18 retains MLMD. The index builds below run automatically and do not require
+an offline database migration. Distinguish a new API Pod waiting for initialization
+from database-wide unavailability: online index construction permits concurrent
+reads and writes, although it consumes resources and briefly acquires metadata
+locks.
 
 ### Automatic startup schema and data changes
 
-Schema initialization and the pipeline-reference backfill run before the new API
-process serves requests. They can rebuild or lock tables and block concurrent
-writes. Backfill completion is recorded transactionally, so an interrupted
-backfill can retry without treating partial work as complete.
+For a 2.17-to-2.18 upgrade, each new API process checks the current schema and
+prepares the recurring-run lookup index before serving requests. Existing API
+replicas are not deliberately stopped for this preparation.
 
-The recurring-run lookup index, `idx_run_details_job_uuid`, is prepared separately
+The recurring-run lookup index, `idx_run_details_job_uuid`, is built online
 at startup. It preserves existing `JobUUID` column types and values and reuses a
 valid index. MySQL uses a 191-character index prefix with online DDL; PostgreSQL
 uses a concurrent full-column index. The prefix does not shorten stored values.
 The helper bounds metadata-lock waits and has a 30-minute build deadline; failure
 stops that API process with diagnostics rather than falling back to a blocking
-index build. Other startup schema changes do not share those guarantees.
+index build. Retention index preparation follows a separate background path,
+described below.
+
+**The pipeline-reference backfill is a separate, one-time operation.** When the
+`backfill_pipeline_refs` completion marker is absent, startup scans `run_details`
+and `jobs` to populate missing pipeline and version IDs from historical references.
+The updates run in one transaction and can make concurrent writes wait until it
+finishes. This can delay the new API Pod's readiness; it is not an index rebuild.
+The transaction also records completion, so later startups skip the scans and an
+interrupted attempt retries without marking partial work complete. For a large
+history, rehearse this first backfill against a representative database and observe
+its duration and write latency. Do not rerun it manually or remove its marker.
+
+Upgrades from a pre-2.15 schema also take the older column-conversion and backfill
+path. That is a different starting state from the normal 2.17-to-2.18 upgrade;
+review that legacy path separately before skipping intervening upgrades.
 
 If initialization fails, inspect API startup logs and database diagnostics before
 retrying. An interrupted PostgreSQL lookup-index build can require repair of an
@@ -119,13 +138,15 @@ for definitions, deadlines, and recovery details.
 `RUNS_RETENTION_TIME` and `ARCHIVED_RUNS_RETENTION_TIME` are disabled by default.
 When retention is configured, KFP prepares its required indexes in the background
 before collection; this does not delay API startup. Failed preparation pauses
-collection and retries. Index construction and cleanup still consume database
-resources.
+collection and retries. MySQL uses `ALGORITHM=INPLACE, LOCK=NONE`; PostgreSQL
+uses concurrent index builds. Both permit concurrent application reads and writes.
+Monitor database load while preparation runs; it does not require pausing normal
+pipeline use.
 
 **Retention that was already configured but paused because indexes were missing
-can start archiving or deleting runs after this upgrade.** To prepare indexes
-without collection, set `RUNS_GC_INDEX_PREPARE_ONLY=true` consistently on every API
-replica and installation sharing the database. Finish the rollout before relying
+can start archiving or deleting runs after this upgrade.** If you want to inspect
+the backlog before resuming collection, set `RUNS_GC_INDEX_PREPARE_ONLY=true`
+consistently on every API replica and installation sharing the database. Finish the rollout before relying
 on that setting; an old leader does not obey another replica's configuration.
 Review the backlog and database load, then clear prepare-only when ready.
 Collection waits a full `RUNS_GC_INTERVAL` after preparation or a leadership change.
