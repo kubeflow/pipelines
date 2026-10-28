@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -192,7 +192,7 @@ func (s *kfpAPIPauseSignaler) PublishBarrier(ctx context.Context, barrier DebugP
 }
 
 func (s *kfpAPIPauseSignaler) ReadPauseState(ctx context.Context) (PauseState, error) {
-	task, err := s.client.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+	task, err := s.client.GetTask(ctx, &apiV2.GetTaskRequest{
 		TaskId: s.taskID,
 		RunId:  s.runID,
 	})
@@ -223,7 +223,7 @@ func (s *kfpAPIPauseSignaler) ClearBarrier(ctx context.Context) error {
 // the pause barrier would risk erasing an unrelated custom property (e.g. a
 // failure message) that was already recorded on the task.
 func (s *kfpAPIPauseSignaler) mergeCustomProperties(ctx context.Context, updates map[string]*structpb.Value) error {
-	current, err := s.client.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+	current, err := s.client.GetTask(ctx, &apiV2.GetTaskRequest{
 		TaskId: s.taskID,
 		RunId:  s.runID,
 	})
@@ -233,7 +233,7 @@ func (s *kfpAPIPauseSignaler) mergeCustomProperties(ctx context.Context, updates
 
 	statusMetadata := current.GetStatusMetadata()
 	if statusMetadata == nil {
-		statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+		statusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 	}
 	props := statusMetadata.GetCustomProperties()
 	if props == nil {
@@ -251,10 +251,10 @@ func (s *kfpAPIPauseSignaler) mergeCustomProperties(ctx context.Context, updates
 	}
 	statusMetadata.CustomProperties = props
 
-	_, err = s.client.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+	_, err = s.client.UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 		TaskId: s.taskID,
 		RunId:  s.runID,
-		Task: &apiV2beta1.PipelineTask{
+		Task: &apiV2.PipelineTask{
 			TaskId:         s.taskID,
 			RunId:          s.runID,
 			StatusMetadata: statusMetadata,
@@ -437,9 +437,9 @@ func BarrierForError(cfg DebugPauseConfig, commandFailed bool) DebugPauseBarrier
 // unchanged" to the task store - so the keys must be written cleared, not
 // merely deleted, or a stale barrier published before a lost best-effort
 // ClearBarrier would persist on a finished task.
-func clearDebugPauseProperties(metadata *apiV2beta1.PipelineTask_StatusMetadata) *apiV2beta1.PipelineTask_StatusMetadata {
+func clearDebugPauseProperties(metadata *apiV2.PipelineTask_StatusMetadata) *apiV2.PipelineTask_StatusMetadata {
 	if metadata == nil {
-		metadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+		metadata = &apiV2.PipelineTask_StatusMetadata{}
 	}
 	props := metadata.GetCustomProperties()
 	if props == nil {

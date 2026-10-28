@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -327,12 +327,12 @@ func TestPause_ContextCancellationClearsBestEffort(t *testing.T) {
 // properties, simulating leftover state from a previous barrier.
 func seedPausedTask(t *testing.T, api *kfpapi.MockAPI, runID, taskID string, props map[string]*structpb.Value) {
 	t.Helper()
-	_, err := api.CreateTask(context.Background(), &apiV2beta1.CreateTaskRequest{
+	_, err := api.CreateTask(context.Background(), &apiV2.CreateTaskRequest{
 		RunId: runID,
-		Task: &apiV2beta1.PipelineTask{
+		Task: &apiV2.PipelineTask{
 			TaskId: taskID,
 			RunId:  runID,
-			StatusMetadata: &apiV2beta1.PipelineTask_StatusMetadata{
+			StatusMetadata: &apiV2.PipelineTask_StatusMetadata{
 				CustomProperties: props,
 			},
 		},
