@@ -111,7 +111,7 @@ index build. Other startup schema changes do not share those guarantees.
 If initialization fails, inspect API startup logs and database diagnostics before
 retrying. An interrupted PostgreSQL lookup-index build can require repair of an
 invalid index. Do not delete migration markers or edit stored references to force
-startup. See the [lookup-index reference](../agents/development.md#recurring-run-lookup-index)
+startup. See the [lookup-index reference](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/agents/development.md#recurring-run-lookup-index)
 for definitions, deadlines, and recovery details.
 
 ### Automatic retention index preparation
