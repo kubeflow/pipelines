@@ -64,13 +64,13 @@ type finalizationFailureAPI struct {
 // test can assert exactly what the batch flush persisted.
 type captureBulkUpdateAPI struct {
 	kfpapi.API
-	lastBulkUpdate *apiv2beta1.UpdateTasksBulkRequest
+	lastBulkUpdate *apiv2.UpdateTasksBulkRequest
 }
 
 func (api *captureBulkUpdateAPI) UpdateTasksBulk(
 	ctx context.Context,
-	req *apiv2beta1.UpdateTasksBulkRequest,
-) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	req *apiv2.UpdateTasksBulkRequest,
+) (*apiv2.UpdateTasksBulkResponse, error) {
 	api.lastBulkUpdate = req
 	return api.API.UpdateTasksBulk(ctx, req)
 }
@@ -252,17 +252,17 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 func TestFinalizeExecutionClearsDebugPauseProperties(t *testing.T) {
 	t.Setenv(envKFPDebugPauseBefore, "true")
 	baseAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId: "run",
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
 	}
 	baseAPI.AddRun(run)
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId: "task",
 		RunId:  run.GetRunId(),
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			CustomProperties: map[string]*structpb.Value{
 				customPropDebugPauseBarrier:         structpb.NewStringValue("before"),
 				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
@@ -270,7 +270,7 @@ func TestFinalizeExecutionClearsDebugPauseProperties(t *testing.T) {
 			},
 		},
 	}
-	_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		Task:  task,
 		RunId: run.GetRunId(),
 	})
@@ -312,32 +312,32 @@ func TestFinalizeExecutionClearsDebugPauseProperties(t *testing.T) {
 func TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata(t *testing.T) {
 	t.Setenv(envKFPDebugPauseBefore, "true")
 	baseAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId: "run",
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
 	}
 	baseAPI.AddRun(run)
 	// The persisted record already carries a stale barrier; the launcher's
 	// in-memory task has no StatusMetadata at all.
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId: "task",
 		RunId:  run.GetRunId(),
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			CustomProperties: map[string]*structpb.Value{
 				customPropDebugPauseBarrier:         structpb.NewStringValue("before"),
 				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
 			},
 		},
 	}
-	_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		Task:  task,
 		RunId: run.GetRunId(),
 	})
 	require.NoError(t, err)
 
-	inMemoryTask := &apiv2beta1.PipelineTask{
+	inMemoryTask := &apiv2.PipelineTask{
 		TaskId: task.GetTaskId(),
 		RunId:  run.GetRunId(),
 		// StatusMetadata deliberately nil: the in-memory snapshot never saw
@@ -377,17 +377,17 @@ func TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata(t *testin
 func TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure(t *testing.T) {
 	t.Setenv(envKFPDebugPauseOnError, "true")
 	baseAPI := kfpapi.NewMockAPI()
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId: "run",
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+		PipelineSource: &apiv2.Run_PipelineSpec{
 			PipelineSpec: &structpb.Struct{},
 		},
 	}
 	baseAPI.AddRun(run)
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		TaskId: "task",
 		RunId:  run.GetRunId(),
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			CustomProperties: map[string]*structpb.Value{
 				customPropDebugPauseBarrier:         structpb.NewStringValue("on_error"),
 				customPropDebugPauseResumeRequested: structpb.NewStringValue("true"),
@@ -395,7 +395,7 @@ func TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure(t *testin
 			},
 		},
 	}
-	_, err := baseAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	_, err := baseAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		Task:  task,
 		RunId: run.GetRunId(),
 	})
@@ -417,7 +417,7 @@ func TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure(t *testin
 	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
 	flushedTask := capturingAPI.lastBulkUpdate.GetTasks()[task.GetTaskId()]
 	require.NotNil(t, flushedTask)
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, flushedTask.GetState())
+	assert.Equal(t, apiv2.PipelineTask_FAILED, flushedTask.GetState())
 	assert.Equal(t, "executor failed", flushedTask.GetStatusMetadata().GetMessage())
 	props := flushedTask.GetStatusMetadata().GetCustomProperties()
 	assert.Equal(t, string(debugPauseBarrierNone), props[customPropDebugPauseBarrier].GetStringValue(),
