@@ -46,7 +46,7 @@ export const LEGACY_UI_METADATA_ARTIFACT_KEYS = [
   LEGACY_UI_METADATA_ARTIFACT_KEY,
   'mlpipeline_ui_metadata',
 ] as const;
-const RETRY_INDEX_SUFFIX = /-(\d+)$/;
+const RETRY_INDEX_SUFFIX = /(?:^|\/)executor-logs-(\d+)$/;
 
 export function flattenArtifactGroups(
   groups: InputOutputsIOArtifact[] | undefined,
@@ -123,7 +123,7 @@ export function getOutputArtifactByName(
   }, undefined);
 }
 
-function getExecutorLogsRetryIndex(artifact: V2Artifact): number | undefined {
+export function getExecutorLogsRetryIndex(artifact: V2Artifact): number | undefined {
   const match = artifact.uri?.match(RETRY_INDEX_SUFFIX);
   return match ? Number(match[1]) : undefined;
 }

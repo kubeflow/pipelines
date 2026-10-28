@@ -1,0 +1,56 @@
+.kfp-external-link {
+  color: var(--primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.kfp-external-link:hover {
+  text-decoration: underline;
+}
+.kfp-external-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.kfp-busy-button {
+  position: relative;
+}
+.kfp-atom-spinner {
+  animation: kfp-atom-spin 1s linear infinite;
+}
+.kfp-help-positioner {
+  z-index: 1500;
+}
+.kfp-help-popup {
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--foreground);
+  background: var(--card);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.kfp-help-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.kfp-help-heading h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+@keyframes kfp-atom-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kfp-atom-spinner {
+    animation: none;
+  }
+}

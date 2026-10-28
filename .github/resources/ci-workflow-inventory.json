@@ -366,12 +366,16 @@
     {
       "path": ".github/workflows/frontend.yml",
       "name": "Frontend Tests",
-      "header_sha256": "ad213cb370af3e573a7e0c7bdcec60c0a93cb6c882ac2fe3b148934ba46d964b",
+      "header_sha256": "7db5b97ddafe4c0580c8d61ec01af6170b5bd274f7820316b43351b8adacd608",
       "pull_request": {
         "branches": [
           "master"
         ],
         "paths": [
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/configure_frontend_apt*",
+          ".github/resources/scripts/ci-image-artifacts.sh",
           "frontend/**",
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py",
           "api/v2alpha1/*.proto",

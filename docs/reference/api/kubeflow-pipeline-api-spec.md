@@ -19,6 +19,29 @@ Typically, you will need to provide a token or cookie in the request headers.
 
 Please refer to the documentation of your [Kubeflow distribution](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-distributions) for more information.
 
+### Pipeline creation and list visibility
+
+With the Kubernetes-native pipeline store, pipeline and pipeline-version list requests read an
+informer cache. A successful creation or upload response acknowledges the write; it does not
+ensure that an immediately following list request includes the new resource. The cache can take
+time to observe it. There is no fixed list-visibility deadline guaranteed by the API.
+
+Lookups by pipeline or pipeline-version ID fall back to a direct Kubernetes read when the ID is
+absent from the cache. This does not bypass a cached match, refresh arbitrary list results, or
+provide a global read-after-write guarantee.
+
+Clients should retain the returned pipeline ID and retry the read when a successful list response
+is empty. Do not repeat an acknowledged upload merely because its version is not listed yet;
+that can create duplicate resources. Authentication, authorization and other API errors should
+remain visible rather than being treated as empty results.
+
+For a new pipeline uploaded from a local file, the UI waits up to 10 seconds for version discovery.
+If discovery times out or fails, **Retry version discovery** reads the already uploaded pipeline
+without uploading again. Form values are retained. Changing the selected file, upload metadata
+or namespace starts a different upload intent. This recovery identity is local to the open form;
+navigating away or reloading does not retain it. The 10-second wait is a UI limit, not an API
+consistency guarantee.
+
 ### Example Usage
 
 To use the API, you will need to send HTTP requests to the appropriate endpoints.

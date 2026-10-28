@@ -15,6 +15,10 @@
  */
 
 import * as React from 'react';
+vi.mock('src/components/shell/ThemeProvider', () => ({
+  useTheme: () => ({ themeClassName: 'kfp-theme' }),
+}));
+
 import { act, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
@@ -29,7 +33,6 @@ import RecurringRunList, {
   getScheduleStatus,
 } from './RecurringRunList';
 import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
-import { color } from 'src/Css';
 
 let lastCustomTableProps: any = null;
 
@@ -39,7 +42,7 @@ vi.mock('src/components/CustomTable', () => {
     Column: {},
     Row: {},
     CustomRendererProps: {},
-    default: (props: any) => {
+    default: function MockCustomTable(props: any) {
       const { ref, ...tableProps } = props;
       lastCustomTableProps = tableProps;
       React.useImperativeHandle(ref, () => ({
@@ -59,7 +62,6 @@ vi.mock('src/components/CustomTable', () => {
 });
 
 describe('RecurringRunList', () => {
-  let renderResult: ReturnType<typeof render> | null = null;
   let recurringRunListRef: React.RefObject<RecurringRunList> | null = null;
 
   const onErrorSpy = vi.fn();
@@ -81,7 +83,7 @@ describe('RecurringRunList', () => {
   function renderRecurringRunList(propsPatch: Partial<RecurringRunListProps> = {}): void {
     recurringRunListRef = React.createRef<RecurringRunList>();
     const props = { ...generateProps(), ...propsPatch } as RecurringRunListProps;
-    renderResult = render(
+    render(
       <MemoryRouter>
         <RecurringRunList ref={recurringRunListRef} {...props} />
       </MemoryRouter>,
@@ -400,7 +402,7 @@ describe('RecurringRunList', () => {
         id: 'recurring run-id',
       }),
     );
-    expect(getByText('Every 1 days')).toBeInTheDocument();
+    expect(getByText('Every day')).toBeInTheDocument();
   });
 
   it('renders recurring run trigger as cron', () => {
@@ -411,40 +413,33 @@ describe('RecurringRunList', () => {
         id: 'recurring run-id',
       }),
     );
-    expect(getByText('Cron: 0 * * * * ?')).toBeInTheDocument();
+    expect(getByText('Every minute (scheduler time)')).toBeInTheDocument();
   });
 
-  it('renders status enabled', () => {
+  it.each([
+    [V2RecurringRunStatus.ENABLED, true],
+    [V2RecurringRunStatus.DISABLED, false],
+  ])('renders a controlled schedule switch for %s', (status, checked) => {
     renderRecurringRunList();
-    const { getByText } = render(
-      getInstance()._statusCustomRenderer({
-        value: 'Enabled',
-        id: 'recurring run-id',
-      }),
+    const view = render(
+      getInstance()._statusCustomRenderer({ value: status, id: 'recurring run-id' }),
     );
-    expect(getByText('Enabled')).toHaveStyle({ color: color.errorText });
+    expect(
+      view.getByText(status === V2RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'),
+    ).toBeVisible();
+    expect(view.getByRole('switch', { name: 'Enable schedule recurring run-id' })).toHaveAttribute(
+      'aria-checked',
+      String(checked),
+    );
   });
 
-  it('renders status disabled', () => {
+  it('shows an unknown status without enabling its mutation control', () => {
     renderRecurringRunList();
-    const { getByText } = render(
-      getInstance()._statusCustomRenderer({
-        value: 'Disabled',
-        id: 'recurring run-id',
-      }),
+    const view = render(
+      getInstance()._statusCustomRenderer({ value: 'Unknown Status', id: 'recurring run-id' }),
     );
-    expect(getByText('Disabled')).toHaveStyle({ color: color.errorText });
-  });
-
-  it('renders status unknown', () => {
-    renderRecurringRunList();
-    const { getByText } = render(
-      getInstance()._statusCustomRenderer({
-        value: 'Unknown Status',
-        id: 'recurring run-id',
-      }),
-    );
-    expect(getByText('Unknown Status')).toHaveStyle({ color: color.errorText });
+    expect(view.getByText('Unknown')).toBeVisible();
+    expect(view.getByRole('switch')).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows start time and end time when configured (periodic)', async () => {
@@ -590,7 +585,7 @@ describe('RecurringRunList', () => {
         id: 'recurring run-id',
       }),
     );
-    expect(getByText('Active')).toHaveStyle({ color: color.success });
+    expect(getByText('Active')).toHaveAttribute('data-status', 'Active');
   });
 
   it('renders schedule status Scheduled', () => {
@@ -601,7 +596,7 @@ describe('RecurringRunList', () => {
         id: 'recurring run-id',
       }),
     );
-    expect(getByText('Scheduled')).toHaveStyle({ color: color.theme });
+    expect(getByText('Scheduled')).toHaveAttribute('data-status', 'Scheduled');
   });
 
   it('renders schedule status Expired', () => {
@@ -612,7 +607,7 @@ describe('RecurringRunList', () => {
         id: 'recurring run-id',
       }),
     );
-    expect(getByText('Expired')).toHaveStyle({ color: color.warningText });
+    expect(getByText('Expired')).toHaveAttribute('data-status', 'Expired');
   });
 
   it('renders schedule status Disabled', () => {
@@ -623,6 +618,6 @@ describe('RecurringRunList', () => {
         id: 'recurring run-id',
       }),
     );
-    expect(getByText('Disabled')).toHaveStyle({ color: color.inactive });
+    expect(getByText('Disabled')).toHaveAttribute('data-status', 'Disabled');
   });
 });

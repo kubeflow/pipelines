@@ -19,16 +19,17 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
 import { V2RunStorageState } from 'src/apisv2/run';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from 'src/Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface AllRunsListState {
   selectedIds: string[];
 }
 
-export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> {
+export class AllRunsList extends Page<
+  { namespace?: string; scopeControl?: React.ReactNode },
+  AllRunsListState
+> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -61,8 +62,9 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-runs-view'>
         <RunList
+          onLoadSuccess={this.clearBanner.bind(this)}
           onError={this.showPageError.bind(this)}
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
@@ -97,9 +99,9 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
   }
 }
 
-const EnhancedAllRunsList = (props: PageProps) => {
+const AllRunsListWithContext = (props: PageProps & { scopeControl?: React.ReactNode }) => {
   const namespace = React.useContext(NamespaceContext);
   return <AllRunsList key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedAllRunsList;
+export default AllRunsListWithContext;

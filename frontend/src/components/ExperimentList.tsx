@@ -16,7 +16,9 @@
 
 import { NavigationProps } from 'src/lib/Navigation';
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
+import { NameTooltip } from './CustomTableNameColumn';
 import * as React from 'react';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
 import { Link } from 'react-router';
 import {
   V2ListExperimentsResponse,
@@ -25,16 +27,15 @@ import {
 } from 'src/apisv2/experiment';
 import { errorToMessage } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from './Router';
-import { commonCss } from 'src/Css';
 import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
-import { V2RunStorageState } from 'src/apisv2/run';
 import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
-import RunList from 'src/pages/RunList';
+import { ExperimentRunPreview } from './runs/ExperimentRunPreview';
 import { produce as immerProduce } from 'immer';
-import { Tooltip } from '@mui/material';
+import 'src/components/runs/ExperimentWorkflows.css';
 
 export interface ExperimentListProps extends NavigationProps {
   namespace?: string;
+  scopeControl?: React.ReactNode;
   storageState?: V2ExperimentStorageState;
   onError: (message: string, error: Error) => void;
 }
@@ -70,6 +71,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       {
         flex: 2,
         label: 'Description',
+        width: '35%',
       },
     ];
 
@@ -85,6 +87,16 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     return (
       <div>
         <CustomTable
+          filterActions={this.props.scopeControl}
+          renderTable={(table) => (
+            <ResourceTable
+              table={table}
+              label='Archived experiments'
+              minWidth={820}
+              singular='experiment'
+              plural='experiments'
+            />
+          )}
           columns={columns}
           rows={rows}
           ref={this._tableRef}
@@ -93,7 +105,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
           reload={this._loadExperiments.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
+          filterLabel='Search experiments'
           emptyMessage='No archived experiments found.'
         />
       </div>
@@ -110,15 +122,18 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
+      <NameTooltip name={props.value || ''}>
         <Link
-          className={commonCss.link}
+          className='kfp-workflow-link'
           onClick={(e) => e.stopPropagation()}
-          to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
+          to={RoutePage.EXPERIMENT_DETAILS.replace(
+            ':' + RouteParams.experimentId,
+            encodeURIComponent(props.id),
+          )}
         >
           {props.value}
         </Link>
-      </Tooltip>
+      </NameTooltip>
     );
   };
 
@@ -187,21 +202,11 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
 
   private _getExpandedExperimentComponent(experimentIndex: number): React.JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
-    const parentProps = { ...this.props, onError: () => null };
     return (
-      <RunList
-        hideExperimentColumn={true}
-        experimentIdMask={experiment.experiment_id}
-        {...parentProps}
-        disablePaging={false}
-        noFilterBox={true}
-        storageState={
-          this.props.storageState === V2ExperimentStorageState.ARCHIVED
-            ? V2RunStorageState.ARCHIVED
-            : V2RunStorageState.AVAILABLE
-        }
-        disableSorting={true}
-        disableSelection={true}
+      <ExperimentRunPreview
+        key={`${experiment.experiment_id}:${this.props.storageState}`}
+        experimentId={experiment.experiment_id!}
+        archived={this.props.storageState === V2ExperimentStorageState.ARCHIVED}
       />
     );
   }

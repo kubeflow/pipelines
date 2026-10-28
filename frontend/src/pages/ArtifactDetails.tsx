@@ -14,23 +14,25 @@
  * limitations under the License.
  */
 
-import { Button, CircularProgress } from '@mui/material';
+import 'src/pages/DetailLayouts.css';
+import { LoaderCircle } from 'lucide-react';
+import { Button } from 'src/components/ui/button';
 import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Link, Route, Routes } from 'react-router';
 import { ArtifactArtifactType, V2Artifact, V2ArtifactTask, V2IOType } from 'src/apisv2/artifact';
 import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 import { PipelineTaskTaskType } from 'src/apisv2/run';
-import MD2Tabs from 'src/atoms/MD2Tabs';
+import { InspectionTabs } from 'src/components/inspection/InspectionTabs';
+import { InspectionFields } from 'src/components/inspection/InspectionFields';
+import { InspectionNotice } from 'src/components/inspection/InspectionNotice';
+import { ResourceTable } from 'src/components/tables/ResourceTable';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import NativeArtifactLineage from 'src/components/NativeArtifactLineage';
-import Banner from 'src/components/Banner';
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
-import DetailsTable from 'src/components/DetailsTable';
 import { RoutePage, RoutePageFactory, RouteParams } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
-import { commonCss, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/DetailsTableTypes';
@@ -50,7 +52,7 @@ import {
 import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
 import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { Page, PageProps } from 'src/pages/Page';
-import { classes } from 'typestyle';
+import './Artifacts.css';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -98,32 +100,33 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
     const { artifact, hasError, visualizationRefreshGeneration } = this.state;
     if (!artifact && !hasError) {
       return (
-        <div className={commonCss.page}>
-          <CircularProgress className={commonCss.absoluteCenter} />
+        <div className='kfp-detail-page kfp-artifact-detail'>
+          <span role='progressbar' aria-label='Loading artifact' className='kfp-artifact-loading'>
+            <LoaderCircle aria-hidden='true' /> Loading artifact…
+          </span>
         </div>
       );
     }
     if (!artifact) {
-      return <div className={commonCss.page} />;
+      return <div className='kfp-detail-page kfp-artifact-detail' />;
     }
 
     return (
-      <div className={commonCss.page}>
+      <div className='kfp-detail-page kfp-artifact-detail'>
         <Routes>
           <Route
             path='explorer'
             element={
-              <>
-                <ArtifactTabs
-                  selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
-                  onSwitch={this.switchTab}
-                />
+              <ArtifactTabs
+                selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
+                onSwitch={this.switchTab}
+              >
                 <NativeArtifactLineage
                   key={this.id}
                   artifactId={this.id}
                   namespace={artifact.namespace}
                 />
-              </>
+              </ArtifactTabs>
             }
           />
           <Route
@@ -195,7 +198,7 @@ export class ArtifactDetailsPage extends Page<{ queryClient?: QueryClient }, Art
   };
 
   private switchTab = (selectedTab: number) => {
-    const artifactPath = RoutePageFactory.artifactDetails(encodeURIComponent(this.id));
+    const artifactPath = RoutePageFactory.artifactDetails(this.id);
     switch (selectedTab) {
       case ArtifactDetailsTab.LINEAGE_EXPLORER:
         this.props.navigate(`${artifactPath}/explorer`);
@@ -295,12 +298,11 @@ function ArtifactOverview({
   }
 
   return (
-    <>
-      <ArtifactTabs selectedTab={ArtifactDetailsTab.OVERVIEW} onSwitch={onSwitch} />
-      <div className={classes(padding(20, 'lr'))}>
-        <DetailsTable title='Artifact details' fields={details} />
+    <ArtifactTabs selectedTab={ArtifactDetailsTab.OVERVIEW} onSwitch={onSwitch}>
+      <div className='kfp-detail-sections kfp-artifact-overview'>
+        <InspectionFields title='Artifact details' fields={details} />
         {artifact.uri && (
-          <DetailsTable
+          <InspectionFields
             title='Artifact URI'
             fields={[[artifact.name || 'Artifact', { uri: artifact.uri }]]}
             valueComponent={ArtifactPreview}
@@ -308,7 +310,7 @@ function ArtifactOverview({
           />
         )}
         {!!legacyKeyResult?.errors.length && (
-          <Banner
+          <InspectionNotice
             message='Some artifact relationships could not be checked. Available visualization information is still shown; refresh the page to try again.'
             additionalInfo={legacyKeyResult.errors.join('\n')}
             mode='warning'
@@ -318,7 +320,7 @@ function ArtifactOverview({
           <>
             {hasContentPreview && (
               <Button
-                size='small'
+                size='sm'
                 aria-expanded={contentPreviewOpen}
                 onClick={() =>
                   setOpenedPreviewId(contentPreviewOpen ? undefined : artifact.artifact_id)
@@ -337,7 +339,7 @@ function ArtifactOverview({
           </>
         )}
       </div>
-    </>
+    </ArtifactTabs>
   );
 }
 
@@ -428,21 +430,26 @@ class ArtifactRelationshipsTable extends React.PureComponent<
 
   public render(): React.JSX.Element {
     return (
-      <>
-        <ArtifactTabs
-          selectedTab={ArtifactDetailsTab.RELATED_TASKS}
-          onSwitch={this.props.onSwitch}
-        />
-        <div className={classes(padding(20, 'lr'))}>
-          <div className={commonCss.header2}>Producing and consuming tasks</div>
+      <ArtifactTabs selectedTab={ArtifactDetailsTab.RELATED_TASKS} onSwitch={this.props.onSwitch}>
+        <div className='kfp-artifact-relationships'>
+          <h2>Producing and consuming tasks</h2>
           {this.state.error && (
-            <Banner
+            <InspectionNotice
               message='Unable to load related tasks. Refresh the page to try again.'
               additionalInfo={this.state.error}
               mode='error'
             />
           )}
           <CustomTable
+            renderTable={(table) => (
+              <ResourceTable
+                table={table}
+                label='Related tasks'
+                singular='relationship'
+                plural='relationships'
+                getRowLabel={(row) => String(row.otherFields[0])}
+              />
+            )}
             ref={this.props.tableRef}
             columns={RELATED_TASK_COLUMNS}
             rows={this.state.rows}
@@ -455,7 +462,7 @@ class ArtifactRelationshipsTable extends React.PureComponent<
             reload={this.reload}
           />
         </div>
-      </>
+      </ArtifactTabs>
     );
   }
 
@@ -559,7 +566,7 @@ function RelatedTaskLink({ value }: CustomRendererProps<V2ArtifactTask>) {
       : taskName;
   return (
     <Link
-      className={commonCss.link}
+      className='kfp-artifact-link'
       title={`Run ${runId}${artifactTask.task_id ? ` · Task ${artifactTask.task_id}` : ''}`}
       to={
         artifactTask.task_id
@@ -576,14 +583,21 @@ function RelatedTaskLink({ value }: CustomRendererProps<V2ArtifactTask>) {
 function ArtifactTabs({
   selectedTab,
   onSwitch,
+  children,
 }: {
   selectedTab: ArtifactDetailsTab;
   onSwitch: (selectedTab: number) => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div className={classes(padding(20, 't'))}>
-      <MD2Tabs tabs={TAB_NAMES} selectedTab={selectedTab} onSwitch={onSwitch} />
-    </div>
+    <InspectionTabs
+      tabs={TAB_NAMES}
+      selectedTab={selectedTab}
+      onSwitch={onSwitch}
+      ariaLabel='Artifact details'
+    >
+      {children}
+    </InspectionTabs>
   );
 }
 
@@ -600,11 +614,11 @@ function relationshipLabel(artifactTask: V2ArtifactTask, index: number): string 
   return `Related as ${relationshipType}: ${relationshipName}`;
 }
 
-const EnhancedArtifactDetails = (props: PageProps) => {
+const ArtifactDetailsWithContext = (props: PageProps) => {
   const queryClient = useQueryClient();
   return (
     <ArtifactDetailsPage {...props} queryClient={queryClient} key={props.params[RouteParams.ID]} />
   );
 };
 
-export default EnhancedArtifactDetails;
+export default ArtifactDetailsWithContext;

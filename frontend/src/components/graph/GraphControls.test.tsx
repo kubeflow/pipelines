@@ -22,6 +22,7 @@ function props(): GraphControlsProps {
     onLockChange: vi.fn(),
     onExpandAll: vi.fn(),
     onCollapseAll: vi.fn(),
+    onViewportInteraction: vi.fn(),
   };
 }
 
@@ -46,7 +47,7 @@ it('orders the six graph controls and dispatches each action', () => {
     'Zoom in',
     'Zoom out',
     'Fit view',
-    'Lock graph',
+    'Lock node positions',
   ]);
   expect(screen.getByRole('button', { name: 'Fit view' })).toHaveAttribute(
     'aria-keyshortcuts',
@@ -55,12 +56,13 @@ it('orders the six graph controls and dispatches each action', () => {
   for (const button of buttons) fireEvent.click(button);
   expect(options.onExpandAll).toHaveBeenCalledOnce();
   expect(options.onCollapseAll).toHaveBeenCalledOnce();
+  expect(options.onViewportInteraction).toHaveBeenCalledTimes(3);
   expect(mocked.viewport.zoomIn).toHaveBeenCalledOnce();
   expect(mocked.viewport.zoomOut).toHaveBeenCalledOnce();
-  expect(mocked.viewport.fitView).toHaveBeenCalledOnce();
+  expect(mocked.viewport.fitView).toHaveBeenCalledExactlyOnceWith({ maxZoom: 1 });
   expect(options.onLockChange).toHaveBeenCalledWith(true);
   rerender(<GraphControls {...options} locked />);
-  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock node positions' }));
   expect(options.onLockChange).toHaveBeenLastCalledWith(false);
 });
 
@@ -70,45 +72,60 @@ it.each([
   ['Zoom in', 'Zoom in'],
   ['Zoom out', 'Zoom out'],
   ['Fit view', 'Fit graph to view (F)'],
-  ['Lock graph', 'Lock nodes to pan with dragging and arrow keys'],
-])('shows the %s tooltip after 500ms, not sooner', (label, tooltip) => {
+  ['Lock node positions', 'Lock nodes to pan with dragging and arrow keys'],
+])('shows the %s tooltip after 500ms, not sooner', async (label, tooltip) => {
   render(<GraphControls {...props()} />);
   const button = screen.getByRole('button', { name: label });
   expect(button).not.toHaveAttribute('title');
-  fireEvent.mouseOver(button.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(499);
+  fireEvent.mouseEnter(button.parentElement!);
+  fireEvent.mouseMove(button.parentElement!);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(499);
   });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  act(() => {
-    vi.advanceTimersByTime(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  // Base UI mounts the portal on the next animation frame after opening.
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
   });
   expect(screen.getByRole('tooltip')).toHaveTextContent(tooltip);
 });
 
-it('retains the 500ms delay when moving between icons and explains disabled actions', () => {
-  render(<GraphControls {...props()} hasSubDags={false} />);
+it('retains the 500ms delay when moving between icons and explains disabled actions', async () => {
+  render(<GraphControls {...props()} canExpand={false} />);
   const zoom = screen.getByRole('button', { name: 'Zoom in' });
-  fireEvent.mouseOver(zoom.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(500);
+  fireEvent.mouseEnter(zoom.parentElement!);
+  fireEvent.mouseMove(zoom.parentElement!);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(500);
+  });
+  // Base UI mounts the portal on the next animation frame after opening.
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
   });
   expect(screen.getByRole('tooltip')).toHaveTextContent('Zoom in');
   fireEvent.mouseLeave(zoom.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(250);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250);
   });
   const expand = screen.getByRole('button', { name: 'Expand all' });
   expect(expand).toBeDisabled();
-  fireEvent.mouseOver(expand.parentElement!);
-  act(() => {
-    vi.advanceTimersByTime(499);
+  fireEvent.mouseEnter(expand.parentElement!);
+  fireEvent.mouseMove(expand.parentElement!);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(499);
   });
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  act(() => {
-    vi.advanceTimersByTime(1);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
   });
-  expect(screen.getByRole('tooltip')).toHaveTextContent('Expand all sub-DAGs');
+  // Base UI mounts the portal on the next animation frame after opening.
+  await act(async () => {
+    vi.advanceTimersToNextFrame();
+  });
+  expect(screen.getByRole('tooltip')).toHaveTextContent('All sub-DAGs are expanded');
 });
 
 it('respects zoom limits without disabling fit or expansion controls', () => {
@@ -120,4 +137,20 @@ it('respects zoom limits without disabling fit or expansion controls', () => {
   expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Fit view' })).not.toBeDisabled();
   expect(screen.getByRole('button', { name: 'Expand all' })).not.toBeDisabled();
+});
+
+it('hides group actions on flat graphs while keeping viewport controls', () => {
+  render(<GraphControls {...props()} hasSubDags={false} />);
+  expect(screen.queryByRole('button', { name: 'Expand all' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Collapse all' })).not.toBeInTheDocument();
+  expect(screen.getAllByRole('button')).toHaveLength(4);
+});
+
+it('does not dispatch disabled group actions', () => {
+  const options = props();
+  render(<GraphControls {...options} canCollapse={false} />);
+  const collapse = screen.getByRole('button', { name: 'Collapse all' });
+  expect(collapse).toBeDisabled();
+  fireEvent.click(collapse);
+  expect(options.onCollapseAll).not.toHaveBeenCalled();
 });

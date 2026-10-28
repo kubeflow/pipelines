@@ -9,8 +9,8 @@ import type { LayerElementsResolver, LayerFlowElement, PipelineFlowElement } fro
 import { getFlowNodeSize, NODE_CARD_HEIGHT, SUB_DAG_STATUS_CARD_WIDTH } from './FlowNodeSize';
 export const DEFAULT_EXPANDED_SUB_DAG_LIMIT = 10;
 export const GROUP_NODE_TYPE = 'subDagGroup';
-export const GROUP_HEADER_HEIGHT = NODE_CARD_HEIGHT;
-const GROUP_PADDING = 24;
+export const GROUP_HEADER_HEIGHT = 40;
+export const GROUP_PADDING = 16;
 
 export interface GroupedFlow {
   nodes: Node<FlowElementDataBase>[];
@@ -45,7 +45,7 @@ export function buildGroupedFlow(
   } = {},
 ): GroupedFlow {
   const { expanded = new Set<string>(), expansionMode = 'default', nodeScale = 1 } = options;
-  const headerHeight = GROUP_HEADER_HEIGHT * nodeScale;
+  const headerHeight = GROUP_HEADER_HEIGHT;
   type Layer = {
     elements: PipelineFlowElement[];
     layers: string[];
@@ -121,6 +121,7 @@ export function buildGroupedFlow(
         ? `Only the first ${DEFAULT_EXPANDED_SUB_DAG_LIMIT} sub-DAGs are expanded by default. Expand this sub-DAG or use Expand all to show more.`
         : undefined;
       let { width, height } = getFlowNodeSize(element, nodeScale);
+      if (group) height = headerHeight;
       let empty = false;
       if (childLayer) {
         const child = buildLayer(childLayer);
@@ -131,7 +132,7 @@ export function buildGroupedFlow(
       } else if (expansionError) {
         height += 72;
       } else if (expansionDeferred) {
-        width = Math.max(width, SUB_DAG_STATUS_CARD_WIDTH * nodeScale);
+        width = Math.max(width, SUB_DAG_STATUS_CARD_WIDTH);
       }
       return {
         ...element,
