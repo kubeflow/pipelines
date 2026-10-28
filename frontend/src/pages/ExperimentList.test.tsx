@@ -15,10 +15,14 @@
  */
 
 import * as React from 'react';
+vi.mock('src/components/shell/ThemeProvider', () => ({
+  useTheme: () => ({ themeClassName: 'kfp-theme' }),
+}));
+
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import EnhancedExperimentList, { ExperimentList } from './ExperimentList';
+import ExperimentListWithContext, { ExperimentList } from './ExperimentList';
 import TestUtils from 'src/TestUtils';
 import * as Utils from 'src/lib/Utils';
 import { logger } from 'src/lib/Utils';
@@ -26,7 +30,7 @@ import { V2RunStorageState, V2RuntimeState } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { ExpandState } from 'src/components/CustomTable';
 import { PageProps } from './Page';
-import { RoutePage, QUERY_PARAMS, RouteParams } from 'src/components/Router';
+import { RoutePage, RouteParams } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
@@ -37,7 +41,7 @@ import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 // Default arguments for Apis.experimentServiceApiV2.listExperiments.
 const LIST_EXPERIMENT_DEFAULTS = [
   '', // page token
-  10, // page size
+  20, // page size
   'created_at desc', // sort by
   encodeURIComponent(
     JSON.stringify({
@@ -55,7 +59,6 @@ const LIST_EXPERIMENT_DEFAULTS = [
 const LIST_EXPERIMENT_DEFAULTS_WITHOUT_RESOURCE_REFERENCE = LIST_EXPERIMENT_DEFAULTS.slice(0, 4);
 
 describe('ExperimentList', () => {
-  let renderResult: ReturnType<typeof render> | null = null;
   let experimentListRef: React.RefObject<ExperimentList> | null = null;
 
   let updateBannerSpy: ReturnType<typeof vi.fn>;
@@ -109,11 +112,11 @@ describe('ExperimentList', () => {
   }
 
   async function renderExperimentList(
-    propsPatch: Partial<PageProps & { namespace?: string }> = {},
+    propsPatch: Partial<PageProps & { namespace?: string; scopeControl?: React.ReactNode }> = {},
   ): Promise<PageProps> {
     experimentListRef = React.createRef<ExperimentList>();
     const props = { ...generateProps(), ...propsPatch } as PageProps;
-    renderResult = render(
+    render(
       <MemoryRouter>
         <ExperimentList ref={experimentListRef} {...props} />
       </MemoryRouter>,
@@ -125,7 +128,7 @@ describe('ExperimentList', () => {
   async function mountWithNExperiments(
     n: number,
     nRuns: number,
-    { namespace }: { namespace?: string } = {},
+    { namespace, scopeControl }: { namespace?: string; scopeControl?: React.ReactNode } = {},
   ): Promise<void> {
     listExperimentsSpy.mockImplementation(mockListNExperiments(n));
     listRunsSpy.mockImplementation(() => ({
@@ -134,7 +137,7 @@ describe('ExperimentList', () => {
         display_name: 'test run name' + i,
       })),
     }));
-    await renderExperimentList({ namespace });
+    await renderExperimentList({ namespace, scopeControl });
     await waitForDisplayExperiments(n);
   }
 
@@ -330,11 +333,24 @@ describe('ExperimentList', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
-  it('can expand an experiment to see its runs', async () => {
-    await mountWithNExperiments(1, 1);
+  it('can expand an experiment without duplicating the page scope control', async () => {
+    await mountWithNExperiments(1, 1, {
+      scopeControl: (
+        <div aria-label='Experiment scope' role='group'>
+          Active / Archived
+        </div>
+      ),
+    });
     const user = userEvent.setup();
     const expandButtons = screen.getAllByRole('button', { name: /expand/i });
     await user.click(expandButtons[0]);
+    expect(screen.getAllByRole('group', { name: 'Experiment scope' })).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'View all runs' })).toHaveAttribute(
+      'href',
+      '/experiments/details/test-experiment-id0',
+    );
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     await waitFor(() => {
       expect(getInstance().state.displayExperiments).toEqual([
         {
@@ -362,7 +378,7 @@ describe('ExperimentList', () => {
       });
     });
     const runListTree = (getInstance() as any)._getExpandedExperimentComponent(0);
-    expect(runListTree.props.experimentIdMask).toEqual('experiment1');
+    expect(runListTree.props.experimentId).toEqual('experiment1');
   });
 
   it('navigates to new experiment page when Create experiment button is clicked', async () => {
@@ -380,105 +396,12 @@ describe('ExperimentList', () => {
     expect(toolbarCall.actions[ButtonKeys.NEW_EXPERIMENT]).not.toHaveProperty('disabled');
   });
 
-  it('enables clone button when one run is selected', async () => {
+  it('keeps run management actions on experiment details', async () => {
     await mountWithNExperiments(1, 1);
-    updateToolbarSpy.mockClear();
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1']);
-    });
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(1);
-    expect(updateToolbarSpy.mock.calls[0][0].actions[ButtonKeys.CLONE_RUN]).toHaveProperty(
-      'disabled',
-      false,
-    );
-  });
-
-  it('disables clone button when more than one run is selected', async () => {
-    await mountWithNExperiments(1, 1);
-    updateToolbarSpy.mockClear();
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1', 'run2']);
-    });
-    expect(updateToolbarSpy).toHaveBeenCalledTimes(1);
-    expect(updateToolbarSpy.mock.calls[0][0].actions[ButtonKeys.CLONE_RUN]).toHaveProperty(
-      'disabled',
-      true,
-    );
-  });
-
-  it('enables compare runs button only when more than one is selected', async () => {
-    await mountWithNExperiments(1, 1);
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1']);
-    });
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.COMPARE).disabled).toBe(
-      true,
-    );
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1', 'run2']);
-    });
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.COMPARE).disabled).toBe(
-      false,
-    );
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1', 'run2', 'run3']);
-    });
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.COMPARE).disabled).toBe(
-      false,
-    );
-  });
-
-  it('navigates to compare page with the selected run ids', async () => {
-    await mountWithNExperiments(1, 1);
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1', 'run2', 'run3']);
-    });
-    const compareBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.COMPARE];
-    await act(async () => {
-      await compareBtn!.action();
-    });
-    expect(navigateSpy).toHaveBeenLastCalledWith(
-      `${RoutePage.COMPARE}?${QUERY_PARAMS.runlist}=run1%2Crun2%2Crun3`,
-    );
-  });
-
-  it('navigates to new run page with the selected run id for cloning', async () => {
-    await mountWithNExperiments(1, 1);
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1']);
-    });
-    const cloneBtn = getInstance().getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
-    await act(async () => {
-      await cloneBtn!.action();
-    });
-    expect(navigateSpy).toHaveBeenLastCalledWith(
-      `${RoutePage.NEW_RUN}?${QUERY_PARAMS.cloneFromRun}=run1`,
-    );
-  });
-
-  it('enables archive button when at least one run is selected', async () => {
-    await mountWithNExperiments(1, 1);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.ARCHIVE).disabled).toBe(
-      true,
-    );
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1']);
-    });
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.ARCHIVE).disabled).toBe(
-      false,
-    );
-    await act(async () => {
-      (getInstance() as any)._selectionChanged(['run1', 'run2']);
-    });
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.ARCHIVE).disabled).toBe(
-      false,
-    );
-    await act(async () => {
-      (getInstance() as any)._selectionChanged([]);
-    });
-    expect(TestUtils.getToolbarButton(updateToolbarSpy as any, ButtonKeys.ARCHIVE).disabled).toBe(
-      true,
-    );
+    const actions = getInstance().getInitialToolbarState().actions;
+    expect(actions[ButtonKeys.COMPARE]).toBeUndefined();
+    expect(actions[ButtonKeys.CLONE_RUN]).toBeUndefined();
+    expect(actions[ButtonKeys.ARCHIVE]).toBeUndefined();
   });
 
   it('renders experiment names as links to their details pages', async () => {
@@ -487,9 +410,7 @@ describe('ExperimentList', () => {
       id: 'experiment-id',
       value: 'experiment name',
     } as any);
-    const { getByTestId, asFragment, unmount } = render(
-      <MemoryRouter>{nameRenderer}</MemoryRouter>,
-    );
+    const { getByTestId, unmount } = render(<MemoryRouter>{nameRenderer}</MemoryRouter>);
     const link = getByTestId('experiment-name-link');
     expect(link).toHaveAttribute('data-experiment-id', 'experiment-id');
     expect(link).toHaveAttribute('data-experiment-name', 'experiment name');
@@ -512,7 +433,11 @@ describe('ExperimentList', () => {
       ],
     } as any);
     const { unmount } = render(<div>{statusRenderer}</div>);
-    expect(screen.getAllByTestId('node-status-sign')).toHaveLength(5);
+    expect(
+      screen.getByRole('img', {
+        name: 'Last 5 runs: SUCCEEDED, PENDING, FAILED, RUNTIME_STATE_UNSPECIFIED, SUCCEEDED',
+      }),
+    ).toBeVisible();
     unmount();
   });
 
@@ -520,7 +445,7 @@ describe('ExperimentList', () => {
     it('defaults to no namespace', async () => {
       render(
         <MemoryRouter>
-          <EnhancedExperimentList {...generateProps()} />
+          <ExperimentListWithContext {...generateProps()} />
         </MemoryRouter>,
       );
       await waitFor(() => expect(listExperimentsSpy).toHaveBeenCalled());
@@ -531,7 +456,7 @@ describe('ExperimentList', () => {
       render(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -546,7 +471,7 @@ describe('ExperimentList', () => {
       const { rerender } = render(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns-1'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -559,7 +484,7 @@ describe('ExperimentList', () => {
       rerender(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns-2'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -575,7 +500,7 @@ describe('ExperimentList', () => {
       const { rerender } = render(
         <MemoryRouter>
           <NamespaceContext.Provider value={undefined}>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );
@@ -584,7 +509,7 @@ describe('ExperimentList', () => {
       rerender(
         <MemoryRouter>
           <NamespaceContext.Provider value='test-ns'>
-            <EnhancedExperimentList {...generateProps()} />
+            <ExperimentListWithContext {...generateProps()} />
           </NamespaceContext.Provider>
         </MemoryRouter>,
       );

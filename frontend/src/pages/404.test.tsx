@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import Page404 from './404';
 import { PageProps } from './Page';
@@ -36,5 +36,14 @@ describe('404', () => {
   it('renders a 404 page', () => {
     const { asFragment } = render(<Page404 {...generateProps()} />);
     expect(asFragment()).toMatchSnapshot();
+  });
+  it('offers recovery navigation without interpreting the unknown path as markup', () => {
+    const props = generateProps();
+    props.location.pathname = '/<script>bad</script>';
+    render(<Page404 {...props} />);
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByText('/<script>bad</script>')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Go to pipelines' }));
+    expect(props.navigate).toHaveBeenCalledWith('/pipelines');
   });
 });

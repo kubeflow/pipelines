@@ -29,18 +29,25 @@ import {
   Background,
   Edge,
   MiniMap,
+  Panel,
   Node,
   OnNodeDrag,
   OnNodesChange,
   ReactFlowInstance,
+  useNodesInitialized,
+  useReactFlow,
+  useStore,
+  getViewportForBounds,
 } from '@xyflow/react';
-import { style } from 'typestyle';
+import 'src/components/graph/Graph.css';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
+import { getTaskStatus } from 'src/lib/StatusUtils';
+import { TaskStateIndicator } from 'src/components/graph/ExecutionNode';
 import GraphControls from 'src/components/graph/GraphControls';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { FlowElementDataBase, GRAPH_FIT_OPTIONS } from 'src/components/graph/Constants';
 import { NODE_TYPES } from 'src/components/graph/NodeTypes';
 import { SUB_DAG_HEADER_CLASS_NAME } from 'src/components/graph/SubDagGroupNode';
 import { buildGroupedFlow, GROUP_NODE_TYPE, layerNodeId } from 'src/lib/v2/GroupedFlow';
-import { color } from 'src/Css';
 import type {
   LayerElementsResolver,
   LayerFlowElement,
@@ -52,9 +59,6 @@ import { loadGraphExpansion, saveGraphExpansion } from 'src/lib/v2/GraphExpansio
 type PipelineNode = Node<FlowElementDataBase>;
 const emptyLayer: LayerElementsResolver = () => [];
 const positionKey = (node: PipelineNode) => JSON.stringify([node.id, node.parentId ?? null]);
-const lockedCanvas = style({
-  $nest: { '& .react-flow__edge, & .react-flow__edge *': { pointerEvents: 'none' } },
-});
 // Scrolling the view moves graph content in the opposite direction.
 const panDirections = new Map([
   ['ArrowLeft', { x: 40, y: 0 }],
@@ -91,12 +95,10 @@ function DagCanvasView({
   getSubDagElements,
   graphId,
 }: DagCanvasProps) {
-  // Node cards use rem-based Tailwind dimensions. Match their actual size in
-  // both the application's 13px root font and standalone Storybook's 16px root.
-  const [nodeScale] = useState(
-    () => (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16,
-  );
   const reactFlowInstance = useRef<ReactFlowInstance<PipelineNode, Edge> | null>(null);
+  const initialFitComplete = useRef(false);
+  const manuallyMoved = useRef(false);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const lastFocusedNodeId = useRef<string | null>(null);
   const [locked, setLocked] = useState(true);
   const canDrag = nodesDraggable && !locked;
@@ -133,11 +135,27 @@ function DagCanvasView({
       buildGroupedFlow(elements, layers, getSubDagElements ?? emptyLayer, expansion.collapsed, {
         expanded: expansion.expanded,
         expansionMode: getSubDagElements ? expansion.mode : 'none',
-        nodeScale,
       }),
-    [elements, layers, getSubDagElements, expansion, nodeScale],
+    [elements, layers, getSubDagElements, expansion],
+  );
+  // Runtime task pages can replace the initial static graph with loop iterations.
+  // Track geometry, not task status, so background polling does not reset the view.
+  const layoutKey = useMemo(
+    () =>
+      JSON.stringify(
+        grouped.nodes.map(({ id, parentId, position, width, height }) => [
+          id,
+          parentId,
+          position.x,
+          position.y,
+          width,
+          height,
+        ]),
+      ),
+    [grouped.nodes],
   );
   const toggleGroup = useCallback((id: string, isCollapsed: boolean) => {
+    manuallyMoved.current = true;
     setExpansion((previous) => {
       const collapsed = new Set(previous.collapsed);
       const expanded = new Set(previous.expanded);
@@ -154,9 +172,10 @@ function DagCanvasView({
     setPositions({});
   }, []);
   const resetPositionsAndFitView = useCallback(() => {
+    manuallyMoved.current = true;
     setPositions({});
     requestAnimationFrame(() => {
-      void reactFlowInstance.current?.fitView();
+      void reactFlowInstance.current?.fitView(GRAPH_FIT_OPTIONS);
     });
   }, []);
   const expandAll = useCallback(() => {
@@ -190,7 +209,22 @@ function DagCanvasView({
       }),
     [grouped, positions, selectedId, toggleGroup, canDrag],
   );
-  const edges = grouped.edges;
+  const edges = useMemo(
+    () =>
+      grouped.edges.map((edge) => ({
+        ...edge,
+        className: `${edge.className || ''} kfp-graph-edge`,
+        style: { ...edge.style, strokeWidth: 1.5 },
+      })),
+    [grouped.edges],
+  );
+  const visibleStates = [
+    ...new Set(
+      nodes
+        .map((node) => node.data.state as PipelineTaskTaskState | undefined)
+        .filter((state): state is PipelineTaskTaskState => state !== undefined),
+    ),
+  ];
 
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const onNodesChange = useCallback<OnNodesChange<PipelineNode>>(
@@ -238,15 +272,17 @@ function DagCanvasView({
     )
       return;
     if (event.key === 'f' || event.key === 'F') {
+      manuallyMoved.current = true;
       event.preventDefault();
       event.stopPropagation();
-      void instance.fitView();
+      void instance.fitView(GRAPH_FIT_OPTIONS);
       return;
     }
     const direction = panDirections.get(event.key);
     if (!locked || !direction) return;
     event.preventDefault();
     event.stopPropagation();
+    manuallyMoved.current = true;
     const viewport = instance.getViewport();
     void instance.setViewport({
       ...viewport,
@@ -257,8 +293,22 @@ function DagCanvasView({
 
   const fitCurrentView = useCallback(
     (instance: ReactFlowInstance<PipelineNode, Edge>) => {
-      const focusedNodes = focusedId ? nodes.filter((node) => node.id === focusedId) : undefined;
-      void instance.fitView(focusedNodes?.length ? { nodes: focusedNodes } : undefined);
+      const canvas = canvasRef.current;
+      if (!canvas || !nodes.length) return;
+      const focusedNodes = focusedId ? nodes.filter((node) => node.id === focusedId) : [];
+      // Nodes are already measured here. fitView queues work until a later controlled
+      // node update, which can overwrite a manual zoom when an inspector selects a node.
+      // Apply the initial viewport immediately instead; only explicit Fit uses fitView.
+      void instance.setViewport(
+        getViewportForBounds(
+          instance.getNodesBounds(focusedNodes.length ? focusedNodes : nodes),
+          canvas.clientWidth,
+          canvas.clientHeight,
+          0.05,
+          GRAPH_FIT_OPTIONS.maxZoom,
+          0.1,
+        ),
+      );
     },
     [focusedId, nodes],
   );
@@ -269,14 +319,69 @@ function DagCanvasView({
       lastFocusedNodeId.current = null;
       return;
     }
-    if (reactFlowInstance.current && lastFocusedNodeId.current !== focusedId) {
+    if (
+      initialFitComplete.current &&
+      reactFlowInstance.current &&
+      lastFocusedNodeId.current !== focusedId
+    ) {
       lastFocusedNodeId.current = focusedId;
-      fitCurrentView(reactFlowInstance.current);
+      const instance = reactFlowInstance.current;
+      const focusedNode = instance.getNode(focusedId);
+      if (focusedNode) {
+        const bounds = instance.getNodesBounds([focusedNode]);
+        // Selecting a task opens the inspector; keep the user's scale while
+        // centering that task. Fit is reserved for initial load and explicit Fit.
+        void instance.setCenter(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, {
+          zoom: instance.getZoom(),
+        });
+      }
     }
-  }, [fitCurrentView, focusedId]);
+  }, [focusedId, nodes]);
+
+  // External synchronization: React Flow keeps its translation when its DOM viewport
+  // shrinks. Move the existing view to the new center without changing user zoom.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let previous = { width: canvas.clientWidth, height: canvas.clientHeight };
+    const observer = new ResizeObserver(() => {
+      const next = { width: canvas.clientWidth, height: canvas.clientHeight };
+      const instance = reactFlowInstance.current;
+      if (
+        instance &&
+        previous.width > 0 &&
+        next.width > 0 &&
+        next.height > 0 &&
+        (next.width !== previous.width || next.height !== previous.height)
+      ) {
+        const viewport = instance.getViewport();
+        let x = viewport.x + (next.width - previous.width) / 2;
+        let y = viewport.y + (next.height - previous.height) / 2;
+        const selected = instance.getNodes().find((node) => node.selected);
+        if (selected) {
+          const bounds = instance.getNodesBounds([selected]);
+          const keepVisible = (offset: number, start: number, size: number, available: number) => {
+            const extent = size * viewport.zoom;
+            if (extent > available - 32) return (available - extent) / 2 - start * viewport.zoom;
+            return (
+              Math.min(available - 16 - extent, Math.max(16, start * viewport.zoom + offset)) -
+              start * viewport.zoom
+            );
+          };
+          x = keepVisible(x, bounds.x, bounds.width, next.width);
+          y = keepVisible(y, bounds.y, bounds.height, next.height);
+        }
+        void instance.setViewport({ ...viewport, x, y });
+      }
+      previous = next;
+    });
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div
+      ref={canvasRef}
       data-testid='DagCanvas'
       role='region'
       aria-label='Pipeline graph'
@@ -286,7 +391,7 @@ function DagCanvasView({
           : 'Drag nodes or use arrow keys on a selected node to move it. Press F to fit the graph.'
       }
       tabIndex={0}
-      className={locked ? lockedCanvas : undefined}
+      className={`kfp-graph-canvas ${locked ? 'kfp-graph-locked' : ''}`}
       onKeyDownCapture={handleGraphKeyDown}
       onPointerDownCapture={(event) => {
         if (
@@ -299,7 +404,7 @@ function DagCanvasView({
     >
       <ReactFlowProvider>
         <ReactFlow<PipelineNode, Edge>
-          style={{ background: color.lightGrey }}
+          proOptions={{ hideAttribution: true }}
           nodes={nodes}
           edges={edges}
           snapToGrid={true}
@@ -308,13 +413,13 @@ function DagCanvasView({
           selectionKeyCode={locked ? null : 'Shift'}
           multiSelectionKeyCode={locked ? null : undefined}
           nodesConnectable={false}
+          nodesFocusable={canDrag}
           onInit={(instance) => {
             reactFlowInstance.current = instance;
-            lastFocusedNodeId.current = focusedId || null;
-            fitCurrentView(instance);
           }}
-          fitView
-          fitViewOptions={focusedId ? { nodes: [{ id: focusedId }] } : undefined}
+          onMoveStart={(event) => {
+            if (event) manuallyMoved.current = true;
+          }}
           minZoom={0.05}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
@@ -324,18 +429,82 @@ function DagCanvasView({
           onNodeDragStop={canDrag ? onNodeDragStop : undefined}
           deleteKeyCode={null}
         >
-          <MiniMap />
+          <InitialGraphFit
+            layoutKey={layoutKey}
+            onReady={(instance) => {
+              reactFlowInstance.current = instance;
+              lastFocusedNodeId.current = focusedId || null;
+              initialFitComplete.current = true;
+              if (!manuallyMoved.current) fitCurrentView(instance);
+            }}
+          />
+          <MiniMap position='top-right' />
           <GraphControls
             showSubDagControls={!!getSubDagElements}
             hasSubDags={nodes.some((node) => node.type === GROUP_NODE_TYPE)}
+            canExpand={nodes.some((node) => node.type === GROUP_NODE_TYPE && node.data.collapsed)}
+            canCollapse={nodes.some(
+              (node) => node.type === GROUP_NODE_TYPE && !node.data.collapsed,
+            )}
             locked={locked}
             onLockChange={setLocked}
+            onViewportInteraction={() => {
+              manuallyMoved.current = true;
+            }}
             onExpandAll={expandAll}
             onCollapseAll={collapseAll}
           />
-          <Background />
+          <Background gap={22} size={1} />
+          {visibleStates.length > 0 && (
+            <Panel position='bottom-right' className='kfp-graph-legend'>
+              <ul aria-label='Task states in this graph'>
+                {visibleStates.map((state) => {
+                  const status = getTaskStatus(state);
+                  return (
+                    <li key={state} data-tone={status.tone}>
+                      <TaskStateIndicator state={state} />
+                      {status.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          )}
         </ReactFlow>
       </ReactFlowProvider>
     </div>
   );
+}
+
+// External synchronization: wait for React Flow's measured nodes and viewport,
+// rather than fitting during onInit while its container is still being laid out.
+function InitialGraphFit({
+  layoutKey,
+  onReady,
+}: {
+  layoutKey: string;
+  onReady: (instance: ReactFlowInstance<PipelineNode, Edge>) => void;
+}) {
+  const instance = useReactFlow<PipelineNode, Edge>();
+  // Controlled nodes intentionally ignore dimension-change events. Check measured
+  // internals directly: the default cached readiness flag only updates on setNodes.
+  // Collapsed descendants are omitted from this canvas, not hidden nodes.
+  const nodesReady = useNodesInitialized({ includeHiddenNodes: true });
+  const viewportReady = useStore((store) => store.width > 0 && store.height > 0);
+  const fittedLayout = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (
+      !nodesReady ||
+      !viewportReady ||
+      !instance.viewportInitialized ||
+      fittedLayout.current === layoutKey
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      fittedLayout.current = layoutKey;
+      onReady(instance);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [nodesReady, viewportReady, instance, onReady, layoutKey]);
+  return null;
 }

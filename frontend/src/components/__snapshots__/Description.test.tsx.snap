@@ -21,7 +21,7 @@ exports[`Description > When in inline mode > renders list markers as visible bul
 exports[`Description > When in inline mode > renders markdown link 1`] = `
 <DocumentFragment>
   <a
-    class="link_f1fk43bf"
+    class="kfp-external-link"
     href="https://www.google.com"
     rel="noopener"
     target="_blank"
@@ -64,7 +64,7 @@ exports[`Description > When in inline mode > renders pure text 1`] = `
 exports[`Description > When in inline mode > renders raw link 1`] = `
 <DocumentFragment>
   <a
-    class="link_f1fk43bf"
+    class="kfp-external-link"
     href="https://www.google.com"
     rel="noopener"
     target="_blank"
@@ -91,7 +91,7 @@ exports[`Description > When in normal mode > renders empty string 1`] = `
 exports[`Description > When in normal mode > renders markdown link 1`] = `
 <DocumentFragment>
   <a
-    class="link_f1fk43bf"
+    class="kfp-external-link"
     href="https://www.google.com"
     rel="noopener"
     target="_blank"
@@ -138,7 +138,7 @@ exports[`Description > When in normal mode > renders pure text 1`] = `
 exports[`Description > When in normal mode > renders raw link 1`] = `
 <DocumentFragment>
   <a
-    class="link_f1fk43bf"
+    class="kfp-external-link"
     href="https://www.google.com"
     rel="noopener"
     target="_blank"

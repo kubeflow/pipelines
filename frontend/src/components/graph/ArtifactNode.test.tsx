@@ -15,29 +15,46 @@
  */
 
 import * as React from 'react';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
+import userEvent from '@testing-library/user-event';
+import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ArtifactNode from './ArtifactNode';
 import { ReactFlowProvider } from '@xyflow/react';
 
+beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
+
 describe('ArtifactNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {
-    return render(<ReactFlowProvider>{component}</ReactFlowProvider>);
+    return render(
+      <ThemeProvider>
+        <ReactFlowProvider>{component}</ReactFlowProvider>
+      </ThemeProvider>,
+    );
   };
 
   it('keeps the blue ring for selection without requiring focus', () => {
     const node = (selected: boolean) => (
-      <ReactFlowProvider>
-        <ArtifactNode id='artifact-1' data={{ label: 'model' }} selected={selected} />
-      </ReactFlowProvider>
+      <ThemeProvider>
+        <ReactFlowProvider>
+          <ArtifactNode id='artifact-1' data={{ label: 'model' }} selected={selected} />
+        </ReactFlowProvider>
+      </ThemeProvider>
     );
     const { rerender } = render(node(false));
     const button = screen.getByRole('button', { name: 'model' });
-    expect(button).not.toHaveClass('ring');
+    expect(button).not.toHaveAttribute('data-selected');
     rerender(node(true));
     expect(button).not.toHaveFocus();
-    expect(button).toHaveClass('ring', 'focus:ring');
+    expect(button).toHaveAttribute('data-selected', 'true');
     rerender(node(false));
-    expect(button).not.toHaveClass('ring');
+    expect(button).not.toHaveAttribute('data-selected');
   });
 
   it('renders the artifact label', () => {
@@ -47,14 +64,14 @@ describe('ArtifactNode', () => {
     expect(screen.getByText('my-artifact')).toBeInTheDocument();
   });
 
-  it('renders a live icon when artifact data is present', () => {
+  it('announces available artifact data without an execution status icon', () => {
     renderWithProvider(
       <ArtifactNode id='artifact-1' data={{ label: 'live-artifact', hasArtifact: true }} />,
     );
     expect(screen.getByText('live-artifact')).toBeInTheDocument();
-    const liveIcon = screen.getByTestId('artifact-icon-live');
-    expect(liveIcon).toBeInTheDocument();
-    expect(liveIcon).toHaveClass('text-mui-yellow-800');
+    expect(screen.getByRole('button', { name: 'live-artifact' })).toHaveAccessibleDescription(
+      'Artifact available',
+    );
   });
 
   it('renders with undefined state and default icon', () => {
@@ -62,16 +79,25 @@ describe('ArtifactNode', () => {
       <ArtifactNode id='artifact-1' data={{ label: 'unknown-artifact', hasArtifact: false }} />,
     );
     expect(screen.getByText('unknown-artifact')).toBeInTheDocument();
-    const defaultIcon = screen.getByTestId('artifact-icon-default');
-    expect(defaultIcon).toBeInTheDocument();
-    expect(defaultIcon).toHaveClass('text-mui-grey-300-dark');
+    expect(screen.getByRole('button', { name: 'unknown-artifact' })).toHaveAccessibleDescription(
+      'Artifact',
+    );
   });
 
-  it('sets the title attribute on the button', () => {
-    renderWithProvider(
-      <ArtifactNode id='artifact-1' data={{ label: 'titled-artifact', hasArtifact: false }} />,
+  it('keeps type and availability accessible without a visible subtitle', async () => {
+    const user = userEvent.setup();
+    const { container } = renderWithProvider(
+      <ArtifactNode id='artifact-1' data={{ label: 'dataset', hasArtifact: true }} />,
     );
-    expect(screen.getByTitle('titled-artifact')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Artifact' })).toBeInTheDocument();
+    expect(container.querySelector('.kfp-graph-node-meta')).not.toBeInTheDocument();
+    expect(container.querySelector('.kfp-graph-node-status')).toBeEmptyDOMElement();
+    expect(container.querySelector('.kfp-graph-node-status')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    await user.tab();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('dataset · Artifact available');
   });
 
   it('renders with the correct id on the label span', () => {

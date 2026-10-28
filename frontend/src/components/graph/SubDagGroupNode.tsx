@@ -1,25 +1,18 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import { ChevronsDownUp as UnfoldLessIcon, ChevronsUpDown as UnfoldMoreIcon } from 'lucide-react';
+import { Tooltip } from '@base-ui/react/tooltip';
+import { useTheme } from 'src/components/shell/ThemeProvider';
 import { Node, NodeProps } from '@xyflow/react';
-import { PipelineTaskTaskState } from 'src/apisv2/run';
-import { classes, style } from 'typestyle';
 import { SubDagFlowElementData } from './Constants';
-import { color } from 'src/Css';
-import { getIcon, getLifecycleWarningLabel, getWarningIcon } from './ExecutionNode';
+import { TaskStatusTooltip, hasLifecycleWarning, getLifecycleWarningLabel } from './ExecutionNode';
+import { getTaskStatus } from 'src/lib/StatusUtils';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 import SubDagTypeIcon from './SubDagTypeIcon';
 import { GROUP_HEADER_HEIGHT } from 'src/lib/v2/GroupedFlow';
 
 export const SUB_DAG_HEADER_CLASS_NAME = 'subdag-header';
-
-// The group outline clips the outer corners; do not expose the white header
-// behind the status cell's own rounded lower-right corner.
-const groupStatus = style({
-  $nest: { '& > div': { borderTopRightRadius: 0, borderBottomRightRadius: 0 } },
-});
 
 export default function SubDagGroupNode({
   id,
@@ -30,55 +23,56 @@ export default function SubDagGroupNode({
   draggable?: boolean;
 }) {
   const collapsed = !!data.collapsed;
-  // Same rule as ExecutionNode: a lifecycle message is a warning until the task is FAILED.
-  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
-  const status = showWarning ? getWarningIcon() : getIcon(data.state);
+  const { themeClassName } = useTheme();
+  const showWarning = hasLifecycleWarning(data);
+  const status = getTaskStatus(data.state);
   return (
     <>
       <div
         data-testid='subdag-box'
-        className={classes(
-          'shadow-lg',
-          style({
-            width: '100%',
-            height: '100%',
-            outline: selected ? `2px solid ${color.theme}` : '1px solid #bdc1c6',
-            borderRadius: 8,
-            background: 'rgba(219, 234, 254, 0.28)',
-            overflow: 'hidden',
-            $nest: { '&:focus-within': { outline: `2px solid ${color.theme}` } },
-          }),
-        )}
+        className='kfp-subdag-box'
+        data-selected={selected}
+        data-tone={status.tone}
       >
         <div
           data-testid='subdag-header'
-          className={classes(SUB_DAG_HEADER_CLASS_NAME, 'flex items-stretch bg-white')}
+          className={`${SUB_DAG_HEADER_CLASS_NAME} kfp-subdag-header`}
           style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT, pointerEvents: 'auto' }}
           title={data.expansionError}
         >
-          <div
-            data-testid='subdag-type'
-            className='w-8 pl-2 h-full flex items-center flex-shrink-0'
-          >
+          <div data-testid='subdag-type' className='kfp-subdag-type'>
             <SubDagTypeIcon kind={data.groupKind} />
           </div>
+          <Tooltip.Root>
+            <Tooltip.Trigger
+              render={<button type='button' />}
+              delay={150}
+              className='kfp-subdag-label'
+              aria-describedby={`${id}-status-description`}
+              aria-label={showWarning ? getLifecycleWarningLabel(data.label) : data.label}
+              style={{ background: 'transparent', border: 0, fontWeight: 400 }}
+            >
+              <span className='truncate' data-testid='subdag-label'>
+                {data.label}
+              </span>
+              <span className='sr-only' id={`${id}-status-description`}>
+                {data.state ? status.label : data.groupKind || 'Sub-DAG'}
+                {showWarning && ', pod lifecycle warning'}
+              </span>
+            </Tooltip.Trigger>
+            <Tooltip.Portal className={themeClassName}>
+              <Tooltip.Positioner side='top' sideOffset={6}>
+                <Tooltip.Popup role='tooltip' className='kfp-graph-tooltip'>
+                  {data.label}
+                  {data.state && ` · ${status.label}`}
+                  {showWarning && ', pod lifecycle warning'}
+                </Tooltip.Popup>
+              </Tooltip.Positioner>
+            </Tooltip.Portal>
+          </Tooltip.Root>
           <button
             type='button'
-            className='focus:outline-none focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
-            title={data.label}
-            aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
-            style={{ background: 'transparent', border: 0, fontWeight: 400 }}
-          >
-            <span className='truncate' data-testid='subdag-label'>
-              {data.label}
-            </span>
-          </button>
-          <button
-            type='button'
-            className={classes(
-              'nodrag focus:outline-none focus:ring-0 text-mui-grey-600 flex items-center justify-center flex-shrink-0',
-              draggable && 'nopan',
-            )}
+            className={`nodrag kfp-graph-expand ${draggable ? 'nopan' : ''}`}
             aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${data.label}`}
             aria-expanded={!collapsed}
             aria-description={data.expansionDeferred}
@@ -87,22 +81,23 @@ export default function SubDagGroupNode({
               event.stopPropagation();
               data.expand(id);
             }}
-            style={{ background: 'transparent', border: 0, padding: 0, width: '2rem' }}
+            style={{ background: 'transparent', border: 0, padding: 0 }}
           >
-            {collapsed ? <UnfoldMoreIcon fontSize='small' /> : <UnfoldLessIcon fontSize='small' />}
+            {collapsed ? <UnfoldMoreIcon size={16} /> : <UnfoldLessIcon size={16} />}
           </button>
-          {status && (
-            <div
-              title={data.state}
-              className={classes('h-full', groupStatus)}
-              data-testid='subdag-status'
-            >
-              {status}
-            </div>
-          )}
+          <TaskStatusTooltip
+            state={data.state}
+            warning={showWarning}
+            id={`${id}-status`}
+            className='kfp-subdag-status'
+            testId='subdag-status'
+          />
         </div>
         {!collapsed && (data.expansionError || data.empty) && (
-          <div style={{ padding: 12, fontSize: 12, color: '#52677f' }} title={data.expansionError}>
+          <div
+            style={{ padding: 12, fontSize: 12, color: 'var(--muted-foreground)' }}
+            title={data.expansionError}
+          >
             {data.expansionError
               ? 'Unable to display sub-DAG. Open its details to inspect the spec.'
               : 'No tasks in this scope'}

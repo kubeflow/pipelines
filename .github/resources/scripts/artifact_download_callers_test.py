@@ -34,6 +34,7 @@ WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
     ('.github/actions/shared-ci-images/action.yml', 'composite'),
+    ('.github/workflows/frontend.yml', 'browser-tests'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
     ('.github/workflows/create-manifest.yml', 'create-manifest'),
@@ -240,6 +241,21 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 self.assertLess(steps.index(download), steps.index(verify))
                 self.assertNotIn('continue-on-error', download)
                 self.assertNotIn('if', verify)
+
+    def test_browser_bundle_uses_workspace_relative_paths_on_windows(self):
+        steps = workflow('frontend.yml')['jobs']['browser-tests']['steps']
+        download = next(step for step in steps if step.get('uses') == WRAPPER)
+        self.assertEqual(download['with']['path'], 'frontend/.ci-bundle')
+        self.assertEqual(
+            download['with']['required-files'], 'frontend-bundle.tar.gz'
+        )
+        extract = next(
+            step
+            for step in steps
+            if step.get('name') == 'Extract complete production bundle'
+        )
+        self.assertIn('.ci-bundle/frontend-bundle.tar.gz', extract['run'])
+        self.assertNotIn('RUNNER_TEMP', extract['run'])
 
     def shared_outputs(self, architecture, kind):
         images = (

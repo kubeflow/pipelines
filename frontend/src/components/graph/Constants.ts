@@ -15,6 +15,11 @@
 import { PipelineTaskTaskState } from 'src/apisv2/run';
 
 export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
+// Keep rendered node boxes and layout inputs in the same coordinate space.
+export const GRAPH_NODE_WIDTH = 200;
+export const GRAPH_NODE_HEIGHT = 56;
+// Automatic fitting must not magnify small graphs; manual zoom remains independent.
+export const GRAPH_FIT_OPTIONS = { maxZoom: 1 };
 
 // Being used as the base interace for Node and Edge in Reactflow.
 export type FlowElementDataBase = {

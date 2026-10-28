@@ -18,6 +18,8 @@ import {
   ArtifactFlowElementData,
   FlowElementDataBase,
   SubDagTaskData,
+  GRAPH_NODE_WIDTH,
+  GRAPH_NODE_HEIGHT,
 } from 'src/components/graph/Constants';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
@@ -40,8 +42,8 @@ export function getNodeName(element: PipelineFlowElement | null): string {
   return 'unknown';
 }
 
-const nodeWidth = 224;
-const nodeHeight = 48;
+const nodeWidth = GRAPH_NODE_WIDTH;
+const nodeHeight = GRAPH_NODE_HEIGHT;
 
 export enum NodeTypeNames {
   EXECUTION = 'EXECUTION',

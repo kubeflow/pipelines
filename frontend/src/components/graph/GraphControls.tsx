@@ -1,16 +1,19 @@
 // Copyright 2026 The Kubeflow Authors
 // SPDX-License-Identifier: Apache-2.0
 
-import { ButtonHTMLAttributes } from 'react';
+import { ButtonHTMLAttributes, useId } from 'react';
 import { ControlButton, Panel, useReactFlow, useStore } from '@xyflow/react';
-import Tooltip from '@mui/material/Tooltip';
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
-import CropFreeIcon from '@mui/icons-material/CropFree';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import { GRAPH_FIT_OPTIONS } from './Constants';
+import { Tooltip } from '@base-ui/react/tooltip';
+import {
+  Plus as AddIcon,
+  Minus as RemoveIcon,
+  Scan as CropFreeIcon,
+  Lock as LockIcon,
+  LockOpen as LockOpenIcon,
+  ChevronsUpDown as UnfoldMoreIcon,
+  ChevronsDownUp as UnfoldLessIcon,
+} from 'lucide-react';
 
 type PaletteButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'> & {
   label: string;
@@ -18,45 +21,53 @@ type PaletteButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>
 };
 
 function PaletteButton({ label, tooltip = label, ...props }: PaletteButtonProps) {
+  const tooltipId = useId();
   return (
-    <Tooltip
-      title={tooltip}
-      enterDelay={500}
-      enterNextDelay={500}
-      placement='right'
-      disableInteractive
-    >
-      {/* Disabled buttons do not emit mouse events; the wrapper still explains the action. */}
-      <span style={{ display: 'flex' }}>
+    <Tooltip.Root disableHoverablePopup>
+      <Tooltip.Trigger render={<span style={{ display: 'flex' }} />} delay={500}>
         <ControlButton
           {...props}
           aria-label={label}
+          aria-describedby={tooltipId}
           style={{
             borderBottom:
               '1px solid var(--xy-controls-button-border-color, var(--xy-controls-button-border-color-default))',
           }}
         />
-      </span>
-    </Tooltip>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Positioner side='right' sideOffset={6}>
+          <Tooltip.Popup role='tooltip' id={tooltipId} className='kfp-graph-tooltip'>
+            {tooltip}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 
 export interface GraphControlsProps {
   showSubDagControls: boolean;
   hasSubDags: boolean;
+  canExpand?: boolean;
+  canCollapse?: boolean;
   locked: boolean;
   onLockChange: (locked: boolean) => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
+  onViewportInteraction?: () => void;
 }
 
 export default function GraphControls({
   showSubDagControls,
   hasSubDags,
+  canExpand = true,
+  canCollapse = true,
   locked,
   onLockChange,
   onExpandAll,
   onCollapseAll,
+  onViewportInteraction,
 }: GraphControlsProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const maxZoomReached = useStore((state) => state.transform[2] >= state.maxZoom);
@@ -69,20 +80,20 @@ export default function GraphControls({
       aria-label='Graph controls'
       data-testid='rf__controls'
     >
-      {showSubDagControls && (
+      {showSubDagControls && hasSubDags && (
         <>
           <PaletteButton
             label='Expand all'
-            tooltip='Expand all sub-DAGs'
-            disabled={!hasSubDags}
+            tooltip={canExpand ? 'Expand all sub-DAGs' : 'All sub-DAGs are expanded'}
+            disabled={!canExpand}
             onClick={onExpandAll}
           >
             <UnfoldMoreIcon />
           </PaletteButton>
           <PaletteButton
             label='Collapse all'
-            tooltip='Collapse all sub-DAGs'
-            disabled={!hasSubDags}
+            tooltip={canCollapse ? 'Collapse all sub-DAGs' : 'All sub-DAGs are collapsed'}
+            disabled={!canCollapse}
             onClick={onCollapseAll}
           >
             <UnfoldLessIcon />
@@ -94,6 +105,7 @@ export default function GraphControls({
         className='react-flow__controls-zoomin'
         disabled={maxZoomReached}
         onClick={() => {
+          onViewportInteraction?.();
           void zoomIn();
         }}
       >
@@ -104,6 +116,7 @@ export default function GraphControls({
         className='react-flow__controls-zoomout'
         disabled={minZoomReached}
         onClick={() => {
+          onViewportInteraction?.();
           void zoomOut();
         }}
       >
@@ -115,13 +128,14 @@ export default function GraphControls({
         aria-keyshortcuts='F'
         className='react-flow__controls-fitview'
         onClick={() => {
-          void fitView();
+          onViewportInteraction?.();
+          void fitView(GRAPH_FIT_OPTIONS);
         }}
       >
         <CropFreeIcon />
       </PaletteButton>
       <PaletteButton
-        label={locked ? 'Unlock graph' : 'Lock graph'}
+        label={locked ? 'Unlock node positions' : 'Lock node positions'}
         tooltip={locked ? 'Unlock node dragging' : 'Lock nodes to pan with dragging and arrow keys'}
         aria-pressed={locked}
         className='react-flow__controls-interactive'

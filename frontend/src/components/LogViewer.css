@@ -1,0 +1,44 @@
+/* Keep padding outside the measured viewport and the row height at 15px. */
+.kfp-log-viewer {
+  background: var(--card, #fff);
+  color: var(--foreground, #15171e);
+  font-family: var(--kfp-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 15px;
+  /* The inner react-virtualized container is overflow: visible for long lines. */
+  overflow: auto !important;
+  white-space: pre;
+}
+.kfp-log-line,
+.kfp-log-text {
+  display: flex;
+}
+.kfp-log-line:hover {
+  background: var(--muted, #f0f1f5);
+}
+.kfp-log-number {
+  color: var(--muted-foreground, #626979);
+  flex: 40px 0 0;
+  padding-right: 10px;
+  text-align: right;
+  user-select: none;
+}
+.kfp-log-line[data-level='error'] {
+  background: var(--status-failed-soft, #fbe8e7);
+  color: var(--status-failed, #c9302c);
+}
+.kfp-log-line[data-level='warning'] {
+  background: var(--status-warning-soft, #fdf2df);
+  color: var(--status-warning, #975b08);
+}
+.kfp-log-line[data-level] .kfp-log-number {
+  color: inherit;
+}
+.kfp-log-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.kfp-log-link:hover {
+  text-decoration-thickness: 2px;
+}

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
 import PipelineGraph from 'src/components/graph/PipelineGraph';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import type { LayerFlowElement } from 'src/lib/v2/FlowTypes';
@@ -73,34 +74,36 @@ export function Viewer({ initial, live }: { initial: ViewerState; live: boolean 
   }, [state.spec]);
 
   return (
-    <main className='standalone-viewer'>
-      <header className='standalone-header'>
-        <div>
-          <span className='standalone-subtitle'>Kubeflow Pipelines · Local preview</span>
-          <h1>{graph?.name ?? 'Waiting for a valid pipeline'}</h1>
-        </div>
-        <span>{live ? 'Watching saved changes' : 'Offline export'}</span>
-      </header>
-      {(state.error || connectionError || graph?.error) && (
-        <div className='standalone-error' role='alert'>
-          {state.error && (
-            <>
-              <strong>Compilation or export failed. Showing the last valid graph.</strong>
-              <pre>{state.error}</pre>
-            </>
-          )}
-          {connectionError && <p>{connectionError}</p>}
-          {graph?.error && <p>{graph.error}</p>}
-        </div>
-      )}
-      {graph?.elements && (
-        <PipelineGraph
-          templateString={graph.template}
-          elements={graph.elements}
-          selection={selection}
-          onSelectionChange={setSelection}
-        />
-      )}
-    </main>
+    <ThemeProvider className='standalone-viewer'>
+      <main className='standalone-viewer'>
+        <header className='standalone-header'>
+          <div>
+            <span className='standalone-subtitle'>Kubeflow Pipelines · Local preview</span>
+            <h1>{graph?.name ?? 'Waiting for a valid pipeline'}</h1>
+          </div>
+          <span>{live ? 'Watching saved changes' : 'Offline export'}</span>
+        </header>
+        {(state.error || connectionError || graph?.error) && (
+          <div className='standalone-error' role='alert'>
+            {state.error && (
+              <>
+                <strong>Compilation or export failed. Showing the last valid graph.</strong>
+                <pre>{state.error}</pre>
+              </>
+            )}
+            {connectionError && <p>{connectionError}</p>}
+            {graph?.error && <p>{graph.error}</p>}
+          </div>
+        )}
+        {graph?.elements && (
+          <PipelineGraph
+            templateString={graph.template}
+            elements={graph.elements}
+            selection={selection}
+            onSelectionChange={setSelection}
+          />
+        )}
+      </main>
+    </ThemeProvider>
   );
 }

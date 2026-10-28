@@ -14,60 +14,61 @@
  * limitations under the License.
  */
 
-import FolderIcon from '@mui/icons-material/Folder';
-import React from 'react';
-import { classes } from 'typestyle';
-import { ArtifactFlowElementData } from './Constants';
+import { Folder } from 'lucide-react';
+import { Tooltip } from '@base-ui/react/tooltip';
+import { useTheme } from 'src/components/shell/ThemeProvider';
+import { ArtifactFlowElementData, GRAPH_NODE_HEIGHT, GRAPH_NODE_WIDTH } from './Constants';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
+import './Graph.css';
 
 interface ArtifactNodeProps {
   id: string;
-  data: ArtifactFlowElementData;
   selected?: boolean;
-  // status: ExecutionNodeStatus;
-  // tooltip: string;
+  data: ArtifactFlowElementData;
 }
 
-function ArtifactNode({ id, data, selected }: ArtifactNodeProps) {
-  let icon = getIcon(data.hasArtifact);
+export default function ArtifactNode({ id, data, selected }: ArtifactNodeProps) {
+  const { themeClassName } = useTheme();
+  const description = data.hasArtifact ? 'Artifact available' : 'Artifact';
   return (
     <>
-      <button
-        title={data.label}
-        className={classes(
-          'focus:ring flex items-stretch hover:scale-105 transition transform border-0 shadow-lg rounded-lg w-60 h-12',
-          selected && 'ring',
-        )}
-      >
-        <div className='flex items-center justify-between w-60 rounded-lg shadow-lg bg-white'>
-          {icon}
-          <div className='flex flex-grow justify-center items-center rounded-r-lg overflow-hidden'>
-            <span className='text-sm truncate' id={id} data-testid={id}>
+      <Tooltip.Root>
+        <Tooltip.Trigger
+          render={<button type='button' />}
+          delay={150}
+          className='kfp-graph-node'
+          data-selected={selected || undefined}
+          style={{ width: GRAPH_NODE_WIDTH, height: GRAPH_NODE_HEIGHT }}
+          data-tone={data.hasArtifact ? 'warning' : 'neutral'}
+          aria-label={data.label}
+          aria-describedby={`${id}-status`}
+        >
+          <Folder
+            className='kfp-graph-type-icon'
+            data-kind='artifact'
+            size={16}
+            role='img'
+            aria-label='Artifact'
+          />
+          <span className='kfp-graph-node-copy'>
+            <span className='kfp-graph-node-name' id={id} data-testid={id}>
               {data.label}
             </span>
-          </div>
-        </div>
-      </button>
+          </span>
+          <span className='kfp-graph-node-status' data-empty='true' aria-hidden='true' />
+          <span className='sr-only' id={`${id}-status`}>
+            {description}
+          </span>
+        </Tooltip.Trigger>
+        <Tooltip.Portal className={themeClassName}>
+          <Tooltip.Positioner side='top' sideOffset={6}>
+            <Tooltip.Popup role='tooltip' className='kfp-graph-tooltip'>
+              {data.label} · {description}
+            </Tooltip.Popup>
+          </Tooltip.Positioner>
+        </Tooltip.Portal>
+      </Tooltip.Root>
       <ReadOnlyNodeHandles />
     </>
-  );
-}
-
-export default ArtifactNode;
-
-function getIcon(hasArtifact: boolean | undefined) {
-  if (!hasArtifact) {
-    return getIconWrapper(
-      <FolderIcon data-testid='artifact-icon-default' className='text-mui-grey-300-dark' />,
-    );
-  }
-  return getIconWrapper(
-    <FolderIcon data-testid='artifact-icon-live' className='text-mui-yellow-800' />,
-  );
-}
-
-function getIconWrapper(element: React.ReactElement) {
-  return (
-    <div className='px-2 flex flex-col justify-center items-center rounded-l-lg'>{element}</div>
   );
 }

@@ -16,8 +16,7 @@
 
 import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
-import { color } from '../../Css';
-import { stylesheet } from 'typestyle';
+import './RichViewers.css';
 
 export interface HTMLViewerConfig extends ViewerConfig {
   htmlContent: string;
@@ -29,56 +28,23 @@ interface HTMLViewerProps {
 }
 
 class HTMLViewer extends Viewer<HTMLViewerProps, any> {
-  private _iframeRef = React.createRef<HTMLIFrameElement>();
-  private _config = this.props.configs[0];
-
-  private _css = stylesheet({
-    iframe: {
-      border: '1px solid ' + color.divider,
-      boxSizing: 'border-box',
-      flexGrow: 1,
-      height: this.props.maxDimension ? this.props.maxDimension : 'initial',
-      minHeight: this.props.maxDimension ? this.props.maxDimension : 600,
-      width: '100%',
-    },
-  });
-
-  private _updateHtmlContent(config: HTMLViewerConfig): void {
-    // TODO: iframe.srcdoc doesn't work on Edge yet. It's been added, but not
-    // yet rolled out as of the time of writing this (6/14/18):
-    // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/12375527/
-    // I'm using this since it seems like the safest way to insert HTML into an
-    // iframe, while allowing Javascript, but without needing to require
-    // "allow-same-origin" sandbox rule.
-    if (this._iframeRef.current) {
-      this._iframeRef.current!.srcdoc = config.htmlContent;
-    }
-  }
-
   public getDisplayName(): string {
     return 'Static HTML';
   }
 
-  public componentDidMount(): void {
-    this._updateHtmlContent(this._config);
-  }
-
-  public componentDidUpdate(): void {
-    this._config = this.props.configs[0];
-    this._updateHtmlContent(this._config);
-  }
-
   public render(): React.JSX.Element | null {
-    if (!this._config) {
+    const config = this.props.configs[0];
+    if (!config) {
       return null;
     }
 
     return (
-      // TODO: fix this
       <iframe
-        ref={this._iframeRef}
+        title='HTML report'
+        srcDoc={config.htmlContent}
         src='about:blank'
-        className={this._css.iframe}
+        className='kfp-html-viewer'
+        style={{ height: this.props.maxDimension, minHeight: this.props.maxDimension || 600 }}
         sandbox='allow-scripts'
       />
     );

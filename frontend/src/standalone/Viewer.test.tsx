@@ -13,6 +13,18 @@ const initial: ViewerState = {
   spec: PipelineSpec.toJSON(nestedArtifactSpec) as Record<string, unknown>,
 };
 
+beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+});
+
 beforeEach(() => mockResizeObserver());
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -29,7 +41,7 @@ describe('standalone viewer using the KFP pipeline graph', () => {
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('DagCanvas')).toBeInTheDocument();
-    expect(screen.getAllByTestId('execution-icon-default').length).toBeGreaterThan(0);
+    expect(document.querySelector('.react-flow__node-EXECUTION')).not.toBeNull();
     expect(document.querySelector('.react-flow__node-ARTIFACT')).not.toBeNull();
     expect(screen.getByRole('group', { name: 'Graph controls' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();

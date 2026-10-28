@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`AllRecurringRunsList > renders all recurring runs 1`] = `
+<DocumentFragment>
+  <div
+    class="kfp-page-container kfp-workflow-page"
+    data-page-layout="padded"
+  >
+    <div
+      data-testid="recurring-run-list"
+    />
+  </div>
+</DocumentFragment>
+`;

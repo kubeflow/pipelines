@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
+import { PageContainer } from 'src/components/layout/PageContainer';
 import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import ExperimentListTable from '../components/ExperimentList';
 import { Page, PageProps } from './Page';
 import { V2ExperimentStorageState } from 'src/apisv2/experiment';
-import { ToolbarProps } from '../components/Toolbar';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
+import '../components/runs/ExperimentWorkflows.css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 interface ArchivedExperimentsProp {
   namespace?: string;
+  scopeControl?: React.ReactNode;
 }
 
 interface ArchivedExperimentsState {}
@@ -44,14 +45,14 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
 
   public render(): React.JSX.Element {
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <PageContainer variant='canvas' className='kfp-workflow-page'>
         <ExperimentListTable
           onError={this.showPageError.bind(this)}
           ref={this._experimentlistRef}
           storageState={V2ExperimentStorageState.ARCHIVED}
           {...this.props}
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -64,9 +65,9 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
   }
 }
 
-const EnhancedArchivedExperiments = (props: PageProps) => {
+const ArchivedExperimentsWithContext = (props: PageProps & { scopeControl?: React.ReactNode }) => {
   const namespace = React.useContext(NamespaceContext);
   return <ArchivedExperiments key={namespace} {...props} namespace={namespace} />;
 };
 
-export default EnhancedArchivedExperiments;
+export default ArchivedExperimentsWithContext;

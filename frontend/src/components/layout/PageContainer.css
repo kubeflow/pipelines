@@ -1,0 +1,10 @@
+.kfp-theme .kfp-page-container {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 var(--kfp-page-gutter, 16px) var(--kfp-page-gutter, 16px);
+}
+
+.kfp-theme .kfp-page-container[data-page-layout='canvas'] {
+  padding: 0;
+}

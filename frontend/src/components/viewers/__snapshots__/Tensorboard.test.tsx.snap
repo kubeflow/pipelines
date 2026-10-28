@@ -2,68 +2,104 @@
 
 exports[`Tensorboard > base component snapshot 1`] = `
 <DocumentFragment>
-  <div>
-    <div>
-      <div
-        class="f104cl0n"
+  <div
+    class="kfp-theme"
+    data-theme="light"
+  >
+    <div
+      class="kfp-tensorboard-viewer"
+    >
+      <label
+        class="kfp-tensorboard-image"
+        for="viewer-tb-image-select"
       >
-        <div
-          class="MuiFormControl-root formControl_f59g3c5 css-1nrlq1o-MuiFormControl-root"
+        <span>
+          TF Image
+        </span>
+        <select
+          class="kfp-viewer-select"
+          id="viewer-tb-image-select"
         >
-          <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
-            data-shrink="true"
-            for="viewer-tb-image-select"
+          <optgroup
+            label="TensorFlow 1.x"
           >
-            TF Image
-          </label>
-          <div
-            class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
+            <option
+              value="tensorflow/tensorflow:1.7.1"
+            >
+              TensorFlow 1.7.1
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.8.0"
+            >
+              TensorFlow 1.8.0
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.9.0"
+            >
+              TensorFlow 1.9.0
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.10.1"
+            >
+              TensorFlow 1.10.1
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.11.0"
+            >
+              TensorFlow 1.11.0
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.12.3"
+            >
+              TensorFlow 1.12.3
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.13.2"
+            >
+              TensorFlow 1.13.2
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.14.0"
+            >
+              TensorFlow 1.14.0
+            </option>
+            <option
+              value="tensorflow/tensorflow:1.15.5"
+            >
+              TensorFlow 1.15.5
+            </option>
+          </optgroup>
+          <optgroup
+            label="TensorFlow 2.x"
           >
-            <div
-              aria-controls="_r_0_"
-              aria-expanded="false"
-              aria-haspopup="listbox"
-              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-              role="combobox"
-              tabindex="0"
+            <option
+              value="tensorflow/tensorflow:2.0.4"
+            >
+              TensorFlow 2.0.4
+            </option>
+            <option
+              value="tensorflow/tensorflow:2.1.2"
+            >
+              TensorFlow 2.1.2
+            </option>
+            <option
+              value="tensorflow/tensorflow:2.2.2"
             >
               TensorFlow 2.2.2
-            </div>
-            <input
-              aria-hidden="true"
-              aria-invalid="false"
-              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-              id="viewer-tb-image-select"
-              tabindex="-1"
-              value="tensorflow/tensorflow:2.2.2"
-            />
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-              data-testid="ArrowDropDownIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M7 10l5 5 5-5z"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
+            </option>
+          </optgroup>
+        </select>
+      </label>
       <div>
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-primary text-primary-foreground hover:brightness-95 h-[34px] px-3 kfp-busy-button"
+          data-slot="button"
           tabindex="0"
           type="button"
         >
           <span>
             Start Tensorboard
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
     </div>

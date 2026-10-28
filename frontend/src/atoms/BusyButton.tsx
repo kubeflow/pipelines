@@ -14,64 +14,40 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { ButtonProps } from '@mui/material/Button';
-import { stylesheet, classes } from 'typestyle';
-import { Button, CircularProgress } from '@mui/material';
+import type { ComponentType } from 'react';
+import { LoaderCircle } from 'lucide-react';
+import { Button, type ButtonProps } from '../components/ui/button';
+import { cn } from '../components/ui/utils';
+import './SharedAtoms.css';
 
-const css = stylesheet({
-  icon: {
-    height: 20,
-    marginRight: 4,
-    width: 20,
-  },
-  root: {
-    cursor: 'pointer',
-    marginBottom: 2, // To prevent container from flickering as the spinner shows up
-    position: 'relative',
-    transition: 'padding 0.3s',
-  },
-  rootBusy: {
-    cursor: 'default',
-    paddingRight: 35,
-  },
-  spinner: {
-    opacity: 0,
-    position: 'absolute',
-    right: '0.8em',
-    transition: 'all 0.3s',
-  },
-  spinnerBusy: {
-    opacity: 1,
-  },
-});
-
-interface BusyButtonProps extends ButtonProps {
+type BusyButtonProps = Omit<ButtonProps, 'title' | 'color'> & {
   title: string;
-  icon?: any;
+  icon?: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
   busy?: boolean;
   outlined?: boolean;
+};
+
+export default function BusyButton({
+  title,
+  icon: Icon,
+  busy,
+  outlined,
+  disabled,
+  className,
+  variant,
+  ...props
+}: BusyButtonProps) {
+  return (
+    <Button
+      {...props}
+      className={cn('kfp-busy-button', className)}
+      variant={outlined ? 'secondary' : variant}
+      disabled={busy || disabled}
+      aria-busy={busy || undefined}
+    >
+      {Icon && <Icon aria-hidden />}
+      <span>{title}</span>
+      {busy && <LoaderCircle className='kfp-atom-spinner' aria-hidden />}
+    </Button>
+  );
 }
-
-class BusyButton extends React.Component<BusyButtonProps> {
-  public render(): React.JSX.Element {
-    const { title, busy, className, disabled, icon, outlined, ...rest } = this.props;
-
-    return (
-      <Button
-        {...rest}
-        color={outlined ? 'primary' : 'secondary'}
-        className={classes(css.root, busy && css.rootBusy, className)}
-        disabled={busy || disabled}
-      >
-        {!!icon && <this.props.icon className={css.icon} />}
-        <span>{title}</span>
-        {busy === true && (
-          <CircularProgress size={15} className={classes(css.spinner, busy && css.spinnerBusy)} />
-        )}
-      </Button>
-    );
-  }
-}
-
-export default BusyButton;

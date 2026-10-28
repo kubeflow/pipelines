@@ -14,9 +14,32 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderWithoutTheme, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { ThemeProvider } from './shell/ThemeProvider';
+import userEvent from '@testing-library/user-event';
 import PlotCard from './PlotCard';
 import { ViewerConfig, PlotType } from './viewers/Viewer';
+
+function render(element: ReactElement) {
+  return renderWithoutTheme(element, {
+    wrapper: ({ children }) => <ThemeProvider defaultTheme='light'>{children}</ThemeProvider>,
+  });
+}
+
+beforeEach(() => {
+  localStorage.clear();
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    matches: false,
+    media,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 describe('PlotCard', () => {
   const config: ViewerConfig = {
@@ -28,14 +51,13 @@ describe('PlotCard', () => {
 
   it('renders nothing when there are no configs', () => {
     const { container } = render(<PlotCard title='' configs={[]} maxDimension={100} />);
-    expect(container.firstChild).toBeNull();
+    expect(container.querySelector('.kfp-plot-card')).toBeNull();
   });
 
   it('renders a confusion matrix plot card', () => {
-    const { asFragment } = render(
-      <PlotCard title='test title' configs={[config]} maxDimension={100} />,
-    );
-    expect(asFragment()).toMatchSnapshot();
+    render(<PlotCard title='test title' configs={[config]} maxDimension={100} />);
+    expect(screen.getByRole('heading', { name: 'test title' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Expand test title' })).toBeInTheDocument();
   });
 
   it('opens the fullscreen dialog', () => {
@@ -52,15 +74,14 @@ describe('PlotCard', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('closes the fullscreen dialog when the backdrop is clicked', async () => {
-    render(<PlotCard title='' configs={[config]} maxDimension={100} />);
-    fireEvent.click(screen.getByTestId('pop-out-button'));
-    // MUI backdrop is third-party internal DOM — querySelector retained
-    const backdrop = document.querySelector('[class*="MuiBackdrop-root"]');
-    if (!backdrop) {
-      throw new Error('Backdrop not found');
-    }
-    fireEvent.click(backdrop);
+  it('closes the fullscreen dialog with Escape and restores focus to its trigger', async () => {
+    const user = userEvent.setup();
+    render(<PlotCard title='test title' configs={[config]} maxDimension={100} />);
+    const trigger = screen.getByRole('button', { name: 'Expand test title' });
+    await user.click(trigger);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });

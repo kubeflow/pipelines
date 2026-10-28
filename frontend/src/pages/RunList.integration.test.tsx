@@ -5,6 +5,11 @@
  * You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  */
 import { render, screen } from '@testing-library/react';
+vi.mock('src/components/shell/ThemeProvider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('src/components/shell/ThemeProvider')>()),
+  useTheme: () => ({ themeClassName: 'kfp-theme' }),
+}));
+
 import { CommonTestWrapper } from 'src/TestWrapper';
 import RunList from './RunList';
 
