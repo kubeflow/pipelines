@@ -60,6 +60,7 @@ var runColumns = []string{
 	"PipelineContextId",
 	"PipelineRunContextId",
 	"RetryGeneration",
+	"RetryClaimNonce",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
 	"ImportedFrom",
@@ -101,6 +102,7 @@ var runListColumns = []string{
 	"PipelineContextId",
 	"PipelineRunContextId",
 	"RetryGeneration",
+	"RetryClaimNonce",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
 	"ImportedFrom",
@@ -214,6 +216,12 @@ type RunStoreInterface interface {
 		expectedPipelineRuntimeManifest model.LargeText,
 	) (bool, error)
 
+	// UpdateRunIfClaimStillPending applies a retry success/adoption write when
+	// the row is still PENDING or CANCELING under the caller's RetryGeneration.
+	// CANCELING preserves cancellation while updating workflow identity/manifest.
+	// Returns false without mutating when a same-generation terminal report already won.
+	UpdateRunIfClaimStillPending(run *model.Run) (bool, error)
+
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
 	// Conditions, etc.) to avoid redundant writes and potential clobbering.
@@ -242,17 +250,18 @@ type RunStoreInterface interface {
 	DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error)
 
 	// Atomically claims a terminal run for retry (database-side CAS).
-	// Returns the original State, Conditions, FinishedAtInSec, and the new
-	// RetryGeneration claim token for rollback and reporter fencing.
-	// takeoverExpiredClaim additionally allows claiming a PENDING row whose
-	// previous claim has aged out; the caller must first reconcile against
-	// Kubernetes and prove the previous claim's workflow was never applied,
-	// otherwise a takeover can restart in-flight work.
-	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
+	// Returns the original State, Conditions, FinishedAtInSec, the new
+	// RetryGeneration claim token, and an unpredictable RetryClaimNonce for
+	// ownership fencing. takeoverExpiredClaim additionally allows claiming a
+	// PENDING row whose previous claim has aged out; the caller must first
+	// reconcile against Kubernetes and prove the previous claim's workflow was
+	// never applied, otherwise a takeover can restart in-flight work.
+	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, claimNonce string, err error)
 
 	// Restores a run's pre-retry state after a failed retry attempt.
 	// The claimGeneration must match the value returned by ClaimRunForRetry
-	// to prevent ABA rollback of a later retry.
+	// and the row must still be in the claimed PENDING state so a current-
+	// generation terminal report cannot be undone by a stale rollback.
 	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
 }
 
@@ -646,7 +655,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
-		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
+		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest, retryClaimNonce sql.NullString
 
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
@@ -680,6 +689,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&pipelineContextID,
 			&pipelineRunContextID,
 			&retryGeneration,
+			&retryClaimNonce,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
 			&importedFrom,
@@ -747,6 +757,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				PipelineContextId:       pipelineContextID.Int64,
 				PipelineRunContextId:    pipelineRunContextID.Int64,
 				RetryGeneration:         retryGeneration.Int64,
+				RetryClaimNonce:         retryClaimNonce.String,
 				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
 				ArchivedAtInSec:         archivedAtInSec.Int64,
 				StateHistory:            stateHistoryNew,
@@ -903,6 +914,119 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	return err
 }
 
+// UpdateRunIfClaimStillPending applies a retry-path write when the row is still
+// PENDING or CANCELING at the caller's RetryGeneration. PENDING rows take the
+// caller's desired state (usually Running). CANCELING rows keep cancellation
+// while persisting the verified replacement identity/manifest so a concurrent
+// TerminateRun cannot strand the run on the pre-retry Workflow UID. A
+// same-generation terminal report that committed first returns false.
+func (s *RunStore) UpdateRunIfClaimStillPending(run *model.Run) (bool, error) {
+	return s.updateRunForRetryClaim(run)
+}
+
+func (s *RunStore) updateRunForRetryClaim(run *model.Run) (bool, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "transaction creation failed")
+	}
+	defer tx.Rollback()
+
+	lockSQL, lockArgs, err := qb.
+		Select(dialect.QuoteAll(q, []string{"State", "Conditions", "RetryGeneration"})...).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): run.UUID}).
+		ToSql()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to lock run %s before retry claim update", run.UUID)
+	}
+	var currentState sql.NullString
+	var currentConditions sql.NullString
+	var currentRetryGeneration sql.NullInt64
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(lockSQL), lockArgs...).Scan(
+		&currentState, &currentConditions, &currentRetryGeneration); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		}
+		return false, util.NewInternalServerError(err, "Failed to lock run %s before retry claim update", run.UUID)
+	}
+	if currentRetryGeneration.Int64 != run.RetryGeneration {
+		return false, nil
+	}
+	effectiveState := model.RuntimeStateUnspecified
+	if currentState.Valid && currentState.String != "" {
+		effectiveState = model.RuntimeState(currentState.String).ToV2()
+	} else if currentConditions.Valid {
+		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
+	}
+	switch effectiveState {
+	case model.RuntimeStatePending:
+		// Apply the caller's desired state (Running / terminal adoption).
+	case model.RuntimeStateCancelling:
+		// Preserve cancellation; still persist the replacement identity.
+		run.State = model.RuntimeStateCancelling
+		run.Conditions = string(model.RuntimeStateCancelling.ToExecutionPhase())
+	default:
+		// Terminal (or unexpected) same-generation state already committed.
+		return false, nil
+	}
+
+	if len(run.StateHistory) == 0 || run.StateHistory[len(run.StateHistory)-1].State != run.State {
+		run.StateHistory = append(run.StateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           run.State,
+		})
+	}
+	stateHistoryString := ""
+	if historyString, err := json.Marshal(run.StateHistory); err == nil {
+		stateHistoryString = string(historyString)
+	}
+	updateFields := sq.Eq{
+		q("Conditions"):              run.Conditions,
+		q("State"):                   run.State.ToString(),
+		q("StateHistory"):            stateHistoryString,
+		q("FinishedAtInSec"):         run.FinishedAtInSec,
+		q("WorkflowRuntimeManifest"): run.WorkflowRuntimeManifest,
+	}
+	if run.K8SName != "" {
+		updateFields[q("Name")] = run.K8SName
+	}
+	if run.Namespace != "" {
+		updateFields[q("Namespace")] = run.Namespace
+	}
+	if run.PluginsOutputString != nil {
+		updateFields[q("PluginsOutput")] = largeTextToNullableSQL(run.PluginsOutputString)
+	}
+	sql, args, err := qb.
+		Update(q("run_details")).
+		SetMap(updateFields).
+		Where(sq.And{
+			sq.Eq{q("UUID"): run.UUID},
+			sq.Eq{q("RetryGeneration"): run.RetryGeneration},
+		}).
+		ToSql()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to create query to update run %s", run.UUID)
+	}
+	result, err := tx.Exec(sql, args...)
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to update run %s", run.UUID)
+	}
+	r, err := result.RowsAffected()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "Failed to update run %s", run.UUID)
+	}
+	if r != 1 {
+		return false, nil
+	}
+	if err := tx.Commit(); err != nil {
+		return false, util.NewInternalServerError(err, "Failed to update run %s", run.UUID)
+	}
+	return true, nil
+}
+
 func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
 	run *model.Run,
 	expectedWorkflowRuntimeManifest model.LargeText,
@@ -1017,6 +1141,10 @@ type runRuntimeManifestPrecondition struct {
 	retryGeneration int64
 	namespace       *string
 	state           *model.RuntimeState
+	// ignoreManifests skips the WorkflowRuntimeManifest / PipelineRuntimeManifest
+	// compare-and-set when the caller only needs state and/or generation fencing
+	// (e.g. RetryRun persisting after a claim that left the prior terminal manifest).
+	ignoreManifests bool
 }
 
 func lockRunForRuntimeManifestWrite(
@@ -1028,10 +1156,13 @@ func lockRunForRuntimeManifestWrite(
 	q := d.QuoteIdentifier
 	qb := d.QueryBuilder()
 
-	lockColumns := []string{"WorkflowRuntimeManifest"}
-	checkPipelineRuntimeManifest := expected.workflow == ""
-	if checkPipelineRuntimeManifest {
-		lockColumns = append(lockColumns, "PipelineRuntimeManifest")
+	lockColumns := []string{}
+	checkPipelineRuntimeManifest := !expected.ignoreManifests && expected.workflow == ""
+	if !expected.ignoreManifests {
+		lockColumns = append(lockColumns, "WorkflowRuntimeManifest")
+		if checkPipelineRuntimeManifest {
+			lockColumns = append(lockColumns, "PipelineRuntimeManifest")
+		}
 	}
 	if expected.namespace != nil {
 		lockColumns = append(lockColumns, "Namespace")
@@ -1054,9 +1185,12 @@ func lockRunForRuntimeManifestWrite(
 	var currentState sql.NullString
 	var currentConditions sql.NullString
 	var currentRetryGeneration sql.NullInt64
-	lockScanTargets := []any{&currentWorkflowRuntimeManifest}
-	if checkPipelineRuntimeManifest {
-		lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
+	lockScanTargets := []any{}
+	if !expected.ignoreManifests {
+		lockScanTargets = append(lockScanTargets, &currentWorkflowRuntimeManifest)
+		if checkPipelineRuntimeManifest {
+			lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
+		}
 	}
 	if expected.namespace != nil {
 		lockScanTargets = append(lockScanTargets, &currentNamespace)
@@ -1077,8 +1211,9 @@ func lockRunForRuntimeManifestWrite(
 	} else if currentConditions.Valid {
 		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
 	}
-	matches := currentWorkflowRuntimeManifest == expected.workflow &&
-		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
+	matches := (expected.ignoreManifests ||
+		(currentWorkflowRuntimeManifest == expected.workflow &&
+			(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline))) &&
 		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
 		(expected.state == nil || effectiveState == expected.state.ToV2()) &&
 		currentRetryGeneration.Int64 == expected.retryGeneration
@@ -1319,13 +1454,13 @@ func (s *RunStore) DeleteRun(id string) error {
 	return nil
 }
 
-func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, string, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
 	tx, err := s.db.Begin()
 	if err != nil {
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
 	}
 	defer tx.Rollback()
 
@@ -1338,7 +1473,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runID)
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runID)
 	}
 	row := tx.QueryRow(s.dbDialect.SelectForUpdate(selectSQL), selectArgs...)
 	var nullableState sql.NullString
@@ -1351,9 +1486,9 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec, &nullableStorageState); err != nil {
 		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
+			return "", "", 0, 0, "", util.NewResourceNotFoundError("Run", runID)
 		}
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to read run %s for retry claim", runID)
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to read run %s for retry claim", runID)
 	}
 	originalState := ""
 	if nullableState.Valid {
@@ -1365,7 +1500,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	// mutation, keeps a run from ending up RUNNING and ARCHIVED at once.
 	if model.StorageState(nullableStorageState.String).ToV2() == model.StorageStateArchived {
 		tx.Rollback()
-		return "", "", 0, 0, NewArchivedRunRetryError(runID)
+		return "", "", 0, 0, "", NewArchivedRunRetryError(runID)
 	}
 
 	// Verify the locked row is still in a terminal state. Between the
@@ -1393,16 +1528,22 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 			(retryClaimedAtInSec == 0 || s.time.Now().Unix()-retryClaimedAtInSec > RetryClaimGraceSeconds)
 		if !isAbandonedClaim {
 			tx.Rollback()
-			return "", "", 0, 0, util.NewBadRequestError(
+			return "", "", 0, 0, "", util.NewBadRequestError(
 				fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
 				"Cannot claim run %s for retry: not in a terminal state", runID)
 		}
 		glog.Warningf("Run %s has an abandoned retry claim (generation %d, claimed at %d); taking it over", runID, currentGeneration, retryClaimedAtInSec)
 	}
 
-	// Atomically transition to PENDING and increment RetryGeneration.
-	// The new generation acts as a unique claim token that fences stale
-	// workflow reporters and prevents ABA rollback.
+	claimNonce, err := util.NewRetryClaimNonce()
+	if err != nil {
+		tx.Rollback()
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to generate retry claim nonce for run %s", runID)
+	}
+
+	// Atomically transition to PENDING, increment RetryGeneration, and store
+	// an unpredictable nonce. Generation fences stale reporters; the nonce
+	// authenticates ownership markers that would otherwise be forgeable.
 	newGeneration := currentGeneration + 1
 	claimSQL, claimArgs, err := qb.
 		Update(q("run_details")).
@@ -1410,28 +1551,32 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 		Set(q("Conditions"), string(model.RuntimeStatePending.ToExecutionPhase())).
 		Set(q("FinishedAtInSec"), 0).
 		Set(q("RetryGeneration"), newGeneration).
+		Set(q("RetryClaimNonce"), claimNonce).
 		Set(q("RetryClaimedAtInSec"), s.time.Now().Unix()).
 		Where(sq.Eq{q("UUID"): runID}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim query for run %s", runID)
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to build retry claim query for run %s", runID)
 	}
 	if _, err := tx.Exec(claimSQL, claimArgs...); err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to execute retry claim for run %s", runID)
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to execute retry claim for run %s", runID)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to commit retry claim for run %s", runID)
+		return "", "", 0, 0, "", util.NewInternalServerError(err, "Failed to commit retry claim for run %s", runID)
 	}
-	return originalState, originalConditions, originalFinishedAtInSec, newGeneration, nil
+	return originalState, originalConditions, originalFinishedAtInSec, newGeneration, claimNonce, nil
 }
 
 func (s *RunStore) RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
+	// Fence on Pending in addition to generation: a same-generation terminal
+	// report that already committed must not be restored to Failed/Succeeded
+	// by a stale rollback (which would enable a duplicate retry).
 	rollbackSQL, rollbackArgs, err := qb.
 		Update(q("run_details")).
 		Set(q("State"), originalState).
@@ -1440,17 +1585,22 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 		// Clear the claim timestamp so the reporter's orphaned-claim
 		// recovery does not treat this restored terminal row as claimed.
 		Set(q("RetryClaimedAtInSec"), 0).
+		Set(q("RetryClaimNonce"), "").
 		Where(sq.And{
 			sq.Eq{q("UUID"): runID},
 			sq.Eq{q("RetryGeneration"): claimGeneration},
+			effectiveStatePredicate(q, model.RuntimeStatePending),
 		}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to build rollback query for run %s", runID)
 	}
-	_, err = s.db.Exec(rollbackSQL, rollbackArgs...)
+	result, err := s.db.Exec(rollbackSQL, rollbackArgs...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to rollback retry claim for run %s", runID)
+	}
+	if rows, rowsErr := result.RowsAffected(); rowsErr == nil && rows == 0 {
+		glog.Warningf("RollbackRetryClaim for run %s generation %d matched no PENDING row (likely superseded by a same-generation report)", runID, claimGeneration)
 	}
 	return nil
 }

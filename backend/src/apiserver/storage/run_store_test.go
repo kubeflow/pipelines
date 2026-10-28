@@ -1535,7 +1535,7 @@ func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
 	// subquery (UUID + sort key, ORDER BY + LIMIT) is the innermost layer, and
 	// the refs/tasks/metrics aggregation runs only over the paged rows. The
 	// outer ORDER BY re-sorts the final result without LIMIT (already applied).
-	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimNonce", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimNonce", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimNonce", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
 	assert.Equal(t, expectedSQL, sqlStr,
 		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
 
@@ -2207,7 +2207,7 @@ func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
 	require.Nil(t, err)
 
 	// Claim the run for retry. This bumps RetryGeneration to 1 in the DB.
-	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-retry-gen", false)
+	_, _, _, claimGeneration, _, claimErr := runStore.ClaimRunForRetry("run-retry-gen", false)
 	require.Nil(t, claimErr)
 	assert.Equal(t, int64(1), claimGeneration)
 
@@ -2263,7 +2263,7 @@ func TestClaimRunForRetry_LegacyConditionsRow(t *testing.T) {
 	_, err = db.Exec(`UPDATE run_details SET State = NULL WHERE UUID = ?`, "run-legacy-conditions")
 	require.Nil(t, err)
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, _, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions", false)
 	require.Nil(t, claimErr, "legacy v1 terminal rows must be claimable for retry")
 	assert.Equal(t, "", originalState)
 	assert.Equal(t, string(model.RuntimeStateFailedV1), originalConditions)
@@ -2299,7 +2299,7 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-rollback-claim", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, _, claimErr := runStore.ClaimRunForRetry("run-rollback-claim", false)
 	require.Nil(t, claimErr)
 
 	claimed, err := runStore.GetRun("run-rollback-claim", false)
@@ -2345,7 +2345,7 @@ func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, runStore.ArchiveRun("run-archived-claim"))
 
-	_, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", false)
+	_, _, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", false)
 	require.NotNil(t, claimErr)
 	userError := claimErr.(*util.UserError)
 	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
@@ -2366,7 +2366,7 @@ func TestClaimRunForRetry_RunNotFound(t *testing.T) {
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", false)
+	_, _, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", false)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -2452,6 +2452,48 @@ func TestArchiveExpiredRuns_SetsArchivedAt(t *testing.T) {
 	assert.True(t, run.ArchivedAtInSec > 0, "archive pass must stamp ArchivedAtInSec")
 }
 
+// Two RetryRun callers racing for the same terminal run: the first claim wins
+// generation 1 and fences the second (row is PENDING, not terminal). The unit
+// DB is single-connection SQLite, so this asserts the fencing contract
+// sequentially; production Postgres/MySQL add row locks under SelectForUpdate.
+func TestClaimRunForRetry_SecondCallerFencedWhileClaimHolds(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-claim-fence",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-claim-fence",
+		DisplayName:  "run-claim-fence",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, firstGen, _, firstErr := runStore.ClaimRunForRetry("run-claim-fence", false)
+	require.Nil(t, firstErr)
+	assert.Equal(t, int64(1), firstGen)
+
+	_, _, _, _, _, secondErr := runStore.ClaimRunForRetry("run-claim-fence", false)
+	require.NotNil(t, secondErr, "second claim must be fenced while the first holds")
+	assert.Contains(t, secondErr.Error(), "not in a terminal state")
+
+	_, _, _, _, _, takeoverFreshErr := runStore.ClaimRunForRetry("run-claim-fence", true)
+	require.NotNil(t, takeoverFreshErr, "takeover must not steal a fresh claim")
+	assert.Contains(t, takeoverFreshErr.Error(), "not in a terminal state")
+}
+
 // Regression: a retry that crashes after committing its claim but before
 // creating the workflow leaves the row PENDING with no workflow to report it.
 // A later claim must be able to take over once the claim has aged out (or its
@@ -2481,13 +2523,13 @@ func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	_, _, _, firstGeneration, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
+	_, _, _, firstGeneration, _, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
 	require.Nil(t, claimErr)
 	require.Equal(t, int64(1), firstGeneration)
 
 	// A fresh claim is protected: the row is PENDING with a recent timestamp.
 	// Even with takeover authorized, a fresh claim is protected.
-	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
+	_, _, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
 	require.NotNil(t, secondErr, "a fresh claim must not be taken over")
 	assert.Contains(t, secondErr.Error(), "not in a terminal state")
 
@@ -2496,12 +2538,202 @@ func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
 	require.Nil(t, err)
 
 	// Without caller authorization the expired claim still cannot be taken.
-	_, _, _, _, unauthorizedErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
+	_, _, _, _, _, unauthorizedErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
 	require.NotNil(t, unauthorizedErr, "takeover must require explicit caller authorization")
 
-	_, _, _, takeoverGeneration, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
+	_, _, _, takeoverGeneration, _, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
 	require.Nil(t, takeoverErr, "an abandoned claim must be recoverable by a new retry")
 	assert.Equal(t, int64(2), takeoverGeneration, "takeover must advance the generation")
+}
+
+func TestClaimRunForRetry_StoresUnpredictableNonce(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-claim-nonce",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-claim-nonce",
+		DisplayName:  "run-claim-nonce",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100,
+			State:           model.RuntimeStateFailed,
+			Conditions:      string(model.RuntimeStateFailedV1),
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, gen, nonce, claimErr := runStore.ClaimRunForRetry("run-claim-nonce", false)
+	require.Nil(t, claimErr)
+	assert.Equal(t, int64(1), gen)
+	require.NotEmpty(t, nonce)
+	assert.GreaterOrEqual(t, len(nonce), 16)
+
+	run, err := runStore.GetRun("run-claim-nonce", false)
+	require.Nil(t, err)
+	assert.Equal(t, nonce, run.RetryClaimNonce)
+}
+
+func TestUpdateRunIfClaimStillPending_PreservesCancelingWhileUpdatingIdentity(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-cas-cancel",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-cas-cancel",
+		DisplayName:  "run-cas-cancel",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf-failed-uid1",
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, gen, _, claimErr := runStore.ClaimRunForRetry("run-cas-cancel", false)
+	require.Nil(t, claimErr)
+	require.NoError(t, runStore.TerminateRun("run-cas-cancel"))
+
+	stale := &model.Run{
+		UUID:    "run-cas-cancel",
+		K8SName: "run-cas-cancel",
+		RunDetails: model.RunDetails{
+			State:                   model.RuntimeStateRunning,
+			Conditions:              string(model.RuntimeStateRunning.ToExecutionPhase()),
+			FinishedAtInSec:         0,
+			WorkflowRuntimeManifest: "wf-running-uid2",
+			RetryGeneration:         gen,
+		},
+	}
+	updated, err := runStore.UpdateRunIfClaimStillPending(stale)
+	require.Nil(t, err)
+	assert.True(t, updated)
+
+	persisted, err := runStore.GetRun("run-cas-cancel", false)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persisted.State,
+		"cancellation must survive retry persist")
+	assert.Equal(t, "wf-running-uid2", string(persisted.WorkflowRuntimeManifest),
+		"replacement identity/manifest must still be written")
+}
+
+func TestUpdateRunIfClaimStillPending_RejectsAfterTerminalReport(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-cas-pending",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-cas-pending",
+		DisplayName:  "run-cas-pending",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf-failed",
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, gen, _, claimErr := runStore.ClaimRunForRetry("run-cas-pending", false)
+	require.Nil(t, claimErr)
+
+	// Current-generation terminal report commits first.
+	reported, err := runStore.GetRun("run-cas-pending", false)
+	require.Nil(t, err)
+	reported.State = model.RuntimeStateSucceeded
+	reported.Conditions = string(model.RuntimeStateSucceeded.ToExecutionPhase())
+	reported.FinishedAtInSec = 200
+	reported.WorkflowRuntimeManifest = "wf-succeeded"
+	reported.RetryGeneration = gen
+	require.Nil(t, runStore.UpdateRun(reported))
+
+	// Stale retry persist at the same generation must not regress to Running.
+	stale := &model.Run{
+		UUID: "run-cas-pending",
+		RunDetails: model.RunDetails{
+			State:                   model.RuntimeStateRunning,
+			Conditions:              string(model.RuntimeStateRunning.ToExecutionPhase()),
+			FinishedAtInSec:         0,
+			WorkflowRuntimeManifest: "wf-running",
+			RetryGeneration:         gen,
+		},
+	}
+	updated, err := runStore.UpdateRunIfClaimStillPending(stale)
+	require.Nil(t, err)
+	assert.False(t, updated)
+
+	persisted, err := runStore.GetRun("run-cas-pending", false)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, persisted.State)
+	assert.Equal(t, "wf-succeeded", string(persisted.WorkflowRuntimeManifest))
+	assert.Equal(t, int64(200), persisted.FinishedAtInSec)
+}
+
+func TestRollbackRetryClaim_RejectsAfterSameGenerationTerminalReport(t *testing.T) {
+	db, testDialect := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         "run-rollback-cas",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-rollback-cas",
+		DisplayName:  "run-rollback-cas",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100,
+			State:           model.RuntimeStateFailed,
+			Conditions:      string(model.RuntimeStateFailedV1),
+		},
+	})
+	require.Nil(t, err)
+
+	originalState, originalConditions, originalFinishedAt, claimGeneration, _, claimErr := runStore.ClaimRunForRetry("run-rollback-cas", false)
+	require.Nil(t, claimErr)
+
+	reported, err := runStore.GetRun("run-rollback-cas", false)
+	require.Nil(t, err)
+	reported.State = model.RuntimeStateSucceeded
+	reported.Conditions = string(model.RuntimeStateSucceeded.ToExecutionPhase())
+	reported.FinishedAtInSec = 200
+	require.Nil(t, runStore.UpdateRun(reported))
+
+	require.Nil(t, runStore.RollbackRetryClaim("run-rollback-cas", originalState, originalConditions, originalFinishedAt, claimGeneration))
+
+	persisted, err := runStore.GetRun("run-rollback-cas", false)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, persisted.State,
+		"rollback must not restore Failed after a same-generation terminal report")
+	assert.Equal(t, int64(200), persisted.FinishedAtInSec)
 }
 
 // Regression: the delete pass selects candidates with two index-aligned

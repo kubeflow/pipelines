@@ -286,6 +286,11 @@ type RunDetails struct {
 	// workflow reporters. UpdateRun checks this value to reject terminal
 	// state writes from reporters that passed version checks before the claim.
 	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
+	// RetryClaimNonce is an unpredictable per-claim secret written atomically
+	// with RetryGeneration. Retry placeholders and activated retry Workflows
+	// must present this nonce; generation alone is forgeable and insufficient
+	// for ownership or activation.
+	RetryClaimNonce string `gorm:"column:RetryClaimNonce; type:varchar(64); default:'';"`
 	// RetryClaimedAtInSec records the epoch second when ClaimRunForRetry last
 	// claimed this row. It is a liveness signal only, never a correctness
 	// fence: ReportWorkflowResource uses it to detect a claim orphaned by a
