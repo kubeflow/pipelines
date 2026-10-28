@@ -31,6 +31,11 @@ Changelog
   workflow scheduling. Review nested values containing literal `[[…]]` or
   `{{$.…}}` before recreating schedules; these sequences may now be substituted.
 
+## 2.18.0 (2026-10-27)
+
+See the [2.18.0 release notes](https://github.com/kubeflow/pipelines/releases/tag/2.18.0)
+and the [2.18 upgrade guide](https://github.com/kubeflow/pipelines/blob/2.18.0/docs/operator-guides/upgrade-2.18.md).
+
 ## 2.17.1 (2026-08-26)
 
 ### Bug Fixes
