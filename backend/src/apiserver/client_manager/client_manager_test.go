@@ -16,13 +16,17 @@ package clientmanager
 
 import (
 	"context"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -338,6 +342,8 @@ type fakeS3HTTPServer struct {
 	server  *httptest.Server
 	buckets map[string]bool
 	log     []string
+	// Content-Encoding and X-Amz-Trailer of each object PUT
+	objectUploadHeaders []http.Header
 }
 
 func newFakeS3HTTPServer(t *testing.T) *fakeS3HTTPServer {
@@ -350,8 +356,24 @@ func newFakeS3HTTPServer(t *testing.T) *fakeS3HTTPServer {
 	return f
 }
 
+// newFakeS3HTTPSServer serves over TLS and points the AWS SDK's CA bundle at
+// its certificate. Checksum trailers are only sent over HTTPS.
+func newFakeS3HTTPSServer(t *testing.T) *fakeS3HTTPServer {
+	f := &fakeS3HTTPServer{
+		t:       t,
+		buckets: make(map[string]bool),
+	}
+	f.server = httptest.NewTLSServer(http.HandlerFunc(f.handle))
+	t.Cleanup(f.server.Close)
+	caBundle := filepath.Join(t.TempDir(), "ca.pem")
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: f.server.Certificate().Raw})
+	require.NoError(t, os.WriteFile(caBundle, certPEM, 0o600))
+	t.Setenv("AWS_CA_BUNDLE", caBundle)
+	return f
+}
+
 func (f *fakeS3HTTPServer) endpoint() string {
-	return strings.TrimPrefix(f.server.URL, "http://")
+	return strings.TrimPrefix(strings.TrimPrefix(f.server.URL, "http://"), "https://")
 }
 
 func (f *fakeS3HTTPServer) handle(w http.ResponseWriter, r *http.Request) {
@@ -361,6 +383,17 @@ func (f *fakeS3HTTPServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bucket := parts[0]
+
+	if len(parts) > 1 && r.Method == http.MethodPut {
+		f.objectUploadHeaders = append(f.objectUploadHeaders, http.Header{
+			"Content-Encoding": r.Header.Values("Content-Encoding"),
+			"X-Amz-Trailer":    r.Header.Values("X-Amz-Trailer"),
+		})
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.Header().Set("ETag", `"etag"`)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 
 	switch r.Method {
 	case http.MethodHead:
@@ -390,6 +423,33 @@ func (f *fakeS3HTTPServer) setBucket(name string) {
 
 func (f *fakeS3HTTPServer) requestLog() []string {
 	return f.log
+}
+
+// S3-compatible stores such as OCI Object Storage reject uploads sent with
+// Content-Encoding: aws-chunked (the encoding the AWS SDK uses for checksum
+// trailers), so uploads must follow the client's when_required setting.
+func TestOpenBucketWithRetry_UploadsWithoutChecksumTrailer(t *testing.T) {
+	server := newFakeS3HTTPSServer(t)
+	cfg := &blobStorageConfig{
+		bucketName: "pipelines-bucket",
+		endpoint:   server.endpoint(),
+		region:     "us-east-1",
+		secure:     true,
+		accessKey:  "key",
+		secretKey:  "secret",
+	}
+
+	bucket, err := openBucketWithRetry(context.Background(), cfg, 5*time.Second)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, bucket.Close())
+	})
+
+	require.NoError(t, bucket.WriteAll(context.Background(), "pipelines/spec.yaml", []byte("spec"), nil))
+
+	require.Len(t, server.objectUploadHeaders, 1)
+	assert.NotContains(t, server.objectUploadHeaders[0].Get("Content-Encoding"), "aws-chunked")
+	assert.Empty(t, server.objectUploadHeaders[0].Get("X-Amz-Trailer"))
 }
 
 func TestEnsureBucketExists_IntegrationCreatesBucket(t *testing.T) {

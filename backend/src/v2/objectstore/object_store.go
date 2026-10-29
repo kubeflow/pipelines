@@ -64,7 +64,7 @@ func OpenBucket(
 				}
 				if s3Client != nil {
 					// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic.
-					openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+					openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, s3BucketOptions(s3Client))
 					if err2 != nil {
 						return nil, err2
 					}
@@ -99,7 +99,7 @@ func OpenBucket(
 		if err1 != nil {
 			return nil, err1
 		}
-		openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+		openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, s3BucketOptions(s3Client))
 		if err2 != nil {
 			return nil, err2
 		}
@@ -345,6 +345,15 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 		}
 	}
 	return newS3Client(ctx, params, creds)
+}
+
+// s3BucketOptions carries the client's checksum setting into s3blob. Its
+// writer uploads through the S3 transfer manager, which ignores the client's
+// RequestChecksumCalculation and defaults to when_supported: uploads then get a
+// CRC32 trailer sent with Content-Encoding: aws-chunked, which S3-compatible
+// stores such as OCI Object Storage reject (501 NotImplemented).
+func s3BucketOptions(client *s3.Client) *s3blob.Options {
+	return &s3blob.Options{RequestChecksumCalculation: client.Options().RequestChecksumCalculation}
 }
 
 func newS3Client(ctx context.Context, params *S3Params, creds *credentials.StaticCredentialsProvider) (*s3.Client, error) {

@@ -16,6 +16,10 @@ package objectstore
 
 import (
 	"context"
+	"encoding/pem"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -386,6 +390,65 @@ func TestOpenBucketUsesExplicitS3ClientForEnvCredentials(t *testing.T) {
 			assert.Equal(t, aws.ResponseChecksumValidationWhenRequired, client.Options().ResponseChecksumValidation)
 		})
 	}
+}
+
+// S3-compatible stores such as OCI Object Storage reject uploads sent with
+// Content-Encoding: aws-chunked (the encoding the AWS SDK uses for checksum
+// trailers), so uploads must follow the client's when_required setting.
+func TestOpenBucketUploadsWithoutChecksumTrailer(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "key")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
+
+	type upload struct {
+		contentEncoding string
+		trailer         string
+	}
+	var uploads []upload
+	// Checksum trailers are only sent over HTTPS.
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			uploads = append(uploads, upload{
+				contentEncoding: r.Header.Get("Content-Encoding"),
+				trailer:         r.Header.Get("X-Amz-Trailer"),
+			})
+		}
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.Header().Set("ETag", `"etag"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv("AWS_CA_BUNDLE", writeServerCABundle(t, server))
+
+	config := &Config{Scheme: "s3://", BucketName: "test-bucket", Prefix: "artifacts/"}
+	sessionInfo := &SessionInfo{
+		Provider: "s3",
+		Params: map[string]string{
+			"region":         "us-east-1",
+			"endpoint":       server.URL,
+			"disableSSL":     "false",
+			"fromEnv":        "true",
+			"forcePathStyle": "true",
+		},
+	}
+	bucket, err := OpenBucket(context.Background(), nil, "", config, sessionInfo)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, bucket.Close())
+	})
+
+	require.NoError(t, bucket.WriteAll(context.Background(), "executor-logs", []byte("log line"), nil))
+
+	require.Len(t, uploads, 1)
+	assert.NotContains(t, uploads[0].contentEncoding, "aws-chunked")
+	assert.Empty(t, uploads[0].trailer)
+}
+
+func writeServerCABundle(t *testing.T, server *httptest.Server) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "ca.pem")
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw})
+	require.NoError(t, os.WriteFile(path, certPEM, 0o600))
+	return path
 }
 
 func TestNewS3ClientRetryAttempts(t *testing.T) {
