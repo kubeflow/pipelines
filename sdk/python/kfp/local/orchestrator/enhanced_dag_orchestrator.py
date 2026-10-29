@@ -92,12 +92,16 @@ class ConditionEvaluator:
                 literal = []
                 index += 1
                 while index < len(condition) and condition[index] != quote:
-                    if (
-                        condition[index] == '\\'
-                        and index + 1 < len(condition)
-                        and condition[index + 1] == quote
-                    ):
-                        index += 1
+                    if condition[index] == '\\' and index + 1 < len(condition):
+                        next_char = condition[index + 1]
+                        if next_char == '\\':
+                            literal.extend(('\\', '\\'))
+                            index += 2
+                            continue
+                        if next_char == quote:
+                            literal.append(quote)
+                            index += 2
+                            continue
                     literal.append(condition[index])
                     index += 1
                 if index == len(condition):

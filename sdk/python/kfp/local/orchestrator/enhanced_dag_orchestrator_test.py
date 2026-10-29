@@ -17,6 +17,8 @@ import os
 import tempfile
 import unittest
 
+from kfp.compiler import pipeline_spec_builder
+from kfp.dsl import pipeline_channel
 from kfp.local import io
 from kfp.local.orchestrator.enhanced_dag_orchestrator import ConditionEvaluator
 
@@ -146,6 +148,21 @@ class ConditionEvaluatorTest(unittest.TestCase):
             ConditionEvaluator.evaluate_condition(
                 r"pipelinechannel--producer-Output == 'C:\bin'", self.store
             )
+        )
+
+    def test_compiler_string_literal_ends_with_two_backslashes(self):
+        value = r'\\'
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='Output', channel_type='String', task_name='producer'
+        )
+        condition = (
+            pipeline_spec_builder._single_binary_operation_to_cel_condition(
+                pipeline_channel.ConditionOperation('==', channel, value)
+            )
+        )
+        self.store.put_task_output('producer', 'Output', value)
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(condition, self.store)
         )
 
     def test_large_numeric_conversion_fails_closed(self):
