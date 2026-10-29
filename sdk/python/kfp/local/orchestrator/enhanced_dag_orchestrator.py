@@ -15,9 +15,11 @@
 """Enhanced DAG orchestrator with support for dsl.Condition and
 dsl.ParallelFor."""
 
+import ast
 import concurrent.futures
 import enum
 import logging
+import operator
 import re
 from typing import Any, Dict, List, Set, Tuple
 
@@ -110,98 +112,127 @@ class ConditionEvaluator:
             return None
 
     @staticmethod
-    def evaluate_condition(
-        condition: str,
-        io_store: io.IOStore,
-    ) -> bool:
-        """Evaluates a condition string using available values from IOStore.
-
-        Handles both simple pipeline channel references and CEL-style
-        expressions like inputs.parameter_values['param_name'].
-
-        Args:
-            condition: The condition expression to evaluate
-            io_store: IOStore containing available values
-
-        Returns:
-            True if condition evaluates to True, False otherwise
-        """
+    def evaluate_condition(condition: str, io_store: io.IOStore) -> bool:
+        """Evaluate a condition without turning task outputs into Python
+        code."""
         if not condition or not condition.strip():
             return True
 
         try:
-            safe_condition = condition
-
-            # Handle CEL-style inputs.parameter_values['param_name'] references
+            # Only expression text is parsed. Values remain separate data.
+            expression = condition.replace('&&', ' and ').replace('||', ' or ')
+            expression = re.sub(r'!\s*\(', 'not (', expression)
+            values = {}
             cel_pattern = r"inputs\.parameter_values\['([^']+)'\]"
-            cel_matches = re.findall(cel_pattern, condition)
-            for param_name in cel_matches:
+            references = re.findall(cel_pattern, expression)
+            for reference in references:
                 value = ConditionEvaluator._resolve_pipeline_channel(
-                    param_name, io_store)
-                if value is not None:
-                    if isinstance(value, str):
-                        replacement = f"'{value}'"
-                    else:
-                        replacement = str(value)
-                    safe_condition = safe_condition.replace(
-                        f"inputs.parameter_values['{param_name}']", replacement)
-                else:
-                    logging.warning(
-                        f'Could not resolve CEL parameter: {param_name}')
+                    reference, io_store
+                )
+                if value is None:
                     return False
-
-            # Also handle direct pipeline channel references
-            pipeline_channels = ConditionEvaluator._extract_pipeline_channels(
-                safe_condition)
-            for channel_ref in pipeline_channels:
+                key = f'_channel_{len(values)}'
+                values[key] = value
+                expression = expression.replace(
+                    f"inputs.parameter_values['{reference}']", key
+                )
+            for reference in ConditionEvaluator._extract_pipeline_channels(
+                expression
+            ):
                 value = ConditionEvaluator._resolve_pipeline_channel(
-                    channel_ref, io_store)
-                if value is not None:
-                    if isinstance(value, str):
-                        safe_condition = safe_condition.replace(
-                            channel_ref, f"'{value}'")
-                    else:
-                        safe_condition = safe_condition.replace(
-                            channel_ref, str(value))
-                else:
-                    logging.warning(
-                        f'Could not resolve channel reference: {channel_ref}')
+                    reference, io_store
+                )
+                if value is None:
                     return False
+                key = f'_channel_{len(values)}'
+                values[key] = value
+                expression = expression.replace(reference, key)
+            tree = ast.parse(expression, mode='eval')
+            return bool(ConditionEvaluator._evaluate_node(tree.body, values))
+        except (
+            SyntaxError,
+            TypeError,
+            ValueError,
+            KeyError,
+            ZeroDivisionError,
+        ) as e:
+            logging.warning('Condition evaluation failed: %s', e)
+            return False
 
-            # Convert CEL syntax to Python syntax
-            safe_condition = safe_condition.replace('&&', ' and ')
-            safe_condition = safe_condition.replace('||', ' or ')
-            # Convert CEL negation !(...) to Python not (...)
-            safe_condition = re.sub(r'!\s*\(', 'not (', safe_condition)
-
-            # Use a restricted evaluation environment for safety.
-            # CEL uses lowercase `true`/`false`; expose them as aliases so
-            # evaluating a raw CEL condition doesn't NameError.
-            allowed_names = {
-                '__builtins__': {},
-                'True': True,
-                'False': False,
-                'true': True,
-                'false': False,
-                'None': None,
-                'null': None,
-                'not': lambda x: not x,
+    @staticmethod
+    def _evaluate_node(node: ast.AST, values: Dict[str, Any]) -> Any:
+        """Interpret the small expression subset generated by KFP
+        conditions."""
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name):
+            if node.id in values:
+                return values[node.id]
+            if node.id in ('true', 'True'):
+                return True
+            if node.id in ('false', 'False'):
+                return False
+            if node.id in ('null', 'None'):
+                return None
+            raise ValueError(f'Unsupported condition name: {node.id}')
+        if isinstance(node, ast.BoolOp):
+            if isinstance(node.op, ast.And):
+                return all(
+                    ConditionEvaluator._evaluate_node(v, values)
+                    for v in node.values
+                )
+            if isinstance(node.op, ast.Or):
+                return any(
+                    ConditionEvaluator._evaluate_node(v, values)
+                    for v in node.values
+                )
+        if isinstance(node, ast.UnaryOp):
+            value = ConditionEvaluator._evaluate_node(node.operand, values)
+            if isinstance(node.op, ast.Not):
+                return not value
+            if isinstance(node.op, ast.USub):
+                return -value
+        if isinstance(node, ast.Compare):
+            comparisons = {
+                ast.Eq: operator.eq,
+                ast.NotEq: operator.ne,
+                ast.Lt: operator.lt,
+                ast.LtE: operator.le,
+                ast.Gt: operator.gt,
+                ast.GtE: operator.ge,
+            }
+            left = ConditionEvaluator._evaluate_node(node.left, values)
+            for op, right_node in zip(node.ops, node.comparators):
+                compare = comparisons.get(type(op))
+                if compare is None:
+                    raise ValueError('Unsupported condition comparison')
+                right = ConditionEvaluator._evaluate_node(right_node, values)
+                if not compare(left, right):
+                    return False
+                left = right
+            return True
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            conversions = {
                 'int': int,
                 'float': float,
+                'double': float,
                 'str': str,
                 'bool': bool,
                 'len': len,
                 'min': min,
                 'max': max,
             }
-
-            result = eval(safe_condition, allowed_names, {})
-            return bool(result)
-
-        except Exception as e:
-            logging.warning(
-                f'Condition evaluation failed for "{condition}": {e}')
-            return False
+            fn = conversions.get(node.func.id)
+            if fn is not None and not node.keywords:
+                return fn(
+                    *(
+                        ConditionEvaluator._evaluate_node(arg, values)
+                        for arg in node.args
+                    )
+                )
+        raise ValueError(
+            f'Unsupported condition expression: {type(node).__name__}'
+        )
 
 
 class ParallelExecutor:
