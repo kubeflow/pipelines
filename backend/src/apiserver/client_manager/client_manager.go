@@ -1372,13 +1372,11 @@ func createExpressionIndexes(db *gorm.DB, dialect sqldrv.DBDialect) {
 // gap in place; it does not attempt to detect or clean up the duplicate
 // data.
 //
-// Known limitation: if multiple API-server replicas start at the same time,
-// one replica's in-progress CONCURRENTLY build looks identical to an invalid
-// index to another replica until the build finishes, so a replica can drop
-// and restart a build another replica already had underway. This does not
-// affect correctness (only how soon the index becomes available) and
-// converges on the next restart; autoMigrate/runLegacyUpgradeFlow have the
-// same lack of cross-replica coordination.
+// An in-progress CONCURRENTLY build looks identical to an invalid index until
+// it finishes. API server replicas run this under the startup migration lock,
+// so they do not drop each other's builds; a process that does not take the
+// lock, such as an older API server, still can. This does not affect
+// correctness, only how soon the index becomes available.
 func ensureExpressionIndex(db *gorm.DB, dialect sqldrv.DBDialect, spec expressionIndexSpec) {
 	const maxAttempts = 2
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
