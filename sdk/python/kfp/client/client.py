@@ -306,14 +306,14 @@ class Client:
             token, self._is_refresh_token = auth.get_auth_token(
                 client_id, other_client_id, other_client_secret
             )
-        elif self._is_inverse_proxy_host(host):
-            token = auth.get_gcp_access_token()
-            self._is_refresh_token = False
-            self._uses_gcp_credentials = True
         elif credentials:
             config.api_key['authorization'] = 'placeholder'
             config.api_key_prefix['authorization'] = 'Bearer'
             config.refresh_api_key_hook = credentials.refresh_api_key_hook
+        elif self._is_inverse_proxy_host(host):
+            token = auth.get_gcp_access_token()
+            self._is_refresh_token = False
+            self._uses_gcp_credentials = True
 
         if token:
             config.api_key['authorization'] = token
