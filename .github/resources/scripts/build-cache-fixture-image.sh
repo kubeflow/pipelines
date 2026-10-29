@@ -19,6 +19,7 @@ cluster_name=${1:?Usage: build-cache-fixture-image.sh CLUSTER_NAME OUTPUT_DIRECT
 output_directory=${2:?Usage: build-cache-fixture-image.sh CLUSTER_NAME OUTPUT_DIRECTORY}
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
+source .github/resources/scripts/helper-functions.sh
 
 nodes=$(kind get nodes --name "$cluster_name")
 if [[ -z "$nodes" ]]; then
@@ -47,7 +48,10 @@ while read -r base version image; do
   DOCKER_BUILDKIT=0 docker build --network=none --pull=false \
     --build-arg "PYTHON_BASE=$base" --build-arg "KFP_VERSION=$version" \
     --file "$build_context/Dockerfile" --tag "$image" "$build_context"
-  kind load docker-image --name "$cluster_name" "$image"
+  # Like every other Kind image load in CI, retry: the docker save stream into
+  # the node is occasionally truncated ("unexpected EOF", "short read"), and a
+  # repeated load skips images the node already has.
+  retry 3 "${KIND_LOAD_RETRY_INTERVAL:-10}" kind load docker-image --name "$cluster_name" "$image"
   rm -rf "$build_context/wheels"
 done <<< "$matrix"
 # Reuse the readiness helper interpreter: its Kubernetes client installs PyYAML.

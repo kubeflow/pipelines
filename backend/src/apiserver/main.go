@@ -521,24 +521,40 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 
 	topMux := buildHTTPRouter(handlerDeps, runtimeMux, pipelineStore)
 
+	httpServer := &http.Server{
+		Addr:    *httpPortFlag,
+		Handler: topMux,
+	}
 	if tlsCfg != nil {
 		glog.Info("Starting Https Proxy")
-		https := http.Server{
-			TLSConfig: tlsCfg,
-			Addr:      *httpPortFlag,
-			Handler:   topMux,
-		}
-		err := https.ListenAndServeTLS(*tlsCertPath, *tlsCertKeyPath)
-		if err != nil {
-			glog.Errorf("Error starting https server: %v", err)
-			return
-		}
 	} else {
 		glog.Info("Starting Http Proxy")
-		http.ListenAndServe(*httpPortFlag, topMux)
 	}
+	// A listener that fails to start must take the process down with a
+	// non-zero status, like startRPCServer does. Returning here instead would
+	// let main finish its normal shutdown and exit 0, hiding the failure from
+	// pod status and restart-based alerting.
+	if err := serveHTTPProxy(httpServer, tlsCfg, *tlsCertPath, *tlsCertKeyPath); err != nil {
+		glog.Fatalf("Failed to serve HTTP proxy on %s: %v", *httpPortFlag, err)
+	}
+	glog.Info("Http Proxy stopped")
+}
 
-	glog.Info("Http Proxy started")
+// serveHTTPProxy serves httpServer, over TLS when tlsCfg is set, until it
+// stops. A deliberate shutdown is reported as nil; any other reason the
+// server stopped, including a listener that never started, is returned.
+func serveHTTPProxy(httpServer *http.Server, tlsCfg *tls.Config, certPath, keyPath string) error {
+	var err error
+	if tlsCfg != nil {
+		httpServer.TLSConfig = tlsCfg
+		err = httpServer.ListenAndServeTLS(certPath, keyPath)
+	} else {
+		err = httpServer.ListenAndServe()
+	}
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 type healthzResponse struct {

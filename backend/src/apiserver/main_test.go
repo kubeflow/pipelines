@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -982,4 +983,33 @@ func TestBuildHTTPRouter_RunLogRequiresGET(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/apis/v2/runs/run-id/nodes/node-id/log?follow=true", nil))
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
+}
+
+func TestServeHTTPProxy_ReportsListenFailure(t *testing.T) {
+	// Occupy a port so the proxy's listener cannot bind to it, as happens when
+	// --httpPortFlag collides with another listener in the pod.
+	occupied, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer occupied.Close()
+
+	httpServer := &http.Server{Addr: occupied.Addr().String(), Handler: http.NotFoundHandler()}
+	err = serveHTTPProxy(httpServer, nil, "", "")
+	require.Error(t, err, "a listener that failed to start must be reported so main can exit non-zero")
+	assert.NotErrorIs(t, err, http.ErrServerClosed)
+}
+
+func TestServeHTTPProxy_ReportsTLSListenFailure(t *testing.T) {
+	httpServer := &http.Server{Addr: "127.0.0.1:0", Handler: http.NotFoundHandler()}
+	missing := filepath.Join(t.TempDir(), "missing")
+	err := serveHTTPProxy(httpServer, &tls.Config{MinVersion: tls.VersionTLS12}, missing+".crt", missing+".key")
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, http.ErrServerClosed)
+}
+
+func TestServeHTTPProxy_CleanShutdownIsNotAnError(t *testing.T) {
+	httpServer := &http.Server{Addr: "127.0.0.1:0", Handler: http.NotFoundHandler()}
+	// Shutting down first makes ListenAndServe return ErrServerClosed at once,
+	// which is the only stop reason that must not be treated as a failure.
+	require.NoError(t, httpServer.Shutdown(context.Background()))
+	assert.NoError(t, serveHTTPProxy(httpServer, nil, "", ""))
 }
