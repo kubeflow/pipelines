@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ast
 import importlib
+import re
 from typing import Text
 import unittest
+from unittest import mock
+import tornado.httputil
 import tornado.testing
 import tornado.web
-from nbformat.v4 import new_code_cell
 
 server = importlib.import_module("server")
 
@@ -100,43 +103,78 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
 class TestSourceInjection(unittest.TestCase):
     """Regression test for the `source` string-literal injection sink.
 
-    `server.py` builds a notebook cell that assigns the request `source`
-    parameter to a Python variable. The cell must use repr() (or another
-    escaping mechanism) so a `source` value containing a double-quote cannot
-    break out of the string literal and inject arbitrary statements.
+    `generate_notebook_from_arguments` builds a notebook cell that assigns the
+    request `source` parameter to a Python variable. That cell must escape the
+    value (repr()) so a `source` containing a double-quote cannot terminate the
+    literal and have the remainder parsed as further statements, which the
+    kernel would then execute.
+
+    These tests drive the production builder, not a copy of it: reverting the
+    escaping in server.py makes them fail.
     """
 
-    # The exact cell construction performed in VisualizationHandler.generate_notebook.
-    # Kept in sync with server.py; if the construction changes, update both.
-    @staticmethod
-    def _source_cell(source: str):
-        return new_code_cell('source = {}'.format(repr(source)))
+    PAYLOAD = 'x";injected_marker = 1;x="'
 
-    def test_malicious_source_does_not_break_out_of_literal(self):
-        malicious = 'x";__import__("os").system("echo PWNED");x="'
-        cell = self._source_cell(malicious)
-        # The cell must compile as a single statement (an assignment), not as
-        # multiple statements — i.e. the injected code must NOT be reachable.
-        import ast
-        tree = ast.parse(cell.source)
+    def setUp(self):
+        connection = mock.Mock(spec=["set_close_callback"])
+        request = tornado.httputil.HTTPServerRequest(
+            method="POST", uri="/", connection=connection)
+        self.handler = server.VisualizationHandler(
+            tornado.web.Application(), request)
+
+    def generated_source_cell(self, source: Text, visualization_type: Text):
+        """Returns the `source = ...` cell the production builder generated."""
+        nb = self.handler.generate_notebook_from_arguments(
+            {"code": ["pass"]}, source, visualization_type)
+        cells = [
+            cell for cell in nb.cells
+            if re.match(r"^source\s*=", cell.source)
+        ]
         self.assertEqual(
-            1, len(tree.body),
-            "source cell must be a single statement; injection broke out: "
-            + cell.source,
-        )
-        self.assertIsInstance(tree.body[0], ast.Assign)
-        # And executing it must leave `source` equal to the raw input — proving
-        # the payload became inert string data, not executed code.
-        namespace = {}
-        exec(cell.source, namespace)
-        self.assertEqual(malicious, namespace["source"])
+            1, len(cells), "expected exactly one source assignment cell")
+        return cells[0].source
 
-    def test_legit_source_round_trips(self):
-        legit = "gs://ml-pipeline/data.csv"
-        cell = self._source_cell(legit)
+    def assert_source_is_inert_data(self, source: Text, visualization_type: Text):
+        cell = self.generated_source_cell(source, visualization_type)
+        statements = ast.parse(cell).body
+        self.assertEqual(
+            1, len(statements),
+            "source cell must be a single statement; injection broke out of "
+            "the literal: " + cell)
+        self.assertIsInstance(statements[0], ast.Assign)
         namespace = {}
-        exec(cell.source, namespace)
-        self.assertEqual(legit, namespace["source"])
+        exec(cell, namespace)
+        # The value round-trips exactly, and nothing in it ran.
+        self.assertEqual(source, namespace["source"])
+        self.assertNotIn("injected_marker", namespace)
+
+    def test_payload_is_inert_for_custom_visualization(self):
+        self.assert_source_is_inert_data(self.PAYLOAD, "custom")
+
+    def test_payload_is_inert_for_predefined_visualization(self):
+        # "test" is a predefined type, so the notebook also loads types/test.py.
+        self.assert_source_is_inert_data(self.PAYLOAD, "test")
+
+    def test_quotes_and_escapes_are_inert(self):
+        for source in [
+                'a"b',
+                "a'b",
+                'a\\";injected_marker = 1;x="',
+                'a\n injected_marker = 1',
+                'a\\x27;injected_marker = 1;x=\\x27',
+                '"""\ninjected_marker = 1\n"""',
+        ]:
+            with self.subTest(source=source):
+                self.assert_source_is_inert_data(source, "custom")
+
+    def test_object_store_paths_round_trip(self):
+        for source in [
+                "gs://ml-pipeline/data.csv",
+                "s3://bucket/prefix/*.csv",
+                "minio://ml-pipeline/data with spaces.csv",
+        ]:
+            with self.subTest(source=source):
+                self.assert_source_is_inert_data(source, "test")
 
 
 if __name__ == "__main__":
