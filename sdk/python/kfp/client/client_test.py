@@ -859,6 +859,32 @@ class TestInverseProxyCredentials(parameterized.TestCase):
         self.assertEqual(config.refresh_api_key_hook,
                          credentials.refresh_api_key_hook)
 
+    @parameterized.parameters('ambient-token', None)
+    def test_explicit_credentials_take_precedence_on_google_endpoint(
+            self, ambient_token):
+        credentials = Mock()
+
+        def provide_token(config):
+            config.api_key['authorization'] = 'provider-token'
+
+        credentials.refresh_api_key_hook.side_effect = provide_token
+        with patch.object(
+                auth, 'get_gcp_access_token',
+                return_value=ambient_token) as get_token:
+            config = self._load_config(
+                'https://abc.googleusercontent.com/pipeline',
+                credentials=credentials)
+            headers = {}
+            with kfp_server_api.ApiClient(config) as api_client:
+                api_client.update_params_for_auth(headers, [], ['Bearer'])
+            self.sdk_client._existing_config = config
+            self.assertFalse(self.sdk_client._refresh_api_client_token())
+
+        get_token.assert_not_called()
+        self.assertEqual(headers['authorization'], 'Bearer provider-token')
+        self.assertEqual(config.refresh_api_key_hook,
+                         credentials.refresh_api_key_hook)
+
     def test_explicit_client_id_takes_precedence(self):
         with patch.object(auth, 'get_gcp_access_token') as get_token:
             with patch.object(
