@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Text
 
 from nbformat import NotebookNode
-from nbformat.v4 import new_notebook, new_code_cell
+from nbformat.v4 import new_code_cell
+from nbformat.v4 import new_notebook
 import tornado.ioloop
 import tornado.web
 
@@ -32,16 +33,15 @@ parser.add_argument(
     type=int,
     default=os.getenv('KERNEL_TIMEOUT', 100),
     help="Amount of time in seconds that a visualization can run for before " +
-         "being stopped."
-)
+    "being stopped.")
 
 args, _unknown = parser.parse_known_args()
 _exporter = exporter.Exporter(args.timeout)
 
 
 class VisualizationHandler(tornado.web.RequestHandler):
-    """Custom RequestHandler that generates visualizations via post requests.
-    """
+    """Custom RequestHandler that generates visualizations via post
+    requests."""
 
     def validate_and_get_arguments_from_body(self) -> dict:
         """Validates and converts arguments from post request to dict.
@@ -67,7 +67,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
         try:
             arguments["arguments"] = json.loads(arguments.get("arguments"))
         except json.decoder.JSONDecodeError as e:
-            raise Exception("Invalid JSON provided as arguments: {}".format(str(e)))
+            raise Exception("Invalid JSON provided as arguments: {}".format(
+                str(e)))
 
         # If invalid JSON is provided that is incorrectly escaped
         # arguments.get("arguments") can be a string. This Ensure that
@@ -87,11 +88,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
         return arguments
 
     def generate_notebook_from_arguments(
-        self,
-        arguments: dict,
-        source: Text,
-        visualization_type: Text
-    ) -> NotebookNode:
+            self, arguments: dict, source: Text,
+            visualization_type: Text) -> NotebookNode:
         """Generates a NotebookNode from provided arguments.
 
         Args:
@@ -113,19 +111,18 @@ class VisualizationHandler(tornado.web.RequestHandler):
             code = arguments.get("code", [])
             nb.cells.append(exporter.create_cell_from_custom_code(code))
         else:
-            visualization_file = str(Path.cwd() / "types/{}.py".format(visualization_type))
+            visualization_file = str(Path.cwd() /
+                                     "types/{}.py".format(visualization_type))
             nb.cells.append(exporter.create_cell_from_file(visualization_file))
-        
+
         return nb
 
     def get(self):
-        """Health check.
-        """
+        """Health check."""
         self.write("alive")
 
     def post(self):
-        """Generates visualization based on provided arguments.
-        """
+        """Generates visualization based on provided arguments."""
         # Validate arguments from request and return them as a dictionary.
         try:
             request_arguments = self.validate_and_get_arguments_from_body()
@@ -134,10 +131,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
 
         # Create notebook with arguments from request.
         nb = self.generate_notebook_from_arguments(
-            request_arguments.get("arguments"),
-            request_arguments.get("source"),
-            request_arguments.get("type")
-        )
+            request_arguments.get("arguments"), request_arguments.get("source"),
+            request_arguments.get("type"))
 
         # Generate visualization (output for notebook).
         html = _exporter.generate_html_from_notebook(nb)

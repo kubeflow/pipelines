@@ -18,6 +18,7 @@ import re
 from typing import Text
 import unittest
 from unittest import mock
+
 import tornado.httputil
 import tornado.testing
 import tornado.web
@@ -31,6 +32,7 @@ def wrap_error_in_html(error: Text) -> bytes:
 
 
 class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
+
     def get_app(self):
         return tornado.web.Application([
             (r"/", server.VisualizationHandler),
@@ -42,43 +44,27 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(b"alive", response.body)
 
     def test_create_visualization_fails_when_nothing_is_provided(self):
-        response = self.fetch(
-            "/",
-            method="POST",
-            body="")
+        response = self.fetch("/", method="POST", body="")
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No type provided."),
-            response.body
-        )
+            wrap_error_in_html("400: No type provided."), response.body)
 
     def test_create_visualization_fails_when_missing_type(self):
         response = self.fetch(
-            "/",
-            method="POST",
-            body="source=gs://ml-pipeline/data.csv")
+            "/", method="POST", body="source=gs://ml-pipeline/data.csv")
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No type provided."),
-            response.body
-        )
+            wrap_error_in_html("400: No type provided."), response.body)
 
     def test_create_visualization_fails_when_missing_source(self):
-        response = self.fetch(
-            "/",
-            method="POST",
-            body='type=test')
+        response = self.fetch("/", method="POST", body='type=test')
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No source provided."),
-            response.body
-        )
+            wrap_error_in_html("400: No source provided."), response.body)
 
-    def test_create_visualization_passes_when_missing_source_and_type_is_custom(self):
-        response = self.fetch(
-            "/",
-            method="POST",
-            body='type=custom')
+    def test_create_visualization_passes_when_missing_source_and_type_is_custom(
+            self):
+        response = self.fetch("/", method="POST", body='type=custom')
         self.assertEqual(200, response.code)
 
     def test_create_visualization_fails_when_invalid_json_is_provided(self):
@@ -88,9 +74,9 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             body='type=test&source=gs://ml-pipeline/data.csv&arguments={')
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: Invalid JSON provided as arguments: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"),
-            response.body
-        )
+            wrap_error_in_html(
+                "400: Invalid JSON provided as arguments: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
+            ), response.body)
 
     def test_create_visualization(self):
         response = self.fetch(
@@ -119,22 +105,23 @@ class TestSourceInjection(unittest.TestCase):
         connection = mock.Mock(spec=["set_close_callback"])
         request = tornado.httputil.HTTPServerRequest(
             method="POST", uri="/", connection=connection)
-        self.handler = server.VisualizationHandler(
-            tornado.web.Application(), request)
+        self.handler = server.VisualizationHandler(tornado.web.Application(),
+                                                   request)
 
     def generated_source_cell(self, source: Text, visualization_type: Text):
         """Returns the `source = ...` cell the production builder generated."""
-        nb = self.handler.generate_notebook_from_arguments(
-            {"code": ["pass"]}, source, visualization_type)
+        nb = self.handler.generate_notebook_from_arguments({"code": ["pass"]},
+                                                           source,
+                                                           visualization_type)
         cells = [
-            cell for cell in nb.cells
-            if re.match(r"^source\s*=", cell.source)
+            cell for cell in nb.cells if re.match(r"^source\s*=", cell.source)
         ]
-        self.assertEqual(
-            1, len(cells), "expected exactly one source assignment cell")
+        self.assertEqual(1, len(cells),
+                         "expected exactly one source assignment cell")
         return cells[0].source
 
-    def assert_source_is_inert_data(self, source: Text, visualization_type: Text):
+    def assert_source_is_inert_data(self, source: Text,
+                                    visualization_type: Text):
         cell = self.generated_source_cell(source, visualization_type)
         statements = ast.parse(cell).body
         self.assertEqual(
