@@ -29,6 +29,7 @@ import (
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	sqldrv "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
@@ -209,6 +210,54 @@ func TestStartupMigrationLock_ConcurrentUpgrade(t *testing.T) {
 		assert.True(t, upgraded.Migrator().HasTable("pipeline_version_tags"))
 		assert.True(t, upgraded.Migrator().HasIndex("tasks", "idx_task_type"))
 	})
+}
+
+// The legacy (pre-2.15) upgrade is MySQL only: dropAllFKConstraints does not
+// implement it for PostgreSQL.
+func TestStartupMigrationLock_ConcurrentLegacyUpgrade(t *testing.T) {
+	dsn, ok := migrationLockEngines(t)["mysql"]
+	if !ok {
+		t.Skip("set KFP_MIGRATION_LOCK_MYSQL_TEST_DSN to run the legacy upgrade test")
+	}
+	database := newMigrationLockDatabase(t, "mysql", dsn)
+	previousRelease := database.open(t)
+	require.NoError(t, runStartupMigrations(previousRelease, database.dialect))
+	require.NoError(t, previousRelease.Create(&model.Pipeline{
+		UUID: "pipeline-legacy", Name: "pipeline-legacy", DisplayName: "pipeline-legacy", Namespace: "ns",
+		Status: model.PipelineReady,
+	}).Error)
+	require.NoError(t, previousRelease.Create(&model.Experiment{
+		UUID: "exp-1", Name: "exp-1", Namespace: "ns", StorageState: model.StorageStateAvailable,
+	}).Error)
+	insertLegacyRunWithPipelineRef(t, previousRelease, "run-legacy", "pipeline-legacy")
+	// Make the schema look like a pre-2.15 one, whose pipelines.UUID was wider
+	// than 64 characters, and leave the run backfill pending.
+	require.NoError(t, previousRelease.Connection(func(session *gorm.DB) error {
+		if setError := session.Exec("SET FOREIGN_KEY_CHECKS = 0").Error; setError != nil {
+			return setError
+		}
+		return session.Exec("ALTER TABLE pipelines MODIFY `UUID` VARCHAR(255) NOT NULL").Error
+	}))
+	require.NoError(t, previousRelease.Where(map[string]any{"Name": backfillPipelineRefsMigration}).Delete(&model.MigrationStatus{}).Error)
+	legacy, legacyError := isLegacySchema(previousRelease)
+	require.NoError(t, legacyError)
+	require.True(t, legacy)
+
+	for index, replicaError := range runStartupMigrationsConcurrently(t, database, 3) {
+		assert.NoError(t, replicaError, "replica %d", index)
+	}
+	upgraded := database.open(t)
+	legacy, legacyError = isLegacySchema(upgraded)
+	require.NoError(t, legacyError)
+	assert.False(t, legacy, "pipelines.UUID should be shrunk back to 64 characters")
+	var runs, pipelines int64
+	require.NoError(t, upgraded.Model(&model.Run{}).Count(&runs).Error)
+	require.NoError(t, upgraded.Model(&model.Pipeline{}).Count(&pipelines).Error)
+	assert.Equal(t, int64(1), runs)
+	assert.Equal(t, int64(1), pipelines)
+	var pipelineID string
+	require.NoError(t, upgraded.Raw("SELECT `PipelineId` FROM run_details WHERE `UUID` = ?", "run-legacy").Scan(&pipelineID).Error)
+	assert.Equal(t, "pipeline-legacy", pipelineID, "the run backfill should fill PipelineId from its resource reference")
 }
 
 func TestStartupMigrationLock_ReleasedAfterMigrationError(t *testing.T) {
