@@ -79,6 +79,38 @@ class ConditionEvaluatorTest(unittest.TestCase):
                     ),
                 )
 
+    def test_cel_operators_inside_quoted_literals(self):
+        reference = 'pipelinechannel--producer-Output'
+        for output in ('a&&b', 'a||b', 'a!(b)', 'a! (b)'):
+            self.store.put_task_output('producer', 'Output', output)
+            for channel in (
+                reference,
+                f"inputs.parameter_values['{reference}']",
+            ):
+                for quoted_output in (repr(output), f'"{output}"'):
+                    with self.subTest(
+                        output=output,
+                        channel=channel,
+                        quoted_output=quoted_output,
+                    ):
+                        self.assertTrue(
+                            ConditionEvaluator.evaluate_condition(
+                                f'{channel} == {quoted_output}', self.store
+                            )
+                        )
+                        self.assertFalse(
+                            ConditionEvaluator.evaluate_condition(
+                                f'{channel} != {quoted_output}', self.store
+                            )
+                        )
+
+        self.store.put_task_output('producer', 'Output', "a'&&b")
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(
+                "pipelinechannel--producer-Output == 'a\\'&&b'", self.store
+            )
+        )
+
     def test_unsupported_code_is_rejected(self):
         for expression in (
             "__import__('os').system('true')",
