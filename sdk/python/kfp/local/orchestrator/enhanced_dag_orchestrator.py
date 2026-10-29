@@ -49,6 +49,38 @@ class ConditionEvaluator:
     """Evaluates condition expressions for dsl.Condition support."""
 
     @staticmethod
+    def _normalize_cel_operators(condition: str) -> str:
+        """Translate CEL operators without changing quoted string values."""
+        normalized = []
+        quote = None
+        index = 0
+        while index < len(condition):
+            char = condition[index]
+            if quote is not None:
+                normalized.append(char)
+                if char == '\\' and index + 1 < len(condition):
+                    index += 1
+                    normalized.append(condition[index])
+                elif char == quote:
+                    quote = None
+            elif char in ("'", '"'):
+                quote = char
+                normalized.append(char)
+            elif condition.startswith('&&', index):
+                normalized.append(' and ')
+                index += 1
+            elif condition.startswith('||', index):
+                normalized.append(' or ')
+                index += 1
+            elif match := re.match(r'!\s*\(', condition[index:]):
+                normalized.append('not (')
+                index += match.end() - 1
+            else:
+                normalized.append(char)
+            index += 1
+        return ''.join(normalized)
+
+    @staticmethod
     def _extract_pipeline_channels(condition: str) -> List[str]:
         """Extract pipeline channel references from condition string.
 
@@ -120,8 +152,7 @@ class ConditionEvaluator:
 
         try:
             # Only expression text is parsed. Values remain separate data.
-            expression = condition.replace('&&', ' and ').replace('||', ' or ')
-            expression = re.sub(r'!\s*\(', 'not (', expression)
+            expression = ConditionEvaluator._normalize_cel_operators(condition)
             values = {}
             cel_pattern = r"inputs\.parameter_values\['([^']+)'\]"
             references = re.findall(cel_pattern, expression)
