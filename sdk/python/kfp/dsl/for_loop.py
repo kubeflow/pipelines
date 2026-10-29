@@ -79,6 +79,8 @@ def _get_first_element_type(item_list: ItemList) -> str:
     """
     first_element = item_list[0]
     if isinstance(first_element, dict):
+        if not first_element:
+            raise ValueError('Dictionary items in ParallelFor cannot be empty.')
         key_type = type(
             list(first_element.keys())[0]
         ).__name__  # Get type of first key
