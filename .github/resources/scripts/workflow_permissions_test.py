@@ -89,6 +89,9 @@ WRITE_PERMISSIONS = {
     'publish-packages.yml': {
         'publish': {'id-token'},
     },
+    'ready-command.yml': {
+        'ready': {'issues'},
+    },
     'runtime-base-images.yml': {
         'prune-runtime-base-image-caches': {'actions'},
     },

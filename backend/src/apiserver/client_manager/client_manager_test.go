@@ -117,6 +117,19 @@ func TestFieldMeta_TaskRunId(t *testing.T) {
 	assert.Equal(t, "RunUUID", dbCol)
 }
 
+// The legacy upgrade resolves every LengthSpecs entry before changing the
+// schema, so a spec that names a renamed field stops every legacy upgrade.
+func TestLengthSpecsResolveToModelFields(t *testing.T) {
+	db := getTestSQLite(t)
+	for _, spec := range validation.LengthSpecs {
+		_, _, err := FieldMeta(db, spec.Model, spec.Field)
+		assert.NoError(t, err, "LengthSpecs entry %T.%s", spec.Model, spec.Field)
+	}
+
+	require.NoError(t, autoMigrate(db))
+	assert.NoError(t, runPreflightLengthChecks(db, dialect.NewDBDialect("sqlite"), validation.LengthSpecs))
+}
+
 func TestAutoMigrateCreatesTaskLogicalKeyUniqueIndex(t *testing.T) {
 	db := getTestSQLite(t)
 
