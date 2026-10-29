@@ -40,6 +40,26 @@ def source(name):
 
 
 class CacheFixtureImageTest(unittest.TestCase):
+    def test_kind_load_is_retried(self):
+        script = (
+            ROOT / '.github/resources/scripts/build-cache-fixture-image.sh'
+        ).read_text()
+        self.assertIn(
+            'source .github/resources/scripts/helper-functions.sh', script
+        )
+        loads = [
+            line.strip()
+            for line in script.splitlines()
+            if 'kind load' in line and not line.lstrip().startswith('#')
+        ]
+        self.assertEqual(
+            loads,
+            [
+                'retry 3 "${KIND_LOAD_RETRY_INTERVAL:-10}" kind load '
+                'docker-image --name "$cluster_name" "$image"'
+            ],
+        )
+
     def test_preserves_released_sdk_and_python_matrix(self):
         with tempfile.TemporaryDirectory() as directory:
             subprocess.run(
@@ -240,6 +260,9 @@ class CacheFixtureImageTest(unittest.TestCase):
                             + os.environ['PATH'],
                             'COMMAND_LOG': str(log),
                             'FAIL_COMMAND': failure,
+                            # A persistently failing load is retried; do not
+                            # sleep between the stubbed attempts.
+                            'KIND_LOAD_RETRY_INTERVAL': '0',
                         },
                         capture_output=True,
                         text=True,
@@ -251,6 +274,12 @@ class CacheFixtureImageTest(unittest.TestCase):
                     )
                     if failure == 'docker exec':
                         self.assertNotIn('docker build', log.read_text())
+                    if failure == 'kind load':
+                        # A truncated load stream is retried before failing.
+                        self.assertEqual(
+                            3,
+                            log.read_text().count('kind load docker-image'),
+                        )
 
     def test_shell_reuses_preloaded_base_without_network(self):
         script = (
