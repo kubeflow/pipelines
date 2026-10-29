@@ -99,6 +99,43 @@ class ConditionEvaluatorTest(unittest.TestCase):
             ConditionEvaluator.evaluate_condition(
                 "pipelinechannel--producer-Output == 'a\\'&&b'", self.store))
 
+    def test_compiler_string_promotion_binds_channel_value(self):
+        self.store.put_task_output('flag', 'Output', True)
+        promoted = ("'inputs.parameter_values['pipelinechannel--flag-Output']'")
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(f"{promoted} == 'True'",
+                                                  self.store))
+        self.assertFalse(
+            ConditionEvaluator.evaluate_condition(f"{promoted} == '_channel_0'",
+                                                  self.store))
+        self.store.put_task_output('number', 'Output', '2')
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(
+                "'int(inputs.parameter_values['pipelinechannel--number-Output'])' == '2'",
+                self.store,
+            ))
+
+    def test_channel_text_inside_literal_is_not_resolved(self):
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(
+                "'pipelinechannel--unknown-Output' == 'pipelinechannel--unknown-Output'",
+                self.store,
+            ))
+
+    def test_compiler_string_literal_keeps_backslashes(self):
+        self.store.put_task_output('producer', 'Output', r'C:\bin')
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(
+                r"pipelinechannel--producer-Output == 'C:\bin'", self.store))
+
+    def test_large_numeric_conversion_fails_closed(self):
+        self.store.put_task_output('number', 'Output', 10**400)
+        self.assertFalse(
+            ConditionEvaluator.evaluate_condition(
+                "double(int(inputs.parameter_values['pipelinechannel--number-Output'])) > 1.0",
+                self.store,
+            ))
+
     def test_unsupported_code_is_rejected(self):
         for expression in (
                 "__import__('os').system('true')",

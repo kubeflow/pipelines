@@ -34,6 +34,12 @@ from . import task_spec_utils
 from .orchestrator_utils import OrchestratorUtils
 
 Outputs = Dict[str, Any]
+_PROMOTED_CHANNEL = re.compile(
+    r"(?P<quote>['\"])(?P<integer>int\()?inputs\.parameter_values\['(?P<reference>[^']+)'\](?(integer)\))(?P=quote)"
+)
+_CEL_CHANNEL = re.compile(r"inputs\.parameter_values\['([^']+)'\]")
+_DIRECT_CHANNEL = re.compile(r'pipelinechannel--[a-zA-Z0-9_\-]+')
+_CEL_NOT = re.compile(r'!\s*\(')
 
 
 @enum.unique
@@ -49,50 +55,70 @@ class ConditionEvaluator:
     """Evaluates condition expressions for dsl.Condition support."""
 
     @staticmethod
-    def _normalize_cel_operators(condition: str) -> str:
-        """Translate CEL operators without changing quoted string values."""
-        normalized = []
-        quote = None
+    def _prepare_condition(condition: str,
+                           io_store: io.IOStore) -> Tuple[str, Dict[str, Any]]:
+        """Bind channel values and preserve compiler-emitted string data."""
+        expression = []
+        values = {}
         index = 0
         while index < len(condition):
+            promoted = _PROMOTED_CHANNEL.match(condition, index)
+            channel = _CEL_CHANNEL.match(condition, index)
+            direct = _DIRECT_CHANNEL.match(condition, index)
+            if promoted or channel or direct:
+                match = promoted or channel or direct
+                if promoted:
+                    reference = promoted.group('reference')
+                elif channel:
+                    reference = channel.group(1)
+                else:
+                    reference = direct.group(0)
+                value = ConditionEvaluator._resolve_pipeline_channel(
+                    reference, io_store)
+                if value is None:
+                    raise ValueError(f'Could not resolve channel: {reference}')
+                if promoted:
+                    value = str(
+                        int(value) if promoted.group('integer') else value)
+                key = f'_channel_{len(values)}'
+                values[key] = value
+                expression.append(key)
+                index = match.end()
+                continue
+
             char = condition[index]
-            if quote is not None:
-                normalized.append(char)
-                if char == '\\' and index + 1 < len(condition):
-                    index += 1
-                    normalized.append(condition[index])
-                elif char == quote:
-                    quote = None
-            elif char in ("'", '"'):
+            if char in ("'", '"'):
                 quote = char
-                normalized.append(char)
+                literal = []
+                index += 1
+                while index < len(condition) and condition[index] != quote:
+                    if (condition[index] == '\\' and
+                            index + 1 < len(condition) and
+                            condition[index + 1] == quote):
+                        index += 1
+                    literal.append(condition[index])
+                    index += 1
+                if index == len(condition):
+                    raise SyntaxError('Unterminated condition string')
+                expression.append(repr(''.join(literal)))
+                index += 1
+                continue
             elif condition.startswith('&&', index):
-                normalized.append(' and ')
-                index += 1
+                expression.append(' and ')
+                index += 2
+                continue
             elif condition.startswith('||', index):
-                normalized.append(' or ')
-                index += 1
-            elif match := re.match(r'!\s*\(', condition[index:]):
-                normalized.append('not (')
-                index += match.end() - 1
+                expression.append(' or ')
+                index += 2
+                continue
+            elif match := _CEL_NOT.match(condition, index):
+                expression.append('not (')
+                index = match.end()
+                continue
             else:
-                normalized.append(char)
+                expression.append(char)
             index += 1
-        return ''.join(normalized)
-
-    @staticmethod
-    def _extract_pipeline_channels(condition: str) -> List[str]:
-        """Extract pipeline channel references from condition string.
-
-        Args:
-            condition: The condition expression
-
-        Returns:
-            List of pipeline channel references found
-        """
-        # Look for patterns like pipelinechannel--task-name-output-name
-        pattern = r'pipelinechannel--[a-zA-Z0-9_\-]+'
-        return re.findall(pattern, condition)
+        return ''.join(expression), values
 
     @staticmethod
     def _resolve_pipeline_channel(channel_ref: str,
@@ -151,29 +177,8 @@ class ConditionEvaluator:
             return True
 
         try:
-            # Only expression text is parsed. Values remain separate data.
-            expression = ConditionEvaluator._normalize_cel_operators(condition)
-            values = {}
-            cel_pattern = r"inputs\.parameter_values\['([^']+)'\]"
-            references = re.findall(cel_pattern, expression)
-            for reference in references:
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    reference, io_store)
-                if value is None:
-                    return False
-                key = f'_channel_{len(values)}'
-                values[key] = value
-                expression = expression.replace(
-                    f"inputs.parameter_values['{reference}']", key)
-            for reference in ConditionEvaluator._extract_pipeline_channels(
-                    expression):
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    reference, io_store)
-                if value is None:
-                    return False
-                key = f'_channel_{len(values)}'
-                values[key] = value
-                expression = expression.replace(reference, key)
+            expression, values = ConditionEvaluator._prepare_condition(
+                condition, io_store)
             tree = ast.parse(expression, mode='eval')
             return bool(ConditionEvaluator._evaluate_node(tree.body, values))
         except (
@@ -182,6 +187,7 @@ class ConditionEvaluator:
                 ValueError,
                 KeyError,
                 ZeroDivisionError,
+                OverflowError,
         ) as e:
             logging.warning('Condition evaluation failed: %s', e)
             return False
