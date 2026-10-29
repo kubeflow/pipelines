@@ -22,35 +22,30 @@ from kfp.local.orchestrator.enhanced_dag_orchestrator import ConditionEvaluator
 
 
 class ConditionEvaluatorTest(unittest.TestCase):
+
     def setUp(self):
         self.store = io.IOStore()
 
     def test_task_output_is_data_for_both_reference_forms(self):
         with tempfile.TemporaryDirectory() as directory:
             marker = os.path.join(directory, 'host-executed')
-            payload = (
-                "x' == 'expected' or ([c for c in ().__class__.__base__"
-                ".__subclasses__() if c.__name__ == 'catch_warnings']"
-                "[0]()._module.__builtins__['__import__']('os')"
-                f".system('touch {marker}') == 0) or 'x"
-            )
+            payload = ("x' == 'expected' or ([c for c in ().__class__.__base__"
+                       ".__subclasses__() if c.__name__ == 'catch_warnings']"
+                       "[0]()._module.__builtins__['__import__']('os')"
+                       f".system('touch {marker}') == 0) or 'x")
             self.store.put_task_output('producer', 'Output', payload)
             for ref in (
-                'pipelinechannel--producer-Output',
-                "inputs.parameter_values['pipelinechannel--producer-Output']",
+                    'pipelinechannel--producer-Output',
+                    "inputs.parameter_values['pipelinechannel--producer-Output']",
             ):
                 with self.subTest(ref=ref):
                     self.assertFalse(
                         ConditionEvaluator.evaluate_condition(
-                            f"{ref} == 'expected'", self.store
-                        )
-                    )
+                            f"{ref} == 'expected'", self.store))
                     self.assertFalse(os.path.exists(marker))
                     self.assertTrue(
                         ConditionEvaluator.evaluate_condition(
-                            f'{ref} == {payload!r}', self.store
-                        )
-                    )
+                            f'{ref} == {payload!r}', self.store))
 
     def test_normal_conditions(self):
         self.store.put_task_output('producer', 'Output', 'hello')
@@ -75,19 +70,16 @@ class ConditionEvaluatorTest(unittest.TestCase):
                 self.assertEqual(
                     expected,
                     ConditionEvaluator.evaluate_condition(
-                        expression, self.store
-                    ),
+                        expression, self.store),
                 )
 
     def test_unsupported_code_is_rejected(self):
         for expression in (
-            "__import__('os').system('true')",
-            '(1).__class__',
-            '[x for x in range(1)]',
+                "__import__('os').system('true')",
+                '(1).__class__',
+                '[x for x in range(1)]',
         ):
             with self.subTest(expression=expression):
                 self.assertFalse(
                     ConditionEvaluator.evaluate_condition(
-                        expression, self.store
-                    )
-                )
+                        expression, self.store))

@@ -127,21 +127,17 @@ class ConditionEvaluator:
             references = re.findall(cel_pattern, expression)
             for reference in references:
                 value = ConditionEvaluator._resolve_pipeline_channel(
-                    reference, io_store
-                )
+                    reference, io_store)
                 if value is None:
                     return False
                 key = f'_channel_{len(values)}'
                 values[key] = value
                 expression = expression.replace(
-                    f"inputs.parameter_values['{reference}']", key
-                )
+                    f"inputs.parameter_values['{reference}']", key)
             for reference in ConditionEvaluator._extract_pipeline_channels(
-                expression
-            ):
+                    expression):
                 value = ConditionEvaluator._resolve_pipeline_channel(
-                    reference, io_store
-                )
+                    reference, io_store)
                 if value is None:
                     return False
                 key = f'_channel_{len(values)}'
@@ -150,11 +146,11 @@ class ConditionEvaluator:
             tree = ast.parse(expression, mode='eval')
             return bool(ConditionEvaluator._evaluate_node(tree.body, values))
         except (
-            SyntaxError,
-            TypeError,
-            ValueError,
-            KeyError,
-            ZeroDivisionError,
+                SyntaxError,
+                TypeError,
+                ValueError,
+                KeyError,
+                ZeroDivisionError,
         ) as e:
             logging.warning('Condition evaluation failed: %s', e)
             return False
@@ -179,13 +175,11 @@ class ConditionEvaluator:
             if isinstance(node.op, ast.And):
                 return all(
                     ConditionEvaluator._evaluate_node(v, values)
-                    for v in node.values
-                )
+                    for v in node.values)
             if isinstance(node.op, ast.Or):
                 return any(
                     ConditionEvaluator._evaluate_node(v, values)
-                    for v in node.values
-                )
+                    for v in node.values)
         if isinstance(node, ast.UnaryOp):
             value = ConditionEvaluator._evaluate_node(node.operand, values)
             if isinstance(node.op, ast.Not):
@@ -224,15 +218,10 @@ class ConditionEvaluator:
             }
             fn = conversions.get(node.func.id)
             if fn is not None and not node.keywords:
-                return fn(
-                    *(
-                        ConditionEvaluator._evaluate_node(arg, values)
-                        for arg in node.args
-                    )
-                )
+                return fn(*(ConditionEvaluator._evaluate_node(arg, values)
+                            for arg in node.args))
         raise ValueError(
-            f'Unsupported condition expression: {type(node).__name__}'
-        )
+            f'Unsupported condition expression: {type(node).__name__}')
 
 
 class ParallelExecutor:
