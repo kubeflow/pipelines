@@ -30,6 +30,11 @@ upgrade. Use the feature-specific sections for the integrations you have enabled
    components. Before recompiling with the new SDK, review the
    [SDK changes](#sdk-and-custom-client-migration), particularly preview privacy
    and private package mirrors.
+5. **Assess legacy Python visualization usage before upgrading the API server.**
+   Multi-user requests without a namespace are rejected after this upgrade.
+   Deployments with only a central visualization service lose that generation
+   path; adding a namespace alone does not restore it. Review
+   [Python visualization compatibility](#legacy-python-visualization-compatibility).
 
 ## What happens during a normal upgrade
 
@@ -91,8 +96,35 @@ Do not delete history, reset counters, or edit ownership fields to force progres
 | Custom artifact storage | Preserve credential placement and verify both artifact reads and archived logs. See [storage configuration](#custom-storage-configuration-and-rollout). |
 | Large pipeline specifications | Uploads, extracted specifications, and update bodies have separate 32 MiB default limits. Overrides are bounded at 128 MiB. Existing object-store specifications used by later executions are also checked. See [size limits](server-config.md#pipeline-size-limits). |
 | Legacy V1 metrics | Each metrics file has a configurable 1 MiB default limit. An oversized file can leave metrics missing from an otherwise completed task. See [metrics limits](server-config.md#legacy-metrics-file-limit). |
+| Legacy Python visualization generation | Multi-user requests require a namespace and an authorized caller, and route to a visualization service in that namespace. Central-only deployments lose the empty-namespace generation path. See [visualization compatibility](#legacy-python-visualization-compatibility). |
 | Saved pagination tokens | Affected listings must restart. The updated UI retries once; SDK/custom clients must handle `PAGINATION_RESTART_REQUIRED` without appending restarted results to an old traversal. See [pagination recovery](pagination-recovery.md). |
 | Direct pipeline-by-name API calls | Supply the owning namespace for private pipelines. See [lookup compatibility](#custom-api-integrations-pipeline-name-lookup-compatibility). |
+
+## Legacy Python visualization compatibility
+
+**The security fix is in the KFP API server (`ml-pipeline`), not the Python
+visualization server.** In multi-user mode, the API server rejects an empty
+namespace before contacting any visualization service, including its health
+check. This removes the empty-namespace route to the central service that
+bypassed namespace authorization. Updating only the Python visualization server
+does not apply this fix.
+
+A nonempty namespace still requires permission to create
+`pipelines.kubeflow.org/visualizations` in that namespace and routes to
+`http://<VisualizationService.Name>.<namespace>:<VisualizationService.Port>`.
+**Adding a namespace alone is insufficient for a central-only deployment:** the
+shipped Pipelines profile controller does not provision tenant-local Python
+visualization services. Authorized requests to existing tenant-local services
+and standalone (single-user) generation remain supported. There is no audit
+mode or central-service fallback for this check.
+
+Before upgrading, identify clients and workflows that use the legacy Python
+generation API, including legacy Run Details visualization generation, and
+verify whether their namespaces have working visualization services. Plan for
+the loss of this feature in central-only multi-user deployments. The current
+V2 Run Details UI does not call the Python generation API; its artifact viewers
+are unaffected by this namespace check. Remaining on an affected API-server
+version preserves the vulnerability and is not a mitigation.
 
 ## Database migration paths
 

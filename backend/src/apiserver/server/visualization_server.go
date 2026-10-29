@@ -50,9 +50,11 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 		return nil, err
 	}
 
-	// In multi-user mode, we allow empty namespace in which case we fall back to use the visualization service in system namespace.
-	// See getVisualizationServiceURL() for details.
-	if common.IsMultiUserMode() && len(request.Namespace) > 0 {
+	// Require a tenant namespace before selecting or contacting a visualization service.
+	if common.IsMultiUserMode() {
+		if len(request.Namespace) == 0 {
+			return nil, util.NewInvalidInputError("A namespace must be provided for visualizations in multi-user mode.")
+		}
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace:   request.Namespace,
 			Verb:        common.RbacResourceVerbCreate,

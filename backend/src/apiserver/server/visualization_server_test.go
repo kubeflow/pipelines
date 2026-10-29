@@ -17,8 +17,10 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -28,6 +30,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
@@ -339,4 +343,124 @@ func TestCreateVisualization_Unauthenticated(t *testing.T) {
 		err.Error(),
 		"there is no user identity header",
 	)
+}
+
+// visualizationRoundTripper records requests without resolving Kubernetes service names.
+type visualizationRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f visualizationRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
+}
+
+func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
+	tests := []struct {
+		name          string
+		multiUser     bool
+		namespace     string
+		authenticated bool
+		allowed       bool
+		wantCode      codes.Code
+		wantReview    bool
+		wantHost      string
+	}{
+		{
+			name: "multi-user empty namespace", multiUser: true, authenticated: true,
+			allowed: true, wantCode: codes.InvalidArgument,
+		},
+		{
+			name: "multi-user empty namespace without identity", multiUser: true,
+			allowed: true, wantCode: codes.InvalidArgument,
+		},
+		{
+			name: "multi-user unauthorized namespace", multiUser: true, namespace: "ns1",
+			authenticated: true, wantCode: codes.PermissionDenied, wantReview: true,
+		},
+		{
+			name: "multi-user namespace without identity", multiUser: true, namespace: "ns1",
+			allowed: true, wantCode: codes.Unauthenticated,
+		},
+		{
+			name: "multi-user authorized namespace", multiUser: true, namespace: "ns1",
+			authenticated: true, allowed: true, wantReview: true,
+			wantHost: "ml-pipeline-visualizationserver.ns1:8888",
+		},
+		{
+			name: "single-user empty namespace", wantHost: "system-visualization:8888",
+		},
+	}
+	for _, test := range tests {
+		for _, visualizationType := range []apiv1beta1.Visualization_Type{
+			apiv1beta1.Visualization_ROC_CURVE, apiv1beta1.Visualization_CUSTOM,
+		} {
+			t.Run(test.name+"/"+visualizationType.String(), func(t *testing.T) {
+				oldMultiUser := viper.Get(common.MultiUserMode)
+				oldServiceName := viper.Get(visualizationServiceName)
+				oldServicePort := viper.Get(visualizationServicePort)
+				t.Cleanup(func() {
+					viper.Set(common.MultiUserMode, oldMultiUser)
+					viper.Set(visualizationServiceName, oldServiceName)
+					viper.Set(visualizationServicePort, oldServicePort)
+				})
+				viper.Set(common.MultiUserMode, test.multiUser)
+				viper.Set(visualizationServiceName, "ml-pipeline-visualizationserver")
+				viper.Set(visualizationServicePort, "8888")
+
+				var methods []string
+				oldHTTPClient := http.DefaultClient
+				t.Cleanup(func() { http.DefaultClient = oldHTTPClient })
+				http.DefaultClient = &http.Client{Transport: visualizationRoundTripper(func(request *http.Request) (*http.Response, error) {
+					methods = append(methods, request.Method)
+					assert.Equal(t, test.wantHost, request.URL.Host)
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader("visualization HTML")),
+						Header:     make(http.Header),
+					}, nil
+				})}
+
+				clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+				t.Cleanup(func() { clientManager.Close() })
+				reviews := &recordingSubjectAccessReviewClient{allowed: test.allowed}
+				clientManager.SubjectAccessReviewClientFake = reviews
+				server := &VisualizationServer{
+					resourceManager: resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}),
+					serviceURL:      "http://system-visualization:8888",
+				}
+				ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{})
+				if test.authenticated {
+					ctx = userContext()
+				}
+				request := &apiv1beta1.CreateVisualizationRequest{
+					Namespace: test.namespace,
+					Visualization: &apiv1beta1.Visualization{
+						Type: visualizationType, Source: "gs://ml-pipeline/roc/data.csv", Arguments: "{}",
+					},
+				}
+
+				result, err := server.CreateVisualizationV1(ctx, request)
+				if test.wantCode != codes.OK {
+					require.Error(t, err)
+					assert.True(t, util.IsUserErrorCodeMatch(err, test.wantCode), "unexpected error: %v", err)
+					assert.Nil(t, result)
+					assert.Empty(t, methods, "rejected requests must not contact any visualization service")
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, result)
+					assert.Equal(t, "visualization HTML", result.Html)
+					assert.Equal(t, []string{http.MethodGet, http.MethodPost}, methods)
+				}
+				if test.wantReview {
+					assert.Equal(t, []authorizationv1.ResourceAttributes{{
+						Namespace: test.namespace,
+						Verb:      common.RbacResourceVerbCreate,
+						Group:     common.RbacPipelinesGroup,
+						Version:   common.RbacPipelinesVersion,
+						Resource:  common.RbacResourceTypeVisualizations,
+					}}, reviews.requests)
+				} else {
+					assert.Empty(t, reviews.requests)
+				}
+			})
+		}
+	}
 }
