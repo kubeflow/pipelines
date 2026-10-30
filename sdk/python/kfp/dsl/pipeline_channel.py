@@ -42,9 +42,42 @@ class ConditionOperation:
 # The string template used to generate the placeholder of a PipelineChannel.
 _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = '{{channel:task=%s;name=%s;type=%s;}}'
 # The regex for parsing PipelineChannel placeholders from a string.
+# `type=` uses a non-greedy match up to the closing `;}}` rather than a
+# character whitelist, since stringified type annotations (especially
+# Literal[...] string values, e.g. Literal['text/plain']) can contain
+# virtually any character. The type value is percent-escaped at
+# construction (see _escape_channel_type) so it cannot contain
+# ';', '{', or '}'; the first ';}}' is always the real terminator.
 _PIPELINE_CHANNEL_PLACEHOLDER_REGEX = (
-    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=([\w\s.@_-]*);}}'
+    r'{{channel:task=([\w\s_-]*);name=([\w\s_-]+);type=(.*?);}}'
 )
+
+# Characters in a channel type that could collide with the placeholder
+# delimiters are percent-encoded. '%' is encoded too so decoding is
+# unambiguous. Types without these characters are left unchanged.
+_TYPE_ESCAPES = {
+    '%': '%25',
+    ';': '%3B',
+    '{': '%7B',
+    '}': '%7D',
+    '\n': '%0A',
+    '\r': '%0D',
+}
+_TYPE_UNESCAPES = {v: k for k, v in _TYPE_ESCAPES.items()}
+_TYPE_ESCAPE_RE = re.compile(r'[%;{}\n\r]')
+_TYPE_UNESCAPE_RE = re.compile(r'%(?:25|3B|7B|7D|0A|0D)')
+
+
+def _escape_channel_type(channel_type: str) -> str:
+    """Encodes characters that could collide with placeholder delimiters."""
+    return _TYPE_ESCAPE_RE.sub(lambda m: _TYPE_ESCAPES[m.group()], channel_type)
+
+
+def _unescape_channel_type(channel_type: str) -> str:
+    """Inverse of _escape_channel_type."""
+    return _TYPE_UNESCAPE_RE.sub(
+        lambda m: _TYPE_UNESCAPES[m.group()], channel_type
+    )
 
 
 class PipelineChannel(abc.ABC):
@@ -159,7 +192,7 @@ class PipelineChannel(abc.ABC):
         return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (
             task_name,
             name,
-            channel_type,
+            _escape_channel_type(channel_type),
         )
 
     def __repr__(self) -> str:
@@ -417,7 +450,7 @@ class OneOfMixin(PipelineChannel):
         return _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE % (
             task_name,
             name,
-            channel_type,
+            _escape_channel_type(channel_type),
         )
 
 
@@ -584,6 +617,7 @@ def extract_pipeline_channels_from_string(
     unique_channels = set()
     for match in matches:
         task_name, name, channel_type = match
+        channel_type = _unescape_channel_type(channel_type)
 
         if type_utils.is_parameter_type(channel_type):
             pipeline_channel = PipelineParameterChannel(

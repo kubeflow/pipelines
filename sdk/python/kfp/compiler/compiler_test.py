@@ -20,7 +20,7 @@ import subprocess
 import tempfile
 import textwrap
 import unittest
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, Literal, NamedTuple, Optional
 
 import yaml
 from absl.testing import parameterized
@@ -7084,6 +7084,331 @@ class TestDslOneOf(unittest.TestCase):
                 with dsl.Else():
                     t4 = print_and_return(text='First flip was not heads!')
                 return dsl.OneOf(t3, t4.output)
+
+
+class TestComplexChannelTypesInFString(unittest.TestCase):
+    """Regression tests for #14479: PipelineChannels with complex types
+    (containing brackets, commas, @) embedded in an f-string must resolve
+    to a real runtime parameter reference and register a task dependency,
+    not leak the raw {{channel:...}} placeholder into the compiled spec."""
+
+    def test_list_str_type_in_fstring(self):
+
+        @dsl.component
+        def produce_list() -> List[str]:
+            return ['a', 'b']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-list-str-in-fstring')
+        def my_pipeline():
+            list_task = produce_list()
+            consume_string(s=f'Items: {list_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-list', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-list-Output']}}",
+        )
+
+    def test_dict_str_int_type_in_fstring(self):
+
+        @dsl.component
+        def produce_dict() -> Dict[str, int]:
+            return {'a': 1}
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-dict-str-int-in-fstring')
+        def my_pipeline():
+            dict_task = produce_dict()
+            consume_string(s=f'Items: {dict_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-dict', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-dict-Output']}}",
+        )
+
+    def test_builtin_list_and_dict_types_in_fstring(self):
+
+        @dsl.component
+        def produce_builtin_list() -> list:
+            return ['a', 'b']
+
+        @dsl.component
+        def produce_builtin_dict() -> dict:
+            return {'a': 1}
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-builtin-list-dict-in-fstring')
+        def my_pipeline():
+            list_task = produce_builtin_list()
+            dict_task = produce_builtin_dict()
+            consume_string(
+                s=f'List: {list_task.output}, Dict: {dict_task.output}'
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-builtin-list', list(task.dependent_tasks))
+        self.assertIn('produce-builtin-dict', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "List: {{$.inputs.parameters['pipelinechannel--produce-builtin-list-Output']}}, "
+            "Dict: {{$.inputs.parameters['pipelinechannel--produce-builtin-dict-Output']}}",
+        )
+
+    def test_nested_list_dict_type_in_fstring(self):
+
+        @dsl.component
+        def produce_nested() -> List[Dict[str, int]]:
+            return [{'a': 1}]
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-nested-type-in-fstring')
+        def my_pipeline():
+            nested_task = produce_nested()
+            consume_string(s=f'Items: {nested_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-nested', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-nested-Output']}}",
+        )
+
+    def test_nullable_union_type_in_fstring(self):
+
+        @dsl.component
+        def produce_nullable() -> list[str | None]:
+            return ['a', None]
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-nullable-union-in-fstring')
+        def my_pipeline():
+            nullable_task = produce_nullable()
+            consume_string(s=f'Items: {nullable_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-nullable', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-nullable-Output']}}",
+        )
+
+    def test_literal_type_in_fstring(self):
+
+        @dsl.component
+        def produce_literal() -> List[Literal['a', 'b']]:
+            return ['a']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-literal-type-in-fstring')
+        def my_pipeline():
+            literal_task = produce_literal()
+            consume_string(s=f'Items: {literal_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-literal', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-literal-Output']}}",
+        )
+
+    def test_mime_type_literal_with_slash_in_fstring(self):
+
+        @dsl.component
+        def produce_mime_types() -> List[
+            Literal['text/plain', 'application/json']
+        ]:
+            return ['text/plain', 'application/json']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-mime-type-literal-in-fstring')
+        def my_pipeline():
+            mime_task = produce_mime_types()
+            consume_string(s=f'Items: {mime_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-mime-types', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-mime-types-Output']}}",
+        )
+
+    def test_literal_containing_placeholder_terminator_in_fstring(self):
+
+        @dsl.component
+        def produce_delimiter() -> List[Literal[';}}']]:
+            return [';}}']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-delimiter-literal-in-fstring')
+        def my_pipeline():
+            delimiter_task = produce_delimiter()
+            consume_string(s=f'Items: {delimiter_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-delimiter', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertNotIn(';}}', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-delimiter-Output']}}",
+        )
+
+    def test_adjacent_placeholders_with_delimiter_literal_in_fstring(self):
+
+        @dsl.component
+        def produce_delimiter() -> List[Literal[';}}']]:
+            return [';}}']
+
+        @dsl.component
+        def produce_plain() -> str:
+            return 'x'
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-adjacent-placeholders')
+        def my_pipeline():
+            delimiter_task = produce_delimiter()
+            plain_task = produce_plain()
+            consume_string(
+                s=f'A: {delimiter_task.output} B: {plain_task.output}'
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertCountEqual(
+            list(task.dependent_tasks), ['produce-delimiter', 'produce-plain']
+        )
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn(';}}', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "A: {{$.inputs.parameters['pipelinechannel--produce-delimiter-Output']}} B: {{$.inputs.parameters['pipelinechannel--produce-plain-Output']}}",
+        )
 
 
 class TestPythonicArtifactAuthoring(unittest.TestCase):
