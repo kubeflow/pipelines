@@ -141,6 +141,10 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             triggers['workflow_run']['workflows'], ['Build and Push for master']
         )
         self.assertEqual(triggers['workflow_run']['types'], ['completed'])
+        self.assertEqual(
+            triggers['workflow_run']['branches'], ['master', 'main']
+        )
+        self.assertEqual(triggers['push']['branches'], ['master', 'main'])
         self.assertFalse(workflow['concurrency']['cancel-in-progress'])
         group = workflow['concurrency']['group']
         self.assertIn("github.event_name == 'push' && 'source'", group)
@@ -156,6 +160,14 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         )
         discovery = workflow['jobs']['discover-images']
         self.assertEqual(discovery['needs'], 'resolve-images')
+        self.assertEqual(
+            resolver['outputs']['branch'],
+            '${{ steps.producer.outputs.branch }}',
+        )
+        self.assertEqual(
+            discovery['outputs']['branch'],
+            '${{ needs.resolve-images.outputs.branch }}',
+        )
         self.assertIn('--published-records published-indexes', self.workflow)
         self.assertIn('--source-sha "${SOURCE_SHA}"', self.workflow)
         self.assertIn(
@@ -179,7 +191,10 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         self.assertEqual(
             upload['sha'], '${{ needs.discover-images.outputs.sha }}'
         )
-        self.assertEqual(upload['ref'], 'refs/heads/master')
+        self.assertEqual(
+            upload['ref'],
+            'refs/heads/${{ needs.discover-images.outputs.branch }}',
+        )
         self.assertEqual(upload['checkout_path'], 'producer')
         publisher = yaml.safe_load(
             (ROOT / '.github/workflows/create-manifest.yml').read_text()
@@ -230,7 +245,10 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         upload = next(
             step for step in steps if 'upload-sarif' in step.get('uses', '')
         )
-        self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
+        self.assertEqual(
+            upload['if'],
+            "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
+        )
         summary = next(
             step
             for step in steps

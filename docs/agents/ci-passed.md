@@ -3,25 +3,27 @@
 CI Check is the publisher of the `ci-passed` commit status and the only writer
 of `success` or `pending`. A separate push-triggered workflow
 (`ci-passed-stale-revoke.yml`) is a second writer that revokes a stale `success`
-to `failure` the moment `master` advances, before the scheduled sweep runs; it
+to `failure` the moment `master` or `main` advances, before the scheduled sweep runs; it
 narrows the stale-base window and does not close it (see the section below). The
 label with the same name is informational. Tide remains the merge authority;
 human PRs still require review. Automatic Dependabot creation holds have been
 removed; merging now relies on the required `ci-passed` status and the deployed
 Tide policy. Existing PR-specific holds remain separate maintainer decisions and
 are never removed by the publisher. Required `ci-passed` protection is intended
-for `master` only: older release branches do not publish this commit status.
+for the development default branch: older release branches do not publish this
+commit status. The publisher supports both `master` and `main`; external Tide
+and GitHub protection must cover `main` before renaming the default branch.
 
 ## Push-triggered stale revocation
 
-A push to `master` runs `ci-passed-stale-revoke.yml`, which flips a stale
+A push to `master` or `main` runs `ci-passed-stale-revoke.yml`, which flips a stale
 `ci-passed` success to `failure` as soon as the base advances instead of waiting
 up to 15 minutes for the scheduled sweep. It reuses the same freshness
 determination as recovery: a green is fresh only when its description still
 carries the stamp for the live base tip. This is mitigation, not a hard
 guarantee: the window between a base advance and the status write is narrowed
 but not closed, and merge-time freshness enforcement (a merge queue that checks
-its synthetic commit) is tracked separately. It resolves the live master tip and
+its synthetic commit) is tracked separately. It resolves the live triggering branch tip and
 skips revocation when the tip has already moved past the triggering push, so an
 out-of-order job does not overwrite a green stamped for a newer base. It runs only
 trusted base-branch code and writes only the commit status (`contents: read`,
@@ -185,7 +187,7 @@ head SHA is associated with GitHub Actions. See the
 ## Missing base merge record
 
 The freshness check establishes when the base revision became reachable on
-`master` by reading the merged-PR record for that commit. A commit merged
+the PR's development base branch (`master` or `main`) by reading the merged-PR record for that commit. A commit merged
 through a pull request carries an authoritative `merged_at` timestamp. A direct
 push of a pre-existing commit has no merged PR, so its arrival cannot be
 established and the check fails closed to pending rather than passing stale

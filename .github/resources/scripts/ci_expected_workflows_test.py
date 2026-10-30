@@ -1116,6 +1116,41 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
                 self.assertEqual(result['state'], 'failure')
                 self.assertIn('replacement', ' '.join(result['reasons']))
 
+    def test_main_retirement_requires_fresh_successful_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for conclusion, fresh_after, passed in [
+            ('success', None, True),
+            ('failure', None, False),
+            ('success', '2026-09-07T13:00:00Z', False),
+        ]:
+            with self.subTest(conclusion=conclusion, fresh_after=fresh_after):
+                result = verify(
+                    base_ref='main',
+                    workflow_paths=[legacy, replacement],
+                    trigger={'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=[good_run(path=replacement, conclusion=conclusion)],
+                    fresh_after=fresh_after,
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertEqual(result['passed'], passed)
+                self.assertEqual(result['disabled'][0]['path'], legacy)
+
+    def test_main_retirement_rejects_missing_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        result = verify(
+            base_ref='main',
+            workflow_paths=[legacy],
+            trigger={'paths': ['backend/**']},
+            files=[{'filename': 'backend/test/v2/api/cache_api_test.go'}],
+            runs=[good_run(path=legacy)],
+        )
+        self.assertEqual(result['state'], 'failure')
+        self.assertIn('replacement', ' '.join(result['reasons']))
+
     def test_release_branches_still_require_legacy(self):
         legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
         replacement = '.github/workflows/api-server-tests.yml'

@@ -8,7 +8,7 @@ import subprocess
 import uuid
 from pathlib import Path
 
-from .core import REPO
+from .core import REPO, default_branch
 from .security import _trivy_findings, evaluate_policy
 from .security_exceptions import load_exceptions
 from .workflow_runs import dispatch_and_watch, validate_run
@@ -176,7 +176,8 @@ def qualify_images(context, expected_images, output_dir):
         policy=policy,
         exceptions=exceptions,
     )
-    workflow_sha = _api(context, 'commits/master')['sha']
+    workflow_ref = default_branch(lambda endpoint: _api(context, endpoint))
+    workflow_sha = _api(context, f'commits/{workflow_ref}')['sha']
     if not re.fullmatch(r'[0-9a-f]{40}', workflow_sha):
         raise ValueError('Invalid upstream workflow commit')
     try:
@@ -195,6 +196,7 @@ def qualify_images(context, expected_images, output_dir):
         'repository': REPO,
         'workflow': WORKFLOW,
         'workflow_sha': workflow_sha,
+        'workflow_ref': workflow_ref,
         'source_sha': source_sha,
         'version': context.metadata.tag,
         'request_id': request_id,
