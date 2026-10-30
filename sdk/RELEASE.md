@@ -21,6 +21,11 @@
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
 
+* `Client.run_pipeline`, `create_run_from_pipeline_func`,
+  `create_run_from_pipeline_package` and `create_recurring_run` accept a
+  `plugins_input` argument, keyed by plugin name, that is sent as the run's
+  `plugins_input`. Recurring runs pass it to every triggered run.
+
 ## Breaking changes
 
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
