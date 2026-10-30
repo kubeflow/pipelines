@@ -1,5 +1,6 @@
 """Typer CLI for Kubeflow Pipelines release automation."""
 
+import json
 import subprocess
 from enum import Enum
 from pathlib import Path
@@ -22,6 +23,8 @@ from .core import (
     watch_latest_workflow_run,
 )
 from .editorial import validate_notes
+from .inventory import build_inventory, review_warnings, write_bundle
+from .ranges import resolve_range
 from .steps import (
     STEP_HANDLERS,
     Step,
@@ -371,10 +374,76 @@ def promote_latest(
 
 
 @app.command(
+    'prepare-editorial',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
+def prepare_editorial(
+    version: str = typer.Option(
+        ..., help='Release version, without sdk- prefix.'
+    ),
+    base: str = typer.Option(
+        ..., help='Explicit previous release tag or commit.'
+    ),
+    target: str = typer.Option(..., help='Exact release target ref.'),
+    output: Path = typer.Option(
+        ..., help='New directory for evidence and document templates.'
+    ),
+) -> None:
+    """Create an offline editorial inventory and backend/SDK/upgrade templates."""
+    try:
+        root = Path(
+            subprocess.check_output(
+                ['git', 'rev-parse', '--show-toplevel'], text=True
+            ).strip()
+        )
+        selected = resolve_range(root, base, target)
+        inventory = build_inventory(root, selected, version)
+        write_bundle(root, inventory, output)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        raise typer.BadParameter(str(error)) from error
+    for warning in review_warnings(inventory):
+        typer.echo(f'Warning: {warning}')
+    typer.echo(
+        f'Editorial bundle: {output}. Review inventory.json, then use render-editorial.'
+    )
+
+
+@app.command(
+    'render-editorial',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
+def render_editorial(
+    inventory_path: Path = typer.Argument(..., help='Reviewed inventory.json.'),
+    output: Path = typer.Option(
+        ..., help='New output directory; existing drafts are never overwritten.'
+    ),
+) -> None:
+    """Render reviewed benefits and shared facts without publishing or changing state."""
+    try:
+        root = Path(
+            subprocess.check_output(
+                ['git', 'rev-parse', '--show-toplevel'], text=True
+            ).strip()
+        )
+        inventory = json.loads(inventory_path.read_text(encoding='utf-8'))
+        write_bundle(root, inventory, output)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        raise typer.BadParameter(str(error)) from error
+    for warning in review_warnings(inventory):
+        typer.echo(f'Warning: {warning}')
+    typer.echo(
+        f'Review rendered documents in {output}; this command does not publish them.'
+    )
+
+
+@app.command(
     'validate-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
 )
 def validate_notes_command(
     path: Path = typer.Argument(..., help='Markdown release notes to review.'),
+    product: Optional[str] = typer.Option(
+        None, help='Optional backend, sdk, or upgrade editorial checks.'
+    ),
 ) -> None:
     """Report advisory editorial warnings without changing release notes."""
     try:
@@ -383,7 +452,10 @@ def validate_notes_command(
         raise typer.BadParameter(
             f'Cannot read release notes: {error}', param_hint='PATH'
         ) from error
-    warnings = validate_notes(notes)
+    try:
+        warnings = validate_notes(notes, product=product)
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint='--product') from error
     if warnings:
         for warning in warnings:
             typer.echo(f'Warning: {warning}')
