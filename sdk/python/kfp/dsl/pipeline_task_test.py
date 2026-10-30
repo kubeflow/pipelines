@@ -287,6 +287,13 @@ class PipelineTaskTest(parameterized.TestCase):
         {'limit': 'abc'},
         {'limit': '1.5'},
         {'limit': '-1'},
+        # Numeric floats must be rejected at call time, not at compile time.
+        {'limit': 1.5},
+        {'limit': 2.0},
+        {'limit': -1.5},
+        # bool is a subclass of int; guard against it being accepted.
+        {'limit': True},
+        {'limit': False},
     )
     def test_set_accelerator_limit_invalid(self, limit):
         task = pipeline_task.PipelineTask(
