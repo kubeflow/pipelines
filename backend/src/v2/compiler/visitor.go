@@ -24,7 +24,9 @@ package compiler
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"sort"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -84,15 +86,24 @@ type pipelineDFS struct {
 	visitor        Visitor
 	// Records which DAG components are visited, map key is component name.
 	visited map[string]bool
+	// Component names from the root to the component being visited.
+	path []string
 }
 
 func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
+	// A component already on the path would make the generated templates call
+	// themselves forever, while one visited on another branch is plain reuse.
+	if slices.Contains(state.path, name) {
+		cycle := strings.Join(append(slices.Clone(state.path), name), " -> ")
+		return fmt.Errorf("circular component reference detected: %s. Remove the task that references an enclosing component", cycle)
+	}
 	// each component is only visited once
-	// TODO(Bobgy): return an error when circular reference detected
 	if state.visited[name] {
 		return nil
 	}
 	state.visited[name] = true
+	state.path = append(state.path, name)
+	defer func() { state.path = state.path[:len(state.path)-1] }()
 	if component == nil {
 		return nil
 	}
