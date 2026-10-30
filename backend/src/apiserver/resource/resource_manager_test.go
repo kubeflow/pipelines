@@ -8813,7 +8813,7 @@ func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
-	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.True(t, matched)
 	assert.Equal(t, `Back-off pulling image "bad"`, msg)
 }
@@ -8825,7 +8825,7 @@ func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
 		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"parent": "ImagePullBackOff"}
-	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.False(t, matched)
 }
 
@@ -8848,11 +8848,11 @@ func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	}
 	resolved := map[string]string{"node-0": "ImagePullBackOff", "node-1": ""}
 
-	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
+	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved, nil)
 	assert.True(t, matched0)
 	assert.Equal(t, "ImagePullBackOff", msg0)
 
-	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
+	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved, nil)
 	assert.True(t, matched1)
 	assert.Equal(t, "", msg1)
 }
@@ -8863,7 +8863,7 @@ func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": "ImagePullBackOff"}
-	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
 	assert.False(t, matched)
 }
 
@@ -8878,7 +8878,191 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"node-1": ""}
-	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved, nil)
+	assert.True(t, matched)
+	assert.Equal(t, "", msg)
+}
+
+// stuckPodNodes reproduces the node layout observed on a cluster running the Argo executor plugin
+// (lifecycle-demo run with bad-image, too-big, oom and healthy tasks). Every task X is a Retry node
+// X -> DAG X(0) -> Retry "executor" -> Pod "executor(0)". The driver runs in a shared agent pod, so
+// tasks only know that pod until the launcher registers the executor pod.
+// Node messages as Argo recorded them for the stuck pods (oom is cut after the first log line).
+const (
+	imagePullMsg     = `ImagePullBackOff: Back-off pulling image "ghcr.io/example/does-not-exist:v1": ErrImagePull: failed to authorize: 403 Forbidden`
+	unschedulableMsg = "Unschedulable: 0/1 nodes are available: 1 Insufficient cpu, 1 Insufficient memory. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+	oomMsg           = `main: OOMKilled (exit code 137): time=2026-10-21T07:32:22.993Z level=INFO msg="capturing logs" argo=true`
+)
+
+func stuckPodNodes() map[string]util.NodeStatus {
+	node := func(podName, name, typ, state, msg string, children ...string) util.NodeStatus {
+		return util.NodeStatus{ID: podName, DisplayName: name, Type: typ, State: state, Message: msg, Children: children}
+	}
+	return map[string]util.NodeStatus{
+		"wf-3900577527": node("wf-3900577527", "bad-image", "Retry", "Running", "", "wf-482333034"),
+		"wf-482333034":  node("wf-482333034", "bad-image(0)", "DAG", "Running", "", "wf-1006740785"),
+		"wf-1006740785": node("wf-1006740785", "executor", "Retry", "Running", "", "wf-1686722696"),
+		"wf-1686722696": node("wf-system-container-impl-1686722696", "executor(0)", "Pod", "Pending", imagePullMsg),
+
+		"wf-2928705689": node("wf-2928705689", "too-big", "Retry", "Running", "", "wf-573542336"),
+		"wf-573542336":  node("wf-573542336", "too-big(0)", "DAG", "Running", "", "wf-229472491"),
+		"wf-229472491":  node("wf-229472491", "executor", "Retry", "Running", "", "wf-3170731494"),
+		"wf-3170731494": node("wf-system-container-impl-3170731494", "executor(0)", "Pod", "Pending", unschedulableMsg),
+
+		"wf-1972745417": node("wf-1972745417", "oom", "Retry", "Failed", "", "wf-3607370928"),
+		"wf-3607370928": node("wf-3607370928", "oom(0)", "DAG", "Failed", "", "wf-1977730939"),
+		"wf-1977730939": node("wf-1977730939", "executor", "Retry", "Failed", "", "wf-1290726390"),
+		"wf-1290726390": node("wf-system-container-impl-1290726390", "executor(0)", "Pod", "Failed", oomMsg),
+
+		"wf-3306674949": node("wf-3306674949", "healthy", "Retry", "Succeeded", "", "wf-2211654756"),
+		"wf-2211654756": node("wf-2211654756", "healthy(0)", "DAG", "Succeeded", "", "wf-68694215"),
+		"wf-68694215":   node("wf-68694215", "executor", "Retry", "Succeeded", "", "wf-3163576314"),
+		"wf-3163576314": node("wf-system-container-impl-3163576314", "executor(0)", "Pod", "Succeeded", ""),
+	}
+}
+
+func agentOnlyTask(t *testing.T, name string) *model.Task {
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "wf-1340600742-agent", Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+	return &model.Task{Name: name, Pods: pods}
+}
+
+func TestLifecycleMessageForTask_StuckPodMatchedThroughTaskNode(t *testing.T) {
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tests := []struct {
+		task  string
+		want  string
+		phase string
+	}{
+		{"bad-image", imagePullMsg, "Running"},
+		{"too-big", unschedulableMsg, "Running"},
+		{"oom", oomMsg, "Failed"},
+		{"healthy", "", "Succeeded"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.task, func(t *testing.T) {
+			msg, phase, matched := lifecycleMessageForTask(agentOnlyTask(t, tc.task), nodes, resolved, nil)
+			assert.True(t, matched)
+			assert.Equal(t, tc.want, msg)
+			assert.Equal(t, tc.phase, phase)
+		})
+	}
+}
+
+func TestLifecycleMessageForTask_PodNameMatchWinsOverTaskNode(t *testing.T) {
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{
+		{Name: "wf-1340600742-agent", Type: apiv2.PipelineTask_DRIVER},
+		{Name: "wf-system-container-impl-1686722696", Type: apiv2.PipelineTask_EXECUTOR},
+	})
+	require.NoError(t, err)
+	msg, _, matched := lifecycleMessageForTask(&model.Task{Name: "bad-image", Pods: pods}, nodes, resolved, nil)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+func TestLifecycleMessageForTask_TaskNodeLeavesAmbiguousNameUnmatched(t *testing.T) {
+	// The same task name in two sub-DAGs must not be attributed to either node.
+	nodes := stuckPodNodes()
+	nodes["other-bad-image"] = util.NodeStatus{ID: "other-bad-image", DisplayName: "bad-image", Type: "Retry", State: "Running"}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	_, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "bad-image"), nodes, resolved, nil)
+	assert.False(t, matched)
+}
+
+// scopedTask is an agent-only task that sits under parentUUID, as tasks do inside a sub-DAG.
+func scopedTask(t *testing.T, uuid, name, parentUUID string) *model.Task {
+	task := agentOnlyTask(t, name)
+	task.UUID = uuid
+	if parentUUID != "" {
+		task.ParentTaskUUID = &parentUUID
+	}
+	return task
+}
+
+// twoSubDAGNodes has the same group name in two sub-DAGs. Only the group in branch-b ran and got
+// stuck on an image pull. The copy in branch-a was skipped, so it has no node of its own.
+func twoSubDAGNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Succeeded", Children: []string{"branch-a0"}},
+		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Succeeded"},
+		"branch-b":  {ID: "branch-b", DisplayName: "branch-b", Type: "Retry", State: "Running", Children: []string{"branch-b0"}},
+		"branch-b0": {ID: "branch-b0", DisplayName: "branch-b(0)", Type: "DAG", State: "Running", Children: []string{"group-b"}},
+		"group-b":   {ID: "group-b", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"pod-b"}},
+		"pod-b":     {ID: "wf-pod-b", DisplayName: "condition-1(0)", Type: "Pod", State: "Pending", Message: imagePullMsg},
+	}
+}
+
+func twoSubDAGTasks(t *testing.T) map[string]*model.Task {
+	return map[string]*model.Task{
+		"root":    {UUID: "root", Name: "root"},
+		"a":       scopedTask(t, "a", "branch-a", "root"),
+		"b":       scopedTask(t, "b", "branch-b", "root"),
+		"skipped": scopedTask(t, "skipped", "condition-1", "a"),
+		"running": scopedTask(t, "running", "condition-1", "b"),
+	}
+}
+
+func TestLifecycleMessageForTask_TaskNodeStaysInItsOwnSubDAG(t *testing.T) {
+	nodes := twoSubDAGNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := twoSubDAGTasks(t)
+
+	// The task that ran in branch-b gets the failure.
+	msg, phase, matched := lifecycleMessageForTask(tasks["running"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+	assert.Equal(t, "Running", phase)
+
+	// The skipped copy in branch-a shares the name but not the scope, so it is not attributed to
+	// the node in branch-b.
+	_, _, matched = lifecycleMessageForTask(tasks["skipped"], nodes, resolved, tasks)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TopLevelTaskMatchesWithRootInRun(t *testing.T) {
+	// Top-level tasks hang off the root DAG task, which adds no scope.
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root":      {UUID: "root", Name: "root"},
+		"bad-image": scopedTask(t, "bad-image", "bad-image", "root"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["bad-image"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
+}
+
+func TestLifecycleMessageForTask_TaskNodeUnmatchedWhenParentChainBroken(t *testing.T) {
+	// A parent that is not among the run's tasks cannot be checked, so the node is not guessed.
+	nodes := twoSubDAGNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	orphan := scopedTask(t, "orphan", "condition-1", "missing")
+	_, _, matched := lifecycleMessageForTask(orphan, nodes, resolved, twoSubDAGTasks(t))
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TaskNodeDoesNotMatchExecutorNodes(t *testing.T) {
+	// Every task owns an "executor" Retry node, so a task named "executor" must not be attributed to one.
+	nodes := stuckPodNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	_, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "executor"), nodes, resolved, nil)
+	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TaskNodeUsesLatestRetryAttempt(t *testing.T) {
+	// The first attempt hit a stuck pod, the second one recovered: the stale message is cleared.
+	nodes := map[string]util.NodeStatus{
+		"t":  {ID: "t", DisplayName: "train", Type: "Retry", State: "Running", Children: []string{"t0", "t1"}},
+		"t0": {ID: "pod-0", DisplayName: "train(0)", Type: "Pod", State: "Failed", Message: "ImagePullBackOff"},
+		"t1": {ID: "pod-1", DisplayName: "train(1)", Type: "Pod", State: "Running"},
+	}
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	msg, _, matched := lifecycleMessageForTask(agentOnlyTask(t, "train"), nodes, resolved, nil)
 	assert.True(t, matched)
 	assert.Equal(t, "", msg)
 }
