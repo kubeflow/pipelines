@@ -902,28 +902,28 @@ class TestCompilePipeline(parameterized.TestCase):
         # The inner and outer pipelines both create groups named
         # condition-branches-1, condition-2 and condition-3.
 
-        @dsl.pipeline(name='graph-component')
-        def graph_component(flag: str):
+        @dsl.pipeline(name='inner-pipeline')
+        def inner_pipeline(flag: str):
             with dsl.If(flag == 'a'):
                 print_op(message='inner if')
             with dsl.Else():
                 print_op(message='inner else')
 
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(flag: str = 'a'):
+        @dsl.pipeline(name='outer-pipeline')
+        def outer_pipeline(flag: str = 'a'):
             with dsl.If(flag == 'a'):
                 print_op(message='outer if')
             with dsl.Else():
                 print_op(message='outer else')
-            graph_component(flag=flag)
+            inner_pipeline(flag=flag)
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_yaml = os.path.join(tmpdir, 'result.yaml')
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output_yaml = os.path.join(temporary_directory, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml
+                pipeline_func=outer_pipeline, package_path=output_yaml
             )
-            with open(output_yaml, 'r') as f:
-                pipeline_spec = yaml.safe_load(f)
+            with open(output_yaml, 'r') as output_file:
+                pipeline_spec = yaml.safe_load(output_file)
 
         components = pipeline_spec['components']
         for name, component in components.items():
@@ -946,8 +946,8 @@ class TestCompilePipeline(parameterized.TestCase):
             ]
             branch_tasks = component_for(branches_task)['dag']['tasks']
             messages = []
-            for _, branch_task in sorted(branch_tasks.items()):
-                branch_dag = component_for(branch_task)['dag']
+            for branch_name in sorted(branch_tasks):
+                branch_dag = component_for(branch_tasks[branch_name])['dag']
                 messages.append(
                     [
                         task['inputs']['parameters']['message']['runtimeValue'][
@@ -962,12 +962,12 @@ class TestCompilePipeline(parameterized.TestCase):
             [['outer if'], ['outer else']],
             branch_messages(pipeline_spec['root']['dag']),
         )
-        inner_component = pipeline_spec['root']['dag']['tasks'][
-            'graph-component'
+        inner_component_name = pipeline_spec['root']['dag']['tasks'][
+            'inner-pipeline'
         ]['componentRef']['name']
         self.assertEqual(
             [['inner if'], ['inner else']],
-            branch_messages(components[inner_component]['dag']),
+            branch_messages(components[inner_component_name]['dag']),
         )
 
     def test_pipeline_with_invalid_output(self):
