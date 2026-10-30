@@ -13,9 +13,9 @@
 # limitations under the License.
 """Keep collector credentials on the trusted side of the analyzer sandbox."""
 
-from pathlib import Path
 import re
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -24,7 +24,6 @@ WORKFLOW = ROOT / '.github/workflows/ai-analyzer.lock.yml'
 
 
 class AnalyzerTelemetryIsolationTest(unittest.TestCase):
-
     def test_every_agent_sandbox_excludes_telemetry_credentials(self):
         workflow = yaml.safe_load(WORKFLOW.read_text())
         sandboxes = []
@@ -36,22 +35,29 @@ class AnalyzerTelemetryIsolationTest(unittest.TestCase):
                     sandboxes.append(job_name)
                     with self.subTest(job=job_name, step=step['name']):
                         excluded = set(re.findall(r'--exclude-env (\S+)', line))
-                        self.assertTrue({
-                            'GH_AW_OTLP_ENDPOINTS',
-                            'OTEL_EXPORTER_OTLP_HEADERS',
-                            'OTEL_EXPORTER_OTLP_ENDPOINT',
-                        } <= excluded)
+                        self.assertTrue(
+                            {
+                                'GH_AW_OTLP_ENDPOINTS',
+                                'OTEL_EXPORTER_OTLP_HEADERS',
+                                'OTEL_EXPORTER_OTLP_ENDPOINT',
+                            }
+                            <= excluded
+                        )
         self.assertCountEqual(sandboxes, ['agent', 'detection'])
 
     def test_trusted_host_retains_configured_telemetry(self):
         workflow = yaml.safe_load(WORKFLOW.read_text())
         env = workflow['env']
-        self.assertIn('secrets.GH_AW_DEFAULT_OTLP_HEADERS',
-                      env['GH_AW_OTLP_ENDPOINTS'])
-        self.assertIn('secrets.GH_AW_DEFAULT_OTLP_HEADERS',
-                      env['OTEL_EXPORTER_OTLP_HEADERS'])
-        self.assertIn('GH_AW_DEFAULT_OTLP_ENDPOINT',
-                      env['OTEL_EXPORTER_OTLP_ENDPOINT'])
+        self.assertIn(
+            'secrets.GH_AW_DEFAULT_OTLP_HEADERS', env['GH_AW_OTLP_ENDPOINTS']
+        )
+        self.assertIn(
+            'secrets.GH_AW_DEFAULT_OTLP_HEADERS',
+            env['OTEL_EXPORTER_OTLP_HEADERS'],
+        )
+        self.assertIn(
+            'GH_AW_DEFAULT_OTLP_ENDPOINT', env['OTEL_EXPORTER_OTLP_ENDPOINT']
+        )
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import type { SubDagKind } from './Constants';
 import SubDagGroupNode from './SubDagGroupNode';
 
@@ -90,4 +90,62 @@ it('explains how to open a deferred group without presenting it as empty', () =>
     'Automatic expansion limit reached. Expand to load this group.',
   );
   expect(screen.queryByText('No tasks in this scope')).not.toBeInTheDocument();
+});
+
+it('shows a warning icon for a running sub-DAG with a lifecycle message', () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'OOMKilled',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
+  expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
+});
+
+it('announces the warning in the sub-DAG node name', () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'OOMKilled',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  expect(
+    screen.getByRole('button', { name: 'Training, pod lifecycle warning' }),
+  ).toBeInTheDocument();
+});
+
+it('shows the failed icon, not the warning, once the sub-DAG has failed', () => {
+  render(
+    <ReactFlowProvider>
+      <SubDagGroupNode
+        id='group'
+        selected={false}
+        data={{
+          label: 'Training',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'OOMKilled',
+          expand: vi.fn(),
+        }}
+      />
+    </ReactFlowProvider>,
+  );
+  expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
+  expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
 });

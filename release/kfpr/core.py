@@ -1,17 +1,15 @@
 """Core release metadata and utilities."""
 
 import argparse
-from dataclasses import dataclass
-from dataclasses import field
 import datetime
 import json
 import os
-from pathlib import Path
 import re
-import shlex
 import shutil
 import subprocess
 import time
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional
 
 # Constants
@@ -27,7 +25,8 @@ URL_RE = re.compile(r'https?://\S+')
 def underline_links(text: str) -> str:
     """Underline URLs in terminal output."""
     return URL_RE.sub(
-        lambda match: f'{ANSI_UNDERLINE}{match.group(0)}{ANSI_RESET}', text)
+        lambda match: f'{ANSI_UNDERLINE}{match.group(0)}{ANSI_RESET}', text
+    )
 
 
 def emphasize_prompt(text: str) -> str:
@@ -73,18 +72,24 @@ class ReleaseMetadata:
         match = re.match(VERSION_RE, version)
         if not match:
             raise ValueError(
-                f'version must be in MAJOR.MINOR.PATCH format; got {version}')
+                f'version must be in MAJOR.MINOR.PATCH format; got {version}'
+            )
 
-        major, minor, patch = int(match.group(1)), int(match.group(2)), int(
-            match.group(3))
+        major, minor, patch = (
+            int(match.group(1)),
+            int(match.group(2)),
+            int(match.group(3)),
+        )
 
         if release_type == 'major' and (minor != 0 or patch != 0):
             raise ValueError(
-                f'major release version must be X.0.0; got {version}')
+                f'major release version must be X.0.0; got {version}'
+            )
 
         if release_type == 'minor' and patch != 0:
             raise ValueError(
-                f'minor release version must be X.Y.0; got {version}')
+                f'minor release version must be X.Y.0; got {version}'
+            )
 
         tag = version
         sdk_tag = f'sdk-{version}'
@@ -144,20 +149,23 @@ class ReleaseState:
         except json.JSONDecodeError as e:
             raise ValueError(
                 f'Invalid state file: {path} contains malformed JSON. '
-                f'Please fix or delete the file. Details: {e}') from e
+                f'Please fix or delete the file. Details: {e}'
+            ) from e
         if not isinstance(data, dict):
             return cls(
                 path,
-                answers={'__schema_error__': 'state file must be an object'})
+                answers={'__schema_error__': 'state file must be an object'},
+            )
         answers = data.get('answers', {})
         completed_steps = data.get('completed_steps', [])
         return cls(
             path=path,
-            answers=answers if isinstance(answers, dict) else
-            {'__schema_error__': 'answers must be an object'},
-            completed_steps=completed_steps if isinstance(
-                completed_steps,
-                list) else ['__schema_error__:completed_steps must be a list'],
+            answers=answers
+            if isinstance(answers, dict)
+            else {'__schema_error__': 'answers must be an object'},
+            completed_steps=completed_steps
+            if isinstance(completed_steps, list)
+            else ['__schema_error__:completed_steps must be a list'],
         )
 
     def save(self) -> None:
@@ -207,7 +215,8 @@ class ReleaseState:
     def reset_step(self, step_id: str) -> None:
         """Remove a step from the completed checkpoint list."""
         self.completed_steps = [
-            completed for completed in self.completed_steps
+            completed
+            for completed in self.completed_steps
             if completed != step_id
         ]
 
@@ -219,10 +228,9 @@ class CommandRunner:
         self.dry_run = dry_run
         self.commands: list[list[str]] = []
 
-    def run(self,
-            command: list[str],
-            cwd: Path | None = None,
-            check: bool = True) -> subprocess.CompletedProcess[str]:
+    def run(
+        self, command: list[str], cwd: Path | None = None, check: bool = True
+    ) -> subprocess.CompletedProcess[str]:
         """Run a command, recording it and optionally executing it.
 
         Args:
@@ -270,9 +278,16 @@ class ReleaseContext:
     include_sdk: bool
     skip_local_review: bool = False
     previous_release: str = ''
+    previous_sdk_release: str = ''
+    release_target: str = ''
 
 
-def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
+def image_workflow_command(
+    metadata: ReleaseMetadata,
+    source_sha: str | None = None,
+    workflow_ref: str | None = None,
+    set_latest: bool = False,
+) -> list[str]:
     """Build command to trigger image-builds-release.yml workflow.
 
     Args:
@@ -286,16 +301,18 @@ def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
         'workflow',
         'run',
         'image-builds-release.yml',
+        '--repo',
+        REPO,
         '--ref',
-        metadata.release_branch,
+        workflow_ref or metadata.release_branch,
         '-f',
-        f'src_branch={metadata.release_branch}',
+        f'src_branch={source_sha or metadata.release_branch}',
         '-f',
         f'target_tag={metadata.tag}',
         '-f',
         'overwrite_imgs=false',
         '-f',
-        'set_latest=true',
+        f'set_latest={str(set_latest).lower()}',
         '-f',
         'add_sha_tag=true',
         '-f',
@@ -303,8 +320,11 @@ def image_workflow_command(metadata: ReleaseMetadata) -> list[str]:
     ]
 
 
-def sdk_workflow_command(metadata: ReleaseMetadata,
-                         packages: str = 'all') -> list[str]:
+def sdk_workflow_command(
+    metadata: ReleaseMetadata,
+    packages: str = 'all',
+    workflow_ref: str | None = None,
+) -> list[str]:
     """Build command to trigger publish-packages.yml workflow.
 
     Args:
@@ -318,8 +338,10 @@ def sdk_workflow_command(metadata: ReleaseMetadata,
         'workflow',
         'run',
         'publish-packages.yml',
+        '--repo',
+        REPO,
         '--ref',
-        metadata.release_branch,
+        workflow_ref or metadata.release_branch,
         '-f',
         f'tag={metadata.sdk_tag}',
         '-f',
@@ -338,12 +360,12 @@ def kfp_requirements_command() -> list[str]:
     return [
         'bash',
         '-c',
-        '''
+        """
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in \
   --find-links="$GIT_ROOT/api/v2alpha1/python/dist" \
-  --find-links="$GIT_ROOT/backend/api/v2beta1/python_http_client/dist" > requirements.txt
-'''.strip(),
+  --find-links="$GIT_ROOT/backend/api/v2beta1/python_http_client/dist" --output-file=requirements.txt
+""".strip(),
     ]
 
 
@@ -356,28 +378,54 @@ def kubernetes_requirements_command() -> list[str]:
     return [
         'bash',
         '-c',
-        '''
+        """
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in \
   --find-links="$GIT_ROOT/sdk/python/dist" \
   --find-links="$GIT_ROOT/backend/api/v2beta1/python_http_client/dist" \
-  --find-links="$GIT_ROOT/api/v2alpha1/python/dist" > requirements.txt
-'''.strip(),
+  --find-links="$GIT_ROOT/api/v2alpha1/python/dist" --output-file=requirements.txt
+""".strip(),
     ]
 
 
-def release_version_bump_command(root: Path,
-                                 release_branch: str,
-                                 previous_release: str,
-                                 image_tag: str | None = None) -> list[str]:
+def _release_git_mounts(root: Path) -> list[str]:
+    """Expose linked-worktree metadata at the paths recorded by Git."""
+    git_file = root / '.git'
+    if not git_file.is_file():
+        return []
+    prefix = 'gitdir: '
+    content = git_file.read_text().strip()
+    if not content.startswith(prefix):
+        raise ValueError(f'Invalid Git worktree metadata: {git_file}')
+    git_dir = (root / content[len(prefix) :]).resolve()
+    common_file = git_dir / 'commondir'
+    common_dir = (
+        (git_dir / common_file.read_text().strip()).resolve()
+        if common_file.is_file()
+        else git_dir
+    )
+    # Git's worktree backlink and common object directory use host paths.
+    # Both mounts are read-only; generated files use the canonical writable mount.
+    mounts = []
+    for path in dict.fromkeys((common_dir, root.resolve())):
+        mounts.extend(
+            ['--mount', f'type=bind,source={path},target={path},readonly']
+        )
+    return mounts
+
+
+def release_version_bump_command(
+    root: Path,
+    release_branch: str,
+    image_tag: str | None = None,
+) -> list[str]:
     """Build command that runs release version updates in the release
     container."""
     image_tag = image_tag or release_branch
     repo_path = '/go/src/github.com/kubeflow/pipelines'
-    script = f'''
+    script = f"""
 set -e
 REPO_ROOT={repo_path}
-PREVIOUS_RELEASE={shlex.quote(previous_release)}
 TAG_NAME="$(cat "$REPO_ROOT/VERSION")"
 if [ -z "$TAG_NAME" ]; then
   echo "ERROR: $REPO_ROOT/VERSION is empty" >&2
@@ -394,9 +442,13 @@ ACTUAL_NODE_VERSION="$(normalize_node_version "$(node -v)")"
 test "${{ACTUAL_NODE_VERSION}}" = "${{REQUIRED_NODE_VERSION}}" || (echo "node version should match ${{REQUIRED_NODE_VERSION}}" && exit 1)
 echo "jq>=1.6"
 which jq >/dev/null || (echo "jq not found in PATH" && exit 1)
-echo "yq>=3.3 <4.0"
 which yq >/dev/null || (echo "yq not found in PATH" && exit 1)
-yq -V | grep 3. || (echo "yq version 3.x should be used" && exit 1)
+# The target checkout, not the release tool, determines the manifest syntax.
+if grep -Eq '^[[:space:]]*yq[[:space:]]+(w|write)[[:space:]]' "$REPO_ROOT/manifests/kustomize/hack/release.sh"; then
+  yq --version | grep -E '^yq version 3[.]' || (echo "Target release scripts require mikefarah/yq version 3.x" && exit 1)
+else
+  yq --version | grep -E '^yq [(]https://github.com/mikefarah/yq/[)] version v4[.]' || (echo "Target release scripts require mikefarah/yq version 4.x" && exit 1)
+fi
 echo "java>=11"
 which java >/dev/null || (echo "java not found in PATH" && exit 1)
 echo "python>3"
@@ -408,12 +460,25 @@ go_path=$(go env GOPATH)
 echo "$PATH" | grep "${{go_path}}/bin" >/dev/null || (echo "\\$GOPATH/bin: ${{go_path}}/bin should be in PATH" && exit 1)
 echo "All tools installed"
 cd "$REPO_ROOT"
-git-cliff -c cliff.toml --tag "$TAG_NAME" --prepend CHANGELOG.md "$PREVIOUS_RELEASE..HEAD"
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" "$TAG_NAME"
-export API_VERSION=v2beta1
+if compgen -G "$REPO_ROOT/backend/api/v1beta1/*.proto" >/dev/null; then
+  API_VERSION=v1beta1 "$REPO_ROOT/backend/api/hack/generator.sh"
+fi
+if [ -f "$REPO_ROOT/backend/api/v2/run.proto" ] && \\
+    grep -Eq '^[[:space:]]*package[[:space:]]+kubeflow[.]pipelines[.]backend[.]api[.]v2[[:space:]]*;' "$REPO_ROOT/backend/api/v2/run.proto"; then
+  export API_VERSION=v2
+else
+  export API_VERSION=v2beta1
+fi
 "$REPO_ROOT/backend/api/hack/generator.sh"
 "$REPO_ROOT/backend/api/build_kfp_server_api_python_package.sh"
-'''.strip()
+if [ -f "$REPO_ROOT/api/Makefile" ]; then
+  make -C "$REPO_ROOT/api" generate
+fi
+if [ -f "$REPO_ROOT/kubernetes_platform/Makefile" ]; then
+  make -C "$REPO_ROOT/kubernetes_platform" generate-go-in-container
+fi
+""".strip()
     return [
         'docker',
         'run',
@@ -422,6 +487,7 @@ export API_VERSION=v2beta1
         f'{os.getuid()}:{os.getgid()}',
         '--mount',
         f'type=bind,source={root},target={repo_path}',
+        *_release_git_mounts(root),
         f'ghcr.io/kubeflow/kfp-release:{image_tag}',
         '/bin/bash',
         '-c',
@@ -429,14 +495,21 @@ export API_VERSION=v2beta1
     ]
 
 
-def kfp_kubernetes_docs_build_command(root: Path,
-                                      release_branch: str) -> list[str]:
+def kfp_kubernetes_docs_build_command(
+    root: Path, release_branch: str
+) -> list[str]:
     """Build command that regenerates the kfp-kubernetes Python package without
     Make."""
     repo_path = '/go/src/github.com/kubeflow/pipelines'
     script = f'''
 set -e
 cd "{repo_path}"
+# Legacy release checkouts do not contain backend/api/hack/uv.sh.
+UV=uv
+if ! command -v "$UV" >/dev/null 2>&1; then
+  python3 -m pip install --user --break-system-packages uv==0.13.5
+  UV="$HOME/.local/bin/uv"
+fi
 rm -rf kubernetes_platform/python/build
 rm -rf kubernetes_platform/python/dist
 rm -rf kubernetes_platform/python/kfp_kubernetes.egg-info
@@ -450,12 +523,9 @@ cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
 python3 generate_proto.py
 if [ -f pyproject.toml ]; then
-  python3 -m pip install --user --break-system-packages uv==0.10.3
-  ~/.local/bin/uv build --package kfp-kubernetes --out-dir dist
+  "$UV" build --package kfp-kubernetes --out-dir dist
 else
-  python3 -m pip install --user --break-system-packages -r requirements.txt
-  python3 setup.py sdist
-  pip wheel --no-deps dist/*.tar.gz -w dist
+  "$UV" build --out-dir dist .
 fi
 '''.strip()
     return [
@@ -478,20 +548,20 @@ fi
 def parse_github_owner(fork_remote: str) -> str:
     """Parse GitHub owner from fork remote URL.
 
-  Args:
-    fork_remote: Git remote URL (SSH or HTTPS format).
+    Args:
+      fork_remote: Git remote URL (SSH or HTTPS format).
 
-  Returns:
-    GitHub username/owner extracted from the URL.
+    Returns:
+      GitHub username/owner extracted from the URL.
 
-  Raises:
-    ValueError: If owner cannot be parsed from the remote URL.
+    Raises:
+      ValueError: If owner cannot be parsed from the remote URL.
 
-  Examples:
-    >>> parse_github_owner('git@github.com:user123/pipelines.git')
-    'user123'
-    >>> parse_github_owner('https://github.com/user123/pipelines.git')
-    'user123'
+    Examples:
+      >>> parse_github_owner('git@github.com:user123/pipelines.git')
+      'user123'
+      >>> parse_github_owner('https://github.com/user123/pipelines.git')
+      'user123'
     """
     # SSH format: git@github.com:USER/REPO.git
     ssh_match = re.match(r'^git@github\.com:([^/]+)/', fork_remote)
@@ -523,15 +593,16 @@ def normalize_fork_remote(fork_remote: str) -> str:
         raise ValueError(
             f'Cannot parse fork_remote: {fork_remote}. '
             'Use a GitHub username, git@github.com:USER/pipelines.git, '
-            'or https://github.com/USER/pipelines.git')
+            'or https://github.com/USER/pipelines.git'
+        )
     if parse_github_owner(normalized).lower() == 'kubeflow':
         raise ValueError('fork_remote must not point to kubeflow/pipelines')
     return normalized
 
 
 def validate_answers(
-        answers: dict[str, object],
-        require_all: bool = True) -> tuple[ReleaseMetadata | None, list[str]]:
+    answers: dict[str, object], require_all: bool = True
+) -> tuple[ReleaseMetadata | None, list[str]]:
     """Validate release answers and return derived metadata when possible."""
     errors = []
     release_type = answers.get('release_type')
@@ -546,7 +617,8 @@ def validate_answers(
     if release_type and version:
         try:
             metadata = ReleaseMetadata.from_version(
-                str(release_type), str(version))
+                str(release_type), str(version)
+            )
         except ValueError as error:
             errors.append(str(error))
 
@@ -569,8 +641,9 @@ def validate_state(state: ReleaseState) -> list[str]:
     if not all(isinstance(step, str) for step in state.completed_steps):
         errors.append('completed_steps must be a list of strings')
     for completed_step in state.completed_steps:
-        if isinstance(completed_step,
-                      str) and completed_step.startswith('__schema_error__:'):
+        if isinstance(completed_step, str) and completed_step.startswith(
+            '__schema_error__:'
+        ):
             errors.append(completed_step.split(':', 1)[1])
     if errors:
         return errors
@@ -582,9 +655,12 @@ def validate_state(state: ReleaseState) -> list[str]:
     include_backend = bool(state.answers.get('include_backend', True))
     include_sdk = bool(state.answers.get('include_sdk', True))
     from .steps import build_steps
+
     step_ids = {
-        step.step_id for step in build_steps(metadata.release_type,
-                                             include_backend, include_sdk)
+        step.step_id
+        for step in build_steps(
+            metadata.release_type, include_backend, include_sdk
+        )
     }
     for completed_step in state.completed_steps:
         if completed_step not in step_ids:
@@ -600,19 +676,23 @@ def doctor_errors(answers: dict[str, object], root: Path) -> list[str]:
             errors.append(f'missing required tool: {tool}')
 
     if shutil.which('gh') is not None:
-        auth = subprocess.run(['gh', 'auth', 'status'],
-                              check=False,
-                              capture_output=True,
-                              text=True)
+        auth = subprocess.run(
+            ['gh', 'auth', 'status'],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         if auth.returncode != 0:
             errors.append('gh auth status failed')
 
     if shutil.which('git') is not None:
-        status = subprocess.run(['git', 'status', '--short'],
-                                cwd=root,
-                                check=False,
-                                capture_output=True,
-                                text=True)
+        status = subprocess.run(
+            ['git', 'status', '--short'],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
         if status.returncode != 0:
             errors.append('git status failed')
         elif status.stdout.strip():
@@ -632,10 +712,18 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
         print('[dry-run] PR merge check skipped')
         return
     while True:
-        state = runner.capture([
-            'gh', 'pr', 'view', pr_url, '--json', 'state,mergeStateStatus,url',
-            '--jq', '.state + " " + .mergeStateStatus'
-        ])
+        state = runner.capture(
+            [
+                'gh',
+                'pr',
+                'view',
+                pr_url,
+                '--json',
+                'state,mergeStateStatus,url',
+                '--jq',
+                '.state + " " + .mergeStateStatus',
+            ]
+        )
         if state.startswith('MERGED '):
             return
         if state.startswith('CLOSED '):
@@ -643,6 +731,16 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
         if 'DIRTY' in state or 'UNKNOWN' in state:
             print(f'PR is not ready: {state}')
         time.sleep(60)
+
+
+def is_pending_merge_queue_check(check: dict) -> bool:
+    """Tide's pending merge eligibility is not an unfinished CI test."""
+    return (
+        check.get('__typename') == 'StatusContext'
+        and check.get('context') == 'tide'
+        and check.get('targetUrl') == 'https://oss.gprow.dev/tide'
+        and check.get('state') == 'PENDING'
+    )
 
 
 def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
@@ -659,42 +757,61 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     reported_check_urls = set()
     while True:
         checks = json.loads(
-            runner.capture([
-                'gh',
-                'pr',
-                'view',
-                pr_url,
-                '--json',
-                'statusCheckRollup',
-                '--jq',
-                '.statusCheckRollup',
-            ]))
+            runner.capture(
+                [
+                    'gh',
+                    'pr',
+                    'view',
+                    pr_url,
+                    '--json',
+                    'statusCheckRollup',
+                    '--jq',
+                    '.statusCheckRollup',
+                ]
+            )
+        )
+        checks = [
+            check for check in checks if not is_pending_merge_queue_check(check)
+        ]
         if not checks:
             print('No CI gates reported yet')
             time.sleep(60)
             continue
         latest_checks = {}
         for check in checks:
-            name = check.get('name') or check.get('workflowName') or check.get(
-                'context') or 'unknown'
+            name = (
+                check.get('name')
+                or check.get('workflowName')
+                or check.get('context')
+                or 'unknown'
+            )
             timestamp = check.get('startedAt') or check.get('completedAt') or ''
             previous = latest_checks.get(name)
             if previous is None or timestamp >= previous[0]:
                 latest_checks[name] = (timestamp, check)
         completed = 0
         for check in [item[1] for item in latest_checks.values()]:
-            name = check.get('name') or check.get('workflowName') or check.get(
-                'context') or 'unknown'
+            name = (
+                check.get('name')
+                or check.get('workflowName')
+                or check.get('context')
+                or 'unknown'
+            )
             status = check.get('status') or check.get('state')
             conclusion = check.get('conclusion')
             details_url = check.get('detailsUrl')
-            if conclusion and conclusion not in (
-                    'SUCCESS', 'NEUTRAL', 'SKIPPED') or status in ('FAILURE',
-                                                                   'ERROR'):
+            if (
+                conclusion
+                and conclusion not in ('SUCCESS', 'NEUTRAL', 'SKIPPED')
+                or status in ('FAILURE', 'ERROR')
+            ):
                 suffix = f': {details_url}' if details_url else ''
                 raise RuntimeError(f'{name} failed{suffix}')
-            if status == 'COMPLETED' or status in ('SUCCESS', 'NEUTRAL',
-                                                   'SKIPPED'):
+            if status == 'COMPLETED' or status in (
+                'SUCCESS',
+                'NEUTRAL',
+                'SKIPPED',
+            ):
                 completed += 1
             elif details_url and details_url not in reported_check_urls:
                 reported_check_urls.add(details_url)
@@ -705,7 +822,8 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
             )
             return
         print(
-            f'PR CI still running ({completed}/{len(latest_checks)} complete)')
+            f'PR CI still running ({completed}/{len(latest_checks)} complete)'
+        )
         time.sleep(60)
 
 
@@ -714,6 +832,7 @@ def watch_latest_workflow_run(
     workflow: str,
     branch: str,
     fresh_only: bool = True,
+    expected_sha: str | None = None,
 ) -> None:
     """Watch the latest workflow run for a given workflow and branch.
 
@@ -727,8 +846,9 @@ def watch_latest_workflow_run(
             f'[dry-run] Watching latest workflow run skipped: {workflow} on {branch}'
         )
         return
-    started_at = datetime.datetime.fromtimestamp(time.time() - 10,
-                                                 datetime.timezone.utc)
+    started_at = datetime.datetime.fromtimestamp(
+        time.time() - 10, datetime.timezone.utc
+    )
     command = [
         'gh',
         'run',
@@ -744,28 +864,61 @@ def watch_latest_workflow_run(
         '--jq',
         '.[0] | [.databaseId, .url, .createdAt] | @tsv',
     ]
+    if expected_sha:
+        index = command.index('--branch')
+        command[index : index + 2] = ['--commit', expected_sha]
+        command.extend(['--repo', REPO, '--event', 'workflow_dispatch'])
     run_info = ''
     for _ in range(12):
         candidate = runner.capture(command)
         if candidate:
             _, _, created_at = candidate.split('\t', 2)
             created = datetime.datetime.fromisoformat(
-                created_at.replace('Z', '+00:00'))
+                created_at.replace('Z', '+00:00')
+            )
             if not fresh_only or created >= started_at:
                 run_info = candidate
                 break
         time.sleep(5)
     if not run_info:
         raise RuntimeError(
-            f'Could not find workflow run for {workflow} on {branch}.')
+            f'Could not find workflow run for {workflow} on {branch}.'
+        )
     run_id, run_url, _ = run_info.split('\t', 2)
     print(underline_links(f'Workflow run: {run_url}'))
-    runner.run(['gh', 'run', 'watch', run_id, '--exit-status'])
+
+    def verify_source():
+        if expected_sha:
+            actual = runner.capture(
+                [
+                    'gh',
+                    'run',
+                    'view',
+                    run_id,
+                    '--repo',
+                    REPO,
+                    '--json',
+                    'headSha',
+                    '--jq',
+                    '.headSha',
+                ]
+            )
+            if actual.strip() != expected_sha:
+                raise RuntimeError(
+                    f'Workflow {run_id} does not use the qualified release commit.'
+                )
+
+    verify_source()
+    watch = ['gh', 'run', 'watch', run_id, '--exit-status']
+    if expected_sha:
+        watch.extend(['--repo', REPO])
+    runner.run(watch)
+    verify_source()
 
 
-def prompt_choice(question: str,
-                  choices: list[str],
-                  default: str | None = None) -> str:
+def prompt_choice(
+    question: str, choices: list[str], default: str | None = None
+) -> str:
     """Prompt user to choose from a list of options.
 
     Args:
@@ -778,9 +931,13 @@ def prompt_choice(question: str,
     """
     suffix = f' [{default}]' if default else ''
     while True:
-        answer = input(
-            emphasize_prompt(
-                f'{question} ({"/".join(choices)}){suffix}: ')).strip().lower()
+        answer = (
+            input(
+                emphasize_prompt(f'{question} ({"/".join(choices)}){suffix}: ')
+            )
+            .strip()
+            .lower()
+        )
         if not answer and default:
             return default
         if answer in choices:
@@ -841,8 +998,9 @@ def confirm(question: str) -> None:
         raise SystemExit('Stopped by user.')
 
 
-def collect_context(args: argparse.Namespace,
-                    state: ReleaseState) -> ReleaseContext:
+def collect_context(
+    args: argparse.Namespace, state: ReleaseState
+) -> ReleaseContext:
     """Collect release context from state and prompts.
 
     Args:
@@ -853,17 +1011,21 @@ def collect_context(args: argparse.Namespace,
       ReleaseContext instance with all required fields.
     """
     root = Path(
-        subprocess.check_output(['git', 'rev-parse', '--show-toplevel'],
-                                text=True).strip())
+        subprocess.check_output(
+            ['git', 'rev-parse', '--show-toplevel'], text=True
+        ).strip()
+    )
     answers = state.answers
     if 'release_type' not in answers:
         answers['release_type'] = prompt_numbered_choice(
-            'Release type', ['major', 'minor', 'patch'])
+            'Release type', ['major', 'minor', 'patch']
+        )
     if 'version' not in answers:
         answers['version'] = prompt_validated(
             'Release version',
             lambda version: ReleaseMetadata.from_version(
-                str(answers['release_type']), version),
+                str(answers['release_type']), version
+            ),
         )
     if 'fork_remote' not in answers:
         answers['fork_remote'] = prompt_validated(
@@ -874,31 +1036,51 @@ def collect_context(args: argparse.Namespace,
     if answers['release_type'] == 'patch':
         if 'patch_prs' not in answers:
             answers['patch_prs'] = prompt_required(
-                'Comma-separated PR numbers or URLs to cherry-pick')
+                'Comma-separated PR numbers or URLs to cherry-pick'
+            )
         if 'include_backend' not in answers:
-            answers['include_backend'] = prompt_choice(
-                'Does this patch include backend/images?', ['y', 'n'],
-                default='y') == 'y'
+            answers['include_backend'] = (
+                prompt_choice(
+                    'Does this patch include backend/images?',
+                    ['y', 'n'],
+                    default='y',
+                )
+                == 'y'
+            )
         if 'include_sdk' not in answers:
-            answers['include_sdk'] = prompt_choice(
-                'Does this patch include SDK packages?', ['y', 'n'],
-                default='y') == 'y'
+            answers['include_sdk'] = (
+                prompt_choice(
+                    'Does this patch include SDK packages?',
+                    ['y', 'n'],
+                    default='y',
+                )
+                == 'y'
+            )
     else:
-        if getattr(args, 'release_source_branch',
-                   None) and 'release_source_branch' not in answers:
+        if (
+            getattr(args, 'release_source_branch', None)
+            and 'release_source_branch' not in answers
+        ):
             answers['release_source_branch'] = str(args.release_source_branch)
-        if getattr(args, 'prompt_release_source_branch',
-                   False) and 'release_source_branch' not in answers:
-            answers['release_source_branch'] = input(
-                'Release source branch [master]: ').strip() or 'master'
+        if (
+            getattr(args, 'prompt_release_source_branch', False)
+            and 'release_source_branch' not in answers
+        ):
+            answers['release_source_branch'] = (
+                input('Release source branch [master]: ').strip() or 'master'
+            )
         if 'include_backend' not in answers:
             answers['include_backend'] = True
         if 'include_sdk' not in answers:
             answers['include_sdk'] = True
     metadata = ReleaseMetadata.from_version(
-        str(answers['release_type']), str(answers['version']))
-    if getattr(args, 'require_previous_release',
-               True) and 'previous_release' not in answers:
+        str(answers['release_type']), str(answers['version'])
+    )
+    if (
+        getattr(args, 'require_previous_release', True)
+        and answers.get('include_backend', True)
+        and 'previous_release' not in answers
+    ):
         answers['previous_release'] = prompt_required('Previous release tag')
     if getattr(args, 'save_state', True):
         state.save()
@@ -912,4 +1094,6 @@ def collect_context(args: argparse.Namespace,
         include_sdk=bool(answers['include_sdk']),
         skip_local_review=bool(answers.get('skip_local_review', False)),
         previous_release=str(answers.get('previous_release', '')),
+        previous_sdk_release=str(answers.get('previous_sdk_release', '')),
+        release_target=str(answers.get('release_target', '')),
     )

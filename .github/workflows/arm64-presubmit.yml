@@ -40,17 +40,24 @@ concurrency:
 jobs:
   build:
     # One invocation for the entire ARM lane, sharing the maintained image matrix.
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
     with:
       architecture: arm64
 
   smoke:
+    permissions:
+      contents: read
     name: Native ARM64 installation and pipeline
     needs: build
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: List required ARM image artifacts
         id: image-artifacts
         shell: bash

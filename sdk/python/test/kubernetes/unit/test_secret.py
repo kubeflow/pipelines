@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestUseSecretAsVolume:
-
     def test_use_one(self):
 
         @dsl.pipeline
@@ -36,16 +34,18 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -62,7 +62,8 @@ class TestUseSecretAsVolume:
                 task,
                 secret_name='secret-name',
                 mount_path='secretpath',
-                optional=True)
+                optional=True,
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -70,16 +71,18 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': True
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': True,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -96,7 +99,8 @@ class TestUseSecretAsVolume:
                 task,
                 secret_name='secret-name',
                 mount_path='secretpath',
-                optional=False)
+                optional=False,
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -104,16 +108,18 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -152,7 +158,7 @@ class TestUseSecretAsVolume:
                                             }
                                         },
                                         'mountPath': 'secretpath1',
-                                        'optional': False
+                                        'optional': False,
                                     },
                                     {
                                         'secretName': 'secret-name2',
@@ -162,7 +168,7 @@ class TestUseSecretAsVolume:
                                             }
                                         },
                                         'mountPath': 'secretpath2',
-                                        'optional': False
+                                        'optional': False,
                                     },
                                 ]
                             }
@@ -195,29 +201,35 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name1',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name1'
-                                        }
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name1',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name1'
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'SECRET_VAR',
+                                            }
+                                        ],
+                                        'optional': False,
+                                    }
+                                ],
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name2',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name2'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath2',
+                                        'optional': False,
                                     },
-                                    'keyToEnv': [{
-                                        'secretKey': 'password',
-                                        'envVar': 'SECRET_VAR'
-                                    }],
-                                    'optional': False
-                                }],
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name2',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name2'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath2',
-                                    'optional': False
-                                },]
+                                ],
                             }
                         }
                     }
@@ -247,25 +259,29 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': 'path'
-                                }],
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ],
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }
@@ -280,7 +296,8 @@ class TestUseSecretAsVolume:
         def my_pipeline(secret_name_input_1: str):
             task = comp()
             kubernetes.use_secret_as_volume(
-                task, secret_name=secret_name_input_1, mount_path="secretpath")
+                task, secret_name=secret_name_input_1, mount_path='secretpath'
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -288,14 +305,15 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter':
-                                            'secret_name_input_1'
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'secret_name_input_1'
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -310,13 +328,16 @@ class TestUseSecretAsVolume:
         def my_pipeline(secret_name_input_1: str, secret_name_input_2: str):
             t1 = comp()
             kubernetes.use_secret_as_volume(
-                t1, secret_name=secret_name_input_1, mount_path="secretpath")
+                t1, secret_name=secret_name_input_1, mount_path='secretpath'
+            )
             kubernetes.use_secret_as_volume(
-                t1, secret_name=secret_name_input_2, mount_path="secretpath")
+                t1, secret_name=secret_name_input_2, mount_path='secretpath'
+            )
 
             t2 = comp()
             kubernetes.use_secret_as_volume(
-                t2, secret_name=secret_name_input_2, mount_path="secretpath")
+                t2, secret_name=secret_name_input_2, mount_path='secretpath'
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -324,32 +345,34 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter':
-                                            'secret_name_input_1'
+                                'secretAsVolume': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'secret_name_input_1'
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
                                     },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }, {
-                                    'secretNameParameter': {
-                                        'componentInputParameter':
-                                            'secret_name_input_2'
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'secret_name_input_2'
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
                                     },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }]
+                                ]
                             },
                             'exec-comp-2': {
-                                'secretAsVolume': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter':
-                                            'secret_name_input_2'
+                                'secretAsVolume': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'secret_name_input_2'
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
                                     },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                },]
-                            }
+                                ]
+                            },
                         }
                     }
                 }
@@ -364,7 +387,8 @@ class TestUseSecretAsVolume:
             t1 = comp()
             t2 = comp_with_output()
             kubernetes.use_secret_as_volume(
-                t1, secret_name=t2.output, mount_path="secretpath")
+                t1, secret_name=t2.output, mount_path='secretpath'
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -372,16 +396,18 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -399,12 +425,15 @@ class TestUseSecretAsVolume:
             t3 = comp_with_output()
 
             kubernetes.use_secret_as_volume(
-                t1, secret_name=t2.output, mount_path="secretpath")
+                t1, secret_name=t2.output, mount_path='secretpath'
+            )
             kubernetes.use_secret_as_volume(
-                t1, secret_name=t3.output, mount_path="secretpath")
+                t1, secret_name=t3.output, mount_path='secretpath'
+            )
             t4 = comp()
             kubernetes.use_secret_as_volume(
-                t4, secret_name=t2.output, mount_path="secretpath")
+                t4, secret_name=t2.output, mount_path='secretpath'
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -412,38 +441,43 @@ class TestUseSecretAsVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsVolume': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
+                                'secretAsVolume': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
                                     },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }, {
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-2'
-                                        }
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-2',
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
                                     },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }]
+                                ]
                             },
                             'exec-comp-2': {
-                                'secretAsVolume': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False,
-                                }]
-                            }
+                                'secretAsVolume': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ]
+                            },
                         }
                     }
                 }
@@ -452,7 +486,6 @@ class TestUseSecretAsVolume:
 
 
 class TestUseSecretAsEnv:
-
     def test_use_one(self):
 
         @dsl.pipeline
@@ -473,25 +506,27 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'keyToEnv': [
-                                        {
-                                            'secretKey': 'username',
-                                            'envVar': 'USERNAME'
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
                                         },
-                                        {
-                                            'secretKey': 'password',
-                                            'envVar': 'PASSWORD'
-                                        },
-                                    ],
-                                    'optional': False
-                                }]
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'username',
+                                                'envVar': 'USERNAME',
+                                            },
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'PASSWORD',
+                                            },
+                                        ],
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -520,25 +555,27 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'keyToEnv': [
-                                        {
-                                            'secretKey': 'username',
-                                            'envVar': 'USERNAME'
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
                                         },
-                                        {
-                                            'secretKey': 'password',
-                                            'envVar': 'PASSWORD'
-                                        },
-                                    ],
-                                    'optional': True
-                                }]
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'username',
+                                                'envVar': 'USERNAME',
+                                            },
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'PASSWORD',
+                                            },
+                                        ],
+                                        'optional': True,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -567,25 +604,27 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'keyToEnv': [
-                                        {
-                                            'secretKey': 'username',
-                                            'envVar': 'USERNAME'
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
                                         },
-                                        {
-                                            'secretKey': 'password',
-                                            'envVar': 'PASSWORD'
-                                        },
-                                    ],
-                                    'optional': False
-                                }]
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'username',
+                                                'envVar': 'USERNAME',
+                                            },
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'PASSWORD',
+                                            },
+                                        ],
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -623,11 +662,13 @@ class TestUseSecretAsEnv:
                                                 'constant': 'secret-name1'
                                             }
                                         },
-                                        'keyToEnv': [{
-                                            'secretKey': 'password1',
-                                            'envVar': 'SECRET_VAR1'
-                                        }],
-                                        'optional': False
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'password1',
+                                                'envVar': 'SECRET_VAR1',
+                                            }
+                                        ],
+                                        'optional': False,
                                     },
                                     {
                                         'secretName': 'secret-name2',
@@ -636,11 +677,13 @@ class TestUseSecretAsEnv:
                                                 'constant': 'secret-name2'
                                             }
                                         },
-                                        'keyToEnv': [{
-                                            'secretKey': 'password2',
-                                            'envVar': 'SECRET_VAR2'
-                                        }],
-                                        'optional': False
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'password2',
+                                                'envVar': 'SECRET_VAR2',
+                                            }
+                                        ],
+                                        'optional': False,
                                     },
                                 ]
                             }
@@ -673,29 +716,35 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name1',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name1'
-                                        }
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name1',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name1'
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'SECRET_VAR',
+                                            }
+                                        ],
+                                        'optional': False,
+                                    }
+                                ],
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name2',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name2'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath2',
+                                        'optional': False,
                                     },
-                                    'keyToEnv': [{
-                                        'secretKey': 'password',
-                                        'envVar': 'SECRET_VAR'
-                                    }],
-                                    'optional': False
-                                }],
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name2',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name2'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath2',
-                                    'optional': False
-                                },]
+                                ],
                             }
                         }
                     }
@@ -725,28 +774,34 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': 'path'
-                                }],
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'keyToEnv': [{
-                                        'secretKey': 'password',
-                                        'envVar': 'SECRET_VAR'
-                                    }],
-                                    'optional': False
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ],
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'SECRET_VAR',
+                                            }
+                                        ],
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }
@@ -774,17 +829,20 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter':
-                                            'secret_name_input1'
-                                    },
-                                    'keyToEnv': [{
-                                        'secretKey': 'foo',
-                                        'envVar': 'CM_VAR'
-                                    },],
-                                    'optional': False
-                                }]
+                                'secretAsEnv': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'secret_name_input1'
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -830,41 +888,46 @@ class TestUseSecretAsEnv:
                                 'secretAsEnv': [
                                     {
                                         'secretNameParameter': {
-                                            'componentInputParameter':
-                                                'secret_name_input1'
+                                            'componentInputParameter': 'secret_name_input1'
                                         },
-                                        'keyToEnv': [{
-                                            'secretKey': 'foo',
-                                            'envVar': 'CM_VAR'
-                                        },],
-                                        'optional': False
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
                                     },
                                     {
                                         'secretNameParameter': {
-                                            'componentInputParameter':
-                                                'secret_name_input2'
+                                            'componentInputParameter': 'secret_name_input2'
                                         },
-                                        'keyToEnv': [{
-                                            'secretKey': 'foo',
-                                            'envVar': 'CM_VAR'
-                                        },],
-                                        'optional': False
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
                                     },
                                 ]
                             },
                             'exec-comp-2': {
-                                'secretAsEnv': [{
-                                    'secretNameParameter': {
-                                        'componentInputParameter':
-                                            'secret_name_input2'
+                                'secretAsEnv': [
+                                    {
+                                        'secretNameParameter': {
+                                            'componentInputParameter': 'secret_name_input2'
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
                                     },
-                                    'keyToEnv': [{
-                                        'secretKey': 'foo',
-                                        'envVar': 'CM_VAR'
-                                    },],
-                                    'optional': False
-                                },]
-                            }
+                                ]
+                            },
                         }
                     }
                 }
@@ -892,19 +955,23 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
-                                    },
-                                    'keyToEnv': [{
-                                        'secretKey': 'foo',
-                                        'envVar': 'CM_VAR'
-                                    },],
-                                    'optional': False
-                                }]
+                                'secretAsEnv': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
+                                    }
+                                ]
                             }
                         }
                     }
@@ -950,47 +1017,58 @@ class TestUseSecretAsEnv:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'secretAsEnv': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
+                                'secretAsEnv': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
                                     },
-                                    'keyToEnv': [{
-                                        'secretKey': 'foo',
-                                        'envVar': 'CM_VAR'
-                                    },],
-                                    'optional': False
-                                }, {
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-2'
-                                        }
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-2',
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
                                     },
-                                    'keyToEnv': [{
-                                        'secretKey': 'foo',
-                                        'envVar': 'CM_VAR'
-                                    },],
-                                    'optional': False
-                                }]
+                                ]
                             },
                             'exec-comp-2': {
-                                'secretAsEnv': [{
-                                    'secretNameParameter': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
-                                    },
-                                    'keyToEnv': [{
-                                        'secretKey': 'foo',
-                                        'envVar': 'CM_VAR'
-                                    },],
-                                    'optional': False
-                                }]
-                            }
+                                'secretAsEnv': [
+                                    {
+                                        'secretNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'foo',
+                                                'envVar': 'CM_VAR',
+                                            },
+                                        ],
+                                        'optional': False,
+                                    }
+                                ]
+                            },
                         }
                     }
                 }
@@ -1014,7 +1092,7 @@ class TestEnsureChannelInputPropagation:
             kubernetes.use_secret_as_env(
                 task,
                 secret_name=secret_name,
-                secret_key_to_env={"key": "VAR"},
+                secret_key_to_env={'key': 'VAR'},
             )
             assert len(task.channel_inputs) == initial_count + 1
             channel_patterns = {ch.pattern for ch in task.channel_inputs}
@@ -1031,13 +1109,13 @@ class TestEnsureChannelInputPropagation:
             kubernetes.use_secret_as_env(
                 task,
                 secret_name=secret_name,
-                secret_key_to_env={"key1": "VAR1"},
+                secret_key_to_env={'key1': 'VAR1'},
             )
             count_after_first = len(task.channel_inputs)
             kubernetes.use_secret_as_volume(
                 task,
                 secret_name=secret_name,
-                mount_path="/mnt/secret",
+                mount_path='/mnt/secret',
             )
             assert len(task.channel_inputs) == count_after_first
 
@@ -1051,8 +1129,8 @@ class TestEnsureChannelInputPropagation:
             initial_count = len(task.channel_inputs)
             kubernetes.use_secret_as_env(
                 task,
-                secret_name="literal-secret",
-                secret_key_to_env={"key": "VAR"},
+                secret_name='literal-secret',
+                secret_key_to_env={'key': 'VAR'},
             )
             assert len(task.channel_inputs) == initial_count
 
@@ -1068,7 +1146,7 @@ class TestEnsureChannelInputPropagation:
             kubernetes.use_secret_as_env(
                 task,
                 secret_name=name_task.output,
-                secret_key_to_env={"key": "VAR"},
+                secret_key_to_env={'key': 'VAR'},
             )
             assert len(task.channel_inputs) == initial_count + 1
 

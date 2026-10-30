@@ -15,9 +15,9 @@
 
 from typing import Optional, Tuple
 
-from kfp.dsl import structures
-from kfp.dsl import yaml_component
 import requests
+
+from kfp.dsl import structures, yaml_component
 
 
 def load_component_from_text(text: str) -> yaml_component.YamlComponent:
@@ -38,7 +38,8 @@ def load_component_from_text(text: str) -> yaml_component.YamlComponent:
     """
     return yaml_component.YamlComponent(
         component_spec=structures.ComponentSpec.from_yaml_documents(text),
-        component_yaml=text)
+        component_yaml=text,
+    )
 
 
 def load_component_from_file(file_path: str) -> yaml_component.YamlComponent:
@@ -62,8 +63,8 @@ def load_component_from_file(file_path: str) -> yaml_component.YamlComponent:
 
 
 def load_component_from_url(
-        url: str,
-        auth: Optional[Tuple[str, str]] = None) -> yaml_component.YamlComponent:
+    url: str, auth: Optional[Tuple[str, str]] = None
+) -> yaml_component.YamlComponent:
     """Loads a component from a URL containing PipelineSpec IR YAML.
 
     Args:
@@ -86,8 +87,8 @@ def load_component_from_url(
         raise ValueError('url must be a string.')
 
     if url.startswith('gs://'):
-        #Replacing the gs:// URI with https:// URI (works for public objects)
-        url = 'https://storage.googleapis.com/' + url[len('gs://'):]
+        # Replacing the gs:// URI with https:// URI (works for public objects)
+        url = 'https://storage.googleapis.com/' + url[len('gs://') :]
 
     resp = requests.get(url, auth=auth)
     resp.raise_for_status()

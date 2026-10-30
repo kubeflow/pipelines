@@ -14,15 +14,17 @@
 # limitations under the License.
 
 import importlib.util
-from pathlib import Path
 import subprocess
-from types import SimpleNamespace
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 
 MODULE_PATH = (
-    Path(__file__).parent / 'kfp-readiness' / 'slow_pod_diagnostics.py')
-SPEC = importlib.util.spec_from_file_location('slow_pod_diagnostics',
-                                              MODULE_PATH)
+    Path(__file__).parent / 'kfp-readiness' / 'slow_pod_diagnostics.py'
+)
+SPEC = importlib.util.spec_from_file_location(
+    'slow_pod_diagnostics', MODULE_PATH
+)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
@@ -31,7 +33,6 @@ container_creating_pod_identities = MODULE.container_creating_pod_identities
 
 
 class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
-
     def setUp(self):
         self.now = 0.0
         self.commands = []
@@ -120,7 +121,8 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
         self.assertEqual(calls, 2)
         self.assertTrue(any('status 1' in line for line in self.output))
         self.assertTrue(
-            any('unable to collect events' in line for line in self.output))
+            any('unable to collect events' in line for line in self.output)
+        )
 
     def test_detects_regular_and_init_containers_being_created(self):
 
@@ -129,8 +131,11 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
             def status(reason):
                 return SimpleNamespace(
                     state=SimpleNamespace(
-                        waiting=(SimpleNamespace(
-                            reason=reason) if reason else None)))
+                        waiting=(
+                            SimpleNamespace(reason=reason) if reason else None
+                        )
+                    )
+                )
 
             return SimpleNamespace(
                 metadata=SimpleNamespace(name=name, uid=uid),
@@ -140,16 +145,21 @@ class SlowContainerCreatingDiagnosticsTest(unittest.TestCase):
                 ),
             )
 
-        identities = container_creating_pod_identities([
-            pod('regular', 'uid-1', regular_reason='ContainerCreating'),
-            pod('init', 'uid-2', init_reason='ContainerCreating'),
-            pod('ready', 'uid-3', regular_reason='Running'),
-        ])
+        identities = container_creating_pod_identities(
+            [
+                pod('regular', 'uid-1', regular_reason='ContainerCreating'),
+                pod('init', 'uid-2', init_reason='ContainerCreating'),
+                pod('ready', 'uid-3', regular_reason='Running'),
+            ]
+        )
 
-        self.assertEqual(identities, {
-            ('regular', 'uid-1'),
-            ('init', 'uid-2'),
-        })
+        self.assertEqual(
+            identities,
+            {
+                ('regular', 'uid-1'),
+                ('init', 'uid-2'),
+            },
+        )
 
 
 if __name__ == '__main__':

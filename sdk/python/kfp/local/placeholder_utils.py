@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for working with placeholders."""
+
 import functools
 import json
 import random
@@ -57,7 +58,8 @@ def replace_placeholders(
         resolve_struct_placeholders(
             placeholder,
             provided_inputs,
-        ) for placeholder in full_command
+        )
+        for placeholder in full_command
     ]
     full_command = flatten_list(full_command)
     resolved_command = []
@@ -107,11 +109,12 @@ def resolve_self_references_in_executor_input(
 
     The placeholder "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar" points to parameter 'pipelinechannel--identity-Output' with the value 'foo'. This function replaces "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar" with 'foo'.
     """
-    for k, v in executor_input_dict.get('inputs',
-                                        {}).get('parameterValues', {}).items():
+    for k, v in (
+        executor_input_dict.get('inputs', {}).get('parameterValues', {}).items()
+    ):
         if isinstance(v, str):
-            executor_input_dict['inputs']['parameterValues'][
-                k] = resolve_individual_placeholder(
+            executor_input_dict['inputs']['parameterValues'][k] = (
+                resolve_individual_placeholder(
                     v,
                     executor_input_dict=executor_input_dict,
                     pipeline_resource_name=pipeline_resource_name,
@@ -120,6 +123,7 @@ def resolve_self_references_in_executor_input(
                     pipeline_job_id=pipeline_job_id,
                     pipeline_task_id=pipeline_task_id,
                 )
+            )
     return executor_input_dict
 
 
@@ -209,13 +213,15 @@ def convert_placeholder_parts_to_path(parts: List[str]) -> List[str]:
         parts[1] = 'parameterValues'
 
     # if outputs, parameter output_file --> outputFile
-    if parts[0] == 'outputs' and parts[1] == 'parameters' and parts[
-            3] == 'output_file':
+    if (
+        parts[0] == 'outputs'
+        and parts[1] == 'parameters'
+        and parts[3] == 'output_file'
+    ):
         parts[3] = 'outputFile'
 
     # if artifacts...
     if parts[1] == 'artifacts':
-
         # ...need to get nested artifact object...
         parts.insert(3, 'artifacts')
         # ...and first entry in list with index 0
@@ -296,7 +302,8 @@ def resolve_struct_placeholders(
                     return then
                 elif isinstance(then, list):
                     return filter_none(
-                        [recursively_resolve_struct(p) for p in then])
+                        [recursively_resolve_struct(p) for p in then]
+                    )
                 elif isinstance(then, dict):
                     return recursively_resolve_struct(then)
             else:
@@ -307,14 +314,16 @@ def resolve_struct_placeholders(
                     return else_
                 elif isinstance(else_, list):
                     return filter_none(
-                        [recursively_resolve_struct(p) for p in else_])
+                        [recursively_resolve_struct(p) for p in else_]
+                    )
                 elif isinstance(else_, dict):
                     return recursively_resolve_struct(else_)
         else:
             raise ValueError
 
     if placeholder.startswith('{"Concat": ') or placeholder.startswith(
-            '{"IfPresent": '):
+        '{"IfPresent": '
+    ):
         des_placeholder = json.loads(placeholder)
         return recursively_resolve_struct(des_placeholder)
     else:
@@ -325,7 +334,7 @@ def _raise_workspace_not_configured() -> None:
     """Raises an exception when workspace_root is not configured."""
     raise RuntimeError(
         'Workspace not configured. Initialize with workspace_root parameter:\n'
-        'local.init(runner=local.SubprocessRunner(), workspace_root=\'/path/to/workspace\')'
+        "local.init(runner=local.SubprocessRunner(), workspace_root='/path/to/workspace')"
     )
 
 
@@ -340,10 +349,15 @@ def resolve_individual_placeholder(
 ) -> str:
     """Replaces placeholders for a single element."""
 
-    if dsl.WORKSPACE_PATH_PLACEHOLDER in element or dsl_constants.WORKSPACE_MOUNT_PATH in element:
+    if (
+        dsl.WORKSPACE_PATH_PLACEHOLDER in element
+        or dsl_constants.WORKSPACE_MOUNT_PATH in element
+    ):
         # Ensure local config and workspace are available
-        if not (config.LocalExecutionConfig.instance and
-                config.LocalExecutionConfig.instance.workspace_root):
+        if not (
+            config.LocalExecutionConfig.instance
+            and config.LocalExecutionConfig.instance.workspace_root
+        ):
             _raise_workspace_not_configured()
 
         runner = config.LocalExecutionConfig.instance.runner
@@ -352,31 +366,31 @@ def resolve_individual_placeholder(
         if isinstance(runner, config.DockerRunner):
             workspace_value = dsl_constants.WORKSPACE_MOUNT_PATH
         else:
-            workspace_value = config.LocalExecutionConfig.instance.workspace_root
+            workspace_value = (
+                config.LocalExecutionConfig.instance.workspace_root
+            )
 
-        element = element.replace(dsl_constants.WORKSPACE_MOUNT_PATH,
-                                  workspace_value)
-        element = element.replace(dsl.WORKSPACE_PATH_PLACEHOLDER,
-                                  workspace_value)
+        element = element.replace(
+            dsl_constants.WORKSPACE_MOUNT_PATH, workspace_value
+        )
+        element = element.replace(
+            dsl.WORKSPACE_PATH_PLACEHOLDER, workspace_value
+        )
 
     # match on literal for constant placeholders
     PLACEHOLDERS = {
-        r'{{$.outputs.output_file}}':
-            executor_input_dict['outputs']['outputFile'],
-        r'{{$.outputMetadataUri}}':
-            executor_input_dict['outputs']['outputFile'],
-        r'{{$}}':
-            json.dumps(executor_input_dict),
-        dsl.PIPELINE_JOB_NAME_PLACEHOLDER:
-            pipeline_resource_name,
-        dsl.PIPELINE_JOB_ID_PLACEHOLDER:
-            pipeline_job_id,
-        dsl.PIPELINE_TASK_NAME_PLACEHOLDER:
-            task_resource_name,
-        dsl.PIPELINE_TASK_ID_PLACEHOLDER:
-            pipeline_task_id,
-        dsl.PIPELINE_ROOT_PLACEHOLDER:
-            pipeline_root,
+        r'{{$.outputs.output_file}}': executor_input_dict['outputs'][
+            'outputFile'
+        ],
+        r'{{$.outputMetadataUri}}': executor_input_dict['outputs'][
+            'outputFile'
+        ],
+        r'{{$}}': json.dumps(executor_input_dict),
+        dsl.PIPELINE_JOB_NAME_PLACEHOLDER: pipeline_resource_name,
+        dsl.PIPELINE_JOB_ID_PLACEHOLDER: pipeline_job_id,
+        dsl.PIPELINE_TASK_NAME_PLACEHOLDER: task_resource_name,
+        dsl.PIPELINE_TASK_ID_PLACEHOLDER: pipeline_task_id,
+        dsl.PIPELINE_ROOT_PLACEHOLDER: pipeline_root,
     }
     for placeholder, value in PLACEHOLDERS.items():
         element = element.replace(placeholder, value)

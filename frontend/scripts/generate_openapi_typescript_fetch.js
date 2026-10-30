@@ -25,52 +25,52 @@ const GLOBAL_PROPERTIES = [
 const DEFAULT_CONCURRENCY = Math.max(1, Math.min(os.cpus().length, 4));
 
 const SPEC_TARGETS = {
-  'v2beta1:experiment': {
-    spec: 'backend/api/v2beta1/swagger/experiment.swagger.json',
-    output: 'frontend/src/apisv2beta1/experiment',
+  'v2:experiment': {
+    spec: 'backend/api/v2/swagger/experiment.swagger.json',
+    output: 'frontend/src/apisv2/experiment',
   },
-  'v2beta1:artifact': {
-    spec: 'backend/api/v2beta1/swagger/artifact.swagger.json',
-    output: 'frontend/src/apisv2beta1/artifact',
+  'v2:artifact': {
+    spec: 'backend/api/v2/swagger/artifact.swagger.json',
+    output: 'frontend/src/apisv2/artifact',
   },
-  'v2beta1:artifact-server': {
-    spec: 'backend/api/v2beta1/swagger/artifact.swagger.json',
-    output: 'frontend/server/src/generated/apisv2beta1/artifact',
+  'v2:artifact-server': {
+    spec: 'backend/api/v2/swagger/artifact.swagger.json',
+    output: 'frontend/server/src/generated/apisv2/artifact',
   },
-  'v2beta1:recurringrun': {
-    spec: 'backend/api/v2beta1/swagger/recurring_run.swagger.json',
-    output: 'frontend/src/apisv2beta1/recurringrun',
+  'v2:recurringrun': {
+    spec: 'backend/api/v2/swagger/recurring_run.swagger.json',
+    output: 'frontend/src/apisv2/recurringrun',
   },
-  'v2beta1:pipeline': {
-    spec: 'backend/api/v2beta1/swagger/pipeline.swagger.json',
-    output: 'frontend/src/apisv2beta1/pipeline',
+  'v2:pipeline': {
+    spec: 'backend/api/v2/swagger/pipeline.swagger.json',
+    output: 'frontend/src/apisv2/pipeline',
   },
-  'v2beta1:run': {
-    spec: 'backend/api/v2beta1/swagger/run.swagger.json',
-    output: 'frontend/src/apisv2beta1/run',
+  'v2:run': {
+    spec: 'backend/api/v2/swagger/run.swagger.json',
+    output: 'frontend/src/apisv2/run',
   },
-  'v2beta1:filter': {
-    spec: 'backend/api/v2beta1/swagger/filter.swagger.json',
-    output: 'frontend/src/apisv2beta1/filter',
+  'v2:filter': {
+    spec: 'backend/api/v2/swagger/filter.swagger.json',
+    output: 'frontend/src/apisv2/filter',
   },
-  'v2beta1:auth': {
-    spec: 'backend/api/v2beta1/swagger/auth.swagger.json',
-    output: 'frontend/server/src/generated/apisv2beta1/auth',
+  'v2:auth': {
+    spec: 'backend/api/v2/swagger/auth.swagger.json',
+    output: 'frontend/server/src/generated/apisv2/auth',
   },
 };
 
 const GROUPS = {
-  v2beta1: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v2beta1:')),
+  v2: Object.keys(SPEC_TARGETS).filter((key) => key.startsWith('v2:')),
   all: Object.keys(SPEC_TARGETS),
 };
 const SHARED_OPENAPI_SUPPORT_GROUPS = [
   {
-    outputPrefixes: ['frontend/src/apisv2beta1/'],
+    outputPrefixes: ['frontend/src/apisv2/'],
     sharedRoot: 'frontend/src/generated/openapi',
     importExtension: '',
   },
   {
-    outputPrefixes: ['frontend/server/src/generated/apisv2beta1/'],
+    outputPrefixes: ['frontend/server/src/generated/apisv2/'],
     sharedRoot: 'frontend/server/src/generated/openapi',
     importExtension: '.js',
   },
@@ -120,8 +120,8 @@ function resolveTargets(args) {
       continue;
     }
 
-    if (SPEC_TARGETS[`v2beta1:${arg}`]) {
-      resolved.push(`v2beta1:${arg}`);
+    if (SPEC_TARGETS[`v2:${arg}`]) {
+      resolved.push(`v2:${arg}`);
       continue;
     }
 
@@ -618,6 +618,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  prepareTarget,
   formatGeneratedTypeScript,
   assertSharedOpenApiSupportMatches,
   createOpenApiReExportShim,

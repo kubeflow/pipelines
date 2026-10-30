@@ -16,7 +16,7 @@ module.exports = [
       '**/*.test.ts',
       '**/*.test.tsx',
       'src/generated/**',
-      'src/apisv2beta1/**',
+      'src/apisv2/**',
       'src/stories/**',
     ],
   },

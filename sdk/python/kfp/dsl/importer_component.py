@@ -13,8 +13,7 @@
 # limitations under the License.
 """Importer-based component."""
 
-from kfp.dsl import base_component
-from kfp.dsl import structures
+from kfp.dsl import base_component, structures
 
 
 class ImporterComponent(base_component.BaseComponent):

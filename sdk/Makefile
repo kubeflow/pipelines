@@ -26,7 +26,6 @@ endif
 endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
-UV_VERSION=0.10.3
 
 ifeq ($(USE_PREBUILT_IMAGE),true)
 GENERATOR_IMAGE=$(PREBUILT_REMOTE_IMAGE)
@@ -38,7 +37,7 @@ endif
 generate-python:
 	$(MAKE) -C ../api python
 	$(MAKE) -C ../kubernetes_platform python
-	$(MAKE) -C ../backend/api API_VERSION=v2beta1 generate-kfp-server-api-package
+	$(MAKE) -C ../backend/api API_VERSION=v2 generate-kfp-server-api-package
 
 # Build Python package using either pre-built image (fast) or source build (accurate).
 # Use USE_PREBUILT_IMAGE=false to build from source for guaranteed accuracy.
@@ -50,8 +49,7 @@ python: generate-python
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(GENERATOR_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
-			pip install --user --break-system-packages uv==$(UV_VERSION) && \
-			~/.local/bin/uv build --package kfp --out-dir sdk/python/dist'
+			/go/src/github.com/kubeflow/pipelines/backend/api/hack/uv.sh build --package kfp --out-dir sdk/python/dist'
 
 # Build Python package by building api-generator image from source.
 .PHONY: python-from-source

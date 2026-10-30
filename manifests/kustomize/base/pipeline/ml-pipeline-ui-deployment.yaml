@@ -77,9 +77,9 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
-          # Namespace-ownership resolution for objects the artifact database does not track.
-          # The default "artifact-then-prefix" checks the
-          # "private-artifacts/<namespace>/" object-key prefix after an Artifact API miss.
+          # Namespace-ownership validation for multi-user artifact requests.
+          # The default "artifact-then-prefix" accepts canonical own-namespace prefixes
+          # before an Artifact API lookup. Encoded namespace spellings need a matching record.
           # The legacy "mlmd-then-prefix" alias remains supported. Use "artifact-only" for
           # strict Artifact API validation; the legacy "mlmd-only" value is also supported.
           - name: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
@@ -148,14 +148,14 @@ spec:
                 optional: true
         readinessProbe:
           httpGet:
-            path: /apis/v2beta1/healthz
+            path: /apis/v2/healthz
             port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
         livenessProbe:
           httpGet:
-            path: /apis/v2beta1/healthz
+            path: /apis/v2/healthz
             port: 3000
           initialDelaySeconds: 3
           periodSeconds: 5

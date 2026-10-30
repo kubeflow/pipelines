@@ -22,14 +22,18 @@ if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
 
 @component(
     pip_index_urls=['https://pypi.org/simple'],
-    packages_to_install=PACKAGES_TO_INSTALL)
+    packages_to_install=PACKAGES_TO_INSTALL,
+)
 def component_with_pip_install():
     import yapf
+
     print(dir(yapf))
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=component_with_pip_install,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

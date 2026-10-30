@@ -32,13 +32,15 @@ The Kubeflow pipelines service has the following goals:
 | MySQL          | v8               |
 
 > **KFP 3.0 compatibility notice:** This branch supports Argo Workflows 4.0.x and 4.1.x,
-> tested at 4.0.13 and 4.1.5 respectively. Argo 3.x is not supported on this branch;
+> tested at 4.0.13 and 4.1.6 respectively. Argo 3.x is not supported on this branch;
 > KFP 2.x release branches retain their documented compatibility coverage. Before upgrading
 > to KFP 3.0, operators must upgrade their controller to a supported 4.x release. Follow
 > [the KFP 3.0 compatibility tracking issue](https://github.com/kubeflow/pipelines/issues/14139)
 > for the removal and migration work.
 
 ## Documentation
+
+See [Releases](RELEASE.md) for what changed, upgrade guidance, compatibility, and the maintainer release runbook.
 
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/components/pipelines/overview/).
 

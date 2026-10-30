@@ -18,15 +18,15 @@ mocks."""
 import copy
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = ROOT / '.github/workflows/gh-workflow-approve.yml'
 
-NODE_HARNESS = r'''
+NODE_HARNESS = r"""
 const fs = require('node:fs');
 const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
 const {script, scenario} = JSON.parse(fs.readFileSync(0, 'utf8'));
@@ -91,13 +91,14 @@ const immediateTimeout = callback => callback();
   process.stderr.write(error.stack || String(error));
   process.exitCode = 1;
 });
-'''
+"""
 
 
 def _approval_script() -> str:
     workflow = WORKFLOW.read_text(encoding='utf-8')
     step = workflow.split(
-        '      - name: Approve Pending Workflow Runs\n', maxsplit=1)[1]
+        '      - name: Approve Pending Workflow Runs\n', maxsplit=1
+    )[1]
     indented = step.split('          script: |\n', maxsplit=1)[1]
     lines = []
     for line in indented.splitlines():
@@ -107,13 +108,15 @@ def _approval_script() -> str:
     return '\n'.join(lines)
 
 
-def _pr(number=42,
-        *,
-        sha='head-sha',
-        repo_id=700,
-        branch='feature',
-        state='open',
-        labels=('ok-to-test',)):
+def _pr(
+    number=42,
+    *,
+    sha='head-sha',
+    repo_id=700,
+    branch='feature',
+    state='open',
+    labels=('ok-to-test',),
+):
     return {
         'number': number,
         'state': state,
@@ -122,79 +125,72 @@ def _pr(number=42,
             'ref': branch,
             'repo': {
                 'id': repo_id,
-                'owner': {
-                    'login': 'contributor'
-                },
+                'owner': {'login': 'contributor'},
             },
         },
-        'labels': [{
-            'name': label
-        } for label in labels],
+        'labels': [{'name': label} for label in labels],
     }
 
 
-def _run(run_id=101,
-         *,
-         sha='head-sha',
-         repo_id=700,
-         branch='feature',
-         pr_numbers=(42,),
-         event='pull_request'):
+def _run(
+    run_id=101,
+    *,
+    sha='head-sha',
+    repo_id=700,
+    branch='feature',
+    pr_numbers=(42,),
+    event='pull_request',
+):
     return {
         'id': run_id,
         'name': f'Presubmit {run_id}',
         'event': event,
         'head_sha': sha,
         'head_branch': branch,
-        'head_repository': {
-            'id': repo_id
-        },
-        'pull_requests': [{
-            'number': number
-        } for number in pr_numbers],
+        'head_repository': {'id': repo_id},
+        'pull_requests': [{'number': number} for number in pr_numbers],
     }
 
 
 @unittest.skipUnless(
-    shutil.which('node'), 'Node.js is required for workflow JS tests')
+    shutil.which('node'), 'Node.js is required for workflow JS tests'
+)
 class ApprovalFastPathTest(unittest.TestCase):
-
-    def run_approval(self,
-                     *,
-                     event_pr=None,
-                     current_prs=None,
-                     open_head_prs=None,
-                     run_batches=None,
-                     is_member=False,
-                     fail_approvals=()):
+    def run_approval(
+        self,
+        *,
+        event_pr=None,
+        current_prs=None,
+        open_head_prs=None,
+        run_batches=None,
+        is_member=False,
+        fail_approvals=(),
+    ):
         event_pr = event_pr or _pr()
         scenario = {
-            'eventPR':
-                event_pr,
-            'currentPRs':
-                current_prs
-                if current_prs is not None else [copy.deepcopy(event_pr)],
-            'openHeadPRs':
-                open_head_prs
-                if open_head_prs is not None else [copy.deepcopy(event_pr)],
-            'runBatches':
-                run_batches if run_batches is not None else [[]],
-            'failApprovals':
-                list(fail_approvals),
+            'eventPR': event_pr,
+            'currentPRs': current_prs
+            if current_prs is not None
+            else [copy.deepcopy(event_pr)],
+            'openHeadPRs': open_head_prs
+            if open_head_prs is not None
+            else [copy.deepcopy(event_pr)],
+            'runBatches': run_batches if run_batches is not None else [[]],
+            'failApprovals': list(fail_approvals),
         }
         completed = subprocess.run(
             ['node', '-e', NODE_HARNESS],
-            input=json.dumps({
-                'script': _approval_script(),
-                'scenario': scenario,
-            }),
+            input=json.dumps(
+                {
+                    'script': _approval_script(),
+                    'scenario': scenario,
+                }
+            ),
             text=True,
             capture_output=True,
             check=False,
             timeout=10,
-            env={
-                **os.environ, 'IS_MEMBER': str(is_member).lower()
-            },
+            env={**os.environ, 'IS_MEMBER': str(is_member).lower()},
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         return json.loads(completed.stdout)
@@ -209,8 +205,11 @@ class ApprovalFastPathTest(unittest.TestCase):
                 self.assertEqual(result['approved'], [])
                 self.assertEqual(result['failures'], [])
                 self.assertFalse(
-                    any(request['kind'] == 'listRuns'
-                        for request in result['requests']))
+                    any(
+                        request['kind'] == 'listRuns'
+                        for request in result['requests']
+                    )
+                )
 
     def test_changed_or_closed_pr_head_is_not_approved(self):
         changed = (
@@ -222,11 +221,15 @@ class ApprovalFastPathTest(unittest.TestCase):
         for current_pr in changed:
             with self.subTest(current_pr=current_pr):
                 result = self.run_approval(
-                    current_prs=[current_pr], run_batches=[[_run()]])
+                    current_prs=[current_pr], run_batches=[[_run()]]
+                )
                 self.assertEqual(result['approved'], [])
                 self.assertFalse(
-                    any(request['kind'] == 'listRuns'
-                        for request in result['requests']))
+                    any(
+                        request['kind'] == 'listRuns'
+                        for request in result['requests']
+                    )
+                )
 
     def test_ambiguous_open_prs_with_same_head_need_manual_approval(self):
         result = self.run_approval(
@@ -256,9 +259,13 @@ class ApprovalFastPathTest(unittest.TestCase):
         ]
         self.assertTrue(run_requests)
         self.assertTrue(
-            all(request['head_sha'] == 'head-sha' and request['event'] ==
-                'pull_request' and request['status'] == 'action_required'
-                for request in run_requests))
+            all(
+                request['head_sha'] == 'head-sha'
+                and request['event'] == 'pull_request'
+                and request['status'] == 'action_required'
+                for request in run_requests
+            )
+        )
 
     def test_member_approves_run_registered_after_first_poll(self):
         result = self.run_approval(
@@ -269,14 +276,20 @@ class ApprovalFastPathTest(unittest.TestCase):
         self.assertEqual(result['approved'], [101])
         self.assertEqual(result['failures'], [])
         self.assertGreaterEqual(
-            len([
-                request for request in result['requests']
-                if request['kind'] == 'listRuns'
-            ]), 2)
+            len(
+                [
+                    request
+                    for request in result['requests']
+                    if request['kind'] == 'listRuns'
+                ]
+            ),
+            2,
+        )
 
     def test_unresolved_action_required_run_fails(self):
         result = self.run_approval(
-            run_batches=[[_run()]], fail_approvals=(101,))
+            run_batches=[[_run()]], fail_approvals=(101,)
+        )
         self.assertEqual(result['approved'], [])
         self.assertEqual(len(result['failures']), 1)
         self.assertIn('101', result['failures'][0])

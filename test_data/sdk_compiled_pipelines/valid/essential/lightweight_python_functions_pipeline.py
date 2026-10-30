@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Sample pipeline for passing data in KFP."""
+
 from typing import Dict, List
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import component
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import InputPath
-from kfp.dsl import Model
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
+from kfp import compiler, dsl
+from kfp.dsl import (
+    Dataset,
+    Input,
+    InputPath,
+    Model,
+    Output,
+    OutputPath,
+    component,
+)
 
 
 @component
@@ -65,9 +67,11 @@ def preprocess(
 
     with open(output_bool_parameter_path, 'w') as f:
         f.write(
-            str(True))  # use either `str()` or `json.dumps()` for bool values.
+            str(True)
+        )  # use either `str()` or `json.dumps()` for bool values.
 
     import json
+
     with open(output_dict_parameter_path, 'w') as f:
         f.write(json.dumps(input_dict_parameter))
 
@@ -104,12 +108,14 @@ def train(
     with open(dataset_two.path) as input_file:
         dataset_two_contents = input_file.read()
 
-    line = (f'dataset_one_contents: {dataset_one_contents} || '
-            f'dataset_two_contents: {dataset_two_contents} || '
-            f'message: {message} || '
-            f'input_bool: {input_bool}, type {type(input_bool)} || '
-            f'input_dict: {input_dict}, type {type(input_dict)} || '
-            f'input_list: {input_list}, type {type(input_list)} \n')
+    line = (
+        f'dataset_one_contents: {dataset_one_contents} || '
+        f'dataset_two_contents: {dataset_two_contents} || '
+        f'message: {message} || '
+        f'input_bool: {input_bool}, type {type(input_bool)} || '
+        f'input_dict: {input_dict}, type {type(input_dict)} || '
+        f'input_list: {input_list}, type {type(input_list)} \n'
+    )
 
     with open(model.path, 'w') as output_file:
         for i in range(num_steps):
@@ -140,4 +146,5 @@ def pipeline(message: str, input_dict: Dict[str, int] = {'A': 1, 'B': 2}):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

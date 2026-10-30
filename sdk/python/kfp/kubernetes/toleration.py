@@ -14,8 +14,8 @@
 from typing import Optional, Union
 
 from google.protobuf import json_format
-from kfp.dsl import pipeline_channel
-from kfp.dsl import PipelineTask
+
+from kfp.dsl import PipelineTask, pipeline_channel
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
@@ -30,8 +30,9 @@ def add_toleration(
     key: Optional[str] = None,
     operator: Optional[Literal['Equal', 'Exists']] = None,
     value: Optional[str] = None,
-    effect: Optional[Literal['NoExecute', 'NoSchedule',
-                             'PreferNoSchedule']] = None,
+    effect: Optional[
+        Literal['NoExecute', 'NoSchedule', 'PreferNoSchedule']
+    ] = None,
     toleration_seconds: Optional[int] = None,
 ):
     """Add a `toleration <https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/>`__ to a task.
@@ -75,7 +76,8 @@ def add_toleration(
             value=value,
             effect=effect,
             toleration_seconds=toleration_seconds,
-        ))
+        )
+    )
     task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
 
     return task
@@ -83,8 +85,10 @@ def add_toleration(
 
 def add_toleration_json(
     task: PipelineTask,
-    toleration_json: Union[pipeline_channel.PipelineParameterChannel, list,
-                           dict]):
+    toleration_json: Union[
+        pipeline_channel.PipelineParameterChannel, list, dict
+    ],
+):
     """Add a Pod Toleration in the form of a Pipeline Input JSON to a task.
 
     Args:
@@ -131,7 +135,8 @@ def add_toleration_json(
         msg = common.get_existing_kubernetes_config_as_message(task)
         toleration = pb.Toleration()
         toleration.toleration_json.CopyFrom(
-            common.parse_k8s_parameter_input(toleration_json, task))
+            common.parse_k8s_parameter_input(toleration_json, task)
+        )
         msg.tolerations.append(toleration)
         task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
     elif isinstance(toleration_json, list):
@@ -141,7 +146,8 @@ def add_toleration_json(
         _add_dict_toleration(task, toleration_json)
     else:
         raise ValueError(
-            'toleration_json must be a dict, list, or input parameter')
+            'toleration_json must be a dict, list, or input parameter'
+        )
 
     return task
 

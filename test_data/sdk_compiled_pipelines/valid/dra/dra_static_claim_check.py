@@ -14,9 +14,7 @@
 """DRA static claim check: verifies a pod with a static ResourceClaim
 schedules and runs via the dra-example-driver."""
 
-from kfp import compiler
-from kfp import dsl
-from kfp import kubernetes
+from kfp import compiler, dsl, kubernetes
 
 
 @dsl.container_component
@@ -29,20 +27,24 @@ def verify_dra_static():
 
 
 @dsl.pipeline(
-    name="dra-static-claim-check",
-    description=("Verifies a task with a static DRA ResourceClaim can schedule "
-                 "and complete using the dra-example-driver."),
+    name='dra-static-claim-check',
+    description=(
+        'Verifies a task with a static DRA ResourceClaim can schedule '
+        'and complete using the dra-example-driver.'
+    ),
 )
 def dra_static_claim_check():
     task = verify_dra_static().set_caching_options(False)
     kubernetes.add_resource_claim(
-        task, resource_claim_template_name='dra-test-claim')
+        task, resource_claim_template_name='dra-test-claim'
+    )
     kubernetes.add_resource_claim(
-        task, resource_claim_template_name='dra-test-claim-secondary')
+        task, resource_claim_template_name='dra-test-claim-secondary'
+    )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     compiler.Compiler().compile(
         dra_static_claim_check,
-        package_path=__file__.replace(".py", ".yaml"),
+        package_path=__file__.replace('.py', '.yaml'),
     )

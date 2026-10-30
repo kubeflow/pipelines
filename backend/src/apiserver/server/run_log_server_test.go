@@ -108,7 +108,7 @@ func TestReadRunLog_Unauthorized(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2/runs/"+run.UUID+"/nodes/node-1/log", nil)
 	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
@@ -139,7 +139,7 @@ func TestReadRunLog_SharedReadModeStillDenied(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2/runs/"+run.UUID+"/nodes/node-1/log", nil)
 	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
@@ -172,7 +172,7 @@ func TestReadRunLog_PodNotFromRun(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/victim-pod/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2/runs/"+run.UUID+"/nodes/victim-pod/log", nil)
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
 		NodeKey: "victim-pod",
@@ -194,7 +194,7 @@ func TestReadRunLog_AuthorizedOverPlainHTTP(t *testing.T) {
 	defer clients.Close()
 	server := NewRunLogServer(manager)
 
-	req := httptest.NewRequest("GET", "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req := httptest.NewRequest("GET", "/apis/v2/runs/"+run.UUID+"/nodes/node-1/log", nil)
 	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 
 	assert.NoError(t, server.authorize(req, run.UUID))
@@ -248,8 +248,8 @@ func TestReadRunLog_ForwardsFollowQueryToPodLogs(t *testing.T) {
 			manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{})
 			server := NewRunLogServer(manager)
 			router := mux.NewRouter()
-			router.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/log", server.ReadRunLog).Methods(http.MethodGet)
-			req := httptest.NewRequest(http.MethodGet, "/apis/v2beta1/runs/"+run.UUID+"/nodes/node-1/log"+tc.query, nil)
+			router.HandleFunc("/apis/v2/runs/{run_id}/nodes/{node_id}/log", server.ReadRunLog).Methods(http.MethodGet)
+			req := httptest.NewRequest(http.MethodGet, "/apis/v2/runs/"+run.UUID+"/nodes/node-1/log"+tc.query, nil)
 			response := httptest.NewRecorder()
 			router.ServeHTTP(response, req)
 			require.Equal(t, http.StatusOK, response.Code, response.Body.String())

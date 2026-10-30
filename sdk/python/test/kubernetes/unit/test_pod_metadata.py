@@ -13,12 +13,10 @@
 # limitations under the License.
 
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 class TestPodMetadata:
-
     def test_add_one(self):
 
         @dsl.pipeline
@@ -117,12 +115,12 @@ class TestPodMetadata:
                                 'podMetadata': {
                                     'annotations': {
                                         'run_id': '123456',
-                                        'experiment_id': '234567'
+                                        'experiment_id': '234567',
                                     },
                                     'labels': {
                                         'kubeflow.com/kfp': 'pipeline-node',
-                                        'kubeflow.com/common': 'test'
-                                    }
+                                        'kubeflow.com/common': 'test',
+                                    },
                                 }
                             }
                         }
@@ -137,7 +135,8 @@ class TestPodMetadata:
         def my_pipeline():
             task = comp()
             kubernetes.use_secret_as_volume(
-                task, secret_name='my-secret', mount_path='/mnt/my_vol')
+                task, secret_name='my-secret', mount_path='/mnt/my_vol'
+            )
             kubernetes.add_pod_annotation(
                 task,
                 annotation_key='run_id',
@@ -151,20 +150,20 @@ class TestPodMetadata:
                         'executors': {
                             'exec-comp': {
                                 'podMetadata': {
-                                    'annotations': {
-                                        'run_id': '123456'
-                                    }
+                                    'annotations': {'run_id': '123456'}
                                 },
-                                'secretAsVolume': [{
-                                    'secretName': 'my-secret',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'my-secret'
-                                        }
-                                    },
-                                    'mountPath': '/mnt/my_vol',
-                                    'optional': False
-                                }]
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'my-secret',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'my-secret'
+                                            }
+                                        },
+                                        'mountPath': '/mnt/my_vol',
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }

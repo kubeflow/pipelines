@@ -64,8 +64,7 @@ var LengthSpecs = []ColLenSpec{
 	{Model: &model.RunMetricV1{}, Field: "RunUUID", Max: 191},
 
 	{Model: &model.Task{}, Field: "UUID", Max: 191},
-	// Note: struct field is RunID, column is RunUUID.
-	{Model: &model.Task{}, Field: "RunID", Max: 191},
+	{Model: &model.Task{}, Field: "RunUUID", Max: 191},
 }
 
 var fieldMaxLenMap map[string]int

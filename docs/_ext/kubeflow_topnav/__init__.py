@@ -11,17 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Inject the Kubeflow Pipelines top navigation bar via a Sphinx extension."""
 
 from pathlib import Path
 
 
 def setup(app):
-    topnav_html = (Path(__file__).parent / "topnav.html").read_text(encoding="utf-8")
-    app.config.html_theme_options["announcement"] = topnav_html
+    topnav_html = (Path(__file__).parent / 'topnav.html').read_text(
+        encoding='utf-8'
+    )
+    app.config.html_theme_options['announcement'] = topnav_html
     return {
-        "version": "0.1",
-        "parallel_read_safe": True,
-        "parallel_write_safe": True,
+        'version': '0.1',
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
     }

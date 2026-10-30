@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
 import pytest
+from google.protobuf import json_format
+from kfp import dsl, kubernetes
 
 
 class TestMountPVC:
-
     def test_mount_one(self):
 
         @dsl.pipeline
@@ -37,15 +35,17 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': 'path'
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -83,7 +83,7 @@ class TestMountPVC:
                                                 'constant': 'pvc-name'
                                             }
                                         },
-                                        'mountPath': 'path1'
+                                        'mountPath': 'path1',
                                     },
                                     {
                                         'constant': 'other-pvc-name',
@@ -92,7 +92,7 @@ class TestMountPVC:
                                                 'constant': 'other-pvc-name'
                                             }
                                         },
-                                        'mountPath': 'path2'
+                                        'mountPath': 'path2',
                                     },
                                 ]
                             }
@@ -120,16 +120,18 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': '/data',
-                                    'subPath': 'models'
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': '/data',
+                                        'subPath': 'models',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -155,15 +157,17 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': '/data'
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': '/data',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -193,28 +197,34 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': 'path'
-                                }],
-                                'secretAsEnv': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'keyToEnv': [{
-                                        'secretKey': 'password',
-                                        'envVar': 'SECRET_VAR'
-                                    }],
-                                    'optional': False
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ],
+                                'secretAsEnv': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'keyToEnv': [
+                                            {
+                                                'secretKey': 'password',
+                                                'envVar': 'SECRET_VAR',
+                                            }
+                                        ],
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }
@@ -244,25 +254,29 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'constant': 'pvc-name',
-                                    'pvcNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'pvc-name'
-                                        }
-                                    },
-                                    'mountPath': 'path'
-                                }],
-                                'secretAsVolume': [{
-                                    'secretName': 'secret-name',
-                                    'secretNameParameter': {
-                                        'runtimeValue': {
-                                            'constant': 'secret-name'
-                                        }
-                                    },
-                                    'mountPath': 'secretpath',
-                                    'optional': False
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'constant': 'pvc-name',
+                                        'pvcNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'pvc-name'
+                                            }
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ],
+                                'secretAsVolume': [
+                                    {
+                                        'secretName': 'secret-name',
+                                        'secretNameParameter': {
+                                            'runtimeValue': {
+                                                'constant': 'secret-name'
+                                            }
+                                        },
+                                        'mountPath': 'secretpath',
+                                        'optional': False,
+                                    }
+                                ],
                             }
                         }
                     }
@@ -277,9 +291,9 @@ class TestMountPVC:
             return string
 
         with pytest.raises(
-                ValueError,
-                match=r"Argument for 'input_param' must be an instance of str, dict, or PipelineChannel. "
-                r"Got unknown input type: <class 'int'>.",
+            ValueError,
+            match=r"Argument for 'input_param' must be an instance of str, dict, or PipelineChannel. "
+            r"Got unknown input type: <class 'int'>.",
         ):
 
             @dsl.pipeline
@@ -308,14 +322,15 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'componentInputParameter': 'pvc_name_input',
-                                    'pvcNameParameter': {
-                                        'componentInputParameter':
-                                            'pvc_name_input'
-                                    },
-                                    'mountPath': 'path'
-                                }]
+                                'pvcMount': [
+                                    {
+                                        'componentInputParameter': 'pvc_name_input',
+                                        'pvcNameParameter': {
+                                            'componentInputParameter': 'pvc_name_input'
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -352,41 +367,34 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'componentInputParameter':
-                                        'pvc_name_input_1',
-                                    'pvcNameParameter': {
-                                        'componentInputParameter':
-                                            'pvc_name_input_1'
+                                'pvcMount': [
+                                    {
+                                        'componentInputParameter': 'pvc_name_input_1',
+                                        'pvcNameParameter': {
+                                            'componentInputParameter': 'pvc_name_input_1'
+                                        },
+                                        'mountPath': 'path',
                                     },
-                                    'mountPath':
-                                        'path'
-                                },]
+                                ]
                             },
                             'exec-comp-2': {
                                 'pvcMount': [
                                     {
-                                        'componentInputParameter':
-                                            'pvc_name_input_1',
+                                        'componentInputParameter': 'pvc_name_input_1',
                                         'pvcNameParameter': {
-                                            'componentInputParameter':
-                                                'pvc_name_input_1'
+                                            'componentInputParameter': 'pvc_name_input_1'
                                         },
-                                        'mountPath':
-                                            'path'
+                                        'mountPath': 'path',
                                     },
                                     {
-                                        'componentInputParameter':
-                                            'pvc_name_input_2',
+                                        'componentInputParameter': 'pvc_name_input_2',
                                         'pvcNameParameter': {
-                                            'componentInputParameter':
-                                                'pvc_name_input_2'
+                                            'componentInputParameter': 'pvc_name_input_2'
                                         },
-                                        'mountPath':
-                                            'path'
+                                        'mountPath': 'path',
                                     },
                                 ]
-                            }
+                            },
                         }
                     }
                 }
@@ -412,19 +420,21 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'taskOutputParameter': {
-                                        'outputParameterKey': 'Output',
-                                        'producerTask': 'comp-with-output'
-                                    },
-                                    'pvcNameParameter': {
+                                'pvcMount': [
+                                    {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
-                                    },
-                                    'mountPath': 'path'
-                                }]
+                                            'producerTask': 'comp-with-output',
+                                        },
+                                        'pvcNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'mountPath': 'path',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -464,54 +474,52 @@ class TestMountPVC:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'pvcMount': [{
-                                    'taskOutputParameter': {
-                                        'outputParameterKey': 'Output',
-                                        'producerTask': 'comp-with-output'
-                                    },
-                                    'pvcNameParameter': {
+                                'pvcMount': [
+                                    {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
-                                        }
+                                            'producerTask': 'comp-with-output',
+                                        },
+                                        'pvcNameParameter': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
+                                        },
+                                        'mountPath': 'path1',
                                     },
-                                    'mountPath': 'path1'
-                                },]
+                                ]
                             },
                             'exec-comp-2': {
                                 'pvcMount': [
                                     {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-2'
+                                            'producerTask': 'comp-with-output-2',
                                         },
                                         'pvcNameParameter': {
                                             'taskOutputParameter': {
-                                                'outputParameterKey':
-                                                    'Output',
-                                                'producerTask':
-                                                    'comp-with-output-2'
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-2',
                                             }
                                         },
-                                        'mountPath': 'path2'
+                                        'mountPath': 'path2',
                                     },
                                     {
                                         'taskOutputParameter': {
                                             'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output-3'
+                                            'producerTask': 'comp-with-output-3',
                                         },
                                         'pvcNameParameter': {
                                             'taskOutputParameter': {
-                                                'outputParameterKey':
-                                                    'Output',
-                                                'producerTask':
-                                                    'comp-with-output-3'
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output-3',
                                             }
                                         },
-                                        'mountPath': 'path3'
+                                        'mountPath': 'path3',
                                     },
                                 ]
-                            }
+                            },
                         }
                     }
                 }
@@ -520,7 +528,6 @@ class TestMountPVC:
 
 
 class TestGenericEphemeralVolume:
-
     def test_mount_one(self):
 
         @dsl.pipeline
@@ -540,13 +547,15 @@ class TestGenericEphemeralVolume:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'genericEphemeralVolume': [{
-                                    'volumeName': 'pvc-name',
-                                    'mountPath': 'path',
-                                    'accessModes': ['ReadWriteOnce'],
-                                    'defaultStorageClass': True,
-                                    'size': '5Gi',
-                                }]
+                                'genericEphemeralVolume': [
+                                    {
+                                        'volumeName': 'pvc-name',
+                                        'mountPath': 'path',
+                                        'accessModes': ['ReadWriteOnce'],
+                                        'defaultStorageClass': True,
+                                        'size': '5Gi',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -578,7 +587,8 @@ class TestGenericEphemeralVolume:
                 },
                 annotations={
                     'annotation1': 'a1',
-                })
+                },
+            )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
@@ -601,9 +611,7 @@ class TestGenericEphemeralVolume:
                                         'size': '10Ti',
                                         'storageClassName': 'gp2',
                                         'metadata': {
-                                            'labels': {
-                                                'label1': 'l1'
-                                            },
+                                            'labels': {'label1': 'l1'},
                                             'annotations': {
                                                 'annotation1': 'a1'
                                             },

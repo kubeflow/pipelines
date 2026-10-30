@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -40,9 +40,9 @@ type statusTrackingAPI struct {
 
 func (api *statusTrackingAPI) UpdateStatuses(
 	_ context.Context,
-	_ *apiv2beta1.Run,
+	_ *apiv2.Run,
 	_ *structpb.Struct,
-	_ *apiv2beta1.PipelineTask,
+	_ *apiv2.PipelineTask,
 ) error {
 	api.updateStatusesCalls++
 	return nil
@@ -56,14 +56,14 @@ func TestTerminalDAGState(t *testing.T) {
 		execution      *Execution
 		iterationCount *int
 		component      *pipelinespec.ComponentSpec
-		expectedState  apiv2beta1.PipelineTask_TaskState
+		expectedState  apiv2.PipelineTask_TaskState
 		expected       bool
 	}{
 		{
 			name:          "false condition",
 			execution:     &Execution{Condition: util.BoolPointer(false)},
 			component:     dagComponentWithTasks("task"),
-			expectedState: apiv2beta1.PipelineTask_SKIPPED,
+			expectedState: apiv2.PipelineTask_SKIPPED,
 			expected:      true,
 		},
 		{
@@ -71,14 +71,14 @@ func TestTerminalDAGState(t *testing.T) {
 			execution:      &Execution{},
 			iterationCount: &zeroIterations,
 			component:      dagComponentWithTasks("task"),
-			expectedState:  apiv2beta1.PipelineTask_SKIPPED,
+			expectedState:  apiv2.PipelineTask_SKIPPED,
 			expected:       true,
 		},
 		{
 			name:          "empty DAG",
 			execution:     &Execution{},
 			component:     dagComponentWithTasks(),
-			expectedState: apiv2beta1.PipelineTask_SUCCEEDED,
+			expectedState: apiv2.PipelineTask_SUCCEEDED,
 			expected:      true,
 		},
 		{
@@ -86,7 +86,7 @@ func TestTerminalDAGState(t *testing.T) {
 			execution:      &Execution{},
 			iterationCount: &oneIteration,
 			component:      dagComponentWithTasks("task"),
-			expectedState:  apiv2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED,
+			expectedState:  apiv2.PipelineTask_RUNTIME_STATE_UNSPECIFIED,
 			expected:       false,
 		},
 	}
@@ -119,9 +119,9 @@ func TestDAGPropagatesEmptyTerminalTask(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, trackingAPI.updateStatusesCalls)
-	task, err := trackingAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := trackingAPI.GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, task.GetState())
+	assert.Equal(t, apiv2.PipelineTask_SUCCEEDED, task.GetState())
 	require.NotNil(t, task.GetEndTime())
 }
 
@@ -198,7 +198,7 @@ func TestDAGRetryReusesExistingTask(t *testing.T) {
 	assert.Equal(t, firstExecution.TaskID, secondExecution.TaskID)
 	assert.Equal(t, firstTask.GetTaskId(), secondTask.GetTaskId())
 
-	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: tc.Run.GetRunId()})
+	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{RunId: tc.Run.GetRunId()})
 	require.NoError(t, err)
 	var matchingTasks int
 	for _, task := range run.GetTasks() {
@@ -220,8 +220,8 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 	require.Equal(t, "nested", nestedTask.GetName())
 	require.Equal(t, "Nested DAG Display", nestedTask.GetDisplayName())
 
-	_, createPVCTask := testContext.RunContainerDriver("createpvc", nestedTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
-	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, createPVCTask.GetState())
+	_, createPVCTask := testContext.RunContainerDriver("createpvc", nestedTask, nil, true, apiv2.PipelineTask_SUCCEEDED)
+	require.Equal(t, apiv2.PipelineTask_SUCCEEDED, createPVCTask.GetState())
 	require.Len(t, createPVCTask.GetOutputs().GetParameters(), 1)
 	require.Equal(t, "createpvc", createPVCTask.GetName())
 	require.Equal(t, "Create PVC Display", createPVCTask.GetDisplayName())
@@ -234,10 +234,10 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 
 	refreshedNestedTask, err := testContext.ClientManager.KFPAPIClient().GetTask(
 		context.Background(),
-		&apiv2beta1.GetTaskRequest{TaskId: nestedTask.GetTaskId()},
+		&apiv2.GetTaskRequest{TaskId: nestedTask.GetTaskId()},
 	)
 	require.NoError(t, err)
-	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, refreshedNestedTask.GetState(),
+	require.Equal(t, apiv2.PipelineTask_SUCCEEDED, refreshedNestedTask.GetState(),
 		"parent DAG must become terminal after successful create-PVC")
 	require.Len(t, refreshedNestedTask.GetOutputs().GetParameters(), 1)
 	assert.Equal(t, "pvc_name", refreshedNestedTask.GetOutputs().GetParameters()[0].GetParameterKey())
@@ -252,10 +252,10 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 		refreshedNestedTask.GetOutputs().GetParameters()[0].GetProducer().GetTaskName(),
 	)
 
-	_, _ = testContext.RunContainerDriver("createpvc", nestedTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
+	_, _ = testContext.RunContainerDriver("createpvc", nestedTask, nil, true, apiv2.PipelineTask_SUCCEEDED)
 	refreshedNestedTask, err = testContext.ClientManager.KFPAPIClient().GetTask(
 		context.Background(),
-		&apiv2beta1.GetTaskRequest{TaskId: nestedTask.GetTaskId()},
+		&apiv2.GetTaskRequest{TaskId: nestedTask.GetTaskId()},
 	)
 	require.NoError(t, err)
 	require.Len(t, refreshedNestedTask.GetOutputs().GetParameters(), 1)
@@ -270,7 +270,7 @@ func TestContainerRetryReusesExistingTask(t *testing.T) {
 	assert.Equal(t, firstExecution.TaskID, secondExecution.TaskID)
 	assert.Equal(t, firstTask.GetTaskId(), secondTask.GetTaskId())
 
-	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: tc.Run.GetRunId()})
+	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{RunId: tc.Run.GetRunId()})
 	require.NoError(t, err)
 	var matchingTasks int
 	for _, task := range run.GetTasks() {
@@ -292,7 +292,7 @@ func TestLoopArtifactPassing(t *testing.T) {
 	// Run Dag on the First Task
 	secondaryPipelineExecution, secondaryPipelineTask := tc.RunDagDriver("secondary-pipeline", parentTask)
 	require.Nil(t, secondaryPipelineExecution.ExecutorInput.Outputs)
-	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, secondaryPipelineTask.State)
+	require.Equal(t, apiv2.PipelineTask_RUNNING, secondaryPipelineTask.State)
 
 	// Refresh Parent Task - The parent task should be the secondary pipeline task for "create-dataset"
 	parentTask = secondaryPipelineTask
@@ -345,13 +345,13 @@ func TestLoopArtifactPassing(t *testing.T) {
 		processDataSetArtifactID := processLauncherExec.Task.Outputs.Artifacts[0].Artifacts[0].ArtifactId
 
 		// Verify that the launcher automatically propagated the output artifact to the for-loop-2 task
-		loopTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: loopExecution.TaskID})
+		loopTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: loopExecution.TaskID})
 		require.NoError(t, err)
 		require.NotNil(t, loopTask.Outputs)
 		require.Equal(t, len(loopTask.Outputs.Artifacts), index+1, "Loop task should have %d artifacts after iteration %d", index+1, index)
 
 		// Verify that the launcher also propagated the output artifact up to the secondary-pipeline task
-		secondaryPipelineTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: secondaryPipelineExecution.TaskID})
+		secondaryPipelineTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: secondaryPipelineExecution.TaskID})
 		require.NoError(t, err)
 		require.NotNil(t, secondaryPipelineTask.Outputs)
 		require.Equal(t, index+1, len(secondaryPipelineTask.Outputs.Artifacts), "Secondary pipeline task should have %d artifacts after iteration %d", index+1, index)
@@ -368,8 +368,8 @@ func TestLoopArtifactPassing(t *testing.T) {
 		_ = tc.RunLauncher(analyzeExecution, map[string][]byte{"/tmp/kfp_outputs/output_metadata.json": []byte("{}")}, true)
 	}
 
-	tasks, err := tc.ClientManager.KFPAPIClient().ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{
-		ParentFilter: &apiv2beta1.ListTasksRequest_ParentId{ParentId: loopExecution.TaskID},
+	tasks, err := tc.ClientManager.KFPAPIClient().ListTasks(context.Background(), &apiv2.ListTasksRequest{
+		ParentFilter: &apiv2.ListTasksRequest_ParentId{ParentId: loopExecution.TaskID},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, tasks)
@@ -377,7 +377,7 @@ func TestLoopArtifactPassing(t *testing.T) {
 	require.Equal(t, 6, len(tasks.Tasks))
 
 	// Expect the 3 artifacts from process-task to have been collected by the for-loop-2 task
-	forLoopTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: loopExecution.TaskID})
+	forLoopTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: loopExecution.TaskID})
 	require.NoError(t, err)
 	require.Equal(t, 3, len(forLoopTask.Outputs.Artifacts))
 
@@ -404,12 +404,12 @@ func TestLoopArtifactPassing(t *testing.T) {
 
 	artifactListLauncher := tc.RunLauncher(analyzeArtifactListExecution, map[string][]byte{"/tmp/kfp_outputs/output_metadata.json": []byte("{}")}, true)
 	require.NotNil(t, artifactListLauncher.Task)
-	_, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: analyzeArtifactListTask.TaskId})
+	_, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: analyzeArtifactListTask.TaskId})
 	require.NoError(t, err)
 	// Primary Pipeline tests
 
 	// Expect the 3 artifacts from process-task to have been collected by the secondary-pipeline task
-	secondaryPipelineTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: secondaryPipelineExecution.TaskID})
+	secondaryPipelineTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: secondaryPipelineExecution.TaskID})
 	require.NoError(t, err)
 	require.Equal(t, 3, len(secondaryPipelineTask.Outputs.Artifacts))
 
@@ -505,7 +505,7 @@ func TestParameterInputIterator(t *testing.T) {
 	parentTask = secondaryPipelineTask
 
 	// Check what parameters the for-loop-1 task has after all iterations
-	refreshedLoopTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: loopTask.TaskId})
+	refreshedLoopTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: loopTask.TaskId})
 	require.NoError(t, err)
 	require.NotNil(t, refreshedLoopTask.Outputs)
 	require.Equal(t, 3, len(refreshedLoopTask.Outputs.Parameters))
@@ -540,7 +540,7 @@ func TestParameterInputIterator(t *testing.T) {
 		readValuesOutputPath2:                   []byte("files read"),
 	}, true)
 
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: secondaryPipelineTask.GetTaskId()})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: secondaryPipelineTask.GetTaskId()})
 	require.NoError(t, err)
 	require.NotNil(t, task.Outputs)
 	require.Equal(t, 3, len(task.Outputs.Parameters))
@@ -552,7 +552,7 @@ func TestParameterInputIterator(t *testing.T) {
 	collectOutputsByIteration := map[int64]string{}
 	var propagatedParameterIterations []int64
 	for i, params := range task.Outputs.Parameters {
-		require.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, params.GetType())
+		require.Equal(t, apiv2.IOType_ITERATOR_OUTPUT, params.GetType())
 
 		// Verify producer is the immediate child task (for-loop-1)
 		require.NotNil(t, params.Producer, "Secondary pipeline parameter %d should have a producer", i)
@@ -620,7 +620,7 @@ func TestNestedDag(t *testing.T) {
 
 	// Confirm that the artifact passed to "verify" task came from task_c
 	// by checking that pipeline-b has the same artifact ID in its outputs (propagated from c)
-	pipelineBTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: pipelineBTask.GetTaskId()})
+	pipelineBTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: pipelineBTask.GetTaskId()})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineBTask.Outputs)
 	require.Equal(t, 1, len(pipelineBTask.Outputs.Artifacts))
@@ -634,7 +634,7 @@ func TestNestedDag(t *testing.T) {
 
 	// Confirm that the artifact passed to cTask came from the nestedNestedBtask
 	// I.e the b() task that ran in pipeline-c and not in pipeline-b
-	cTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: cTask.GetTaskId()})
+	cTask, err = tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: cTask.GetTaskId()})
 	require.NoError(t, err)
 	require.NotNil(t, cTask.Inputs)
 	require.Equal(t, 1, len(cTask.Inputs.Artifacts))
@@ -655,13 +655,13 @@ func TestDagDriver_PersistsIterationIndexForNestedDagTasks(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, execution)
 
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(t, err)
 	require.NotNil(t, task)
 	require.NotNil(t, task.GetTypeAttributes())
 	require.NotNil(t, task.GetTypeAttributes().IterationIndex)
 	assert.EqualValues(t, 1, *task.GetTypeAttributes().IterationIndex)
-	assert.Equal(t, apiv2beta1.PipelineTask_DAG, task.GetType())
+	assert.Equal(t, apiv2.PipelineTask_DAG, task.GetType())
 }
 
 func TestDagDriver_NestedLoopRetainsOuterIndexAndInnerIterations(t *testing.T) {
@@ -685,16 +685,16 @@ func TestDagDriver_NestedLoopRetainsOuterIndexAndInnerIterations(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, execution.IterationCount)
 	assert.Equal(t, 3, *execution.IterationCount)
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PipelineTask_LOOP, task.GetType())
+	assert.Equal(t, apiv2.PipelineTask_LOOP, task.GetType())
 	require.NotNil(t, task.GetTypeAttributes().IterationIndex)
 	assert.EqualValues(t, 1, *task.GetTypeAttributes().IterationIndex)
 	require.NotNil(t, task.GetTypeAttributes().IterationCount)
 	assert.EqualValues(t, 3, *task.GetTypeAttributes().IterationCount)
 	var values []float64
 	for _, parameter := range task.GetInputs().GetParameters() {
-		if parameter.GetType() == apiv2beta1.IOType_ITERATOR_INPUT {
+		if parameter.GetType() == apiv2.IOType_ITERATOR_INPUT {
 			assert.EqualValues(t, len(values), parameter.GetProducer().GetIteration())
 			values = append(values, parameter.GetValue().GetNumberValue())
 		}
@@ -839,14 +839,14 @@ func TestWithCaching(t *testing.T) {
 	processDatasetLauncher := tc.RunLauncher(processDatasetExecution, map[string][]byte{"/tmp/kfp_outputs/output_metadata.json": []byte("{}")}, true)
 	require.NotNil(t, processDatasetExecution.Cached)
 	require.False(t, *processDatasetExecution.Cached)
-	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, processDatasetLauncher.Task.GetState())
+	require.Equal(t, apiv2.PipelineTask_SUCCEEDED, processDatasetLauncher.Task.GetState())
 	require.NotEmpty(t, processDatasetExecution.PodSpecPatch)
 
 	// Second run of process-dataset - should be cached
 	processDatasetExecution2, processDatasetTask2 := tc.RunContainerDriver("process-dataset", parentTask, nil, true)
 	require.NotNil(t, processDatasetExecution2.Cached)
 	require.True(t, *processDatasetExecution2.Cached)
-	require.Equal(t, apiv2beta1.PipelineTask_CACHED, processDatasetTask2.GetState())
+	require.Equal(t, apiv2.PipelineTask_CACHED, processDatasetTask2.GetState())
 	require.NotNil(t, processDatasetTask2.GetEndTime())
 	require.Empty(t, processDatasetExecution2.PodSpecPatch)
 }
@@ -1062,14 +1062,14 @@ func TestK8SPlatform(t *testing.T) {
 	// parameter to be created by the driver call
 
 	// Create a mock Kubernetes client for PVC operations
-	createPVCExecution, createPvcTask := tc.RunContainerDriver("createpvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
+	createPVCExecution, createPvcTask := tc.RunContainerDriver("createpvc", parentTask, nil, true, apiv2.PipelineTask_SUCCEEDED)
 	require.NotNil(t, createPvcTask.Outputs)
 	// CreatePvc always has one output, which is the pvc name
 	require.Len(t, createPvcTask.Outputs.GetParameters(), 1)
 	require.Equal(t, createPvcTask.Outputs.GetParameters()[0].ParameterKey, "name")
 	pvcName := createPvcTask.Outputs.GetParameters()[0].GetValue().GetStringValue()
 
-	retriedCreateExecution, retriedCreateTask := tc.RunContainerDriver("createpvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
+	retriedCreateExecution, retriedCreateTask := tc.RunContainerDriver("createpvc", parentTask, nil, true, apiv2.PipelineTask_SUCCEEDED)
 	require.Equal(t, createPVCExecution.TaskID, retriedCreateExecution.TaskID)
 	require.Equal(t, pvcName, retriedCreateTask.Outputs.GetParameters()[0].GetValue().GetStringValue())
 	persistentVolumeClaims, err := tc.ClientManager.K8sClient().CoreV1().
@@ -1301,8 +1301,8 @@ func TestK8SPlatform(t *testing.T) {
 		require.Equal(t, expectedTolerations[i].Effect, toleration.Effect)
 	}
 
-	deletePVCExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
-	retriedDeleteExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
+	deletePVCExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true, apiv2.PipelineTask_SUCCEEDED)
+	retriedDeleteExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true, apiv2.PipelineTask_SUCCEEDED)
 	require.Equal(t, deletePVCExecution.TaskID, retriedDeleteExecution.TaskID)
 	persistentVolumeClaims, err = tc.ClientManager.K8sClient().CoreV1().
 		PersistentVolumeClaims(TestNamespace).
@@ -1333,13 +1333,13 @@ func TestContainerComponentInputsAndRuntimeConstants(t *testing.T) {
 
 	// Verify input parameters from driver
 	params := processInputsTask.Inputs.GetParameters()
-	require.Equal(t, apiv2beta1.IOType_COMPONENT_INPUT, tc.fetchParameter("name", params).GetType())
-	require.Equal(t, apiv2beta1.IOType_COMPONENT_INPUT, tc.fetchParameter("number", params).GetType())
-	require.Equal(t, apiv2beta1.IOType_COMPONENT_INPUT, tc.fetchParameter("active", params).GetType())
-	require.Equal(t, apiv2beta1.IOType_COMPONENT_INPUT, tc.fetchParameter("threshold", params).GetType())
-	require.Equal(t, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, tc.fetchParameter("a_runtime_string", params).GetType())
-	require.Equal(t, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, tc.fetchParameter("a_runtime_number", params).GetType())
-	require.Equal(t, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, tc.fetchParameter("a_runtime_bool", params).GetType())
+	require.Equal(t, apiv2.IOType_COMPONENT_INPUT, tc.fetchParameter("name", params).GetType())
+	require.Equal(t, apiv2.IOType_COMPONENT_INPUT, tc.fetchParameter("number", params).GetType())
+	require.Equal(t, apiv2.IOType_COMPONENT_INPUT, tc.fetchParameter("active", params).GetType())
+	require.Equal(t, apiv2.IOType_COMPONENT_INPUT, tc.fetchParameter("threshold", params).GetType())
+	require.Equal(t, apiv2.IOType_RUNTIME_VALUE_INPUT, tc.fetchParameter("a_runtime_string", params).GetType())
+	require.Equal(t, apiv2.IOType_RUNTIME_VALUE_INPUT, tc.fetchParameter("a_runtime_number", params).GetType())
+	require.Equal(t, apiv2.IOType_RUNTIME_VALUE_INPUT, tc.fetchParameter("a_runtime_bool", params).GetType())
 
 	require.Equal(t, processInputsExecution.TaskID, processInputsTask.TaskId)
 	require.Equal(t, processInputsExecution.ExecutorInput.Inputs.ParameterValues["name"].GetStringValue(), "some_name")
@@ -1383,7 +1383,7 @@ func TestNestedPipelineOptionalInputChildLevel(t *testing.T) {
 	nestedPipelineExecution, nestedPipelineTask := tc.RunDagDriver("nested-pipeline", parentTask)
 	require.NotNil(t, nestedPipelineExecution)
 	require.NotNil(t, nestedPipelineTask)
-	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, nestedPipelineTask.State)
+	require.Equal(t, apiv2.PipelineTask_RUNNING, nestedPipelineTask.State)
 
 	// The nested pipeline task should have ALL 6 inputs (3 from parent + 3 defaults)
 	require.NotNil(t, nestedPipelineTask.Inputs)

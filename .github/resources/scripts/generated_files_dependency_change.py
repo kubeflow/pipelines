@@ -17,9 +17,8 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import PurePosixPath
 import subprocess
-
+from pathlib import PurePosixPath
 
 TRACKED_MODULES = {
     'go.mod': (
@@ -27,9 +26,7 @@ TRACKED_MODULES = {
         'google.golang.org/grpc/cmd/protoc-gen-go-grpc',
         'google.golang.org/protobuf',
     ),
-    'backend/api/tools/go.mod': (
-        'github.com/go-swagger/go-swagger',
-    ),
+    'backend/api/tools/go.mod': ('github.com/go-swagger/go-swagger',),
 }
 
 
@@ -59,9 +56,9 @@ def requires_validation(
 
     for manifest, modules in TRACKED_MODULES.items():
         for module in modules:
-            if module_version(base_manifests[manifest], module) != module_version(
-                head_manifests[manifest], module
-            ):
+            if module_version(
+                base_manifests[manifest], module
+            ) != module_version(head_manifests[manifest], module):
                 return True
     return False
 
@@ -101,9 +98,11 @@ def main() -> None:
     head_manifests = {
         path: git_file_at_ref(args.head, path) for path in TRACKED_MODULES
     }
-    print(str(requires_validation(
-        changed_paths, base_manifests, head_manifests
-    )).lower())
+    print(
+        str(
+            requires_validation(changed_paths, base_manifests, head_manifests)
+        ).lower()
+    )
 
 
 if __name__ == '__main__':

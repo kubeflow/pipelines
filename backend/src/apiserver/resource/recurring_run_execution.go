@@ -24,12 +24,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const recurringRunPipelineVersionAnnotation = "pipelines.kubeflow.org/recurring-run-pipeline-version-id"
+
 // createRunExecution uses Kubernetes name uniqueness to arbitrate concurrent
 // recurring-run submissions before either request has persisted its run.
 // The boolean reports whether this request created the execution.
 func (r *ResourceManager) createRunExecution(ctx context.Context, run *model.Run, execution util.ExecutionSpec) (util.ExecutionSpec, bool, error) {
 	if run.RecurringRunId != "" {
 		execution.SetExecutionName("run-" + util.NewDeterministicUUID(run.UUID))
+		if run.PipelineVersionId != "" {
+			execution.SetAnnotations(recurringRunPipelineVersionAnnotation, run.PipelineVersionId)
+		}
 	}
 	client := r.getWorkflowClient(execution.ExecutionNamespace())
 	created, err := client.Create(ctx, execution, metav1.CreateOptions{})

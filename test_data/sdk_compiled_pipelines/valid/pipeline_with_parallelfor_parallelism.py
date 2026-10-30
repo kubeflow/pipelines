@@ -16,9 +16,7 @@ import os
 import tempfile
 from typing import Dict, List
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
+from kfp import compiler, components, dsl
 from kfp.dsl import component
 
 
@@ -34,8 +32,8 @@ def print_int(x: int):
 
 @component
 def list_dict_maker_0() -> List[Dict[str, int]]:
-    """Enforces strict type checking - returns a list of dictionaries 
-    where keys are strings and values are integers. For testing type 
+    """Enforces strict type checking - returns a list of dictionaries
+    where keys are strings and values are integers. For testing type
     handling during compilation."""
     return [{'a': 1, 'b': 2}, {'a': 2, 'b': 3}, {'a': 3, 'b': 4}]
 
@@ -76,7 +74,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
     )
 
     loaded_dict_maker = components.load_component_from_file(
-        pipeline_package_path)
+        pipeline_package_path
+    )
 
 
 @dsl.pipeline(name='pipeline-with-parallelfor-parallelism')
@@ -95,15 +94,13 @@ def my_pipeline(loop_parameter: List[str]):
         print_text(msg=item.A_a)
         print_text(msg=item.B_b)
 
-        nested_loop_args = [{
-            'A_a': '10',
-            'B_b': '20'
-        }, {
-            'A_a': '100',
-            'B_b': '200'
-        }]
+        nested_loop_args = [
+            {'A_a': '10', 'B_b': '20'},
+            {'A_a': '100', 'B_b': '200'},
+        ]
         with dsl.ParallelFor(
-                items=nested_loop_args, parallelism=1) as nested_item:
+            items=nested_loop_args, parallelism=1
+        ) as nested_item:
             print_text(msg=nested_item.A_a)
             print_text(msg=nested_item.B_b)
 
@@ -137,5 +134,5 @@ def my_pipeline(loop_parameter: List[str]):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

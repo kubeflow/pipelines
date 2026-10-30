@@ -13,29 +13,29 @@
 # limitations under the License.
 """Tests for diagnose_me.gcp."""
 
-from typing import Text
 import unittest
+from typing import Text
 from unittest import mock
 
-from kfp.cli.diagnose_me import gcp
-from kfp.cli.diagnose_me import utility
+from kfp.cli.diagnose_me import gcp, utility
 
 
 class GoogleCloudTest(unittest.TestCase):
-
     @mock.patch.object(gcp, 'execute_gcloud_command', autospec=True)
     def test_project_configuration_gcloud(self, mock_execute_gcloud_command):
         """Tests gcloud commands."""
         gcp.get_gcp_configuration(gcp.Commands.GET_APIS)
         mock_execute_gcloud_command.assert_called_once_with(
-            ['services', 'list'], project_id=None, human_readable=False)
+            ['services', 'list'], project_id=None, human_readable=False
+        )
 
     @mock.patch.object(gcp, 'execute_gsutil_command', autospec=True)
     def test_project_configuration_gsutil(self, mock_execute_gsutil_command):
         """Test Gsutil commands."""
         gcp.get_gcp_configuration(gcp.Commands.GET_STORAGE_BUCKETS)
-        mock_execute_gsutil_command.assert_called_once_with(['ls'],
-                                                            project_id=None)
+        mock_execute_gsutil_command.assert_called_once_with(
+            ['ls'], project_id=None
+        )
 
     def test_Commands(self):
         """Verify commands are formaated properly."""
@@ -48,38 +48,53 @@ class GoogleCloudTest(unittest.TestCase):
     def test_execute_gsutil_command(self, mock_execute_command):
         """Test execute_gsutil_command."""
         gcp.execute_gsutil_command(
-            [gcp._command_string[gcp.Commands.GET_STORAGE_BUCKETS]])
+            [gcp._command_string[gcp.Commands.GET_STORAGE_BUCKETS]]
+        )
         mock_execute_command.assert_called_once_with(['gsutil', 'ls'])
 
         gcp.execute_gsutil_command(
             [gcp._command_string[gcp.Commands.GET_STORAGE_BUCKETS]],
-            project_id='test_project')
+            project_id='test_project',
+        )
         mock_execute_command.assert_called_with(
-            ['gsutil', 'ls', '-p', 'test_project'])
+            ['gsutil', 'ls', '-p', 'test_project']
+        )
 
     @mock.patch.object(utility, 'execute_command', autospec=True)
     def test_execute_gcloud_command(self, mock_execute_command):
         """Test execute_gcloud_command."""
         gcp.execute_gcloud_command(
-            gcp._command_string[gcp.Commands.GET_APIS].split(' '))
+            gcp._command_string[gcp.Commands.GET_APIS].split(' ')
+        )
         mock_execute_command.assert_called_once_with(
-            ['gcloud', 'services', 'list', '--format', 'json'])
+            ['gcloud', 'services', 'list', '--format', 'json']
+        )
 
         gcp.execute_gcloud_command(
             gcp._command_string[gcp.Commands.GET_APIS].split(' '),
-            project_id='test_project')
+            project_id='test_project',
+        )
         # verify project id is added correctly
-        mock_execute_command.assert_called_with([
-            'gcloud', 'services', 'list', '--format', 'json', '--project',
-            'test_project'
-        ])
+        mock_execute_command.assert_called_with(
+            [
+                'gcloud',
+                'services',
+                'list',
+                '--format',
+                'json',
+                '--project',
+                'test_project',
+            ]
+        )
         # verify human_readable removes json format flag
         gcp.execute_gcloud_command(
             gcp._command_string[gcp.Commands.GET_APIS].split(' '),
             project_id='test_project',
-            human_readable=True)
+            human_readable=True,
+        )
         mock_execute_command.assert_called_with(
-            ['gcloud', 'services', 'list', '--project', 'test_project'])
+            ['gcloud', 'services', 'list', '--project', 'test_project']
+        )
 
 
 if __name__ == '__main__':

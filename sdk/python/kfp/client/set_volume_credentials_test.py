@@ -16,19 +16,22 @@ import os
 import tempfile
 import unittest
 
-from kfp.client import set_volume_credentials
 from kubernetes.client import configuration
+
+from kfp.client import set_volume_credentials
 
 
 class TestServiceAccountTokenVolumeCredentials(unittest.TestCase):
-
     def test_get_token(self):
         with tempfile.TemporaryDirectory() as tempdir:
             token_path = os.path.join(tempdir, 'token.txt')
             with open(token_path, 'w') as f:
                 f.write('my_token')
-            service_account_tvc = set_volume_credentials.ServiceAccountTokenVolumeCredentials(
-                token_path)
+            service_account_tvc = (
+                set_volume_credentials.ServiceAccountTokenVolumeCredentials(
+                    token_path
+                )
+            )
 
             self.assertEqual(service_account_tvc._get_token(), 'my_token')
 
@@ -37,8 +40,11 @@ class TestServiceAccountTokenVolumeCredentials(unittest.TestCase):
             token_path = os.path.join(tempdir, 'token.txt')
             with open(token_path, 'w') as f:
                 f.write('my_token')
-            service_account_tvc = set_volume_credentials.ServiceAccountTokenVolumeCredentials(
-                token_path)
+            service_account_tvc = (
+                set_volume_credentials.ServiceAccountTokenVolumeCredentials(
+                    token_path
+                )
+            )
             config = configuration.Configuration()
 
             with self.assertRaisesRegex(KeyError, r'authorization'):

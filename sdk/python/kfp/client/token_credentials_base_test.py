@@ -15,29 +15,29 @@ import os
 import tempfile
 import unittest
 
-from kfp.client import token_credentials_base
 from kubernetes.client import configuration
+
+from kfp.client import token_credentials_base
 
 
 class TestTokenCredentialsBase(unittest.TestCase):
-
     def test_cannot_instantiate_abc(self):
 
         class MyTokenGetter(token_credentials_base.TokenCredentialsBase):
-
             def something(self) -> None:
                 pass
 
-        with self.assertRaisesRegex(TypeError,
-                                    r"Can't instantiate abstract class"):
+        with self.assertRaisesRegex(
+            TypeError, r"Can't instantiate abstract class"
+        ):
             MyTokenGetter()
 
     def test_can_instantiate_with_refresh_api_key_hook(self):
 
         class MyTokenGetter(token_credentials_base.TokenCredentialsBase):
-
             def refresh_api_key_hook(
-                    self, config: configuration.Configuration) -> None:
+                self, config: configuration.Configuration
+            ) -> None:
                 pass
 
         # does not raise Exception
@@ -45,7 +45,6 @@ class TestTokenCredentialsBase(unittest.TestCase):
 
 
 class TestReadTokenFromFile(unittest.TestCase):
-
     def test_none_path(self):
         with self.assertRaisesRegex(TypeError, r'^expected .* not NoneType'):
             token_credentials_base.read_token_from_file()
@@ -58,7 +57,8 @@ class TestReadTokenFromFile(unittest.TestCase):
 
             self.assertEqual(
                 token_credentials_base.read_token_from_file(token_path),
-                'my_token')
+                'my_token',
+            )
 
     def test_str_path_extra_spaces_in_token(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -68,4 +68,5 @@ class TestReadTokenFromFile(unittest.TestCase):
 
             self.assertEqual(
                 token_credentials_base.read_token_from_file(token_path),
-                'my_token')
+                'my_token',
+            )

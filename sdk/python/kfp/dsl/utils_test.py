@@ -16,11 +16,11 @@
 import unittest
 
 from absl.testing import parameterized
+
 from kfp.dsl import utils
 
 
 class UtilsTest(parameterized.TestCase):
-
     @parameterized.parameters(
         {
             'original': 'name',
@@ -39,52 +39,57 @@ class UtilsTest(parameterized.TestCase):
         self.assertEqual(utils.maybe_rename_for_k8s(original), expected)
 
     def test_sanitize_component_name(self):
-        self.assertEqual('comp-my-component',
-                         utils.sanitize_component_name('My component'))
+        self.assertEqual(
+            'comp-my-component', utils.sanitize_component_name('My component')
+        )
 
     def test_sanitize_executor_label(self):
-        self.assertEqual('exec-my-component',
-                         utils.sanitize_executor_label('My component'))
+        self.assertEqual(
+            'exec-my-component', utils.sanitize_executor_label('My component')
+        )
 
     def test_sanitize_task_name(self):
-        self.assertEqual('my-component-1',
-                         utils.sanitize_task_name('My component 1'))
+        self.assertEqual(
+            'my-component-1', utils.sanitize_task_name('My component 1')
+        )
 
     @parameterized.parameters(
         {
             'name': 'some-name',
             'collection': [],
             'delimiter': '-',
-            'expected': 'some-name'
+            'expected': 'some-name',
         },
         {
             'name': 'some-name',
             'collection': ['some-name'],
             'delimiter': '+',
-            'expected': 'some-name+2'
+            'expected': 'some-name+2',
         },
         {
             'name': 'some-name',
             'collection': ['some-name', 'some-name-2'],
             'delimiter': '-',
-            'expected': 'some-name-3'
+            'expected': 'some-name-3',
         },
         {
             'name': 'some-name-2',
             'collection': ['some-name', 'some-name-2'],
             'delimiter': '-',
-            'expected': 'some-name-2-2'
+            'expected': 'some-name-2-2',
         },
     )
-    def test_make_name_unique_by_adding_index(self, name, collection, delimiter,
-                                              expected):
+    def test_make_name_unique_by_adding_index(
+        self, name, collection, delimiter, expected
+    ):
         self.assertEqual(
             expected,
             utils.make_name_unique_by_adding_index(
                 name=name,
                 collection=collection,
                 delimiter=delimiter,
-            ))
+            ),
+        )
 
     @parameterized.parameters(
         {
@@ -122,7 +127,6 @@ class UtilsTest(parameterized.TestCase):
 
 
 class NormalizeResourceQuantityTest(parameterized.TestCase):
-
     # Every value here was checked against
     # k8s.io/apimachinery/pkg/api/resource.ParseQuantity, which is what the KFP
     # driver runs before it builds the pod spec.
@@ -162,14 +166,8 @@ class NormalizeResourceQuantityTest(parameterized.TestCase):
         self.assertEqual(utils.normalize_resource_quantity(value), value)
 
     @parameterized.parameters(
-        {
-            'value': '6K',
-            'expected': '6k'
-        },
-        {
-            'value': '1.5K',
-            'expected': '1.5k'
-        },
+        {'value': '6K', 'expected': '6k'},
+        {'value': '1.5K', 'expected': '1.5k'},
     )
     def test_rewrites_legacy_kilo_suffix(self, value, expected):
         self.assertEqual(utils.normalize_resource_quantity(value), expected)

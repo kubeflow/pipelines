@@ -17,20 +17,19 @@
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import re
 import signal
 import subprocess
 import sys
 import threading
 import time
+from collections import defaultdict
+from datetime import datetime, timezone
+from pathlib import Path
 
 import service_path_probe
-
 
 COUNTER_METRICS = {
     'cgroup.cpu.nr_periods',
@@ -104,7 +103,7 @@ KINDNET_LOG_SIGNALS = {
     'NFQUEUE verdict-send failure': 'failed to set verdict with label',
     'NFQUEUE receive failure': 'Could not receive message',
 }
-NODE_COMMAND = r'''
+NODE_COMMAND = r"""
 echo __NETNS__
 readlink /proc/self/ns/net 2>/dev/null || true
 echo __CONNTRACK__
@@ -119,9 +118,9 @@ echo __NETSTAT__
 cat /proc/net/netstat 2>/dev/null || true
 echo __SNMP__
 cat /proc/net/snmp 2>/dev/null || true
-'''
+"""
 
-KINDNET_COMMAND = r'''
+KINDNET_COMMAND = r"""
 echo __NFQUEUE__
 nfqueue_path="${NETWORK_WINDOW_NFQUEUE_PATH:-/proc/net/netfilter/nfnetlink_queue}"
 if nfqueue_contents=$(cat "$nfqueue_path" 2>/dev/null); then
@@ -234,10 +233,12 @@ if command -v nft >/dev/null 2>&1 && command -v timeout >/dev/null 2>&1; then
 else
   echo status=unavailable
 fi
-'''
+"""
 
 
-def run_command(arguments: list[str], timeout_seconds: float = 3.0) -> str | None:
+def run_command(
+    arguments: list[str], timeout_seconds: float = 3.0
+) -> str | None:
     try:
         result = subprocess.run(
             arguments,
@@ -253,13 +254,16 @@ def run_command(arguments: list[str], timeout_seconds: float = 3.0) -> str | Non
 
 
 def discover_nodes() -> list[str]:
-    output = run_command([
-        'kubectl',
-        'get',
-        'nodes',
-        '-o',
-        r'jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}',
-    ], timeout_seconds=5.0)
+    output = run_command(
+        [
+            'kubectl',
+            'get',
+            'nodes',
+            '-o',
+            r'jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}',
+        ],
+        timeout_seconds=5.0,
+    )
     return sorted(set(output.split())) if output else []
 
 
@@ -277,7 +281,11 @@ def parse_softnet(text: str) -> dict[str, int]:
             rows += 1
         except ValueError:
             continue
-    return {f'softnet.{key}': value for key, value in totals.items()} if rows else {}
+    return (
+        {f'softnet.{key}': value for key, value in totals.items()}
+        if rows
+        else {}
+    )
 
 
 def parse_conntrack(text: str) -> dict[str, int]:
@@ -304,9 +312,7 @@ def parse_pressure(text: str) -> dict[str, int]:
     return metrics
 
 
-def parse_cpu_stat(
-    text: str, prefix: str = 'cgroup.cpu'
-) -> dict[str, int]:
+def parse_cpu_stat(text: str, prefix: str = 'cgroup.cpu') -> dict[str, int]:
     metrics = {}
     for line in text.splitlines():
         fields = line.split()
@@ -353,7 +359,9 @@ def parse_kindnet_identity(text: str) -> tuple[str, str | None]:
     if not required.issubset(fields):
         return 'unavailable', 'kindnet_identity_unavailable'
     cgroup = fields.get('cgroup', 'unavailable')
-    identity = '|'.join([fields['container_id'], fields['pid'], fields['start_time'], cgroup])
+    identity = '|'.join(
+        [fields['container_id'], fields['pid'], fields['start_time'], cgroup]
+    )
     return identity, (
         'kindnet_cgroup_unavailable' if cgroup == 'unavailable' else None
     )
@@ -389,18 +397,24 @@ def parse_nfqueue(
     saw_well_formed_row = False
     for line in text.splitlines():
         fields = line.split()
-        if len(fields) < 9 or not all(field.isdecimal() for field in fields[:9]):
+        if len(fields) < 9 or not all(
+            field.isdecimal() for field in fields[:9]
+        ):
             continue
         saw_well_formed_row = True
         if int(fields[0]) != queue_number:
             continue
         identity = f'queue={fields[0]}|peer={fields[1]}'
-        return identity, {
-            'nfqueue.queue_total': int(fields[2]),
-            'nfqueue.queue_dropped': int(fields[5]),
-            'nfqueue.user_dropped': int(fields[6]),
-            'nfqueue.id_sequence': int(fields[7]),
-        }, None
+        return (
+            identity,
+            {
+                'nfqueue.queue_total': int(fields[2]),
+                'nfqueue.queue_dropped': int(fields[5]),
+                'nfqueue.user_dropped': int(fields[6]),
+                'nfqueue.id_sequence': int(fields[7]),
+            },
+            None,
+        )
     if saw_well_formed_row:
         return 'unavailable', {}, f'nfqueue_{queue_number}_not_active'
     return 'unavailable', {}, 'nfqueue_malformed'
@@ -423,19 +437,31 @@ def parse_nft_counters(text: str) -> tuple[str, dict[str, int], str | None]:
         if not isinstance(item, dict):
             continue
         table = item.get('table')
-        if isinstance(table, dict) and table.get('name') == 'kindnet-network-policies':
+        if (
+            isinstance(table, dict)
+            and table.get('name') == 'kindnet-network-policies'
+        ):
             table_handle = table.get('handle')
         rule = item.get('rule')
-        if not isinstance(rule, dict) or rule.get('table') != 'kindnet-network-policies':
+        if (
+            not isinstance(rule, dict)
+            or rule.get('table') != 'kindnet-network-policies'
+        ):
             continue
         rule_has_counter = False
         for expression in rule.get('expr', []):
-            counter = expression.get('counter') if isinstance(expression, dict) else None
+            counter = (
+                expression.get('counter')
+                if isinstance(expression, dict)
+                else None
+            )
             if not isinstance(counter, dict):
                 continue
             counter_packets = counter.get('packets')
             counter_bytes = counter.get('bytes')
-            if not isinstance(counter_packets, int) or not isinstance(counter_bytes, int):
+            if not isinstance(counter_packets, int) or not isinstance(
+                counter_bytes, int
+            ):
                 continue
             packets += counter_packets
             bytes_count += counter_bytes
@@ -459,9 +485,11 @@ def parse_nft_counters(text: str) -> tuple[str, dict[str, int], str | None]:
 
 def current_cpu_stat_path(proc_root: Path, cgroup_root: Path) -> Path | None:
     try:
-        cgroup_lines = (proc_root / 'self' / 'cgroup').read_text(
-            encoding='utf-8'
-        ).splitlines()
+        cgroup_lines = (
+            (proc_root / 'self' / 'cgroup')
+            .read_text(encoding='utf-8')
+            .splitlines()
+        )
     except OSError:
         cgroup_lines = []
     candidates = []
@@ -474,10 +502,12 @@ def current_cpu_stat_path(proc_root: Path, cgroup_root: Path) -> Path | None:
         if hierarchy == '0':
             candidates.append(cgroup_root / relative_path / 'cpu.stat')
         elif 'cpu' in controllers.split(','):
-            candidates.extend([
-                cgroup_root / 'cpu,cpuacct' / relative_path / 'cpu.stat',
-                cgroup_root / 'cpu' / relative_path / 'cpu.stat',
-            ])
+            candidates.extend(
+                [
+                    cgroup_root / 'cpu,cpuacct' / relative_path / 'cpu.stat',
+                    cgroup_root / 'cpu' / relative_path / 'cpu.stat',
+                ]
+            )
     candidates.append(cgroup_root / 'cpu.stat')
     return next((path for path in candidates if path.is_file()), None)
 
@@ -505,18 +535,25 @@ def parse_node_output(text: str) -> tuple[str, dict[str, int]]:
     proc_values.update(
         service_path_probe.parse_proc_table(sections.get('netstat', ''))
     )
-    proc_values.update(service_path_probe.parse_proc_table(sections.get('snmp', '')))
-    proc_values.update(service_path_probe.parse_sockstat(sections.get('sockstat', '')))
-    metrics.update({
-        key: value
-        for key, value in proc_values.items()
-        if key in COUNTER_METRICS or key in GAUGE_METRICS
-    })
+    proc_values.update(
+        service_path_probe.parse_proc_table(sections.get('snmp', ''))
+    )
+    proc_values.update(
+        service_path_probe.parse_sockstat(sections.get('sockstat', ''))
+    )
+    metrics.update(
+        {
+            key: value
+            for key, value in proc_values.items()
+            if key in COUNTER_METRICS or key in GAUGE_METRICS
+        }
+    )
     return network_namespace, metrics
 
 
 def parse_listen_queues(text: str, port: int) -> dict[str, int]:
-    """Parse aggregate LISTEN socket queues for one port from /proc/net/tcp*."""
+    """Parse aggregate LISTEN socket queues for one port from
+    /proc/net/tcp*."""
     listeners = receive_queue = transmit_queue = 0
     valid_table = False
     for line in text.splitlines():
@@ -556,13 +593,19 @@ def parse_target_output(text: str, port: int) -> tuple[str, dict[str, int]]:
     proc_values.update(
         service_path_probe.parse_proc_table(sections.get('netstat', ''))
     )
-    proc_values.update(service_path_probe.parse_proc_table(sections.get('snmp', '')))
-    proc_values.update(service_path_probe.parse_sockstat(sections.get('sockstat', '')))
-    metrics.update({
-        key: value
-        for key, value in proc_values.items()
-        if key in COUNTER_METRICS or key in GAUGE_METRICS
-    })
+    proc_values.update(
+        service_path_probe.parse_proc_table(sections.get('snmp', ''))
+    )
+    proc_values.update(
+        service_path_probe.parse_sockstat(sections.get('sockstat', ''))
+    )
+    metrics.update(
+        {
+            key: value
+            for key, value in proc_values.items()
+            if key in COUNTER_METRICS or key in GAUGE_METRICS
+        }
+    )
     metrics.update(
         parse_listen_queues(
             sections.get('tcp', '') + '\n' + sections.get('tcp6', ''), port
@@ -592,7 +635,9 @@ def host_metrics(proc_root: Path, cgroup_root: Path) -> dict[str, int]:
     cpu_stat_path = current_cpu_stat_path(proc_root, cgroup_root)
     if cpu_stat_path is not None:
         try:
-            metrics.update(parse_cpu_stat(cpu_stat_path.read_text(encoding='utf-8')))
+            metrics.update(
+                parse_cpu_stat(cpu_stat_path.read_text(encoding='utf-8'))
+            )
         except OSError:
             pass
     metrics.update(service_path_probe.snapshot_network_metrics(proc_root))
@@ -626,35 +671,43 @@ def capture_sample(
 ) -> list[dict[str, object]]:
     timestamp_ms = time.time_ns() // 1_000_000
     events = [
-        metric_event(timestamp_ms, sample_number, 'runner-host', 'host', metric, value)
+        metric_event(
+            timestamp_ms, sample_number, 'runner-host', 'host', metric, value
+        )
         for metric, value in host_metrics(proc_root, cgroup_root).items()
     ]
     for node in nodes:
         container_id = run_command(
             ['docker', 'inspect', '--format', '{{.Id}}', node]
         )
-        node_output = run_command(['docker', 'exec', node, 'sh', '-c', NODE_COMMAND])
+        node_output = run_command(
+            ['docker', 'exec', node, 'sh', '-c', NODE_COMMAND]
+        )
         node_timestamp_ms = time.time_ns() // 1_000_000
         if not container_id or node_output is None:
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': f'node:{node}',
-                'status': 'docker_unavailable',
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': f'node:{node}',
+                    'status': 'docker_unavailable',
+                }
+            )
             continue
         network_namespace, metrics = parse_node_output(node_output)
         identity = f'{container_id.strip()}|{network_namespace}'
         if network_namespace == 'unavailable':
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': f'node:{node}',
-                'identity': identity,
-                'status': 'netns_unavailable',
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': f'node:{node}',
+                    'identity': identity,
+                    'status': 'netns_unavailable',
+                }
+            )
         for metric, value in metrics.items():
             events.append(
                 metric_event(
@@ -682,14 +735,16 @@ def capture_sample(
                     'kindnet_nft',
                 )
             }
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': f'kindnet:{node}',
-                'identity': identity,
-                'status': 'kindnet_collection_unavailable',
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': f'kindnet:{node}',
+                    'identity': identity,
+                    'status': 'kindnet_collection_unavailable',
+                }
+            )
 
         kindnet_identity, kindnet_status = parse_kindnet_identity(
             sections.get('kindnet_identity', '')
@@ -703,39 +758,48 @@ def capture_sample(
         kindnet_source = f'kindnet:{node}'
         full_kindnet_identity = f'{identity}|{kindnet_identity}'
         if kindnet_status:
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': kindnet_source,
-                'identity': full_kindnet_identity,
-                'status': kindnet_status,
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': kindnet_source,
+                    'identity': full_kindnet_identity,
+                    'status': kindnet_status,
+                }
+            )
         if kindnet_identity == 'unavailable':
             kindnet_metrics = {}
-        elif not {
-            'kindnet.cgroup.cpu.nr_throttled',
-            'kindnet.cgroup.cpu.throttled_us',
-        }.issubset(kindnet_metrics) and kindnet_status != 'kindnet_cgroup_unavailable':
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': kindnet_source,
-                'identity': full_kindnet_identity,
-                'status': 'kindnet_cgroup_unavailable',
-            })
+        elif (
+            not {
+                'kindnet.cgroup.cpu.nr_throttled',
+                'kindnet.cgroup.cpu.throttled_us',
+            }.issubset(kindnet_metrics)
+            and kindnet_status != 'kindnet_cgroup_unavailable'
+        ):
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': kindnet_source,
+                    'identity': full_kindnet_identity,
+                    'status': 'kindnet_cgroup_unavailable',
+                }
+            )
         if kindnet_identity != 'unavailable' and not any(
             metric.startswith('kindnet.sched.') for metric in kindnet_metrics
         ):
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': kindnet_source,
-                'identity': full_kindnet_identity,
-                'status': 'kindnet_schedstat_unavailable',
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': kindnet_source,
+                    'identity': full_kindnet_identity,
+                    'status': 'kindnet_schedstat_unavailable',
+                }
+            )
         for metric, value in kindnet_metrics.items():
             events.append(
                 metric_event(
@@ -754,14 +818,16 @@ def capture_sample(
         queue_source = f'nfqueue:{node}:101'
         full_queue_identity = f'{identity}|{queue_identity}'
         if queue_status:
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': queue_source,
-                'identity': full_queue_identity,
-                'status': queue_status,
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': queue_source,
+                    'identity': full_queue_identity,
+                    'status': queue_status,
+                }
+            )
         for metric, value in queue_metrics.items():
             events.append(
                 metric_event(
@@ -780,14 +846,16 @@ def capture_sample(
         nft_source = f'kindnet-nft:{node}'
         full_nft_identity = f'{identity}|{nft_identity}'
         if nft_status:
-            events.append({
-                'type': 'status',
-                'timestamp_ms': node_timestamp_ms,
-                'sample': sample_number,
-                'source': nft_source,
-                'identity': full_nft_identity,
-                'status': nft_status,
-            })
+            events.append(
+                {
+                    'type': 'status',
+                    'timestamp_ms': node_timestamp_ms,
+                    'sample': sample_number,
+                    'source': nft_source,
+                    'identity': full_nft_identity,
+                    'status': nft_status,
+                }
+            )
         for metric, value in nft_metrics.items():
             events.append(
                 metric_event(
@@ -810,12 +878,18 @@ def sample(output: Path, interval_seconds: float, max_samples: int) -> None:
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open('w', encoding='utf-8') as event_file:
-        event_file.write(json.dumps({
-            'type': 'meta',
-            'version': 1,
-            'nodes': nodes,
-            'interval_seconds': interval_seconds,
-        }, sort_keys=True) + '\n')
+        event_file.write(
+            json.dumps(
+                {
+                    'type': 'meta',
+                    'version': 1,
+                    'nodes': nodes,
+                    'interval_seconds': interval_seconds,
+                },
+                sort_keys=True,
+            )
+            + '\n'
+        )
         event_file.flush()
         sample_number = 0
         started_ns = time.monotonic_ns()
@@ -825,7 +899,9 @@ def sample(output: Path, interval_seconds: float, max_samples: int) -> None:
             scheduled_ns = started_ns + int(
                 sample_number * interval_seconds * 1_000_000_000
             )
-            remaining_seconds = (scheduled_ns - time.monotonic_ns()) / 1_000_000_000
+            remaining_seconds = (
+                scheduled_ns - time.monotonic_ns()
+            ) / 1_000_000_000
             if remaining_seconds > 0 and STOP_EVENT.wait(remaining_seconds):
                 break
             for event in capture_sample(
@@ -858,7 +934,10 @@ def wait_for_following_sample(
         if event.get('type') == 'probe' and 'timestamp_ms' in event
     ]
     if not probe_timestamps:
-        return False, 'unavailable: no probe timestamp to bound the final sample'
+        return (
+            False,
+            'unavailable: no probe timestamp to bound the final sample',
+        )
     final_probe_timestamp = max(probe_timestamps)
     deadline = time.monotonic() + timeout_seconds
     while True:
@@ -885,9 +964,12 @@ def wait_for_following_sample(
 def format_timestamp(timestamp_ms: int | None) -> str:
     if timestamp_ms is None:
         return '—'
-    return datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc).strftime(
-        '%Y-%m-%d %H:%M:%S.%f'
-    )[:-3] + 'Z'
+    return (
+        datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc).strftime(
+            '%Y-%m-%d %H:%M:%S.%f'
+        )[:-3]
+        + 'Z'
+    )
 
 
 def parse_rfc3339_timestamp(value: str) -> int | None:
@@ -928,11 +1010,13 @@ def parse_kindnet_log(
             continue
         elapsed_match = KINDNET_ELAPSED_PATTERN.search(line)
         if elapsed_match:
-            nft_syncs.append((
-                timestamp_ms,
-                float(elapsed_match.group(1))
-                * unit_to_milliseconds[elapsed_match.group(2)],
-            ))
+            nft_syncs.append(
+                (
+                    timestamp_ms,
+                    float(elapsed_match.group(1))
+                    * unit_to_milliseconds[elapsed_match.group(2)],
+                )
+            )
     return signals, nft_syncs
 
 
@@ -949,21 +1033,29 @@ def build_kindnet_log_report(
         lines.append('_Recent kindnet logs unavailable or unreadable._')
         return '\n'.join(lines) + '\n'
     try:
-        window_start_text = window_start_path.read_text(encoding='utf-8').strip()
+        window_start_text = window_start_path.read_text(
+            encoding='utf-8'
+        ).strip()
     except OSError:
         window_start_text = ''
     window_start_ms = parse_rfc3339_timestamp(window_start_text)
     signals, nft_syncs = parse_kindnet_log(text)
     if window_start_ms is None:
-        lines.append('_Observer start timestamp unavailable; signals are not windowed._')
+        lines.append(
+            '_Observer start timestamp unavailable; signals are not windowed._'
+        )
     else:
-        lines.append(f'_Observer started at {format_timestamp(window_start_ms)}._')
-    lines.extend([
-        '',
-        '| Signal | Before observer | During observer | Timestamp unavailable | '
-        'First seen | Last seen |',
-        '|---|---:|---:|---:|---|---|',
-    ])
+        lines.append(
+            f'_Observer started at {format_timestamp(window_start_ms)}._'
+        )
+    lines.extend(
+        [
+            '',
+            '| Signal | Before observer | During observer | Timestamp unavailable | '
+            'First seen | Last seen |',
+            '|---|---:|---:|---:|---|---|',
+        ]
+    )
     for label, timestamps in signals.items():
         known = [timestamp for timestamp in timestamps if timestamp is not None]
         before = (
@@ -983,13 +1075,17 @@ def build_kindnet_log_report(
         )
 
     if nft_syncs:
-        slow_syncs = [duration for _timestamp, duration in nft_syncs if duration >= 1000]
+        slow_syncs = [
+            duration for _timestamp, duration in nft_syncs if duration >= 1000
+        ]
         maximum_duration = max(duration for _timestamp, duration in nft_syncs)
-        lines.extend([
-            '',
-            f'_nftables sync completions: {len(nft_syncs)}; at least 1 s: '
-            f'{len(slow_syncs)}; maximum: {maximum_duration:.1f} ms._',
-        ])
+        lines.extend(
+            [
+                '',
+                f'_nftables sync completions: {len(nft_syncs)}; at least 1 s: '
+                f'{len(slow_syncs)}; maximum: {maximum_duration:.1f} ms._',
+            ]
+        )
     else:
         lines.extend(['', '_No timed nftables sync completions found._'])
 
@@ -1021,17 +1117,21 @@ def build_kindnet_log_report(
             relationship = f'{abs(delta_ms)} ms before'
         else:
             relationship = f'{delta_ms} ms after'
-        lines.extend([
-            '',
-            f'_First probe failure: {format_timestamp(first_probe_failure)}; nearest '
-            f'kindnet NFQUEUE error: {format_timestamp(nearest_error)} '
-            f'({relationship})._',
-        ])
+        lines.extend(
+            [
+                '',
+                f'_First probe failure: {format_timestamp(first_probe_failure)}; nearest '
+                f'kindnet NFQUEUE error: {format_timestamp(nearest_error)} '
+                f'({relationship})._',
+            ]
+        )
     lines.append('')
     return '\n'.join(lines)
 
 
-def summarize_metric_points(points: list[dict[str, object]], is_gauge: bool) -> dict[str, object]:
+def summarize_metric_points(
+    points: list[dict[str, object]], is_gauge: bool
+) -> dict[str, object]:
     points = sorted(points, key=lambda point: int(point['sample']))
     values = [int(point['value']) for point in points]
     if is_gauge:
@@ -1073,30 +1173,38 @@ def correlation_rows(
     ]
     if not failures or not metric_events:
         return []
-    by_series: dict[tuple[str, str, str], list[dict[str, object]]] = defaultdict(list)
+    by_series: dict[tuple[str, str, str], list[dict[str, object]]] = (
+        defaultdict(list)
+    )
     for event in metric_events:
         if event.get('metric') in CORRELATION_METRICS:
-            by_series[(
-                str(event['source']),
-                str(event['identity']),
-                str(event['metric']),
-            )].append(event)
+            by_series[
+                (
+                    str(event['source']),
+                    str(event['identity']),
+                    str(event['metric']),
+                )
+            ].append(event)
     # Collapse the VIP/Endpoint results from one pair/cycle so they do not
     # consume two rows, then retain each pair's onset plus the failures with
     # the strongest nearby counter increases. Chronological first-20 sampling
     # hid the later, high-signal conntrack spikes in the settled failures.
-    grouped_failures: dict[tuple[int, str], list[dict[str, object]]] = defaultdict(list)
+    grouped_failures: dict[tuple[int, str], list[dict[str, object]]] = (
+        defaultdict(list)
+    )
     for failure in failures:
-        grouped_failures[(
-            int(failure['timestamp_ms']), str(failure.get('pair', 'unknown'))
-        )].append(failure)
+        grouped_failures[
+            (int(failure['timestamp_ms']), str(failure.get('pair', 'unknown')))
+        ].append(failure)
     candidates = []
     for (timestamp_ms, pair), grouped in sorted(grouped_failures.items()):
         increases = []
         correlation_score = 0
         following_distance = None
         for (source, _identity, metric), points in by_series.items():
-            ordered = sorted(points, key=lambda point: int(point['timestamp_ms']))
+            ordered = sorted(
+                points, key=lambda point: int(point['timestamp_ms'])
+            )
             following_index = next(
                 (
                     index
@@ -1107,11 +1215,15 @@ def correlation_rows(
             )
             if following_index is None or following_index == 0:
                 continue
-            distance = int(ordered[following_index]['timestamp_ms']) - timestamp_ms
+            distance = (
+                int(ordered[following_index]['timestamp_ms']) - timestamp_ms
+            )
             if distance > 10_000:
                 continue
-            following_distance = distance if following_distance is None else min(
-                following_distance, distance
+            following_distance = (
+                distance
+                if following_distance is None
+                else min(following_distance, distance)
             )
             delta = int(ordered[following_index]['value']) - int(
                 ordered[following_index - 1]['value']
@@ -1119,24 +1231,27 @@ def correlation_rows(
             if delta > 0:
                 increases.append(f'{source} {metric} +{delta}')
                 correlation_score += delta
-        paths = '+'.join(sorted(str(failure.get('path', 'unknown')) for failure in grouped))
+        paths = '+'.join(
+            sorted(str(failure.get('path', 'unknown')) for failure in grouped)
+        )
         results = '+'.join(
             sorted(
                 set(
-                    str(failure.get('result', 'unknown'))
-                    for failure in grouped
+                    str(failure.get('result', 'unknown')) for failure in grouped
                 )
             )
         )
-        candidates.append({
-            'timestamp_ms': timestamp_ms,
-            'pair': pair,
-            'paths': paths,
-            'results': results,
-            'following_distance': following_distance,
-            'increases': increases,
-            'score': correlation_score,
-        })
+        candidates.append(
+            {
+                'timestamp_ms': timestamp_ms,
+                'pair': pair,
+                'paths': paths,
+                'results': results,
+                'following_distance': following_distance,
+                'increases': increases,
+                'score': correlation_score,
+            }
+        )
 
     selected = []
     seen_pairs = set()
@@ -1159,7 +1274,9 @@ def correlation_rows(
             break
 
     rows = []
-    for candidate in sorted(selected, key=lambda item: int(item['timestamp_ms'])):
+    for candidate in sorted(
+        selected, key=lambda item: int(item['timestamp_ms'])
+    ):
         following_distance = candidate['following_distance']
         increases = candidate['increases']
         rows.append(
@@ -1182,11 +1299,18 @@ def build_target_report(
     baseline_identity, baseline = parse_target_output(
         baseline_path.read_text(encoding='utf-8'), port
     )
-    end_identity, end = parse_target_output(end_path.read_text(encoding='utf-8'), port)
-    if not baseline or not end or 'unavailable' in {
-        baseline_identity.split('|')[-1],
-        end_identity.split('|')[-1],
-    }:
+    end_identity, end = parse_target_output(
+        end_path.read_text(encoding='utf-8'), port
+    )
+    if (
+        not baseline
+        or not end
+        or 'unavailable'
+        in {
+            baseline_identity.split('|')[-1],
+            end_identity.split('|')[-1],
+        }
+    ):
         lines.append('_Target network counters unavailable._')
         return '\n'.join(lines) + '\n'
     lines.append(
@@ -1201,15 +1325,19 @@ def build_target_report(
         'listen_queue.rx',
         'listen_queue.tx',
     }
-    if not queue_metrics.intersection(baseline) or not queue_metrics.intersection(end):
+    if not queue_metrics.intersection(
+        baseline
+    ) or not queue_metrics.intersection(end):
         lines.append(
             '_Listener queue table unavailable in at least one target snapshot._'
         )
-    lines.extend([
-        '',
-        '| Metric | Baseline | End | Delta/type | Status |',
-        '|---|---:|---:|---:|---|',
-    ])
+    lines.extend(
+        [
+            '',
+            '| Metric | Baseline | End | Delta/type | Status |',
+            '|---|---:|---:|---:|---|',
+        ]
+    )
     for metric in sorted(set(baseline) | set(end)):
         before = baseline.get(metric)
         after = end.get(metric)
@@ -1219,13 +1347,19 @@ def build_target_report(
                 f'{after if after is not None else "—"} | — | unavailable |'
             )
         elif baseline_identity != end_identity:
-            lines.append(f'| {metric} | {before} | {after} | — | identity changed |')
+            lines.append(
+                f'| {metric} | {before} | {after} | — | identity changed |'
+            )
         elif metric in GAUGE_METRICS:
             lines.append(f'| {metric} | {before} | {after} | gauge | ok |')
         elif after < before:
-            lines.append(f'| {metric} | {before} | {after} | — | counter reset |')
+            lines.append(
+                f'| {metric} | {before} | {after} | — | counter reset |'
+            )
         else:
-            lines.append(f'| {metric} | {before} | {after} | {after - before} | ok |')
+            lines.append(
+                f'| {metric} | {before} | {after} | {after - before} | ok |'
+            )
     lines.append('')
     return '\n'.join(lines)
 
@@ -1235,7 +1369,11 @@ def build_report(path: Path, probe_path: Path | None = None) -> str:
     meta = next((event for event in events if event.get('type') == 'meta'), {})
     metrics = [event for event in events if event.get('type') == 'metric']
     statuses = [event for event in events if event.get('type') == 'status']
-    lines = ['', '## Test-window network and contention counter time series', '']
+    lines = [
+        '',
+        '## Test-window network and contention counter time series',
+        '',
+    ]
     if not metrics:
         lines.append(
             '_No runner/Kind network or contention counter samples were collected._'
@@ -1247,18 +1385,24 @@ def build_report(path: Path, probe_path: Path | None = None) -> str:
         f'{meta.get("interval_seconds", "?")} second intervals; Kind nodes were '
         f'{", ".join(meta.get("nodes", [])) or "unavailable"}._'
     )
-    lines.extend([
-        '',
-        '| Source | Identity | Metric | Samples | Window delta/type | Peak interval delta/value | Peak time | Status |',
-        '|---|---|---|---:|---:|---:|---|---|',
-    ])
-    grouped: dict[tuple[str, str, str], list[dict[str, object]]] = defaultdict(list)
+    lines.extend(
+        [
+            '',
+            '| Source | Identity | Metric | Samples | Window delta/type | Peak interval delta/value | Peak time | Status |',
+            '|---|---|---|---:|---:|---:|---|---|',
+        ]
+    )
+    grouped: dict[tuple[str, str, str], list[dict[str, object]]] = defaultdict(
+        list
+    )
     for event in metrics:
-        grouped[(
-            str(event['source']),
-            str(event['identity']),
-            str(event['metric']),
-        )].append(event)
+        grouped[
+            (
+                str(event['source']),
+                str(event['identity']),
+                str(event['metric']),
+            )
+        ].append(event)
     identities_by_source: dict[str, set[str]] = defaultdict(set)
     spike_rows = []
     for (source, identity, metric), points in sorted(grouped.items()):
@@ -1275,7 +1419,9 @@ def build_report(path: Path, probe_path: Path | None = None) -> str:
                 if delta > 0:
                     spike_rows.append((delta, timestamp_ms, source, metric))
     replaced_sources = [
-        source for source, identities in identities_by_source.items() if len(identities) > 1
+        source
+        for source, identities in identities_by_source.items()
+        if len(identities) > 1
     ]
     if replaced_sources:
         lines.append(
@@ -1287,17 +1433,27 @@ def build_report(path: Path, probe_path: Path | None = None) -> str:
         status_counts: dict[tuple[str, str], int] = defaultdict(int)
         for event in statuses:
             status_counts[(str(event['source']), str(event['status']))] += 1
-        lines.extend(['', '### Sampling gaps', '', '| Source | Status | Samples |', '|---|---|---:|'])
+        lines.extend(
+            [
+                '',
+                '### Sampling gaps',
+                '',
+                '| Source | Status | Samples |',
+                '|---|---|---:|',
+            ]
+        )
         for (source, status), count in sorted(status_counts.items()):
             lines.append(f'| {source} | {status} | {count} |')
     if spike_rows:
-        lines.extend([
-            '',
-            '### Largest counter increases between samples',
-            '',
-            '| Timestamp | Source | Metric | Increase |',
-            '|---|---|---|---:|',
-        ])
+        lines.extend(
+            [
+                '',
+                '### Largest counter increases between samples',
+                '',
+                '| Timestamp | Source | Metric | Increase |',
+                '|---|---|---|---:|',
+            ]
+        )
         for delta, timestamp_ms, source, metric in sorted(
             spike_rows, reverse=True
         )[:20]:
@@ -1306,14 +1462,16 @@ def build_report(path: Path, probe_path: Path | None = None) -> str:
             )
     correlations = correlation_rows(metrics, probe_path)
     if correlations:
-        lines.extend([
-            '',
-            '### Probe failures and following counter sample',
-            '',
-            '| Timestamp | Probe | Result | Following sample | Counter increases |',
-            '|---|---|---|---:|---|',
-            *correlations,
-        ])
+        lines.extend(
+            [
+                '',
+                '### Probe failures and following counter sample',
+                '',
+                '| Timestamp | Probe | Result | Following sample | Counter increases |',
+                '|---|---|---|---:|---|',
+                *correlations,
+            ]
+        )
     lines.append('')
     return '\n'.join(lines)
 
@@ -1343,7 +1501,9 @@ def parse_args() -> argparse.Namespace:
     target_report_parser.add_argument('--label', required=True)
     kindnet_report_parser = subparsers.add_parser('kindnet-log-report')
     kindnet_report_parser.add_argument('--input', type=Path, required=True)
-    kindnet_report_parser.add_argument('--window-start', type=Path, required=True)
+    kindnet_report_parser.add_argument(
+        '--window-start', type=Path, required=True
+    )
     kindnet_report_parser.add_argument('--probe-input', type=Path)
     wait_parser = subparsers.add_parser('wait-for-following-sample')
     wait_parser.add_argument('--input', type=Path, required=True)
