@@ -1041,6 +1041,7 @@ class ComponentSpec:
             platform_spec=pipeline_spec_pb2.PlatformSpec(
             ),  # no PlatformSpec single-component pipeline
             is_compiled_component=True,
+            group_name_to_component_name={},  # no subgroups in single-component pipeline
         )
 
         return pipeline_spec

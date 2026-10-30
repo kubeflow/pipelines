@@ -899,6 +899,69 @@ implementation:
                 self.assertTrue('exec-print-op' in
                                 pipeline_spec['deploymentSpec']['executors'])
 
+    def test_pipeline_in_pipeline_with_conditions_in_both(self):
+        # The inner and outer pipelines both create groups named
+        # condition-branches-1, condition-2 and condition-3.
+
+        @dsl.pipeline(name='inner-pipeline')
+        def inner_pipeline(flag: str):
+            with dsl.If(flag == 'a'):
+                print_op(message='inner if')
+            with dsl.Else():
+                print_op(message='inner else')
+
+        @dsl.pipeline(name='outer-pipeline')
+        def outer_pipeline(flag: str = 'a'):
+            with dsl.If(flag == 'a'):
+                print_op(message='outer if')
+            with dsl.Else():
+                print_op(message='outer else')
+            inner_pipeline(flag=flag)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output_yaml = os.path.join(temporary_directory, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=outer_pipeline, package_path=output_yaml)
+            with open(output_yaml, 'r') as output_file:
+                pipeline_spec = yaml.safe_load(output_file)
+
+        components = pipeline_spec['components']
+        for name, component in components.items():
+            self.assertTrue(
+                'dag' in component or 'executorLabel' in component,
+                f'{name} has no implementation',
+            )
+
+        def component_for(task: Dict[str, Any]) -> Dict[str, Any]:
+            return components[task['componentRef']['name']]
+
+        def branch_messages(dag: Dict[str, Any]) -> List[List[str]]:
+            """Returns the print_op messages of each branch, in branch order."""
+            [branches_task] = [
+                task for task in dag['tasks'].values() if task['componentRef']
+                ['name'].startswith('comp-condition-branches')
+            ]
+            branch_tasks = component_for(branches_task)['dag']['tasks']
+            messages = []
+            for branch_name in sorted(branch_tasks):
+                branch_dag = component_for(branch_tasks[branch_name])['dag']
+                messages.append([
+                    task['inputs']['parameters']['message']['runtimeValue']
+                    ['constant'] for task in branch_dag['tasks'].values()
+                ])
+            return messages
+
+        self.assertEqual(
+            [['outer if'], ['outer else']],
+            branch_messages(pipeline_spec['root']['dag']),
+        )
+        inner_component_name = pipeline_spec['root']['dag']['tasks'][
+            'inner-pipeline']['componentRef']['name']
+        self.assertEqual(
+            [['inner if'], ['inner else']],
+            branch_messages(components[inner_component_name]['dag']),
+        )
+
     def test_pipeline_with_invalid_output(self):
         with self.assertRaisesRegex(
                 ValueError, r'Pipeline or component output not defined: msg1'):

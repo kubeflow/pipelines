@@ -1342,6 +1342,7 @@ def build_spec_by_group(
     name_to_for_loop_group: Mapping[str, tasks_group.ParallelFor],
     platform_spec: pipeline_spec_pb2.PlatformSpec,
     is_compiled_component: bool,
+    group_name_to_component_name: Dict[str, str],
 ) -> None:
     """Generates IR spec given a TasksGroup.
 
@@ -1368,13 +1369,16 @@ def build_spec_by_group(
             itself is the last.
         name_to_for_loop_group: The dict of for loop group name to loop
             group.
+        group_name_to_component_name: The dict of group name to the name of
+            its component spec, filled in as groups are added. The two differ
+            when a pipeline-as-component already added a component with the
+            same name, for example when both pipelines use dsl.If.
     """
-    group_component_name = utils.sanitize_component_name(group.name)
-
     if group.name == rootgroup_name:
         group_component_spec = pipeline_spec.root
     else:
-        group_component_spec = pipeline_spec.components[group_component_name]
+        group_component_spec = pipeline_spec.components[
+            group_name_to_component_name[group.name]]
 
     task_name_to_task_spec = {}
     task_name_to_component_spec = {}
@@ -1583,6 +1587,9 @@ def build_spec_by_group(
         subgroup_task_spec.component_ref.name = subgroup_component_name
         pipeline_spec.components[subgroup_component_name].CopyFrom(
             subgroup_component_spec)
+        if isinstance(subgroup, tasks_group.TasksGroup):
+            group_name_to_component_name[subgroup.name] = (
+                subgroup_component_name)
 
         # Add task spec
         group_component_spec.dag.tasks[subgroup.name].CopyFrom(
@@ -2131,6 +2138,7 @@ def create_pipeline_spec(
         _merge_pipeline_config(
             pipelineConfig=pipeline_config, platformSpec=platform_spec)
 
+    group_name_to_component_name = {}
     for group in all_groups:
         build_spec_by_group(
             pipeline_spec=pipeline_spec,
@@ -2145,6 +2153,7 @@ def create_pipeline_spec(
             name_to_for_loop_group=name_to_for_loop_group,
             platform_spec=platform_spec,
             is_compiled_component=False,
+            group_name_to_component_name=group_name_to_component_name,
         )
 
     build_exit_handler_groups_recursively(
