@@ -133,7 +133,7 @@
     {
       "path": ".github/workflows/ci-passed-stale-revoke.yml",
       "name": "Revoke Stale CI Passed",
-      "header_sha256": "c92d9aec76f9ad0795f7b115b44c3de71085f0de78a7c05d5492e046c50448d9",
+      "header_sha256": "617dc16494df6d1e90ef984f887f23620ab754d2f43542916bb48df6b30819bd",
       "pull_request": null
     },
     {

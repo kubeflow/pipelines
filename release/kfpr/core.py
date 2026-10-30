@@ -23,7 +23,8 @@ URL_RE = re.compile(r'https?://\S+')
 
 
 def default_branch(api) -> str:
-    """Resolve the upstream development branch without a stale-name fallback."""
+    """Resolve the upstream development branch without a stale-name
+    fallback."""
     branch = api('').get('default_branch')
     if branch not in ('master', 'main'):
         raise ValueError(f'Unsupported upstream default branch: {branch!r}')

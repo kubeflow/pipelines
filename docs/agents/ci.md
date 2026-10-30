@@ -411,9 +411,14 @@ the persisted `sync-master` step identifier remains compatible.
 This preparation does not rename the branch or change external settings. Before
 cutover, deploy Tide's `main` eligibility and mandatory `ci-passed` context policy,
 add the `pypi` environment branch policy, and verify Copybara/mirror, ReadTheDocs,
-and publisher trust settings. Freeze merges/publication, rename through GitHub,
+and publisher trust settings. Before renaming, confirm authority for the
+[controlled first-main bootstrap merge](ci-passed.md#controlled-bootstrap-after-the-default-branch-rename).
+Historical master merge records do not prove arrival on main, so ordinary CI will
+remain pending until that reviewed bootstrap establishes main provenance. Freeze
+merges/publication, rename through GitHub,
 verify effective protection, update external periodic checkout refs and remaining
-raw-source/developer defaults, then generate fresh runtime/image/CI evidence.
+raw-source/developer defaults, and complete the explicitly authorized bootstrap
+while the freeze remains in place. Then generate fresh runtime/image/CI evidence.
 Verify stale-green revocation, retargeted PRs, normal and Dependabot merges, release
 dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.

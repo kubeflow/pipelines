@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Keep workflow coverage and publication safe during the branch rename."""
 
 import unittest
@@ -64,6 +63,48 @@ class MainBranchWorkflowsTest(unittest.TestCase):
             "github.ref_name != 'master' && github.ref_name != 'main'",
             workflow['jobs']['build-tools']['if'],
         )
+
+    def test_revocation_queue_is_isolated_by_branch(self):
+        workflow = yaml.safe_load(
+            (WORKFLOWS / 'ci-passed-stale-revoke.yml').read_text()
+        )
+        concurrency = workflow['concurrency']
+        self.assertIs(concurrency['cancel-in-progress'], False)
+
+        def group(branch):
+            rendered = concurrency['group'].replace(
+                '${{ github.ref }}', f'refs/heads/{branch}'
+            )
+            self.assertNotIn('${{', rendered)
+            return rendered.lower()  # Actions groups are case-insensitive.
+
+        # A running master revoker and a queued main revoker must not let a
+        # later master push replace main's pending run. Actions retains only
+        # the newest pending run per group even with cancel-in-progress false.
+        running = {group('master'): 'master-1'}
+        pending = {}
+        cancelled = []
+
+        def enqueue(branch, run):
+            key = group(branch)
+            if key in pending:
+                cancelled.append(pending[key])
+            pending[key] = run
+
+        enqueue('main', 'main-1')
+        enqueue('master', 'master-2')
+        self.assertNotIn('main-1', cancelled)
+        self.assertEqual(pending[group('main')], 'main-1')
+        self.assertEqual(pending[group('master')], 'master-2')
+        self.assertEqual(running, {group('master'): 'master-1'})
+
+        # Same-branch pushes still share one serialized group and replace
+        # only that branch's older pending revoker, never its running revoker.
+        enqueue('master', 'master-3')
+        self.assertEqual(cancelled, ['master-2'])
+        self.assertEqual(pending[group('main')], 'main-1')
+        self.assertEqual(pending[group('master')], 'master-3')
+        self.assertEqual(running, {group('master'): 'master-1'})
 
     def test_promotion_requires_current_default_branch(self):
         workflow = yaml.safe_load(

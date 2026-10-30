@@ -799,6 +799,55 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         self.assertEqual(len(result['recordCalls']), 1)
         self.assertEqual(result['fallbackCalls'], [])
 
+    def test_rename_requires_controlled_bootstrap_then_fresh_main_ci(self):
+        old_base = 'c' * 40
+        bootstrap_base = 'd' * 40
+        old_record = {
+            'number': 8,
+            'merged_at': '2026-09-07T11:00:00Z',
+            'base': {'ref': 'master', 'repo': {'full_name': 'owner/repo'}},
+        }
+        fresh_run = good_run(created_at='2026-09-07T12:00:00Z')
+        trigger = {'branches': ['master', 'main'], 'paths': ['frontend/**']}
+        before = verify(
+            base_sha=old_base,
+            associated_prs=[old_record],
+            runs=[fresh_run],
+            trigger=trigger,
+        )
+        renamed = verify(
+            base_sha=old_base,
+            base_ref='main',
+            associated_prs=[old_record],
+            runs=[fresh_run],
+            trigger=trigger,
+        )
+        self.assertEqual(before['state'], 'success')
+        self.assertEqual(renamed['state'], 'pending')
+        self.assertIn('no merged PR for base', renamed['reasons'][0])
+
+        # Only a separately authorized PR merge on main creates its own arrival
+        # provenance. Renaming the branch or rerunning old CI cannot supply it.
+        bootstrap_record = {
+            'number': 9,
+            'merged_at': '2026-09-07T13:00:00Z',
+            'base': {'ref': 'main', 'repo': {'full_name': 'owner/repo'}},
+        }
+        for created_at, expected in (
+            ('2026-09-07T12:00:00Z', 'pending'),
+            ('2026-09-07T13:00:00Z', 'pending'),
+            ('2026-09-07T13:00:01Z', 'success'),
+        ):
+            with self.subTest(created_at=created_at):
+                result = verify(
+                    base_sha=bootstrap_base,
+                    base_ref='main',
+                    associated_prs=[bootstrap_record],
+                    trigger=trigger,
+                    runs=[good_run(created_at=created_at)],
+                )
+                self.assertEqual(result['state'], expected)
+
     def test_missing_base_merge_record_requires_maintainer(self):
         # A direct push leaves no merged PR for the base revision, so its
         # arrival time cannot be established. Fresh CI cannot fix that; the

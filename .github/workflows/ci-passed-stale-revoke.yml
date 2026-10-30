@@ -8,11 +8,12 @@ on:
   push:
     branches: [master, main]
 
-# Serialize push-triggered revocations: a delayed job for an older tip must not
+# Serialize revocations per branch so one branch cannot replace another's
+# pending revoker. A delayed job for an older tip must not
 # run concurrently with a newer push's job. revokeStaleGreens additionally bails
 # out when the live branch tip no longer matches the triggering push.
 concurrency:
-  group: revoke-stale-ci-passed
+  group: revoke-stale-ci-passed-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
