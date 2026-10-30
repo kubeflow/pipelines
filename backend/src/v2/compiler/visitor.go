@@ -60,10 +60,14 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 	if job == nil {
 		return nil
 	}
-	// TODO(Bobgy): reserve root as a keyword that cannot be user component names
 	spec, err := GetPipelineSpec(job)
 	if err != nil {
 		return err
+	}
+	// The root DAG is visited under this name, so a user component with the
+	// same name would be mistaken for it.
+	if _, ok := spec.GetComponents()[RootComponentName]; ok {
+		return fmt.Errorf("component name %q is reserved for the pipeline's root DAG. Rename the component", RootComponentName)
 	}
 	deploy, err := GetDeploymentConfig(spec)
 	if err != nil {
@@ -117,7 +121,13 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 	if executorLabel != "" {
 		executor, ok := state.deploy.GetExecutors()[executorLabel]
 		if !ok {
-			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config", executorLabel))
+			usage := ""
+			// The path ends with this component, so its parent is the one before it.
+			if len(state.path) >= 2 {
+				usage = fmt.Sprintf(", used by task %q in component %q", componentTask.GetTaskInfo().GetName(), state.path[len(state.path)-2])
+			}
+			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config%s. Add the executor to deploymentSpec.executors or fix the component's executorLabel",
+				executorLabel, usage))
 		}
 
 		// Add kubernetes spec to annotation
@@ -169,7 +179,8 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		}
 		subComponent, ok := state.spec.Components[refName]
 		if !ok {
-			return componentError(fmt.Errorf("cannot find component ref name=%q", refName))
+			return componentError(fmt.Errorf("task %q references component %q, which is not defined in the pipeline spec's components. Add the component or fix the task's componentRef",
+				task.GetTaskInfo().GetName(), refName))
 		}
 		if task.GetRetryPolicy() == nil && componentTask != nil {
 			task.RetryPolicy = componentTask.GetRetryPolicy()
