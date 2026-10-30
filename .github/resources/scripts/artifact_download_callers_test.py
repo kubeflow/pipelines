@@ -50,6 +50,15 @@ CALLERS = [
     ('.github/workflows/release-branch-image-scanning.yml', 'aggregate'),
     ('.github/workflows/release-branch-image-scanning.yml', 'upload'),
     ('.github/workflows/osv-scanner.yml', 'discover-images'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-performance-qualification.yml', 'measure'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'browser-tests'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'vendor-browser'),
+    ('.github/workflows/frontend-browser-qualification.yml', 'apple-browser'),
+    ('.github/workflows/frontend-deployment-qualification.yml', 'rehearsal'),
+    ('.github/workflows/frontend-deployment-qualification.yml', 'rehearsal'),
 ]
 
 
