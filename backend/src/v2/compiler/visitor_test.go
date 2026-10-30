@@ -143,3 +143,76 @@ func TestAccept_VisitsSharedComponentOnce(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"comp-leaf", "comp-shared", "comp-a", "comp-b", "root"}, visitor.visited)
 }
+
+func TestAccept_RejectsComponentNamedRoot(t *testing.T) {
+	tests := []struct {
+		name       string
+		root       *pipelinespec.ComponentSpec
+		components map[string]*pipelinespec.ComponentSpec
+	}{
+		{
+			name:       "referenced from the root DAG",
+			root:       dagComponent("root"),
+			components: map[string]*pipelinespec.ComponentSpec{"root": containerComponent("exec-leaf")},
+		},
+		{
+			name: "referenced from a nested DAG",
+			root: dagComponent("comp-a"),
+			components: map[string]*pipelinespec.ComponentSpec{
+				"comp-a": dagComponent("root"),
+				"root":   containerComponent("exec-leaf"),
+			},
+		},
+		{
+			name: "not referenced",
+			root: dagComponent("comp-leaf"),
+			components: map[string]*pipelinespec.ComponentSpec{
+				"comp-leaf": containerComponent("exec-leaf"),
+				"root":      containerComponent("exec-leaf"),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			visitor := &recordingVisitor{}
+			err := Accept(pipelineJob(t, test.root, test.components), nil, visitor)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), `component name "root" is reserved`)
+			assert.NotContains(t, err.Error(), "circular")
+			assert.Empty(t, visitor.visited)
+		})
+	}
+}
+
+func TestAccept_MissingReferencesNameTheTask(t *testing.T) {
+	t.Run("undefined component", func(t *testing.T) {
+		components := map[string]*pipelinespec.ComponentSpec{
+			"comp-a": dagComponent("comp-missing"),
+		}
+
+		err := Accept(pipelineJob(t, dagComponent("comp-a"), components), nil, &recordingVisitor{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `component name="comp-a"`)
+		assert.Contains(t, err.Error(), `task "task-comp-missing" references component "comp-missing"`)
+	})
+	t.Run("undefined executor", func(t *testing.T) {
+		components := map[string]*pipelinespec.ComponentSpec{
+			"comp-a":    dagComponent("comp-leaf"),
+			"comp-leaf": containerComponent("exec-missing"),
+		}
+
+		err := Accept(pipelineJob(t, dagComponent("comp-a"), components), nil, &recordingVisitor{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `component name="comp-leaf"`)
+		assert.Contains(t, err.Error(), `executor(label="exec-missing") not found`)
+		assert.Contains(t, err.Error(), `used by task "task-comp-leaf" in component "comp-a"`)
+	})
+	t.Run("undefined executor on the root", func(t *testing.T) {
+		err := Accept(pipelineJob(t, containerComponent("exec-missing"), nil), nil, &recordingVisitor{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `executor(label="exec-missing") not found in deployment config.`)
+	})
+}
