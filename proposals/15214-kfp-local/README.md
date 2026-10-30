@@ -146,9 +146,10 @@ implementation and `file://` pipeline roots, including a local default pipeline 
 server, worker, and UI backend must resolve these locations consistently, including Docker staging
 or bind mounts.
 
-Pipeline run workspaces remain separate from artifact storage. When requested by a pipeline, a
-workspace provides a shared directory for the run's tasks. Normal artifacts are still published to
-the object store; shared runtime code handles artifact staging and transfer.
+[Pipeline run workspaces](https://www.kubeflow.org/docs/components/pipelines/user-guides/data-handling/artifacts/#pipeline-run-workspaces)
+remain separate from artifact storage. When requested by a pipeline, a workspace provides a shared
+directory for the run's tasks. Normal artifacts are still published to the object store; shared
+runtime code handles artifact staging and transfer.
 
 ##### Metadata Schema
 
@@ -165,7 +166,8 @@ and can be exposed through its API and UI:
 | `WorkspaceReference`   | Nullable versioned JSON | Provisioner-owned handle for the pipeline run workspace                   |
 
 **`runtime_tasks`** is a new table and has one row per non-terminal task, combining scheduling and
-current-attempt state rather than retaining execution history:
+current-attempt state rather than retaining execution history. Like Argo workflow CRs, it holds
+durable but temporary coordination state needed for execution and recovery:
 
 | Column               | Type                    | Purpose                                                                                                                 |
 | -------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -193,10 +195,11 @@ Task outputs are provisional until the task succeeds: they are not eligible for 
 or cache reuse. Publication uses attempt-scoped artifact identities so repeating it does not create
 new artifact records. Artifact bytes and logs stay in blob storage.
 
-Once the executor reports a terminal result and required cleanup is complete, finalize the task's
-public state and delete its `runtime_tasks` row in one transaction. Results and task-linked log
-references remain in the existing tables. An attempt finishing does not trigger this deletion if the
-task will retry or still needs recovery or cleanup.
+After success or failure, retain the runtime row until workload termination, durable log retention,
+and required cleanup are confirmed. Then finalize the task's public state and delete its
+`runtime_tasks` row in one transaction. Results and task-linked log references remain in the
+existing tables. An attempt finishing does not trigger this deletion if the task will retry or still
+needs recovery or cleanup.
 
 Reject new-runtime run deletion until the run is terminal, workloads have stopped, and required
 execution and workspace cleanup is complete. Return a failed-precondition error with recovery
@@ -206,8 +209,9 @@ and cleanup, preserving recovery references until safe. Argo deletion is unchang
 In addition to the references shown in the table, a composite foreign key `(TaskUUID, RunUUID)`
 references `tasks(UUID, RunUUID)` so the task and owning run cannot disagree.
 
-Phase 1 adds the nullable run columns and `runtime_tasks`; existing Argo rows retain null values and
-need no backfill.
+Phase 1 adds the nullable run columns and `runtime_tasks` in all deployments, including Argo-backed
+deployments. Only the new runtime populates them; existing Argo rows retain null values and need no
+backfill.
 
 #### Frontend and Logs
 
@@ -237,8 +241,9 @@ artifact root.
 ##### Deployment Capabilities API
 
 KFP already exposes build and deployment information through `GET /apis/v2/healthz`, which the UI
-reads at startup. Extend that response with a `capabilities` object, preserving its existing fields
-and health-check behavior.
+reads at startup. Keep capability discovery there for consistency with existing deployment fields
+such as `multi_user` and `pipeline_store`. Extend the response with a `capabilities` object,
+preserving its existing fields and health-check behavior.
 
 Each advertised feature has a `supported` boolean and, when unsupported, a `reason` explaining the
 restriction. This proposal initially defines `recurring_runs`, covering recurring-run management.
@@ -274,6 +279,7 @@ The request types reuse pipeline-spec messages and `json.RawMessage`. A request 
 `Process` or `Container`. Opaque data is versioned and backend-owned.
 
 ```go
+// ExecutorCapabilities declares supported execution features and recovery guarantees.
 type ExecutorCapabilities struct {
     RecoverLostTasks               bool
     SupportsLeaseTakeover          bool
@@ -283,16 +289,19 @@ type ExecutorCapabilities struct {
     SupportedWorkspaceProvisioners []string
 }
 
+// ExecutorCapacity limits concurrent active attempts; nil means unlimited.
 type ExecutorCapacity struct {
     MaxActiveTasks         *int
 }
 
+// TaskAttemptIdentity identifies one attempt of a task instance, including loop iterations.
 type TaskAttemptIdentity struct {
     RunID     string
     TaskID    string
     AttemptID string
 }
 
+// TaskExecutionRequest is immutable within an attempt and sets exactly one execution spec.
 type TaskExecutionRequest struct {
     Identity             TaskAttemptIdentity
     Process              *ProcessSpec
@@ -302,6 +311,7 @@ type TaskExecutionRequest struct {
     Workspace            *WorkspaceAttachment
 }
 
+// ExecutionReference locates an attempt using versioned, executor-owned data.
 type ExecutionReference struct {
     Executor string
     Version  int
@@ -309,6 +319,7 @@ type ExecutionReference struct {
     Data     json.RawMessage
 }
 
+// ProcessSpec describes a host process without requiring a container image.
 type ProcessSpec struct {
     Command   []string
     Args      []string
@@ -316,23 +327,27 @@ type ProcessSpec struct {
     Resources *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec
 }
 
+// ExecutionTarget describes where a provisioner must make a workspace accessible.
 type ExecutionTarget struct {
     Executor string
     Version  int
     Data     json.RawMessage
 }
 
+// WorkspaceAttachment contains provisioner-owned access data for an execution target.
 type WorkspaceAttachment struct {
     Provisioner string
     Version     int
     Data        json.RawMessage
 }
 
+// ExecutionLogSource provides attempt-scoped stdout and stderr, live or retained.
 type ExecutionLogSource interface {
     Identity() TaskAttemptIdentity
     Stream(ctx context.Context, follow bool, destination io.Writer) error
 }
 
+// WorkloadExecutorPlugin manages workloads without interpreting pipeline control flow.
 type WorkloadExecutorPlugin interface {
     Type() string
     Capabilities() ExecutorCapabilities
@@ -347,6 +362,7 @@ type WorkloadExecutorPlugin interface {
     Cleanup(ctx context.Context, reference ExecutionReference) error
 }
 
+// LostTaskRecoverer locates an existing attempt without launching replacement work.
 type LostTaskRecoverer interface {
     Recover(
         ctx context.Context,
@@ -355,6 +371,7 @@ type LostTaskRecoverer interface {
     ) (RecoveryResult, error)
 }
 
+// WorkspaceProvisionerPlugin manages shared run storage separately from artifacts.
 type WorkspaceProvisionerPlugin interface {
     Type() string
     Provision(ctx context.Context, request WorkspaceRequest) (WorkspaceReference, error)
@@ -416,13 +433,13 @@ owns persistence and lifecycle transitions; tasks receive only the reporting and
 need.
 
 `CheckRequirements` validates installation and backend access, such as checking that the Docker CLI
-is installed and the Docker daemon is reachable for the Docker executor. Before the first task
-starts, the coordinator compares requirements for every task, including nested DAGs, loop bodies,
-and all conditional branches, against `ExecutorCapabilities`. Workspace compatibility uses the
-provisioner list described below.
-
-The coordinator rejects requirements without declared support before execution. New requirements
-extend this shared check, not plugin-specific validators. The UI uses the same support rules.
+is installed and the Docker daemon is reachable for the Docker executor. Run submission
+synchronously validates requirements for every task, including nested DAGs, loop bodies, and all
+conditional branches, against `ExecutorCapabilities`. Unsupported requirements produce a structured
+API error identifying the task, requirement, executor, and corrective action; the SDK surfaces it
+and the UI displays it as input validation. The coordinator repeats this shared validation before
+execution to catch configuration changes. New requirements extend this check, not plugin-specific
+validators. Workspace compatibility uses the provisioner list described below.
 
 `SupportedWorkspaceProvisioners` lists compatible plugins by their `Type()` values; an empty list
 means the executor does not support pipeline run workspaces. When a pipeline requests a workspace,
@@ -443,10 +460,11 @@ proposal.
 ##### Built-in Executors
 
 Subprocess uses a configurable Python interpreter, defaulting to the interpreter used to launch the
-local runtime, with an isolated virtual environment per attempt. Declared `packages_to_install` are
-installed there, never into the server's environment. The component's `base_image` is not
-reproduced; this is reported explicitly with guidance to use Docker when the image's Python version,
-OS packages, or other contents are required.
+local runtime, with a separate isolated virtual environment for each task attempt, including
+retries, to avoid dependency conflicts. Declared `packages_to_install` are installed there, never
+into the server's environment. For lightweight Python components, `base_image` is ignored with a
+user-visible warning, not an error; use Docker when the image's Python version, OS packages, or
+other contents are required.
 
 For both executors, input resolution, artifact staging, command placeholder resolution, and output
 publication use shared Go logic in the worker. Docker runs the component command, including the
@@ -507,6 +525,14 @@ Subprocess does not declare lost-task recovery; interrupted attempts are reporte
 not automatically replayed when the previous process's termination cannot be established. An orphan
 may need manual cleanup. These guarantees do not provide exactly-once external side effects.
 
+##### On-Demand Garbage Collection
+
+Provide an on-demand garbage collection (GC) CLI command, similar to Docker's `system prune`, to
+reconcile runs left with pipeline run workspaces, retained execution resources, or `runtime_tasks`
+rows after failed or interrupted attempts. The command completes outstanding cleanup and deletes
+failed tasks' runtime rows once termination, durable log retention, and required cleanup are
+confirmed, preserving the tasks' public history and success, failure, or cancellation outcomes.
+
 ##### Artifact Handling Within Execution
 
 Artifact transfers use shared framework-owned code rather than requiring each executor to implement
@@ -527,8 +553,9 @@ user request to retry the pipeline run, which may repeat computation and its ext
 
 #### Retries
 
-A task retry creates a new attempt and clears the previous attempt's outputs. Recovery retains the
-existing attempt identity and does not consume the task retry budget.
+A task retry creates a new attempt and clears the task's current output parameter values and
+artifact bindings, not prior attempt logs or published artifact bytes. Recovery retains the existing
+attempt identity and does not consume the task retry budget.
 
 The coordinator reads the retry policy from the run's persisted pipeline IR and applies the runtime
 defaults, rather than storing another copy per task. It honors the retry budget and backoff
@@ -585,21 +612,32 @@ pip install kfp-local
 kfp local ui
 ```
 
-The launcher prints the API endpoint. For example, if it is `http://127.0.0.1:3002`, submission uses
-the normal client:
+The launcher prints the API endpoint. In another terminal, configure the existing SDK client:
+
+```shell
+eval "$(kfp local env)"
+```
+
+`kfp local env` emits shell-quoted exports for `KF_PIPELINES_ENDPOINT` and
+`KF_PIPELINES_UI_ENDPOINT` for the running local instance. Standard output contains only those
+exports; diagnostics go to standard error. Missing or ambiguous instances produce an explicit error
+and no exports, without starting a server. Client defaults and explicit host overrides are
+unchanged.
 
 ```python
 from kfp import client
 
-api = client.Client(host="http://127.0.0.1:3002")
+api = client.Client()
 api.create_run_from_pipeline_package("pipeline.yaml")
 ```
 
-`kfp local ui` starts the API server, worker, and UI. `kfp local server` starts the headless API
-server and worker without requiring Node.js. The launcher configures the database, artifact storage,
-and selected executor, reports startup failures, and manages the child processes' shutdown. The
-package and SDK must declare compatible versions; minimum Python, Node.js, OS, and system-library
-versions must be documented for the published wheels.
+`kfp local ui` starts the API server, worker, and UI, then opens the browser after readiness unless
+`--no-browser` is set. It always prints the URL; browser-opening failures produce a warning without
+stopping the server. `kfp local server` starts the headless API server and worker without requiring
+Node.js or opening a browser. The launcher configures the database, artifact storage, and selected
+executor, reports startup failures, and manages the child processes' shutdown. The package and SDK
+must declare compatible versions; minimum Python, Node.js, OS, and system-library versions must be
+documented for the published wheels.
 
 Local API, gRPC, and UI listeners bind to loopback; remote binding is unsupported initially. HTTP
 endpoints enforce local `Host` and browser-origin allowlists without requiring `Origin` from SDK
@@ -607,11 +645,11 @@ clients.
 
 #### Migration
 
-The existing SDK `local.init(...)` experience would be deprecated, not removed. Documentation and
-warnings should direct users to the local server and existing SDK submission APIs. Replacing its
-implementation with a headless server-backed adapter can be considered separately; existing calls
-must not silently start services or change behavior. This is a migration of the execution
-experience, not an automatic import of historical SDK-local output directories.
+The existing SDK `local.init(...)` experience is used for unit and integration tests. Deprecation
+would direct users to the local server and existing SDK submission APIs; removal is an option if the
+replacement ships in KFP 3.0, with migration guidance covering those testing workflows. A headless
+server-backed adapter can be considered separately; retained calls must not silently start services
+or change behavior.
 
 ### Phase 3: Multi-Replica Coordination
 
@@ -674,8 +712,9 @@ After lease expiry, runs with only queued work may resume. For in-flight or unce
    authorize replacement execution. The executor must prevent late submission of an attempt already
    declared stopped during recovery; per-attempt idempotence alone is insufficient.
 
-Run failure does not prove workload termination. Explicit retry requires all outstanding submissions,
-including the former owner's, to be resolved and workload termination and required cleanup confirmed.
+Run failure does not prove workload termination. Explicit retry requires all outstanding
+submissions, including the former owner's, to be resolved and workload termination and required
+cleanup confirmed.
 
 Leases replace Phase 1's single-worker restriction. Workers reconcile only claimed runs; after lease
 expiry, recovery follows the executor's takeover capability.
@@ -701,34 +740,32 @@ deleted? Clearing `WorkspaceReference` after successful cleanup loses that infor
 the handle requires distinguishing historical information from work still needing cleanup, or
 preserving a separate safe workspace description. The retention model is not decided here.
 
-### Garbage Collection and On-Demand Cleanup
+### Periodic Garbage Collection
 
-Should a periodic garbage collector reconcile runs left with pipeline run workspaces, retained
-execution resources, or temporary `runtime_tasks` rows after failed or interrupted attempts? It
-would complete outstanding cleanup and finalize the run's terminal state without changing its
-success, failure, or cancellation outcome.
-
-At minimum, provide an on-demand CLI cleanup command, similar to Docker's `system prune`, to perform
-this reconciliation. Cleanup must respect active work and workspace retention settings, preserve
-published artifacts and logs, and retain recovery information when termination or cleanup cannot be
-confirmed. Whether automatic collection runs inside a worker or as a separate scheduled process
-remains open.
+Should the [on-demand GC](#on-demand-garbage-collection) reconciliation also run periodically?
+Whether automatic collection runs inside a worker or as a separate scheduled process remains open.
 
 ## Test Plan
 
 ### Phase 1
 
 1. Verify both executors' pipeline semantics, caching, retries, artifacts, and logs.
-2. Reject unsupported requirements before execution.
+2. Verify synchronous submission errors for unsupported requirements, UI display, and worker
+   revalidation before execution.
 3. Recover after submission crashes without duplicate execution.
 4. Test cancellation/publication races, reference retention on cleanup failure, and deletion guards.
 5. Verify loopback and Host/origin protections, SDK access, and Argo compatibility.
+6. Verify on-demand GC removes failed tasks' runtime rows after safe cleanup, preserves history,
+   artifacts, and logs, and retains unresolved references without interfering with active work or
+   pending retries.
 
 ### Phase 2
 
 1. Verify wheel installation on all supported platforms and SDK compatibility.
 2. Verify headless startup without Node.js.
-3. Verify explicit startup errors and bounded child-process shutdown.
+3. Verify explicit startup errors, browser-opening behavior, and bounded child-process shutdown.
+4. Verify shell-quoted environment exports, SDK endpoint selection, and explicit errors for missing
+   or ambiguous local instances.
 
 ### Phase 3
 
@@ -765,6 +802,9 @@ Python or Docker environment.
    comparable server functionality.
 1. **Run the existing deployment on local Kubernetes:** this preserves the current runtime but does
    not remove the infrastructure required to get started.
+1. **Add local execution support to Argo Workflows:** this could reuse Argo's orchestration
+   semantics, but requires upstream work to support execution, persistence, and recovery without
+   Kubernetes. KFP would retain its Argo orchestration dependency rather than own the runtime.
 
 [mlflow-rfc]:
   https://github.com/mlflow/rfcs/blob/main/rfcs/0002-job-executor-plugins/0002-job-executor-plugins.md
