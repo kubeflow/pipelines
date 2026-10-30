@@ -538,6 +538,68 @@ class TestClient(parameterized.TestCase):
 
             mock_create.assert_not_called()
 
+    def test_run_pipeline_sends_plugins_input(self):
+        plugins_input = {'mlflow': {'experiment_name': 'exp'}}
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
+            self.client.run_pipeline(
+                job_name='run1',
+                pipeline_id='p1',
+                plugins_input=plugins_input,
+            )
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.plugins_input, plugins_input)
+
+    def test_run_pipeline_omits_plugins_input_by_default(self):
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
+            self.client.run_pipeline(job_name='run1', pipeline_id='p1')
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertIsNone(run.plugins_input)
+
+    def test_create_recurring_run_sends_plugins_input(self):
+        plugins_input = {'mlflow': {'experiment_name': 'exp'}}
+        with patch.object(
+            self.client._recurring_run_api,
+            'recurring_run_service_create_recurring_run',
+        ) as mock_create:
+            self.client.create_recurring_run(
+                job_name='recurring1',
+                pipeline_id='p1',
+                interval_second=3600,
+                plugins_input=plugins_input,
+            )
+
+            recurring_run = mock_create.call_args.kwargs['recurring_run']
+            self.assertEqual(recurring_run.plugins_input, plugins_input)
+
+    def test_create_run_from_pipeline_func_sends_plugins_input(self):
+        @component
+        def return_bool(boolean: bool) -> bool:
+            return boolean
+
+        @pipeline(name='test-plugins-input')
+        def pipeline_with_plugins_input(boolean: bool = True):
+            return_bool(boolean=boolean)
+
+        plugins_input = {'mlflow': {'experiment_name': 'exp'}}
+        with patch.object(
+            self.client._run_api, 'run_service_create_run'
+        ) as mock_create:
+            with patch.object(auth, 'is_ipython', return_value=False):
+                self.client.create_run_from_pipeline_func(
+                    pipeline_with_plugins_input,
+                    experiment_id='exp1',
+                    plugins_input=plugins_input,
+                )
+
+            run = mock_create.call_args.kwargs['run']
+            self.assertEqual(run.plugins_input, plugins_input)
+
     @patch('kfp.Client.get_user_namespace', return_value='ns2')
     def test_list_recurring_runs_uses_user_namespace_when_not_provided(
         self, mock_get_user_namespace
