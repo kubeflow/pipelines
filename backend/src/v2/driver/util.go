@@ -209,6 +209,10 @@ func isConditionClause(arg string) bool {
 	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
 }
 
+func isConcatClause(arg string) bool {
+	return strings.HasPrefix(strings.TrimSpace(arg), `{"Concat":`)
+}
+
 func isInputPresent(inputName string, executorInput *pipelinespec.ExecutorInput) bool {
 	if value, ok := executorInput.GetInputs().GetParameterValues()[inputName]; ok {
 		if value == nil {
@@ -287,6 +291,16 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 	return resolveCommandLineValue(values, executorInput)
 }
 
+// resolveConcat parses the JSON before substituting input parameters, so
+// parameter values containing quotes cannot break the structure.
+func resolveConcat(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	var concat map[string]any
+	if err := json.Unmarshal([]byte(arg), &concat); err != nil {
+		return nil, fmt.Errorf("failed to parse Concat JSON: %w", err)
+	}
+	return resolveCommandLineValue(concat, executorInput)
+}
+
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var resolvedArgs []string
 	for _, arg := range args {
@@ -294,6 +308,14 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			resolved, err := resolveCondition(arg, executorInput)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+			continue
+		}
+		if isConcatClause(arg) {
+			resolved, err := resolveConcat(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve concat: %w", err)
 			}
 			resolvedArgs = append(resolvedArgs, resolved...)
 			continue
