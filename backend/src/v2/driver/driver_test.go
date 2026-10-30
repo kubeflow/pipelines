@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
+	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -93,6 +94,36 @@ func Test_resolveContainerCommandAndArgs_OptionalParameterDefault(t *testing.T) 
 			assert.Empty(t, executorInput.GetInputs().GetParameterValues())
 		})
 	}
+}
+
+func Test_resolveContainerCommandAndArgs_ConcatPlaceholderFixture(t *testing.T) {
+	pipelineSpec, _, err := util.LoadPipelineAndPlatformSpec(
+		"../../../../test_data/sdk_compiled_pipelines/valid/pipeline_with_concat_placeholder.yaml")
+	require.NoError(t, err)
+	deploymentConfig, err := compiler.GetDeploymentConfig(pipelineSpec)
+	require.NoError(t, err)
+	container := deploymentConfig.GetExecutors()["exec-component-with-concat-placeholder"].GetContainer()
+	require.NotNil(t, container)
+	componentSpec := pipelineSpec.GetComponents()["comp-component-with-concat-placeholder"]
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input_one": structpb.NewStringValue("one"),
+				"input_two": structpb.NewStringValue("two"),
+			},
+		},
+	}
+
+	actual, err := resolveContainerCommandAndArgs(container, componentSpec, executorInput)
+
+	require.NoError(t, err)
+	// The fixture's script checks that $0 is exactly 'one+two=three'.
+	assert.Equal(t, []string{
+		"sh",
+		"-ec",
+		`echo "$0" > /tmp/test && [[ "$0" == 'one+two=three' ]]`,
+		"one+two=three",
+	}, actual)
 }
 
 func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
