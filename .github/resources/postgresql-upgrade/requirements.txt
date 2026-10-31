@@ -1,4 +1,4 @@
 # MLMD 1.14 supports Python 3.10; this client only runs in isolated CI.
-ml-metadata==1.14.0
+ml-metadata==1.21.0
 numpy==1.26.4
 PyYAML==6.0.3
