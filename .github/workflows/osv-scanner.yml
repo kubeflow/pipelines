@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - master
+      - main
   schedule:
     # Every Friday at 19:39
     - cron: '39 19 * * 5'
   workflow_dispatch:
   workflow_run:
     workflows: ['Build and Push for master']
-    branches: [master]
+    branches: [master, main]
     types: [completed]
 
 # Keep older scans from uploading after a newer publication's scan. Selection
@@ -94,6 +95,7 @@ jobs:
       contents: read
       actions: read
     outputs:
+      branch: ${{ steps.producer.outputs.branch }}
       run-id: ${{ steps.producer.outputs.run-id }}
       run-attempt: ${{ steps.producer.outputs.run-attempt }}
       sha: ${{ steps.producer.outputs.sha }}
@@ -130,6 +132,7 @@ jobs:
     outputs:
       matrix: ${{ steps.images.outputs.matrix }}
       images: ${{ steps.images.outputs.images }}
+      branch: ${{ needs.resolve-images.outputs.branch }}
       sha: ${{ needs.resolve-images.outputs.sha }}
     steps:
       - name: Checkout code
@@ -278,12 +281,12 @@ jobs:
           persist-credentials: false
 
       - name: Upload image summary to GitHub Security
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
           sarif_file: image-summary.sarif
           sha: ${{ needs.discover-images.outputs.sha }}
-          ref: refs/heads/master
+          ref: refs/heads/${{ needs.discover-images.outputs.branch }}
           checkout_path: producer
           category: kubeflow-pipelines-osv-image-${{ matrix.category }}
 

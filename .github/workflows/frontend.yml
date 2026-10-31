@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     branches:
       - master
+      - main
     paths:
       - 'frontend/**'
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
