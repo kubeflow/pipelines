@@ -113,7 +113,12 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
         for event in ('pull_request', 'push', 'workflow_dispatch'):
             with self.subTest(event=event):
                 context = {
-                    'github': {'event_name': event},
+                    'github': {
+                        'event_name': event,
+                        'ref': 'refs/heads/main',
+                        'ref_name': 'main',
+                        'event': {'repository': {'default_branch': 'main'}},
+                    },
                     'needs': {
                         'build-tools': {'result': 'success'},
                         'compare-generated': {'result': 'success'},
@@ -138,6 +143,32 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
             'if',
             self.step_running(self.native_build, 'maintainer_tools_smoke.sh'),
         )
+
+    def test_only_current_default_can_publish_shared_development_tag(self):
+        for default in ('master', 'main'):
+            for branch in ('master', 'main', 'release-2.18', 'feature-tools'):
+                with self.subTest(default=default, branch=branch):
+                    context = {
+                        'github': {
+                            'event_name': 'workflow_dispatch',
+                            'ref': f'refs/heads/{branch}',
+                            'ref_name': branch,
+                            'event': {
+                                'repository': {'default_branch': default}
+                            },
+                        }
+                    }
+                    self.assertEqual(
+                        evaluate(self.build['if'], context),
+                        branch == default or branch not in ('master', 'main'),
+                    )
+                    if branch == default:
+                        self.assertEqual(
+                            evaluate(
+                                self.workflow['env']['IMAGE_TAG'], context
+                            ),
+                            'master',
+                        )
 
     def test_checkouts_do_not_leave_git_credentials(self):
         for job in self.jobs.values():

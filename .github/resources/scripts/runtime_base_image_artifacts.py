@@ -43,8 +43,12 @@ def fingerprint_files(paths: Iterable[Path]) -> str:
     return digest.hexdigest()
 
 
-def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
-    """Return the newest current-source or trusted-master producer run ID."""
+def select_producer_run_id(
+    payload: Any, source_sha: str, default_branch: str
+) -> Optional[int]:
+    """Return the newest current-source or trusted-default producer run ID."""
+    if default_branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     if not isinstance(payload, dict):
         raise ValueError('Expected an artifact API response object')
     artifacts = payload.get('artifacts')
@@ -64,12 +68,12 @@ def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
 
         is_current_source = workflow_run.get('head_sha') == source_sha
         head_repository_id = workflow_run.get('head_repository_id')
-        is_trusted_master = (
-            workflow_run.get('head_branch') == 'master'
+        is_trusted_default = (
+            workflow_run.get('head_branch') == default_branch
             and isinstance(head_repository_id, int)
             and head_repository_id == workflow_run.get('repository_id')
         )
-        if is_current_source or is_trusted_master:
+        if is_current_source or is_trusted_default:
             candidates.append(artifact)
 
     if not candidates:
@@ -97,6 +101,9 @@ def main() -> int:
 
     select_parser = subparsers.add_parser('select-producer')
     select_parser.add_argument('--source-sha', required=True)
+    select_parser.add_argument(
+        '--default-branch', required=True, choices=('master', 'main')
+    )
 
     args = parser.parse_args()
     try:
@@ -107,7 +114,7 @@ def main() -> int:
             print(fingerprint_files(args.paths))
         else:
             run_id = select_producer_run_id(
-                json.load(sys.stdin), args.source_sha
+                json.load(sys.stdin), args.source_sha, args.default_branch
             )
             if run_id is not None:
                 print(run_id)
