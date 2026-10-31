@@ -64,7 +64,7 @@ PYTHONPATH=.github/resources/scripts python -m unittest main_branch_readiness_te
 2. Rename `master` to `main`, verify the SHA is unchanged, and verify protections
    and open PR bases. Do not recreate a divergent `master` branch.
 3. Follow the preparation change's
-   [controlled bootstrap procedure](../agents/ci-passed.md#controlled-bootstrap-after-the-default-branch-rename).
+   [controlled bootstrap procedure](https://github.com/kubeflow/pipelines/blob/main/docs/agents/ci-passed.md#controlled-bootstrap-after-the-default-branch-rename).
    Use a separate minimal documentation-only PR. Historical merged records still
    naming `master` are not proof of arrival on `main`.
 4. After the bootstrap establishes authoritative `main` provenance, refresh this
