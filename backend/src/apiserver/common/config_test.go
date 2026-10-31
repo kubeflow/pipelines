@@ -389,6 +389,31 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			expected: "",
 		},
 		{
+			name:     "GetKFPRuntimeRPCAttemptTimeout defaults to empty string",
+			getter:   func() interface{} { return GetKFPRuntimeRPCAttemptTimeout() },
+			expected: "",
+		},
+		{
+			name:     "GetKFPRuntimeRPCTotalTimeout defaults to empty string",
+			getter:   func() interface{} { return GetKFPRuntimeRPCTotalTimeout() },
+			expected: "",
+		},
+		{
+			name:     "GetKFPRuntimeRPCMaxAttempts defaults to empty string",
+			getter:   func() interface{} { return GetKFPRuntimeRPCMaxAttempts() },
+			expected: "",
+		},
+		{
+			name:     "GetKFPRuntimeRPCInitialBackoff defaults to empty string",
+			getter:   func() interface{} { return GetKFPRuntimeRPCInitialBackoff() },
+			expected: "",
+		},
+		{
+			name:     "GetKFPRuntimeRPCMaxBackoff defaults to empty string",
+			getter:   func() interface{} { return GetKFPRuntimeRPCMaxBackoff() },
+			expected: "",
+		},
+		{
 			name:     "GetMetadataTLSEnabled defaults to false",
 			getter:   func() interface{} { return GetMetadataTLSEnabled() },
 			expected: false,
@@ -539,6 +564,41 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			envValue: "15s",
 			getter:   func() interface{} { return GetMLPipelineGRPCMinConnectTimeout() },
 			expected: "15s",
+		},
+		{
+			name:     "GetKFPRuntimeRPCAttemptTimeout with custom value",
+			envKey:   KFPRuntimeRPCAttemptTimeout,
+			envValue: "2s",
+			getter:   func() interface{} { return GetKFPRuntimeRPCAttemptTimeout() },
+			expected: "2s",
+		},
+		{
+			name:     "GetKFPRuntimeRPCTotalTimeout with custom value",
+			envKey:   KFPRuntimeRPCTotalTimeout,
+			envValue: "20s",
+			getter:   func() interface{} { return GetKFPRuntimeRPCTotalTimeout() },
+			expected: "20s",
+		},
+		{
+			name:     "GetKFPRuntimeRPCMaxAttempts with custom value",
+			envKey:   KFPRuntimeRPCMaxAttempts,
+			envValue: "5",
+			getter:   func() interface{} { return GetKFPRuntimeRPCMaxAttempts() },
+			expected: "5",
+		},
+		{
+			name:     "GetKFPRuntimeRPCInitialBackoff with custom value",
+			envKey:   KFPRuntimeRPCInitialBackoff,
+			envValue: "50ms",
+			getter:   func() interface{} { return GetKFPRuntimeRPCInitialBackoff() },
+			expected: "50ms",
+		},
+		{
+			name:     "GetKFPRuntimeRPCMaxBackoff with custom value",
+			envKey:   KFPRuntimeRPCMaxBackoff,
+			envValue: "2s",
+			getter:   func() interface{} { return GetKFPRuntimeRPCMaxBackoff() },
+			expected: "2s",
 		},
 		{
 			name:     "GetMetadataTLSEnabled with custom true",
