@@ -50,7 +50,13 @@ def image_refs(directory, source_sha, mode):
     if not re.fullmatch(r'[0-9a-f]{40}', source_sha):
         raise ValueError('source_sha must be a full commit SHA')
     refs = {}
+    provenance_files = {
+        f'{image}-arm64.provenance.json' for image in CI_IMAGES.values()
+    }
     for path in sorted(Path(directory).rglob('*.json')):
+        # The shared downloader already verified these archive receipts.
+        if mode == 'local' and path.name in provenance_files:
+            continue
         record = json.loads(path.read_text())
         image = record['image']
         name = image.rsplit('/', 1)[-1]
