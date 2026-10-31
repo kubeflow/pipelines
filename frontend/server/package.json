@@ -11,7 +11,7 @@
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "form-data": "^4.0.6",
-    "google-auth-library": "^9.15.1",
+    "google-auth-library": "^11.3.1",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^4.2.0",
     "js-yaml": "^5.5.0",
