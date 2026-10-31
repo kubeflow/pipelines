@@ -89,7 +89,7 @@ export interface RetryRunRequest {
 
 export interface TaskRequest {
   run_id: string;
-  task: V2PipelineTask;
+  task: Omit<V2PipelineTask, 'log_history'>;
 }
 
 export interface Task0Request {
@@ -100,7 +100,7 @@ export interface Task0Request {
 export interface Task1Request {
   run_id: string;
   task_id: string;
-  task: V2PipelineTask;
+  task: Omit<V2PipelineTask, 'log_history'>;
 }
 
 export interface TasksRequest {

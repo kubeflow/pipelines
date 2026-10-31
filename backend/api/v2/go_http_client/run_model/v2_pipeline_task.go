@@ -49,6 +49,11 @@ type V2PipelineTask struct {
 	// Read-only via REST; the persistence agent clears this field automatically on recovery.
 	LifecycleMessage string `json:"lifecycle_message,omitempty"`
 
+	// Output only. Prior executions archived by manual retries, oldest first.
+	// History begins when preservation is enabled; older retries are not backfilled.
+	// Read Only: true
+	LogHistory []*PipelineTaskLogHistory `json:"log_history,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
 
@@ -112,6 +117,10 @@ func (m *V2PipelineTask) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateInputs(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateLogHistory(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -221,6 +230,36 @@ func (m *V2PipelineTask) validateInputs(formats strfmt.Registry) error {
 
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *V2PipelineTask) validateLogHistory(formats strfmt.Registry) error {
+	if typeutils.IsZero(m.LogHistory) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.LogHistory); i++ {
+		if typeutils.IsZero(m.LogHistory[i]) { // not required
+			continue
+		}
+
+		if m.LogHistory[i] != nil {
+			if err := m.LogHistory[i].Validate(formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("log_history" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("log_history" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -413,6 +452,10 @@ func (m *V2PipelineTask) ContextValidate(ctx context.Context, formats strfmt.Reg
 		res = append(res, err)
 	}
 
+	if err := m.contextValidateLogHistory(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateOutputs(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -496,6 +539,39 @@ func (m *V2PipelineTask) contextValidateInputs(ctx context.Context, formats strf
 
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *V2PipelineTask) contextValidateLogHistory(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "log_history", "body", m.LogHistory); err != nil {
+		return err
+	}
+
+	for i := 0; i < len(m.LogHistory); i++ {
+
+		if m.LogHistory[i] != nil {
+
+			if typeutils.IsZero(m.LogHistory[i]) { // not required
+				return nil
+			}
+
+			if err := m.LogHistory[i].ContextValidate(ctx, formats); err != nil {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
+					return ve.ValidateName("log_history" + "." + strconv.Itoa(i))
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
+					return ce.ValidateName("log_history" + "." + strconv.Itoa(i))
+				}
+
+				return err
+			}
+		}
+
 	}
 
 	return nil

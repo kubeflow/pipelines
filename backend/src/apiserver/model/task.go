@@ -163,8 +163,9 @@ type Task struct {
 	LifecycleCategory *string `gorm:"column:LifecycleCategory; type:varchar(32); default:null;"`
 
 	// Transient fields populated during hydration (not stored in DB)
-	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
-	OutputArtifactsHydrated []TaskArtifactHydrated `gorm:"-"`
+	LogHistory              []*apiv2.PipelineTask_LogHistory `gorm:"-"`
+	InputArtifactsHydrated  []TaskArtifactHydrated           `gorm:"-"`
+	OutputArtifactsHydrated []TaskArtifactHydrated           `gorm:"-"`
 }
 
 func (t Task) ToString() string {
