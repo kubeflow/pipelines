@@ -343,6 +343,8 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     ignore:
+      # MLMD is frozen on this maintenance line; upgrades require explicit review.
+      - dependency-name: "ml-metadata"
       # The release SDK/platform and legacy runtime sources require protobuf <7.
       - dependency-name: "protobuf"
         versions: [">=7"]

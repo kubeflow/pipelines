@@ -60,6 +60,10 @@ class DependabotConfigTest(unittest.TestCase):
             flags=re.MULTILINE | re.DOTALL,
         )
 
+    def test_release_ml_metadata_updates_are_disabled(self):
+        pip = self.release_update("pip")
+        self.assertIn({"dependency-name": "ml-metadata"}, pip.get("ignore", []))
+
     def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
         docker = next(
             update
