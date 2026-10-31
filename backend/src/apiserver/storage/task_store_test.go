@@ -1910,3 +1910,88 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 		})
 	}
 }
+
+func createRunningTaskForStateTest(t *testing.T, taskStore *TaskStore) *model.Task {
+	t.Helper()
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:        "ns1",
+		RunUUID:          "run-1",
+		Pods:             createTaskPodsAsJSONSlice(createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR)),
+		Fingerprint:      "fp-state",
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		StateHistory:     model.JSONSlice{},
+		InputParameters:  model.JSONSlice{},
+		OutputParameters: model.JSONSlice{},
+		TypeAttrs:        map[string]interface{}{},
+	})
+	require.NoError(t, err)
+	return created
+}
+
+func TestUpdateTaskIfState_AppliesWhenStateMatches(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	metadata, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{Message: "main: OOMKilled (exit code 137)"})
+	require.NoError(t, err)
+	updated, applied, err := taskStore.UpdateTaskIfState(model.TaskStatus(apiv2.PipelineTask_RUNNING), &model.Task{
+		UUID:           created.UUID,
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec:  42,
+		StatusMetadata: metadata,
+	})
+	require.NoError(t, err)
+	assert.True(t, applied)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), updated.State)
+	assert.Equal(t, int64(42), updated.FinishedInSec)
+	assert.Equal(t, 2, len(updated.StateHistory), "RUNNING then FAILED")
+
+	statusMetadata, err := model.JSONDataToProtoMessage(updated.StatusMetadata, func() *apiv2.PipelineTask_StatusMetadata {
+		return &apiv2.PipelineTask_StatusMetadata{}
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "main: OOMKilled (exit code 137)", statusMetadata.GetMessage())
+}
+
+func TestUpdateTaskIfState_DoesNotOverwriteALaterState(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// The launcher reports success before the reconciler acts on older workflow evidence.
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		FinishedInSec: 10,
+	})
+	require.NoError(t, err)
+
+	updated, applied, err := taskStore.UpdateTaskIfState(model.TaskStatus(apiv2.PipelineTask_RUNNING), &model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 42,
+	})
+	require.NoError(t, err)
+	assert.False(t, applied)
+	assert.Nil(t, updated)
+
+	stored, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), stored.State)
+	assert.Equal(t, int64(10), stored.FinishedInSec)
+	assert.Equal(t, 2, len(stored.StateHistory), "no FAILED entry was added")
+}
+
+func TestUpdateTaskIfState_MissingTaskIsAnError(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	_, applied, err := taskStore.UpdateTaskIfState(model.TaskStatus(apiv2.PipelineTask_RUNNING), &model.Task{
+		UUID:  testUUID2,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	assert.Error(t, err)
+	assert.False(t, applied)
+}
