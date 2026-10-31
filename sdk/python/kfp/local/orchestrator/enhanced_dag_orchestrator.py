@@ -36,6 +36,9 @@ _PROMOTED_CHANNEL = re.compile(
 _CEL_CHANNEL = re.compile(r"inputs\.parameter_values\['([^']+)'\]")
 _DIRECT_CHANNEL = re.compile(r'pipelinechannel--[a-zA-Z0-9_\-]+')
 _CEL_NOT = re.compile(r'!\s*\(')
+# Escapes the compiler emits in CEL string literals. Other backslashes are kept
+# as written so conditions compiled before literals were escaped still match.
+_CEL_STRING_ESCAPES = {'\\': '\\', "'": "'", '"': '"', 'n': '\n', 'r': '\r'}
 
 
 @enum.unique
@@ -94,12 +97,8 @@ class ConditionEvaluator:
                 while index < len(condition) and condition[index] != quote:
                     if condition[index] == '\\' and index + 1 < len(condition):
                         next_char = condition[index + 1]
-                        if next_char == '\\':
-                            literal.extend(('\\', '\\'))
-                            index += 2
-                            continue
-                        if next_char == quote:
-                            literal.append(quote)
+                        if next_char in _CEL_STRING_ESCAPES:
+                            literal.append(_CEL_STRING_ESCAPES[next_char])
                             index += 2
                             continue
                     literal.append(condition[index])

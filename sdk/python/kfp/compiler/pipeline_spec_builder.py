@@ -1212,6 +1212,18 @@ def _update_task_spec_for_loop_group(
         )
 
 
+# A single-quoted CEL string cannot contain an unescaped quote, backslash or
+# line break.
+_CEL_STRING_LITERAL_ESCAPES = str.maketrans(
+    {'\\': '\\\\', "'": "\\'", '\n': '\\n', '\r': '\\r'}
+)
+
+
+def _to_cel_string_literal(value: str) -> str:
+    """Returns value as a single-quoted CEL string literal."""
+    return f"'{value.translate(_CEL_STRING_LITERAL_ESCAPES)}'"
+
+
 def _binary_operations_to_cel_conjunctive(
     operations: List[pipeline_channel.ConditionOperation],
 ) -> str:
@@ -1323,7 +1335,7 @@ def _single_binary_operation_to_cel_condition(
             if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
                 operand_value = f'int({operand_value})'
         elif isinstance(value_or_reference, str):
-            operand_value = f"'{value_or_reference}'"
+            operand_value = _to_cel_string_literal(value_or_reference)
             parameter_type = pipeline_spec_pb2.ParameterType.STRING
         elif isinstance(value_or_reference, bool):
             # Booleans need to be compared as 'true' or 'false' in CEL.
