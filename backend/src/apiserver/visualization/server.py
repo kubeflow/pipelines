@@ -123,6 +123,12 @@ class VisualizationHandler(tornado.web.RequestHandler):
 
     def post(self):
         """Generates visualization based on provided arguments."""
+        if os.getenv("ENABLE_PYTHON_VISUALIZATIONS") != "true":
+            return self.send_error(
+                503,
+                reason="Python visualizations are disabled. An administrator "
+                "must set ENABLE_PYTHON_VISUALIZATIONS=true to enable them.")
+
         # Validate arguments from request and return them as a dictionary.
         try:
             request_arguments = self.validate_and_get_arguments_from_body()
