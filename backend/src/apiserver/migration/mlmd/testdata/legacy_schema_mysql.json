@@ -1,0 +1,1008 @@
+{
+  "column_fields": [
+    "table",
+    "column",
+    "type",
+    "nullable",
+    "default"
+  ],
+  "columns": [
+    [
+      "db_statuses",
+      "HaveSamplesLoaded",
+      "tinyint(1)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "default_experiments",
+      "DefaultExperimentId",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "UUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "Name",
+      "varchar(128)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "Description",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "CreatedAtInSec",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "LastRunCreatedAtInSec",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "Namespace",
+      "varchar(63)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "experiments",
+      "StorageState",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "UUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "DisplayName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "Name",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "Namespace",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "ServiceAccount",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "Description",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "MaxConcurrency",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "NoCatchup",
+      "tinyint(1)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "CreatedAtInSec",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "UpdatedAtInSec",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "jobs",
+      "Enabled",
+      "tinyint(1)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "ExperimentUUID",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "CronScheduleStartTimeInSec",
+      "bigint",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "CronScheduleEndTimeInSec",
+      "bigint",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "Schedule",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PeriodicScheduleStartTimeInSec",
+      "bigint",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PeriodicScheduleEndTimeInSec",
+      "bigint",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "IntervalSecond",
+      "bigint",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PipelineId",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PipelineVersionId",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PipelineName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PipelineSpecManifest",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "WorkflowSpecManifest",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "Parameters",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "RuntimeParameters",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PipelineRoot",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "Conditions",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "jobs",
+      "PluginsInput",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_tags",
+      "PipelineId",
+      "varchar(64)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_tags",
+      "TagKey",
+      "varchar(63)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_tags",
+      "TagValue",
+      "varchar(63)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_version_tags",
+      "PipelineVersionId",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_version_tags",
+      "TagKey",
+      "varchar(63)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_version_tags",
+      "TagValue",
+      "varchar(63)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "UUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "CreatedAtInSec",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "Name",
+      "varchar(127)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "DisplayName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "Parameters",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "PipelineId",
+      "varchar(64)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "Status",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "CodeSourceUrl",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "Description",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "PipelineSpec",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipeline_versions",
+      "PipelineSpecURI",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "UUID",
+      "varchar(64)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "CreatedAtInSec",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "Name",
+      "varchar(128)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "DisplayName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "Description",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "Parameters",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "Status",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "DefaultVersionId",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "pipelines",
+      "Namespace",
+      "varchar(63)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "ResourceUUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "ResourceType",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "ReferenceUUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "ReferenceName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "ReferenceType",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "Relationship",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "resource_references",
+      "Payload",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "UUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "DisplayName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "Name",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "Description",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "Namespace",
+      "varchar(63)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "ExperimentUUID",
+      "varchar(64)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "JobUUID",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "StorageState",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "ServiceAccount",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineId",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineVersionId",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineSpecManifest",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "WorkflowSpecManifest",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "Parameters",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "RuntimeParameters",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineRoot",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "CreatedAtInSec",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "ScheduledAtInSec",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "run_details",
+      "FinishedAtInSec",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "run_details",
+      "Conditions",
+      "varchar(125)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "State",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "StateHistory",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PluginsInput",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PluginsOutput",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineRuntimeManifest",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "WorkflowRuntimeManifest",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_details",
+      "PipelineContextId",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "run_details",
+      "PipelineRunContextId",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "run_metrics",
+      "RunUUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_metrics",
+      "NodeID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_metrics",
+      "Name",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_metrics",
+      "NumberValue",
+      "double",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_metrics",
+      "Format",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "run_metrics",
+      "Payload",
+      "longtext",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "UUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "Namespace",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "PipelineName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "RunUUID",
+      "varchar(191)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "PodName",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "MLMDExecutionID",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "CreatedTimestamp",
+      "bigint",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "StartedTimestamp",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "tasks",
+      "FinishedTimestamp",
+      "bigint",
+      "YES",
+      "0"
+    ],
+    [
+      "tasks",
+      "Fingerprint",
+      "varchar(255)",
+      "NO",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "Name",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "ParentTaskUUID",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "State",
+      "varchar(255)",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "StateHistory",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "MLMDInputs",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "MLMDOutputs",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "ChildrenPods",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ],
+    [
+      "tasks",
+      "Payload",
+      "longtext",
+      "YES",
+      "\u003cNULL\u003e"
+    ]
+  ],
+  "database_version": "8.0.46",
+  "driver": "mysql",
+  "seed_tasks": [
+    {
+      "UUID": "33333333-3333-4333-8333-333333333333",
+      "Namespace": "migration-fixture",
+      "PipelineName": "",
+      "RunID": "11111111-1111-4111-8111-111111111111",
+      "Run": {
+        "UUID": "",
+        "DisplayName": "",
+        "K8SName": "",
+        "Description": "",
+        "Namespace": "",
+        "ExperimentId": "",
+        "RecurringRunId": "",
+        "StorageState": "",
+        "ServiceAccount": "",
+        "Metrics": null,
+        "ResourceReferences": null,
+        "PipelineId": "",
+        "PipelineVersionId": "",
+        "PipelineName": "",
+        "PipelineSpecManifest": "",
+        "WorkflowSpecManifest": "",
+        "Parameters": "",
+        "PipelineRoot": "",
+        "CreatedAtInSec": 0,
+        "ScheduledAtInSec": 0,
+        "FinishedAtInSec": 0,
+        "Conditions": "",
+        "State": "",
+        "StateHistoryString": "",
+        "StateHistory": null,
+        "PluginsInputString": null,
+        "PluginsOutputString": null,
+        "PipelineRuntimeManifest": "",
+        "WorkflowRuntimeManifest": "",
+        "PipelineContextId": 0,
+        "PipelineRunContextId": 0,
+        "TaskDetails": null
+      },
+      "PodName": "consumer-pod",
+      "MLMDExecutionID": "7",
+      "CreatedTimestamp": 1700000000,
+      "StartedTimestamp": 1700000001,
+      "FinishedTimestamp": 1700000002,
+      "Fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+      "Name": "consumer",
+      "ParentTaskId": "",
+      "State": "SUCCEEDED",
+      "StateHistoryString": "",
+      "MLMDInputs": "",
+      "MLMDOutputs": "",
+      "ChildrenPodsString": "",
+      "StateHistory": null,
+      "ChildrenPods": null,
+      "Payload": ""
+    },
+    {
+      "UUID": "44444444-4444-4444-8444-444444444444",
+      "Namespace": "migration-fixture",
+      "PipelineName": "",
+      "RunID": "11111111-1111-4111-8111-111111111111",
+      "Run": {
+        "UUID": "",
+        "DisplayName": "",
+        "K8SName": "",
+        "Description": "",
+        "Namespace": "",
+        "ExperimentId": "",
+        "RecurringRunId": "",
+        "StorageState": "",
+        "ServiceAccount": "",
+        "Metrics": null,
+        "ResourceReferences": null,
+        "PipelineId": "",
+        "PipelineVersionId": "",
+        "PipelineName": "",
+        "PipelineSpecManifest": "",
+        "WorkflowSpecManifest": "",
+        "Parameters": "",
+        "PipelineRoot": "",
+        "CreatedAtInSec": 0,
+        "ScheduledAtInSec": 0,
+        "FinishedAtInSec": 0,
+        "Conditions": "",
+        "State": "",
+        "StateHistoryString": "",
+        "StateHistory": null,
+        "PluginsInputString": null,
+        "PluginsOutputString": null,
+        "PipelineRuntimeManifest": "",
+        "WorkflowRuntimeManifest": "",
+        "PipelineContextId": 0,
+        "PipelineRunContextId": 0,
+        "TaskDetails": null
+      },
+      "PodName": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+      "MLMDExecutionID": "13",
+      "CreatedTimestamp": 1700000000,
+      "StartedTimestamp": 1700000001,
+      "FinishedTimestamp": 1700000002,
+      "Fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+      "Name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+      "ParentTaskId": "",
+      "State": "SUCCEEDED",
+      "StateHistoryString": "",
+      "MLMDInputs": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+      "MLMDOutputs": "",
+      "ChildrenPodsString": "",
+      "StateHistory": null,
+      "ChildrenPods": null,
+      "Payload": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "source_commit": "a0733cb51b0484a6050cafee989ffe3312f808ad",
+  "source_version": "2.17.3",
+  "statements": [
+    "CREATE TABLE `db_statuses` (`HaveSamplesLoaded` boolean NOT NULL,PRIMARY KEY (`HaveSamplesLoaded`))",
+    "CREATE TABLE `default_experiments` (`DefaultExperimentId` varchar(191) NOT NULL,PRIMARY KEY (`DefaultExperimentId`))",
+    "CREATE TABLE `experiments` (`UUID` varchar(191) NOT NULL,`Name` varchar(128) NOT NULL,`Description` varchar(255) NOT NULL,`CreatedAtInSec` bigint NOT NULL,`LastRunCreatedAtInSec` bigint NOT NULL,`Namespace` varchar(63) NOT NULL,`StorageState` varchar(255) NOT NULL,PRIMARY KEY (`UUID`),UNIQUE INDEX `idx_name_namespace` (`Name`,`Namespace`))",
+    "CREATE TABLE `pipelines` (`UUID` varchar(64) NOT NULL,`CreatedAtInSec` bigint NOT NULL,`Name` varchar(128) NOT NULL,`DisplayName` varchar(255) NOT NULL,`Description` LONGTEXT NOT NULL,`Parameters` LONGTEXT,`Status` varchar(255) NOT NULL,`DefaultVersionId` varchar(255),`Namespace` varchar(63),PRIMARY KEY (`UUID`),UNIQUE INDEX `namespace_name` (`Name`,`Namespace`))",
+    "CREATE TABLE `pipeline_versions` (`UUID` varchar(191) NOT NULL,`CreatedAtInSec` bigint NOT NULL,`Name` varchar(127) NOT NULL,`DisplayName` varchar(255) NOT NULL,`Parameters` LONGTEXT NOT NULL,`PipelineId` varchar(64) NOT NULL,`Status` varchar(255) NOT NULL,`CodeSourceUrl` varchar(255),`Description` LONGTEXT,`PipelineSpec` LONGTEXT NOT NULL,`PipelineSpecURI` LONGTEXT NOT NULL,PRIMARY KEY (`UUID`),INDEX `idx_pipeline_versions_CreatedAtInSec` (`CreatedAtInSec`),UNIQUE INDEX `idx_pipelineid_name` (`Name`,`PipelineId`),INDEX `idx_pipeline_versions_PipelineId` (`PipelineId`),CONSTRAINT `pipeline_versions_PipelineId_pipelines_UUID_foreign` FOREIGN KEY (`PipelineId`) REFERENCES `pipelines`(`UUID`) ON DELETE CASCADE ON UPDATE CASCADE)",
+    "CREATE TABLE `pipeline_tags` (`PipelineId` varchar(64) NOT NULL,`TagKey` varchar(63) NOT NULL,`TagValue` varchar(63) NOT NULL,PRIMARY KEY (`PipelineId`,`TagKey`),INDEX `idx_pipeline_tags_key_value_id` (`TagKey`,`TagValue`,`PipelineId`),CONSTRAINT `pipeline_tags_PipelineId_pipelines_UUID_foreign` FOREIGN KEY (`PipelineId`) REFERENCES `pipelines`(`UUID`) ON DELETE CASCADE ON UPDATE CASCADE)",
+    "CREATE TABLE `pipeline_version_tags` (`PipelineVersionId` varchar(191) NOT NULL,`TagKey` varchar(63) NOT NULL,`TagValue` varchar(63) NOT NULL,PRIMARY KEY (`PipelineVersionId`,`TagKey`),INDEX `idx_pv_tags_key_value_id` (`TagKey`,`TagValue`,`PipelineVersionId`),CONSTRAINT `pv_tags_PipelineVersionId_pv_UUID_fk` FOREIGN KEY (`PipelineVersionId`) REFERENCES `pipeline_versions`(`UUID`) ON DELETE CASCADE ON UPDATE CASCADE)",
+    "CREATE TABLE `jobs` (`UUID` varchar(191) NOT NULL,`DisplayName` varchar(255) NOT NULL,`Name` varchar(255) NOT NULL,`Namespace` varchar(255) NOT NULL,`ServiceAccount` varchar(255) NOT NULL,`Description` varchar(255) NOT NULL,`MaxConcurrency` bigint NOT NULL,`NoCatchup` boolean NOT NULL,`CreatedAtInSec` bigint NOT NULL,`UpdatedAtInSec` bigint DEFAULT 0,`Enabled` boolean NOT NULL,`ExperimentUUID` varchar(255) NOT NULL,`CronScheduleStartTimeInSec` bigint,`CronScheduleEndTimeInSec` bigint,`Schedule` varchar(255),`PeriodicScheduleStartTimeInSec` bigint,`PeriodicScheduleEndTimeInSec` bigint,`IntervalSecond` bigint,`PipelineId` varchar(255) NOT NULL,`PipelineVersionId` varchar(255) DEFAULT null,`PipelineName` varchar(255) NOT NULL,`PipelineSpecManifest` LONGTEXT,`WorkflowSpecManifest` LONGTEXT,`Parameters` LONGTEXT,`RuntimeParameters` LONGTEXT,`PipelineRoot` LONGTEXT,`Conditions` varchar(255) NOT NULL,`PluginsInput` LONGTEXT DEFAULT null,PRIMARY KEY (`UUID`))",
+    "CREATE TABLE `run_details` (`UUID` varchar(191) NOT NULL,`DisplayName` varchar(255) NOT NULL,`Name` varchar(255) NOT NULL,`Description` varchar(255) NOT NULL,`Namespace` varchar(63) NOT NULL,`ExperimentUUID` varchar(64) NOT NULL,`JobUUID` varchar(255) DEFAULT null,`StorageState` varchar(255) NOT NULL,`ServiceAccount` varchar(255) NOT NULL,`PipelineId` varchar(255) NOT NULL,`PipelineVersionId` varchar(255) DEFAULT null,`PipelineName` varchar(255) NOT NULL,`PipelineSpecManifest` LONGTEXT,`WorkflowSpecManifest` LONGTEXT,`Parameters` LONGTEXT,`RuntimeParameters` LONGTEXT,`PipelineRoot` LONGTEXT,`CreatedAtInSec` bigint NOT NULL,`ScheduledAtInSec` bigint DEFAULT 0,`FinishedAtInSec` bigint DEFAULT 0,`Conditions` varchar(125) NOT NULL,`State` varchar(255) DEFAULT null,`StateHistory` LONGTEXT DEFAULT null,`PluginsInput` LONGTEXT DEFAULT null,`PluginsOutput` LONGTEXT DEFAULT null,`PipelineRuntimeManifest` LONGTEXT NOT NULL,`WorkflowRuntimeManifest` LONGTEXT NOT NULL,`PipelineContextId` bigint DEFAULT 0,`PipelineRunContextId` bigint DEFAULT 0,PRIMARY KEY (`UUID`),INDEX `namespace_createatinsec` (`Namespace`,`CreatedAtInSec`),INDEX `namespace_conditions_finishedatinsec` (`Namespace`,`Conditions`,`FinishedAtInSec`),INDEX `experimentuuid_createatinsec` (`ExperimentUUID`,`CreatedAtInSec`),INDEX `experimentuuid_conditions_finishedatinsec` (`ExperimentUUID`,`Conditions`,`FinishedAtInSec`))",
+    "CREATE TABLE `run_metrics` (`RunUUID` varchar(191) NOT NULL,`NodeID` varchar(191) NOT NULL,`Name` varchar(191) NOT NULL,`NumberValue` double,`Format` varchar(255),`Payload` LONGTEXT NOT NULL,PRIMARY KEY (`RunUUID`,`NodeID`,`Name`),CONSTRAINT `run_metrics_RunUUID_run_details_UUID_foreign` FOREIGN KEY (`RunUUID`) REFERENCES `run_details`(`UUID`) ON DELETE CASCADE ON UPDATE CASCADE)",
+    "CREATE TABLE `tasks` (`UUID` varchar(191) NOT NULL,`Namespace` varchar(255) NOT NULL,`PipelineName` varchar(255) NOT NULL,`RunUUID` varchar(191) NOT NULL,`PodName` varchar(255) NOT NULL,`MLMDExecutionID` varchar(255) NOT NULL,`CreatedTimestamp` bigint NOT NULL,`StartedTimestamp` bigint DEFAULT 0,`FinishedTimestamp` bigint DEFAULT 0,`Fingerprint` varchar(255) NOT NULL,`Name` varchar(255) DEFAULT null,`ParentTaskUUID` varchar(255) DEFAULT null,`State` varchar(255) DEFAULT null,`StateHistory` LONGTEXT DEFAULT null,`MLMDInputs` LONGTEXT DEFAULT null,`MLMDOutputs` LONGTEXT DEFAULT null,`ChildrenPods` LONGTEXT DEFAULT null,`Payload` LONGTEXT DEFAULT null,PRIMARY KEY (`UUID`),INDEX `tasks_RunUUID_run_details_UUID_foreign` (`RunUUID`),CONSTRAINT `tasks_RunUUID_run_details_UUID_foreign` FOREIGN KEY (`RunUUID`) REFERENCES `run_details`(`UUID`) ON DELETE CASCADE ON UPDATE CASCADE)",
+    "CREATE TABLE `resource_references` (`ResourceUUID` varchar(191) NOT NULL,`ResourceType` varchar(255) NOT NULL,`ReferenceUUID` varchar(191) NOT NULL,`ReferenceName` varchar(255) NOT NULL,`ReferenceType` varchar(255) NOT NULL,`Relationship` varchar(255) NOT NULL,`Payload` LONGTEXT NOT NULL,PRIMARY KEY (`ResourceUUID`,`ResourceType`,`ReferenceType`),INDEX `referencefilter` (`ResourceType`,`ReferenceUUID`,`ReferenceType`))",
+    "INSERT INTO `experiments` (`UUID`,`Name`,`Description`,`CreatedAtInSec`,`LastRunCreatedAtInSec`,`Namespace`,`StorageState`) VALUES ('fixture-experiment','Default','',0,0,'migration-fixture','')",
+    "INSERT INTO `run_details` (`UUID`,`DisplayName`,`Name`,`Description`,`Namespace`,`ExperimentUUID`,`StorageState`,`ServiceAccount`,`PipelineId`,`PipelineName`,`PipelineSpecManifest`,`WorkflowSpecManifest`,`Parameters`,`RuntimeParameters`,`PipelineRoot`,`CreatedAtInSec`,`ScheduledAtInSec`,`FinishedAtInSec`,`Conditions`,`PipelineRuntimeManifest`,`WorkflowRuntimeManifest`,`PipelineContextId`,`PipelineRunContextId`) VALUES ('11111111-1111-4111-8111-111111111111','','','','migration-fixture','fixture-experiment','','','','','','','','','',0,0,0,'','','',0,0)",
+    "INSERT INTO `tasks` (`UUID`,`Namespace`,`PipelineName`,`RunUUID`,`PodName`,`MLMDExecutionID`,`CreatedTimestamp`,`StartedTimestamp`,`FinishedTimestamp`,`Fingerprint`,`Name`,`State`) VALUES ('33333333-3333-4333-8333-333333333333','migration-fixture','','11111111-1111-4111-8111-111111111111','consumer-pod','7',1700000000,1700000001,1700000002,'729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb','consumer','SUCCEEDED')",
+    "INSERT INTO `tasks` (`UUID`,`Namespace`,`PipelineName`,`RunUUID`,`PodName`,`MLMDExecutionID`,`CreatedTimestamp`,`StartedTimestamp`,`FinishedTimestamp`,`Fingerprint`,`Name`,`State`,`MLMDInputs`,`Payload`) VALUES ('44444444-4444-4444-8444-444444444444','migration-fixture','','11111111-1111-4111-8111-111111111111','pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp','13',1700000000,1700000001,1700000002,'729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb','nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn','SUCCEEDED','iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii','dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd')"
+  ]
+}
