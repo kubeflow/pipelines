@@ -1,6 +1,11 @@
 # After any updates to this file, requirements.txt should be regenerated running
 # the following in this folder:
-# pip-compile --no-emit-index-url requirements.in > requirements.txt
+# uv tool run --from uv==0.13.5 uv pip compile requirements.in -o requirements.txt \
+#   --python-version 3.9 --universal --no-strip-extras --annotation-style split
+
+# Use universal resolution to preserve Python 3.9 support. Dependabot treats
+# pip-compile's Python 3.9 header as an updater interpreter pin, which its
+# hosted environment no longer supports. Keep setup.py and Python 3.9 CI intact.
 
 # Typically we can't support multiple major versions of protobuf
 # The runtime protobuf package MUST be aligned with the protobuf
