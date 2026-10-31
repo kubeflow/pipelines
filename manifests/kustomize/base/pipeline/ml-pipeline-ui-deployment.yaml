@@ -70,7 +70,7 @@ spec:
                 name: mlpipeline-minio-artifact
                 key: secretkey
           - name: ALLOW_CUSTOM_VISUALIZATIONS
-            value: "true"
+            value: "false"
           - name: FRONTEND_SERVER_NAMESPACE
             valueFrom:
               fieldRef:

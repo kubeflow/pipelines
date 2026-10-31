@@ -1,5 +1,10 @@
 # Python based visualizations guideline
 
+Generation is disabled by default. Set `ENABLE_PYTHON_VISUALIZATIONS=true` on
+both the API server and Python service only after reviewing the
+[operator opt-in and isolation guidance](../../../../docs/operator-guides/upgrade-2.18.md#legacy-python-visualization-compatibility).
+The `ALLOW_CUSTOM_VISUALIZATIONS` UI setting does not enable the backend.
+
 This document describes the architecture of python based visualizations,
 development guidelines to contribute new predefined visualizations to the
 Kubeflow Pipelines project, and current limitations. Python based visualizations
