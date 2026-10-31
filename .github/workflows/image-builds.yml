@@ -235,6 +235,20 @@ jobs:
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
+      # Shell buildx needs the runtime cache credentials that JavaScript actions
+      # receive automatically. Never pass the token as a build argument.
+      - name: Configure frontend build cache access
+        if: ${{ matrix.image == 'frontend' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            for (const name of ['ACTIONS_RUNTIME_TOKEN', 'ACTIONS_RESULTS_URL']) {
+              const value = process.env[name];
+              if (!value) throw new Error(`Missing ${name} for the build cache`);
+              if (name === 'ACTIONS_RUNTIME_TOKEN') core.setSecret(value);
+              core.exportVariable(name, value);
+            }
+
       - name: Build frontend with bounded recovery
         if: ${{ matrix.image == 'frontend' }}
         id: frontend-image
@@ -249,6 +263,8 @@ jobs:
           --platform "linux/$TARGET_ARCH"
           --node-version "$NODE_VERSION"
           --output "$ARTIFACTS_PATH/$ARTIFACT_NAME.tar"
+          --cache-from "type=gha,version=2,scope=kfp-image-frontend-${{ inputs.architecture }},timeout=60s"
+          --cache-to "type=gha,version=2,scope=kfp-image-frontend-${{ inputs.architecture }},mode=max,timeout=120s,ignore-error=true"
 
       - name: Build and save Docker image
         if: ${{ matrix.image != 'frontend' }}
@@ -264,6 +280,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: false
           platforms: linux/${{ inputs.architecture }}
+          cache-from: type=gha,version=2,scope=kfp-image-${{ matrix.image }}-${{ inputs.architecture }},timeout=60s
+          cache-to: type=gha,version=2,scope=kfp-image-${{ matrix.image }}-${{ inputs.architecture }},mode=max,timeout=120s,ignore-error=true
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: |

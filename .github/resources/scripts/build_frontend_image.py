@@ -72,6 +72,8 @@ def build(
     grace=10,
     platform=None,
     additional_tags=(),
+    cache_from=None,
+    cache_to=None,
 ):
     output = Path(output)
     partial = output.with_name(output.name + '.partial')
@@ -117,6 +119,11 @@ def build(
                     command.extend(['--tag', additional_tag])
                 if attempt == 2:
                     command.append('--no-cache')
+                else:
+                    if cache_from:
+                        command.extend(['--cache-from', cache_from])
+                    if cache_to:
+                        command.extend(['--cache-to', cache_to])
                 status = run(
                     command + [context], deadline - time.monotonic(), grace
                 )
@@ -219,6 +226,8 @@ def main():
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--platform', required=True)
     parser.add_argument('--additional-tag', action='append', default=[])
+    parser.add_argument('--cache-from')
+    parser.add_argument('--cache-to')
     args = parser.parse_args()
 
     def cancelled(_signum, _frame):
@@ -234,6 +243,8 @@ def main():
             args.output,
             platform=args.platform,
             additional_tags=args.additional_tag,
+            cache_from=args.cache_from,
+            cache_to=args.cache_to,
         )
     except KeyboardInterrupt:
         return 130

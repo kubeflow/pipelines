@@ -72,7 +72,9 @@ class FrontendImageRetryTest(unittest.TestCase):
                 'ARTIFACTS_PATH': 'images_123',
                 'ARTIFACT_NAME': artifact,
             }
-            command = self.frontend['run']
+            command = self.frontend['run'].replace(
+                '${{ inputs.architecture }}', architecture
+            )
             for name, value in values.items():
                 command = command.replace('$' + name, value)
             arguments = shlex.split(command)
@@ -99,6 +101,14 @@ class FrontendImageRetryTest(unittest.TestCase):
                 f'images_123/{artifact}.tar',
                 platform=f'linux/{architecture}',
                 additional_tags=['kind-registry:5000/frontend:ci'],
+                cache_from=(
+                    f'type=gha,version=2,scope=kfp-image-frontend-{architecture},'
+                    'timeout=60s'
+                ),
+                cache_to=(
+                    f'type=gha,version=2,scope=kfp-image-frontend-{architecture},'
+                    'mode=max,timeout=120s,ignore-error=true'
+                ),
             )
 
     def test_only_successful_builds_publish_and_record_arm_identity(self):
