@@ -105,6 +105,7 @@ func (f *fakeRunStore) ClaimRunForRetry(_ string, _ bool) (string, string, int64
 func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64, _ int64) error {
 	return nil
 }
+func (f *fakeRunStore) HydrateTasksForRuns(_ []*model.Run) error { return nil }
 
 func resetGCConfig() {
 	viper.Set(common.RunsRetentionTime, "")

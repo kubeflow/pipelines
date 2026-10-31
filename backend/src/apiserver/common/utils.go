@@ -15,11 +15,13 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
 
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -151,4 +153,54 @@ func CustomMarshaler() *runtime.JSONPb {
 			DiscardUnknown: false,
 		},
 	}
+}
+
+type contextKey string
+
+const (
+	AuthoritativeFinalStatusContextKey contextKey = "kfp-authoritative-final-status"
+)
+
+// WithAuthoritativeRequirement returns a context indicating that authoritative final status is required,
+// setting both the in-process context value and outgoing gRPC metadata.
+func WithAuthoritativeRequirement(ctx context.Context) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx = context.WithValue(ctx, AuthoritativeFinalStatusContextKey, true)
+	return metadata.AppendToOutgoingContext(ctx, AuthoritativeFinalStatusMetadataKey, "true")
+}
+
+// IsAuthoritativeFinalStatusRequired reports whether the context requires authoritative final status.
+func IsAuthoritativeFinalStatusRequired(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	if v, ok := ctx.Value(AuthoritativeFinalStatusContextKey).(bool); ok && v {
+		return true
+	}
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if isHeaderTrue(md, AuthoritativeFinalStatusMetadataKey) ||
+			isHeaderTrue(md, "x-kfp-authoritative") ||
+			isHeaderTrue(md, "x-kfp-authoritative-sync") {
+			return true
+		}
+	}
+	if md, ok := metadata.FromOutgoingContext(ctx); ok {
+		if isHeaderTrue(md, AuthoritativeFinalStatusMetadataKey) ||
+			isHeaderTrue(md, "x-kfp-authoritative") ||
+			isHeaderTrue(md, "x-kfp-authoritative-sync") {
+			return true
+		}
+	}
+	return false
+}
+
+func isHeaderTrue(md metadata.MD, key string) bool {
+	for _, val := range md.Get(key) {
+		if strings.EqualFold(val, "true") || val == "1" {
+			return true
+		}
+	}
+	return false
 }
