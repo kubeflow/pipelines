@@ -424,3 +424,5 @@ dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.
 
 <!-- Fork benchmark: unchanged full native suite baseline. -->
+
+<!-- Freeze the control event for paired CI timing. -->
