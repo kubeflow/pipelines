@@ -169,7 +169,7 @@ var _ = Describe("Legacy API coverage migration", Label(constants.APIServerTests
 	It("imports YAML and ZIP package URLs and preserves version metadata", Label("LegacyAPIURLImports"), func() {
 		namespace := testutil.GetNamespace()
 		name, display, description := "url-"+randomName, "URL pipeline "+randomName, "URL imported pipeline"
-		pipelineURL, err := testutil.GetRepoBranchURLRAW(*config.REPO_NAME, *config.BRANCH_NAME, "backend/test/v2/resources/sequential-v2.yaml")
+		pipelineURL, err := testutil.GetRepoBranchURLRAW(*config.REPO_NAME, *config.BranchName, "backend/test/v2/resources/sequential-v2.yaml")
 		Expect(err).NotTo(HaveOccurred())
 		pipeline, err := pipelineClient.CreatePipelineAndVersion(&pipelineparams.PipelineServiceCreatePipelineAndVersionParams{
 			Body: &pipeline_model.V2beta1CreatePipelineAndVersionRequest{
@@ -195,7 +195,7 @@ var _ = Describe("Legacy API coverage migration", Label(constants.APIServerTests
 			g.Expect(versions[0].PackageURL.PipelineURL).To(Equal(pipelineURL))
 		}, informerSyncTimeout, informerSyncInterval).Should(Succeed())
 
-		zipURL, err := testutil.GetRepoBranchURLRAW(*config.REPO_NAME, *config.BRANCH_NAME, "backend/test/v2/resources/arguments_parameters.zip")
+		zipURL, err := testutil.GetRepoBranchURLRAW(*config.REPO_NAME, *config.BranchName, "backend/test/v2/resources/arguments_parameters.zip")
 		Expect(err).NotTo(HaveOccurred())
 		version, err := pipelineClient.CreatePipelineVersion(&pipelineparams.PipelineServiceCreatePipelineVersionParams{
 			PipelineID:      pipeline.PipelineID,

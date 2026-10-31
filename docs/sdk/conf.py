@@ -97,7 +97,7 @@ html_theme_options = {
     'repo_url': 'https://github.com/kubeflow/pipelines/',
     'repo_name': 'pipelines',
     'repo_type': 'github',
-    'edit_uri': 'blob/master/docs',
+    'edit_uri': 'blob/main/docs',
     'globaltoc_collapse': False,
     'features': [
         'navigation.expand',
@@ -137,7 +137,7 @@ html_theme_options = {
     ],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/main/docs/sdk/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
