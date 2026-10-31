@@ -10,6 +10,10 @@ on:
         description: 'Publish revision- and attempt-bound artifacts for shared consumers'
         type: boolean
         default: false
+      cache-write:
+        description: 'Export build caches from the designated default-branch producer'
+        type: boolean
+        default: false
     outputs:
       IMAGE_PATH:
         description: 'A description of my output'
@@ -196,6 +200,9 @@ jobs:
     env:
       ARTIFACT_NAME: "${{ matrix.image }}${{ inputs.architecture == 'arm64' && '-arm64' || '' }}"
       TARGET_ARCH: ${{ inputs.architecture }}
+      # PRs and duplicate callers only restore. A single default-branch producer avoids
+      # filling the shared repository cache quota with redundant image layers.
+      IMAGE_CACHE_TO: ${{ inputs.cache-write && format('type=gha,version=2,scope=kfp-image-{0}-{1},mode=max,timeout=120s,ignore-error=true', matrix.image, inputs.architecture) || '' }}
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
@@ -264,7 +271,7 @@ jobs:
           --node-version "$NODE_VERSION"
           --output "$ARTIFACTS_PATH/$ARTIFACT_NAME.tar"
           --cache-from "type=gha,version=2,scope=kfp-image-frontend-${{ inputs.architecture }},timeout=60s"
-          --cache-to "type=gha,version=2,scope=kfp-image-frontend-${{ inputs.architecture }},mode=max,timeout=120s,ignore-error=true"
+          ${IMAGE_CACHE_TO:+--cache-to "$IMAGE_CACHE_TO"}
 
       - name: Build and save Docker image
         if: ${{ matrix.image != 'frontend' }}
@@ -281,7 +288,7 @@ jobs:
           push: false
           platforms: linux/${{ inputs.architecture }}
           cache-from: type=gha,version=2,scope=kfp-image-${{ matrix.image }}-${{ inputs.architecture }},timeout=60s
-          cache-to: type=gha,version=2,scope=kfp-image-${{ matrix.image }}-${{ inputs.architecture }},mode=max,timeout=120s,ignore-error=true
+          cache-to: ${{ env.IMAGE_CACHE_TO }}
           build-args: |
             NODE_VERSION=${{ steps.frontend_node.outputs.version }}
           tags: |

@@ -15,7 +15,11 @@
 """Verify frontend image timeouts leave room for recovery and artifact
 upload."""
 
-import shlex
+import itertools
+import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -59,34 +63,54 @@ class FrontendImageRetryTest(unittest.TestCase):
     def test_workflow_arguments_reach_helper_with_native_platform_and_tags(
         self,
     ):
-        # Exercise the actual shell argument wiring and CLI parser together.
-        for architecture in ('amd64', 'arm64'):
+        # Execute shell expansion so read-only callers must omit --cache-to.
+        for architecture, cache_write in itertools.product(
+            ('amd64', 'arm64'), (False, True)
+        ):
             artifact = 'frontend' + (
                 '-arm64' if architecture == 'arm64' else ''
             )
+            cache_to = (
+                (
+                    f'type=gha,version=2,scope=kfp-image-frontend-{architecture},'
+                    'mode=max,timeout=120s,ignore-error=true'
+                )
+                if cache_write
+                else ''
+            )
             values = {
+                **os.environ,
                 'REGISTRY': 'kind-registry:5000',
                 'IMAGE_TAG': 'latest',
                 'TARGET_ARCH': architecture,
                 'NODE_VERSION': '24',
                 'ARTIFACTS_PATH': 'images_123',
                 'ARTIFACT_NAME': artifact,
+                'IMAGE_CACHE_TO': cache_to,
+                'TEST_PYTHON': sys.executable,
             }
             command = self.frontend['run'].replace(
                 '${{ inputs.architecture }}', architecture
             )
-            for name, value in values.items():
-                command = command.replace('$' + name, value)
-            arguments = shlex.split(command)
-            self.assertEqual(
-                arguments[:2],
-                [
-                    'python3',
-                    '.github/resources/scripts/build_frontend_image.py',
-                ],
+            capture = """python3() {
+  "$TEST_PYTHON" -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$@"
+}
+"""
+            result = subprocess.run(
+                ['bash', '-eu', '-c', capture + command],
+                env=values,
+                check=True,
+                capture_output=True,
+                text=True,
             )
+            arguments = json.loads(result.stdout)
+            self.assertEqual(
+                arguments[0],
+                '.github/resources/scripts/build_frontend_image.py',
+            )
+            self.assertEqual('--cache-to' in arguments, cache_write)
             with (
-                mock.patch('sys.argv', arguments[1:]),
+                mock.patch('sys.argv', arguments),
                 mock.patch.object(
                     build_frontend_image, 'build', return_value=0
                 ) as build,
@@ -105,10 +129,7 @@ class FrontendImageRetryTest(unittest.TestCase):
                     f'type=gha,version=2,scope=kfp-image-frontend-{architecture},'
                     'timeout=60s'
                 ),
-                cache_to=(
-                    f'type=gha,version=2,scope=kfp-image-frontend-{architecture},'
-                    'mode=max,timeout=120s,ignore-error=true'
-                ),
+                cache_to=cache_to or None,
             )
 
     def test_only_successful_builds_publish_and_record_arm_identity(self):
