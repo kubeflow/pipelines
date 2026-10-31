@@ -21,23 +21,30 @@ import {
   PipelineTaskTaskPodType,
   PipelineTaskTaskState,
   PipelineTaskTaskType,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+  V2PipelineTask,
+} from 'src/apisv2/run';
 import {
+  getDriverLogsInfo,
+  getDriverLogUri,
   getTaskDetailsFields,
   getLogsInfo,
   LOGS_BANNER_ADDITIONAL_INFO,
   LOGS_BANNER_MESSAGE,
+  LIFECYCLE_ENDED_MESSAGE,
+  LIFECYCLE_FAILURE_MESSAGE,
+  LIFECYCLE_WARNING_MESSAGE,
   LOGS_DETAILS,
   RuntimeNodeDetailsV2,
 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import { getNodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType } from 'src/components/viewers/Viewer';
+import datasetPreview from '../../../mock-backend/data/v2/artifact-previews/dataset.json';
 
 const V2_PVC_TEMPLATE_STRING = dump({
   pipeline_spec: loadAll(v2PvcYamlString)[0],
@@ -62,7 +69,7 @@ describe('RuntimeNodeDetailsV2', () => {
     type: 'EXECUTION',
   } as const;
 
-  function createTask(overrides: Partial<V2beta1PipelineTask> = {}): V2beta1PipelineTask {
+  function createTask(overrides: Partial<V2PipelineTask> = {}): V2PipelineTask {
     return {
       task_id: TEST_TASK_ID,
       run_id: TEST_RUN_ID,
@@ -76,21 +83,287 @@ describe('RuntimeNodeDetailsV2', () => {
     };
   }
 
-  function renderTask(task: V2beta1PipelineTask, extraProps: Record<string, unknown> = {}) {
-    return render(
+  function taskView(task: V2PipelineTask, extraProps: Record<string, unknown> = {}) {
+    return (
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={executionElement}
           elementRuntimeInfo={{ task }}
           namespace={TEST_NAMESPACE}
           {...extraProps}
         />
-      </CommonTestWrapper>,
+      </CommonTestWrapper>
     );
   }
+
+  function renderTask(task: V2PipelineTask, extraProps: Record<string, unknown> = {}) {
+    return render(taskView(task, extraProps));
+  }
+
+  describe('System Logs', () => {
+    const driverLogUri = 's3://pipeline-root/driver-logs.txt';
+
+    beforeEach(() => {
+      // AutoSizer measures its parent after ResizeObserver reports a viewport.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 800, 600),
+      );
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(private callback: ResizeObserverCallback) {}
+          observe() {
+            this.callback([], this as unknown as ResizeObserver);
+          }
+          unobserve() {}
+          disconnect() {}
+        },
+      );
+    });
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    function createSystemLogsTask(
+      uri: unknown = driverLogUri,
+      overrides: Partial<V2PipelineTask> = {},
+    ): V2PipelineTask {
+      return createTask({
+        status_metadata: { custom_properties: { driver_logs_uri: uri as object } },
+        ...overrides,
+      });
+    }
+
+    it('derives the driver log URI only from a non-empty string property', () => {
+      expect(getDriverLogUri(createSystemLogsTask())).toBe(driverLogUri);
+      expect(getDriverLogUri(createSystemLogsTask(''))).toBeUndefined();
+      expect(getDriverLogUri(createSystemLogsTask(42))).toBeUndefined();
+      expect(getDriverLogUri(createTask())).toBeUndefined();
+      expect(getDriverLogUri(undefined)).toBeUndefined();
+    });
+
+    it('reports system logs with the same keys as pod logs', async () => {
+      const readFileSpy = vi
+        .spyOn(Apis, 'readFile')
+        .mockResolvedValueOnce('driver logs')
+        .mockRejectedValueOnce(new Error('storage temporarily unavailable'));
+
+      expect(await getDriverLogsInfo(driverLogUri, TEST_NAMESPACE)).toEqual(
+        new Map([[LOGS_DETAILS, 'driver logs']]),
+      );
+      expect(await getDriverLogsInfo(driverLogUri, TEST_NAMESPACE)).toEqual(
+        new Map([
+          [LOGS_BANNER_MESSAGE, 'Failed to retrieve system logs.'],
+          [LOGS_BANNER_ADDITIONAL_INFO, 'Error response: storage temporarily unavailable'],
+        ]),
+      );
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it.each([PipelineTaskTaskState.SUCCEEDED, PipelineTaskTaskState.FAILED])(
+      'retrieves driver logs for a %s task only after opening the tab',
+      async (state) => {
+        const readFileSpy = vi
+          .spyOn(Apis, 'readFile')
+          .mockResolvedValue('driver initialization\nfinished');
+        const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('executor output');
+        renderTask(
+          createSystemLogsTask(driverLogUri, {
+            state,
+            status_metadata: {
+              message: state === PipelineTaskTaskState.FAILED ? 'executor failed' : undefined,
+              custom_properties: { driver_logs_uri: driverLogUri as unknown as object },
+            },
+          }),
+        );
+
+        expect(readFileSpy).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Task Details', exact: true }));
+        expect(readFileSpy).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByRole('button', { name: 'Logs', exact: true }));
+        expect(await screen.findByText('executor output')).toBeVisible();
+        expect(readFileSpy).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+
+        expect(await screen.findByText('driver initialization')).toBeVisible();
+        expect(screen.getByText('finished')).toBeVisible();
+        expect(screen.queryByText('executor output')).not.toBeInTheDocument();
+        expect(readFileSpy).toHaveBeenCalledExactlyOnceWith({
+          path: {
+            bucket: 'pipeline-root',
+            key: 'driver-logs.txt',
+            keyEncoding: 'storage',
+            source: 's3',
+          },
+          namespace: TEST_NAMESPACE,
+        });
+        expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it.each([
+      ['missing', undefined],
+      ['null', null],
+      ['number', 42],
+      ['boolean', false],
+      ['object', { uri: driverLogUri }],
+      ['array', [driverLogUri]],
+      ['empty', ''],
+    ])('shows an unavailable state without requesting logs for a %s URI', async (_name, uri) => {
+      const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('unused');
+      const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('unused');
+      renderTask(uri === undefined ? createTask() : createSystemLogsTask(uri));
+
+      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+
+      expect(await screen.findByText('System logs are not available yet.')).toBeVisible();
+      expect(screen.queryByTestId(TEST_LOG_VIEW_ID)).not.toBeInTheDocument();
+      expect(readFileSpy).not.toHaveBeenCalled();
+      expect(getPodLogsSpy).not.toHaveBeenCalled();
+    });
+
+    it('shows artifact-fetch error details and recovers on Refresh without leaving System Logs', async () => {
+      const readFileSpy = vi
+        .spyOn(Apis, 'readFile')
+        .mockRejectedValueOnce(new Error('storage temporarily unavailable'))
+        .mockResolvedValueOnce('recovered system logs');
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      renderTask(createSystemLogsTask());
+
+      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+
+      expect(await screen.findByText('Failed to retrieve system logs.')).toBeVisible();
+      expect(screen.queryByTestId(TEST_LOG_VIEW_ID)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Details', exact: true }));
+      const dialog = await screen.findByRole('dialog');
+      expect(
+        within(dialog).getByText('Error response: storage temporarily unavailable'),
+      ).toBeVisible();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Dismiss' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Refresh' }));
+
+      expect(await screen.findByText('recovered system logs')).toBeVisible();
+      expect(screen.queryByText('Failed to retrieve system logs.')).not.toBeInTheDocument();
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('refetches transient artifact errors while running and stops polling when the tab closes', async () => {
+      vi.useFakeTimers();
+      const readFileSpy = vi
+        .spyOn(Apis, 'readFile')
+        .mockRejectedValueOnce(new Error('artifact upload in progress'))
+        .mockResolvedValue('live system logs');
+      renderTask(createSystemLogsTask(driverLogUri, { state: PipelineTaskTaskState.RUNNING }));
+
+      await act(async () => vi.advanceTimersByTimeAsync(20_000));
+      expect(readFileSpy).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      expect(screen.getByText('Failed to retrieve system logs.')).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      // Flush AutoSizer's animation frame after the recovered log viewer mounts.
+      await act(async () => vi.advanceTimersByTimeAsync(20));
+      expect(screen.getByText('live system logs')).toBeVisible();
+      expect(screen.queryByText('Failed to retrieve system logs.')).not.toBeInTheDocument();
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Task Details', exact: true }));
+      await act(async () => vi.advanceTimersByTimeAsync(20_000));
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it.each(['task', 'URI', 'namespace'])(
+      'does not retain stale system logs when the %s changes',
+      async (changedSource) => {
+        let resolveNextLogs!: (logs: string) => void;
+        const nextLogs = new Promise<string>((resolve) => {
+          resolveNextLogs = resolve;
+        });
+        const readFileSpy = vi
+          .spyOn(Apis, 'readFile')
+          .mockResolvedValueOnce('previous system logs')
+          .mockReturnValueOnce(nextLogs);
+        const view = renderTask(createSystemLogsTask());
+        fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+        expect(await screen.findByText('previous system logs')).toBeVisible();
+
+        view.rerender(
+          taskView(
+            createSystemLogsTask(
+              changedSource === 'URI' ? 's3://pipeline-root/retry-driver-logs.txt' : driverLogUri,
+              changedSource === 'task' ? { task_id: 'second-task-id' } : {},
+            ),
+            { namespace: changedSource === 'namespace' ? 'second-namespace' : TEST_NAMESPACE },
+          ),
+        );
+
+        await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
+        expect(screen.queryByText('previous system logs')).not.toBeInTheDocument();
+        expect(screen.queryByTestId(TEST_LOG_VIEW_ID)).not.toBeInTheDocument();
+        await act(async () => resolveNextLogs('current system logs'));
+        expect(await screen.findByText('current system logs')).toBeVisible();
+      },
+    );
+
+    it('ignores a late artifact response from a previously selected task', async () => {
+      let resolvePreviousLogs!: (logs: string) => void;
+      const previousLogs = new Promise<string>((resolve) => {
+        resolvePreviousLogs = resolve;
+      });
+      const readFileSpy = vi
+        .spyOn(Apis, 'readFile')
+        .mockReturnValueOnce(previousLogs)
+        .mockResolvedValueOnce('current task system logs');
+      const view = renderTask(createSystemLogsTask());
+      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+      await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+      view.rerender(taskView(createSystemLogsTask(driverLogUri, { task_id: 'second-task-id' })));
+      expect(await screen.findByText('current task system logs')).toBeVisible();
+      await act(async () => resolvePreviousLogs('previous task system logs'));
+
+      expect(screen.getByText('current task system logs')).toBeVisible();
+      expect(screen.queryByText('previous task system logs')).not.toBeInTheDocument();
+    });
+
+    it('retrieves a newly available URI on task refresh without resetting the selected tab', async () => {
+      const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('new system logs');
+      const view = renderTask(createTask());
+      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+      expect(await screen.findByText('System logs are not available yet.')).toBeVisible();
+      expect(readFileSpy).not.toHaveBeenCalled();
+
+      view.rerender(taskView(createSystemLogsTask()));
+
+      expect(await screen.findByText('new system logs')).toBeVisible();
+      expect(screen.queryByText('System logs are not available yet.')).not.toBeInTheDocument();
+      expect(readFileSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('fetches final system logs when the parent run finishes and stops polling', async () => {
+      vi.useFakeTimers();
+      const readFileSpy = vi
+        .spyOn(Apis, 'readFile')
+        .mockResolvedValueOnce('live system logs')
+        .mockResolvedValue('final system logs');
+      const task = createSystemLogsTask(driverLogUri, { state: PipelineTaskTaskState.RUNNING });
+      const view = renderTask(task, { sourceFinished: false });
+      fireEvent.click(screen.getByRole('button', { name: 'System Logs', exact: true }));
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      expect(screen.getByText('live system logs')).toBeVisible();
+
+      view.rerender(taskView(task, { sourceFinished: true }));
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      expect(screen.getByText('final system logs')).toBeVisible();
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+      await act(async () => vi.advanceTimersByTimeAsync(20_000));
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+    });
+  });
 
   it('shows an error when pod logs and the native artifact fallback are unavailable', async () => {
     const getPodLogsSpy = vi
@@ -225,7 +498,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={executionElement}
           elementRuntimeInfo={{
@@ -266,7 +538,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
           element={{ ...executionElement, id: 'task.train', data: { label: 'train' } }}
           elementRuntimeInfo={{
@@ -413,6 +684,111 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(getPodLogsSpy).not.toHaveBeenCalled();
   });
 
+  it('shows a warning banner with the raw lifecycle message behind Details', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'Back-off pulling image "ghcr.io/example/does-not-exist:v1"',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_WARNING_MESSAGE)).toBeInTheDocument();
+    expect(
+      screen.queryByText('Back-off pulling image "ghcr.io/example/does-not-exist:v1"'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(
+      screen.getByText('Back-off pulling image "ghcr.io/example/does-not-exist:v1"'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not say the task may recover once the run has finished', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.RUNNING,
+        lifecycle_message: 'OOMKilled (exit code 137)',
+      }),
+      { sourceFinished: true },
+    );
+
+    expect(screen.getByText(LIFECYCLE_ENDED_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('says the task failed, not that it has not failed yet, once a task with a lifecycle message fails', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.FAILED,
+        lifecycle_message: 'OOMKilled (exit code 137)',
+      }),
+    );
+
+    expect(screen.getByText(LIFECYCLE_FAILURE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows the lifecycle warning banner on a sub-DAG node', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, type: 'SUB_DAG' } as any}
+          elementRuntimeInfo={{
+            task: createTask({
+              type: PipelineTaskTaskType.DAG,
+              state: PipelineTaskTaskState.RUNNING,
+              lifecycle_message: 'OOMKilled',
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByText(LIFECYCLE_WARNING_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('uses the finished-run wording on a sub-DAG node too', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, type: 'SUB_DAG' } as any}
+          elementRuntimeInfo={{
+            task: createTask({
+              type: PipelineTaskTaskType.DAG,
+              state: PipelineTaskTaskState.RUNNING,
+              lifecycle_message: 'OOMKilled',
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+          sourceFinished={true}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByText(LIFECYCLE_ENDED_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows no lifecycle banner when the task has no lifecycle message', () => {
+    renderTask(createTask({ state: PipelineTaskTaskState.RUNNING }));
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it('shows no lifecycle banner for a task that already succeeded', () => {
+    renderTask(
+      createTask({
+        state: PipelineTaskTaskState.SUCCEEDED,
+        lifecycle_message: 'ImagePullBackOff',
+      }),
+    );
+    expect(screen.queryByText(LIFECYCLE_WARNING_MESSAGE)).not.toBeInTheDocument();
+  });
+
   it('displays volume mounts in the task details tab', async () => {
     renderTask(createTask(), {
       pipelineJobString: V2_PVC_TEMPLATE_STRING,
@@ -438,14 +814,13 @@ describe('RuntimeNodeDetailsV2', () => {
       data: { label: 'producer' },
       id: 'task.producer',
     };
-    const view = (task: V2beta1PipelineTask) => (
+    const view = (task: V2PipelineTask) => (
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           element={producerElement}
           elementRuntimeInfo={{ task }}
           layers={layers}
           namespace={TEST_NAMESPACE}
-          onLayerChange={() => {}}
           pipelineJobString={V2_PVC_TEMPLATE_STRING}
           runId={TEST_RUN_ID}
         />
@@ -608,7 +983,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           element={artifactElement}
           elementRuntimeInfo={{
             task: createTask(),
@@ -641,7 +1015,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           element={artifactElement}
           elementRuntimeInfo={{
             task: createTask(),
@@ -667,6 +1040,104 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('lazy-loads a Parquet Dataset preview only in its Visualization tab', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const rawRead = vi.spyOn(Apis, 'readFile');
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          element={{
+            data: { label: 'dataset' },
+            id: 'artifact.preprocess.dataset',
+            position: { x: 100, y: 100 },
+            type: 'ARTIFACT',
+          }}
+          elementRuntimeInfo={{
+            task: createTask(),
+            artifactGroup: {
+              artifact_key: 'dataset',
+              artifacts: [
+                {
+                  artifact_id: 'dataset-1',
+                  type: ArtifactArtifactType.Dataset,
+                  uri: 's3://bucket/dataset',
+                  metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+                },
+              ],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+    expect(read).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Visualization'));
+    expect(await screen.findByRole('table', { name: 'Dataset sample' })).toBeVisible();
+    expect(screen.queryByText('There is no metrics artifact available in this step.')).toBeNull();
+    expect(read.mock.calls.filter(([, , signal]) => !signal?.aborted)).toEqual([
+      ['dataset-1', TEST_NAMESPACE, expect.objectContaining({ aborted: false })],
+    ]);
+    expect(rawRead).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Artifact Info' }));
+    expect(screen.queryByRole('table', { name: 'Dataset sample' })).toBeNull();
+  });
+
+  it('offers every collected member without fetching a preview before selection', async () => {
+    const read = vi
+      .spyOn(Apis, 'getArtifactContentPreview')
+      .mockResolvedValue(JSON.stringify(datasetPreview));
+    const root: V2PipelineTask = {
+      task_id: 'root-task',
+      name: 'root',
+      type: PipelineTaskTaskType.ROOT,
+    };
+    const task = createTask({
+      parent_task_id: root.task_id,
+      outputs: {
+        artifacts: [1, 2].map((index) => ({
+          artifact_key: 'datasets',
+          artifacts: [
+            {
+              artifact_id: `dataset-${index}`,
+              name: 'dataset',
+              type: ArtifactArtifactType.Dataset,
+              uri: `s3://bucket/dataset-${index}`,
+              metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+            },
+          ],
+        })),
+      },
+    });
+    const element = {
+      data: { label: 'datasets' },
+      id: 'artifact.preprocess.datasets',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          element={element}
+          elementRuntimeInfo={getNodeRuntimeInfo(element, [root, task], ['root'])}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+    expect(screen.getByText('Artifact Count')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Visualization' }));
+    expect(read).not.toHaveBeenCalled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Artifact preview' }));
+    fireEvent.click(screen.getByRole('option', { name: 'dataset (2)', exact: true }));
+    await screen.findByRole('table', { name: 'Dataset sample' });
+    expect(read.mock.calls.filter(([, , signal]) => !signal?.aborted)).toEqual([
+      ['dataset-2', TEST_NAMESPACE, expect.objectContaining({ aborted: false })],
+    ]);
+  });
+
   it('refreshes an artifact visualization when the producing task finishes', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
     const artifactElement = {
@@ -679,7 +1150,6 @@ describe('RuntimeNodeDetailsV2', () => {
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={() => {}}
           element={artifactElement}
           elementRuntimeInfo={{
             task: createTask({ state }),
@@ -736,7 +1206,6 @@ describe('RuntimeNodeDetailsV2', () => {
           }}
           layers={['root']}
           namespace={TEST_NAMESPACE}
-          onLayerChange={() => {}}
           sourceFinished={sourceFinished}
         />
       </CommonTestWrapper>

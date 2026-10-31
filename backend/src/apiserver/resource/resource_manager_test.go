@@ -33,7 +33,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v4/util/file"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -315,7 +315,7 @@ func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
 
 type serviceAccountMutatingDispatcher struct {
 	apiserverPlugins.NoOpDispatcher
-	output    *apiv2beta1.PluginOutput
+	output    *apiv2.PluginOutput
 	endedRuns []*apiserverPlugins.PersistedRun
 }
 
@@ -519,23 +519,6 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	pv, err := manager.CreatePipelineVersion(pv1)
 	assert.Nil(t, err)
 	return store, manager, experiment, p, pv
-}
-
-func initWithExperimentAndPipelineAndRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.PipelineVersion, *model.Run) {
-	store, manager, exp, pipeline, version := initWithExperimentAndPipeline(t)
-	// The pipeline specified via pipeline id will be converted to this
-	// pipeline's default version, which will be used to create run.
-	apiRun := &model.Run{
-		DisplayName:  "run1",
-		ExperimentId: exp.UUID,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:    pipeline.UUID,
-			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
-		},
-	}
-	run, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-	return store, manager, exp, pipeline, version, run
 }
 
 // Util function to create an initial state with pipeline uploaded
@@ -2277,7 +2260,7 @@ func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2294,7 +2277,7 @@ func TestCreateRun_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2312,7 +2295,7 @@ func TestCreateRun_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2330,7 +2313,7 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	apiRun := &model.Run{
 		DisplayName:  "run1",
 		ExperimentId: experimentID,
@@ -2348,7 +2331,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2367,7 +2350,7 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	store.DB().Close()
 	apiRun := &model.Run{
 		DisplayName:  "run1",
@@ -2451,7 +2434,7 @@ func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	require.NoError(t, err)
 	output := outputs["mlflow"]
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Equal(t, "mlflow-exp-1", output.Entries["experiment_id"].Value.GetStringValue())
 	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
 	assert.Contains(t, output.Entries[apiserverPlugins.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
@@ -3077,7 +3060,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
-	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -3096,7 +3079,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	require.NoError(t, err)
 	updatedOutput := updatedOutputs["mlflow"]
 	require.NotNil(t, updatedOutput)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
 	assert.Equal(t, "", updatedOutput.StateMessage)
 }
 
@@ -3128,14 +3111,14 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	_, err = manager.ReportWorkflowResource(context.Background(), updatedWorkflow)
 	require.NoError(t, err)
 
-	failedPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "old-pod", Uid: "old-uid", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	failedPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "old-pod", Uid: "old-uid", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
-	failedOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	failedOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{{
 		ParameterKey: "result",
 		Value:        structpb.NewStringValue("stale"),
-		Type:         apiv2beta1.IOType_OUTPUT,
+		Type:         apiv2.IOType_OUTPUT,
 	}})
 	require.NoError(t, err)
 	failedTask, err := store.TaskStore().CreateTask(&model.Task{
@@ -3143,8 +3126,8 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		RunUUID:          runDetail.UUID,
 		Name:             "failed-task",
 		ScopePath:        "root.failed-task",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_FAILED),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_FAILED),
 		Fingerprint:      "fp-failed-task",
 		Pods:             failedPods,
 		StatusMetadata:   model.JSONData{"message": "old failure"},
@@ -3156,18 +3139,18 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 
 	artifact, err := store.ArtifactStore().CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
-		Type:      model.ArtifactType(apiv2beta1.Artifact_Artifact),
+		Type:      model.ArtifactType(apiv2.Artifact_Artifact),
 		URI:       util.StringPointer("s3://bucket/stale-artifact"),
 		Name:      "stale-artifact",
 	})
 	require.NoError(t, err)
-	producer, err := model.ProtoMessageToJSONData(&apiv2beta1.IOProducer{TaskName: failedTask.Name})
+	producer, err := model.ProtoMessageToJSONData(&apiv2.IOProducer{TaskName: failedTask.Name})
 	require.NoError(t, err)
 	_, err = store.ArtifactTaskStore().CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  artifact.UUID,
 		TaskID:      failedTask.UUID,
 		RunUUID:     runDetail.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		Type:        model.IOType(apiv2.IOType_OUTPUT),
 		Producer:    producer,
 		ArtifactKey: "result",
 	})
@@ -3176,16 +3159,16 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		ArtifactID:  artifact.UUID,
 		TaskID:      failedTask.UUID,
 		RunUUID:     runDetail.UUID,
-		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Type:        model.IOType(apiv2.IOType_COMPONENT_INPUT),
 		Producer:    producer,
 		ArtifactKey: "dataset",
 	})
 	require.NoError(t, err)
 
-	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_InputOutputs_IOParameter{{
 		ParameterKey: "result",
 		Value:        structpb.NewStringValue("stable"),
-		Type:         apiv2beta1.IOType_OUTPUT,
+		Type:         apiv2.IOType_OUTPUT,
 	}})
 	require.NoError(t, err)
 	succeededTask, err := store.TaskStore().CreateTask(&model.Task{
@@ -3193,8 +3176,8 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		RunUUID:          runDetail.UUID,
 		Name:             "succeeded-task",
 		ScopePath:        "root.succeeded-task",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
 		Fingerprint:      "fp-succeeded-task",
 		OutputParameters: succeededOutputs,
 		TypeAttrs:        model.JSONData{},
@@ -3215,7 +3198,7 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 
 	retriedFailedTask := tasksByName[failedTask.Name]
 	require.NotNil(t, retriedFailedTask)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_RUNNING), retriedFailedTask.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), retriedFailedTask.State)
 	assert.Equal(t, int64(0), retriedFailedTask.FinishedInSec)
 	assert.Nil(t, retriedFailedTask.StatusMetadata)
 	assert.Empty(t, retriedFailedTask.Pods)
@@ -3236,7 +3219,7 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 
 	preservedSucceededTask := tasksByName[succeededTask.Name]
 	require.NotNil(t, preservedSucceededTask)
-	assert.Equal(t, model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED), preservedSucceededTask.State)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), preservedSucceededTask.State)
 	assert.NotEmpty(t, preservedSucceededTask.OutputParameters)
 }
 
@@ -3670,7 +3653,7 @@ func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		DisplayName:  "pp 1",
 		Enabled:      true,
@@ -3692,7 +3675,7 @@ func TestCreateJob_InvalidWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -3711,7 +3694,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -3729,7 +3712,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp 1",
 		ExperimentId: experimentID,
@@ -3749,7 +3732,7 @@ func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
 	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	experimentID, _ := manager.CreateDefaultExperiment("")
+	experimentID, _ := manager.CreateDefaultExperiment(context.Background(), "")
 	job := &model.Job{
 		K8SName:      "pp1",
 		ExperimentId: experimentID,
@@ -3866,6 +3849,23 @@ func TestDisableJob_CustomResourceNotFound(t *testing.T) {
 	require.Equal(t, job.Enabled, false)
 }
 
+func TestArchiveExperiment_CustomResourceNotFound(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	// The swf CR can be missing when user reinstalled KFP using existing DB data.
+	// Explicitly delete it to simulate the situation.
+	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
+	err := manager.ArchiveExperiment(context.Background(), job.ExperimentId)
+	require.Nil(t, err, "Archiving the experiment should succeed even when a job's custom resource is missing")
+	experiment, err := manager.GetExperiment(job.ExperimentId)
+	require.Nil(t, err)
+	require.Equal(t, model.StorageStateArchived, experiment.StorageState)
+	job, err = manager.GetJob(job.UUID)
+	require.Nil(t, err)
+	require.Equal(t, job.Enabled, false)
+}
+
 func TestEnableJob_DbFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
@@ -3878,7 +3878,7 @@ func TestEnableJob_DbFailure(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3889,7 +3889,7 @@ func TestDeleteJob(t *testing.T) {
 func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_FOREGROUND)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_FOREGROUND)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3900,7 +3900,7 @@ func TestDeleteJob_WithForegroundPolicy(t *testing.T) {
 func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_BACKGROUND)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_BACKGROUND)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3911,7 +3911,7 @@ func TestDeleteJob_WithBackgroundPolicy(t *testing.T) {
 func TestDeleteJob_WithOrphanPolicy(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_ORPHAN)
 	assert.Nil(t, err)
 
 	_, err = manager.GetJob(job.UUID)
@@ -3923,7 +3923,7 @@ func TestDeleteJob_JobNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	err := manager.DeleteJob(context.Background(), "1", apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), "1", apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Job 1 not found")
 }
@@ -3933,7 +3933,7 @@ func TestDeleteJob_CustomResourceFailure(t *testing.T) {
 	defer store.Close()
 
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Check if the scheduled workflow exists")
 }
@@ -3946,7 +3946,7 @@ func TestDeleteJob_CustomResourceNotFound(t *testing.T) {
 	manager.getScheduledWorkflowClient(job.Namespace).Delete(context.Background(), job.K8SName, &v1.DeleteOptions{})
 
 	// Now deleting job should still succeed when the swf CR is already deleted.
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Nil(t, err)
 
 	// And verify Job has been deleted from DB too.
@@ -3961,7 +3961,7 @@ func TestDeleteJob_DbFailure(t *testing.T) {
 	defer store.Close()
 
 	store.DB().Close()
-	err := manager.DeleteJob(context.Background(), job.UUID, apiv2beta1.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
+	err := manager.DeleteJob(context.Background(), job.UUID, apiv2.DeletePropagationPolicy_DELETE_PROPAGATION_POLICY_UNSPECIFIED)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
@@ -4023,10 +4023,10 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
 
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
 		Name: "executor-pod",
 		Uid:  "uid-1",
-		Type: apiv2beta1.PipelineTask_EXECUTOR,
+		Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	task, err := store.TaskStore().CreateTask(&model.Task{
@@ -4034,8 +4034,8 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 		RunUUID:          run.UUID,
 		Name:             "train",
 		DisplayName:      "train",
-		Type:             model.TaskType(apiv2beta1.PipelineTask_RUNTIME),
-		State:            model.TaskStatus(apiv2beta1.PipelineTask_RUNNING),
+		Type:             model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:            model.TaskStatus(apiv2.PipelineTask_RUNNING),
 		Fingerprint:      "fp-train",
 		Pods:             pods,
 		TypeAttrs:        model.JSONData{},
@@ -4077,6 +4077,8 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, got.LifecycleMessage)
 	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *got.LifecycleCategory)
 
 	workflow.Status.Nodes["executor-pod"] = v1alpha1.NodeStatus{
 		ID:          "executor-pod",
@@ -4091,6 +4093,7 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	got, err = manager.GetTask(task.UUID)
 	require.NoError(t, err)
 	assert.Nil(t, got.LifecycleMessage, "lifecycle message should be cleared after transient startup message")
+	assert.Nil(t, got.LifecycleCategory, "lifecycle category should be cleared with the message")
 }
 
 type runStoreWithBeforeWorkflowUpdateHook struct {
@@ -4851,6 +4854,47 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2())
 }
 
+func TestReportWorkflowResource_RecurringRunObservesReportGap(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	manager.options.CollectMetrics = true
+	sampleCount := func() uint64 {
+		metric := &dto.Metric{}
+		require.NoError(t, recurringPipelineRunReportGap.Write(metric))
+		return metric.GetHistogram().GetSampleCount()
+	}
+	newRecurringWorkflow := func(id string, startedAt v1.Time) *util.Workflow {
+		return util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      id,
+				Namespace: job.Namespace,
+				UID:       types.UID(id),
+				Labels:    map[string]string{util.LabelKeyWorkflowRunId: id},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "ScheduledWorkflow",
+					Name:       job.K8SName,
+					UID:        types.UID(job.UUID),
+				}},
+			},
+			Status: v1alpha1.WorkflowStatus{StartedAt: startedAt},
+		})
+	}
+	before := sampleCount()
+
+	started := newRecurringWorkflow("started-workflow", v1.NewTime(time.Now().Add(-time.Minute)))
+	syncWorkflowReportWithFakeCluster(t, store, started)
+	_, err := manager.ReportWorkflowResource(context.Background(), started)
+	require.NoError(t, err)
+	assert.Equal(t, before+1, sampleCount())
+
+	notStarted := newRecurringWorkflow("not-started-workflow", v1.Time{})
+	syncWorkflowReportWithFakeCluster(t, store, notStarted)
+	_, err = manager.ReportWorkflowResource(context.Background(), notStarted)
+	require.NoError(t, err)
+	assert.Equal(t, before+1, sampleCount(), "a workflow without a start time must not be observed")
+}
+
 func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatch_Rejected(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
@@ -5054,7 +5098,7 @@ func TestReportWorkflowResource_OrphanedRecurringWorkflowSucceeds(t *testing.T) 
 		PipelineSpec:   job.PipelineSpec,
 	})
 	require.NoError(t, err)
-	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN))
+	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2.DeletePropagationPolicy_ORPHAN))
 
 	orphanedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
 		ctx, run.K8SName, v1.GetOptions{})
@@ -5195,7 +5239,7 @@ func TestReportWorkflowResource_FinalizesDeletedOrphanedRecurringWorkflow(t *tes
 		PipelineSpec:   job.PipelineSpec,
 	})
 	require.NoError(t, err)
-	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN))
+	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2.DeletePropagationPolicy_ORPHAN))
 
 	orphanedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
 		ctx, run.K8SName, v1.GetOptions{})
@@ -5810,7 +5854,7 @@ func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsSta
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
-	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.State = model.RuntimeStateRunning
 	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV2())
@@ -6003,7 +6047,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
-	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = pluginsOutput
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -6557,11 +6601,142 @@ func TestReconcileSwfCrs(t *testing.T) {
 	require.NotNil(t, swf.Spec.Workflow.Spec)
 }
 
+func TestScheduledWorkflowPipelineNames(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		multiUser bool
+		pinned    bool
+	}{
+		{name: "single-user latest version"},
+		{name: "single-user pinned version", pinned: true},
+		{name: "multi-user latest version", multiUser: true},
+		{name: "multi-user pinned version", multiUser: true, pinned: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			configureRecurringRunAccountTest(t)
+			viper.Set(common.MultiUserMode, tc.multiUser)
+			store, _, pipeline, version := initWithPipeline(t)
+			defer store.Close()
+			store.SubjectAccessReviewClientFake = &recurringRunAccountReview{allowedAccount: "override-runner"}
+			manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+			experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+			require.NoError(t, err)
+			pipelineSpec := model.PipelineSpec{
+				PipelineId:    pipeline.UUID,
+				RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
+			}
+			expectedVersionName := ""
+			if tc.pinned {
+				pipelineSpec.PipelineVersionId = version.UUID
+				expectedVersionName = version.Name
+			}
+			job, err := manager.CreateJob(multiUserContext(), &model.Job{
+				DisplayName: "j1", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true,
+				ServiceAccount: "override-runner", PipelineSpec: pipelineSpec,
+			})
+			require.NoError(t, err)
+
+			ctx := context.Background()
+			swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+			swf, err := swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			require.Equal(t, pipeline.UUID, swf.Spec.PipelineId)
+			require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+			require.Equal(t, pipelineSpec.PipelineVersionId, swf.Spec.PipelineVersionId)
+			require.Equal(t, expectedVersionName, swf.Spec.PipelineVersionName)
+
+			// Emulate a ScheduledWorkflow created before the names were recorded.
+			swf.Spec.PipelineName = version.Name
+			swf.Spec.PipelineVersionName = ""
+			_, err = swfClient.Update(ctx, swf)
+			require.NoError(t, err)
+			require.NoError(t, manager.ReconcileSwfCrs(ctx))
+			swf, err = swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			if tc.pinned {
+				require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+				require.Equal(t, version.Name, swf.Spec.PipelineVersionName)
+			} else {
+				// Startup reconciliation only rebuilds pinned schedules.
+				require.Equal(t, version.Name, swf.Spec.PipelineName)
+			}
+		})
+	}
+}
+
+func TestSetScheduledWorkflowPipelineNamesMissingReferences(t *testing.T) {
+	store, manager, _, _ := initWithPipeline(t)
+	swf := &swfapi.ScheduledWorkflow{Spec: swfapi.ScheduledWorkflowSpec{
+		PipelineId: "deleted-pipeline", PipelineVersionId: "deleted-version",
+	}}
+	require.NoError(t, manager.setScheduledWorkflowPipelineNames(swf))
+	require.Empty(t, swf.Spec.PipelineName)
+	require.Empty(t, swf.Spec.PipelineVersionName)
+
+	require.NoError(t, store.Close())
+	for _, spec := range []swfapi.ScheduledWorkflowSpec{{PipelineId: "p1"}, {PipelineVersionId: "v1"}} {
+		require.Error(t, manager.setScheduledWorkflowPipelineNames(&swfapi.ScheduledWorkflow{Spec: spec}),
+			"lookup failures other than NotFound must not be ignored")
+	}
+}
+
+type unavailablePipelineStore struct{ storage.PipelineStoreInterface }
+
+func (unavailablePipelineStore) GetPipeline(string) (*model.Pipeline, error) {
+	return nil, util.NewInternalServerError(fmt.Errorf("store unavailable"), "Failed to get a pipeline")
+}
+
+func TestCreateJobSucceedsWhenPipelineNameLookupFails(t *testing.T) {
+	store, manager, _, version := initWithPipeline(t)
+	defer store.Close()
+	manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1", Enabled: true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+	})
+	require.NoError(t, err)
+	swf, err := store.SwfClient().ScheduledWorkflow(job.Namespace).Get(context.Background(), job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, version.UUID, swf.Spec.PipelineVersionId)
+	require.Empty(t, swf.Spec.PipelineName)
+}
+
+func TestReconcileSwfCrsKeepsPipelineNamesWhenLookupFails(t *testing.T) {
+	store, manager, pipeline, version := initWithPipeline(t)
+	defer store.Close()
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName: "j1", Enabled: true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig:     model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+	})
+	require.NoError(t, err)
+	ctx := context.Background()
+	swfClient := store.SwfClient().ScheduledWorkflow(job.Namespace)
+	swf, err := swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	swf.Spec.Workflow.Spec = nil
+	_, err = swfClient.Update(ctx, swf)
+	require.NoError(t, err)
+
+	manager.pipelineStore = unavailablePipelineStore{manager.pipelineStore}
+	require.NoError(t, manager.ReconcileSwfCrs(ctx))
+	swf, err = swfClient.Get(ctx, job.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, swf.Spec.Workflow.Spec, "the rest of the spec must still be reconciled")
+	require.Equal(t, pipeline.Name, swf.Spec.PipelineName)
+	require.Equal(t, version.Name, swf.Spec.PipelineVersionName)
+}
+
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	manager.CreateDefaultExperiment("")
+	manager.CreateDefaultExperiment(context.Background(), "")
 	// Create pipeline
 
 	p := createPipelineV1("1")
@@ -6966,7 +7141,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	experimentID, err := manager.CreateDefaultExperiment("")
+	experimentID, err := manager.CreateDefaultExperiment(context.Background(), "")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -6990,7 +7165,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 	defer store.Close()
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
-	experimentID, err := manager.CreateDefaultExperiment("multi-user")
+	experimentID, err := manager.CreateDefaultExperiment(multiUserContext(), "multi-user")
 	assert.Nil(t, err)
 	experiment, err := manager.GetExperiment(experimentID)
 	assert.Nil(t, err)
@@ -7061,31 +7236,6 @@ root:
       text:
         parameterType: STRING
         defaultValue: world
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`
-
-var v2SpecHelloWorldMutated = `
-components:
-  comp-hello-world:
-    executorLabel: exec-hello-world
-deploymentSpec:
-  executors:
-    exec-hello-world:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: pipelines/p1/versions/v1
-root:
-  dag:
-    tasks:
-      hello-world:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-hello-world
-        taskInfo:
-          name: hello-world
 schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
@@ -8654,8 +8804,8 @@ func TestCreateRun_RejectsArgoEmbeddedServiceAccount(t *testing.T) {
 }
 
 func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	task := &model.Task{Name: "train", Pods: pods}
@@ -8663,7 +8813,7 @@ func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
-	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.True(t, matched)
 	assert.Equal(t, `Back-off pulling image "bad"`, msg)
 }
@@ -8675,19 +8825,19 @@ func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
 		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"parent": "ImagePullBackOff"}
-	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.False(t, matched)
 }
 
 func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	// Only the failing iteration's pod should be attributed; the healthy iteration must not
 	// inherit the aggregate node's message via DisplayName.
-	failPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "loop-pod-0", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	failPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "loop-pod-0", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
-	healthyPods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "loop-pod-1", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	healthyPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "loop-pod-1", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	failTask := &model.Task{Name: "loop(0)", DisplayName: "loop", Pods: failPods}
@@ -8698,11 +8848,11 @@ func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	}
 	resolved := map[string]string{"node-0": "ImagePullBackOff", "node-1": ""}
 
-	msg0, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
+	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
 	assert.True(t, matched0)
 	assert.Equal(t, "ImagePullBackOff", msg0)
 
-	msg1, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
+	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
 	assert.True(t, matched1)
 	assert.Equal(t, "", msg1)
 }
@@ -8713,13 +8863,13 @@ func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": "ImagePullBackOff"}
-	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.False(t, matched)
 }
 
 func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
-	pods, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_TaskPod{{
-		Name: "executor-pod", Type: apiv2beta1.PipelineTask_EXECUTOR,
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "executor-pod", Type: apiv2.PipelineTask_EXECUTOR,
 	}})
 	require.NoError(t, err)
 	lm := model.LargeText("old")
@@ -8728,7 +8878,7 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"node-1": ""}
-	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.True(t, matched)
 	assert.Equal(t, "", msg)
 }
@@ -8798,4 +8948,192 @@ func TestDeletePipeline_DanglingDefaultVersionStillBlocksNonCascade(t *testing.T
 
 	_, err = manager.GetPipeline(pipelineID)
 	assert.NoError(t, err, "the pipeline must survive a refused delete")
+}
+
+func TestGetValidExperimentNamespacePair_MultiUserCreatesDefaultPerNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	// The shared fake returns one constant UUID, which cannot represent two
+	// experiments; this case needs a real generator.
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// An omitted experiment id resolves to a default experiment created in the
+	// caller's own namespace.
+	experimentID, namespace, err := manager.GetValidExperimentNamespacePair(multiUserContext(), "", "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, "ns1", namespace)
+	require.NotEmpty(t, experimentID)
+
+	experiment, err := manager.GetExperiment(experimentID)
+	require.NoError(t, err)
+	assert.Equal(t, "Default", experiment.Name)
+	assert.Equal(t, "ns1", experiment.Namespace)
+
+	// A second namespace must get its own default, not a reference to ns1's.
+	// The global default_experiments row cannot distinguish the two.
+	otherExperimentID, otherNamespace, err := manager.GetValidExperimentNamespacePair(multiUserContext(), "", "ns2")
+	require.NoError(t, err)
+	assert.Equal(t, "ns2", otherNamespace)
+	assert.NotEqual(t, experimentID, otherExperimentID, "ns2 must not reuse ns1's default experiment")
+
+	otherExperiment, err := manager.GetExperiment(otherExperimentID)
+	require.NoError(t, err)
+	assert.Equal(t, "ns2", otherExperiment.Namespace)
+
+	// Resolving again returns the existing default rather than creating another.
+	repeatID, _, err := manager.GetValidExperimentNamespacePair(multiUserContext(), "", "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, experimentID, repeatID)
+}
+
+func TestGetValidExperimentNamespacePair_MultiUserRequiresNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Without a namespace there is nowhere to put the default experiment.
+	_, _, err := manager.GetValidExperimentNamespacePair(context.Background(), "", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "namespace is required")
+}
+
+func TestGetValidExperimentNamespacePair_SingleUserUnchanged(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experimentID, namespace, err := manager.GetValidExperimentNamespacePair(context.Background(), "", "")
+	require.NoError(t, err)
+	assert.Empty(t, namespace)
+	require.NotEmpty(t, experimentID)
+
+	// Single-user still records the global default id, so a repeat resolves to
+	// the same experiment through default_experiments.
+	storedID, err := manager.GetDefaultExperimentId()
+	require.NoError(t, err)
+	assert.Equal(t, experimentID, storedID)
+}
+
+// A failed lookup must not be mistaken for "no default exists" and trigger a create; only a
+// NotFound means absence. The concurrent-create path (adopting the winner on AlreadyExists) is
+// reachable only under a real race, which the in-memory SQLite fake cannot reproduce because each
+// connection gets its own database.
+func TestCreateDefaultExperiment_LookupFailureIsNotTreatedAsAbsent(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Break the database so the existence check fails for a reason other than absence.
+	store.Close()
+
+	_, err = manager.CreateDefaultExperiment(context.Background(), "ns1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to check for an existing default experiment",
+		"a broken lookup must surface as a failed check, not as a failed create")
+}
+
+// Misses on the first lookup only, reproducing another request creating Default
+// between this request's lookup and its insert.
+type lookupMissesOnceExperimentStore struct {
+	storage.ExperimentStoreInterface
+	missed bool
+}
+
+func (s *lookupMissesOnceExperimentStore) GetExperimentByNameNamespace(name string, namespace string) (*model.Experiment, error) {
+	if !s.missed {
+		s.missed = true
+		return nil, util.NewResourceNotFoundError("Experiment", name)
+	}
+	return s.ExperimentStoreInterface.GetExperimentByNameNamespace(name, namespace)
+}
+
+// Denies only experiment writes, mirroring a caller who may create runs in a
+// namespace but is not allowed to create experiments there.
+type denyExperimentCreateSARClient struct{}
+
+func (denyExperimentCreateSARClient) Create(_ context.Context, sar *authzv1.SubjectAccessReview, _ v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	ra := sar.Spec.ResourceAttributes
+	allowed := ra == nil || ra.Resource != common.RbacResourceTypeExperiments
+	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{Allowed: allowed}}, nil
+}
+
+func TestCreateDefaultExperiment_RequiresExperimentCreatePermission(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, store.Close()) })
+	store.SubjectAccessReviewClientFake = denyExperimentCreateSARClient{}
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Creating the namespace's default is an experiment write, so a caller who
+	// cannot create experiments must not get one created on their behalf.
+	_, err = manager.CreateDefaultExperiment(multiUserContext(), "ns1")
+	require.Error(t, err)
+
+	// The refusal must leave nothing behind.
+	_, err = store.ExperimentStore().GetExperimentByNameNamespace("Default", "ns1")
+	require.Error(t, err, "no default experiment may be persisted when the create is refused")
+}
+
+func TestCreateDefaultExperiment_ReusesExistingWithoutCreatePermission(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, store.Close()) })
+	store.SubjectAccessReviewClientFake = denyExperimentCreateSARClient{}
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// Seed the default directly, as an authorized caller would have.
+	existing, err := store.ExperimentStore().CreateExperiment(&model.Experiment{
+		Name:         "Default",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+	})
+	require.NoError(t, err)
+
+	// Reuse performs no write, so it must not require create permission.
+	got, err := manager.CreateDefaultExperiment(multiUserContext(), "ns1")
+	require.NoError(t, err, "reusing an existing default must not require experiment create permission")
+	assert.Equal(t, existing.UUID, got)
+}
+
+func TestCreateDefaultExperiment_AdoptsExperimentCreatedConcurrently(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	store, err := NewFakeClientManager(util.NewFakeTimeForEpoch(), util.NewUUIDGenerator())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, store.Close()) })
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	// The request that wins the race.
+	winner, err := manager.CreateExperiment(&model.Experiment{
+		Name:         "Default",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+	})
+	require.NoError(t, err)
+
+	// The loser's lookup misses, so its insert collides on (Name, Namespace).
+	manager.experimentStore = &lookupMissesOnceExperimentStore{ExperimentStoreInterface: manager.experimentStore}
+
+	got, err := manager.CreateDefaultExperiment(multiUserContext(), "ns1")
+	require.NoError(t, err, "a concurrent create must not fail an otherwise valid request")
+	assert.Equal(t, winner.UUID, got, "the loser must adopt the winner's experiment")
 }

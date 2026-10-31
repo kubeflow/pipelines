@@ -11,10 +11,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/history"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/transfer"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	kubernetesmodel "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swffake "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/fake"
@@ -137,6 +139,10 @@ func TestTransferScheduleLifecycleAndCatalog(t *testing.T) {
 			require.Equal(t, job.UUID, string(swf.UID))
 			require.False(t, swf.Spec.Enabled)
 			require.True(t, *swf.Spec.NoCatchup)
+			require.Equal(t, job.PipelineId, swf.Spec.PipelineId)
+			require.Equal(t, "training", swf.Spec.PipelineName)
+			require.Equal(t, job.PipelineVersionId, swf.Spec.PipelineVersionId)
+			require.Equal(t, "v1", swf.Spec.PipelineVersionName)
 			require.NoError(t, r.ChangeJobMode(ctx, job.UUID, true))
 			swf, err = cs.ScheduledworkflowV1beta1().ScheduledWorkflows("team").Get(ctx, job.K8SName, metav1.GetOptions{})
 			require.NoError(t, err)
@@ -224,6 +230,72 @@ func TestTransferInlineOnlyScheduleRetainsExecutableWorkflow(t *testing.T) {
 	require.NotNil(t, swf.Spec.Workflow.Spec)
 	require.False(t, swf.Spec.Enabled)
 	require.NoError(t, r.ChangeJobMode(context.Background(), job.UUID, true))
+}
+
+func TestTransferResumesScheduleStagedWithoutPipelineNames(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	old := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", false)
+	t.Cleanup(func() { viper.Set("MULTIUSER", old) })
+	ctx := context.Background()
+	archive := transferTestArchive(t)
+	r, cs := transferTestManager(t)
+	_, err := r.ImportTransfer(ctx, "team", archive, transfer.ImportOptions{})
+	require.NoError(t, err)
+	db, err := r.transferDB()
+	require.NoError(t, err)
+	swfClient := cs.ScheduledworkflowV1beta1().ScheduledWorkflows("team")
+	// Leave the schedule staged but uncommitted, as an interrupted import would.
+	uncommit := func() *scheduledworkflow.ScheduledWorkflow {
+		var job model.Job
+		require.NoError(t, db.Take(&job).Error)
+		require.NoError(t, db.Where(map[string]any{"Kind": "schedule"}).Delete(&model.TransferReceipt{}).Error)
+		require.NoError(t, db.Delete(&job).Error)
+		require.NoError(t, db.Delete(&model.RecurringRunState{JobUUID: job.UUID}).Error)
+		swf, err := swfClient.Get(ctx, job.K8SName, metav1.GetOptions{})
+		require.NoError(t, err)
+		return swf
+	}
+
+	// An earlier version staged the schedule without the names.
+	swf := uncommit()
+	swf.Spec.PipelineName, swf.Spec.PipelineVersionName = "v1", ""
+	_, err = swfClient.Update(ctx, swf)
+	require.NoError(t, err)
+	_, err = r.ImportTransfer(ctx, "team", archive, transfer.ImportOptions{})
+	require.NoError(t, err)
+
+	swf = uncommit()
+	swf.Spec.MaxConcurrency = util.Int64Pointer(5)
+	_, err = swfClient.Update(ctx, swf)
+	require.NoError(t, err)
+	_, err = r.ImportTransfer(ctx, "team", archive, transfer.ImportOptions{})
+	require.ErrorContains(t, err, "changed before its import completed")
+}
+
+func TestTransferLatestVersionScheduleRecordsPipelineNameOnly(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	old := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", false)
+	t.Cleanup(func() { viper.Set("MULTIUSER", old) })
+	data := transferTestArchive(t)
+	var b history.NamespaceBundle
+	require.NoError(t, json.Unmarshal(data, &b))
+	b.Schedules[0].PipelineVersionId = ""
+	data, err := json.Marshal(b)
+	require.NoError(t, err)
+	r, cs := transferTestManager(t)
+	_, err = r.ImportTransfer(context.Background(), "team", data, transfer.ImportOptions{})
+	require.NoError(t, err)
+	db, err := r.transferDB()
+	require.NoError(t, err)
+	var job model.Job
+	require.NoError(t, db.Take(&job).Error)
+	swf, err := cs.ScheduledworkflowV1beta1().ScheduledWorkflows("team").Get(context.Background(), job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, "training", swf.Spec.PipelineName)
+	require.Empty(t, swf.Spec.PipelineVersionId)
+	require.Empty(t, swf.Spec.PipelineVersionName)
 }
 
 func TestTransferCatalogBudgetStopsKubernetesPagination(t *testing.T) {

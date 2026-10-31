@@ -77,7 +77,6 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
 			ExperimentId:      modelJob.ExperimentId,
 			PipelineId:        modelJob.PipelineId,
-			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
 			ServiceAccount:    modelJob.ServiceAccount,
 			PluginsInput:      pluginsInput,
@@ -142,17 +141,15 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:        t.templateOptions.CacheDisabled,
-			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
-			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
-			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
-			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			// Read the admin configured driver pod metadata here, at the API server layer,
-			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig:     common.GetDriverPodConfig(),
-			TokenReviewAudience: common.GetTokenReviewAudience(),
+			CacheDisabled:          t.templateOptions.CacheDisabled,
+			DefaultWorkspace:       t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled:   t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:      t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    t.templateOptions.DefaultRunAsNonRoot,
+			DefaultHostUsers:       t.templateOptions.DefaultHostUsers,
+			DefaultPVCStorageClass: t.templateOptions.DefaultPVCStorageClass,
+			TokenReviewAudience:    common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -382,17 +379,15 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:        t.templateOptions.CacheDisabled,
-			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
-			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
-			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
-			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			// Read the admin configured driver pod metadata here, at the API server layer,
-			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig:     common.GetDriverPodConfig(),
-			TokenReviewAudience: common.GetTokenReviewAudience(),
+			CacheDisabled:          t.templateOptions.CacheDisabled,
+			DefaultWorkspace:       t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled:   t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:      t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    t.templateOptions.DefaultRunAsNonRoot,
+			DefaultHostUsers:       t.templateOptions.DefaultHostUsers,
+			DefaultPVCStorageClass: t.templateOptions.DefaultPVCStorageClass,
+			TokenReviewAudience:    common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

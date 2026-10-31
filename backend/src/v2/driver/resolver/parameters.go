@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
@@ -63,11 +63,11 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 					pm := ParameterMetadata{
 						Key:                key,
 						InputParameterSpec: paramSpec,
-						ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+						ParameterIO: &apiv2.PipelineTask_InputOutputs_IOParameter{
 							Value:        componentParam.GetDefaultValue(),
-							Type:         apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
+							Type:         apiv2.IOType_COMPONENT_DEFAULT_INPUT,
 							ParameterKey: key,
-							Producer: &apiv2beta1.IOProducer{
+							Producer: &apiv2.IOProducer{
 								TaskName: opts.ParentTask.GetName(),
 							},
 						},
@@ -116,7 +116,7 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 		pm := ParameterMetadata{
 			Key:                key,
 			InputParameterSpec: paramSpec,
-			ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			ParameterIO: &apiv2.PipelineTask_InputOutputs_IOParameter{
 				Value:        value,
 				Type:         ioType,
 				ParameterKey: key,
@@ -161,11 +161,11 @@ func resolveParameters(opts common.Options) ([]ParameterMetadata, error) {
 			// Add the default value for any missing input that defines one.
 			pm := ParameterMetadata{
 				Key: name,
-				ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+				ParameterIO: &apiv2.PipelineTask_InputOutputs_IOParameter{
 					Value:        paramSpec.GetDefaultValue(),
-					Type:         apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
+					Type:         apiv2.IOType_COMPONENT_DEFAULT_INPUT,
 					ParameterKey: name,
-					Producer: &apiv2beta1.IOProducer{
+					Producer: &apiv2.IOProducer{
 						TaskName: opts.ParentTask.GetName(),
 					},
 				},
@@ -185,37 +185,37 @@ func isCurrentParameterIteratorInput(opts common.Options, name string) bool {
 	return iterator != nil && iterator.GetItemInput() == name
 }
 
-func canExportIterationCollection(task *apiv2beta1.PipelineTask) bool {
+func canExportIterationCollection(task *apiv2.PipelineTask) bool {
 	switch task.GetType() {
-	case apiv2beta1.PipelineTask_LOOP, apiv2beta1.PipelineTask_DAG,
-		apiv2beta1.PipelineTask_ROOT, apiv2beta1.PipelineTask_CONDITION,
-		apiv2beta1.PipelineTask_CONDITION_BRANCH:
+	case apiv2.PipelineTask_LOOP, apiv2.PipelineTask_DAG,
+		apiv2.PipelineTask_ROOT, apiv2.PipelineTask_CONDITION,
+		apiv2.PipelineTask_CONDITION_BRANCH:
 		return true
 	default:
 		return false
 	}
 }
 
-func isZeroIterationLoopTask(task *apiv2beta1.PipelineTask) bool {
-	if task == nil || task.GetType() != apiv2beta1.PipelineTask_LOOP || task.GetTypeAttributes() == nil {
+func isZeroIterationLoopTask(task *apiv2.PipelineTask) bool {
+	if task == nil || task.GetType() != apiv2.PipelineTask_LOOP || task.GetTypeAttributes() == nil {
 		return false
 	}
 	return task.GetTypeAttributes().GetIterationCount() == 0
 }
 
-func emptyCollectedParameterOutput(key, producerTaskName string) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-	return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+func emptyCollectedParameterOutput(key, producerTaskName string) *apiv2.PipelineTask_InputOutputs_IOParameter {
+	return &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        ToListValue(nil),
-		Type:         apiv2beta1.IOType_COLLECTED_INPUTS,
+		Type:         apiv2.IOType_COLLECTED_INPUTS,
 		ParameterKey: key,
-		Producer: &apiv2beta1.IOProducer{
+		Producer: &apiv2.IOProducer{
 			TaskName: producerTaskName,
 		},
 	}
 }
 
-func canonicalTaskFinalStatusCode(task *apiv2beta1.PipelineTask) int32 {
-	if task != nil && task.GetState() == apiv2beta1.PipelineTask_FAILED {
+func canonicalTaskFinalStatusCode(task *apiv2.PipelineTask) int32 {
+	if task != nil && task.GetState() == apiv2.PipelineTask_FAILED {
 		return int32(codes.Unknown)
 	}
 	return int32(codes.OK)
@@ -281,24 +281,24 @@ func normalizeResolvedParameterValue(
 func ResolveInputParameter(
 	opts common.Options,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	inputParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
-) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, apiv2beta1.IOType, error) {
+	inputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2.PipelineTask_InputOutputs_IOParameter, apiv2.IOType, error) {
 	switch t := paramSpec.Kind.(type) {
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_ComponentInputParameter:
 		glog.V(4).Infof("resolving component input parameter %s", paramSpec.GetComponentInputParameter())
 		resolvedInput, err := resolveParameterComponentInputParameter(opts, paramSpec, inputParams)
 		if err != nil {
-			return nil, apiv2beta1.IOType_COMPONENT_INPUT, err
+			return nil, apiv2.IOType_COMPONENT_INPUT, err
 		}
-		return resolvedInput, apiv2beta1.IOType_COMPONENT_INPUT, nil
+		return resolvedInput, apiv2.IOType_COMPONENT_INPUT, nil
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskOutputParameter:
 		parameter, err := resolveTaskOutputParameter(opts, paramSpec)
 		if err != nil {
-			return nil, apiv2beta1.IOType_TASK_OUTPUT_INPUT, err
+			return nil, apiv2.IOType_TASK_OUTPUT_INPUT, err
 		}
-		ioType := apiv2beta1.IOType_TASK_OUTPUT_INPUT
-		if parameter.GetType() == apiv2beta1.IOType_COLLECTED_INPUTS {
-			ioType = apiv2beta1.IOType_COLLECTED_INPUTS
+		ioType := apiv2.IOType_TASK_OUTPUT_INPUT
+		if parameter.GetType() == apiv2.IOType_COLLECTED_INPUTS {
+			ioType = apiv2.IOType_COLLECTED_INPUTS
 		}
 		return parameter, ioType, nil
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_RuntimeValue:
@@ -311,14 +311,14 @@ func ResolveInputParameter(
 			var v *structpb.Value
 			if strings.Contains(valStr, "{{$.workspace_path}}") {
 				v = structpb.NewStringValue(strings.ReplaceAll(valStr, "{{$.workspace_path}}", component.WorkspaceMountPath))
-				ioParameter := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+				ioParameter := &apiv2.PipelineTask_InputOutputs_IOParameter{
 					ParameterKey: "",
 					Value:        v,
-					Producer: &apiv2beta1.IOProducer{
+					Producer: &apiv2.IOProducer{
 						TaskName: opts.ParentTask.GetName(),
 					},
 				}
-				return ioParameter, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, nil
+				return ioParameter, apiv2.IOType_RUNTIME_VALUE_INPUT, nil
 			}
 			switch valStr {
 			case "{{$.pipeline_job_name}}":
@@ -335,7 +335,7 @@ func ResolveInputParameter(
 				v = structpb.NewStringValue(opts.TaskName)
 			case "{{$.pipeline_task_uuid}}":
 				if opts.ParentTask == nil {
-					return nil, apiv2beta1.IOType_UNSPECIFIED, fmt.Errorf("parent task should not be nil")
+					return nil, apiv2.IOType_UNSPECIFIED, fmt.Errorf("parent task should not be nil")
 				}
 				v = structpb.NewStringValue(opts.ParentTask.GetTaskId())
 			default:
@@ -347,43 +347,43 @@ func ResolveInputParameter(
 			if isMatch && isPipelineChannel {
 				channelParamSpec, ok := opts.Task.Inputs.GetParameters()[paramName]
 				if !ok {
-					return nil, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, fmt.Errorf("pipeline channel %s not found in task %s", v.GetStringValue(), opts.TaskName)
+					return nil, apiv2.IOType_RUNTIME_VALUE_INPUT, fmt.Errorf("pipeline channel %s not found in task %s", v.GetStringValue(), opts.TaskName)
 				}
 				return ResolveInputParameter(opts, channelParamSpec, inputParams)
 			}
 
-			ioParameter := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			ioParameter := &apiv2.PipelineTask_InputOutputs_IOParameter{
 				ParameterKey: "",
 				Value:        v,
-				Producer: &apiv2beta1.IOProducer{
+				Producer: &apiv2.IOProducer{
 					TaskName: opts.ParentTask.GetName(),
 				},
 			}
-			return ioParameter, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, nil
+			return ioParameter, apiv2.IOType_RUNTIME_VALUE_INPUT, nil
 		default:
-			return nil, apiv2beta1.IOType_UNSPECIFIED, paramError(paramSpec, fmt.Errorf("param runtime value spec of type %T not implemented", t))
+			return nil, apiv2.IOType_UNSPECIFIED, paramError(paramSpec, fmt.Errorf("param runtime value spec of type %T not implemented", t))
 		}
 	case *pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_:
 		value, err := resolveTaskFinalStatus(opts, paramSpec)
 		if err != nil {
-			return nil, apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT, err
+			return nil, apiv2.IOType_TASK_FINAL_STATUS_OUTPUT, err
 		}
-		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		return &apiv2.PipelineTask_InputOutputs_IOParameter{
 			ParameterKey: "status",
 			Value:        value,
-			Producer: &apiv2beta1.IOProducer{
+			Producer: &apiv2.IOProducer{
 				TaskName: opts.ParentTask.GetName(),
 			},
-		}, apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT, nil
+		}, apiv2.IOType_TASK_FINAL_STATUS_OUTPUT, nil
 	default:
-		return nil, apiv2beta1.IOType_UNSPECIFIED, paramError(paramSpec, fmt.Errorf("parameter spec of type %T not implemented yet", t))
+		return nil, apiv2.IOType_UNSPECIFIED, paramError(paramSpec, fmt.Errorf("parameter spec of type %T not implemented yet", t))
 	}
 }
 
 func resolveTaskOutputParameter(
 	opts common.Options,
 	spec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
+) (*apiv2.PipelineTask_InputOutputs_IOParameter, error) {
 	tasks, err := getSubTasks(opts.ParentTask, opts.Run.Tasks, nil)
 	if err != nil {
 		return nil, err
@@ -426,13 +426,13 @@ func resolveTaskOutputParameter(
 func resolveParameterComponentInputParameter(
 	opts common.Options,
 	paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	inputParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
-) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
+	inputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
+) (*apiv2.PipelineTask_InputOutputs_IOParameter, error) {
 	paramName := paramSpec.GetComponentInputParameter()
 	if paramName == "" {
 		return nil, paramError(paramSpec, fmt.Errorf("empty component input"))
 	}
-	var matchingParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter
+	var matchingParams []*apiv2.PipelineTask_InputOutputs_IOParameter
 	for _, param := range inputParams {
 		if paramName == param.ParameterKey {
 			matchingParams = append(matchingParams, param)
@@ -515,11 +515,11 @@ func resolveParameterIterator(
 	for i, item := range items {
 		pm := ParameterMetadata{
 			Key: iteratorInputDefinitionKey,
-			ParameterIO: &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			ParameterIO: &apiv2.PipelineTask_InputOutputs_IOParameter{
 				Value:        item,
-				Type:         apiv2beta1.IOType_ITERATOR_INPUT,
+				Type:         apiv2.IOType_ITERATOR_INPUT,
 				ParameterKey: iteratorInputDefinitionKey,
-				Producer: &apiv2beta1.IOProducer{
+				Producer: &apiv2.IOProducer{
 					TaskName:  opts.TaskName,
 					Iteration: util.Int64Pointer(int64(i)),
 				},
@@ -633,7 +633,7 @@ func ResolveParameterOrPipelineChannel(parameterValueOrPipelineChannel string, e
 func ResolveK8sJSONParameter[k8sResource any](
 	opts common.Options,
 	parameter *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+	params []*apiv2.PipelineTask_InputOutputs_IOParameter,
 	res *k8sResource,
 ) error {
 
@@ -661,7 +661,7 @@ func ResolveK8sJSONParameter[k8sResource any](
 func ResolveInputParameterStr(
 	opts common.Options,
 	parameter *pipelinespec.TaskInputsSpec_InputParameterSpec,
-	params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter) (*structpb.Value, error) {
+	params []*apiv2.PipelineTask_InputOutputs_IOParameter) (*structpb.Value, error) {
 
 	val, _, err := ResolveInputParameter(opts, parameter, params)
 	if err != nil || val == nil || val.GetValue() == nil {
@@ -684,10 +684,10 @@ func ResolveInputParameterStr(
 
 func findParameterByProducerKeyInList(
 	producerKey, producerTaskName string,
-	parametersIO []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
+	parametersIO []*apiv2.PipelineTask_InputOutputs_IOParameter,
 	collectIterations bool,
-) (*apiv2beta1.PipelineTask_InputOutputs_IOParameter, error) {
-	var parameterIOList []*apiv2beta1.PipelineTask_InputOutputs_IOParameter
+) (*apiv2.PipelineTask_InputOutputs_IOParameter, error) {
+	var parameterIOList []*apiv2.PipelineTask_InputOutputs_IOParameter
 	for _, parameterIO := range parametersIO {
 		if parameterIO.GetParameterKey() == producerKey {
 			parameterIOList = append(parameterIOList, parameterIO)
@@ -702,10 +702,10 @@ func findParameterByProducerKeyInList(
 	if !collectIterations && len(parameterIOList) > 1 {
 		return nil, fmt.Errorf("multiple outputs with producer key %s outside a loop collection", producerKey)
 	}
-	if collectIterations && (len(parameterIOList) > 1 || parameterIOList[0].GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT) {
+	if collectIterations && (len(parameterIOList) > 1 || parameterIOList[0].GetType() == apiv2.IOType_ITERATOR_OUTPUT) {
 		hasCompleteIterationMetadata := true
 		for _, parameterIO := range parameterIOList {
-			if parameterIO.GetType() != apiv2beta1.IOType_ITERATOR_OUTPUT {
+			if parameterIO.GetType() != apiv2.IOType_ITERATOR_OUTPUT {
 				return nil, fmt.Errorf("encountered a non iterator output that has the same producer key (%s)", producerKey)
 			}
 			if parameterIO.GetProducer() == nil || parameterIO.GetProducer().Iteration == nil {
@@ -733,12 +733,12 @@ func findParameterByProducerKeyInList(
 			// Support for an iterator over list of parameters is not supported yet.
 			parameterValues = append(parameterValues, parameterIO.GetValue())
 		}
-		ioType := apiv2beta1.IOType_COLLECTED_INPUTS
-		newParameterIO := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		ioType := apiv2.IOType_COLLECTED_INPUTS
+		newParameterIO := &apiv2.PipelineTask_InputOutputs_IOParameter{
 			Value:        ToListValue(parameterValues),
 			Type:         ioType,
 			ParameterKey: producerKey,
-			Producer: &apiv2beta1.IOProducer{
+			Producer: &apiv2.IOProducer{
 				TaskName: producerTaskName,
 			},
 		}

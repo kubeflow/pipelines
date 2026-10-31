@@ -14,6 +14,10 @@
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {verifyCheckRuns} = require('./ci_check_runs');
 
+function isDevelopmentBranch(ref) {
+  return ref === 'master' || ref === 'main';
+}
+
 function blocked(pr) {
   // Tide's human-PR queries still rely on this explicit merge hold.
   return pr.labels.some(label => label.name === 'needs-ok-to-test');
@@ -47,7 +51,7 @@ async function baseRevision(github, context, pr) {
   // instead, so an advance revokes the green and forces fresh CI against the
   // new base. Release branches keep their frozen base.sha behavior.
   let sha = pr.base.sha;
-  if (pr.base.ref === 'master') {
+  if (isDevelopmentBranch(pr.base.ref)) {
     const {data} = await github.rest.git.getRef({
       ...context.repo, ref: `heads/${pr.base.ref}`,
     });
@@ -90,6 +94,56 @@ async function recoveryCandidates({github, context}) {
   return candidates;
 }
 
+async function revokeStaleGreens({github, context, tip}) {
+  // Push-triggered revocation narrows the stale-green merge window (#14762): the
+  // moment a development branch advances, a ci-passed success stamped against
+  // any prior base revision is revoked instead of waiting for the next scheduled sweep.
+  // Freshness reuses the same determination as recovery: a green is fresh only
+  // when its description still carries the stamp for the live base tip. This
+  // writes only the commit status; the sweep reconciles the informational label
+  // with its broader permissions.
+  if (!/^[0-9a-f]{40}$/.test(tip || '')) {
+    throw new Error('Stale revocation requires a full base commit SHA');
+  }
+  const branch = context.ref?.replace(/^refs\/heads\//, '');
+  if (context.eventName !== 'push' || context.ref !== `refs/heads/${branch}` ||
+      !isDevelopmentBranch(branch)) {
+    throw new Error('Stale revocation requires a push to master or main');
+  }
+  // Only the most recent push may revoke. Push jobs can execute out of order:
+  // the branch may advance B then C, CI Check publish a success stamped for C, and
+  // a delayed B job would otherwise treat that valid C green as stale and
+  // overwrite it with failure. Resolve the LIVE branch tip and bail out when it
+  // has already moved past this push's tip; the newer job (or the sweep) owns
+  // revocation for the advanced base.
+  const {data: ref} = await github.rest.git.getRef({
+    ...context.repo, ref: `heads/${branch}`,
+  });
+  if (ref.object.sha !== tip) return 0;
+  const prs = await github.paginate(github.rest.pulls.list, {
+    ...context.repo, state: 'open', base: branch, per_page: 100,
+  });
+  let revoked = 0;
+  for (const pr of prs) {
+    if (blocked(pr)) continue;
+    const status = await currentStatus(github, context, pr.head.sha);
+    // Revalidate AFTER reading the status: the combined-status lookup can
+    // paginate, and the branch may advance mid-read publishing a fresher success.
+    const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
+    if (liveRef.object.sha !== tip) return revoked;
+    // Never revoke a head without a ci-passed success.
+    if (status?.state !== 'success') continue;
+    if (status.description === successDescription(pr, tip)) continue;
+    await github.rest.repos.createCommitStatus({
+      ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
+      description: `Base advanced; re-test against new ${branch}.`,
+      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    });
+    revoked++;
+  }
+  return revoked;
+}
+
 async function resolve(github, context, recovery) {
   if (context.eventName === 'schedule') {
     if (!Number.isSafeInteger(recovery?.number) || recovery.number <= 0 || !recovery.head) {
@@ -121,26 +175,32 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
 }
 
-async function publish(github, context, pr, state, description, provisional = false) {
+async function publish(github, context, pr, state, description, provisional = false, expectedState = null, expectedId = null, updateLabels = true) {
   let current;
   try {
     current = await currentStatus(github, context, pr.head.sha);
   } catch (error) {
     // A failed read must not prevent invalidating a previously green head.
-    if (state === 'success') throw error;
+    if (state === 'success' || expectedId !== null) throw error;
   }
+  // Explicit merged recovery must not overwrite a status changed by another
+  // writer after verification. Ordinary reconciliation keeps its existing rules.
+  if ((expectedState !== null && current?.state !== expectedState) ||
+      (expectedId !== null && current?.id !== expectedId)) return;
+  let written;
   // Revoke green immediately without creating two statuses for every event
   // on an unchanged pending/failing head. Authoritative evidence may still
   // move an earlier failure to pending when its rerun starts.
   const preserve = provisional && current && current.state !== 'success';
   const boundedDescription = description.slice(0, 140);
   if (!preserve && (current?.state !== state || current.description !== boundedDescription)) {
-    await github.rest.repos.createCommitStatus({
+    written = (await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
       description: boundedDescription,
       target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-    });
+    })).data;
   }
+  if (!updateLabels) return written;
   if (state === 'success') {
     await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
   } else {
@@ -150,6 +210,7 @@ async function publish(github, context, pr, state, description, provisional = fa
       if (error.status !== 404) throw error;
     }
   }
+  return written;
 }
 
 async function freshAfter(github, context, pr) {
@@ -170,11 +231,11 @@ async function freshAfter(github, context, pr) {
 
 async function evidence(github, context, pr, root) {
   const baseSha = await baseRevision(github, context, pr);
-  // Only the live master tip advances behind the publisher's back; release
+  // Development branch tips advance behind the publisher's back; release
   // branches keep their frozen base.sha behavior (see baseRevision). The
   // freshness check is scoped to the live base so release branches are
   // unchanged.
-  const liveBase = pr.base.ref === 'master';
+  const liveBase = isDevelopmentBranch(pr.base.ref);
   const [inventory, cutoff] = await Promise.all([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
     freshAfter(github, context, pr),
@@ -206,13 +267,18 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
     pr = await resolve(github, context, recovery);
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
-    if (sha) await github.rest.repos.createCommitStatus({
+    if (sha && context.payload.pull_request?.merged !== true) await github.rest.repos.createCommitStatus({
       ...context.repo, sha, context: 'ci-passed', state: 'failure',
       description: 'Cannot identify the PR for this head; inspect CI Check and retry.',
     });
     throw error;
   }
   if (!pr) return;
+  // A merged PR must keep its published status; never publish pending over it.
+  // Return before emitting the identity outputs so the always() finalize step
+  // is skipped (it bails when number/head are unset) and cannot republish a
+  // failure over the merged head.
+  if (pr.merged) return;
   // Set the identity before any further API operation so the always() step
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
@@ -233,6 +299,8 @@ async function finalize({github, context, core, number, head, before, pollPassed
   try {
     const pr = await readPR(github, context, Number(number));
     original = {...pr, head: {...pr.head, sha: head}};
+    // Preserve the status on merge; closure without merge still invalidates below.
+    if (pr.merged) return;
     let state = 'failure';
     let validatedBaseSha;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
@@ -265,6 +333,8 @@ async function finalize({github, context, core, number, head, before, pollPassed
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
       const after = await readPR(github, context, Number(number));
+      // A merge during publication preserves the success that authorized it.
+      if (after.merged) return;
       if (snapshot(after) !== before) {
         errorReason = 'PR changed during publication; rerun CI on the current head.';
         await publish(github, context, original, 'failure', errorReason);
@@ -282,9 +352,148 @@ async function finalize({github, context, core, number, head, before, pollPassed
       }
     }
   } catch (error) {
+    // A transient read failure must not flip a merged PR to failure. Re-read
+    // once: if the PR merged in the meantime, preserve its status and stop.
+    try {
+      const merged = await readPR(github, context, Number(number));
+      if (merged.merged) return;
+    } catch (retryError) {
+      // Still unreadable; fall through and fail closed.
+    }
     await publish(github, context, original, 'failure', errorReason);
     throw error;
   }
 }
 
-module.exports = {recoveryCandidates, snapshot, resolve, freshAfter, prepare, finalize};
+// Explicit recovery never changes ordinary PR reconciliation. Only trusted
+// default-branch dispatches may revisit a pending aggregate after a release merge.
+async function mergedRecoveryBinding(github, context, number, head) {
+  const repository = `${context.repo.owner}/${context.repo.repo}`;
+  if (context.eventName !== 'workflow_dispatch' ||
+      context.payload.repository?.full_name !== repository ||
+      context.ref !== `refs/heads/${context.payload.repository.default_branch}` ||
+      !Number.isSafeInteger(Number(number)) || Number(number) <= 0 ||
+      !/^[0-9a-f]{40}$/.test(head || '')) {
+    throw new Error('Merged release recovery requires trusted default-branch dispatch, PR number and exact head.');
+  }
+  const pr = await readPR(github, context, Number(number));
+  if (pr.number !== Number(number) || pr.merged !== true || pr.state !== 'closed' ||
+      pr.head.sha !== head || pr.commits !== 1 || !pr.head.repo?.full_name ||
+      pr.base.repo?.full_name !== repository || !/^release-\d+\.\d+$/.test(pr.base.ref) ||
+      !/^[0-9a-f]{40}$/.test(pr.merge_commit_sha || '') || blocked(pr)) {
+    throw new Error('Recovery identity is not an eligible merged release PR.');
+  }
+  const {data: commit} = await github.rest.repos.getCommit({
+    ...context.repo, ref: pr.merge_commit_sha,
+  });
+  const {data: tested} = await github.rest.repos.getCommit({...context.repo, ref: head});
+  if (commit.sha !== pr.merge_commit_sha || tested.sha !== head ||
+      !Array.isArray(commit.parents) || commit.parents.length !== 1 ||
+      !Array.isArray(tested.parents) || tested.parents.length !== 1 ||
+      !/^[0-9a-f]{40}$/.test(commit.parents[0].sha || '') ||
+      commit.parents[0].sha !== tested.parents[0].sha ||
+      !/^[0-9a-f]{40}$/.test(commit.commit?.tree?.sha || '') ||
+      commit.commit.tree.sha !== tested.commit?.tree?.sha) {
+    throw new Error('Recovery requires a single-commit PR with matching tested/merged parents and trees.');
+  }
+  // Multi-commit rebase merges make the last commit's parent part of the PR.
+  // Restrict recovery to one tested commit with an unchanged parent and tree;
+  // this proves the immutable base without trusting GitHub's mutable base.sha.
+  const bound = {...pr, base: {...pr.base, sha: commit.parents[0].sha}};
+  const identity = JSON.stringify([bound.number, head, pr.head.repo.full_name,
+    pr.base.repo.full_name, pr.base.ref, pr.merge_commit_sha, bound.base.sha, commit.commit.tree.sha]);
+  return {pr: bound, identity};
+}
+
+async function resetRecoveryStatus(github, context, pr, status) {
+  // A status read must succeed before every conditional write. Never trade
+  // another writer's safety for availability during a GitHub API outage.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await publish(github, context, pr, 'pending',
+        'Merged recovery needs revalidation; rerun trusted recovery.',
+        false, status.state, status.id, false);
+    } catch (error) {
+      if (attempt === 2) throw new Error(`Recovery cleanup could not verify its status; rerun trusted recovery: ${error.message}`);
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+}
+
+async function repairInterruptedRecovery(github, context, pr, status) {
+  if (!status || !['success', 'failure'].includes(status.state) ||
+      !Number.isSafeInteger(status.id) || status.id <= 0) return;
+  const prefix = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/`;
+  if (typeof status.target_url !== 'string' || !status.target_url.startsWith(prefix)) return;
+  const id = status.target_url.slice(prefix.length);
+  if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) return;
+  const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: Number(id)});
+  const repository = `${context.repo.owner}/${context.repo.repo}`;
+  if (run.id !== Number(id) || run.path !== '.github/workflows/ci-checks.yml' ||
+      run.event !== 'workflow_dispatch' || run.head_branch !== context.payload.repository.default_branch ||
+      run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) return;
+  // Rerunning the same Actions run changes its state to in_progress. Do not
+  // let that no-op turn a failed owner into a successful run and strand green.
+  if (run.status !== 'completed') throw new Error('Recovery owner is still running; dispatch a fresh recovery after it finishes.');
+  if (!['failure', 'cancelled', 'timed_out', 'startup_failure', 'action_required'].includes(run.conclusion)) return;
+  // Cleanup precedes evidence reads and the independent poll, so even another
+  // validation failure leaves a retryable, non-green aggregate.
+  await resetRecoveryStatus(github, context, pr, status);
+}
+
+async function prepareMergedRecovery({github, context, core, number, head,
+  root = process.env.GITHUB_WORKSPACE}) {
+  const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
+  const initial = await currentStatus(github, context, head);
+  if (initial?.state !== 'pending') {
+    await repairInterruptedRecovery(github, context, pr, initial);
+    if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  }
+  const workflows = await evidence(github, context, pr, root);
+  core.info(JSON.stringify(workflows));
+  if (!workflows.passed) throw new Error('Required merged-head workflows have not passed.');
+  core.setOutput('pr_number', String(pr.number));
+  core.setOutput('head_sha', head);
+  core.setOutput('snapshot', identity);
+  core.setOutput('ready', 'true');
+}
+
+async function finalizeMergedRecovery({github, context, core, number, head, before,
+  pollPassed, root = process.env.GITHUB_WORKSPACE}) {
+  if (!number || !head || !pollPassed) return;
+  const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
+  if (identity !== before) throw new Error('Merged recovery identity changed.');
+  if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  const [workflows, checks] = await Promise.all([
+    evidence(github, context, pr, root),
+    verifyCheckRuns({github, ...context.repo, sha: head}),
+  ]);
+  core.info(JSON.stringify({workflows, checks}));
+  if (!workflows.passed || checks.state !== 'success') {
+    throw new Error('Required merged-head CI evidence is not green.');
+  }
+  const after = await mergedRecoveryBinding(github, context, number, head);
+  if (after.identity !== before) throw new Error('Merged recovery identity changed before publication.');
+  if ((await currentStatus(github, context, head))?.state !== 'pending') return;
+  const written = await publish(github, context, after.pr, 'success',
+    successDescription(after.pr, workflows.baseSha), false, 'pending', null, false);
+  if (!written) return;
+  // Publication is not atomic with GitHub's CI state. Recheck and revoke only
+  // the exact status this attempt wrote, preserving another writer's update.
+  try {
+    const final = await mergedRecoveryBinding(github, context, number, head);
+    if (final.identity !== before) throw new Error('Merged identity changed during publication.');
+    const results = await Promise.all([
+      evidence(github, context, final.pr, root),
+      verifyCheckRuns({github, ...context.repo, sha: head}),
+    ]);
+    if (results.some(result => result.state !== 'success')) {
+      throw new Error('CI evidence changed during merged recovery publication.');
+    }
+  } catch (error) {
+    await resetRecoveryStatus(github, context, after.pr, {state: 'success', id: written.id});
+    throw error;
+  }
+}
+
+module.exports = {prepareMergedRecovery, finalizeMergedRecovery, recoveryCandidates, revokeStaleGreens, snapshot, resolve, freshAfter, prepare, finalize};

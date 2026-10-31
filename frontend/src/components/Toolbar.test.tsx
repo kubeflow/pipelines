@@ -73,7 +73,7 @@ describe('Toolbar', () => {
     renderWithRouter(
       <Toolbar breadcrumbs={breadcrumbs} actions={{}} navigate={navigate} pageTitle='' />,
     );
-    fireEvent.click(screen.getByTestId('ArrowBackIcon').closest('button')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(navigate).toHaveBeenCalledWith(-1);
   });
 
@@ -82,7 +82,7 @@ describe('Toolbar', () => {
     renderWithRouter(
       <Toolbar breadcrumbs={breadcrumbs} actions={{}} navigate={navigate} pageTitle='' />,
     );
-    expect(screen.getByTestId('ArrowBackIcon').closest('button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
   });
 
   it('renders nothing when there are no breadcrumbs or actions', () => {

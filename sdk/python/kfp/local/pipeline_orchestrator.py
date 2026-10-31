@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for locally executing a compiled pipeline."""
+
 import logging
 import os
 import shutil
 from typing import Any, Dict, List
 
-from kfp.local import config
-from kfp.local import logging_utils
-from kfp.local import placeholder_utils
-from kfp.local import status
-from kfp.local import utils
+from kfp.local import config, logging_utils, placeholder_utils, status, utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -72,8 +69,9 @@ def _run_local_pipeline_implementation(
     from kfp.local import executor_input_utils
 
     pipeline_name = pipeline_spec.pipeline_info.name
-    pipeline_resource_name = executor_input_utils.get_local_pipeline_resource_name(
-        pipeline_name)
+    pipeline_resource_name = (
+        executor_input_utils.get_local_pipeline_resource_name(pipeline_name)
+    )
     pipeline_name_with_color = logging_utils.format_pipeline_name(pipeline_name)
 
     with logging_utils.local_logger_context():
@@ -81,8 +79,8 @@ def _run_local_pipeline_implementation(
         logging_utils.print_horizontal_line()
 
     executors = {
-        name: utils.struct_to_executor_spec(executor) for name, executor in
-        pipeline_spec.deployment_spec['executors'].items()
+        name: utils.struct_to_executor_spec(executor)
+        for name, executor in pipeline_spec.deployment_spec['executors'].items()
     }
     # convert to dict for consistency with executors
     components = dict(pipeline_spec.components.items())
@@ -91,28 +89,42 @@ def _run_local_pipeline_implementation(
         dag_component_spec = pipeline_spec.root
         dag_spec = dag_component_spec.dag
         has_control_flow = any(
-            task_spec.trigger_policy.condition or
-            task_spec.WhichOneof('iterator')
-            for task_spec in dag_spec.tasks.values())
+            task_spec.trigger_policy.condition
+            or task_spec.WhichOneof('iterator')
+            for task_spec in dag_spec.tasks.values()
+        )
         # Also detect OneOf in DAG outputs, which implies conditional
         # branches inside nested sub-DAGs
-        has_oneof_output = any(
-            param_spec.WhichOneof('kind') == 'value_from_oneof'
-            for param_spec in dag_spec.outputs.parameters.values()
-        ) if dag_spec.outputs.parameters else False
+        has_oneof_output = (
+            any(
+                param_spec.WhichOneof('kind') == 'value_from_oneof'
+                for param_spec in dag_spec.outputs.parameters.values()
+            )
+            if dag_spec.outputs.parameters
+            else False
+        )
         # Detect nested DAGs that may contain control flow
         has_nested_dags = any(
-            components.get(task_spec.component_ref.name,
-                           pipeline_spec_pb2.ComponentSpec()).WhichOneof(
-                               'implementation') == 'dag'
-            for task_spec in dag_spec.tasks.values())
+            components.get(
+                task_spec.component_ref.name, pipeline_spec_pb2.ComponentSpec()
+            ).WhichOneof('implementation')
+            == 'dag'
+            for task_spec in dag_spec.tasks.values()
+        )
         # Detect exit handler tasks (trigger_policy.strategy == ALL_UPSTREAM_TASKS_COMPLETED)
-        has_exit_handler = any(task_spec.trigger_policy.strategy ==
-                               pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy
-                               .TriggerStrategy.ALL_UPSTREAM_TASKS_COMPLETED
-                               for task_spec in dag_spec.tasks.values())
-        if has_control_flow or has_oneof_output or has_nested_dags or has_exit_handler:
+        has_exit_handler = any(
+            task_spec.trigger_policy.strategy
+            == pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy.ALL_UPSTREAM_TASKS_COMPLETED
+            for task_spec in dag_spec.tasks.values()
+        )
+        if (
+            has_control_flow
+            or has_oneof_output
+            or has_nested_dags
+            or has_exit_handler
+        ):
             from kfp.local.orchestrator import enhanced_dag_orchestrator
+
             outputs, dag_status = enhanced_dag_orchestrator.run_enhanced_dag(
                 pipeline_resource_name=pipeline_resource_name,
                 dag_component_spec=dag_component_spec,
@@ -126,6 +138,7 @@ def _run_local_pipeline_implementation(
             )
         else:
             from kfp.local.orchestrator import dag_orchestrator
+
             outputs, dag_status = dag_orchestrator.run_dag(
                 pipeline_resource_name=pipeline_resource_name,
                 dag_component_spec=dag_component_spec,
@@ -139,7 +152,8 @@ def _run_local_pipeline_implementation(
             )
         if dag_status == status.Status.SUCCESS:
             status_with_color = logging_utils.format_status(
-                status.Status.SUCCESS)
+                status.Status.SUCCESS
+            )
             with logging_utils.local_logger_context():
                 logging.info(
                     f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}'
@@ -178,7 +192,8 @@ def log_and_maybe_raise_for_failure(
     status_with_color = logging_utils.format_status(status.Status.FAILURE)
     pipeline_name_with_color = logging_utils.format_pipeline_name(pipeline_name)
     task_chain_with_color = ' inside '.join(
-        logging_utils.format_task_name(task_name) for task_name in fail_stack)
+        logging_utils.format_task_name(task_name) for task_name in fail_stack
+    )
     msg = f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}. Inner task failed: {task_chain_with_color}.'
     if raise_on_error:
         raise RuntimeError(msg)

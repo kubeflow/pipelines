@@ -22,11 +22,11 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "viewer-crd-controller"
 )
 RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
-ALL_CI_IMAGE_ARTIFACTS=(
+BRANCH_CI_IMAGE_ARTIFACTS=(
   "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"
   "${RUNTIME_IMAGE_ARTIFACTS[@]}"
-  "runtime-base-images"
 )
+ALL_CI_IMAGE_ARTIFACTS=("${BRANCH_CI_IMAGE_ARTIFACTS[@]}" "runtime-base-images")
 
 # The native tooling producer and its consumers use these same output names.
 TOOL_GENERATOR_IMAGE="kfp-api-generator"
@@ -48,16 +48,19 @@ tool_output_files() {
 ci_artifact_files() {
   local kind="${1:?Expected artifact inventory command}" architecture image file attempt
   case "$kind" in
-    deploy-image-files)
+    branch-image-files)
+      for image in "${BRANCH_CI_IMAGE_ARTIFACTS[@]}"; do
+        printf '%s/%s.tar\n' "$image" "$image"
+      done
+      ;;
+    runtime-base-image-files)
       case "${2:-false}" in
         true|false) ;;
         *) echo "Expected true or false for Modelcar fixture" >&2; return 1 ;;
       esac
-      for image in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
-        printf '%s/%s.tar\n' "$image" "$image"
-      done
+      printf '%s\n' 'runtime-base-images.tar'
       if [[ "${2:-false}" == true ]]; then
-        printf '%s\n' 'runtime-base-images/modelcar.tar'
+        printf '%s\n' 'modelcar.tar'
       fi
       ;;
     arm64-image-files)
@@ -109,6 +112,10 @@ if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     shift
     manifest=$(ci_artifact_files "$@")
     printf 'required-files<<EOF\n%s\nEOF\n' "$manifest" >> "${GITHUB_OUTPUT:?Expected GITHUB_OUTPUT}"
+    if [[ "$1" == branch-image-files ]]; then
+      pattern=$(IFS=,; printf '{%s}' "${BRANCH_CI_IMAGE_ARTIFACTS[*]}")
+      printf 'artifact-pattern=%s\n' "$pattern" >> "$GITHUB_OUTPUT"
+    fi
   else
     ci_artifact_files "$@"
   fi

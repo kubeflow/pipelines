@@ -4,10 +4,13 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     paths:
       - '.github/workflows/presubmit-backend.yml'
       - '.github/actions/setup-go/**'
+      - '.github/resources/scripts/download-go-modules.sh'
+      - '.github/resources/scripts/helper-functions.sh'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
@@ -17,6 +20,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   backend-tests:
@@ -50,10 +56,15 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
 
     - name: Set up Go
       uses: ./.github/actions/setup-go
+
+    - name: Download Go modules
+      run: bash .github/resources/scripts/download-go-modules.sh
 
     - name: Run Backend Tests
       env:
@@ -65,4 +76,5 @@ jobs:
         GIT_BRANCH: ${{ github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name }}
       run: |
+        export GOPROXY="${GOPROXY:-https://proxy.golang.org|direct}"
         ./test/presubmit-backend-test.sh

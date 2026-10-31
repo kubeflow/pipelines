@@ -17,11 +17,11 @@ package model
 import (
 	"fmt"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 )
 
 // IOType represents the I/O relationship type
-type IOType apiv2beta1.IOType
+type IOType apiv2.IOType
 
 const ArtifactTaskNoIteration int64 = -1
 
@@ -122,8 +122,8 @@ func (at *ArtifactTask) SyncIterationFromProducer() error {
 	}
 	producer, err := JSONDataToProtoMessage(
 		at.Producer,
-		func() *apiv2beta1.IOProducer {
-			return &apiv2beta1.IOProducer{}
+		func() *apiv2.IOProducer {
+			return &apiv2.IOProducer{}
 		},
 	)
 	if err != nil {

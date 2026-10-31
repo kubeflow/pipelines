@@ -63,13 +63,23 @@ const (
 	// reports from stale pre-retry workflow snapshots.
 	AnnotationKeyRetryGeneration = "pipelines.kubeflow.org/retry-generation"
 
+	// AnnotationKeyTerminationReason and AnnotationKeyFailedImage are stamped
+	// on a Workflow that the persistence agent terminated because one of its
+	// pods could not pull its image. They describe a single attempt and are
+	// cleared when the run is retried.
+	AnnotationKeyTerminationReason = "pipelines.kubeflow.org/termination-reason"
+	AnnotationKeyFailedImage       = "pipelines.kubeflow.org/failed-image"
+	// TerminationReasonImagePullFailure is the AnnotationKeyTerminationReason
+	// value set for image pull failures.
+	TerminationReasonImagePullFailure = "ImagePullFailure"
+
 	AnnotationKeyIstioSidecarInject           = "sidecar.istio.io/inject"
 	AnnotationValueIstioSidecarInjectEnabled  = "true"
 	AnnotationValueIstioSidecarInjectDisabled = "false"
 
 	// AnnotationKeyRuntimeRole is set on compiled Argo Workflow templates to
 	// identify the logical role of the pod (driver, launcher, etc.).  It is
-	// used by UpsertRuntimeEnvVars to target the right containers.
+	// used by UpsertRuntimeConfig to target the right containers.
 	AnnotationKeyRuntimeRole = "pipelines.kubeflow.org/runtime-role"
 )
 

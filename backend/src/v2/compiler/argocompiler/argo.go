@@ -41,8 +41,6 @@ type Options struct {
 	// optional, use official image if not provided
 	LauncherImage string
 	// optional
-	DriverImage string
-	// optional
 	PipelineRoot string
 	// optional
 	CacheDisabled bool
@@ -64,11 +62,10 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
-	// Optional: administrator-configured labels and annotations for driver pods.
-	// Nil means not set (feature disabled). The API server reads this from its own
-	// configuration and passes it in, so callers that compile outside the API server,
-	// such as the standalone compiler, simply leave it nil and get no extra metadata.
-	DriverPodConfig *common.DriverPodConfig
+	// Optional: administrator-configured default StorageClass for PVCs created
+	// by CreatePVC pipeline tasks. Nil means not set, so tasks that omit
+	// storage_class_name fall back to Kubernetes defaulting.
+	DefaultPVCStorageClass *string
 	// Optional: base audience for projected service-account tokens used by runtime
 	// pods. Empty means DefaultTokenReviewAudience. The API server passes
 	// TOKEN_REVIEW_AUDIENCE so minted audiences match TokenReview.
@@ -190,6 +187,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					util.V2ComponentKey: "true",
+					// Argo's agent pod, which hosts the driver plugin, has no template, so
+					// the API server's per-template Istio opt-out does not reach it.
+					util.AnnotationKeyIstioSidecarInject: util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{
 					util.V2ComponentKey: "true",
@@ -228,8 +228,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		// TODO(chensun): release process and update the images.
 		launcherImage:     GetLauncherImage(),
 		launcherCommand:   GetLauncherCommand(),
-		driverImage:       GetDriverImage(),
-		driverCommand:     GetDriverCommand(),
 		job:               job,
 		spec:              spec,
 		executors:         deploy.GetExecutors(),
@@ -243,11 +241,8 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
-		c.driverPodConfig = opts.DriverPodConfig
+		c.defaultPVCStorageClass = opts.DefaultPVCStorageClass
 		c.tokenReviewAudience = opts.TokenReviewAudience
-		if opts.DriverImage != "" {
-			c.driverImage = opts.DriverImage
-		}
 		if opts.LauncherImage != "" {
 			c.launcherImage = opts.LauncherImage
 		}
@@ -349,51 +344,20 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf                   *wfapi.Workflow
-	templates            map[string]*wfapi.Template
-	driverImage          string
-	driverCommand        []string
-	launcherImage        string
-	launcherCommand      []string
-	cacheDisabled        bool
-	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
-	mlPipelineTLSEnabled bool
-	defaultRunAsUser     *int64
-	defaultRunAsGroup    *int64
-	defaultRunAsNonRoot  *bool
-	defaultHostUsers     *bool
-	driverPodConfig      *common.DriverPodConfig
-	tokenReviewAudience  string
-	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
-}
-
-// applyDriverPodConfig applies driver pod labels and annotations to a workflow
-// template's metadata. Existing keys are kept, since admin configuration has lower
-// priority than metadata that the system already set.
-func applyDriverPodConfig(d *common.DriverPodConfig, tmpl *wfapi.Template) {
-	if d == nil || tmpl == nil {
-		return
-	}
-	if len(d.Labels) > 0 {
-		if tmpl.Metadata.Labels == nil {
-			tmpl.Metadata.Labels = make(map[string]string, len(d.Labels))
-		}
-		for k, v := range d.Labels {
-			if _, exists := tmpl.Metadata.Labels[k]; !exists {
-				tmpl.Metadata.Labels[k] = v
-			}
-		}
-	}
-	if len(d.Annotations) > 0 {
-		if tmpl.Metadata.Annotations == nil {
-			tmpl.Metadata.Annotations = make(map[string]string, len(d.Annotations))
-		}
-		for k, v := range d.Annotations {
-			if _, exists := tmpl.Metadata.Annotations[k]; !exists {
-				tmpl.Metadata.Annotations[k] = v
-			}
-		}
-	}
+	wf                     *wfapi.Workflow
+	templates              map[string]*wfapi.Template
+	launcherImage          string
+	launcherCommand        []string
+	cacheDisabled          bool
+	defaultWorkspace       *k8score.PersistentVolumeClaimSpec
+	mlPipelineTLSEnabled   bool
+	defaultRunAsUser       *int64
+	defaultRunAsGroup      *int64
+	defaultRunAsNonRoot    *bool
+	defaultHostUsers       *bool
+	defaultPVCStorageClass *string
+	tokenReviewAudience    string
+	kubernetesConfigs      map[string]*kubernetesplatform.KubernetesExecutorConfig
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -562,7 +526,7 @@ const (
 	paramImporter                = "importer"       // importer spec
 	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs
 	paramParentDagTaskID         = "parent-dag-task-id"
-	paramParentDagTaskIDPath     = "parent-dag-task-id-path"
+	paramTaskID                  = "task-id"
 	paramIterationCount          = "iteration-count"
 	paramIterationIndex          = "iteration-index"
 	paramDriverType              = "driver-type"
@@ -602,10 +566,6 @@ func inputValue(parameter string) string {
 // In a DAG/steps template, refer to inputs to the parent template.
 func inputParameter(parameter string) string {
 	return fmt.Sprintf("{{inputs.parameters.%s}}", parameter)
-}
-
-func outputPath(parameter string) string {
-	return fmt.Sprintf("{{outputs.parameters.%s.path}}", parameter)
 }
 
 func taskOutputParameter(task string, param string) string {

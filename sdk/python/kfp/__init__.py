@@ -22,7 +22,8 @@ import sys
 if sys.version_info < (3, 11):
     raise RuntimeError(
         'KFP requires Python 3.11 or later. Upgrade your Python interpreter '
-        'before importing kfp.')
+        'before importing kfp.'
+    )
 
 TYPE_CHECK = True
 
@@ -32,6 +33,5 @@ import os
 if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     # make `from kfp import components` and `from kfp import dsl` valid;
     # related to namespace packaging issue
-    from kfp import components  # noqa: keep unused import
-    from kfp import dsl  # noqa: keep unused import
-    from kfp.client import Client  # noqa: keep unused import
+    from kfp import components, dsl
+    from kfp.client import Client

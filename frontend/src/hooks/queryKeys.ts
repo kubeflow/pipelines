@@ -75,6 +75,14 @@ export const queryKeys = {
     sourceFinished?: boolean,
   ) => ['task_logs', { taskId, taskState, namespace, sourceIdentity, sourceFinished }] as const,
 
+  driverLogs: (
+    taskId?: string,
+    taskState?: string,
+    namespace?: string,
+    logUri?: string,
+    sourceFinished?: boolean,
+  ) => ['driver_logs', { taskId, taskState, namespace, logUri, sourceFinished }] as const,
+
   // --- Pipeline & version ---
 
   pipeline: (pipelineId: string | null | undefined) => ['pipeline', pipelineId] as const,
@@ -96,6 +104,26 @@ export const queryKeys = {
     ['RunDetailsV2_experiment', { runId, experimentId }] as const,
 
   // --- Viewer configs ---
+
+  artifactContentPreview: (
+    artifactId: string | undefined,
+    uri: string | undefined,
+    kind: string | undefined,
+    namespace: string | undefined,
+    descriptor: string | undefined,
+    sourceFinished: boolean | undefined,
+    refreshGeneration: number,
+  ) =>
+    [
+      'artifact_content_preview',
+      artifactId,
+      uri,
+      kind,
+      namespace,
+      descriptor,
+      sourceFinished,
+      refreshGeneration,
+    ] as const,
 
   runtimeArtifactVisualization: (
     artifactId: string | undefined,

@@ -15,30 +15,32 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
-SCRIPT = Path(
-    __file__).resolve().parents[3] / 'test/presubmit-test-sdk-upgrade.sh'
+SCRIPT = (
+    Path(__file__).resolve().parents[3] / 'test/presubmit-test-sdk-upgrade.sh'
+)
 
 
 class SdkUpgradeTest(unittest.TestCase):
-
     def test_isolated_upgrade_resolves_local_wheels_and_cleans_up(self):
         """Exercise same-version wheel replacement and failure cleanup."""
         for fail_upgrade in (False, True):
-            with self.subTest(fail_upgrade=fail_upgrade
-                             ), tempfile.TemporaryDirectory() as directory:
+            with (
+                self.subTest(fail_upgrade=fail_upgrade),
+                tempfile.TemporaryDirectory() as directory,
+            ):
                 root = Path(directory)
                 fake_bin = root / 'bin'
                 fake_bin.mkdir()
                 (root / 'api').mkdir()
                 log = root / 'commands.jsonl'
-                program = f'#!{sys.executable}\n' + textwrap.dedent('''\
+                program = f'#!{sys.executable}\n' + textwrap.dedent("""\
                     import json
                     import os
                     from pathlib import Path
@@ -63,21 +65,17 @@ class SdkUpgradeTest(unittest.TestCase):
                     elif args[:3] == ['-m', 'pip', 'install']:
                         if any(arg.endswith('.whl') for arg in args):
                             sys.exit(int(os.environ['FAIL_UPGRADE']))
-                ''')
+                """)
                 for name in ('python3', 'uv', 'make'):
                     executable = fake_bin / name
                     executable.write_text(program, encoding='utf-8')
                     executable.chmod(0o755)
                 environment = {
                     **os.environ,
-                    'PATH':
-                        f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
-                    'UPGRADE_COMMAND_LOG':
-                        str(log),
-                    'FAIL_UPGRADE':
-                        str(int(fail_upgrade)),
-                    'TMPDIR':
-                        str(root),
+                    'PATH': f'{fake_bin}{os.pathsep}{os.environ["PATH"]}',
+                    'UPGRADE_COMMAND_LOG': str(log),
+                    'FAIL_UPGRADE': str(int(fail_upgrade)),
+                    'TMPDIR': str(root),
                 }
                 result = subprocess.run(
                     ['bash', str(SCRIPT)],
@@ -87,31 +85,50 @@ class SdkUpgradeTest(unittest.TestCase):
                     text=True,
                     check=False,
                 )
-                self.assertEqual(result.returncode, int(fail_upgrade),
-                                 result.stderr)
+                self.assertEqual(
+                    result.returncode, int(fail_upgrade), result.stderr
+                )
                 commands = [
                     json.loads(line) for line in log.read_text().splitlines()
                 ]
                 self.assertEqual(commands[0][1][:2], ['-m', 'venv'])
                 venv = Path(commands[0][1][2])
-                pip_commands = [(executable, args)
-                                for executable, args in commands
-                                if args[:2] == ['-m', 'pip']]
+                pip_commands = [
+                    (executable, args)
+                    for executable, args in commands
+                    if args[:2] == ['-m', 'pip']
+                ]
                 self.assertTrue(
-                    all(executable == str(venv / 'bin/python')
-                        for executable, _ in pip_commands))
-                self.assertEqual(pip_commands[1][1], [
-                    '-m', 'pip', 'install', 'kfp==2.17.0',
-                    'kfp-pipeline-spec==2.17.0', 'kfp-server-api==2.17.0',
-                    'kfp-kubernetes==2.17.0'
-                ])
+                    all(
+                        executable == str(venv / 'bin/python')
+                        for executable, _ in pip_commands
+                    )
+                )
+                self.assertEqual(
+                    pip_commands[1][1],
+                    [
+                        '-m',
+                        'pip',
+                        'install',
+                        'kfp==2.17.0',
+                        'kfp-pipeline-spec==2.17.0',
+                        'kfp-server-api==2.17.0',
+                        'kfp-kubernetes==2.17.0',
+                    ],
+                )
                 cleanup = [
-                    '-m', 'pip', 'uninstall', '-y', 'kfp-pipeline-spec',
-                    'kfp-server-api', 'kfp-kubernetes'
+                    '-m',
+                    'pip',
+                    'uninstall',
+                    '-y',
+                    'kfp-pipeline-spec',
+                    'kfp-server-api',
+                    'kfp-kubernetes',
                 ]
                 self.assertEqual(pip_commands[3][1], cleanup)
                 upgrades = [
-                    args for _, args in pip_commands
+                    args
+                    for _, args in pip_commands
                     if '--force-reinstall' in args
                 ]
                 self.assertEqual(len(upgrades), 1)
@@ -126,8 +143,10 @@ class SdkUpgradeTest(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    any(args[:1] == ['-c'] and 'from kfp import' in args[1]
-                        for _, args in commands),
+                    any(
+                        args[:1] == ['-c'] and 'from kfp import' in args[1]
+                        for _, args in commands
+                    ),
                     not fail_upgrade,
                 )
                 self.assertFalse(venv.parent.exists())

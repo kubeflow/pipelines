@@ -58,53 +58,56 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Wait for branch image artifacts
-      id: image-artifacts
+    - name: Ensure GitHub CLI is available
+      shell: bash
+      run: bash .github/resources/scripts/setup-github-cli.sh
+
+    - name: Configure runtime base image cache
+      id: runtime-image-cache-key
+      shell: bash
+      run: |
+        python3 .github/resources/scripts/runtime_base_image_artifacts.py identity >> "$GITHUB_OUTPUT"
+
+    - name: Restore runtime base image cache
+      id: runtime-image-cache
+      continue-on-error: true
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: |
+          runtime-base-images-cache/runtime-base-images.tar
+          runtime-base-images-cache/modelcar.tar
+        key: ${{ steps.runtime-image-cache-key.outputs.cache-key }}
+
+    - name: Validate and stage runtime image cache
+      id: runtime-image-cache-files
+      shell: bash
+      env:
+        CACHE_OUTCOME: ${{ steps.runtime-image-cache.outcome }}
+        CACHE_HIT: ${{ steps.runtime-image-cache.outputs.cache-hit }}
+        CACHE_DIRECTORY: runtime-base-images-cache
+        IMAGE_DIRECTORY: ${{ inputs.image_path }}/runtime-base-images
+      run: bash .github/resources/scripts/stage-runtime-image-cache.sh
+
+    # Start the largest transfer while the branch images are still building.
+    # Keep the same archive and Kind image verification as the combined path.
+    - name: Wait for runtime base image artifact
+      id: runtime-image-artifacts
+      if: steps.runtime-image-cache-files.outputs.ready != 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
         LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
       run: |
-        ./.github/resources/scripts/wait-for-image-artifacts.sh
-        bash .github/resources/scripts/ci-image-artifacts.sh --github-output deploy-image-files "$LOAD_MODELCAR_FIXTURE"
+        ./.github/resources/scripts/wait-for-image-artifacts.sh runtime-base-images
+        bash .github/resources/scripts/ci-image-artifacts.sh --github-output runtime-base-image-files "$LOAD_MODELCAR_FIXTURE"
 
-    - name: Download Docker Images
+    - name: Download runtime base images
+      if: steps.runtime-image-cache-files.outputs.ready != 'true'
       uses: ./.github/actions/download-artifact-with-retry
       with:
-        path: "images_${{ github.run_id }}"
-        pattern: "!*.dockerbuild"
-        required-files: ${{ steps.image-artifacts.outputs.required-files }}
-
-    - name: Load Control Plane Images Into Kind
-      shell: bash
-      run: |
-        # These images are deployed directly by the CI manifests and use
-        # IfNotPresent in the CI install path, so loading the image archive
-        # into the Kind node is sufficient. Import two at a time: this overlaps
-        # decompression without flooding the single Kind node's containerd.
-        source .github/resources/scripts/ci-image-artifacts.sh
-        ARCHIVES=()
-        for app in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"; do
-          ARCHIVES+=("${{ inputs.image_path }}/$app/$app.tar")
-        done
-        ./.github/resources/scripts/load-kind-image-archives.sh \
-          "${{ inputs.cluster_name }}" 2 "${ARCHIVES[@]}"
-
-    - name: Load Driver and Launcher Images Into Kind
-      shell: bash
-      run: |
-        # Runtime-generated workflow pods inherit these refs from the API server
-        # environment. Tagging them away from `latest` makes Kubernetes default
-        # them to IfNotPresent, so they can also be loaded directly into Kind.
-        source .github/resources/scripts/ci-image-artifacts.sh
-        for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
-          docker image load -i "${{ inputs.image_path }}/$app/$app.tar"
-          docker tag "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}" "${{ inputs.image_registry }}/$app:ci"
-          kind --name "${{ inputs.cluster_name }}" load docker-image "${{ inputs.image_registry }}/$app:ci"
-          rm "${{ inputs.image_path }}/$app/$app.tar"
-          docker image rm "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}"
-          docker image rm "${{ inputs.image_registry }}/$app:ci"
-        done
+        name: runtime-base-images
+        path: "${{ inputs.image_path }}/runtime-base-images"
+        required-files: ${{ steps.runtime-image-artifacts.outputs.required-files }}
 
     - name: Load Runtime Base Images Into Kind
       shell: bash
@@ -137,6 +140,54 @@ runs:
         retry 3 10 kind --name "${{ inputs.cluster_name }}" \
           load image-archive "${MODELCAR_IMAGE_ARCHIVE}"
         rm "${MODELCAR_IMAGE_ARCHIVE}"
+
+    - name: Wait for branch image artifacts
+      id: image-artifacts
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        source .github/resources/scripts/ci-image-artifacts.sh
+        ./.github/resources/scripts/wait-for-image-artifacts.sh "${BRANCH_CI_IMAGE_ARTIFACTS[@]}"
+        bash .github/resources/scripts/ci-image-artifacts.sh --github-output branch-image-files
+
+    - name: Download Docker Images
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        path: "${{ inputs.image_path }}"
+        pattern: ${{ steps.image-artifacts.outputs.artifact-pattern }}
+        required-files: ${{ steps.image-artifacts.outputs.required-files }}
+
+    - name: Load Control Plane Images Into Kind
+      shell: bash
+      run: |
+        # These images are deployed directly by the CI manifests and use
+        # IfNotPresent in the CI install path, so loading the image archive
+        # into the Kind node is sufficient. Import two at a time: this overlaps
+        # decompression without flooding the single Kind node's containerd.
+        source .github/resources/scripts/ci-image-artifacts.sh
+        ARCHIVES=()
+        for app in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"; do
+          ARCHIVES+=("${{ inputs.image_path }}/$app/$app.tar")
+        done
+        ./.github/resources/scripts/load-kind-image-archives.sh \
+          "${{ inputs.cluster_name }}" 2 "${ARCHIVES[@]}"
+
+    - name: Load Driver and Launcher Images Into Kind
+      shell: bash
+      run: |
+        # Runtime-generated workflow pods inherit these refs from the API server
+        # environment. Tagging them away from `latest` makes Kubernetes default
+        # them to IfNotPresent, so they can also be loaded directly into Kind.
+        source .github/resources/scripts/ci-image-artifacts.sh
+        for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
+          docker image load -i "${{ inputs.image_path }}/$app/$app.tar"
+          docker tag "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}" "${{ inputs.image_registry }}/$app:ci"
+          kind --name "${{ inputs.cluster_name }}" load docker-image "${{ inputs.image_registry }}/$app:ci"
+          rm "${{ inputs.image_path }}/$app/$app.tar"
+          docker image rm "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}"
+          docker image rm "${{ inputs.image_registry }}/$app:ci"
+        done
 
     - name: Deploy Tinyproxy
       id: deploy-tinyproxy

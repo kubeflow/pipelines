@@ -17,6 +17,7 @@ package template
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -30,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	scheduleutil "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -179,22 +181,6 @@ spec:
     inputs:
       parameters:
       - name: dup
-        value: "value1"
-    container:
-      image: docker/whalesay:latest`
-
-var emptyName = `
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: hello-world-
-spec:
-  entrypoint: whalesay
-  templates:
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: ""
         value: "value1"
     container:
       image: docker/whalesay:latest`
@@ -846,7 +832,7 @@ func TestNewGenericScheduledWorkflow(t *testing.T) {
 	assert.Equal(t, int64(3), *swf.Spec.MaxConcurrency)
 	assert.Equal(t, "exp-1", swf.Spec.ExperimentId)
 	assert.Equal(t, "pipe-1", swf.Spec.PipelineId)
-	assert.Equal(t, "My Pipeline", swf.Spec.PipelineName)
+	assert.Empty(t, swf.Spec.PipelineName, "the job's PipelineName holds a version name or resource path")
 	assert.NotNil(t, swf.Spec.PeriodicSchedule)
 	assert.Equal(t, int64(120), swf.Spec.PeriodicSchedule.IntervalSecond)
 }
@@ -901,5 +887,45 @@ func TestValidateJobInputs(t *testing.T) {
 				assert.Nil(t, err)
 			}
 		})
+	}
+}
+
+// The generated HTTP client sends zero date-time values for omitted bounds.
+// Kubernetes serializes those metav1.Time values as null; API-side scheduling
+// must interpret the stored bounds the same way as the controller.
+func TestModelToCRDTriggerZeroBoundsMatchControllerSchedule(t *testing.T) {
+	zero := (time.Time{}).Unix()
+	for _, periodic := range []bool{true, false} {
+		t.Run(fmt.Sprintf("periodic=%t", periodic), func(t *testing.T) {
+			trigger := model.Trigger{}
+			if periodic {
+				trigger.PeriodicSchedule = model.PeriodicSchedule{PeriodicScheduleStartTimeInSec: &zero, PeriodicScheduleEndTimeInSec: &zero, IntervalSecond: util.Int64Pointer(60)}
+			} else {
+				trigger.CronSchedule = model.CronSchedule{CronScheduleStartTimeInSec: &zero, CronScheduleEndTimeInSec: &zero, Cron: util.StringPointer("* * * * *")}
+			}
+			swf, err := NewGenericScheduledWorkflow(&model.Job{K8SName: "unbounded", Enabled: true, MaxConcurrency: 1, NoCatchup: true, Trigger: trigger})
+			require.NoError(t, err)
+			swf.CreationTimestamp = metav1.NewTime(time.Unix(120, 0))
+			encoded, err := json.Marshal(swf)
+			require.NoError(t, err)
+			controller := &scheduledworkflow.ScheduledWorkflow{}
+			require.NoError(t, json.Unmarshal(encoded, controller))
+			controllerTime, controllerDue := scheduleutil.NewScheduledWorkflow(controller).GetNextScheduledEpoch(0, 200, *time.UTC)
+			require.True(t, controllerDue)
+			apiTime, apiDue := scheduleutil.NewScheduledWorkflow(swf).GetNextScheduledEpoch(0, 200, *time.UTC)
+			require.True(t, apiDue, "API authorization must allow the same tick as the controller")
+			require.Equal(t, controllerTime, apiTime)
+		})
+	}
+}
+
+func TestModelToCRDScheduleTimePreservesNonzeroBounds(t *testing.T) {
+	zero := (time.Time{}).Unix()
+	require.Nil(t, modelToCRDScheduleTime(nil))
+	require.Nil(t, modelToCRDScheduleTime(&zero))
+	for _, epoch := range []int64{-1, 0, 1, 1800000000} {
+		bound := modelToCRDScheduleTime(&epoch)
+		require.NotNil(t, bound)
+		require.Equal(t, epoch, bound.Unix())
 	}
 }

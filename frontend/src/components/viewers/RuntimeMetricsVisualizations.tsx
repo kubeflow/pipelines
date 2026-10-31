@@ -16,7 +16,7 @@ import HelpIcon from '@mui/icons-material/Help';
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
-import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, V2Artifact } from 'src/apisv2/run';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import Banner from 'src/components/Banner';
 import PlotCard from 'src/components/PlotCard';
@@ -26,6 +26,8 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
   getArtifactDisplayName,
   getArtifactIdentity,
+  getArtifactContentPreviewKind,
+  hasArtifactContentPreview,
   getScalarMetricEntries,
   isHtmlArtifact,
   isLegacyUiMetadataArtifact,
@@ -41,19 +43,22 @@ import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
 import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
+import { ArtifactContentPreviews } from './ArtifactContentPreview';
 
 interface RuntimeMetricsVisualizationsProps {
-  artifacts: V2beta1Artifact[];
+  artifacts: V2Artifact[];
   artifactKey?: string;
   namespace?: string;
   sourceFinished?: boolean;
+  active?: boolean;
+  refreshGeneration?: number;
 }
 
 export interface ClassificationVisualization {
   key: string;
   displayName: string;
   metadata?: { [key: string]: object };
-  sourceArtifact: V2beta1Artifact;
+  sourceArtifact: V2Artifact;
 }
 
 interface LegacyUiMetadataVisualizationResult {
@@ -77,28 +82,45 @@ export function RuntimeMetricsVisualizations({
   artifactKey,
   namespace,
   sourceFinished,
+  active = true,
+  refreshGeneration,
 }: RuntimeMetricsVisualizationsProps) {
-  const { scalarMetrics, classificationMetrics, fileArtifacts, legacyUiMetadataEntries } =
-    useMemo(() => {
-      const files = artifacts.filter(
-        (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
-      );
-      const legacyIdentityOccurrences = new Map<string, number>();
-      const legacyUiMetadataEntries = artifacts
-        .filter((artifact) => isLegacyUiMetadataArtifact(artifact, artifactKey))
-        .map((artifact, index) => {
-          const identity = getArtifactIdentity(artifact) || `legacy-ui-metadata-${index}`;
-          const occurrence = legacyIdentityOccurrences.get(identity) || 0;
-          legacyIdentityOccurrences.set(identity, occurrence + 1);
-          return { artifact, key: JSON.stringify([identity, occurrence]) };
-        });
-      return {
-        scalarMetrics: artifacts.filter(isScalarMetricArtifact),
-        classificationMetrics: expandClassificationMetrics(artifacts),
-        fileArtifacts: files,
-        legacyUiMetadataEntries,
-      };
-    }, [artifactKey, artifacts]);
+  const {
+    scalarMetrics,
+    classificationMetrics,
+    fileArtifacts,
+    legacyUiMetadataEntries,
+    contentArtifacts,
+  } = useMemo(() => {
+    const files = artifacts.filter(
+      (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
+    );
+    const legacyIdentityOccurrences = new Map<string, number>();
+    // An explicit preview must not also trigger a legacy read of the full artifact.
+    const legacyUiMetadataEntries = artifacts
+      .filter(
+        (artifact) =>
+          isLegacyUiMetadataArtifact(artifact, artifactKey) && !hasArtifactContentPreview(artifact),
+      )
+      .map((artifact, index) => {
+        const identity = getArtifactIdentity(artifact) || `legacy-ui-metadata-${index}`;
+        const occurrence = legacyIdentityOccurrences.get(identity) || 0;
+        legacyIdentityOccurrences.set(identity, occurrence + 1);
+        return { artifact, key: JSON.stringify([identity, occurrence]) };
+      });
+    return {
+      scalarMetrics: artifacts.filter(isScalarMetricArtifact),
+      classificationMetrics: expandClassificationMetrics(artifacts),
+      fileArtifacts: files,
+      legacyUiMetadataEntries,
+      contentArtifacts: artifacts.filter(
+        (artifact) =>
+          !!getArtifactContentPreviewKind(artifact) &&
+          (hasArtifactContentPreview(artifact) ||
+            !isLegacyUiMetadataArtifact(artifact, artifactKey)),
+      ),
+    };
+  }, [artifactKey, artifacts]);
 
   const rocCurves = useMemo(() => buildRocCurves(classificationMetrics), [classificationMetrics]);
   const confusionMatrixResult = useMemo(
@@ -113,13 +135,21 @@ export function RuntimeMetricsVisualizations({
     confusionMatrixResult.matrices.length === 0 &&
     confusionMatrixResult.errors.length === 0 &&
     fileArtifacts.length === 0 &&
-    legacyUiMetadataEntries.length === 0
+    legacyUiMetadataEntries.length === 0 &&
+    contentArtifacts.length === 0
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
   }
 
   return (
     <>
+      <ArtifactContentPreviews
+        artifacts={contentArtifacts}
+        active={active}
+        namespace={namespace}
+        sourceFinished={sourceFinished}
+        refreshGeneration={refreshGeneration}
+      />
       {rocCurves.error && (
         <Banner
           message='Invalid ROC curve artifact.'
@@ -205,7 +235,7 @@ function FileArtifactVisualization({
   namespace,
   sourceFinished,
 }: {
-  artifacts: V2beta1Artifact[];
+  artifacts: V2Artifact[];
   kind: 'HTML' | 'Markdown';
   namespace?: string;
   sourceFinished?: boolean;
@@ -290,7 +320,7 @@ export function RuntimeArtifactVisualization({
   sourceFinished,
   title,
 }: {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   namespace?: string;
   sourceFinished?: boolean;
   title?: string;
@@ -333,7 +363,7 @@ function LegacyUiMetadataVisualization({
   namespace,
   sourceFinished,
 }: {
-  artifact: V2beta1Artifact;
+  artifact: V2Artifact;
   namespace?: string;
   sourceFinished?: boolean;
 }) {
@@ -447,7 +477,7 @@ function buildViewerConfigEntries(
 }
 
 async function loadLegacyUiMetadataVisualization(
-  artifact: V2beta1Artifact,
+  artifact: V2Artifact,
   namespace?: string,
 ): Promise<LegacyUiMetadataVisualizationResult> {
   if (!artifact.uri) {
@@ -486,7 +516,7 @@ export function buildRocCurves(visualizations: ClassificationVisualization[]): {
 }
 
 export function expandClassificationMetrics(
-  artifacts: V2beta1Artifact[],
+  artifacts: V2Artifact[],
 ): ClassificationVisualization[] {
   const identityOccurrences = new Map<string, number>();
   return artifacts.flatMap((artifact, artifactIndex) => {
@@ -574,7 +604,7 @@ export function buildConfusionMatrixResult(visualizations: ClassificationVisuali
 }
 
 async function downloadVisualization(
-  artifact: V2beta1Artifact,
+  artifact: V2Artifact,
   namespace?: string,
 ): Promise<ViewerConfig> {
   if (!artifact.uri) {

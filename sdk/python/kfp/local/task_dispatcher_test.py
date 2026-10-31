@@ -19,6 +19,7 @@ whereas these tests focus on how the task dispatcher should behave,
 irrespective of the runner. While there will inevitably some overlap, we
 should seek to minimize it.
 """
+
 import io
 import os
 import re
@@ -26,21 +27,18 @@ import unittest
 from unittest import mock
 
 from absl.testing import parameterized
-from kfp import dsl
-from kfp import local
-from kfp.dsl import Artifact
-from kfp.dsl import Model
-from kfp.dsl import Output
-from kfp.local import task_dispatcher
-from kfp.local import testing_utilities
+
+from kfp import dsl, local
+from kfp.dsl import Artifact, Model, Output
+from kfp.local import task_dispatcher, testing_utilities
 
 # LocalRunnerEnvironmentTestCase isolates installs from the pytest worker,
 # including tests that disable per-task virtual environments.
 
 
 class TestLocalExecutionValidation(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def test_env_not_initialized(self):
 
         @dsl.component
@@ -48,14 +46,13 @@ class TestLocalExecutionValidation(
             return x
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Local environment not initialized\. Please run 'kfp\.local\.init\(\)' before executing tasks locally\."
+            RuntimeError,
+            r"Local environment not initialized\. Please run 'kfp\.local\.init\(\)' before executing tasks locally\.",
         ):
             identity(x='foo')
 
 
 class TestArgumentValidation(parameterized.TestCase):
-
     def test_no_argument_no_default(self):
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
@@ -64,8 +61,8 @@ class TestArgumentValidation(parameterized.TestCase):
             return x
 
         with self.assertRaisesRegex(
-                TypeError, r'identity\(\) missing 1 required argument: x'):
-
+            TypeError, r'identity\(\) missing 1 required argument: x'
+        ):
             identity()
 
     def test_default_wrong_type(self):
@@ -76,8 +73,8 @@ class TestArgumentValidation(parameterized.TestCase):
             return x
 
         with self.assertRaisesRegex(
-                dsl.types.type_utils.InconsistentTypeException,
-                r"Incompatible argument passed to the input 'x' of component 'identity': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'"
+            dsl.types.type_utils.InconsistentTypeException,
+            r"Incompatible argument passed to the input 'x' of component 'identity': Argument type 'NUMBER_INTEGER' is incompatible with the input type 'STRING'",
         ):
             identity(x=1)
 
@@ -89,8 +86,8 @@ class TestArgumentValidation(parameterized.TestCase):
             return x
 
         with self.assertRaisesRegex(
-                TypeError,
-                r'identity\(\) got an unexpected keyword argument "y"\.'):
+            TypeError, r'identity\(\) got an unexpected keyword argument "y"\.'
+        ):
             identity(x='foo', y='bar')
 
     def test_input_artifact_provided(self):
@@ -101,15 +98,15 @@ class TestArgumentValidation(parameterized.TestCase):
             return a
 
         with self.assertRaisesRegex(
-                ValueError,
-                r"Input artifacts are not supported. Got input artifact of type 'Artifact'."
+            ValueError,
+            r"Input artifacts are not supported. Got input artifact of type 'Artifact'.",
         ):
             artifact_identity(a=Artifact(name='a', uri='gs://bucket/foo'))
 
 
 class TestSupportOfComponentTypes(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def test_can_run_loaded_component(self):
         # use venv to avoid installing non-local KFP into test process
         local.init(runner=local.SubprocessRunner(use_venv=True))
@@ -132,8 +129,8 @@ class TestSupportOfComponentTypes(
 
 
 class TestExceptionHandlingAndLogging(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     @mock.patch('sys.stdout', new_callable=io.StringIO)
     def test_user_code_throws_exception_if_raise_on_error(self, mock_stdout):
         local.init(
@@ -146,8 +143,8 @@ class TestExceptionHandlingAndLogging(
             raise Exception('String to match on')
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                r"Task \x1b\[96m'fail-comp'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m",
+            RuntimeError,
+            r"Task \x1b\[96m'fail-comp'\x1b\[0m finished with status \x1b\[91mFAILURE\x1b\[0m",
         ):
             fail_comp()
 
@@ -221,11 +218,11 @@ class TestExceptionHandlingAndLogging(
 
 
 class TestPipelineRootPaths(testing_utilities.LocalRunnerEnvironmentTestCase):
-
     def test_relpath(self):
         local.init(
             runner=local.SubprocessRunner(use_venv=True),
-            pipeline_root='relpath_root')
+            pipeline_root='relpath_root',
+        )
 
         # define in test to force install from source
         @dsl.component
@@ -238,10 +235,12 @@ class TestPipelineRootPaths(testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_abspath(self):
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             local.init(
                 runner=local.SubprocessRunner(use_venv=True),
-                pipeline_root=os.path.join(tmpdir, 'asbpath_root'))
+                pipeline_root=os.path.join(tmpdir, 'asbpath_root'),
+            )
 
             # define in test to force install from source
             @dsl.component
@@ -253,8 +252,9 @@ class TestPipelineRootPaths(testing_utilities.LocalRunnerEnvironmentTestCase):
             self.assertEqual(task.output, 'foo')
 
 
-class TestEnvironmentVariables(testing_utilities.LocalRunnerEnvironmentTestCase
-                              ):
+class TestEnvironmentVariables(
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     """Tests for set_env_variable support in local execution."""
 
     def test_env_variable_available_in_subprocess(self):
@@ -265,6 +265,7 @@ class TestEnvironmentVariables(testing_utilities.LocalRunnerEnvironmentTestCase
         @dsl.component
         def read_env_var() -> str:
             import os
+
             return os.environ.get('MY_TEST_VAR', 'NOT_SET')
 
         @dsl.pipeline
@@ -284,6 +285,7 @@ class TestEnvironmentVariables(testing_utilities.LocalRunnerEnvironmentTestCase
         @dsl.component
         def read_env_vars() -> str:
             import os
+
             var1 = os.environ.get('VAR_ONE', 'NOT_SET')
             var2 = os.environ.get('VAR_TWO', 'NOT_SET')
             return f'{var1}:{var2}'
@@ -301,18 +303,21 @@ class TestEnvironmentVariables(testing_utilities.LocalRunnerEnvironmentTestCase
 
 
 class TestRunnerEnvironmentMerging(unittest.TestCase):
-
     def test_docker_runner_environment_takes_precedence(self):
-        runner = local.DockerRunner(environment={
-            'FOO': 'runner-override',
-            'RUNNER_ONLY': '1',
-        })
-        prepared_runner, merged_env = task_dispatcher._prepare_runner_and_env_vars(
-            runner,
-            {
-                'FOO': 'component-value',
-                'COMPONENT_ONLY': '1',
-            },
+        runner = local.DockerRunner(
+            environment={
+                'FOO': 'runner-override',
+                'RUNNER_ONLY': '1',
+            }
+        )
+        prepared_runner, merged_env = (
+            task_dispatcher._prepare_runner_and_env_vars(
+                runner,
+                {
+                    'FOO': 'component-value',
+                    'COMPONENT_ONLY': '1',
+                },
+            )
         )
 
         self.assertIsNot(prepared_runner, runner)
@@ -329,7 +334,8 @@ class TestRunnerEnvironmentMerging(unittest.TestCase):
     def test_docker_runner_environment_list_is_normalized(self):
         runner = local.DockerRunner(environment=['FOO=runner', 'BAR=baz'])
         _, merged_env = task_dispatcher._prepare_runner_and_env_vars(
-            runner, {'FOO': 'component'})
+            runner, {'FOO': 'component'}
+        )
         self.assertEqual(merged_env, {'FOO': 'runner', 'BAR': 'baz'})
 
 
@@ -385,11 +391,13 @@ class TestRetryLogic(testing_utilities.LocalRunnerEnvironmentTestCase):
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
         import tempfile
+
         counter_file = os.path.join(tempfile.mkdtemp(), 'counter.txt')
 
         @dsl.component
         def flaky_component(counter_path: str) -> str:
             import os
+
             count = 0
             if os.path.exists(counter_path):
                 with open(counter_path, 'r') as f:
@@ -405,7 +413,8 @@ class TestRetryLogic(testing_utilities.LocalRunnerEnvironmentTestCase):
         def retry_pipeline(counter_path: str) -> str:
             task = flaky_component(counter_path=counter_path)
             task.set_retry(
-                num_retries=3, backoff_duration='0s', backoff_factor=1.0)
+                num_retries=3, backoff_duration='0s', backoff_factor=1.0
+            )
             return task.output
 
         result = retry_pipeline(counter_path=counter_file)
@@ -427,7 +436,8 @@ class TestRetryLogic(testing_utilities.LocalRunnerEnvironmentTestCase):
         def retry_fail_pipeline() -> str:
             task = always_fail()
             task.set_retry(
-                num_retries=1, backoff_duration='0s', backoff_factor=1.0)
+                num_retries=1, backoff_duration='0s', backoff_factor=1.0
+            )
             return task.output
 
         result = retry_fail_pipeline()
@@ -442,6 +452,7 @@ class TestExitHandler(testing_utilities.LocalRunnerEnvironmentTestCase):
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
         import tempfile
+
         marker_file = os.path.join(tempfile.mkdtemp(), 'exit_marker.txt')
 
         @dsl.component
@@ -472,6 +483,7 @@ class TestExitHandler(testing_utilities.LocalRunnerEnvironmentTestCase):
         )
 
         import tempfile
+
         marker_file = os.path.join(tempfile.mkdtemp(), 'exit_marker.txt')
 
         @dsl.component
@@ -526,6 +538,7 @@ class TestExitHandler(testing_utilities.LocalRunnerEnvironmentTestCase):
         )
 
         import tempfile
+
         status_file = os.path.join(tempfile.mkdtemp(), 'status.txt')
 
         @dsl.component
@@ -559,6 +572,7 @@ class TestK8sOnlyMethodsWarn(testing_utilities.LocalRunnerEnvironmentTestCase):
         """Test that K8s-only config methods emit warnings but the task still
         runs."""
         import warnings as warnings_mod
+
         local.init(runner=local.SubprocessRunner(use_venv=True))
 
         @dsl.component
@@ -573,17 +587,21 @@ class TestK8sOnlyMethodsWarn(testing_utilities.LocalRunnerEnvironmentTestCase):
             task.set_display_name('my_task')
         warning_messages = [str(warning.message) for warning in w]
         self.assertTrue(
-            any('.set_cpu_limit()' in msg for msg in warning_messages))
+            any('.set_cpu_limit()' in msg for msg in warning_messages)
+        )
         self.assertTrue(
-            any('.set_memory_limit()' in msg for msg in warning_messages))
+            any('.set_memory_limit()' in msg for msg in warning_messages)
+        )
         self.assertTrue(
-            any('.set_display_name()' in msg for msg in warning_messages))
+            any('.set_display_name()' in msg for msg in warning_messages)
+        )
         self.assertIsInstance(task.output, str)
         self.assertEqual(task.output, 'hello')
 
 
-class TestIgnoreUpstreamFailure(testing_utilities.LocalRunnerEnvironmentTestCase
-                               ):
+class TestIgnoreUpstreamFailure(
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     """Tests for ignore_upstream_failure support in local execution."""
 
     def test_downstream_runs_after_upstream_failure(self):
@@ -595,6 +613,7 @@ class TestIgnoreUpstreamFailure(testing_utilities.LocalRunnerEnvironmentTestCase
         )
 
         import tempfile
+
         marker_file = os.path.join(tempfile.mkdtemp(), 'marker.txt')
 
         @dsl.component
@@ -625,6 +644,7 @@ class TestIgnoreUpstreamFailure(testing_utilities.LocalRunnerEnvironmentTestCase
         )
 
         import tempfile
+
         status_file = os.path.join(tempfile.mkdtemp(), 'status.txt')
 
         @dsl.component
@@ -657,6 +677,7 @@ class TestLocalCaching(testing_utilities.LocalRunnerEnvironmentTestCase):
         """With caching enabled, identical pipeline re-run returns cached
         outputs without re-executing the component."""
         import tempfile
+
         pipeline_root = tempfile.mkdtemp(prefix='kfp-cache-pipeline-')
         counter_file = os.path.join(tempfile.mkdtemp(), 'counter.txt')
 
@@ -692,6 +713,7 @@ class TestLocalCaching(testing_utilities.LocalRunnerEnvironmentTestCase):
         """A task with set_caching_options(False) always executes, even when
         local caching is globally enabled."""
         import tempfile
+
         pipeline_root = tempfile.mkdtemp(prefix='kfp-cache-pipeline-')
         counter_file = os.path.join(tempfile.mkdtemp(), 'counter.txt')
 
@@ -722,6 +744,7 @@ class TestLocalCaching(testing_utilities.LocalRunnerEnvironmentTestCase):
         """Different inputs should produce a cache miss, not a hit on the prior
         run's outputs."""
         import tempfile
+
         pipeline_root = tempfile.mkdtemp(prefix='kfp-cache-pipeline-')
         counter_file = os.path.join(tempfile.mkdtemp(), 'counter.txt')
 
@@ -752,6 +775,7 @@ class TestLocalCaching(testing_utilities.LocalRunnerEnvironmentTestCase):
         """With enable_caching=False in init(), each run executes regardless of
         per-task caching options."""
         import tempfile
+
         pipeline_root = tempfile.mkdtemp(prefix='kfp-cache-pipeline-')
         counter_file = os.path.join(tempfile.mkdtemp(), 'counter.txt')
 

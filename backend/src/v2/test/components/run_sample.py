@@ -14,16 +14,14 @@
 
 from pathlib import Path
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
-SHELL_COMMAND = r'''backend_compiler_path="$0"
+SHELL_COMMAND = r"""backend_compiler_path="$0"
 sample_path="$1"
 output_dir="$2"
 export KF_PIPELINES_ENDPOINT="$3"
 export KF_PIPELINES_UI_ENDPOINT="$4"
 launcher_v2_image="$5"
-driver_image="$6"
 
 # install kfp v2 backend compiler
 chmod +x "$backend_compiler_path"
@@ -34,9 +32,8 @@ uv run --frozen --extra backend-v2-test python3 \
   -u \
   -m "$sample_path" \
   --pipeline_root "$output_dir" \
-  --launcher_v2_image "$launcher_v2_image" \
-  --driver_image "$driver_image"
-'''
+  --launcher_v2_image "$launcher_v2_image"
+"""
 
 
 @dsl.container_component
@@ -48,7 +45,6 @@ def run_sample(
     backend_compiler: dsl.Input[dsl.Artifact],
     host: str = 'http://ml-pipeline:8888',
     launcher_v2_image: str = 'gcr.io/ml-pipeline/kfp-launcher-v2:latest',
-    driver_image: str = 'gcr.io/ml-pipeline/kfp-driver:latest',
 ):
     """Run a v2 sample using the compiler artifact and native SDK
     dependencies."""
@@ -64,11 +60,11 @@ def run_sample(
             host,
             external_host,
             launcher_v2_image,
-            driver_image,
         ],
     )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        run_sample, package_path=str(Path(__file__).with_suffix('.yaml')))
+        run_sample, package_path=str(Path(__file__).with_suffix('.yaml'))
+    )

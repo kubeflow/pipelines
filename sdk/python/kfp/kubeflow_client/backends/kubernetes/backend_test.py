@@ -15,27 +15,24 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from dataclasses import field
 import json
 import logging
 import os
 import tempfile
-from typing import Any
-from unittest.mock import MagicMock
-from unittest.mock import Mock
-from unittest.mock import mock_open
-from unittest.mock import patch
 import warnings
+from dataclasses import dataclass, field
+from typing import Any
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
-from kfp.kubeflow_client import constants
-from kfp.kubeflow_client.backends.kubernetes import auth
-from kfp.kubeflow_client.backends.kubernetes import utils
-from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
-from kfp.kubeflow_client.backends.kubernetes.types import \
-    KubernetesBackendConfig
-import kfp.server_api
 import pytest
+
+import kfp.server_api
+from kfp.kubeflow_client import constants
+from kfp.kubeflow_client.backends.kubernetes import auth, utils
+from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
+from kfp.kubeflow_client.backends.kubernetes.types import (
+    KubernetesBackendConfig,
+)
 
 _AUTH_MODULE = 'kfp.kubeflow_client.backends.kubernetes.auth'
 _BACKEND_MODULE = 'kfp.kubeflow_client.backends.kubernetes.backend'
@@ -67,11 +64,15 @@ def make_backend():
     """Factory fixture to create a KubernetesBackend with mocked auth."""
 
     def _make(base_url='http://localhost:8888', namespace='test-ns', **kwargs):
-        with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
-             patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'):
+        with (
+            patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'),
+            patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'),
+        ):
             return KubernetesBackend(
                 KubernetesBackendConfig(
-                    base_url=base_url, namespace=namespace, **kwargs))
+                    base_url=base_url, namespace=namespace, **kwargs
+                )
+            )
 
     return _make
 
@@ -87,29 +88,32 @@ def backend(make_backend):
 # ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize('test_case', [
-    TestCase(
-        name='token is masked in repr',
-        config={
-            'base_url': 'http://example.com',
-            'user_token': 'super-secret-token',
-            'namespace': 'ns',
-        },
-        expected_output={
-            'must_not_contain': 'super-secret-token',
-            'must_contain': "'***'",
-        },
-    ),
-    TestCase(
-        name='no token shows None',
-        config={
-            'base_url': 'http://example.com',
-        },
-        expected_output={
-            'must_contain': 'user_token=None',
-        },
-    ),
-])
+@pytest.mark.parametrize(
+    'test_case',
+    [
+        TestCase(
+            name='token is masked in repr',
+            config={
+                'base_url': 'http://example.com',
+                'user_token': 'super-secret-token',
+                'namespace': 'ns',
+            },
+            expected_output={
+                'must_not_contain': 'super-secret-token',
+                'must_contain': "'***'",
+            },
+        ),
+        TestCase(
+            name='no token shows None',
+            config={
+                'base_url': 'http://example.com',
+            },
+            expected_output={
+                'must_contain': 'user_token=None',
+            },
+        ),
+    ],
+)
 def test_backend_config_repr(test_case):
     """Test KubernetesBackendConfig.__repr__ across scenarios."""
     cfg = KubernetesBackendConfig(**test_case.config)
@@ -125,60 +129,57 @@ def test_backend_config_repr(test_case):
 # ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize('test_case', [
-    TestCase(
-        name='explicit http base_url sets host directly',
-        config={'base_url': 'http://my-host:9999'},
-        expected_output={'host': 'http://my-host:9999'},
-    ),
-    TestCase(
-        name='base_url without scheme defaults to https',
-        config={'base_url': 'my-host:9999'},
-        expected_output={'host': 'https://my-host:9999'},
-    ),
-    TestCase(
-        name='https base_url sets host correctly',
-        config={'base_url': 'https://secure.example.com'},
-        expected_output={'host': 'https://secure.example.com'},
-    ),
-    TestCase(
-        name='https url sets verify_ssl true',
-        config={'base_url': 'https://secure.example.com'},
-        expected_output={'verify_ssl': True},
-    ),
-    TestCase(
-        name='http url sets verify_ssl false',
-        config={'base_url': 'http://insecure.example.com'},
-        expected_output={'verify_ssl': False},
-    ),
-    TestCase(
-        name='is_secure overrides scheme-based verify_ssl',
-        config={
-            'base_url': 'http://insecure.example.com',
-            'is_secure': True
-        },
-        expected_output={'verify_ssl': True},
-    ),
-    TestCase(
-        name='custom_ca sets ssl_ca_cert',
-        config={
-            'base_url': 'https://host',
-            'custom_ca': '/path/to/ca.crt'
-        },
-        expected_output={'ssl_ca_cert': '/path/to/ca.crt'},
-    ),
-    TestCase(
-        name='user_token sets api_key and prefix',
-        config={
-            'base_url': 'http://host',
-            'user_token': 'my-token'
-        },
-        expected_output={
-            'api_key': 'my-token',
-            'api_key_prefix': 'Bearer',
-        },
-    ),
-])
+@pytest.mark.parametrize(
+    'test_case',
+    [
+        TestCase(
+            name='explicit http base_url sets host directly',
+            config={'base_url': 'http://my-host:9999'},
+            expected_output={'host': 'http://my-host:9999'},
+        ),
+        TestCase(
+            name='base_url without scheme defaults to https',
+            config={'base_url': 'my-host:9999'},
+            expected_output={'host': 'https://my-host:9999'},
+        ),
+        TestCase(
+            name='https base_url sets host correctly',
+            config={'base_url': 'https://secure.example.com'},
+            expected_output={'host': 'https://secure.example.com'},
+        ),
+        TestCase(
+            name='https url sets verify_ssl true',
+            config={'base_url': 'https://secure.example.com'},
+            expected_output={'verify_ssl': True},
+        ),
+        TestCase(
+            name='http url sets verify_ssl false',
+            config={'base_url': 'http://insecure.example.com'},
+            expected_output={'verify_ssl': False},
+        ),
+        TestCase(
+            name='is_secure overrides scheme-based verify_ssl',
+            config={
+                'base_url': 'http://insecure.example.com',
+                'is_secure': True,
+            },
+            expected_output={'verify_ssl': True},
+        ),
+        TestCase(
+            name='custom_ca sets ssl_ca_cert',
+            config={'base_url': 'https://host', 'custom_ca': '/path/to/ca.crt'},
+            expected_output={'ssl_ca_cert': '/path/to/ca.crt'},
+        ),
+        TestCase(
+            name='user_token sets api_key and prefix',
+            config={'base_url': 'http://host', 'user_token': 'my-token'},
+            expected_output={
+                'api_key': 'my-token',
+                'api_key_prefix': 'Bearer',
+            },
+        ),
+    ],
+)
 def test_build_api_configuration(make_backend, test_case):
     """Test KubernetesBackend API configuration from config parameters."""
     backend = make_backend(**test_case.config)
@@ -193,45 +194,62 @@ def test_build_api_configuration(make_backend, test_case):
         elif key == 'api_key':
             assert backend.api_config.api_key['authorization'] == expected
         elif key == 'api_key_prefix':
-            assert backend.api_config.api_key_prefix[
-                'authorization'] == expected
+            assert (
+                backend.api_config.api_key_prefix['authorization'] == expected
+            )
 
 
 def test_build_api_configuration_uses_default_namespace_for_discovery():
     """Verify discover_host is called with DEFAULT_NAMESPACE, not user ns."""
-    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
-         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'), \
-         patch(f'{_BACKEND_MODULE}.utils.discover_host',
-               return_value='http://ml-pipeline.kubeflow.svc.cluster.local:8888'
-               ) as mock_discover:
+    with (
+        patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'),
+        patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'),
+        patch(
+            f'{_BACKEND_MODULE}.utils.discover_host',
+            return_value='http://ml-pipeline.kubeflow.svc.cluster.local:8888',
+        ) as mock_discover,
+    ):
         KubernetesBackend(
-            KubernetesBackendConfig(base_url=None, namespace='user-profile-ns'))
+            KubernetesBackendConfig(base_url=None, namespace='user-profile-ns')
+        )
         mock_discover.assert_called_once_with('kubeflow')
 
 
 def test_build_api_configuration_applies_system_ca_when_no_custom_ca():
     """Verify system CA bundle is used when custom_ca is not provided."""
-    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
-         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'), \
-         patch(f'{_BACKEND_MODULE}.utils.detect_system_ca_bundle',
-               return_value='/etc/pki/tls/certs/ca-bundle.crt'):
+    with (
+        patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'),
+        patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'),
+        patch(
+            f'{_BACKEND_MODULE}.utils.detect_system_ca_bundle',
+            return_value='/etc/pki/tls/certs/ca-bundle.crt',
+        ),
+    ):
         backend = KubernetesBackend(
-            KubernetesBackendConfig(base_url='https://host', namespace='ns'))
-        assert backend.api_config.ssl_ca_cert == \
-            '/etc/pki/tls/certs/ca-bundle.crt'
+            KubernetesBackendConfig(base_url='https://host', namespace='ns')
+        )
+        assert (
+            backend.api_config.ssl_ca_cert == '/etc/pki/tls/certs/ca-bundle.crt'
+        )
 
 
 def test_build_api_configuration_custom_ca_overrides_system_ca():
     """Verify custom_ca takes precedence over system CA bundle."""
-    with patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'), \
-         patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'), \
-         patch(f'{_BACKEND_MODULE}.utils.detect_system_ca_bundle',
-               return_value='/etc/pki/tls/certs/ca-bundle.crt'):
+    with (
+        patch(f'{_AUTH_MODULE}.apply_in_cluster_credentials'),
+        patch(f'{_BACKEND_MODULE}.KubernetesBackend.verify_backend'),
+        patch(
+            f'{_BACKEND_MODULE}.utils.detect_system_ca_bundle',
+            return_value='/etc/pki/tls/certs/ca-bundle.crt',
+        ),
+    ):
         backend = KubernetesBackend(
             KubernetesBackendConfig(
                 base_url='https://host',
                 namespace='ns',
-                custom_ca='/my/custom/ca.crt'))
+                custom_ca='/my/custom/ca.crt',
+            )
+        )
         assert backend.api_config.ssl_ca_cert == '/my/custom/ca.crt'
 
 
@@ -240,29 +258,26 @@ def test_build_api_configuration_custom_ca_overrides_system_ca():
 # ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize('test_case', [
-    TestCase(
-        name='explicit namespace returned as-is',
-        config={'namespace': 'explicit-ns'},
-        expected_output='explicit-ns',
-    ),
-    TestCase(
-        name='in-cluster namespace file read',
-        config={
-            'namespace': None,
-            'mock_file': 'file-namespace\n'
-        },
-        expected_output='file-namespace',
-    ),
-    TestCase(
-        name='default fallback to kubeflow',
-        config={
-            'namespace': None,
-            'mock_file': None
-        },
-        expected_output='kubeflow',
-    ),
-])
+@pytest.mark.parametrize(
+    'test_case',
+    [
+        TestCase(
+            name='explicit namespace returned as-is',
+            config={'namespace': 'explicit-ns'},
+            expected_output='explicit-ns',
+        ),
+        TestCase(
+            name='in-cluster namespace file read',
+            config={'namespace': None, 'mock_file': 'file-namespace\n'},
+            expected_output='file-namespace',
+        ),
+        TestCase(
+            name='default fallback to kubeflow',
+            config={'namespace': None, 'mock_file': None},
+            expected_output='kubeflow',
+        ),
+    ],
+)
 def test_resolve_namespace(test_case):
     """Test utils.resolve_namespace across discovery scenarios."""
     ns = test_case.config['namespace']
@@ -282,14 +297,17 @@ def test_resolve_namespace(test_case):
             return original_open(path, *args, **kwargs)
 
         import kubernetes
+
         mock_k8s = MagicMock()
         mock_k8s.config.ConfigException = kubernetes.config.ConfigException
         mock_k8s.config.list_kube_config_contexts.side_effect = (
-            FileNotFoundError)
+            FileNotFoundError
+        )
         with patch('builtins.open', side_effect=mock_open_fn):
             with patch.dict('sys.modules', {'kubernetes': mock_k8s}):
-                assert utils.resolve_namespace(
-                    None) == test_case.expected_output
+                assert (
+                    utils.resolve_namespace(None) == test_case.expected_output
+                )
 
 
 # ------------------------------------------------------------------
@@ -297,12 +315,15 @@ def test_resolve_namespace(test_case):
 # ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize('test_case', [
-    TestCase(
-        name='no token files skips silently',
-        expected_output={'authorization_absent': True},
-    ),
-])
+@pytest.mark.parametrize(
+    'test_case',
+    [
+        TestCase(
+            name='no token files skips silently',
+            expected_output={'authorization_absent': True},
+        ),
+    ],
+)
 def test_apply_in_cluster_credentials(test_case):
     """Test auth.apply_in_cluster_credentials behavior."""
     api_config = kfp.server_api.Configuration()
@@ -318,19 +339,16 @@ def test_apply_in_cluster_credentials(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='SSL_CERT_FILE env var takes priority',
-            config={'env': {
-                'SSL_CERT_FILE': '/custom/ca.crt'
-            }},
+            config={'env': {'SSL_CERT_FILE': '/custom/ca.crt'}},
             expected_output='/custom/ca.crt',
         ),
         TestCase(
             name='REQUESTS_CA_BUNDLE used when SSL_CERT_FILE absent',
-            config={'env': {
-                'REQUESTS_CA_BUNDLE': '/bundle/ca.pem'
-            }},
+            config={'env': {'REQUESTS_CA_BUNDLE': '/bundle/ca.pem'}},
             expected_output='/bundle/ca.pem',
         ),
         TestCase(
@@ -349,7 +367,8 @@ def test_apply_in_cluster_credentials(test_case):
             expected_output=None,
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_detect_system_ca_bundle(test_case):
     """Test utils.detect_system_ca_bundle across detection scenarios."""
     env_vars = test_case.config.get('env')
@@ -375,7 +394,8 @@ def test_detect_system_ca_bundle(test_case):
         with patch.dict(os.environ, env_clean, clear=True):
             with patch('ssl.get_default_verify_paths') as mock_ssl:
                 mock_ssl.return_value = MagicMock(
-                    cafile='/openssl/default/ca.pem')
+                    cafile='/openssl/default/ca.pem'
+                )
                 with patch('os.path.isfile', return_value=True):
                     result = utils.detect_system_ca_bundle()
     elif mode == 'os_path':
@@ -388,9 +408,11 @@ def test_detect_system_ca_bundle(test_case):
             with patch('ssl.get_default_verify_paths') as mock_ssl:
                 mock_ssl.return_value = MagicMock(cafile=None)
                 with patch(
-                        'os.path.isfile',
-                        side_effect=lambda p: p ==
-                        '/etc/pki/tls/certs/ca-bundle.crt'):
+                    'os.path.isfile',
+                    side_effect=lambda p: (
+                        p == '/etc/pki/tls/certs/ca-bundle.crt'
+                    ),
+                ):
                     result = utils.detect_system_ca_bundle()
     elif mode == 'nothing':
         env_clean = {
@@ -414,46 +436,48 @@ def test_detect_system_ca_bundle(test_case):
 # ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize('test_case', [
-    TestCase(
-        name='env var takes priority',
-        config={'env': {
-            'KF_PIPELINES_ENDPOINT': 'http://my-endpoint'
-        }},
-        expected_output='http://my-endpoint',
-    ),
-    TestCase(
-        name='env var without scheme adds https',
-        config={'env': {
-            'KF_PIPELINES_ENDPOINT': 'my-endpoint:8080'
-        }},
-        expected_output='https://my-endpoint:8080',
-    ),
-    TestCase(
-        name='in-cluster returns DNS name',
-        config={'mode': 'in_cluster'},
-        expected_output=('http://ml-pipeline.test-ns.svc.cluster.local:8888'),
-    ),
-    TestCase(
-        name='kube proxy fallback',
-        config={'mode': 'kube_proxy'},
-        expected_output=(
-            'http://localhost:8001/'
-            'api/v1/namespaces/test-ns/services/ml-pipeline:http/proxy/'),
-    ),
-    TestCase(
-        name='no kubernetes package in-cluster falls back to DNS',
-        config={'mode': 'no_k8s_in_cluster'},
-        expected_output='http://ml-pipeline.test-ns.svc.cluster.local:8888',
-    ),
-    TestCase(
-        name='no kubernetes package not in-cluster raises ValueError',
-        config={'mode': 'no_k8s_not_in_cluster'},
-        expected_status=FAILED,
-        expected_error=ValueError,
-        expected_error_match='Could not auto-discover KFP endpoint',
-    ),
-])
+@pytest.mark.parametrize(
+    'test_case',
+    [
+        TestCase(
+            name='env var takes priority',
+            config={'env': {'KF_PIPELINES_ENDPOINT': 'http://my-endpoint'}},
+            expected_output='http://my-endpoint',
+        ),
+        TestCase(
+            name='env var without scheme adds https',
+            config={'env': {'KF_PIPELINES_ENDPOINT': 'my-endpoint:8080'}},
+            expected_output='https://my-endpoint:8080',
+        ),
+        TestCase(
+            name='in-cluster returns DNS name',
+            config={'mode': 'in_cluster'},
+            expected_output=(
+                'http://ml-pipeline.test-ns.svc.cluster.local:8888'
+            ),
+        ),
+        TestCase(
+            name='kube proxy fallback',
+            config={'mode': 'kube_proxy'},
+            expected_output=(
+                'http://localhost:8001/'
+                'api/v1/namespaces/test-ns/services/ml-pipeline:http/proxy/'
+            ),
+        ),
+        TestCase(
+            name='no kubernetes package in-cluster falls back to DNS',
+            config={'mode': 'no_k8s_in_cluster'},
+            expected_output='http://ml-pipeline.test-ns.svc.cluster.local:8888',
+        ),
+        TestCase(
+            name='no kubernetes package not in-cluster raises ValueError',
+            config={'mode': 'no_k8s_not_in_cluster'},
+            expected_status=FAILED,
+            expected_error=ValueError,
+            expected_error_match='Could not auto-discover KFP endpoint',
+        ),
+    ],
+)
 def test_discover_host(test_case):
     """Test utils.discover_host across discovery scenarios."""
     env_vars = test_case.config.get('env')
@@ -467,6 +491,7 @@ def test_discover_host(test_case):
             k: v for k, v in os.environ.items() if k != 'KF_PIPELINES_ENDPOINT'
         }
         import kubernetes
+
         mock_k8s = MagicMock()
         mock_k8s.config.ConfigException = kubernetes.config.ConfigException
         mock_k8s.config.load_incluster_config.return_value = None
@@ -478,10 +503,12 @@ def test_discover_host(test_case):
             k: v for k, v in os.environ.items() if k != 'KF_PIPELINES_ENDPOINT'
         }
         import kubernetes
+
         mock_k8s = MagicMock()
         mock_k8s.config.ConfigException = kubernetes.config.ConfigException
         mock_k8s.config.load_incluster_config.side_effect = (
-            kubernetes.config.ConfigException('no incluster'))
+            kubernetes.config.ConfigException('no incluster')
+        )
         mock_k8s_client_config = MagicMock()
         mock_k8s_client_config.host = 'http://localhost:8001'
         mock_k8s.client.Configuration.return_value = mock_k8s_client_config
@@ -505,7 +532,8 @@ def test_discover_host(test_case):
             with patch.dict('sys.modules', {'kubernetes': None}):
                 with patch('os.path.exists', return_value=False):
                     with pytest.raises(
-                            ValueError, match=test_case.expected_error_match):
+                        ValueError, match=test_case.expected_error_match
+                    ):
                         utils.discover_host('test-ns')
                     return
 
@@ -518,13 +546,11 @@ def test_discover_host(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='success',
-            config={
-                'pipeline_id': 'pid-1',
-                'display_name': 'my-pipe'
-            },
+            config={'pipeline_id': 'pid-1', 'display_name': 'my-pipe'},
             expected_output={'pipeline_id': 'pid-1'},
         ),
         TestCase(
@@ -535,7 +561,8 @@ def test_discover_host(test_case):
             expected_error_match='Pipeline not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_get_pipeline(backend, test_case):
     if test_case.expected_status == SUCCESS:
         mock_pipeline = Mock(
@@ -543,25 +570,30 @@ def test_get_pipeline(backend, test_case):
             display_name=test_case.config['display_name'],
         )
         with patch.object(
-                backend.pipelines_api,
-                'pipeline_service_list_pipelines',
-                return_value=Mock(pipelines=[mock_pipeline])):
+            backend.pipelines_api,
+            'pipeline_service_list_pipelines',
+            return_value=Mock(pipelines=[mock_pipeline]),
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_get_pipeline',
-                    return_value=mock_pipeline) as mock_get:
+                backend.pipelines_api,
+                'pipeline_service_get_pipeline',
+                return_value=mock_pipeline,
+            ) as mock_get:
                 result = backend.get_pipeline('my-pipe')
                 mock_get.assert_called_once_with(pipeline_id='pid-1')
-                assert result.pipeline_id == test_case.expected_output[
-                    'pipeline_id']
+                assert (
+                    result.pipeline_id
+                    == test_case.expected_output['pipeline_id']
+                )
     else:
         with patch.object(
-                backend.pipelines_api,
-                'pipeline_service_list_pipelines',
-                return_value=Mock(pipelines=[])):
+            backend.pipelines_api,
+            'pipeline_service_list_pipelines',
+            return_value=Mock(pipelines=[]),
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.get_pipeline('nonexistent')
 
 
@@ -571,37 +603,30 @@ def test_get_pipeline(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='success returns version',
-            config={
-                'pipeline_name': 'my-pipe',
-                'version_name': 'v1'
-            },
+            config={'pipeline_name': 'my-pipe', 'version_name': 'v1'},
             expected_output={'display_name': 'v1'},
         ),
         TestCase(
             name='pipeline not found raises ValueError',
-            config={
-                'pipeline_name': 'ghost-pipe',
-                'version_name': 'v1'
-            },
+            config={'pipeline_name': 'ghost-pipe', 'version_name': 'v1'},
             expected_status=FAILED,
             expected_error=ValueError,
             expected_error_match='Pipeline not found',
         ),
         TestCase(
             name='version not found raises ValueError',
-            config={
-                'pipeline_name': 'my-pipe',
-                'version_name': 'bad-ver'
-            },
+            config={'pipeline_name': 'my-pipe', 'version_name': 'bad-ver'},
             expected_status=FAILED,
             expected_error=ValueError,
             expected_error_match='Pipeline version not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_get_pipeline_version(backend, test_case):
     pipeline_name = test_case.config['pipeline_name']
     version_name = test_case.config['version_name']
@@ -609,38 +634,47 @@ def test_get_pipeline_version(backend, test_case):
     if test_case.expected_status == SUCCESS:
         mock_pipeline = Mock(pipeline_id='pid-1', display_name=pipeline_name)
         mock_version = Mock(
-            pipeline_version_id='vid-1', display_name=version_name)
+            pipeline_version_id='vid-1', display_name=version_name
+        )
         with patch.object(backend, 'get_pipeline', return_value=mock_pipeline):
             with patch.object(
-                    backend, '_get_version_id_by_name', return_value='vid-1'):
+                backend, '_get_version_id_by_name', return_value='vid-1'
+            ):
                 with patch.object(
-                        backend.pipelines_api,
-                        'pipeline_service_get_pipeline_version',
-                        return_value=mock_version) as mock_get:
+                    backend.pipelines_api,
+                    'pipeline_service_get_pipeline_version',
+                    return_value=mock_version,
+                ) as mock_get:
                     result = backend.get_pipeline_version(
-                        pipeline_name, version_name)
+                        pipeline_name, version_name
+                    )
                     mock_get.assert_called_once_with(
-                        pipeline_id='pid-1', pipeline_version_id='vid-1')
-                    assert result.display_name == test_case.expected_output[
-                        'display_name']
+                        pipeline_id='pid-1', pipeline_version_id='vid-1'
+                    )
+                    assert (
+                        result.display_name
+                        == test_case.expected_output['display_name']
+                    )
     elif 'Pipeline not found' in (test_case.expected_error_match or ''):
         with patch.object(
-                backend,
-                'get_pipeline',
-                side_effect=ValueError(
-                    f'Pipeline not found: {pipeline_name!r}.')):
+            backend,
+            'get_pipeline',
+            side_effect=ValueError(f'Pipeline not found: {pipeline_name!r}.'),
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.get_pipeline_version(pipeline_name, version_name)
     else:
         mock_pipeline = Mock(pipeline_id='pid-1', display_name=pipeline_name)
         with patch.object(backend, 'get_pipeline', return_value=mock_pipeline):
             with patch.object(
-                    backend, '_get_version_id_by_name', return_value=None):
+                backend, '_get_version_id_by_name', return_value=None
+            ):
                 with pytest.raises(
-                        test_case.expected_error,
-                        match=test_case.expected_error_match):
+                    test_case.expected_error,
+                    match=test_case.expected_error_match,
+                ):
                     backend.get_pipeline_version(pipeline_name, version_name)
 
 
@@ -650,23 +684,23 @@ def test_get_pipeline_version(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='returns paginated response',
             config={'page_size': 5},
-            expected_output={
-                'count': 1,
-                'next_page_token': 'tok'
-            },
+            expected_output={'count': 1, 'next_page_token': 'tok'},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_list_pipelines(backend, test_case):
     mock_response = Mock(pipelines=[Mock()], next_page_token='tok')
     with patch.object(
-            backend.pipelines_api,
-            'pipeline_service_list_pipelines',
-            return_value=mock_response) as mock_list:
+        backend.pipelines_api,
+        'pipeline_service_list_pipelines',
+        return_value=mock_response,
+    ) as mock_list:
         result = backend.list_pipelines(page_size=test_case.config['page_size'])
         mock_list.assert_called_once_with(
             namespace='test-ns',
@@ -674,8 +708,10 @@ def test_list_pipelines(backend, test_case):
             page_size=test_case.config['page_size'],
         )
         assert len(result.pipelines) == test_case.expected_output['count']
-        assert result.next_page_token == test_case.expected_output[
-            'next_page_token']
+        assert (
+            result.next_page_token
+            == test_case.expected_output['next_page_token']
+        )
 
 
 # ------------------------------------------------------------------
@@ -684,22 +720,21 @@ def test_list_pipelines(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='returns run by id',
             config={'run_id': 'r-1'},
-            expected_output={
-                'run_id': 'r-1',
-                'state': 'SUCCEEDED'
-            },
+            expected_output={'run_id': 'r-1', 'state': 'SUCCEEDED'},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_get_run(backend, test_case):
     mock_run = Mock(run_id=test_case.config['run_id'], state='SUCCEEDED')
     with patch.object(
-            backend.run_api, 'run_service_get_run',
-            return_value=mock_run) as mock_get:
+        backend.run_api, 'run_service_get_run', return_value=mock_run
+    ) as mock_get:
         result = backend.get_run(test_case.config['run_id'])
         mock_get.assert_called_once_with(run_id=test_case.config['run_id'])
         assert result.run_id == test_case.expected_output['run_id']
@@ -712,7 +747,8 @@ def test_get_run(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='success returns versions',
             config={'pipeline_id': 'pid-1'},
@@ -726,28 +762,36 @@ def test_get_run(backend, test_case):
             expected_error_match='Pipeline not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_list_pipeline_versions(backend, test_case):
     if test_case.expected_status == SUCCESS:
         mock_resp = Mock(
-            pipeline_versions=[Mock(), Mock()], next_page_token='t2')
+            pipeline_versions=[Mock(), Mock()], next_page_token='t2'
+        )
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=mock_resp) as mock_list:
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=mock_resp,
+            ) as mock_list:
                 result = backend.list_pipeline_versions('my-pipe')
                 mock_list.assert_called_once_with(
-                    pipeline_id='pid-1', page_token='', page_size=10)
-                assert len(result.pipeline_versions
-                          ) == test_case.expected_output['count']
+                    pipeline_id='pid-1', page_token='', page_size=10
+                )
+                assert (
+                    len(result.pipeline_versions)
+                    == test_case.expected_output['count']
+                )
     else:
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value=None):
+            backend, '_get_pipeline_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.list_pipeline_versions('ghost-pipe')
 
 
@@ -757,7 +801,8 @@ def test_list_pipeline_versions(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='single version no force deletes pipeline',
             config={'scenario': 'single_version_no_force'},
@@ -792,74 +837,91 @@ def test_list_pipeline_versions(backend, test_case):
             expected_error_match='Pipeline not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_delete_pipeline(backend, test_case):
     scenario = test_case.config['scenario']
 
     if scenario == 'single_version_no_force':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=Mock(pipeline_versions=[Mock()])):
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=Mock(pipeline_versions=[Mock()]),
+            ):
                 with patch.object(
-                        backend.pipelines_api,
-                        'pipeline_service_delete_pipeline') as mock_del:
+                    backend.pipelines_api, 'pipeline_service_delete_pipeline'
+                ) as mock_del:
                     backend.delete_pipeline('my-pipe', force=False)
                     mock_del.assert_called_once_with(
-                        pipeline_id='pid-1', cascade=True)
+                        pipeline_id='pid-1', cascade=True
+                    )
 
     elif scenario == 'multi_version_no_force':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=Mock(pipeline_versions=[Mock(), Mock()])):
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=Mock(pipeline_versions=[Mock(), Mock()]),
+            ):
                 with pytest.raises(
-                        test_case.expected_error,
-                        match=test_case.expected_error_match):
+                    test_case.expected_error,
+                    match=test_case.expected_error_match,
+                ):
                     backend.delete_pipeline('my-pipe', force=False)
 
     elif scenario == 'multi_version_force':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
-            with patch.object(backend.pipelines_api,
-                              'pipeline_service_delete_pipeline') as mock_del:
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
+            with patch.object(
+                backend.pipelines_api, 'pipeline_service_delete_pipeline'
+            ) as mock_del:
                 backend.delete_pipeline('my-pipe', force=True)
                 mock_del.assert_called_once_with(
-                    pipeline_id='pid-1', cascade=True)
+                    pipeline_id='pid-1', cascade=True
+                )
 
     elif scenario == 'specific_version':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
             with patch.object(
-                    backend, '_get_version_id_by_name', return_value='vid-1'):
+                backend, '_get_version_id_by_name', return_value='vid-1'
+            ):
                 with patch.object(
-                        backend.pipelines_api,
-                        'pipeline_service_delete_pipeline_version',
+                    backend.pipelines_api,
+                    'pipeline_service_delete_pipeline_version',
                 ) as mock_del:
                     backend.delete_pipeline('my-pipe', version='v1')
                     mock_del.assert_called_once_with(
-                        pipeline_id='pid-1', pipeline_version_id='vid-1')
+                        pipeline_id='pid-1', pipeline_version_id='vid-1'
+                    )
 
     elif scenario == 'nonexistent_version':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
             with patch.object(
-                    backend, '_get_version_id_by_name', return_value=None):
+                backend, '_get_version_id_by_name', return_value=None
+            ):
                 with pytest.raises(
-                        test_case.expected_error,
-                        match=test_case.expected_error_match):
+                    test_case.expected_error,
+                    match=test_case.expected_error_match,
+                ):
                     backend.delete_pipeline('my-pipe', version='bad-ver')
 
     elif scenario == 'not_found':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value=None):
+            backend, '_get_pipeline_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.delete_pipeline('ghost-pipe')
 
 
@@ -869,7 +931,8 @@ def test_delete_pipeline(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='from callable compiles and cleans up',
             config={'scenario': 'from_callable'},
@@ -881,47 +944,57 @@ def test_delete_pipeline(backend, test_case):
             expected_output={'pipeline_version_id': 'vid-2'},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_upload_pipeline(backend, test_case):
     scenario = test_case.config['scenario']
 
     if scenario == 'from_callable':
         mock_version = Mock(pipeline_version_id='vid-1')
         with patch.object(
-                backend,
-                '_resolve_pipeline_to_file',
-                return_value=('/tmp/pipe.yaml', '/tmp/tmpdir')):
+            backend,
+            '_resolve_pipeline_to_file',
+            return_value=('/tmp/pipe.yaml', '/tmp/tmpdir'),
+        ):
             with patch.object(
-                    backend, '_infer_pipeline_name', return_value='my-pipe'):
+                backend, '_infer_pipeline_name', return_value='my-pipe'
+            ):
                 with patch.object(
-                        backend, '_get_pipeline_id_by_name', return_value=None):
+                    backend, '_get_pipeline_id_by_name', return_value=None
+                ):
                     with patch.object(
-                            backend,
-                            '_upload_new_pipeline',
-                            return_value=mock_version):
+                        backend,
+                        '_upload_new_pipeline',
+                        return_value=mock_version,
+                    ):
                         with patch('shutil.rmtree') as mock_rm:
                             result = backend.upload_pipeline(
-                                lambda: None, name='my-pipe')
+                                lambda: None, name='my-pipe'
+                            )
                             mock_rm.assert_called_once_with(
-                                '/tmp/tmpdir', ignore_errors=True)
-        assert result.pipeline_version_id == test_case.expected_output[
-            'pipeline_version_id']
+                                '/tmp/tmpdir', ignore_errors=True
+                            )
+        assert (
+            result.pipeline_version_id
+            == test_case.expected_output['pipeline_version_id']
+        )
 
     elif scenario == 'to_existing':
         mock_version = Mock(pipeline_version_id='vid-2')
         with patch.object(
-                backend,
-                '_resolve_pipeline_to_file',
-                return_value=('/tmp/pipe.yaml', None)):
+            backend,
+            '_resolve_pipeline_to_file',
+            return_value=('/tmp/pipe.yaml', None),
+        ):
             with patch.object(
-                    backend, '_infer_pipeline_name',
-                    return_value='existing-pipe'):
+                backend, '_infer_pipeline_name', return_value='existing-pipe'
+            ):
                 with patch.object(
-                        backend, '_get_pipeline_id_by_name',
-                        return_value='pid-1'):
+                    backend, '_get_pipeline_id_by_name', return_value='pid-1'
+                ):
                     with patch.object(
-                            backend, '_upload_version',
-                            return_value=mock_version) as mock_uv:
+                        backend, '_upload_version', return_value=mock_version
+                    ) as mock_uv:
                         result = backend.upload_pipeline(
                             '/tmp/pipe.yaml',
                             name='existing-pipe',
@@ -933,8 +1006,10 @@ def test_upload_pipeline(backend, test_case):
                             version_name='v2',
                             description=None,
                         )
-        assert result.pipeline_version_id == test_case.expected_output[
-            'pipeline_version_id']
+        assert (
+            result.pipeline_version_id
+            == test_case.expected_output['pipeline_version_id']
+        )
 
 
 # ------------------------------------------------------------------
@@ -943,17 +1018,13 @@ def test_upload_pipeline(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='callable dispatches to _run_inline',
             config={
                 'input_type': 'callable',
-                'kwargs': {
-                    'params': {
-                        'x': '1'
-                    },
-                    'name': 'my-run'
-                },
+                'kwargs': {'params': {'x': '1'}, 'name': 'my-run'},
             },
             expected_output={'run_id': 'r-1'},
         ),
@@ -962,9 +1033,7 @@ def test_upload_pipeline(backend, test_case):
             config={
                 'input_type': 'string',
                 'input_value': 'my-pipe',
-                'kwargs': {
-                    'name': 'run-1'
-                },
+                'kwargs': {'name': 'run-1'},
             },
             expected_output={'run_id': 'r-2'},
         ),
@@ -973,10 +1042,7 @@ def test_upload_pipeline(backend, test_case):
             config={
                 'input_type': 'string',
                 'input_value': 'my-pipe',
-                'kwargs': {
-                    'version': 'v2',
-                    'name': 'run-2'
-                },
+                'kwargs': {'version': 'v2', 'name': 'run-2'},
             },
             expected_output={'run_id': 'r-3'},
         ),
@@ -985,9 +1051,7 @@ def test_upload_pipeline(backend, test_case):
             config={
                 'input_type': 'string_version_not_found',
                 'input_value': 'my-pipe',
-                'kwargs': {
-                    'version': 'bad'
-                },
+                'kwargs': {'version': 'bad'},
             },
             expected_status=FAILED,
             expected_error=ValueError,
@@ -1007,9 +1071,7 @@ def test_upload_pipeline(backend, test_case):
             name='pipeline version object',
             config={
                 'input_type': 'pipeline_version_obj',
-                'kwargs': {
-                    'name': 'run-pv'
-                },
+                'kwargs': {'name': 'run-pv'},
             },
             expected_output={'run_id': 'r-4'},
         ),
@@ -1017,9 +1079,7 @@ def test_upload_pipeline(backend, test_case):
             name='pipeline object',
             config={
                 'input_type': 'pipeline_obj',
-                'kwargs': {
-                    'name': 'run-pipe'
-                },
+                'kwargs': {'name': 'run-pipe'},
             },
             expected_output={'run_id': 'r-5'},
         ),
@@ -1028,9 +1088,7 @@ def test_upload_pipeline(backend, test_case):
             config={
                 'input_type': 'yaml_path',
                 'input_value': '/tmp/my-pipeline.yaml',
-                'kwargs': {
-                    'name': 'yaml-run'
-                },
+                'kwargs': {'name': 'yaml-run'},
             },
             expected_output={'run_id': 'r-6'},
         ),
@@ -1038,10 +1096,7 @@ def test_upload_pipeline(backend, test_case):
             name='callable with version logs warning',
             config={
                 'input_type': 'callable_with_version',
-                'kwargs': {
-                    'version': 'v2',
-                    'name': 'run-w1'
-                },
+                'kwargs': {'version': 'v2', 'name': 'run-w1'},
                 'expected_warning': 'version parameter is ignored',
             },
             expected_output={'run_id': 'r-warn-1'},
@@ -1051,10 +1106,7 @@ def test_upload_pipeline(backend, test_case):
             config={
                 'input_type': 'yaml_with_version',
                 'input_value': '/tmp/pipe.yaml',
-                'kwargs': {
-                    'version': 'v2',
-                    'name': 'run-w2'
-                },
+                'kwargs': {'version': 'v2', 'name': 'run-w2'},
                 'expected_warning': 'version parameter is ignored',
             },
             expected_output={'run_id': 'r-warn-2'},
@@ -1063,10 +1115,7 @@ def test_upload_pipeline(backend, test_case):
             name='pipeline version obj with version logs warning',
             config={
                 'input_type': 'pv_obj_with_version',
-                'kwargs': {
-                    'version': 'v2',
-                    'name': 'run-w3'
-                },
+                'kwargs': {'version': 'v2', 'name': 'run-w3'},
                 'expected_warning': 'version parameter is ignored',
             },
             expected_output={'run_id': 'r-warn-3'},
@@ -1075,10 +1124,7 @@ def test_upload_pipeline(backend, test_case):
             name='pipeline obj with version delegates to run_pipeline',
             config={
                 'input_type': 'pipeline_obj_with_version',
-                'kwargs': {
-                    'version': 'v2',
-                    'name': 'run-ver'
-                },
+                'kwargs': {'version': 'v2', 'name': 'run-ver'},
             },
             expected_output={'run_id': 'r-ver'},
         ),
@@ -1090,7 +1136,8 @@ def test_upload_pipeline(backend, test_case):
             expected_error_match='Unsupported pipeline',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_run(backend, test_case, caplog):
     input_type = test_case.config['input_type']
     kwargs = test_case.config.get('kwargs', {})
@@ -1103,7 +1150,8 @@ def test_run(backend, test_case, caplog):
 
         fake_pipeline.name = 'test-pipe'
         with patch.object(
-                backend, '_run_inline', return_value=mock_run) as mock_inline:
+            backend, '_run_inline', return_value=mock_run
+        ) as mock_inline:
             result = backend.run(fake_pipeline, **kwargs)
             mock_inline.assert_called_once()
             assert result.run_id == test_case.expected_output['run_id']
@@ -1115,8 +1163,8 @@ def test_run(backend, test_case, caplog):
         run_id = test_case.expected_output['run_id']
         mock_run = Mock(run_id=run_id)
         with patch.object(
-                backend, 'run_by_name',
-                return_value=mock_run) as mock_run_by_name:
+            backend, 'run_by_name', return_value=mock_run
+        ) as mock_run_by_name:
             result = backend.run(input_value, **kwargs)
             mock_run_by_name.assert_called_once_with(
                 pipeline_name=input_value,
@@ -1130,28 +1178,30 @@ def test_run(backend, test_case, caplog):
     elif input_type == 'string_version_not_found':
         input_value = test_case.config['input_value']
         with patch.object(
-                backend, 'run_by_name',
-                side_effect=ValueError('version not found')):
+            backend, 'run_by_name', side_effect=ValueError('version not found')
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.run(input_value, **kwargs)
 
     elif input_type == 'archive_path':
         input_value = test_case.config['input_value']
         with pytest.raises(
-                test_case.expected_error, match=test_case.expected_error_match):
+            test_case.expected_error, match=test_case.expected_error_match
+        ):
             backend.run(input_value)
 
     elif input_type == 'pipeline_version_obj':
         pv = Mock(
-            spec=kfp.server_api.V2beta1PipelineVersion,
+            spec=kfp.server_api.V2PipelineVersion,
             pipeline_id='pid-1',
             pipeline_version_id='vid-1',
         )
         mock_run = Mock(run_id='r-4')
         with patch.object(
-                backend, 'run_from_version', return_value=mock_run) as mock_ref:
+            backend, 'run_from_version', return_value=mock_run
+        ) as mock_ref:
             result = backend.run(pv, **kwargs)
             mock_ref.assert_called_once_with(
                 pipeline_id='pid-1',
@@ -1163,12 +1213,11 @@ def test_run(backend, test_case, caplog):
             assert result.run_id == test_case.expected_output['run_id']
 
     elif input_type == 'pipeline_obj':
-        pipeline_obj = Mock(
-            spec=kfp.server_api.V2beta1Pipeline, pipeline_id='pid-1')
+        pipeline_obj = Mock(spec=kfp.server_api.V2Pipeline, pipeline_id='pid-1')
         mock_run = Mock(run_id='r-5')
         with patch.object(
-                backend, 'run_pipeline',
-                return_value=mock_run) as mock_run_pipeline:
+            backend, 'run_pipeline', return_value=mock_run
+        ) as mock_run_pipeline:
             result = backend.run(pipeline_obj, **kwargs)
             mock_run_pipeline.assert_called_once_with(
                 pipeline=pipeline_obj,
@@ -1183,7 +1232,8 @@ def test_run(backend, test_case, caplog):
         input_value = test_case.config['input_value']
         mock_run = Mock(run_id='r-6')
         with patch.object(
-                backend, 'run_from_file', return_value=mock_run) as mock_file:
+            backend, 'run_from_file', return_value=mock_run
+        ) as mock_file:
             result = backend.run(input_value, **kwargs)
             mock_file.assert_called_once_with(
                 file_path=input_value,
@@ -1198,8 +1248,9 @@ def test_run(backend, test_case, caplog):
         pipeline_fn = Mock(__name__='my_pipe')
         with patch.object(backend, '_run_inline', return_value=mock_run):
             with caplog.at_level(
-                    logging.WARNING,
-                    logger='kfp.kubeflow_client.backends.kubernetes.backend'):
+                logging.WARNING,
+                logger='kfp.kubeflow_client.backends.kubernetes.backend',
+            ):
                 backend.run(pipeline_fn, **kwargs)
         assert test_case.config['expected_warning'] in caplog.text
 
@@ -1208,35 +1259,37 @@ def test_run(backend, test_case, caplog):
         mock_run = Mock(run_id='r-warn-2')
         with patch.object(backend, 'run_from_file', return_value=mock_run):
             with caplog.at_level(
-                    logging.WARNING,
-                    logger='kfp.kubeflow_client.backends.kubernetes.backend'):
+                logging.WARNING,
+                logger='kfp.kubeflow_client.backends.kubernetes.backend',
+            ):
                 backend.run(input_value, **kwargs)
         assert test_case.config['expected_warning'] in caplog.text
 
     elif input_type == 'pv_obj_with_version':
         mock_run = Mock(run_id='r-warn-3')
         pv_obj = Mock(
-            spec=kfp.server_api.V2beta1PipelineVersion,
+            spec=kfp.server_api.V2PipelineVersion,
             pipeline_id='pid-1',
             pipeline_version_id='vid-1',
         )
         with patch.object(backend, 'run_from_version', return_value=mock_run):
             with caplog.at_level(
-                    logging.WARNING,
-                    logger='kfp.kubeflow_client.backends.kubernetes.backend'):
+                logging.WARNING,
+                logger='kfp.kubeflow_client.backends.kubernetes.backend',
+            ):
                 backend.run(pv_obj, **kwargs)
         assert test_case.config['expected_warning'] in caplog.text
 
     elif input_type == 'pipeline_obj_with_version':
         pipeline_obj = Mock(
-            spec=kfp.server_api.V2beta1Pipeline,
+            spec=kfp.server_api.V2Pipeline,
             pipeline_id='pid-1',
             display_name='my-pipe',
         )
         mock_run = Mock(run_id='r-ver')
         with patch.object(
-                backend, 'run_pipeline',
-                return_value=mock_run) as mock_run_pipeline:
+            backend, 'run_pipeline', return_value=mock_run
+        ) as mock_run_pipeline:
             result = backend.run(pipeline_obj, **kwargs)
             mock_run_pipeline.assert_called_once_with(
                 pipeline=pipeline_obj,
@@ -1249,7 +1302,8 @@ def test_run(backend, test_case, caplog):
 
     elif input_type == 'unsupported':
         with pytest.raises(
-                test_case.expected_error, match=test_case.expected_error_match):
+            test_case.expected_error, match=test_case.expected_error_match
+        ):
             backend.run(12345)
 
 
@@ -1259,22 +1313,17 @@ def test_run(backend, test_case, caplog):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='no filters',
             config={'scenario': 'no_filters'},
-            expected_output={
-                'count': 1,
-                'next_page_token': 't2'
-            },
+            expected_output={'count': 1, 'next_page_token': 't2'},
         ),
         TestCase(
             name='pipeline filter sent to server',
             config={'scenario': 'pipeline_filter'},
-            expected_output={
-                'count': 2,
-                'pipeline_id': 'pid-1'
-            },
+            expected_output={'count': 2, 'pipeline_id': 'pid-1'},
         ),
         TestCase(
             name='pipeline not found raises',
@@ -1296,16 +1345,16 @@ def test_run(backend, test_case, caplog):
             expected_output={'status_value': 'SUCCEEDED'},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_list_runs(backend, test_case):
     scenario = test_case.config['scenario']
 
     if scenario == 'no_filters':
         mock_response = Mock(runs=[Mock(run_id='r-1')], next_page_token='t2')
         with patch.object(
-                backend.run_api,
-                'run_service_list_runs',
-                return_value=mock_response) as mock_list:
+            backend.run_api, 'run_service_list_runs', return_value=mock_response
+        ) as mock_list:
             result = backend.list_runs(page_size=20)
             mock_list.assert_called_once_with(
                 namespace='test-ns',
@@ -1315,28 +1364,35 @@ def test_list_runs(backend, test_case):
                 filter=None,
             )
             assert len(result.runs) == test_case.expected_output['count']
-            assert result.next_page_token == test_case.expected_output[
-                'next_page_token']
+            assert (
+                result.next_page_token
+                == test_case.expected_output['next_page_token']
+            )
 
     elif scenario == 'pipeline_filter':
         response = Mock(
-            runs=[Mock(run_id='r-1'), Mock(run_id='r-2')], next_page_token='')
+            runs=[Mock(run_id='r-1'), Mock(run_id='r-2')], next_page_token=''
+        )
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value='pid-1'):
+            backend, '_get_pipeline_id_by_name', return_value='pid-1'
+        ):
             with patch.object(
-                    backend.run_api, 'run_service_list_runs',
-                    return_value=response) as mock_list:
+                backend.run_api, 'run_service_list_runs', return_value=response
+            ) as mock_list:
                 result = backend.list_runs(pipeline='my-pipe')
 
-                predicates = json.loads(
-                    mock_list.call_args[1]['filter'])['predicates']
+                predicates = json.loads(mock_list.call_args[1]['filter'])[
+                    'predicates'
+                ]
                 pipeline_predicates = [
                     p for p in predicates if p['key'] == 'pipeline_id'
                 ]
                 assert len(pipeline_predicates) == 1
                 assert pipeline_predicates[0]['operation'] == 'EQUALS'
-                assert (pipeline_predicates[0]['stringValue'] ==
-                        test_case.expected_output['pipeline_id'])
+                assert (
+                    pipeline_predicates[0]['stringValue']
+                    == test_case.expected_output['pipeline_id']
+                )
 
                 # The server has already filtered; pruning here would
                 # shorten pages again.
@@ -1344,30 +1400,34 @@ def test_list_runs(backend, test_case):
 
     elif scenario == 'pipeline_not_found':
         with patch.object(
-                backend, '_get_pipeline_id_by_name', return_value=None):
+            backend, '_get_pipeline_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.list_runs(pipeline='bad-pipe')
 
     elif scenario == 'experiment_not_found':
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value=None):
+            backend, '_get_experiment_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.list_runs(experiment='bad-exp')
 
     elif scenario == 'status_filter':
         response = Mock(runs=[], next_page_token='')
         with patch.object(
-                backend.run_api, 'run_service_list_runs',
-                return_value=response) as mock_list:
+            backend.run_api, 'run_service_list_runs', return_value=response
+        ) as mock_list:
             backend.list_runs(status='succeeded')
             call_kwargs = mock_list.call_args[1]
             filter_dict = json.loads(call_kwargs['filter'])
-            assert (filter_dict['predicates'][0]['stringValue'] ==
-                    test_case.expected_output['status_value'])
+            assert (
+                filter_dict['predicates'][0]['stringValue']
+                == test_case.expected_output['status_value']
+            )
 
 
 # ------------------------------------------------------------------
@@ -1376,14 +1436,15 @@ def test_list_runs(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='returns on terminal state',
             config={
                 'side_effects': [Mock(run_id='r-1', state='SUCCEEDED')],
                 'kwargs': {
                     'status': {constants.RUN_COMPLETE},
-                    'polling_interval': 0
+                    'polling_interval': 0,
                 },
             },
             expected_output={'state': 'SUCCEEDED'},
@@ -1392,10 +1453,7 @@ def test_list_runs(backend, test_case):
             name='raises timeout error',
             config={
                 'side_effects': [Mock(run_id='r-1', state='RUNNING')],
-                'kwargs': {
-                    'timeout': 0,
-                    'polling_interval': 0
-                },
+                'kwargs': {'timeout': 0, 'polling_interval': 0},
             },
             expected_status=FAILED,
             expected_error=TimeoutError,
@@ -1408,10 +1466,7 @@ def test_list_runs(backend, test_case):
                     Mock(run_id='r-1', state='RUNNING'),
                     Mock(run_id='r-1', state='SUCCEEDED'),
                 ],
-                'kwargs': {
-                    'timeout': None,
-                    'polling_interval': 0
-                },
+                'kwargs': {'timeout': None, 'polling_interval': 0},
             },
             expected_output={'state': 'SUCCEEDED'},
         ),
@@ -1434,7 +1489,7 @@ def test_list_runs(backend, test_case):
                 'side_effects': [Mock(run_id='r-1', state='SUCCEEDED')],
                 'kwargs': {
                     'status': {constants.RUN_COMPLETE},
-                    'polling_interval': 0
+                    'polling_interval': 0,
                 },
             },
             expected_output={'run_id': 'r-1'},
@@ -1445,7 +1500,7 @@ def test_list_runs(backend, test_case):
                 'side_effects': [Mock(run_id='r-1', state='FAILED')],
                 'kwargs': {
                     'status': {constants.RUN_COMPLETE},
-                    'polling_interval': 0
+                    'polling_interval': 0,
                 },
             },
             expected_output={'state': 'FAILED'},
@@ -1459,10 +1514,7 @@ def test_list_runs(backend, test_case):
                     'polling_interval': 0,
                 },
             },
-            expected_output={
-                'state': 'SUCCEEDED',
-                'refresh_called': True
-            },
+            expected_output={'state': 'SUCCEEDED', 'refresh_called': True},
         ),
         TestCase(
             name='auth retry exhaustion raises',
@@ -1488,10 +1540,7 @@ def test_list_runs(backend, test_case):
             },
             expected_status=FAILED,
             expected_error=kfp.server_api.ApiException,
-            expected_output={
-                'status_code': 401,
-                'refresh_not_called': True
-            },
+            expected_output={'status_code': 401, 'refresh_not_called': True},
         ),
         TestCase(
             name='non-401 api exception propagates immediately',
@@ -1510,10 +1559,7 @@ def test_list_runs(backend, test_case):
             name='callbacks fire on timeout',
             config={
                 'side_effects': [Mock(run_id='r-1', state='RUNNING')],
-                'kwargs': {
-                    'timeout': 0,
-                    'polling_interval': 0
-                },
+                'kwargs': {'timeout': 0, 'polling_interval': 0},
                 'use_callback': True,
             },
             expected_status=FAILED,
@@ -1530,13 +1576,11 @@ def test_list_runs(backend, test_case):
                 },
                 'use_callback': True,
             },
-            expected_output={
-                'state': 'FAILED',
-                'callback_called': True
-            },
+            expected_output={'state': 'FAILED', 'callback_called': True},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_wait_for_run_status(backend, test_case):
     config = test_case.config
     kwargs = config['kwargs']
@@ -1560,9 +1604,10 @@ def test_wait_for_run_status(backend, test_case):
             mock_run_ok,
         ]
         with patch.object(
-                backend.run_api,
-                'run_service_get_run',
-                side_effect=mock_side_effects):
+            backend.run_api,
+            'run_service_get_run',
+            side_effect=mock_side_effects,
+        ):
             with patch.object(backend, 'refresh_credentials') as mock_ref:
                 result = backend.wait_for_run_status(run_input, **kwargs)
                 mock_ref.assert_called_once()
@@ -1576,25 +1621,31 @@ def test_wait_for_run_status(backend, test_case):
             kfp.server_api.ApiException(status=401),
         ]
         with patch.object(
-                backend.run_api,
-                'run_service_get_run',
-                side_effect=mock_side_effects):
+            backend.run_api,
+            'run_service_get_run',
+            side_effect=mock_side_effects,
+        ):
             with patch.object(backend, 'refresh_credentials'):
                 with pytest.raises(test_case.expected_error) as exc_info:
                     backend.wait_for_run_status(run_input, **kwargs)
-                assert exc_info.value.status == test_case.expected_output[
-                    'status_code']
+                assert (
+                    exc_info.value.status
+                    == test_case.expected_output['status_code']
+                )
 
     elif side_effects == 'first_poll_401':
         with patch.object(
-                backend.run_api,
-                'run_service_get_run',
-                side_effect=kfp.server_api.ApiException(status=401)):
+            backend.run_api,
+            'run_service_get_run',
+            side_effect=kfp.server_api.ApiException(status=401),
+        ):
             with patch.object(backend, 'refresh_credentials') as mock_ref:
                 with pytest.raises(test_case.expected_error) as exc_info:
                     backend.wait_for_run_status(run_input, **kwargs)
-                assert exc_info.value.status == test_case.expected_output[
-                    'status_code']
+                assert (
+                    exc_info.value.status
+                    == test_case.expected_output['status_code']
+                )
                 mock_ref.assert_not_called()
 
     elif side_effects == 'non_401':
@@ -1603,21 +1654,24 @@ def test_wait_for_run_status(backend, test_case):
             kfp.server_api.ApiException(status=500),
         ]
         with patch.object(
-                backend.run_api,
-                'run_service_get_run',
-                side_effect=mock_side_effects):
+            backend.run_api,
+            'run_service_get_run',
+            side_effect=mock_side_effects,
+        ):
             with pytest.raises(test_case.expected_error) as exc_info:
                 backend.wait_for_run_status(run_input, **kwargs)
-            assert exc_info.value.status == test_case.expected_output[
-                'status_code']
+            assert (
+                exc_info.value.status
+                == test_case.expected_output['status_code']
+            )
 
     elif isinstance(side_effects, list):
         with patch.object(
-                backend.run_api,
-                'run_service_get_run',
-                side_effect=side_effects if len(side_effects) > 1 else None,
-                return_value=side_effects[0]
-                if len(side_effects) == 1 else None):
+            backend.run_api,
+            'run_service_get_run',
+            side_effect=side_effects if len(side_effects) > 1 else None,
+            return_value=side_effects[0] if len(side_effects) == 1 else None,
+        ):
             if test_case.expected_status == FAILED:
                 with pytest.raises(test_case.expected_error):
                     backend.wait_for_run_status(run_input, **kwargs)
@@ -1639,7 +1693,8 @@ def test_wait_for_run_status(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='new experiment',
             config={'existing_id': None},
@@ -1651,33 +1706,42 @@ def test_wait_for_run_status(backend, test_case):
             expected_output={'experiment_id': 'exp-1'},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_create_experiment(backend, test_case):
     existing_id = test_case.config['existing_id']
 
     if existing_id is None:
         mock_exp = Mock(experiment_id='exp-1', display_name='my-exp')
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value=None):
+            backend, '_get_experiment_id_by_name', return_value=None
+        ):
             with patch.object(
-                    backend.experiment_api,
-                    'experiment_service_create_experiment',
-                    return_value=mock_exp) as mock_create:
+                backend.experiment_api,
+                'experiment_service_create_experiment',
+                return_value=mock_exp,
+            ) as mock_create:
                 result = backend.create_experiment('my-exp')
                 mock_create.assert_called_once()
-                assert result.experiment_id == test_case.expected_output[
-                    'experiment_id']
+                assert (
+                    result.experiment_id
+                    == test_case.expected_output['experiment_id']
+                )
     else:
         existing = Mock(experiment_id='exp-1', display_name='my-exp')
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value='exp-1'):
+            backend, '_get_experiment_id_by_name', return_value='exp-1'
+        ):
             with patch.object(
-                    backend.experiment_api,
-                    'experiment_service_get_experiment',
-                    return_value=existing):
+                backend.experiment_api,
+                'experiment_service_get_experiment',
+                return_value=existing,
+            ):
                 result = backend.create_experiment('my-exp')
-                assert result.experiment_id == test_case.expected_output[
-                    'experiment_id']
+                assert (
+                    result.experiment_id
+                    == test_case.expected_output['experiment_id']
+                )
 
 
 # ------------------------------------------------------------------
@@ -1686,7 +1750,8 @@ def test_create_experiment(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='success',
             config={'existing_id': 'exp-1'},
@@ -1700,25 +1765,31 @@ def test_create_experiment(backend, test_case):
             expected_error_match='Experiment not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_get_experiment(backend, test_case):
     if test_case.expected_status == SUCCESS:
         mock_exp = Mock(experiment_id='exp-1', display_name='my-exp')
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value='exp-1'):
+            backend, '_get_experiment_id_by_name', return_value='exp-1'
+        ):
             with patch.object(
-                    backend.experiment_api,
-                    'experiment_service_get_experiment',
-                    return_value=mock_exp):
+                backend.experiment_api,
+                'experiment_service_get_experiment',
+                return_value=mock_exp,
+            ):
                 result = backend.get_experiment('my-exp')
-                assert result.experiment_id == test_case.expected_output[
-                    'experiment_id']
+                assert (
+                    result.experiment_id
+                    == test_case.expected_output['experiment_id']
+                )
     else:
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value=None):
+            backend, '_get_experiment_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.get_experiment('nonexistent')
 
 
@@ -1728,25 +1799,32 @@ def test_get_experiment(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='returns paginated response',
             expected_output={'next_page_token': 'tok2'},
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_list_experiments(backend, test_case):
     mock_response = Mock(
-        experiments=[Mock(experiment_id='e-1')], next_page_token='tok2')
+        experiments=[Mock(experiment_id='e-1')], next_page_token='tok2'
+    )
     with patch.object(
-            backend.experiment_api,
-            'experiment_service_list_experiments',
-            return_value=mock_response) as mock_list:
+        backend.experiment_api,
+        'experiment_service_list_experiments',
+        return_value=mock_response,
+    ) as mock_list:
         result = backend.list_experiments(page_size=5)
         mock_list.assert_called_once_with(
-            namespace='test-ns', page_token='', page_size=5)
-        assert result.next_page_token == test_case.expected_output[
-            'next_page_token']
+            namespace='test-ns', page_token='', page_size=5
+        )
+        assert (
+            result.next_page_token
+            == test_case.expected_output['next_page_token']
+        )
 
 
 # ------------------------------------------------------------------
@@ -1755,7 +1833,8 @@ def test_list_experiments(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='success',
             config={'existing_id': 'exp-1'},
@@ -1768,22 +1847,25 @@ def test_list_experiments(backend, test_case):
             expected_error_match='Experiment not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test_delete_experiment(backend, test_case):
     if test_case.expected_status == SUCCESS:
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value='exp-1'):
+            backend, '_get_experiment_id_by_name', return_value='exp-1'
+        ):
             with patch.object(
-                    backend.experiment_api,
-                    'experiment_service_delete_experiment') as mock_del:
+                backend.experiment_api, 'experiment_service_delete_experiment'
+            ) as mock_del:
                 backend.delete_experiment('my-exp')
                 mock_del.assert_called_once_with(experiment_id='exp-1')
     else:
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value=None):
+            backend, '_get_experiment_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend.delete_experiment('bad-exp')
 
 
@@ -1793,37 +1875,26 @@ def test_delete_experiment(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='dsl name attribute',
-            config={
-                'source': 'dsl_name',
-                'dsl_name': 'dsl-assigned-name'
-            },
+            config={'source': 'dsl_name', 'dsl_name': 'dsl-assigned-name'},
             expected_output='dsl-assigned-name',
         ),
         TestCase(
             name='function name my_pipeline',
-            config={
-                'source': 'func_name',
-                'func_name': 'my_pipeline'
-            },
+            config={'source': 'func_name', 'func_name': 'my_pipeline'},
             expected_output='my-pipeline',
         ),
         TestCase(
             name='function name hello_world_pipe',
-            config={
-                'source': 'func_name',
-                'func_name': 'hello_world_pipe'
-            },
+            config={'source': 'func_name', 'func_name': 'hello_world_pipe'},
             expected_output='hello-world-pipe',
         ),
         TestCase(
             name='function name already-dashed',
-            config={
-                'source': 'func_name',
-                'func_name': 'already-dashed'
-            },
+            config={'source': 'func_name', 'func_name': 'already-dashed'},
             expected_output='already-dashed',
         ),
         TestCase(
@@ -1832,7 +1903,8 @@ def test_delete_experiment(backend, test_case):
             expected_output='my-pipeline',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__infer_pipeline_name(backend, test_case):
     source = test_case.config['source']
 
@@ -1852,8 +1924,9 @@ def test__infer_pipeline_name(backend, test_case):
         assert result == test_case.expected_output
 
     elif source == 'file_path':
-        result = backend._infer_pipeline_name('/tmp/my-pipeline.yaml',
-                                              '/tmp/my-pipeline.yaml')
+        result = backend._infer_pipeline_name(
+            '/tmp/my-pipeline.yaml', '/tmp/my-pipeline.yaml'
+        )
         assert result == test_case.expected_output
 
 
@@ -1863,40 +1936,51 @@ def test__infer_pipeline_name(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='pipeline.yaml',
             config={'path': 'pipeline.yaml'},
-            expected_output=True),
+            expected_output=True,
+        ),
         TestCase(
             name='pipeline.yml',
             config={'path': 'pipeline.yml'},
-            expected_output=True),
+            expected_output=True,
+        ),
         TestCase(
             name='path/to/spec.yaml',
             config={'path': 'path/to/spec.yaml'},
-            expected_output=True),
+            expected_output=True,
+        ),
         TestCase(
             name='pipeline.tar.gz',
             config={'path': 'pipeline.tar.gz'},
-            expected_output=False),
+            expected_output=False,
+        ),
         TestCase(
             name='pipeline.zip',
             config={'path': 'pipeline.zip'},
-            expected_output=False),
+            expected_output=False,
+        ),
         TestCase(
             name='pipeline-name',
             config={'path': 'pipeline-name'},
-            expected_output=False),
+            expected_output=False,
+        ),
         TestCase(
             name='pipeline.tgz',
             config={'path': 'pipeline.tgz'},
-            expected_output=False),
+            expected_output=False,
+        ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__is_yaml_path(test_case):
-    assert KubernetesBackend._is_yaml_path(
-        test_case.config['path']) == test_case.expected_output
+    assert (
+        KubernetesBackend._is_yaml_path(test_case.config['path'])
+        == test_case.expected_output
+    )
 
 
 # ------------------------------------------------------------------
@@ -1905,7 +1989,8 @@ def test__is_yaml_path(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='valid name passes',
             config={'name': 'my-pipeline'},
@@ -1925,13 +2010,15 @@ def test__is_yaml_path(test_case):
             expected_error_match='cannot be empty',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__validate_pipeline_name(test_case):
     if test_case.expected_status == SUCCESS:
         KubernetesBackend._validate_pipeline_name(test_case.config['name'])
     else:
         with pytest.raises(
-                test_case.expected_error, match=test_case.expected_error_match):
+            test_case.expected_error, match=test_case.expected_error_match
+        ):
             KubernetesBackend._validate_pipeline_name(test_case.config['name'])
 
 
@@ -1941,7 +2028,8 @@ def test__validate_pipeline_name(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='reads name from valid pipelineInfo',
             config={'content': 'pipelineInfo:\n  name: my-pipe\nroot: {}\n'},
@@ -1951,7 +2039,7 @@ def test__validate_pipeline_name(test_case):
             name='returns None for non-yaml extension',
             config={
                 'content': 'pipelineInfo:\n  name: my-pipe\n',
-                'suffix': '.json'
+                'suffix': '.json',
             },
             expected_output=None,
         ),
@@ -1971,11 +2059,13 @@ def test__validate_pipeline_name(test_case):
             expected_output=None,
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__read_pipeline_name_from_yaml(test_case):
     suffix = test_case.config.get('suffix', '.yaml')
     with tempfile.NamedTemporaryFile(
-            mode='w', suffix=suffix, delete=False) as f:
+        mode='w', suffix=suffix, delete=False
+    ) as f:
         f.write(test_case.config['content'])
         f.flush()
     try:
@@ -1991,7 +2081,8 @@ def test__read_pipeline_name_from_yaml(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='from callable',
             config={'source': 'callable'},
@@ -2013,7 +2104,8 @@ def test__read_pipeline_name_from_yaml(test_case):
             expected_output='uploaded-pipe ',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__generate_run_name(test_case):
     source = test_case.config['source']
 
@@ -2026,7 +2118,7 @@ def test__generate_run_name(test_case):
     elif source == 'yaml_path':
         result = KubernetesBackend._generate_run_name('/tmp/train.yaml')
     elif source == 'pipeline_object':
-        pipe = kfp.server_api.V2beta1Pipeline(display_name='uploaded-pipe')
+        pipe = kfp.server_api.V2Pipeline(display_name='uploaded-pipe')
         result = KubernetesBackend._generate_run_name(pipe)
 
     assert result.startswith(test_case.expected_output)
@@ -2038,7 +2130,8 @@ def test__generate_run_name(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='file not found raises',
             config={'scenario': 'file_not_found'},
@@ -2056,17 +2149,14 @@ def test__generate_run_name(test_case):
         TestCase(
             name='valid yaml returns path no cleanup',
             config={'scenario': 'valid_yaml'},
-            expected_output={
-                'path': '/tmp/my-pipeline.yaml',
-                'temp_dir': None
-            },
+            expected_output={'path': '/tmp/my-pipeline.yaml', 'temp_dir': None},
         ),
         TestCase(
             name='valid tar.gz returns path no cleanup',
             config={'scenario': 'valid_tar_gz'},
             expected_output={
                 'path': '/tmp/my-pipeline.tar.gz',
-                'temp_dir': None
+                'temp_dir': None,
             },
         ),
         TestCase(
@@ -2092,35 +2182,38 @@ def test__generate_run_name(test_case):
             expected_error_match='Expected a callable',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__resolve_pipeline_to_file(backend, test_case):
     scenario = test_case.config['scenario']
 
     if scenario == 'file_not_found':
         with patch('os.path.isfile', return_value=False):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend._resolve_pipeline_to_file('/no/such/file.yaml')
 
     elif scenario == 'unsupported_extension':
         with patch('os.path.isfile', return_value=True):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend._resolve_pipeline_to_file('/tmp/pipeline.json')
 
     elif scenario == 'valid_yaml':
         with patch('os.path.isfile', return_value=True):
             path, temp_dir = backend._resolve_pipeline_to_file(
-                '/tmp/my-pipeline.yaml')
+                '/tmp/my-pipeline.yaml'
+            )
         assert path == test_case.expected_output['path']
         assert temp_dir == test_case.expected_output['temp_dir']
 
     elif scenario == 'valid_tar_gz':
         with patch('os.path.isfile', return_value=True):
             path, temp_dir = backend._resolve_pipeline_to_file(
-                '/tmp/my-pipeline.tar.gz')
+                '/tmp/my-pipeline.tar.gz'
+            )
         assert path == test_case.expected_output['path']
         assert temp_dir == test_case.expected_output['temp_dir']
 
@@ -2131,15 +2224,18 @@ def test__resolve_pipeline_to_file(backend, test_case):
 
         with patch('tempfile.mkdtemp', return_value='/tmp/fake-tmpdir'):
             with patch(
-                    'kfp.compiler.Compiler.compile',
-                    side_effect=RuntimeError('compile failed')):
+                'kfp.compiler.Compiler.compile',
+                side_effect=RuntimeError('compile failed'),
+            ):
                 with patch('shutil.rmtree') as mock_rm:
                     with pytest.raises(
-                            test_case.expected_error,
-                            match=test_case.expected_error_match):
+                        test_case.expected_error,
+                        match=test_case.expected_error_match,
+                    ):
                         backend._resolve_pipeline_to_file(bad_pipeline)
                     mock_rm.assert_called_once_with(
-                        '/tmp/fake-tmpdir', ignore_errors=True)
+                        '/tmp/fake-tmpdir', ignore_errors=True
+                    )
 
     elif scenario == 'callable_success':
 
@@ -2149,13 +2245,15 @@ def test__resolve_pipeline_to_file(backend, test_case):
         with patch('tempfile.mkdtemp', return_value='/tmp/fake-tmpdir'):
             with patch('kfp.compiler.Compiler.compile'):
                 path, temp_dir = backend._resolve_pipeline_to_file(
-                    good_pipeline)
+                    good_pipeline
+                )
         assert path == test_case.expected_output['path']
         assert temp_dir == test_case.expected_output['temp_dir']
 
     elif scenario == 'non_callable_non_string':
         with pytest.raises(
-                test_case.expected_error, match=test_case.expected_error_match):
+            test_case.expected_error, match=test_case.expected_error_match
+        ):
             backend._resolve_pipeline_to_file(12345)
 
 
@@ -2165,7 +2263,8 @@ def test__resolve_pipeline_to_file(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='rename version success',
             config={'scenario': 'rename_success'},
@@ -2189,7 +2288,8 @@ def test__resolve_pipeline_to_file(backend, test_case):
             expected_error_match='no version was created',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__upload_new_pipeline(backend, test_case):
     scenario = test_case.config['scenario']
 
@@ -2201,16 +2301,17 @@ def test__upload_new_pipeline(backend, test_case):
             display_name='auto-generated-name',
         )
         with patch.object(
-                backend.upload_api, 'upload_pipeline',
-                return_value=mock_pipeline):
+            backend.upload_api, 'upload_pipeline', return_value=mock_pipeline
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=Mock(pipeline_versions=[mock_version])):
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=Mock(pipeline_versions=[mock_version]),
+            ):
                 with patch.object(
-                        backend.pipelines_api,
-                        'pipeline_service_update_pipeline_version',
-                        create=True,
+                    backend.pipelines_api,
+                    'pipeline_service_update_pipeline_version',
+                    create=True,
                 ) as mock_update:
                     result = backend._upload_new_pipeline(
                         '/tmp/pipe.yaml',
@@ -2219,8 +2320,10 @@ def test__upload_new_pipeline(backend, test_case):
                         description=None,
                     )
                     mock_update.assert_called_once()
-                    assert result.display_name == test_case.expected_output[
-                        'display_name']
+                    assert (
+                        result.display_name
+                        == test_case.expected_output['display_name']
+                    )
 
     elif scenario == 'rename_failure':
         mock_pipeline = Mock(pipeline_id='pid-1')
@@ -2230,18 +2333,21 @@ def test__upload_new_pipeline(backend, test_case):
             display_name='auto-generated-name',
         )
         with patch.object(
-                backend.upload_api, 'upload_pipeline',
-                return_value=mock_pipeline):
+            backend.upload_api, 'upload_pipeline', return_value=mock_pipeline
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=Mock(pipeline_versions=[mock_version])):
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=Mock(pipeline_versions=[mock_version]),
+            ):
                 with patch.object(
-                        backend.pipelines_api,
-                        'pipeline_service_update_pipeline_version',
-                        create=True,
-                        side_effect=kfp.server_api.ApiException(
-                            status=404, reason='Not Found')):
+                    backend.pipelines_api,
+                    'pipeline_service_update_pipeline_version',
+                    create=True,
+                    side_effect=kfp.server_api.ApiException(
+                        status=404, reason='Not Found'
+                    ),
+                ):
                     with warnings.catch_warnings(record=True) as caught:
                         warnings.simplefilter('always')
                         result = backend._upload_new_pipeline(
@@ -2252,8 +2358,10 @@ def test__upload_new_pipeline(backend, test_case):
                         )
                     assert len(caught) == 1
                     assert 'Could not rename' in str(caught[0].message)
-                    assert result.display_name == test_case.expected_output[
-                        'display_name']
+                    assert (
+                        result.display_name
+                        == test_case.expected_output['display_name']
+                    )
 
     elif scenario == 'rename_failure_403':
         mock_pipeline = Mock(pipeline_id='pid-1')
@@ -2263,18 +2371,21 @@ def test__upload_new_pipeline(backend, test_case):
             display_name='auto-generated-name',
         )
         with patch.object(
-                backend.upload_api, 'upload_pipeline',
-                return_value=mock_pipeline):
+            backend.upload_api, 'upload_pipeline', return_value=mock_pipeline
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=Mock(pipeline_versions=[mock_version])):
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=Mock(pipeline_versions=[mock_version]),
+            ):
                 with patch.object(
-                        backend.pipelines_api,
-                        'pipeline_service_update_pipeline_version',
-                        create=True,
-                        side_effect=kfp.server_api.ApiException(
-                            status=403, reason='Forbidden')):
+                    backend.pipelines_api,
+                    'pipeline_service_update_pipeline_version',
+                    create=True,
+                    side_effect=kfp.server_api.ApiException(
+                        status=403, reason='Forbidden'
+                    ),
+                ):
                     with warnings.catch_warnings(record=True) as caught:
                         warnings.simplefilter('always')
                         result = backend._upload_new_pipeline(
@@ -2285,21 +2396,25 @@ def test__upload_new_pipeline(backend, test_case):
                         )
                     assert len(caught) == 1
                     assert 'insufficient permissions' in str(caught[0].message)
-                    assert result.display_name == test_case.expected_output[
-                        'display_name']
+                    assert (
+                        result.display_name
+                        == test_case.expected_output['display_name']
+                    )
 
     elif scenario == 'no_version':
         mock_pipeline = Mock(pipeline_id='pid-1')
         with patch.object(
-                backend.upload_api, 'upload_pipeline',
-                return_value=mock_pipeline):
+            backend.upload_api, 'upload_pipeline', return_value=mock_pipeline
+        ):
             with patch.object(
-                    backend.pipelines_api,
-                    'pipeline_service_list_pipeline_versions',
-                    return_value=Mock(pipeline_versions=[])):
+                backend.pipelines_api,
+                'pipeline_service_list_pipeline_versions',
+                return_value=Mock(pipeline_versions=[]),
+            ):
                 with pytest.raises(
-                        test_case.expected_error,
-                        match=test_case.expected_error_match):
+                    test_case.expected_error,
+                    match=test_case.expected_error_match,
+                ):
                     backend._upload_new_pipeline(
                         '/tmp/pipe.yaml',
                         name='my-pipe',
@@ -2314,7 +2429,8 @@ def test__upload_new_pipeline(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='valid pipeline spec',
             config={'scenario': 'valid'},
@@ -2335,19 +2451,23 @@ def test__upload_new_pipeline(backend, test_case):
             },
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__load_pipeline_spec(backend, test_case):
     scenario = test_case.config['scenario']
 
     if scenario == 'valid':
-        spec_content = ('pipelineInfo:\n'
-                        '  name: test-pipeline\n'
-                        'root:\n'
-                        '  dag: {}\n'
-                        'schemaVersion: 2.1.0\n'
-                        'sdkVersion: kfp-2.0.0\n')
+        spec_content = (
+            'pipelineInfo:\n'
+            '  name: test-pipeline\n'
+            'root:\n'
+            '  dag: {}\n'
+            'schemaVersion: 2.1.0\n'
+            'sdkVersion: kfp-2.0.0\n'
+        )
         with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.yaml', delete=False) as f:
+            mode='w', suffix='.yaml', delete=False
+        ) as f:
             f.write(spec_content)
             f.flush()
         try:
@@ -2358,30 +2478,34 @@ def test__load_pipeline_spec(backend, test_case):
 
     elif scenario == 'empty':
         with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.yaml', delete=False) as f:
+            mode='w', suffix='.yaml', delete=False
+        ) as f:
             f.write('')
             f.flush()
         try:
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend._load_pipeline_spec(f.name)
         finally:
             os.unlink(f.name)
 
     elif scenario == 'multi_doc':
-        spec_content = ('pipelineInfo:\n'
-                        '  name: test-pipeline\n'
-                        'root:\n'
-                        '  dag: {}\n'
-                        'schemaVersion: 2.1.0\n'
-                        'sdkVersion: kfp-2.0.0\n'
-                        '---\n'
-                        'platforms:\n'
-                        '  kubernetes:\n'
-                        '    deploymentSpec: {}\n')
+        spec_content = (
+            'pipelineInfo:\n'
+            '  name: test-pipeline\n'
+            'root:\n'
+            '  dag: {}\n'
+            'schemaVersion: 2.1.0\n'
+            'sdkVersion: kfp-2.0.0\n'
+            '---\n'
+            'platforms:\n'
+            '  kubernetes:\n'
+            '    deploymentSpec: {}\n'
+        )
         with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.yaml', delete=False) as f:
+            mode='w', suffix='.yaml', delete=False
+        ) as f:
             f.write(spec_content)
             f.flush()
         try:
@@ -2398,7 +2522,8 @@ def test__load_pipeline_spec(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='wraps exception in RuntimeError',
             expected_status=FAILED,
@@ -2406,7 +2531,8 @@ def test__load_pipeline_spec(backend, test_case):
             expected_error_match='callback boom',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__invoke_callbacks(test_case):
 
     def bad_callback(run):
@@ -2414,7 +2540,8 @@ def test__invoke_callbacks(test_case):
 
     mock_run = Mock(run_id='r-1', state='SUCCEEDED')
     with pytest.raises(
-            test_case.expected_error, match=test_case.expected_error_match):
+        test_case.expected_error, match=test_case.expected_error_match
+    ):
         KubernetesBackend._invoke_callbacks([bad_callback], mock_run)
 
 
@@ -2424,7 +2551,8 @@ def test__invoke_callbacks(test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='returns latest version id',
             config={'has_versions': True},
@@ -2438,7 +2566,8 @@ def test__invoke_callbacks(test_case):
             expected_error_match='has no versions',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__get_latest_version_id(backend, test_case):
     if test_case.config['has_versions']:
         mock_version = Mock(
@@ -2446,19 +2575,21 @@ def test__get_latest_version_id(backend, test_case):
             created_at='2026-01-01T00:00:00Z',
         )
         with patch.object(
-                backend.pipelines_api,
-                'pipeline_service_list_pipeline_versions',
-                return_value=Mock(pipeline_versions=[mock_version])):
+            backend.pipelines_api,
+            'pipeline_service_list_pipeline_versions',
+            return_value=Mock(pipeline_versions=[mock_version]),
+        ):
             result = backend._get_latest_version_id('pid-1')
             assert result == test_case.expected_output
     else:
         with patch.object(
-                backend.pipelines_api,
-                'pipeline_service_list_pipeline_versions',
-                return_value=Mock(pipeline_versions=[])):
+            backend.pipelines_api,
+            'pipeline_service_list_pipeline_versions',
+            return_value=Mock(pipeline_versions=[]),
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend._get_latest_version_id('pid-1')
 
 
@@ -2468,22 +2599,23 @@ def test__get_latest_version_id(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='produces correct filter JSON',
-            config={
-                'key': 'display_name',
-                'value': 'test'
-            },
+            config={'key': 'display_name', 'value': 'test'},
             expected_output=(
                 '{"predicates": [{"operation": "EQUALS",'
-                ' "key": "display_name", "stringValue": "test"}]}'),
+                ' "key": "display_name", "stringValue": "test"}]}'
+            ),
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__equals_filter(backend, test_case):
-    result = backend._equals_filter(test_case.config['key'],
-                                    test_case.config['value'])
+    result = backend._equals_filter(
+        test_case.config['key'], test_case.config['value']
+    )
     assert json.loads(result) == json.loads(test_case.expected_output)
 
 
@@ -2493,7 +2625,8 @@ def test__equals_filter(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='multiple matches raises',
             expected_status=FAILED,
@@ -2501,18 +2634,21 @@ def test__equals_filter(backend, test_case):
             expected_error_match='Multiple pipelines',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__get_pipeline_id_by_name(backend, test_case):
     pipelines = [
         Mock(pipeline_id='pid-1'),
         Mock(pipeline_id='pid-2'),
     ]
     with patch.object(
-            backend.pipelines_api,
-            'pipeline_service_list_pipelines',
-            return_value=Mock(pipelines=pipelines)):
+        backend.pipelines_api,
+        'pipeline_service_list_pipelines',
+        return_value=Mock(pipelines=pipelines),
+    ):
         with pytest.raises(
-                test_case.expected_error, match=test_case.expected_error_match):
+            test_case.expected_error, match=test_case.expected_error_match
+        ):
             backend._get_pipeline_id_by_name('dup-name')
 
 
@@ -2522,7 +2658,8 @@ def test__get_pipeline_id_by_name(backend, test_case):
 
 
 @pytest.mark.parametrize(
-    'test_case', [
+    'test_case',
+    [
         TestCase(
             name='returns None when not specified',
             config={'experiment': None},
@@ -2536,7 +2673,8 @@ def test__get_pipeline_id_by_name(backend, test_case):
             expected_error_match='Experiment not found',
         ),
     ],
-    ids=lambda tc: tc.name)
+    ids=lambda tc: tc.name,
+)
 def test__resolve_experiment_id(backend, test_case):
     experiment = test_case.config['experiment']
 
@@ -2545,8 +2683,9 @@ def test__resolve_experiment_id(backend, test_case):
         assert result == test_case.expected_output
     else:
         with patch.object(
-                backend, '_get_experiment_id_by_name', return_value=None):
+            backend, '_get_experiment_id_by_name', return_value=None
+        ):
             with pytest.raises(
-                    test_case.expected_error,
-                    match=test_case.expected_error_match):
+                test_case.expected_error, match=test_case.expected_error_match
+            ):
                 backend._resolve_experiment_id(experiment)

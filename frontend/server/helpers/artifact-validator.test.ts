@@ -15,10 +15,12 @@
 import {
   buildArtifactUri,
   namespaceFromArtifactUri,
+  namespaceFromArtifactStorageKey,
   normalizeArtifactOwnershipMode,
   requiresArtifactOwnershipValidation,
   resolveArtifactValidationTimeoutMs,
   validateArtifactKeyPrefix,
+  validateArtifactKeySafety,
   validateArtifactNamespace,
   validateArtifactNotFound,
 } from './artifact-validator.js';
@@ -27,6 +29,47 @@ describe('artifact-validator', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+  });
+
+  it.each([
+    's3://bucket/custom/model/',
+    's3://bucket/private-artifacts/team-b/model',
+    'https://files.example/reports/a//b',
+  ])('checks key safety independently of a namespace prefix: %s', (artifactUri) => {
+    expect(validateArtifactKeySafety(artifactUri)).toEqual({ valid: true });
+  });
+
+  it.each([
+    ['private-artifacts/team-b/model', 'team-b'],
+    ['private-artifacts/team-b', 'team-b'],
+    ['private-artifacts/team-b/', 'team-b'],
+    ['private-artifacts/team-b/model%ZZ', 'team-b'],
+    ['private-artifacts/%74eam-b/model', '%74eam-b'],
+    ['%70rivate-artifacts/team-b/model', undefined],
+    ['private-artifacts-other/team-b/model', undefined],
+    ['other/private-artifacts/team-b/model', undefined],
+  ])('matches storage namespaces without URI decoding: %s', (key, namespace) => {
+    expect(namespaceFromArtifactStorageKey(key)).toBe(namespace);
+  });
+
+  it('matches custom multi-segment storage prefixes literally', () => {
+    expect(
+      namespaceFromArtifactStorageKey('tenant.data/models/team-b/model', 'tenant.data/models'),
+    ).toBe('team-b');
+    expect(
+      namespaceFromArtifactStorageKey('tenantXdata/models/team-b/model', 'tenant.data/models'),
+    ).toBeUndefined();
+    expect(namespaceFromArtifactStorageKey('tenant.data/models/team-b', 'tenant.data/models')).toBe(
+      'team-b',
+    );
+    expect(namespaceFromArtifactStorageKey('private-artifacts/team-b/model', '')).toBeUndefined();
+  });
+
+  it('does not broaden the no-record URI shortcut to namespace roots', () => {
+    expect(validateArtifactKeyPrefix('s3://bucket/private-artifacts/team-a', 'team-a')).toEqual({
+      valid: false,
+      reason: 'artifact-not-found',
+    });
   });
 
   it('extracts only a leading namespace key prefix', () => {
@@ -145,7 +188,7 @@ describe('artifact-validator', () => {
     });
   });
 
-  it('rejects a custom-root HTTP artifact despite an exact metadata match', async () => {
+  it('accepts a custom-root HTTP artifact with an exact native Artifact API match', async () => {
     const artifactUri = 'https://example.com/reports/a//b';
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
@@ -157,7 +200,7 @@ describe('artifact-validator', () => {
 
     await expect(
       validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
-    ).resolves.toEqual({ valid: false, reason: 'custom-root-requires-namespace-prefix' });
+    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
   });
 
   it('rejects mismatched, absent, and non-normalized prefixes', () => {
@@ -212,7 +255,7 @@ describe('artifact-validator', () => {
     ).toEqual({ valid: false, reason: 'artifact-not-found' });
   });
 
-  it('rejects a custom-root ArtifactService match with forwarded caller identity', async () => {
+  it('accepts a custom-root ArtifactService match with forwarded caller identity', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
         headers: { 'Content-Type': 'application/json' },
@@ -225,11 +268,11 @@ describe('artifact-validator', () => {
       validateArtifactNamespace('http://api-server', 's3://bucket/shared/output', 'team-a', {
         'kubeflow-userid': 'user@example.com',
       }),
-    ).resolves.toEqual({ valid: false, reason: 'custom-root-requires-namespace-prefix' });
+    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
 
     const [requestUrl, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
     const url = new URL(requestUrl);
-    expect(url.pathname).toBe('/apis/v2beta1/artifacts');
+    expect(url.pathname).toBe('/apis/v2/artifacts');
     expect(url.searchParams.get('namespace')).toBe('team-a');
     expect(JSON.parse(decodeURIComponent(url.searchParams.get('filter') || '{}'))).toEqual({
       predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: 's3://bucket/shared/output' }],
@@ -259,7 +302,9 @@ describe('artifact-validator', () => {
     });
   });
 
-  it('rejects a custom-root row when the central server would read it directly', async () => {
+  it('accepts an importer-created custom URI row without proving ownership of the bytes', async () => {
+    // This native API response can be created by importing an arbitrary URI. The compatibility
+    // decision accepts it; a secure backend byte-authorization boundary is still required.
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -273,9 +318,115 @@ describe('artifact-validator', () => {
     await expect(
       validateArtifactNamespace('http://api-server', 's3://bucket/shared/output', 'team-a'),
     ).resolves.toEqual({
-      reason: 'custom-root-requires-namespace-prefix',
-      valid: false,
+      reason: 'artifact-api-match',
+      valid: true,
     });
+  });
+
+  it.each([
+    's3://models/team-training/run-1/model',
+    'gs://models/team-training/run-1/model',
+    'minio://mlpipeline/artifacts/old-workflow/model',
+    'https://files.example/reports/result.json',
+    'http://files.example/reports/result.json',
+    's3://models/team-training/run-1/model/',
+    'gs://models/team-training/run-1/model/',
+    'minio://mlpipeline/artifacts/old-workflow/model/',
+    'https://files.example/reports/',
+    's3://models/team-training/output%25+plus?endpoint=https://ceph.example:9443&token=a%2Bb',
+    'gs://models/team-training/model/?endpoint=https://storage.example/path',
+    'https://files.example/reports/result%20name.json?version=a%2Bb',
+  ])('accepts an exact native row without rewriting its custom URI: %s', async (artifactUri) => {
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
+    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+    const requestUrl = new URL(fetchSpy.mock.calls[0][0] as string);
+    expect(requestUrl.searchParams.get('namespace')).toBe('team-a');
+    expect(JSON.parse(decodeURIComponent(requestUrl.searchParams.get('filter') || '{}'))).toEqual({
+      predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],
+    });
+  });
+
+  it.each(['artifact-then-prefix', 'artifact-only'])(
+    'requires a native row for a custom root in %s mode',
+    async (mode) => {
+      vi.stubEnv('ARTIFACT_NAMESPACE_OWNERSHIP_MODE', mode);
+      vi.resetModules();
+      const { validateArtifactNamespace: validateWithConfiguredMode } =
+        await import('./artifact-validator.js');
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ artifacts: [] }), {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          }),
+        );
+      vi.stubGlobal('fetch', fetchSpy);
+      const artifactUri = 's3://models/team-training/run-1/model';
+
+      await expect(
+        validateWithConfiguredMode('http://api-server', artifactUri, 'team-a'),
+      ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+      await expect(
+        validateWithConfiguredMode('http://api-server', artifactUri, 'team-a'),
+      ).resolves.toEqual({ valid: false, reason: 'artifact-not-found' });
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([401, 403, 500])('fails closed on a native API %s for a custom root', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status })));
+
+    await expect(
+      validateArtifactNamespace('http://api-server', 's3://models/team-training/model', 'team-a'),
+    ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
+  });
+
+  it('fails closed on a native API transport error for a custom root', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('unavailable')));
+
+    await expect(
+      validateArtifactNamespace('http://api-server', 's3://models/team-training/model', 'team-a'),
+    ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
+  });
+
+  it.each([
+    's3://models/team-training/../team-b/model',
+    's3://models/team-training/./model',
+    's3://models/team-training//model',
+    's3://models/team-training/model//',
+    'gs://models/team-training/../team-b/model',
+    'https://files.example/reports/../private/model',
+    'https://files.example/reports/./model',
+    'https://files.example/reports/\\model',
+  ])('rejects an unsafe custom key before a native row can allow it: %s', async (artifactUri) => {
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
+    ).resolves.toEqual({ valid: false, reason: 'key-not-normalized' });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('rejects a caller-owned record that points into another namespace prefix', async () => {

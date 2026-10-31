@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-Parse JUnit XML reports and generate GitHub step summary with optional custom data.
-"""
+"""Parse JUnit XML reports and generate GitHub step summary with optional
+custom data."""
 
 import argparse
 import glob
@@ -17,6 +16,7 @@ from typing import Dict, List, Optional
 @dataclass
 class TestCase:
     """Represents a single test case."""
+
     name: str
     classname: str
     time: float
@@ -31,6 +31,7 @@ class TestCase:
 @dataclass
 class TestSuite:
     """Represents a test suite."""
+
     name: str
     tests: int
     failures: int
@@ -43,6 +44,7 @@ class TestSuite:
 @dataclass
 class TestReport:
     """Represents the complete test report."""
+
     total_tests: int
     total_failures: int
     total_errors: int
@@ -74,13 +76,13 @@ def parse_junit_xml(xml_file: Path) -> TestSuite:
         all_test_cases = [tc for s in suites for tc in s.test_cases]
 
         return TestSuite(
-            name="All Suites",
+            name='All Suites',
             tests=total_tests,
             failures=total_failures,
             errors=total_errors,
             skipped=total_skipped,
             time=total_time,
-            test_cases=all_test_cases
+            test_cases=all_test_cases,
         )
     else:
         # Single test suite
@@ -108,7 +110,7 @@ def parse_test_suite(suite_elem: ET.Element) -> TestSuite:
         errors=errors,
         skipped=skipped,
         time=time,
-        test_cases=test_cases
+        test_cases=test_cases,
     )
 
 
@@ -156,7 +158,7 @@ def parse_test_case(testcase_elem: ET.Element) -> TestCase:
         failure_type=failure_type,
         error_message=error_message,
         system_out=system_out,
-        system_err=system_err
+        system_err=system_err,
     )
 
 
@@ -169,7 +171,7 @@ def aggregate_reports(xml_files: List[Path]) -> TestReport:
             suite = parse_junit_xml(xml_file)
             all_suites.append(suite)
         except Exception as e:
-            print(f"Error parsing {xml_file}: {e}", file=sys.stderr)
+            print(f'Error parsing {xml_file}: {e}', file=sys.stderr)
             continue
 
     total_tests = sum(s.tests for s in all_suites)
@@ -186,57 +188,69 @@ def aggregate_reports(xml_files: List[Path]) -> TestReport:
         total_skipped=total_skipped,
         total_passed=total_passed,
         total_time=total_time,
-        test_suites=all_suites
+        test_suites=all_suites,
     )
 
 
 def format_duration(seconds: float) -> str:
     """Format duration in seconds to a human-readable string."""
     if seconds < 60:
-        return f"{seconds:.2f}s"
+        return f'{seconds:.2f}s'
     elif seconds < 3600:
         minutes = int(seconds // 60)
         secs = seconds % 60
-        return f"{minutes}m {secs:.2f}s"
+        return f'{minutes}m {secs:.2f}s'
     else:
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         secs = seconds % 60
-        return f"{hours}h {minutes}m {secs:.2f}s"
+        return f'{hours}h {minutes}m {secs:.2f}s'
 
 
-def generate_markdown_summary(report: TestReport, custom_data: Optional[Dict] = None) -> str:
+def generate_markdown_summary(
+    report: TestReport, custom_data: Optional[Dict] = None
+) -> str:
     """Generate a markdown summary from the test report."""
     md_lines = []
 
     # Add custom data section if provided
     if custom_data:
         for key, value in custom_data.items():
-            md_lines.append(f"**{key}**: {value}\n")
-        md_lines.append("")
+            md_lines.append(f'**{key}**: {value}\n')
+        md_lines.append('')
 
     # Overall results
-    success_rate = (report.total_passed / report.total_tests * 100) if report.total_tests > 0 else 0
+    success_rate = (
+        (report.total_passed / report.total_tests * 100)
+        if report.total_tests > 0
+        else 0
+    )
 
     # Status emoji
     if report.total_failures == 0 and report.total_errors == 0:
-        status_emoji = "✅"
-        status_text = "PASSED"
+        status_emoji = '✅'
+        status_text = 'PASSED'
     else:
-        status_emoji = "❌"
-        status_text = "FAILED"
+        status_emoji = '❌'
+        status_text = 'FAILED'
 
-    md_lines.append(f"## {status_emoji} Overall Status: {status_text}\n")
+    md_lines.append(f'## {status_emoji} Overall Status: {status_text}\n')
 
     # Summary table
-    md_lines.append("| Total Tests | ✅ Passed | ❌ Failed | ⚠️ Errors | ⏭️ Skipped | ⏱️ Duration | 📊 Success Rate |")
-    md_lines.append("|-------------|-----------|-----------|-----------|------------|-------------|-----------------|")
-    md_lines.append(f"| {report.total_tests} | {report.total_passed} | {report.total_failures} | {report.total_errors} | {report.total_skipped} | {format_duration(report.total_time)} | {success_rate:.2f}% |")
-    md_lines.append("")
+    md_lines.append(
+        '| Total Tests | ✅ Passed | ❌ Failed | ⚠️ Errors | ⏭️ Skipped | ⏱️ Duration | 📊 Success Rate |'
+    )
+    md_lines.append(
+        '|-------------|-----------|-----------|-----------|------------|-------------|-----------------|'
+    )
+    md_lines.append(
+        f'| {report.total_tests} | {report.total_passed} | {report.total_failures} | {report.total_errors} | {report.total_skipped} | {format_duration(report.total_time)} | {success_rate:.2f}% |'
+    )
+    md_lines.append('')
 
     # Failed tests details
     if report.total_failures > 0 or report.total_errors > 0:
-        md_lines.append("## ❌ Failed Tests\n")
+        md_lines.append('## ❌ Failed Tests\n')
 
         failed_tests = []
         for suite in report.test_suites:
@@ -245,38 +259,58 @@ def generate_markdown_summary(report: TestReport, custom_data: Optional[Dict] = 
                     failed_tests.append((suite.name, test_case))
 
         if failed_tests:
-            md_lines.append("| Test Name | Suite | Duration | Error |")
-            md_lines.append("|-----------|-------|----------|-------|")
+            md_lines.append('| Test Name | Suite | Duration | Error |')
+            md_lines.append('|-----------|-------|----------|-------|')
 
             for suite_name, test_case in failed_tests:
                 # Truncate long test names
-                test_name = test_case.name[:80] + "..." if len(test_case.name) > 80 else test_case.name
-                error_msg = test_case.failure_message or test_case.error_message or "No message"
-                error_msg = error_msg[:100] + "..." if len(error_msg) > 100 else error_msg
+                test_name = (
+                    test_case.name[:80] + '...'
+                    if len(test_case.name) > 80
+                    else test_case.name
+                )
+                error_msg = (
+                    test_case.failure_message
+                    or test_case.error_message
+                    or 'No message'
+                )
+                error_msg = (
+                    error_msg[:100] + '...'
+                    if len(error_msg) > 100
+                    else error_msg
+                )
                 # Escape pipe characters in error message
-                error_msg = error_msg.replace("|", "\\|")
+                error_msg = error_msg.replace('|', '\\|')
 
-                md_lines.append(f"| {test_name} | {suite_name} | {test_case.time:.2f}s | {error_msg} |")
+                md_lines.append(
+                    f'| {test_name} | {suite_name} | {test_case.time:.2f}s | {error_msg} |'
+                )
 
-            md_lines.append("")
+            md_lines.append('')
 
     # Test suites breakdown
     if len(report.test_suites) > 1:
-        md_lines.append("## 📋 Test Suites Breakdown\n")
-        md_lines.append("| Suite Name | Tests | Passed | Failed | Errors | Skipped | Duration |")
-        md_lines.append("|------------|-------|--------|--------|--------|---------|----------|")
+        md_lines.append('## 📋 Test Suites Breakdown\n')
+        md_lines.append(
+            '| Suite Name | Tests | Passed | Failed | Errors | Skipped | Duration |'
+        )
+        md_lines.append(
+            '|------------|-------|--------|--------|--------|---------|----------|'
+        )
 
         for suite in report.test_suites:
             passed = suite.tests - suite.failures - suite.errors - suite.skipped
-            suite_name = suite.name[:50] + "..." if len(suite.name) > 50 else suite.name
+            suite_name = (
+                suite.name[:50] + '...' if len(suite.name) > 50 else suite.name
+            )
             md_lines.append(
-                f"| {suite_name} | {suite.tests} | {passed} | {suite.failures} | "
-                f"{suite.errors} | {suite.skipped} | {format_duration(suite.time)} |"
+                f'| {suite_name} | {suite.tests} | {passed} | {suite.failures} | '
+                f'{suite.errors} | {suite.skipped} | {format_duration(suite.time)} |'
             )
 
-        md_lines.append("")
+        md_lines.append('')
 
-    return "\n".join(md_lines)
+    return '\n'.join(md_lines)
 
 
 def expand_file_patterns(patterns: List[str]) -> List[Path]:
@@ -299,10 +333,13 @@ def expand_file_patterns(patterns: List[str]) -> List[Path]:
         xml_files.extend(found_files)
 
     if not xml_files:
-        print(f"Error: No XML files found matching the patterns: {patterns}", file=sys.stderr)
+        print(
+            f'Error: No XML files found matching the patterns: {patterns}',
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    print(f"Found XML files: {[str(f) for f in xml_files]}")
+    print(f'Found XML files: {[str(f) for f in xml_files]}')
     return xml_files
 
 
@@ -312,21 +349,25 @@ def set_github_output(key: str, value: str):
 
     if github_output:
         with open(github_output, 'a', encoding='utf-8') as f:
-            f.write(f"{key}={value}\n")
+            f.write(f'{key}={value}\n')
     else:
-        print(f"Would set output: {key}={value}")
+        print(f'Would set output: {key}={value}')
 
 
 def set_github_outputs(report: TestReport):
     """Set all GitHub Action outputs based on the test report."""
-    success_rate = (report.total_passed / report.total_tests * 100) if report.total_tests > 0 else 0
+    success_rate = (
+        (report.total_passed / report.total_tests * 100)
+        if report.total_tests > 0
+        else 0
+    )
 
-    set_github_output("total_tests", str(report.total_tests))
-    set_github_output("total_passed", str(report.total_passed))
-    set_github_output("total_failed", str(report.total_failures))
-    set_github_output("total_errors", str(report.total_errors))
-    set_github_output("total_skipped", str(report.total_skipped))
-    set_github_output("success_rate", f"{success_rate:.2f}")
+    set_github_output('total_tests', str(report.total_tests))
+    set_github_output('total_passed', str(report.total_passed))
+    set_github_output('total_failed', str(report.total_failures))
+    set_github_output('total_errors', str(report.total_errors))
+    set_github_output('total_skipped', str(report.total_skipped))
+    set_github_output('success_rate', f'{success_rate:.2f}')
 
 
 def write_to_step_summary(markdown: str):
@@ -334,16 +375,19 @@ def write_to_step_summary(markdown: str):
     github_step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
 
     if not github_step_summary:
-        print("Warning: GITHUB_STEP_SUMMARY environment variable not set", file=sys.stderr)
-        print("Markdown output:")
+        print(
+            'Warning: GITHUB_STEP_SUMMARY environment variable not set',
+            file=sys.stderr,
+        )
+        print('Markdown output:')
         print(markdown)
         return
 
     with open(github_step_summary, 'a', encoding='utf-8') as f:
         f.write(markdown)
-        f.write("\n")
+        f.write('\n')
 
-    print(f"Successfully wrote summary to {github_step_summary}")
+    print(f'Successfully wrote summary to {github_step_summary}')
 
 
 def main():
@@ -353,34 +397,34 @@ def main():
     parser.add_argument(
         'xml_files',
         nargs='+',
-        help='Path(s) to JUnit XML file(s) or directories (supports glob patterns)'
+        help='Path(s) to JUnit XML file(s) or directories (supports glob patterns)',
     )
     parser.add_argument(
         '--custom-data',
         type=str,
-        help='JSON string with custom data to include in the summary'
+        help='JSON string with custom data to include in the summary',
     )
     parser.add_argument(
         '--custom-data-file',
         type=Path,
-        help='Path to JSON file with custom data to include in the summary'
+        help='Path to JSON file with custom data to include in the summary',
     )
     parser.add_argument(
         '--fail-on-test-failures',
         action='store_true',
         default=True,
-        help='Whether to fail the step if tests fail (default: True)'
+        help='Whether to fail the step if tests fail (default: True)',
     )
     parser.add_argument(
         '--no-fail-on-test-failures',
         dest='fail_on_test_failures',
         action='store_false',
-        help='Do not fail the step if tests fail'
+        help='Do not fail the step if tests fail',
     )
     parser.add_argument(
         '--output',
         type=Path,
-        help='Output file for markdown (default: write to GITHUB_STEP_SUMMARY)'
+        help='Output file for markdown (default: write to GITHUB_STEP_SUMMARY)',
     )
 
     args = parser.parse_args()
@@ -394,14 +438,14 @@ def main():
         try:
             custom_data = json.loads(args.custom_data)
         except json.JSONDecodeError as e:
-            print(f"Error parsing custom data JSON: {e}", file=sys.stderr)
+            print(f'Error parsing custom data JSON: {e}', file=sys.stderr)
             sys.exit(1)
     elif args.custom_data_file:
         try:
             with open(args.custom_data_file, encoding='utf-8') as f:
                 custom_data = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error reading custom data file: {e}", file=sys.stderr)
+            print(f'Error reading custom data file: {e}', file=sys.stderr)
             sys.exit(1)
 
     # Parse and aggregate reports
@@ -417,12 +461,14 @@ def main():
     if args.output:
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(markdown)
-        print(f"Wrote markdown summary to {args.output}")
+        print(f'Wrote markdown summary to {args.output}')
     else:
         write_to_step_summary(markdown)
 
     # Exit with failure if tests failed and fail_on_test_failures is True
-    if args.fail_on_test_failures and (report.total_failures > 0 or report.total_errors > 0):
+    if args.fail_on_test_failures and (
+        report.total_failures > 0 or report.total_errors > 0
+    ):
         sys.exit(1)
 
 

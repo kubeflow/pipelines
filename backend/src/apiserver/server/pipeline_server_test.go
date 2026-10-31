@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -101,13 +101,6 @@ func getMockServer(t *testing.T) *httptest.Server {
 	return httpServer
 }
 
-func getBadMockServer() *httptest.Server {
-	httpServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.WriteHeader(404)
-	}))
-	return httpServer
-}
-
 func TestPipelineServer_CreatePipeline(t *testing.T) {
 	httpServer := getMockServer(t)
 	defer httpServer.Close()
@@ -125,7 +118,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 	}{
 		{
 			"Valid - single user",
-			DefaultFakeIdOne,
+			DefaultFakeIDOne,
 			&apiv2.Pipeline{
 				Name:        "Pipeline #1",
 				DisplayName: "Pipeline #1",
@@ -141,7 +134,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			"Valid - empty namespace",
-			DefaultFakeIdTwo,
+			DefaultFakeIDTwo,
 			&apiv2.Pipeline{
 				Name:        "Pipeline 2",
 				DisplayName: "Pipeline 2",
@@ -156,7 +149,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			"Invalid - duplicate name",
-			DefaultFakeIdThree,
+			DefaultFakeIDThree,
 			&apiv2.Pipeline{
 				DisplayName: "Pipeline 2",
 			},
@@ -166,7 +159,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			"Invalid - missing name",
-			DefaultFakeIdFour,
+			DefaultFakeIDFour,
 			&apiv2.Pipeline{
 				Namespace: "namespace1",
 			},
@@ -176,7 +169,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 		},
 		{
 			name: "Invalid - name too long",
-			id:   DefaultFakeIdOne,
+			id:   DefaultFakeIDOne,
 			arg: &apiv2.Pipeline{
 				Name:        strings.Repeat("a", 129),
 				DisplayName: strings.Repeat("a", 129),

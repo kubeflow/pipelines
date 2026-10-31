@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { chromium } from 'playwright';
+import { PNG } from 'pngjs';
 
 async function routeProductionBundle(page, responses = {}) {
   await page.route('**/*', async (route) => {
@@ -45,6 +46,204 @@ async function routeProductionBundle(page, responses = {}) {
     });
   });
 }
+
+test(
+  'dataset and model previews load only when opened, on both artifact surfaces',
+  { timeout: 60000 },
+  async () => {
+    const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+    try {
+      const kinds = ['dataset', 'model'];
+      const previews = Object.fromEntries(
+        await Promise.all(
+          kinds.map(async (kind) => [
+            kind,
+            JSON.parse(
+              await readFile(
+                new URL(`../mock-backend/data/v2/artifact-previews/${kind}.json`, import.meta.url),
+                'utf8',
+              ),
+            ),
+          ]),
+        ),
+      );
+      previews.model.hyperparameters['parameter_'.repeat(25)] = 'v'.repeat(256);
+      const artifacts = kinds.map((kind) => ({
+        artifact_id: `preview-${kind}`,
+        name: `preview-${kind}`,
+        type: kind === 'dataset' ? 'Dataset' : 'Model',
+        uri: `s3://bucket/private-artifacts/kubeflow/${kind}`,
+        namespace: 'kubeflow',
+        created_at: '2026-01-01T00:00:00Z',
+        metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+      }));
+      const pipelineSpec = {
+        pipelineInfo: { name: 'artifact-previews' },
+        root: {
+          dag: {
+            tasks: {
+              produce: { taskInfo: { name: 'produce' }, componentRef: { name: 'producer' } },
+            },
+          },
+        },
+        components: {
+          producer: {
+            executorLabel: 'exec-producer',
+            outputDefinitions: {
+              artifacts: Object.fromEntries(
+                artifacts.map((artifact, index) => [
+                  kinds[index],
+                  {
+                    artifactType: {
+                      schemaTitle: `system.${artifact.type}`,
+                      schemaVersion: '0.0.1',
+                    },
+                  },
+                ]),
+              ),
+            },
+          },
+        },
+        deploymentSpec: {
+          executors: { 'exec-producer': { container: { image: 'unused-test-image' } } },
+        },
+      };
+      const responses = {
+        '/apis/v2/runs/preview-run': {
+          run_id: 'preview-run',
+          display_name: 'Artifact previews',
+          namespace: 'kubeflow',
+          state: 'SUCCEEDED',
+          pipeline_spec: pipelineSpec,
+        },
+        '/apis/v2/runs/preview-run/tasks': {
+          tasks: [
+            {
+              task_id: 'root',
+              name: 'root',
+              type: 'ROOT',
+              scope_path: 'root',
+              state: 'SUCCEEDED',
+              run_id: 'preview-run',
+              child_tasks: [{ name: 'produce', task_id: 'producer-task' }],
+            },
+            {
+              task_id: 'producer-task',
+              name: 'produce',
+              display_name: 'Produce preview artifacts',
+              type: 'RUNTIME',
+              parent_task_id: 'root',
+              scope_path: 'root.produce',
+              state: 'SUCCEEDED',
+              run_id: 'preview-run',
+              outputs: {
+                artifacts: artifacts.map((artifact, index) => ({
+                  artifact_key: kinds[index],
+                  type: 'OUTPUT',
+                  artifacts: [artifact],
+                })),
+              },
+            },
+          ],
+        },
+        ...Object.fromEntries(
+          artifacts.flatMap((artifact, index) => [
+            [`/apis/v2/artifacts/${artifact.artifact_id}`, artifact],
+            [`/artifacts/${artifact.artifact_id}/preview`, previews[kinds[index]]],
+          ]),
+        ),
+      };
+      for (const surface of ['run', 'details']) {
+        for (const [index, kind] of kinds.entries()) {
+          const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+          const reads = [];
+          page.on('request', (request) => {
+            const url = new URL(request.url());
+            if (url.pathname.startsWith('/artifacts/')) reads.push(url.pathname);
+          });
+          await routeProductionBundle(page, responses);
+          const artifact = artifacts[index];
+          if (surface === 'run') {
+            await page.goto('http://kfp.test/#/runs/details/preview-run');
+            await page
+              .getByTestId('DagCanvas')
+              .getByRole('button', { name: kind, exact: true })
+              .click();
+            await page.getByRole('button', { name: 'Artifact Info', exact: true }).waitFor();
+            assert.deepEqual(reads, [], 'Selecting an artifact must not fetch its contents');
+            await page.getByRole('button', { name: 'Visualization', exact: true }).click();
+          } else {
+            await page.goto(`http://kfp.test/#/artifacts/${artifact.artifact_id}`);
+            const open = page.getByRole('button', { name: 'Show artifact visualization' });
+            await open.waitFor();
+            assert.deepEqual(reads, [], 'Artifact Details must not eagerly fetch row samples');
+            await open.click();
+          }
+          if (kind === 'dataset') {
+            const table = page.getByRole('table', { name: 'Dataset sample' });
+            await table.waitFor();
+            assert.equal(await table.getByRole('row').count(), 11);
+            assert.equal(
+              await table.getByRole('columnheader').count(),
+              previews.dataset.columns.length,
+            );
+          } else {
+            await page.getByRole('region', { name: 'Model preview' }).waitFor();
+            await page.getByText('xgboost.XGBClassifier', { exact: true }).waitFor();
+            await page.getByRole('heading', { name: 'Recorded hyperparameters' }).waitFor();
+            await page.getByRole('heading', { name: 'Structural information' }).waitFor();
+            for (const width of [1600, 800, 640]) {
+              await page.setViewportSize({ width, height: 1000 });
+              for (const [title, entries] of [
+                ['Recorded hyperparameters', previews.model.hyperparameters],
+                ['Structural information', previews.model.structure],
+              ]) {
+                const table = page.getByRole('table', { name: title });
+                const layout = await table.evaluate((element) => {
+                  const headers = Array.from(element.tHead.rows[0].cells).map((cell) =>
+                    cell.getBoundingClientRect(),
+                  );
+                  const rows = Array.from(element.tBodies[0].rows);
+                  return {
+                    width: element.getBoundingClientRect().width,
+                    bodyWidth: element.tBodies[0].getBoundingClientRect().width,
+                    containerWidth: element.parentElement.getBoundingClientRect().width,
+                    rowCount: rows.length,
+                    columnsAligned: rows.every((row) =>
+                      Array.from(row.cells).every((cell, index) => {
+                        const bounds = cell.getBoundingClientRect();
+                        return (
+                          Math.abs(bounds.left - headers[index].left) < 1 &&
+                          Math.abs(bounds.width - headers[index].width) < 1 &&
+                          cell.scrollWidth <= cell.clientWidth + 1
+                        );
+                      }),
+                    ),
+                  };
+                });
+                assert.equal(layout.rowCount, Object.keys(entries).length);
+                assert.ok(Math.abs(layout.width - layout.bodyWidth) < 1);
+                assert.ok(Math.abs(layout.width - layout.containerWidth) < 1);
+                assert.ok(
+                  layout.columnsAligned,
+                  `${surface} ${title} must align and wrap its cells at viewport width ${width}`,
+                );
+              }
+            }
+          }
+          assert.deepEqual(
+            reads,
+            [`/artifacts/${artifact.artifact_id}/preview`],
+            'Only the selected preview file is fetched, never the data/model bundle',
+          );
+          await page.close();
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  },
+);
 
 // Vitest transforms imports differently from the production bundler. Load the
 // emitted bundle in a browser to catch startup failures such as Ace import order.
@@ -96,6 +295,124 @@ test(
     }
   },
 );
+
+for (const kind of ['pipeline', 'run']) {
+  test(
+    `${kind} graph is flush with tabs and retains expansion choices across reloads`,
+    { timeout: 30000 },
+    async () => {
+      const browser = await chromium.launch({
+        channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
+      });
+      try {
+        const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+        const pipelineSpec = {
+          pipelineInfo: { name: 'graph-spacing' },
+          root: {
+            dag: {
+              tasks: {
+                ...Object.fromEntries(
+                  Array.from({ length: 25 }, (_, index) => [
+                    `group-${index}`,
+                    {
+                      taskInfo: { name: `Group ${index}` },
+                      componentRef: { name: 'group' },
+                      dependentTasks: index ? [`group-${index - 1}`] : [],
+                    },
+                  ]),
+                ),
+              },
+            },
+          },
+          components: {
+            step: { executorLabel: 'exec-step' },
+            group: {
+              dag: {
+                tasks: {
+                  step: {
+                    taskInfo: { name: 'Example task' },
+                    componentRef: { name: 'step' },
+                  },
+                },
+              },
+            },
+          },
+          deploymentSpec: {
+            executors: { 'exec-step': { container: { image: 'unused-test-image' } } },
+          },
+        };
+        const version = {
+          pipeline_id: 'graph-spacing',
+          pipeline_version_id: 'version',
+          display_name: 'v1',
+          pipeline_spec: pipelineSpec,
+        };
+        await routeProductionBundle(page, {
+          '/apis/v2/pipelines/graph-spacing': {
+            pipeline_id: 'graph-spacing',
+            display_name: 'Graph spacing',
+          },
+          '/apis/v2/pipelines/graph-spacing/versions/version': version,
+          '/apis/v2/pipelines/graph-spacing/versions': { pipeline_versions: [version] },
+          '/apis/v2/runs/graph-spacing': {
+            run_id: 'graph-spacing',
+            display_name: 'Graph spacing',
+            state: 'SUCCEEDED',
+            pipeline_spec: pipelineSpec,
+          },
+          '/apis/v2/runs/graph-spacing/tasks': { tasks: [] },
+        });
+        const route =
+          kind === 'pipeline'
+            ? '/pipelines/details/graph-spacing/version/version'
+            : '/runs/details/graph-spacing';
+        await page.goto(`http://kfp.test/#${route}`);
+        await page.getByText('Example task', { exact: true }).first().waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 10);
+        for (const height of [900, 500]) {
+          await page.setViewportSize({ width: 1440, height });
+          const canvas = await page.getByTestId('DagCanvas').boundingBox();
+          const tabsBottom = await page
+            .getByRole('button', { name: 'Graph', exact: true })
+            .evaluate((button) => button.parentElement.getBoundingClientRect().bottom);
+          assert.equal(canvas.y - tabsBottom, 0, 'Graph starts directly below the tab divider');
+          const canvasTop = PNG.sync.read(
+            await page.screenshot({
+              clip: {
+                x: canvas.x + 1,
+                y: tabsBottom,
+                width: Math.floor(canvas.width) - 2,
+                height: 8,
+              },
+            }),
+          );
+          assert.ok(
+            canvasTop.data.some((channel) => channel !== 255),
+            'The canvas starts without an opaque white strip',
+          );
+          assert.ok(
+            canvas.height > 0 && canvas.y + canvas.height <= height,
+            'Canvas still fits the viewport',
+          );
+        }
+        await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
+        await page.reload();
+        await page.getByRole('button', { name: 'Expand Group 0', exact: true }).waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 0);
+        await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+        await page.reload();
+        await page.getByRole('button', { name: 'Collapse Group 24', exact: true }).waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 25);
+        await page.getByRole('button', { name: 'Collapse Group 24', exact: true }).click();
+        await page.reload();
+        await page.getByRole('button', { name: 'Expand Group 24', exact: true }).waitFor();
+        assert.equal(await page.getByText('Example task', { exact: true }).count(), 24);
+      } finally {
+        await browser.close();
+      }
+    },
+  );
+}
 
 test(
   'Timeline keeps task details visible when scrolling long charts',
@@ -151,14 +468,14 @@ test(
         },
       };
       await routeProductionBundle(page, {
-        '/apis/v2beta1/runs/timeline-layout-test': {
+        '/apis/v2/runs/timeline-layout-test': {
           run_id: 'timeline-layout-test',
           state: 'SUCCEEDED',
           created_at: at(0),
           finished_at: at(400),
           pipeline_spec: pipelineSpec,
         },
-        '/apis/v2beta1/runs/timeline-layout-test/tasks': { tasks },
+        '/apis/v2/runs/timeline-layout-test/tasks': { tasks },
       });
       await page.goto('http://kfp.test/#/runs/details/timeline-layout-test?tab=timeline');
       const timeline = page.getByRole('region', { name: 'Run timeline' });

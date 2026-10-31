@@ -20,8 +20,10 @@ on:
 env:
   IMAGE_TAG: "latest"
   REGISTRY: "kind-registry:5000"
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GITHUB_SHA: ${{ github.sha }}
+
+permissions:
+  contents: read
 
 jobs:
   runtime-base-images:
@@ -40,26 +42,22 @@ jobs:
         modelcar.tar
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Configure runtime base image artifact
         id: configure-runtime-base-images
         shell: bash
         run: |
           set -euo pipefail
-          archive_fingerprint=$(python3 \
-            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
-            .github/resources/runtime-base-images.txt \
-            .github/resources/scripts/helper-functions.sh \
-            .github/resources/scripts/build-runtime-base-images.sh \
-            .github/workflows/runtime-base-images.yml \
-            test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
-          echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
+          python3 .github/resources/scripts/runtime_base_image_artifacts.py identity >> "$GITHUB_OUTPUT"
 
       - name: Find runtime base image producer
         id: runtime-base-images-producer
         shell: bash
         env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           ARTIFACT_NAME: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -74,7 +72,8 @@ jobs:
                 -f per_page=100); then
               producer_run_id=$(python3 \
                 .github/resources/scripts/runtime_base_image_artifacts.py \
-                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
+                select-producer --source-sha "${SOURCE_SHA}" \
+                --default-branch "${DEFAULT_BRANCH}" <<< "${artifacts}")
             else
               echo "::warning::Failed to query runtime base image artifacts"
             fi
@@ -133,7 +132,7 @@ jobs:
           echo "path=$rebuilt_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
@@ -183,7 +182,9 @@ jobs:
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Read frontend Node version
         id: frontend_node
@@ -212,16 +213,31 @@ jobs:
         run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Set up Docker Buildx
+        if: ${{ matrix.image != 'frontend' }}
         id: buildx
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
+      - name: Build frontend with bounded recovery
+        if: ${{ matrix.image == 'frontend' }}
+        id: frontend-image
+        shell: bash
+        env:
+          NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
+        run: >-
+          python3 .github/resources/scripts/build_frontend_image.py
+          --context . --dockerfile frontend/Dockerfile
+          --tag "$REGISTRY/frontend:$IMAGE_TAG"
+          --additional-tag "$REGISTRY/frontend:ci"
+          --platform "linux/$TARGET_ARCH"
+          --node-version "$NODE_VERSION"
+          --output "$ARTIFACTS_PATH/$ARTIFACT_NAME.tar"
+
       - name: Build and save Docker image
-        uses: docker/build-push-action@v7
+        if: ${{ matrix.image != 'frontend' }}
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         id: save-image
         continue-on-error: true
-        # A step timeout remains retryable; the job timeout cancels recovery.
-        timeout-minutes: ${{ matrix.image == 'frontend' && 9 || 30 }}
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
@@ -242,30 +258,10 @@ jobs:
         if: ${{ steps.save-image.outcome == 'failure' }}
         run: sleep 10
 
-      - name: Reset frontend builder before retry
-        if: ${{ matrix.image == 'frontend' && steps.save-image.outcome == 'failure' }}
-        # GitHub implicitly adds success() to the rebuild's condition, so a
-        # failed reset would skip the rebuild entirely.
-        continue-on-error: true
-        # Allow 120s of helper backoff, 45s of cleanup, and time for Docker work.
-        timeout-minutes: 5
-        shell: bash
-        env:
-          BUILDER_NAME: ${{ steps.buildx.outputs.builder_name }}
-        run: |
-          # Preserve daemon diagnostics before discarding a potentially stuck builder.
-          timeout 15s docker logs --tail 200 "buildx_buildkit_${BUILDER_NAME}0" || true
-          # setup_builder removes the builder again under its own retry.
-          if ! timeout 30s docker buildx rm --force "$BUILDER_NAME"; then
-            echo "::warning::Could not remove builder $BUILDER_NAME"
-          fi
-          bash ./.github/resources/scripts/setup-buildx-with-retry.sh "$BUILDER_NAME"
-
       - name: Rebuild Images in case of failure
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
-        timeout-minutes: ${{ matrix.image == 'frontend' && 9 || 30 }}
         env:
           # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
@@ -284,7 +280,7 @@ jobs:
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
       - name: Record ARM image identity
-        if: ${{ inputs.architecture == 'arm64' && (steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        if: ${{ inputs.architecture == 'arm64' && (steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
         env:
           CI_IMAGE: ${{ matrix.image }}
         run: >-
@@ -293,8 +289,8 @@ jobs:
           "$ARTIFACTS_PATH/$ARTIFACT_NAME.json"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: ${{ steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |

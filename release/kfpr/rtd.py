@@ -1,11 +1,11 @@
 """Read the Docs API helpers for release automation."""
 
-from collections.abc import Callable
 import json
 import time
-from typing import Any
 import urllib.error
 import urllib.request
+from collections.abc import Callable
+from typing import Any
 
 API_BASE = 'https://app.readthedocs.org/api/v3'
 
@@ -26,11 +26,11 @@ class ReadTheDocsClient:
         self.base_url = base_url.rstrip('/')
 
     def request(
-            self,
-            method: str,
-            path: str,
-            body: dict[str, object] | None = None,
-            expected: tuple[int, ...] = (200,),
+        self,
+        method: str,
+        path: str,
+        body: dict[str, object] | None = None,
+        expected: tuple[int, ...] = (200,),
     ) -> Any:
         data = None if body is None else json.dumps(body).encode()
         request = urllib.request.Request(
@@ -52,10 +52,12 @@ class ReadTheDocsClient:
             ) from error
         except urllib.error.URLError as error:
             raise ReadTheDocsError(
-                f'RTD API {method} {path} failed: {error.reason}') from error
+                f'RTD API {method} {path} failed: {error.reason}'
+            ) from error
         if response.status not in expected:
             raise ReadTheDocsError(
-                f'RTD API {method} {path} returned HTTP {response.status}')
+                f'RTD API {method} {path} returned HTTP {response.status}'
+            )
         payload = response.read()
         if not payload:
             return None
@@ -63,13 +65,16 @@ class ReadTheDocsClient:
 
     def sync_versions(self, project: str) -> None:
         self.request(
-            'POST', f'/projects/{project}/sync-versions/', expected=(202,))
+            'POST', f'/projects/{project}/sync-versions/', expected=(202,)
+        )
 
     def activate_version(self, project: str, version: str) -> None:
         self.request(
             'PATCH',
-            f'/projects/{project}/versions/{version}/', {'active': True},
-            expected=(204,))
+            f'/projects/{project}/versions/{version}/',
+            {'active': True},
+            expected=(204,),
+        )
 
     def get_version(self, project: str, version: str) -> dict[str, Any]:
         return self.request('GET', f'/projects/{project}/versions/{version}/')
@@ -78,7 +83,8 @@ class ReadTheDocsClient:
         data = self.request(
             'POST',
             f'/projects/{project}/versions/{version}/builds/',
-            expected=(202,))
+            expected=(202,),
+        )
         build = data['build']
         return int(build['id'] if isinstance(build, dict) else build)
 
@@ -103,7 +109,8 @@ def wait_for_build(
             if build.get('success'):
                 return
             raise ReadTheDocsError(
-                str(build.get('error') or f'{project} build {build_id} failed'))
+                str(build.get('error') or f'{project} build {build_id} failed')
+            )
         sleep(10)
     raise ReadTheDocsError(f'{project} build {build_id} did not finish in time')
 
@@ -134,6 +141,7 @@ def update_release_docs(
     sleep: Callable[[float], None] = time.sleep,
     *,
     consolidated: bool,
+    set_defaults: bool = True,
 ) -> None:
     """Build and update defaults for the target SDK's documentation
     projects."""
@@ -143,20 +151,20 @@ def update_release_docs(
             release_branch,
             {
                 'default_version': release_branch,
-                'default_branch': release_branch
+                'default_branch': release_branch,
             },
         ),
     ]
     if not consolidated:
         major_minor = '.'.join(version.split('.')[:2])
         kubernetes_branch = f'kfp-kubernetes-{major_minor}'
-        projects.append((
-            'kfp-kubernetes',
-            kubernetes_branch,
-            {
-                'default_version': kubernetes_branch
-            },
-        ))
+        projects.append(
+            (
+                'kfp-kubernetes',
+                kubernetes_branch,
+                {'default_version': kubernetes_branch},
+            )
+        )
     print('Syncing ReadTheDocs versions...')
     for project, _, _ in projects:
         client.sync_versions(project)
@@ -171,6 +179,7 @@ def update_release_docs(
         build_id = client.trigger_build(project, version_slug)
         print(f'Waiting for {project} build {build_id} to finish...')
         wait_for_build(client, project, build_id, sleep=sleep)
-    print('Setting ReadTheDocs defaults...')
-    for project, _, defaults in projects:
-        client.patch_project(project, defaults)
+    if set_defaults:
+        print('Setting ReadTheDocs defaults...')
+        for project, _, defaults in projects:
+            client.patch_project(project, defaults)

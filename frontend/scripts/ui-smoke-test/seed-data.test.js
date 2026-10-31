@@ -15,7 +15,7 @@ describe('UI smoke data seeding', () => {
     await expect(uploadPipeline('Smoke Pipeline', 'Smoke description', request)).resolves.toEqual({
       pipeline_id: 'pipeline-1',
     });
-    expect(request).toHaveBeenCalledWith('POST', '/apis/v2beta1/pipelines', {
+    expect(request).toHaveBeenCalledWith('POST', '/apis/v2/pipelines', {
       description: 'Smoke description',
       display_name: 'Smoke Pipeline',
     });
@@ -29,7 +29,7 @@ describe('UI smoke data seeding', () => {
     });
     expect(request).toHaveBeenCalledWith(
       'POST',
-      '/apis/v2beta1/runs',
+      '/apis/v2/runs',
       expect.objectContaining({
         experiment_id: 'experiment-1',
         pipeline_spec: expect.objectContaining({
@@ -54,7 +54,7 @@ describe('UI smoke data seeding', () => {
 
     expect(request).toHaveBeenCalledWith(
       'POST',
-      '/apis/v2beta1/recurringruns',
+      '/apis/v2/recurringruns',
       expect.objectContaining({
         pipeline_spec: expect.objectContaining({
           pipelineInfo: expect.objectContaining({ name: 'smoke-schedule' }),
@@ -83,9 +83,9 @@ describe('UI smoke data seeding', () => {
     expect(request).toHaveBeenNthCalledWith(
       1,
       'GET',
-      '/apis/v2beta1/runs/run-1/tasks?page_size=200',
+      '/apis/v2/runs/run-1/tasks?page_size=200',
     );
-    expect(request).toHaveBeenNthCalledWith(2, 'POST', '/apis/v2beta1/runs/run-1/tasks', {
+    expect(request).toHaveBeenNthCalledWith(2, 'POST', '/apis/v2/runs/run-1/tasks', {
       display_name: 'UI Smoke Related Task',
       name: 'ui-smoke-related-task',
       scope_path: 'root.ui-smoke-related-task',
@@ -95,7 +95,7 @@ describe('UI smoke data seeding', () => {
     expect(request).toHaveBeenNthCalledWith(
       3,
       'POST',
-      '/apis/v2beta1/artifacts',
+      '/apis/v2/artifacts',
       expect.objectContaining({
         producer_key: 'ui_smoke_output',
         run_id: 'run-1',
@@ -105,7 +105,7 @@ describe('UI smoke data seeding', () => {
     expect(request).toHaveBeenNthCalledWith(
       4,
       'GET',
-      '/apis/v2beta1/artifact_tasks?artifact_ids=artifact-1&page_size=1',
+      '/apis/v2/artifact_tasks?artifact_ids=artifact-1&page_size=1',
     );
   });
 
@@ -125,7 +125,7 @@ describe('UI smoke data seeding', () => {
     expect(request).toHaveBeenNthCalledWith(
       2,
       'GET',
-      '/apis/v2beta1/artifact_tasks?task_ids=task-1&page_size=1',
+      '/apis/v2/artifact_tasks?task_ids=task-1&page_size=1',
     );
   });
 
@@ -183,11 +183,11 @@ describe('UI smoke data seeding', () => {
       });
 
     await expect(listComparableRunIds(request)).resolves.toEqual(['v2-a', 'v2-b']);
-    expect(request).toHaveBeenNthCalledWith(1, 'GET', '/apis/v2beta1/runs?page_size=20');
+    expect(request).toHaveBeenNthCalledWith(1, 'GET', '/apis/v2/runs?page_size=20');
     expect(request).toHaveBeenNthCalledWith(
       2,
       'GET',
-      '/apis/v2beta1/runs?page_size=20&page_token=page%20two',
+      '/apis/v2/runs?page_size=20&page_token=page%20two',
     );
   });
 

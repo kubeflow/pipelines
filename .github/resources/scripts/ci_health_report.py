@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Generates a CI health report for master-branch workflow runs.
+"""Generates a CI health report for default-branch workflow runs.
 
 Aggregates job-level failure rates and durations across the heavy test
 workflows, and per-test failure counts from `junit-xml - *` artifacts uploaded
@@ -43,9 +43,6 @@ Uses only the Python standard library.
 """
 
 import collections
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
 import io
 import json
 import os
@@ -55,33 +52,38 @@ import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
+from datetime import datetime, timedelta, timezone
 
-API_ROOT = "https://api.github.com"
+API_ROOT = 'https://api.github.com'
 
-# Heavy master-branch test workflows worth tracking for flake health.
+# Heavy default-branch test workflows worth tracking for flake health.
 # Missing entries are surfaced in the report notes rather than silently
 # skipped, so workflow renames/deletions get noticed instead of permanently
 # dropping a suite from the health data.
 TARGET_WORKFLOWS = [
-    "e2e-test.yml",
-    "api-server-tests.yml",
-    "legacy-v2-api-integration-tests.yml",
-    "kfp-sdk-client-tests.yml",
-    "upgrade-test.yml",
-    "kfp-webhooks.yml",
+    'e2e-test.yml',
+    'api-server-tests.yml',
+    'kfp-sdk-client-tests.yml',
+    'upgrade-test.yml',
+    'kfp-webhooks.yml',
 ]
 
-ISSUE_TITLE = "CI Health Report (automated)"
-ISSUE_LABEL = "ci-health"
-JUNIT_ARTIFACT_PREFIX = "junit-xml - "
-RETRY_ARTIFACT_SUFFIX = re.compile(r"^(?P<base>.+) - retry-(?P<attempt>\d+)$")
+ISSUE_TITLE = 'CI Health Report (automated)'
+ISSUE_LABEL = 'ci-health'
+JUNIT_ARTIFACT_PREFIX = 'junit-xml - '
+RETRY_ARTIFACT_SUFFIX = re.compile(r'^(?P<base>.+) - retry-(?P<attempt>\d+)$')
 
-# Job conclusions that are not results at all: master-push workflows cancel
+# Job conclusions that are not results at all: default-branch push workflows cancel
 # in-progress runs, so counting cancellations as either success or failure
 # biases rates. Everything not listed here and not "success" is a failure
 # (failure, timed_out, stale, ...).
 NON_RESULT_CONCLUSIONS = {
-    None, "", "skipped", "cancelled", "neutral", "action_required"
+    None,
+    '',
+    'skipped',
+    'cancelled',
+    'neutral',
+    'action_required',
 }
 
 
@@ -98,38 +100,40 @@ def build_opener_without_redirects():
     """
 
     class NoRedirect(urllib.request.HTTPRedirectHandler):
-
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             return None
 
     return urllib.request.build_opener(NoRedirect)
 
 
-def api_request(token, url, method="GET", body=None, raw=False):
+def api_request(token, url, method='GET', body=None, raw=False):
     headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {token}",
-        "X-GitHub-Api-Version": "2022-11-28",
+        'Accept': 'application/vnd.github+json',
+        'Authorization': f'Bearer {token}',
+        'X-GitHub-Api-Version': '2022-11-28',
     }
     data = json.dumps(body).encode() if body is not None else None
     request = urllib.request.Request(
-        url, data=data, headers=headers, method=method)
+        url, data=data, headers=headers, method=method
+    )
     opener = build_opener_without_redirects()
     try:
         with opener.open(request, timeout=60) as response:
             content = response.read()
-            return content if raw else json.loads(content or b"{}")
+            return content if raw else json.loads(content or b'{}')
     except urllib.error.HTTPError as error:
         if error.code in (301, 302, 303, 307, 308):
-            location = error.headers.get("Location")
+            location = error.headers.get('Location')
             if location:
                 # Redirect target (blob storage) must not receive the token.
                 with urllib.request.urlopen(
-                        urllib.request.Request(location),
-                        timeout=120) as redirected:
+                    urllib.request.Request(location), timeout=120
+                ) as redirected:
                     return redirected.read()
-        if error.code == 403 and error.headers.get(
-                "X-RateLimit-Remaining") == "0":
+        if (
+            error.code == 403
+            and error.headers.get('X-RateLimit-Remaining') == '0'
+        ):
             raise RateLimited(url) from error
         raise
 
@@ -148,30 +152,31 @@ def paginate(token, url, key, max_pages=3):
         payload = api_request(token, page_url)
         chunk = payload.get(key, []) if isinstance(payload, dict) else payload
         items.extend(chunk)
-        total_count = payload.get("total_count") if isinstance(payload,
-                                                               dict) else None
+        total_count = (
+            payload.get('total_count') if isinstance(payload, dict) else None
+        )
         if isinstance(total_count, int) and len(items) >= total_count:
             return items, False
         if len(chunk) < 100:
             return items, False
-        separator = "&" if "?" in url else "?"
+        separator = '&' if '?' in url else '?'
         page_number = len(items) // 100 + 1
-        page_url = f"{url}{separator}page={page_number}"
+        page_url = f'{url}{separator}page={page_number}'
     return items, True
 
 
 def duration_minutes(job):
-    started, completed = job.get("started_at"), job.get("completed_at")
+    started, completed = job.get('started_at'), job.get('completed_at')
     if not started or not completed:
         return None
-    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    fmt = '%Y-%m-%dT%H:%M:%SZ'
     delta = datetime.strptime(completed, fmt) - datetime.strptime(started, fmt)
     minutes = delta.total_seconds() / 60
     return minutes if minutes >= 0 else None
 
 
 def is_failure_conclusion(conclusion):
-    return conclusion not in NON_RESULT_CONCLUSIONS and conclusion != "success"
+    return conclusion not in NON_RESULT_CONCLUSIONS and conclusion != 'success'
 
 
 def run_attempt_job_urls(repo, run):
@@ -180,19 +185,20 @@ def run_attempt_job_urls(repo, run):
     `filter=latest` alone would hide the original failed jobs of re-run
     workflows — exactly the flakes this report exists to measure.
     """
-    attempts = run.get("run_attempt", 1) or 1
+    attempts = run.get('run_attempt', 1) or 1
     if attempts <= 1:
         return [
-            f"{API_ROOT}/repos/{repo}/actions/runs/{run['id']}/jobs"
-            "?filter=latest&per_page=100"
+            f'{API_ROOT}/repos/{repo}/actions/runs/{run["id"]}/jobs'
+            '?filter=latest&per_page=100'
         ]
     return [
-        f"{API_ROOT}/repos/{repo}/actions/runs/{run['id']}/attempts/{attempt}/jobs"
-        "?per_page=100" for attempt in range(1, attempts + 1)
+        f'{API_ROOT}/repos/{repo}/actions/runs/{run["id"]}/attempts/{attempt}/jobs'
+        '?per_page=100'
+        for attempt in range(1, attempts + 1)
     ]
 
 
-def collect_lane_stats(token, repo, since, max_runs):
+def collect_lane_stats(token, repo, since, max_runs, branch='master'):
     """Aggregates per-lane job outcomes across every attempt of each run.
 
     Returns (lanes, failed_runs, reruns, notes) where failed_runs is a
@@ -200,11 +206,9 @@ def collect_lane_stats(token, repo, since, max_runs):
     attempt, and notes is a list of data-completeness warnings for the
     report header.
     """
-    lanes = collections.defaultdict(lambda: {
-        "total": 0,
-        "failed": 0,
-        "durations": []
-    })
+    lanes = collections.defaultdict(
+        lambda: {'total': 0, 'failed': 0, 'durations': []}
+    )
     failed_runs = []
     reruns = 0
     notes = []
@@ -214,45 +218,48 @@ def collect_lane_stats(token, repo, since, max_runs):
     job_page_truncations = 0
 
     for workflow in TARGET_WORKFLOWS:
-        url = (f"{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs"
-               f"?branch=master&created=>={since}&per_page=100")
+        url = (
+            f'{API_ROOT}/repos/{repo}/actions/workflows/{workflow}/runs'
+            f'?branch={branch}&created=>={since}&per_page=100'
+        )
         try:
-            runs, more_runs = paginate(token, url, "workflow_runs", max_pages=1)
+            runs, more_runs = paginate(token, url, 'workflow_runs', max_pages=1)
         except urllib.error.HTTPError as error:
             if error.code == 404:
                 # A renamed/deleted workflow silently dropping out would
                 # permanently omit that suite's health; make it visible.
-                missing_workflows.append(f"`{workflow}`")
+                missing_workflows.append(f'`{workflow}`')
                 continue
             raise
         except RateLimited:
             notes.append(
-                f"rate-limited while listing `{workflow}` runs; later workflows omitted"
+                f'rate-limited while listing `{workflow}` runs; later workflows omitted'
             )
             break
 
         if len(runs) > max_runs:
-            capped_workflows.append(f"`{workflow}` ({len(runs)}→{max_runs})")
+            capped_workflows.append(f'`{workflow}` ({len(runs)}→{max_runs})')
             runs = runs[:max_runs]
         elif more_runs:
-            capped_workflows.append(f"`{workflow}` (page budget)")
+            capped_workflows.append(f'`{workflow}` (page budget)')
 
         rate_limited = False
         for run in runs:
-            if run.get("status") != "completed":
+            if run.get('status') != 'completed':
                 continue
-            if (run.get("run_attempt", 1) or 1) > 1:
+            if (run.get('run_attempt', 1) or 1) > 1:
                 reruns += 1
             run_had_failure = False
             for jobs_url in run_attempt_job_urls(repo, run):
                 try:
-                    jobs, more_jobs = paginate(token, jobs_url, "jobs")
+                    jobs, more_jobs = paginate(token, jobs_url, 'jobs')
                     if more_jobs:
                         job_page_truncations += 1
                 except RateLimited:
                     notes.append(
-                        f"rate-limited while reading jobs for `{workflow}`; "
-                        "results truncated")
+                        f'rate-limited while reading jobs for `{workflow}`; '
+                        'results truncated'
+                    )
                     rate_limited = True
                     break
                 except urllib.error.HTTPError:
@@ -262,37 +269,41 @@ def collect_lane_stats(token, repo, since, max_runs):
                     job_fetch_errors += 1
                     continue
                 for job in jobs:
-                    conclusion = job.get("conclusion")
+                    conclusion = job.get('conclusion')
                     if conclusion in NON_RESULT_CONCLUSIONS:
                         continue
-                    lane = lanes[(run.get("name") or workflow, job["name"])]
-                    lane["total"] += 1
+                    lane = lanes[(run.get('name') or workflow, job['name'])]
+                    lane['total'] += 1
                     if is_failure_conclusion(conclusion):
-                        lane["failed"] += 1
+                        lane['failed'] += 1
                         run_had_failure = True
                     minutes = duration_minutes(job)
                     if minutes is not None:
-                        lane["durations"].append(minutes)
+                        lane['durations'].append(minutes)
             if run_had_failure:
-                failed_runs.append((run.get("created_at") or "", run["id"]))
+                failed_runs.append((run.get('created_at') or '', run['id']))
             if rate_limited:
                 break
         if rate_limited:
             break
 
     if missing_workflows:
-        notes.append("tracked workflow(s) not found (renamed/removed — update "
-                     "TARGET_WORKFLOWS): " + ", ".join(missing_workflows))
+        notes.append(
+            'tracked workflow(s) not found (renamed/removed — update '
+            'TARGET_WORKFLOWS): ' + ', '.join(missing_workflows)
+        )
     if capped_workflows:
-        notes.append("run cap applied: " + ", ".join(capped_workflows))
+        notes.append('run cap applied: ' + ', '.join(capped_workflows))
     if job_fetch_errors:
         notes.append(
-            f"{job_fetch_errors} job listing(s) failed with HTTP errors; "
-            "lane rates may undercount failures")
+            f'{job_fetch_errors} job listing(s) failed with HTTP errors; '
+            'lane rates may undercount failures'
+        )
     if job_page_truncations:
         notes.append(
-            f"{job_page_truncations} job listing(s) exceeded the page budget; "
-            "lane rates may undercount")
+            f'{job_page_truncations} job listing(s) exceeded the page budget; '
+            'lane rates may undercount'
+        )
     return lanes, failed_runs, reruns, notes
 
 
@@ -300,14 +311,15 @@ def select_junit_artifacts(artifacts):
     """Selects the latest artifact for each possibly retried JUnit report."""
     selected_by_base_name = {}
     for artifact in artifacts:
-        name = artifact.get("name", "")
+        name = artifact.get('name', '')
         if not name.startswith(JUNIT_ARTIFACT_PREFIX) or artifact.get(
-                "expired"):
+            'expired'
+        ):
             continue
 
         retry_match = RETRY_ARTIFACT_SUFFIX.match(name)
-        base_name = retry_match.group("base") if retry_match else name
-        retry_attempt = int(retry_match.group("attempt")) if retry_match else -1
+        base_name = retry_match.group('base') if retry_match else name
+        retry_attempt = int(retry_match.group('attempt')) if retry_match else -1
         selected = selected_by_base_name.get(base_name)
         if selected is None or retry_attempt > selected[0]:
             selected_by_base_name[base_name] = (retry_attempt, artifact)
@@ -332,8 +344,8 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
         try:
             artifacts, more_artifacts = paginate(
                 token,
-                f"{API_ROOT}/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100",
-                "artifacts",
+                f'{API_ROOT}/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100',
+                'artifacts',
                 max_pages=1,
             )
             if more_artifacts:
@@ -346,28 +358,31 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
         for artifact in select_junit_artifacts(artifacts):
             try:
                 content = api_request(
-                    token, artifact["archive_download_url"], raw=True)
+                    token, artifact['archive_download_url'], raw=True
+                )
                 archive = zipfile.ZipFile(io.BytesIO(content))
             except Exception:  # noqa: BLE001 - best-effort artifact ingestion
                 ingestion_errors += 1
                 continue
             artifacts_parsed += 1
             for member in archive.namelist():
-                if not member.endswith(".xml"):
+                if not member.endswith('.xml'):
                     continue
                 try:
                     root = ET.fromstring(archive.read(member))
                 except ET.ParseError:
                     ingestion_errors += 1
                     continue
-                for case in root.iter("testcase"):
-                    if case.find("failure") is not None or case.find(
-                            "error") is not None:
+                for case in root.iter('testcase'):
+                    if (
+                        case.find('failure') is not None
+                        or case.find('error') is not None
+                    ):
                         # name alone is only unique within a suite/class;
                         # include classname so unrelated tests do not merge.
-                        name = case.get("name") or "<unnamed>"
-                        classname = case.get("classname") or ""
-                        key = f"{classname} :: {name}" if classname else name
+                        name = case.get('name') or '<unnamed>'
+                        classname = case.get('classname') or ''
+                        key = f'{classname} :: {name}' if classname else name
                         failed_tests[key] += 1
     return failed_tests, artifacts_parsed, ingestion_errors, len(scanned_runs)
 
@@ -384,88 +399,99 @@ def render_report(
     junit_total=0,
 ):
     lines = []
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    lines.append("# CI Health Report\n")
-    lines.append(f"_Master-branch runs, last {days} days. Generated {now}._\n")
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+    lines.append('# CI Health Report\n')
+    lines.append(f'_Master-branch runs, last {days} days. Generated {now}._\n')
     if notes:
-        lines.append("> **Data completeness:** " + "; ".join(notes) + "\n")
+        lines.append('> **Data completeness:** ' + '; '.join(notes) + '\n')
 
     ranked = sorted(
         lanes.items(),
-        key=lambda item: (item[1]["failed"], item[1]["total"]),
-        reverse=True)
-    failing = [(key, stats) for key, stats in ranked if stats["failed"] > 0
-              ][:25]
+        key=lambda item: (item[1]['failed'], item[1]['total']),
+        reverse=True,
+    )
+    failing = [(key, stats) for key, stats in ranked if stats['failed'] > 0][
+        :25
+    ]
 
-    lines.append("## Failing lanes (top 25 by failure count)\n")
+    lines.append('## Failing lanes (top 25 by failure count)\n')
     if not failing:
-        lines.append("No failing lanes in the window. 🎉\n")
+        lines.append('No failing lanes in the window. 🎉\n')
     else:
-        lines.append("| Workflow | Lane | Runs | Failures | Fail % | Avg min |")
-        lines.append("|---|---|---:|---:|---:|---:|")
+        lines.append('| Workflow | Lane | Runs | Failures | Fail % | Avg min |')
+        lines.append('|---|---|---:|---:|---:|---:|')
         for (workflow, lane), stats in failing:
-            rate = 100 * stats["failed"] / stats["total"]
+            rate = 100 * stats['failed'] / stats['total']
             avg = (
-                sum(stats["durations"]) /
-                len(stats["durations"]) if stats["durations"] else 0)
+                sum(stats['durations']) / len(stats['durations'])
+                if stats['durations']
+                else 0
+            )
             lines.append(
-                f"| {workflow} | {lane} | {stats['total']} | {stats['failed']}"
-                f" | {rate:.0f}% | {avg:.0f} |")
-        lines.append("")
+                f'| {workflow} | {lane} | {stats["total"]} | {stats["failed"]}'
+                f' | {rate:.0f}% | {avg:.0f} |'
+            )
+        lines.append('')
 
     total_lanes = len(lanes)
-    total_jobs = sum(stats["total"] for stats in lanes.values())
-    total_failures = sum(stats["failed"] for stats in lanes.values())
+    total_jobs = sum(stats['total'] for stats in lanes.values())
+    total_failures = sum(stats['failed'] for stats in lanes.values())
     lines.append(
-        f"**Window totals:** {total_jobs} lane runs across {total_lanes} lanes, "
-        f"{total_failures} failures, {reruns} workflow re-runs "
-        "(all attempts counted; cancelled/skipped excluded).\n")
+        f'**Window totals:** {total_jobs} lane runs across {total_lanes} lanes, '
+        f'{total_failures} failures, {reruns} workflow re-runs '
+        '(all attempts counted; cancelled/skipped excluded).\n'
+    )
 
     lines.append(
-        "## Flakiest tests (from junit-xml artifacts of failed runs)\n")
+        '## Flakiest tests (from junit-xml artifacts of failed runs)\n'
+    )
     # Name the actual scan scope: the artifact budget covers only the newest
     # failed runs, and describing a capped scan as the whole window would let
     # artifact-less infrastructure failures mask real junit data on older runs.
     if junit_total > junit_scanned:
         lines.append(
-            f"_Scanned the newest {junit_scanned} of {junit_total} failed runs "
-            "for junit artifacts._\n")
-    else:
-        lines.append(
-            f"_Scanned {junit_scanned} failed run(s) for junit artifacts._\n")
-    if ingestion_errors:
-        lines.append(
-            f"> **Note:** {ingestion_errors} artifact ingestion gap(s) "
-            "(errors or page-budget truncation); per-test counts are a lower "
-            "bound.\n")
-    if failed_tests:
-        lines.append(f"_Parsed {artifacts_parsed} junit artifact(s)._\n")
-        lines.append("| Test | Failures |")
-        lines.append("|---|---:|")
-        for name, count in failed_tests.most_common(15):
-            lines.append(f"| {name} | {count} |")
-        lines.append("")
-    elif not ingestion_errors:
-        lines.append(
-            "_No `junit-xml - *` artifacts found on the scanned failed runs; "
-            "per-test data populates as runs upload them (see test-and-report)._\n"
+            f'_Scanned the newest {junit_scanned} of {junit_total} failed runs '
+            'for junit artifacts._\n'
         )
     else:
         lines.append(
-            "_No junit artifacts could be ingested from the scanned runs._\n")
-    return "\n".join(lines) + "\n"
+            f'_Scanned {junit_scanned} failed run(s) for junit artifacts._\n'
+        )
+    if ingestion_errors:
+        lines.append(
+            f'> **Note:** {ingestion_errors} artifact ingestion gap(s) '
+            '(errors or page-budget truncation); per-test counts are a lower '
+            'bound.\n'
+        )
+    if failed_tests:
+        lines.append(f'_Parsed {artifacts_parsed} junit artifact(s)._\n')
+        lines.append('| Test | Failures |')
+        lines.append('|---|---:|')
+        for name, count in failed_tests.most_common(15):
+            lines.append(f'| {name} | {count} |')
+        lines.append('')
+    elif not ingestion_errors:
+        lines.append(
+            '_No `junit-xml - *` artifacts found on the scanned failed runs; '
+            'per-test data populates as runs upload them (see test-and-report)._\n'
+        )
+    else:
+        lines.append(
+            '_No junit artifacts could be ingested from the scanned runs._\n'
+        )
+    return '\n'.join(lines) + '\n'
 
 
 def upsert_issue(token, repo, report):
     try:
         api_request(
             token,
-            f"{API_ROOT}/repos/{repo}/labels",
-            method="POST",
+            f'{API_ROOT}/repos/{repo}/labels',
+            method='POST',
             body={
-                "name": ISSUE_LABEL,
-                "color": "1d76db",
-                "description": "Automated CI health reports",
+                'name': ISSUE_LABEL,
+                'color': '1d76db',
+                'description': 'Automated CI health reports',
             },
         )
     except urllib.error.HTTPError as error:
@@ -474,48 +500,57 @@ def upsert_issue(token, repo, report):
 
     listed = api_request(
         token,
-        f"{API_ROOT}/repos/{repo}/issues?labels={ISSUE_LABEL}&state=open&per_page=10",
+        f'{API_ROOT}/repos/{repo}/issues?labels={ISSUE_LABEL}&state=open&per_page=10',
     )
     # The issues endpoint also returns pull requests, and a label alone could
     # match unrelated content; only ever overwrite the bot's own report issue.
     issues = [
-        item for item in listed
-        if "pull_request" not in item and item.get("title") == ISSUE_TITLE
+        item
+        for item in listed
+        if 'pull_request' not in item and item.get('title') == ISSUE_TITLE
     ]
     body = {
-        "title": ISSUE_TITLE,
-        "body": report[:65000],
-        "labels": [ISSUE_LABEL]
+        'title': ISSUE_TITLE,
+        'body': report[:65000],
+        'labels': [ISSUE_LABEL],
     }
     if issues:
-        number = issues[0]["number"]
+        number = issues[0]['number']
         api_request(
             token,
-            f"{API_ROOT}/repos/{repo}/issues/{number}",
-            method="PATCH",
-            body=body)
-        return issues[0]["html_url"]
+            f'{API_ROOT}/repos/{repo}/issues/{number}',
+            method='PATCH',
+            body=body,
+        )
+        return issues[0]['html_url']
     created = api_request(
-        token, f"{API_ROOT}/repos/{repo}/issues", method="POST", body=body)
-    return created["html_url"]
+        token, f'{API_ROOT}/repos/{repo}/issues', method='POST', body=body
+    )
+    return created['html_url']
 
 
 def main():
-    token = os.environ.get("GITHUB_TOKEN")
+    token = os.environ.get('GITHUB_TOKEN')
     if not token:
-        print("GITHUB_TOKEN is required", file=sys.stderr)
+        print('GITHUB_TOKEN is required', file=sys.stderr)
         return 1
-    repo = os.environ.get("GITHUB_REPOSITORY", "kubeflow/pipelines")
-    days = int(os.environ.get("DAYS", "14"))
-    max_runs = int(os.environ.get("MAX_RUNS_PER_WORKFLOW", "40"))
-    max_junit_runs = int(os.environ.get("MAX_JUNIT_RUNS", "15"))
-    since = (datetime.now(timezone.utc) -
-             timedelta(days=days)).strftime("%Y-%m-%d")
+    repo = os.environ.get('GITHUB_REPOSITORY', 'kubeflow/pipelines')
+    days = int(os.environ.get('DAYS', '14'))
+    max_runs = int(os.environ.get('MAX_RUNS_PER_WORKFLOW', '40'))
+    max_junit_runs = int(os.environ.get('MAX_JUNIT_RUNS', '15'))
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime(
+        '%Y-%m-%d'
+    )
 
+    branch = api_request(token, f'{API_ROOT}/repos/{repo}')['default_branch']
+    if branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     lanes, failed_runs, reruns, notes = collect_lane_stats(
-        token, repo, since, max_runs)
+        token, repo, since, max_runs, branch=branch
+    )
     failed_tests, artifacts_parsed, ingestion_errors, junit_scanned = (
-        collect_failed_tests(token, repo, failed_runs, max_junit_runs))
+        collect_failed_tests(token, repo, failed_runs, max_junit_runs)
+    )
     report = render_report(
         lanes,
         failed_tests,
@@ -529,16 +564,16 @@ def main():
     )
 
     print(report)
-    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
     if summary_path:
-        with open(summary_path, "a", encoding="utf-8") as summary:
+        with open(summary_path, 'a', encoding='utf-8') as summary:
             summary.write(report)
 
-    if os.environ.get("UPDATE_ISSUE", "").lower() == "true":
+    if os.environ.get('UPDATE_ISSUE', '').lower() == 'true':
         url = upsert_issue(token, repo, report)
-        print(f"Updated tracking issue: {url}", file=sys.stderr)
+        print(f'Updated tracking issue: {url}', file=sys.stderr)
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())

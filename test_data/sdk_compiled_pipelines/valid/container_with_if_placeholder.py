@@ -11,18 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Dataset
-from kfp.dsl import IfPresentPlaceholder
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
+from kfp.dsl import (
+    ContainerSpec,
+    Dataset,
+    IfPresentPlaceholder,
+    Output,
+    OutputPath,
+    container_component,
+)
 
 
 @container_component
-def container_with_if_placeholder(output_path: OutputPath(str),
-                                  dataset: Output[Dataset],
-                                  optional_input: str = 'default'):
+def container_with_if_placeholder(
+    output_path: OutputPath(str),
+    dataset: Output[Dataset],
+    optional_input: str = 'default',
+):
     return ContainerSpec(
         image='registry.access.redhat.com/ubi9/python-311:latest',
         command=[
@@ -30,15 +34,21 @@ def container_with_if_placeholder(output_path: OutputPath(str),
             IfPresentPlaceholder(
                 input_name='optional_input',
                 then=[optional_input],
-                else_=['bye']), '--dataset',
+                else_=['bye'],
+            ),
+            '--dataset',
             IfPresentPlaceholder(
-                input_name='optional_input', then=[dataset.uri], else_=['bye'])
+                input_name='optional_input', then=[dataset.uri], else_=['bye']
+            ),
         ],
-        args=['--output_path', output_path])
+        args=['--output_path', output_path],
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=container_with_if_placeholder,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

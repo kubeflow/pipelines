@@ -32,6 +32,8 @@ runs:
       run: |
         test "$(uname -m)" = aarch64
         test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+        # The smoke script parses the driver-plugin ConfigMap with PyYAML.
+        python3 -c 'import yaml' 2>/dev/null || sudo apt-get install -y -q python3-yaml
         if command -v kind >/dev/null && kind get clusters | grep -Fxq -- "$CLUSTER_NAME"; then
           echo "Refusing to reuse existing cluster $CLUSTER_NAME" >&2
           exit 1
@@ -90,7 +92,7 @@ runs:
 
     - name: Upload ARM64 smoke evidence
       if: always()
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
       with:
         name: arm64-smoke-${{ github.run_attempt }}
         path: ${{ runner.temp }}/arm64-smoke-results

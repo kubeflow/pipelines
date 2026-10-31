@@ -14,41 +14,45 @@
 # limitations under the License.
 """Regression tests for centralized Modelcar fixture image wiring."""
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 E2E_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/e2e-test.yml'
 DEPLOY_ACTION = REPOSITORY_ROOT / '.github/actions/deploy/action.yml'
 IMAGE_BUILDS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/image-builds.yml'
 RUNTIME_IMAGES_WORKFLOW = (
-    REPOSITORY_ROOT / '.github/workflows/runtime-base-images.yml')
+    REPOSITORY_ROOT / '.github/workflows/runtime-base-images.yml'
+)
 CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 MODELCAR_DOCKERFILE = (
-    'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile')
+    'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
+)
 MODELCAR_IMAGE = 'registry.domain.local/modelcar:test'
 
 
 class ModelcarImageArtifactTest(unittest.TestCase):
-
     def test_producer_builds_and_archives_modelcar_once(self):
         workflow = RUNTIME_IMAGES_WORKFLOW.read_text(encoding='utf-8')
         build_step = workflow.split(
             '- name: Build runtime base image archives',
             maxsplit=1,
-        )[1].split(
-            '\n      - name:', maxsplit=1)[0]
+        )[1].split('\n      - name:', maxsplit=1)[0]
 
         self.assertIn(
             "if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'",
-            build_step)
-        self.assertIn('build-runtime-base-images.sh "${ARTIFACTS_PATH}"',
-                      build_step)
-        build_script = (REPOSITORY_ROOT /
-                        '.github/resources/scripts/build-runtime-base-images.sh'
-                       ).read_text()
-        self.assertIn('retry 3 30 env DOCKER_BUILDKIT=1 docker build',
-                      build_script)
+            build_step,
+        )
+        self.assertIn(
+            'build-runtime-base-images.sh "${ARTIFACTS_PATH}"', build_step
+        )
+        build_script = (
+            REPOSITORY_ROOT
+            / '.github/resources/scripts/build-runtime-base-images.sh'
+        ).read_text()
+        self.assertIn(
+            'retry 3 30 env DOCKER_BUILDKIT=1 docker build', build_script
+        )
         self.assertIn(f'--file {MODELCAR_DOCKERFILE}', build_script)
         self.assertIn(f'--tag {MODELCAR_IMAGE}', build_script)
         self.assertIn(f'docker save {MODELCAR_IMAGE}', build_script)
@@ -62,27 +66,30 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         self.assertNotIn('Build and upload the sample Modelcar image', workflow)
         self.assertNotIn(f'--tag {MODELCAR_IMAGE}', workflow)
 
-        self.assertIn("if: ${{ inputs.load_modelcar_fixture == 'true' }}",
-                      deploy_action)
+        self.assertIn(
+            "if: ${{ inputs.load_modelcar_fixture == 'true' }}", deploy_action
+        )
         self.assertIn('runtime-base-images/modelcar.tar', deploy_action)
         self.assertIn('Modelcar fixture archive not found', deploy_action)
         self.assertIn('retry 3 10 kind --name', deploy_action)
-        self.assertIn('load image-archive "${MODELCAR_IMAGE_ARCHIVE}"',
-                      deploy_action)
+        self.assertIn(
+            'load image-archive "${MODELCAR_IMAGE_ARCHIVE}"', deploy_action
+        )
         self.assertNotIn('docker build', deploy_action)
 
     def test_modelcar_inputs_are_fingerprinted_and_forwarded(self):
         producer = RUNTIME_IMAGES_WORKFLOW.read_text(encoding='utf-8')
         consumer = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
 
-        self.assertGreaterEqual(producer.count(MODELCAR_DOCKERFILE), 3)
-        self.assertIn(MODELCAR_DOCKERFILE, consumer)
-        helper = '.github/resources/scripts/build-runtime-base-images.sh'
+        from runtime_base_image_artifacts import RUNTIME_INPUTS
+
+        self.assertIn(Path(MODELCAR_DOCKERFILE), RUNTIME_INPUTS)
+        self.assertIn(
+            Path('.github/resources/scripts/build-runtime-base-images.sh'),
+            RUNTIME_INPUTS,
+        )
         for workflow in (producer, consumer):
-            fingerprint = workflow.split('archive_fingerprint=$(',
-                                         1)[1].split(')', 1)[0]
-            self.assertIn(helper, fingerprint)
-            self.assertIn(MODELCAR_DOCKERFILE, fingerprint)
+            self.assertIn('runtime_base_image_artifacts.py identity', workflow)
         self.assertIn('path: ${{ env.ARTIFACTS_PATH }}', producer)
         self.assertIn('path: ${{ env.ARTIFACTS_PATH }}', consumer)
 
@@ -90,11 +97,11 @@ class ModelcarImageArtifactTest(unittest.TestCase):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
         for path in (
-                "'.github/actions/deploy/**'",
-                "'.github/workflows/e2e-test.yml'",
-                "'.github/workflows/image-builds.yml'",
-                "'.github/workflows/runtime-base-images.yml'",
-                f"'{MODELCAR_DOCKERFILE}'",
+            "'.github/actions/deploy/**'",
+            "'.github/workflows/e2e-test.yml'",
+            "'.github/workflows/image-builds.yml'",
+            "'.github/workflows/runtime-base-images.yml'",
+            f"'{MODELCAR_DOCKERFILE}'",
         ):
             with self.subTest(path=path):
                 self.assertIn(path, workflow)

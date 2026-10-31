@@ -20,16 +20,24 @@ extending it.
 """
 
 import argparse
-from dataclasses import dataclass
 import json
-from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import time
-from typing import (Callable, Dict, Iterable, List, Optional, Sequence, Set,
-                    Tuple)
+from dataclasses import dataclass
+from pathlib import Path
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
@@ -47,11 +55,14 @@ MANAGED_DOCKERFILES = (
     DockerPin(Path('backend/Dockerfile.driver'), '-alpine', 'builder'),
     DockerPin(Path('backend/Dockerfile.launcher'), '-alpine', 'builder'),
     DockerPin(
-        Path('backend/Dockerfile.persistenceagent'), '-alpine', 'builder'),
+        Path('backend/Dockerfile.persistenceagent'), '-alpine', 'builder'
+    ),
     DockerPin(
-        Path('backend/Dockerfile.scheduledworkflow'), '-alpine', 'builder'),
+        Path('backend/Dockerfile.scheduledworkflow'), '-alpine', 'builder'
+    ),
     DockerPin(
-        Path('backend/Dockerfile.viewercontroller'), '-alpine', 'builder'),
+        Path('backend/Dockerfile.viewercontroller'), '-alpine', 'builder'
+    ),
     DockerPin(Path('backend/api/Dockerfile'), '', 'generator'),
 )
 
@@ -64,22 +75,29 @@ DECIMAL = r'(?:0|[1-9][0-9]*)'
 EXACT_VERSION_PATTERN = re.compile(rf'^1\.{DECIMAL}\.{DECIMAL}$')
 MODULE_VERSION_PATTERN = re.compile(rf'^1\.{DECIMAL}(?:\.{DECIMAL})?$')
 DIGEST_PATTERN = re.compile(r'^sha256:[0-9a-f]{64}$')
-ROOT_GO_LINE_PATTERN = re.compile(rf'^go (?P<version>1\.{DECIMAL}\.{DECIMAL})$',
-                                  re.MULTILINE)
+ROOT_GO_LINE_PATTERN = re.compile(
+    rf'^go (?P<version>1\.{DECIMAL}\.{DECIMAL})$', re.MULTILINE
+)
 ROOT_TOOLCHAIN_LINE_PATTERN = re.compile(
-    rf'^toolchain (?P<version>go1\.{DECIMAL}\.{DECIMAL})$', re.MULTILINE)
+    rf'^toolchain (?P<version>go1\.{DECIMAL}\.{DECIMAL})$', re.MULTILINE
+)
 DOCKER_FROM_PATTERN = re.compile(
     rf'^FROM golang:(?P<version>1\.{DECIMAL}\.{DECIMAL})'
     r'(?P<flavor>-[a-z0-9][a-z0-9._-]*)?@'
     r'(?P<digest>sha256:[0-9a-f]{64}) AS '
-    r'(?P<stage>[a-z0-9][a-z0-9_.-]*)$', re.MULTILINE)
+    r'(?P<stage>[a-z0-9][a-z0-9_.-]*)$',
+    re.MULTILINE,
+)
 GO_IMAGE_LITERAL_PATTERN = re.compile(r'(?i)(?:^|[^a-z0-9_.-])golang(?=[:@])')
 GO_DOWNLOAD_LITERAL_PATTERN = re.compile(
-    r'(?i)https://(?:go\.dev/dl/go|dl\.google\.com/go/go)')
+    r'(?i)https://(?:go\.dev/dl/go|dl\.google\.com/go/go)'
+)
 SETUP_GO_USE_PATTERN = re.compile(
-    r'^[ ]*uses: actions/setup-go@[^ \t\r\n#]+[ ]*$', re.MULTILINE)
-GO_VERSION_FILE_INPUT_PATTERN = re.compile(r'^[ ]*go-version-file:',
-                                           re.MULTILINE)
+    r'^[ ]*uses: actions/setup-go@[^ \t\r\n#]+[ ]*$', re.MULTILINE
+)
+GO_VERSION_FILE_INPUT_PATTERN = re.compile(
+    r'^[ ]*go-version-file:', re.MULTILINE
+)
 GO_VERSION_INPUT_PATTERN = re.compile(r'^[ ]*go-version:', re.MULTILINE)
 
 DIGEST_LOOKUP_TIMEOUT_SECONDS = 30
@@ -120,13 +138,16 @@ class UpdatePlan:
 
     @property
     def changed_paths(self) -> List[Path]:
-        return sorted(path for path in self.expected
-                      if self.original[path] != self.expected[path])
+        return sorted(
+            path
+            for path in self.expected
+            if self.original[path] != self.expected[path]
+        )
 
 
-def _run(arguments: Sequence[str],
-         repo_root: Path,
-         timeout: Optional[int] = None) -> subprocess.CompletedProcess:
+def _run(
+    arguments: Sequence[str], repo_root: Path, timeout: Optional[int] = None
+) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
             arguments,
@@ -138,10 +159,12 @@ def _run(arguments: Sequence[str],
         )
     except FileNotFoundError as error:
         raise PolicyError(
-            f'{arguments[0]} is required to manage Go versions') from error
+            f'{arguments[0]} is required to manage Go versions'
+        ) from error
     except subprocess.TimeoutExpired as error:
         raise PolicyError(
-            f'{arguments[0]} timed out while managing Go versions') from error
+            f'{arguments[0]} timed out while managing Go versions'
+        ) from error
     except subprocess.CalledProcessError as error:
         detail = error.stderr.strip() or error.stdout.strip() or str(error)
         raise PolicyError(f'{" ".join(arguments)} failed: {detail}') from error
@@ -150,7 +173,8 @@ def _run(arguments: Sequence[str],
 def _parse_exact_version(value: str) -> Version:
     if EXACT_VERSION_PATTERN.fullmatch(value) is None:
         raise PolicyError(
-            f'Go version must use the exact stable form 1.X.Y, found {value!r}')
+            f'Go version must use the exact stable form 1.X.Y, found {value!r}'
+        )
     return tuple(int(part) for part in value.split('.'))
 
 
@@ -188,65 +212,85 @@ def _module_metadata(repo_root: Path, relative_path: Path) -> ModuleMetadata:
         toolchain_text = data.get('Toolchain')
     except (json.JSONDecodeError, KeyError, TypeError) as error:
         raise PolicyError(
-            f'{relative_path} is not a valid Go module') from error
+            f'{relative_path} is not a valid Go module'
+        ) from error
     if not isinstance(go_text, str):
         raise PolicyError(f'{relative_path} must contain one go directive')
     go_version = _parse_module_version(go_text, 'go', relative_path)
     toolchain_version = None
     if toolchain_text is not None:
-        if not isinstance(toolchain_text,
-                          str) or not toolchain_text.startswith('go'):
+        if not isinstance(toolchain_text, str) or not toolchain_text.startswith(
+            'go'
+        ):
             raise PolicyError(
-                f'{relative_path} has unsupported toolchain {toolchain_text!r}')
-        toolchain_version = _parse_module_version(toolchain_text[2:],
-                                                  'toolchain', relative_path)
+                f'{relative_path} has unsupported toolchain {toolchain_text!r}'
+            )
+        toolchain_version = _parse_module_version(
+            toolchain_text[2:], 'toolchain', relative_path
+        )
         if EXACT_VERSION_PATTERN.fullmatch(toolchain_text[2:]) is None:
             raise PolicyError(
-                f'{relative_path} toolchain must use the exact form go1.X.Y')
-    return ModuleMetadata(go_text, go_version, toolchain_text,
-                          toolchain_version)
+                f'{relative_path} toolchain must use the exact form go1.X.Y'
+            )
+    return ModuleMetadata(
+        go_text, go_version, toolchain_text, toolchain_version
+    )
 
 
-def _root_compiler(repo_root: Path, modules: Dict[Path,
-                                                  ModuleMetadata]) -> Version:
+def _root_compiler(
+    repo_root: Path, modules: Dict[Path, ModuleMetadata]
+) -> Version:
     root = modules[Path('go.mod')]
     contents = _read_text(repo_root, Path('go.mod'))
     go_lines = list(ROOT_GO_LINE_PATTERN.finditer(contents))
     toolchain_lines = list(ROOT_TOOLCHAIN_LINE_PATTERN.finditer(contents))
-    if (len(go_lines) != 1 or go_lines[0].group('version') != root.go_text):
+    if len(go_lines) != 1 or go_lines[0].group('version') != root.go_text:
         raise PolicyError(
-            'root go.mod must contain the exact line go 1.X.Y for setup-go')
+            'root go.mod must contain the exact line go 1.X.Y for setup-go'
+        )
     if root.toolchain_text is None:
         if toolchain_lines:
             raise PolicyError('root go.mod has an unrecognized toolchain line')
-    elif (len(toolchain_lines) != 1 or
-          toolchain_lines[0].group('version') != root.toolchain_text):
+    elif (
+        len(toolchain_lines) != 1
+        or toolchain_lines[0].group('version') != root.toolchain_text
+    ):
         raise PolicyError(
-            'root go.mod must contain the exact line toolchain go1.X.Y')
+            'root go.mod must contain the exact line toolchain go1.X.Y'
+        )
     return root.toolchain_version or root.go_version
 
 
-def _render_module(repo_root: Path, contents: str, go_version: Version,
-                   toolchain: Optional[Version]) -> str:
+def _render_module(
+    repo_root: Path,
+    contents: str,
+    go_version: Version,
+    toolchain: Optional[Version],
+) -> str:
     with tempfile.TemporaryDirectory(prefix='kfp-go-version-') as directory:
         temporary_mod = Path(directory) / 'go.mod'
         temporary_mod.write_text(contents, encoding='utf-8')
-        toolchain_argument = ('none' if toolchain is None else
-                              f'go{_version_text(toolchain)}')
-        _run((
-            'go',
-            'mod',
-            'edit',
-            f'-go={_version_text(go_version)}',
-            f'-toolchain={toolchain_argument}',
-            str(temporary_mod),
-        ), repo_root)
+        toolchain_argument = (
+            'none' if toolchain is None else f'go{_version_text(toolchain)}'
+        )
+        _run(
+            (
+                'go',
+                'mod',
+                'edit',
+                f'-go={_version_text(go_version)}',
+                f'-toolchain={toolchain_argument}',
+                str(temporary_mod),
+            ),
+            repo_root,
+        )
         return temporary_mod.read_text(encoding='utf-8')
 
 
 def _is_container_recipe(path: Path) -> bool:
-    return (path.name.startswith('Dockerfile') or
-            path.name.startswith('Containerfile'))
+    return path.name.startswith('Dockerfile') or path.name.startswith(
+        'Containerfile'
+    )
 
 
 def _has_symlink_component(repo_root: Path, relative_path: Path) -> bool:
@@ -273,17 +317,19 @@ def _docker_metadata(contents: str, pin: DockerPin) -> DockerMetadata:
     if len(matches) != 1:
         raise PolicyError(
             f'{pin.path} must contain exactly one canonical Go builder FROM line; '
-            'see docs/agents/go-version-policy.md')
+            'see docs/agents/go-version-policy.md'
+        )
     match = matches[0]
     flavor = match.group('flavor') or ''
     stage = match.group('stage')
     if flavor != pin.flavor or stage != pin.stage:
         raise PolicyError(
             f'{pin.path} must use flavor {pin.flavor or "<none>"} and stage '
-            f'{pin.stage}')
-    literal_count = (
-        len(GO_IMAGE_LITERAL_PATTERN.findall(contents)) +
-        len(GO_DOWNLOAD_LITERAL_PATTERN.findall(contents)))
+            f'{pin.stage}'
+        )
+    literal_count = len(GO_IMAGE_LITERAL_PATTERN.findall(contents)) + len(
+        GO_DOWNLOAD_LITERAL_PATTERN.findall(contents)
+    )
     if literal_count != 1:
         raise PolicyError(
             f'{pin.path} must contain only its one registered literal Go source'
@@ -302,34 +348,44 @@ def _validate_setup_action(contents: str, relative_path: Path) -> None:
     matches = list(SETUP_GO_USE_PATTERN.finditer(contents))
     if len(matches) != 1:
         raise PolicyError(
-            f'{relative_path} must contain one literal actions/setup-go step')
+            f'{relative_path} must contain one literal actions/setup-go step'
+        )
     lines = contents.splitlines()
-    use_line = next(index for index, line in enumerate(lines)
-                    if SETUP_GO_USE_PATTERN.fullmatch(line))
-    indentation = lines[use_line][:len(lines[use_line]) -
-                                  len(lines[use_line].lstrip(' '))]
+    use_line = next(
+        index
+        for index, line in enumerate(lines)
+        if SETUP_GO_USE_PATTERN.fullmatch(line)
+    )
+    indentation = lines[use_line][
+        : len(lines[use_line]) - len(lines[use_line].lstrip(' '))
+    ]
     expected = (
         f'{indentation}with:',
         f'{indentation}  go-version-file: go.mod',
     )
-    if tuple(lines[use_line + 1:use_line + 3]) != expected:
+    if tuple(lines[use_line + 1 : use_line + 3]) != expected:
         raise PolicyError(
-            f'{relative_path} setup-go step must read go-version-file: go.mod')
-    if (len(GO_VERSION_FILE_INPUT_PATTERN.findall(contents)) != 1 or
-            GO_VERSION_INPUT_PATTERN.search(contents)):
+            f'{relative_path} setup-go step must read go-version-file: go.mod'
+        )
+    if len(
+        GO_VERSION_FILE_INPUT_PATTERN.findall(contents)
+    ) != 1 or GO_VERSION_INPUT_PATTERN.search(contents):
         raise PolicyError(
             f'{relative_path} must use only go-version-file: go.mod for setup-go'
         )
 
 
 def _validate_inventory(
-    repo_root: Path, tracked_paths: Set[Path], docker_pins: Sequence[DockerPin],
-    setup_actions: Sequence[Path]
+    repo_root: Path,
+    tracked_paths: Set[Path],
+    docker_pins: Sequence[DockerPin],
+    setup_actions: Sequence[Path],
 ) -> Tuple[Dict[Path, str], Dict[Path, DockerMetadata]]:
     docker_paths = {pin.path for pin in docker_pins}
     if len(docker_paths) != len(docker_pins):
         raise PolicyError(
-            'managed Dockerfile inventory contains duplicate paths')
+            'managed Dockerfile inventory contains duplicate paths'
+        )
     setup_paths = set(setup_actions)
     if len(setup_paths) != len(setup_actions):
         raise PolicyError('managed setup-go inventory contains duplicate paths')
@@ -337,8 +393,10 @@ def _validate_inventory(
     required = docker_paths | setup_paths
     missing = required - tracked_paths
     if missing:
-        raise PolicyError('managed paths are not tracked: ' +
-                          ', '.join(str(path) for path in sorted(missing)))
+        raise PolicyError(
+            'managed paths are not tracked: '
+            + ', '.join(str(path) for path in sorted(missing))
+        )
 
     docker_contents = {}
     docker_metadata = {}
@@ -347,23 +405,29 @@ def _validate_inventory(
         if not _is_container_recipe(relative_path):
             continue
         path = repo_root / relative_path
-        if (not path.exists() and
-                not _has_symlink_component(repo_root, relative_path)):
+        if not path.exists() and not _has_symlink_component(
+            repo_root, relative_path
+        ):
             continue
         contents = _read_text(repo_root, relative_path)
-        if (GO_IMAGE_LITERAL_PATTERN.search(contents) or
-                GO_DOWNLOAD_LITERAL_PATTERN.search(contents)):
+        if GO_IMAGE_LITERAL_PATTERN.search(
+            contents
+        ) or GO_DOWNLOAD_LITERAL_PATTERN.search(contents):
             literal_source_paths.add(relative_path)
     if literal_source_paths != docker_paths:
         unregistered = literal_source_paths - docker_paths
         absent = docker_paths - literal_source_paths
         details = []
         if unregistered:
-            details.append('register literal Go sources in ' + ', '.join(
-                str(path) for path in sorted(unregistered)))
+            details.append(
+                'register literal Go sources in '
+                + ', '.join(str(path) for path in sorted(unregistered))
+            )
         if absent:
-            details.append('restore registered Go sources in ' +
-                           ', '.join(str(path) for path in sorted(absent)))
+            details.append(
+                'restore registered Go sources in '
+                + ', '.join(str(path) for path in sorted(absent))
+            )
         raise PolicyError('; '.join(details))
 
     for pin in docker_pins:
@@ -376,8 +440,9 @@ def _validate_inventory(
         if relative_path.suffix not in {'.yaml', '.yml'}:
             continue
         path = repo_root / relative_path
-        if (not path.exists() and
-                not _has_symlink_component(repo_root, relative_path)):
+        if not path.exists() and not _has_symlink_component(
+            repo_root, relative_path
+        ):
             continue
         contents = _read_text(repo_root, relative_path)
         if 'actions/setup-go@' in contents:
@@ -387,23 +452,28 @@ def _validate_inventory(
         absent = setup_paths - setup_use_paths
         details = []
         if unregistered:
-            details.append('route setup-go callers through a managed action: ' +
-                           ', '.join(
-                               str(path) for path in sorted(unregistered)))
+            details.append(
+                'route setup-go callers through a managed action: '
+                + ', '.join(str(path) for path in sorted(unregistered))
+            )
         if absent:
-            details.append('restore setup-go in ' +
-                           ', '.join(str(path) for path in sorted(absent)))
+            details.append(
+                'restore setup-go in '
+                + ', '.join(str(path) for path in sorted(absent))
+            )
         raise PolicyError('; '.join(details))
     for relative_path in setup_actions:
         _validate_setup_action(
-            _read_text(repo_root, relative_path), relative_path)
+            _read_text(repo_root, relative_path), relative_path
+        )
     return docker_contents, docker_metadata
 
 
 def check_repository(
-        repo_root: Path,
-        docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
-        setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS) -> None:
+    repo_root: Path,
+    docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
+    setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS,
+) -> None:
     tracked_paths = _tracked_paths(repo_root)
     module_paths = _module_paths(tracked_paths)
     modules = {
@@ -414,30 +484,35 @@ def check_repository(
     for relative_path, module in modules.items():
         if module.go_version[:2] != compiler[:2]:
             raise PolicyError(
-                f'{relative_path} must use Go {compiler[0]}.{compiler[1]}')
+                f'{relative_path} must use Go {compiler[0]}.{compiler[1]}'
+            )
         if module.go_version > compiler:
             raise PolicyError(
                 f'{relative_path} requires {_version_text(module.go_version)}, '
-                f'newer than the root compiler {_version_text(compiler)}')
+                f'newer than the root compiler {_version_text(compiler)}'
+            )
         if module.toolchain_version is None:
             if module.go_version != compiler:
                 raise PolicyError(
                     f'{relative_path} must use go {_version_text(compiler)} or '
-                    'name the root toolchain')
+                    'name the root toolchain'
+                )
         elif module.toolchain_version != compiler:
             raise PolicyError(
                 f'{relative_path} toolchain must be go{_version_text(compiler)}'
             )
 
-    _, docker_metadata = _validate_inventory(repo_root, tracked_paths,
-                                             docker_pins, setup_actions)
+    _, docker_metadata = _validate_inventory(
+        repo_root, tracked_paths, docker_pins, setup_actions
+    )
     expected_version = _version_text(compiler)
     digests_by_tag: Dict[str, Set[str]] = {}
     for metadata in docker_metadata.values():
         if metadata.version != expected_version:
             raise PolicyError(
                 f'Go builder version {metadata.version} must match root compiler '
-                f'{expected_version}')
+                f'{expected_version}'
+            )
         tag = metadata.version + metadata.flavor
         digests_by_tag.setdefault(tag, set()).add(metadata.digest)
     for tag, digests in digests_by_tag.items():
@@ -448,22 +523,25 @@ def check_repository(
 
 
 def _inspect_image_digest(image: str) -> str:
-    result = _run((
-        'docker',
-        'buildx',
-        'imagetools',
-        'inspect',
-        image,
-        '--format',
-        '{{json .Manifest}}',
-    ),
-                  REPOSITORY_ROOT,
-                  timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS)
+    result = _run(
+        (
+            'docker',
+            'buildx',
+            'imagetools',
+            'inspect',
+            image,
+            '--format',
+            '{{json .Manifest}}',
+        ),
+        REPOSITORY_ROOT,
+        timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS,
+    )
     try:
         digest = json.loads(result.stdout)['digest']
     except (json.JSONDecodeError, KeyError, TypeError) as error:
         raise PolicyError(
-            f'docker returned no manifest digest for {image}') from error
+            f'docker returned no manifest digest for {image}'
+        ) from error
     if not isinstance(digest, str) or DIGEST_PATTERN.fullmatch(digest) is None:
         raise PolicyError(f'docker returned an invalid digest for {image}')
     return digest
@@ -481,26 +559,30 @@ def resolve_image_digest(tag: str) -> str:
         if attempt + 1 < DIGEST_LOOKUP_ATTEMPTS:
             time.sleep(attempt + 1)
     raise PolicyError(
-        f'could not resolve Go builder tag {tag}: {"; ".join(failures)}')
+        f'could not resolve Go builder tag {tag}: {"; ".join(failures)}'
+    )
 
 
 def _inspect_image_versions(image: str) -> Dict[str, str]:
-    result = _run((
-        'docker',
-        'buildx',
-        'imagetools',
-        'inspect',
-        image,
-        '--format',
-        '{{json .Image}}',
-    ),
-                  REPOSITORY_ROOT,
-                  timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS)
+    result = _run(
+        (
+            'docker',
+            'buildx',
+            'imagetools',
+            'inspect',
+            image,
+            '--format',
+            '{{json .Image}}',
+        ),
+        REPOSITORY_ROOT,
+        timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS,
+    )
     try:
         platforms = json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        raise PolicyError(f'docker returned invalid image metadata for {image}') \
-            from error
+        raise PolicyError(
+            f'docker returned invalid image metadata for {image}'
+        ) from error
 
     versions = {}
     for platform in REQUIRED_IMAGE_PLATFORMS:
@@ -510,21 +592,25 @@ def _inspect_image_versions(image: str) -> Dict[str, str]:
                 raise ValueError('platform does not match image configuration')
             environment = config['config']['Env']
             if not isinstance(environment, list) or not all(
-                    isinstance(value, str) for value in environment):
+                isinstance(value, str) for value in environment
+            ):
                 raise ValueError('Env must be a list of strings')
             values = [
                 value.removeprefix('GOLANG_VERSION=')
                 for value in environment
                 if value.startswith('GOLANG_VERSION=')
             ]
-            if len(values) != 1 or EXACT_VERSION_PATTERN.fullmatch(
-                    values[0]) is None:
+            if (
+                len(values) != 1
+                or EXACT_VERSION_PATTERN.fullmatch(values[0]) is None
+            ):
                 raise ValueError('expected one exact GOLANG_VERSION')
             versions[platform] = values[0]
         except (KeyError, TypeError, ValueError) as error:
             raise PolicyError(
                 f'{image} has missing or invalid {platform} Go image metadata; '
-                'expected GOLANG_VERSION in its image configuration') from error
+                'expected GOLANG_VERSION in its image configuration'
+            ) from error
     return versions
 
 
@@ -540,22 +626,26 @@ def resolve_image_versions(digest: str) -> Dict[str, str]:
         if attempt + 1 < DIGEST_LOOKUP_ATTEMPTS:
             time.sleep(attempt + 1)
     raise PolicyError(
-        f'could not inspect pinned Go builder {digest}: {"; ".join(failures)}')
+        f'could not inspect pinned Go builder {digest}: {"; ".join(failures)}'
+    )
 
 
-def _updated_dockerfile(contents: str, metadata: DockerMetadata, version: str,
-                        digest: str) -> str:
+def _updated_dockerfile(
+    contents: str, metadata: DockerMetadata, version: str, digest: str
+) -> str:
     replacement = (
-        f'FROM golang:{version}{metadata.flavor}@{digest} AS {metadata.stage}')
-    return contents[:metadata.start] + replacement + contents[metadata.end:]
+        f'FROM golang:{version}{metadata.flavor}@{digest} AS {metadata.stage}'
+    )
+    return contents[: metadata.start] + replacement + contents[metadata.end :]
 
 
 def plan_update(
-        repo_root: Path,
-        target_text: str,
-        digest_resolver: DigestResolver = resolve_image_digest,
-        docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
-        setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS) -> UpdatePlan:
+    repo_root: Path,
+    target_text: str,
+    digest_resolver: DigestResolver = resolve_image_digest,
+    docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
+    setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS,
+) -> UpdatePlan:
     target = _parse_exact_version(target_text)
     tracked_paths = _tracked_paths(repo_root)
     module_paths = _module_paths(tracked_paths)
@@ -567,10 +657,12 @@ def plan_update(
     if target < current:
         raise PolicyError(
             f'refusing to downgrade Go from {_version_text(current)} to '
-            f'{target_text}')
+            f'{target_text}'
+        )
 
     docker_contents, docker_metadata = _validate_inventory(
-        repo_root, tracked_paths, docker_pins, setup_actions)
+        repo_root, tracked_paths, docker_pins, setup_actions
+    )
     original = {
         relative_path: _read_text(repo_root, relative_path)
         for relative_path in module_paths
@@ -581,14 +673,17 @@ def plan_update(
         if module.go_version > target:
             raise PolicyError(
                 f'{relative_path} requires {_version_text(module.go_version)}, '
-                f'newer than target {target_text}')
+                f'newer than target {target_text}'
+            )
         language_floor = (
-            module.go_version if module.go_version[:2] == target[:2] else
-            (target[0], target[1], 0))
+            module.go_version
+            if module.go_version[:2] == target[:2]
+            else (target[0], target[1], 0)
+        )
         toolchain = target if target[2] else None
-        expected[relative_path] = _render_module(repo_root,
-                                                 original[relative_path],
-                                                 language_floor, toolchain)
+        expected[relative_path] = _render_module(
+            repo_root, original[relative_path], language_floor, toolchain
+        )
 
     digests = {}
     for flavor in sorted({pin.flavor for pin in docker_pins}):
@@ -600,54 +695,64 @@ def plan_update(
             )
         digests[flavor] = digest
     for relative_path, metadata in docker_metadata.items():
-        expected[relative_path] = _updated_dockerfile(original[relative_path],
-                                                      metadata, target_text,
-                                                      digests[metadata.flavor])
+        expected[relative_path] = _updated_dockerfile(
+            original[relative_path],
+            metadata,
+            target_text,
+            digests[metadata.flavor],
+        )
     return UpdatePlan(original, expected)
 
 
-def _require_clean_paths(repo_root: Path,
-                         relative_paths: Iterable[Path]) -> None:
+def _require_clean_paths(
+    repo_root: Path, relative_paths: Iterable[Path]
+) -> None:
     arguments = ['git', 'status', '--porcelain=v1', '--']
     arguments.extend(str(path) for path in sorted(relative_paths))
     output = _run(arguments, repo_root).stdout
     if output:
         raise PolicyError(
             'managed files must be clean before updating; commit or restore them:\n'
-            + output.rstrip())
+            + output.rstrip()
+        )
 
 
 def update_repository(
-        repo_root: Path,
-        target_text: str,
-        digest_resolver: DigestResolver = resolve_image_digest,
-        docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
-        setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS) -> List[Path]:
+    repo_root: Path,
+    target_text: str,
+    digest_resolver: DigestResolver = resolve_image_digest,
+    docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
+    setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS,
+) -> List[Path]:
     # Plan first so rerunning a completed update is a no-op even while that
     # update's managed-file diff is still uncommitted. Digest resolution is
     # part of deciding whether the plan is unchanged; writes still require a
     # clean-path check after resolution.
-    plan = plan_update(repo_root, target_text, digest_resolver, docker_pins,
-                       setup_actions)
+    plan = plan_update(
+        repo_root, target_text, digest_resolver, docker_pins, setup_actions
+    )
     if not plan.changed_paths:
         return []
     managed_paths = set(plan.original) | set(setup_actions)
     _require_clean_paths(repo_root, managed_paths)
     for relative_path in plan.changed_paths:
         (repo_root / relative_path).write_text(
-            plan.expected[relative_path], encoding='utf-8')
+            plan.expected[relative_path], encoding='utf-8'
+        )
     return plan.changed_paths
 
 
 def verify_image_digests(
-        repo_root: Path,
-        image_version_resolver: ImageVersionResolver = resolve_image_versions,
-        docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
-        setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS) -> None:
+    repo_root: Path,
+    image_version_resolver: ImageVersionResolver = resolve_image_versions,
+    docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
+    setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS,
+) -> None:
     check_repository(repo_root, docker_pins, setup_actions)
     tracked_paths = _tracked_paths(repo_root)
-    _, docker_metadata = _validate_inventory(repo_root, tracked_paths,
-                                             docker_pins, setup_actions)
+    _, docker_metadata = _validate_inventory(
+        repo_root, tracked_paths, docker_pins, setup_actions
+    )
     versions_by_digest = {
         metadata.digest: metadata.version
         for metadata in docker_metadata.values()
@@ -661,12 +766,14 @@ def verify_image_digests(
                     f'Go builder golang@{digest} for {platform} reports '
                     f'Go {actual_version!r}, expected {expected_version}; '
                     'rerun make update-go-version '
-                    f'GO_VERSION={expected_version}')
+                    f'GO_VERSION={expected_version}'
+                )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description='Check or update the repository Go compiler version.')
+        description='Check or update the repository Go compiler version.'
+    )
     operation = parser.add_mutually_exclusive_group(required=True)
     operation.add_argument('--check', action='store_true')
     operation.add_argument('--version')
@@ -682,8 +789,9 @@ def main() -> int:
         elif arguments.check_image_digests:
             verify_image_digests(REPOSITORY_ROOT)
         else:
-            changed_paths = update_repository(REPOSITORY_ROOT,
-                                              arguments.version)
+            changed_paths = update_repository(
+                REPOSITORY_ROOT, arguments.version
+            )
             for relative_path in changed_paths:
                 print(relative_path)
             check_repository(REPOSITORY_ROOT)

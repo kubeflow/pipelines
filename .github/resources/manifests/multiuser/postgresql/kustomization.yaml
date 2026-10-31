@@ -40,6 +40,10 @@ patches:
       kind: Deployment
       name: ml-pipeline
   - path: ../../base/ci-stability-tuning.yaml
+  - path: ../../base/driver-plugin-cm-path.yaml
+    target:
+      kind: ConfigMap
+      name: ml-pipeline-driver-agent
   - path: apiserver-env.yaml
     target:
       kind: Deployment

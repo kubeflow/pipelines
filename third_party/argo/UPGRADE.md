@@ -4,13 +4,23 @@ Argo upgrades must keep the Go client and CLI, controller and executor images,
 upstream manifests and CRDs, CI matrices, and runtime preload images aligned.
 Use the complete update command for both Dependabot proposals and manual upgrades.
 
-## Planned KFP 3.0 support boundary
+## KFP 3.0 support boundary
 
-Argo Workflows 3.x remains supported for KFP 2.x, but is deprecated and will not be supported by
-Kubeflow Pipelines 3.0. Before the KFP 3.0 release, replace the 3.x compatibility lane with the
-oldest supported 4.x release, update the public compatibility matrix and operator upgrade
-documentation, and verify the resulting minimum and maximum versions through the API and end-to-end
-CI matrices. Track this work in
+Master supports Argo Workflows 4.0.x and 4.1.x, with exact patch versions pinned in
+`COMPATIBILITY_VERSION` and `VERSION`. The default runtime uses 4.1.x; API and
+end-to-end CI also exercise the 4.0.x compatibility runtime. Keep each lane on its
+latest stable patch through coordinated upgrades, not floating image tags.
+
+[Upstream maintains the two most recent minor releases](https://argo-workflows.readthedocs.io/en/latest/releases/).
+As of October 2026 these are 4.0 and 4.1. Reassess the support floor when upstream
+introduces a new release line; do not silently drop a supported line in a patch upgrade.
+
+Argo 3.x is not supported by KFP 3.0. KFP 2.x release branches retain their
+documented 3.x compatibility coverage, independently of upstream maintenance.
+Before upgrading KFP 2.x to 3.0, operators must upgrade the Argo controller and
+executor together to a supported 4.x patch and follow the
+[upstream upgrade guide](https://argo-workflows.readthedocs.io/en/latest/upgrading/).
+Track the broader migration work in
 [the KFP 3.0 compatibility issue](https://github.com/kubeflow/pipelines/issues/14139).
 
 ## Upgrade the current release
@@ -18,13 +28,13 @@ CI matrices. Track this work in
 From the repository root, select an exact stable tag:
 
 ```bash
-ARGO_TAG=v4.1.2
+ARGO_TAG=v4.1.6
 make -C third_party/argo update ARGO_VERSION="${ARGO_TAG}"
 ```
 
-The command updates `VERSION` and every maintained reference, including `go.mod`
-and `go.sum` through `go mod tidy`. It validates the complete edit plan and resolves
-Go dependencies before writing tracked files; failed validation or dependency
+The command updates `VERSION` and the maintained runtime, CI, and upgrade-guide
+references, including `go.mod` and `go.sum` through `go mod tidy`. It validates the
+complete edit plan and resolves Go dependencies before writing tracked files; failed validation or dependency
 resolution leaves them unchanged. It uses the installed Go compiler and rejects
 an implicit compiler or Argo module-major change. Handle major migrations and
 compiler upgrades explicitly before using this command.
@@ -43,7 +53,12 @@ remain enabled.
 
 ## Verify the upgrade
 
-1. Check the synchronized references and review the full diff:
+1. Refresh the tested patch versions in the public [compatibility notice](../../README.md)
+   for every upgrade; this notice is checked by the consistency tests and is not
+   rewritten by the update command. Update the compatibility matrix when either
+   supported release line changes. Review upstream release notes and migration
+   requirements; pin synchronization does not establish compatibility.
+2. Check the synchronized references and review the full diff:
 
    ```bash
    python3 .github/resources/scripts/sync_argo_versions.py --scope all --check
@@ -52,9 +67,6 @@ remain enabled.
    git diff
    ```
 
-2. Update the minor versions in the public [compatibility matrix](../../README.md)
-   when either supported release line changes. Review upstream release notes and
-   migration requirements; pin synchronization does not establish compatibility.
 3. Build the backend images with `make -C backend image_all` and render the Argo
    Kustomize overlays. CRDs are referenced from the upstream release rather than
    vendored, so their Git refs must be included in the upgrade.

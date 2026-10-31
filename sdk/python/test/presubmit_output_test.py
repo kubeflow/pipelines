@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import shlex
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -31,13 +31,15 @@ def test_distributed_presubmit_reports_failed_subprocess_output(tmp_path):
     tests.mkdir(parents=True)
     pytest_config = tmp_path / 'pytest.ini'
     pytest_config.write_text(
-        '[pytest]\nmarkers = regression: SDK regression tests\n')
+        '[pytest]\nmarkers = regression: SDK regression tests\n'
+    )
     diagnostic = 'child task failed before producing its outputs'
     (tests / 'fail_task.py').write_text(
-        f'import sys\nprint({diagnostic!r}, file=sys.stderr)\nsys.exit(1)\n')
+        f'import sys\nprint({diagnostic!r}, file=sys.stderr)\nsys.exit(1)\n'
+    )
     (tests / 'kfp.py').write_text('VALUE = 1\n')
     (tests / 'output_test.py').write_text(
-        textwrap.dedent('''\
+        textwrap.dedent("""\
         import os
         from pathlib import Path
         import subprocess
@@ -59,24 +61,27 @@ def test_distributed_presubmit_reports_failed_subprocess_output(tmp_path):
 
         def test_outside_regression_selection():
             Path('unexpected-test-ran').touch()
-        '''))
+        """)
+    )
 
     # Keep every pytest argument from the script, but use the existing test
     # environment instead of syncing the repository or starting the full suite.
     bin_dir = tmp_path / 'bin'
     bin_dir.mkdir()
     uv = bin_dir / 'uv'
-    uv.write_text('#!/bin/sh\n'
-                  'if [ "$1" = build ]; then\n'
-                  '  test "$#" = 6 && test "$2" = --package && '
-                  'test "$3" = kfp && test "$4" = --wheel && '
-                  'test "$5" = --out-dir || exit 2\n'
-                  '  touch "$6/kfp-test-py3-none-any.whl"\n'
-                  '  exit 0\n'
-                  'fi\n'
-                  'test "$1" = run && test "$2" = python || exit 2\n'
-                  'shift 2\n'
-                  f'exec {shlex.quote(sys.executable)} "$@"\n')
+    uv.write_text(
+        '#!/bin/sh\n'
+        'if [ "$1" = build ]; then\n'
+        '  test "$#" = 6 && test "$2" = --package && '
+        'test "$3" = kfp && test "$4" = --wheel && '
+        'test "$5" = --out-dir || exit 2\n'
+        '  touch "$6/kfp-test-py3-none-any.whl"\n'
+        '  exit 0\n'
+        'fi\n'
+        'test "$1" = run && test "$2" = python || exit 2\n'
+        'shift 2\n'
+        f'exec {shlex.quote(sys.executable)} "$@"\n'
+    )
     uv.chmod(0o755)
 
     # Nested pytest must not inherit the outer worker's capture/coverage state.
@@ -85,14 +90,16 @@ def test_distributed_presubmit_reports_failed_subprocess_output(tmp_path):
         for key, value in os.environ.items()
         if not key.startswith(('PYTEST_', 'COV_CORE_', 'COVERAGE_'))
     }
-    env.update({
-        'PATH': f'{bin_dir}{os.pathsep}{env.get("PATH", "")}',
-        'SETUP_ENV': 'false',
-        'REPO_NAME': 'kubeflow/pipelines',
-        'PULL_NUMBER': '1',
-        'PYTEST_PARALLEL_WORKERS': '2',
-        'COVERAGE_FILE': str(tmp_path / '.coverage'),
-    })
+    env.update(
+        {
+            'PATH': f'{bin_dir}{os.pathsep}{env.get("PATH", "")}',
+            'SETUP_ENV': 'false',
+            'REPO_NAME': 'kubeflow/pipelines',
+            'PULL_NUMBER': '1',
+            'PYTEST_PARALLEL_WORKERS': '2',
+            'COVERAGE_FILE': str(tmp_path / '.coverage'),
+        }
+    )
     result = subprocess.run(
         ['bash', str(PRESUBMIT)],
         cwd=tmp_path,

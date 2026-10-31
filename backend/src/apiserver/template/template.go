@@ -124,13 +124,14 @@ type RunWorkflowOptions struct {
 }
 
 type TemplateOptions struct {
-	CacheDisabled        bool
-	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec
-	MLPipelineTLSEnabled bool
-	DefaultRunAsUser     *int64
-	DefaultRunAsGroup    *int64
-	DefaultRunAsNonRoot  *bool
-	DefaultHostUsers     *bool
+	CacheDisabled          bool
+	DefaultWorkspace       *corev1.PersistentVolumeClaimSpec
+	MLPipelineTLSEnabled   bool
+	DefaultRunAsUser       *int64
+	DefaultRunAsGroup      *int64
+	DefaultRunAsNonRoot    *bool
+	DefaultHostUsers       *bool
+	DefaultPVCStorageClass *string
 }
 
 func New(bytes []byte, opts TemplateOptions) (Template, error) {
@@ -203,14 +204,8 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 		if modelTrigger.Cron != nil {
 			crdCronSchedule.Cron = *modelTrigger.Cron
 		}
-		if modelTrigger.CronScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleStartTimeInSec, 0))
-			crdCronSchedule.StartTime = &startTime
-		}
-		if modelTrigger.CronScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleEndTimeInSec, 0))
-			crdCronSchedule.EndTime = &endTime
-		}
+		crdCronSchedule.StartTime = modelToCRDScheduleTime(modelTrigger.CronScheduleStartTimeInSec)
+		crdCronSchedule.EndTime = modelToCRDScheduleTime(modelTrigger.CronScheduleEndTimeInSec)
 		crdTrigger.CronSchedule = &crdCronSchedule
 	} else if !modelTrigger.PeriodicSchedule.IsEmpty() {
 		// Check if PeriodicSchedule is non-empty
@@ -218,17 +213,24 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 		if modelTrigger.IntervalSecond != nil {
 			crdPeriodicSchedule.IntervalSecond = *modelTrigger.IntervalSecond
 		}
-		if modelTrigger.PeriodicScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleStartTimeInSec, 0))
-			crdPeriodicSchedule.StartTime = &startTime
-		}
-		if modelTrigger.PeriodicScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleEndTimeInSec, 0))
-			crdPeriodicSchedule.EndTime = &endTime
-		}
+		crdPeriodicSchedule.StartTime = modelToCRDScheduleTime(modelTrigger.PeriodicScheduleStartTimeInSec)
+		crdPeriodicSchedule.EndTime = modelToCRDScheduleTime(modelTrigger.PeriodicScheduleEndTimeInSec)
 		crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
 	}
 	return crdTrigger, nil
+}
+
+// Kubernetes encodes a zero metav1.Time as null. Normalize it here too so
+// API-side tick authorization and the controller use the same schedule bounds.
+func modelToCRDScheduleTime(epoch *int64) *metav1.Time {
+	if epoch == nil {
+		return nil
+	}
+	result := metav1.NewTime(time.Unix(*epoch, 0))
+	if result.IsZero() {
+		return nil
+	}
+	return &result
 }
 
 func setDefaultServiceAccount(workflow util.ExecutionSpec, serviceAccount string) {

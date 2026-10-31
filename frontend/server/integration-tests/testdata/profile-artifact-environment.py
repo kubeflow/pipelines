@@ -16,31 +16,42 @@ tests."""
 
 import importlib.util
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import ModuleType
-from unittest.mock import Mock
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 producer_path = Path(__file__).resolve().parents[4] / (
-    "manifests/kustomize/base/installs/multi-user/"
-    "pipelines-profile-controller/sync.py")
-botocore = ModuleType("botocore")
-botocore.session = ModuleType("botocore.session")
+    'manifests/kustomize/base/installs/multi-user/'
+    'pipelines-profile-controller/sync.py'
+)
+botocore = ModuleType('botocore')
+botocore.session = ModuleType('botocore.session')
 botocore.session.get_session = Mock(
-    return_value=Mock(create_client=Mock(return_value=object())))
-spec = importlib.util.spec_from_file_location("profile_sync", producer_path)
+    return_value=Mock(create_client=Mock(return_value=object()))
+)
+spec = importlib.util.spec_from_file_location('profile_sync', producer_path)
 producer = importlib.util.module_from_spec(spec)
 sys.dont_write_bytecode = True
-with patch.dict(sys.modules, {
-        "botocore": botocore,
-        "botocore.session": botocore.session,
-}):
+with patch.dict(
+    sys.modules,
+    {
+        'botocore': botocore,
+        'botocore.session': botocore.session,
+    },
+):
     spec.loader.exec_module(producer)
+settings = producer.get_settings_from_env(frontend_tag='test')
 print(
-    json.dumps({
-        allowed_origins:
-            producer.artifact_server_environment("tenant", ".svc.cluster.local",
-                                                 allowed_origins)
-        for allowed_origins in sys.argv[1:]
-    }))
+    json.dumps(
+        {
+            allowed_origins: producer.artifact_server_environment(
+                'tenant',
+                '.svc.cluster.local',
+                allowed_origins,
+                user_id_header=settings['user_id_header'],
+            )
+            for allowed_origins in sys.argv[1:]
+        }
+    )
+)

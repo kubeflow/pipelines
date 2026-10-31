@@ -2,11 +2,14 @@ name: KFP Manifests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
     paths:
       - '.github/workflows/kubeflow-pipelines-manifests.yml'
       - 'manifests/kustomize/**'
+      - 'backend/api/tools/**'
+      - 'go.mod'
+      - '.github/actions/setup-go/**'
       - '!**/*.md'
       - '!**/OWNERS'
       - 'docs/operator-guides/server-config.md'
@@ -16,12 +19,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   kubeflow-pipelines-manifests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
 
       - name: Run tests
         run: ./manifests/kustomize/hack/presubmit.sh

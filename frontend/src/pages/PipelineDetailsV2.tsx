@@ -14,89 +14,58 @@
  * limitations under the License.
  */
 import { useState } from 'react';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
-import SidePanel from 'src/components/SidePanel';
-import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import { getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import PipelineGraph from 'src/components/graph/PipelineGraph';
+import type { LayerFlowElement, PipelineFlowElement } from 'src/lib/v2/FlowTypes';
 
-import { commonCss, padding } from 'src/Css';
-import DagCanvas from './v2/DagCanvas';
+import { commonCss } from 'src/Css';
 
 const TAB_NAMES = ['Graph', 'Pipeline Spec'];
 
 interface PipelineDetailsV2Props {
   templateString?: string;
   pipelineFlowElements: PipelineFlowElement[];
-  setSubDagLayers: (layers: string[]) => void;
-  pipeline: V2beta1Pipeline | null;
-  selectedVersion: V2beta1PipelineVersion | undefined;
-  versions: V2beta1PipelineVersion[];
+  pipeline: V2Pipeline | null;
+  selectedVersion: V2PipelineVersion | undefined;
+  versions: V2PipelineVersion[];
   handleVersionSelected: (versionId: string) => Promise<void>;
 }
 
 function PipelineDetailsV2({
   templateString,
   pipelineFlowElements,
-  setSubDagLayers,
   pipeline,
   selectedVersion,
   versions,
   handleVersionSelected,
 }: PipelineDetailsV2Props) {
-  const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
-
-  const layerChange = (l: string[]) => {
-    setSelectedNode(null);
-    setLayers(l);
-    setSubDagLayers(l);
-  };
+  const [selection, setSelection] = useState<LayerFlowElement | null>(null);
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
       <MD2Tabs selectedTab={selectedTab} onSwitch={setSelectedTab} tabs={TAB_NAMES} />
       {selectedTab === 0 && (
-        <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
-          <DagCanvas
-            layers={layers}
-            onLayersUpdate={layerChange}
-            elements={pipelineFlowElements}
-            onElementClick={(_event, element) => setSelectedNode(element)}
-            setFlowElements={() => {}}
-            nodesDraggable={false}
-          ></DagCanvas>
+        <PipelineGraph
+          graphId={
+            selectedVersion?.pipeline_version_id &&
+            `pipeline-version:${selectedVersion.pipeline_version_id}`
+          }
+          templateString={templateString}
+          elements={pipelineFlowElements}
+          selection={selection}
+          onSelectionChange={setSelection}
+        >
           <PipelineVersionCard
             pipeline={pipeline}
             selectedVersion={selectedVersion}
             versions={versions}
             handleVersionSelected={handleVersionSelected}
           />
-          {templateString && (
-            <div className='z-20'>
-              <SidePanel
-                isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
-                defaultWidth={'50%'}
-              >
-                <div className={commonCss.page}>
-                  <div className={padding(20, 'lr')}>
-                    <StaticNodeDetailsV2
-                      templateString={templateString}
-                      layers={layers}
-                      onLayerChange={layerChange}
-                      element={selectedNode}
-                    />
-                  </div>
-                </div>
-              </SidePanel>
-            </div>
-          )}
-        </div>
+        </PipelineGraph>
       )}
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>

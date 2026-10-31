@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  ArtifactArtifactType,
-  PipelineTaskTaskState,
-  V2beta1PipelineTask,
-} from 'src/apisv2beta1/run';
+import { ArtifactArtifactType, PipelineTaskTaskState, V2PipelineTask } from 'src/apisv2/run';
 import {
   flattenArtifactGroups,
   EXECUTOR_LOGS_ARTIFACT_KEY,
@@ -24,6 +20,8 @@ import {
   getArtifactDisplayName,
   getArtifactIdentity,
   getArtifactTypeName,
+  getArtifactContentPreviewKind,
+  hasArtifactContentPreview,
   getOutputArtifactByName,
   getScalarMetricEntries,
   isClassificationMetricArtifact,
@@ -33,7 +31,7 @@ import {
 } from './RuntimeArtifactUtils';
 
 describe('RuntimeArtifactUtils', () => {
-  const task: V2beta1PipelineTask = {
+  const task: V2PipelineTask = {
     outputs: {
       artifacts: [
         {
@@ -99,7 +97,7 @@ describe('RuntimeArtifactUtils', () => {
   });
 
   it('selects executor logs by retry index rather than Artifact API order', () => {
-    const retryLogsTask: V2beta1PipelineTask = {
+    const retryLogsTask: V2PipelineTask = {
       outputs: {
         artifacts: [
           {
@@ -205,6 +203,31 @@ describe('RuntimeArtifactUtils', () => {
         metadata: {},
       }),
     ).toEqual([{ name: 'constructor', value: '-' }]);
+  });
+
+  it('recognizes Dataset and Model previews only when explicitly advertised', () => {
+    for (const [type, kind] of [
+      [ArtifactArtifactType.Dataset, 'dataset'],
+      [ArtifactArtifactType.Model, 'model'],
+    ] as const) {
+      expect(getArtifactContentPreviewKind({ type })).toBe(kind);
+      expect(hasArtifactContentPreview({ type })).toBe(false);
+      const artifact = {
+        type,
+        metadata: { _kfp_preview: { version: 1, path: '_kfp_preview.json' } },
+      };
+      expect(hasArtifactContentPreview(artifact)).toBe(true);
+      expect(isVisualizableArtifact(artifact)).toBe(true);
+      expect(isVisualizableArtifact({ type, metadata: { _kfp_preview: { version: 99 } } })).toBe(
+        true,
+      );
+    }
+    expect(
+      hasArtifactContentPreview({
+        type: ArtifactArtifactType.Artifact,
+        metadata: { _kfp_preview: {} },
+      }),
+    ).toBe(false);
   });
 
   it('recognizes legacy UI metadata by artifact name or output key', () => {
