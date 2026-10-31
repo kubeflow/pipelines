@@ -64,6 +64,9 @@
 
 ## Bug fixes and other changes
 
+* Local execution passes whole numbers inside `List` and `Dict` parameters
+  and outputs as ints, as the remote backend does, instead of floats.
+
 # 2.15.2
 
 ## Bug fixes and other changes

@@ -443,6 +443,61 @@ class TestExecutorInputToDict(unittest.TestCase):
         )
         self.assertEqual(executor_input_dict, expected)
 
+    def test_whole_numbers_nested_in_list_and_struct_become_ints(self):
+        # The remote launcher serializes with Go's protojson, which writes whole
+        # numbers below 1e21 without a fractional part, so they load as ints.
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'inputDefinitions': {
+                    'parameters': {
+                        'ids': {'parameterType': 'LIST'},
+                        'counts': {'parameterType': 'STRUCT'},
+                        'y': {'parameterType': 'NUMBER_DOUBLE'},
+                        'text': {'parameterType': 'STRING'},
+                    }
+                },
+                'executorLabel': 'exec-comp',
+            },
+            component_spec,
+        )
+        executor_input = pipeline_spec_pb2.ExecutorInput()
+        json_format.ParseDict(
+            {
+                'inputs': {
+                    'parameterValues': {
+                        'ids': [1, 2.0, 1.5, -3],
+                        'counts': {'a': 1, 'b': [4, 0.25], 'big': 1e21},
+                        'y': 2.0,
+                        'text': '1.0',
+                    }
+                },
+            },
+            executor_input,
+        )
+
+        executor_input_dict = executor_input_utils.executor_input_to_dict(
+            executor_input=executor_input,
+            component_spec=component_spec,
+        )
+
+        values = executor_input_dict['inputs']['parameterValues']
+        self.assertEqual(values['ids'], [1, 2, 1.5, -3])
+        self.assertEqual(
+            [type(value) for value in values['ids']], [int, int, float, int]
+        )
+        self.assertEqual(
+            values['counts'], {'a': 1, 'b': [4, 0.25], 'big': 1e21}
+        )
+        self.assertIsInstance(values['counts']['a'], int)
+        self.assertIsInstance(values['counts']['b'][0], int)
+        self.assertIsInstance(values['counts']['b'][1], float)
+        # protojson writes 1e21 in exponent form, which loads as a float.
+        self.assertIsInstance(values['counts']['big'], float)
+        # Top-level scalars keep their existing handling.
+        self.assertIsInstance(values['y'], float)
+        self.assertEqual(values['text'], '1.0')
+
 
 if __name__ == '__main__':
     unittest.main()
