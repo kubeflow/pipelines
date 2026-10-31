@@ -215,4 +215,49 @@ func TestAccept_MissingReferencesNameTheTask(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), `executor(label="exec-missing") not found in deployment config.`)
 	})
+	t.Run("task without a display name", func(t *testing.T) {
+		components := map[string]*pipelinespec.ComponentSpec{
+			"comp-a": dagComponentWithTask("task-key", "", "comp-missing"),
+		}
+
+		err := Accept(pipelineJob(t, dagComponent("comp-a"), components), nil, &recordingVisitor{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `task "task-key" references component "comp-missing"`)
+	})
+	t.Run("display name differs from the task key", func(t *testing.T) {
+		components := map[string]*pipelinespec.ComponentSpec{
+			"comp-a":    dagComponentWithTask("task-key", "Train model", "comp-leaf"),
+			"comp-leaf": containerComponent("exec-missing"),
+		}
+
+		err := Accept(pipelineJob(t, dagComponent("comp-a"), components), nil, &recordingVisitor{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `used by task "task-key" (display name "Train model") in component "comp-a"`)
+	})
+	t.Run("empty component ref", func(t *testing.T) {
+		components := map[string]*pipelinespec.ComponentSpec{
+			"comp-a": dagComponentWithTask("task-key", "", ""),
+		}
+
+		err := Accept(pipelineJob(t, dagComponent("comp-a"), components), nil, &recordingVisitor{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), `component ref name is empty for task "task-key"`)
+	})
+}
+
+// dagComponentWithTask returns a DAG component with a single task whose map
+// key and display name are set independently.
+func dagComponentWithTask(taskKey, displayName, componentRef string) *pipelinespec.ComponentSpec {
+	task := &pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: componentRef}}
+	if displayName != "" {
+		task.TaskInfo = &pipelinespec.PipelineTaskInfo{Name: displayName}
+	}
+	return &pipelinespec.ComponentSpec{
+		Implementation: &pipelinespec.ComponentSpec_Dag{Dag: &pipelinespec.DagSpec{
+			Tasks: map[string]*pipelinespec.PipelineTaskSpec{taskKey: task},
+		}},
+	}
 }

@@ -79,7 +79,7 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 		visitor:        v,
 		visited:        make(map[string]bool),
 	}
-	return state.dfs(RootComponentName, spec.GetRoot(), nil)
+	return state.dfs(RootComponentName, spec.GetRoot(), "", nil)
 }
 
 type pipelineDFS struct {
@@ -93,7 +93,17 @@ type pipelineDFS struct {
 	path []string
 }
 
-func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
+// describeTask names a task by its key in the DAG's tasks map, which is what
+// locates it in the spec, adding the display name when it differs.
+func describeTask(taskKey string, task *pipelinespec.PipelineTaskSpec) string {
+	displayName := task.GetTaskInfo().GetName()
+	if displayName == "" || displayName == taskKey {
+		return fmt.Sprintf("%q", taskKey)
+	}
+	return fmt.Sprintf("%q (display name %q)", taskKey, displayName)
+}
+
+func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, taskKey string, componentTask *pipelinespec.PipelineTaskSpec) error {
 	// A component already on the path would make the generated templates call
 	// themselves forever, while one visited on another branch is plain reuse.
 	if slices.Contains(state.path, name) {
@@ -123,7 +133,7 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 			usage := ""
 			// The path ends with this component, so its parent is the one before it.
 			if len(state.path) >= 2 {
-				usage = fmt.Sprintf(", used by task %q in component %q", componentTask.GetTaskInfo().GetName(), state.path[len(state.path)-2])
+				usage = fmt.Sprintf(", used by task %s in component %q", describeTask(taskKey, componentTask), state.path[len(state.path)-2])
 			}
 			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config%s. Add the executor to deploymentSpec.executors or fix the component's executorLabel",
 				executorLabel, usage))
@@ -174,17 +184,17 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		}
 		refName := task.GetComponentRef().GetName()
 		if refName == "" {
-			return componentError(fmt.Errorf("component ref name is empty for task name=%q", task.GetTaskInfo().GetName()))
+			return componentError(fmt.Errorf("component ref name is empty for task %s", describeTask(key, task)))
 		}
 		subComponent, ok := state.spec.Components[refName]
 		if !ok {
-			return componentError(fmt.Errorf("task %q references component %q, which is not defined in the pipeline spec's components. Add the component or fix the task's componentRef",
-				task.GetTaskInfo().GetName(), refName))
+			return componentError(fmt.Errorf("task %s references component %q, which is not defined in the pipeline spec's components. Add the component or fix the task's componentRef",
+				describeTask(key, task), refName))
 		}
 		if task.GetRetryPolicy() == nil && componentTask != nil {
 			task.RetryPolicy = componentTask.GetRetryPolicy()
 		}
-		err := state.dfs(refName, subComponent, task)
+		err := state.dfs(refName, subComponent, key, task)
 		if err != nil {
 			return err
 		}
