@@ -6,6 +6,8 @@ sphinx:
 python:
   install:
     - requirements: docs/requirements.txt
+    - method: pip
+      path: sdk/python
 build:
   os: ubuntu-24.04
   tools:
