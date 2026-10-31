@@ -3,6 +3,47 @@
 This is the post-rename reference update. It must not be used as the exceptional
 bootstrap merge. Keep the cutover changes in draft until the gates below pass.
 
+## Read-only readiness report
+
+Run this from a trusted checkout before the rename, with authenticated `gh`,
+Python 3.10+ and PyYAML (already in `.github/scripts/requirements.txt`):
+
+```bash
+python .github/resources/scripts/main_branch_readiness.py
+python .github/resources/scripts/main_branch_readiness.py --json > readiness.json
+```
+
+To bind a later run to a previously recorded `master` commit, add
+`--expected-sha <full-40-character-sha>`. The checker reads GitHub using explicit
+GET requests and fetches the public deployed Prow configuration. It never
+renames branches, edits settings, posts comments, or dispatches jobs.
+
+Exit **1** means `NO-GO`: one or more checks are blocked or unknown. Exit **2**
+means `OWNER_REVIEW_REQUIRED`: the automated checks pass, but the listed owner
+confirmations remain mandatory. Neither result authorizes the rename or the
+exceptional bootstrap merge. An unavailable endpoint or insufficient access is
+unknown evidence, not a pass; verify `gh` authentication/access and rerun.
+
+The report checks preparation PR merges, the live Tide policy for both branch
+names, the current protection/ruleset baseline, PyPI environment policies, OIDC
+subject defaults, and stable default-branch/SHA observations. It records the
+Prow deployed revision and configuration digest. A merged Prow PR alone cannot
+satisfy the deployment check. Policy drift, including an unexpected Tide merge
+route, requires investigation rather than weakening the checker.
+
+This is a pre-rename, point-in-time report, not an atomic snapshot or a complete
+security policy audit. It deliberately blocks after the rename or if `main`
+already exists. It does not establish bootstrap authority, private integration
+readiness, CI health, publication drain, or merge freeze. Rerun in the frozen
+window and complete the owner gates below. Preserve the sanitized report with
+cutover evidence; do not commit live reports to the repository.
+
+Offline regression tests:
+
+```bash
+PYTHONPATH=.github/resources/scripts python -m unittest main_branch_readiness_test
+```
+
 ## Before the maintenance window
 
 - Merge [Pipelines preparation](https://github.com/kubeflow/pipelines/pull/15274)
