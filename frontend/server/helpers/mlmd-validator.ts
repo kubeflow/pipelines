@@ -381,14 +381,35 @@ function normalizedArtifactUri(artifactUri: string): string | undefined {
 }
 
 // Key safety applies even when MLMD is not configured or is unavailable.
-export function validateArtifactKey(artifactUri: string): ValidationResult {
+export function validateArtifactKey(
+  artifactUri: string,
+  claimedNamespace?: string,
+): ValidationResult {
   // A single terminal separator identifies a directory artifact. Check its path
   // without that separator, but keep the original URI for metadata and storage.
   // The no-record prefix fallback retains its existing stricter decision.
   const pathToCheck = artifactUri.endsWith('/') ? artifactUri.slice(0, -1) : artifactUri;
-  return normalizedArtifactUri(pathToCheck) === undefined
-    ? { valid: false, reason: 'key-not-normalized' }
-    : { valid: true };
+  const normalizedUri = normalizedArtifactUri(pathToCheck);
+  if (normalizedUri === undefined) {
+    return { valid: false, reason: 'key-not-normalized' };
+  }
+  // A matching MLMD context cannot override a namespace encoded by the
+  // configured storage-key prefix. Custom roots without that prefix retain
+  // their existing metadata-based authorization behavior.
+  // Preserve a terminal slash when checking a namespace root. The path safety
+  // check trims it, but a request for private-artifacts/team-b/ still targets
+  // team-b's storage prefix.
+  const storageNamespace = namespaceFromArtifactUri(
+    artifactUri.endsWith('/') ? `${normalizedUri}/` : normalizedUri,
+  );
+  if (claimedNamespace && storageNamespace && storageNamespace !== claimedNamespace) {
+    return {
+      valid: false,
+      actualNamespace: storageNamespace,
+      reason: 'prefix-namespace-mismatch',
+    };
+  }
+  return { valid: true };
 }
 
 export async function validateArtifactNamespace(
@@ -397,7 +418,7 @@ export async function validateArtifactNamespace(
   claimedNamespace: string,
 ): Promise<ValidationResult> {
   // Preserve path hardening independently of the deferred ownership enforcement.
-  const keyValidation = validateArtifactKey(artifactUri);
+  const keyValidation = validateArtifactKey(artifactUri, claimedNamespace);
   if (!keyValidation.valid) return keyValidation;
   if (!loadProtos()) {
     return { valid: true, reason: 'protos-unavailable' };
