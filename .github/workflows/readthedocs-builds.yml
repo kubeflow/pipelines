@@ -52,6 +52,9 @@ jobs:
           git config user.email "$(git log -1 --format=%ae)"
           uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test release.kfpr.dependency_pins_test release.kfpr.gates_test release.kfpr.notes_test release.kfpr.ranges_test release.kfpr.notes_integration_test release.kfpr.previews_test release.kfpr.editorial_test
 
+      - name: Verify SDK docs build without font downloads
+        run: uv run python -m unittest discover -s docs/sdk -p '*_test.py'
+
       - name: Build KFP SDK Docs
         working-directory: docs/sdk
         run: |

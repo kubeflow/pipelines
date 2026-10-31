@@ -115,6 +115,21 @@ jobs:
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
+          # Driver recovery fault injection runs serially on both supported
+          # Argo lines and production database engines.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v4.0.13"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            test_label: "E2EDriverRetry"
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v4.1.5"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            db_type: "pgx"
+            test_label: "E2EDriverRetry"
           # Schedule-only NVIDIA GPU lane (Kind + Fake GPU Operator fake backend).
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
@@ -267,6 +282,11 @@ jobs:
             NAMESPACE=$DISPATCH_NAMESPACE
           fi
 
+          if [ "$TEST_LABEL" == "E2EDriverRetry" ]; then
+            # Fault tests temporarily replace the executor-plugin ConfigMap.
+            NUMBER_OF_NODES=1
+          fi
+
           {
             echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
             echo "TEST_LABEL=$TEST_LABEL"
@@ -282,6 +302,8 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.E2E_TESTS_DIR }}
           test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          driver_retry_test_image: ${{ steps.configure.outputs.TEST_LABEL == 'E2EDriverRetry' && 'kfp-driver-retry-test:ci' || '' }}
+          driver_retry_kind_cluster: ${{ env.CLUSTER_NAME }}
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}

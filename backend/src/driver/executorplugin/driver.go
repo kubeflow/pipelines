@@ -36,7 +36,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/driver/driverinputs"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverlogs"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 
 	// Register runtime plugin factories.
 	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
@@ -109,6 +108,27 @@ func (r *driverRunner) drive(ctx context.Context, args driverapi.DriverPluginArg
 			err = fmt.Errorf("%w (driver logs: %s)", err, invocation.logContext.URI)
 		}
 	}()
+	if args.DriverRetryFinalize {
+		retry, parseErr := parseDriverRetry(args)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		if !retry.enabled {
+			return &driver.Execution{}, nil
+		}
+		if err := validateDriverFinalization(args, retry.generation); err != nil {
+			return nil, err
+		}
+		clients, err := r.newClients(ctx, args, os.Getenv(caCertPathEnvVar))
+		if err != nil {
+			return nil, err
+		}
+		invocation.clients = clients
+		if err := finalizeStoppedDriver(ctx, clients.manager.KFPAPIClient(), args, retry.generation); err != nil {
+			return nil, err
+		}
+		return &driver.Execution{}, nil
+	}
 	options, err := r.setup(ctx, args, invocation)
 	if err == nil {
 		invocation.logContext.Execution, err = r.execute(ctx, *options, invocation.clients.manager)
@@ -165,6 +185,10 @@ func executeDriver(ctx context.Context, options drivercommon.Options, clients cl
 
 func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArgs, invocation *driverInvocation) (*drivercommon.Options, error) {
 	log := util.GetLoggerFrom(ctx)
+	retry, err := parseDriverRetry(args)
+	if err != nil {
+		return nil, err
+	}
 
 	log.Infof("driver invocation: type=%s run_id=%s task_name=%s", args.DriverType, args.RunID, args.TaskName)
 	namespace := args.Namespace
@@ -237,12 +261,14 @@ func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArg
 	if err != nil {
 		return nil, err
 	}
-	pluginDispatcher, err := plugins.GetPluginDispatcherWithRuntimeArgs(args.RuntimeArgs)
+	pluginDispatcher, err := pluginDispatcherForDriver(args.RuntimeArgs, retry.enabled)
 	if err != nil {
-		log.Errorf("Failed to initialize plugin dispatcher: %v", err)
-		pluginDispatcher = plugins.NoOpDispatcher{}
+		return nil, err
 	}
 	options := drivercommon.Options{
+		ExitTaskName: args.ExitTaskName, ExitTaskStatus: args.ExitTaskStatus,
+		DriverRetryEnabled: retry.enabled, DriverRetryAttempt: retry.attempt,
+		DriverRetryMaxCount: retry.maxCount, DriverRetryGeneration: retry.generation,
 		PipelineName: args.PipelineName, Run: run, RunName: args.RunName, RunDisplayName: args.RunDisplayName,
 		Namespace: namespace, Component: componentSpec, Task: taskSpec, ParentTask: parentTask, ScopePath: *scopePath,
 		IterationIndex: iterationIndex, PipelineLogLevel: args.LogLevel, PublishLogs: args.PublishLogs,

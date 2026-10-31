@@ -134,6 +134,53 @@ still retry or be re-enabled if their service-account checks pass. Legacy V2
 recurring jobs with both source manifest fields remain re-enableable when their
 authoritative source establishes V2 provenance.
 
+## Driver recovery schema upgrades
+
+Task-driver retry recovery adds nullable ownership/checkpoint columns to `tasks`,
+two recovery fields to `run_details`, a `driver_task_stops` table, and recovery
+lookup indexes. Existing task data and stored column widths are preserved; no
+historical task backfill is required.
+
+The API server applies these additions through a dedicated migration before
+ordinary ORM reconciliation. MySQL column additions require `ALGORITHM=INSTANT`;
+secondary indexes require `ALGORITHM=INPLACE, LOCK=NONE`. MySQL must support
+instant column additions for the existing table (introduced in 8.0.12, with
+engine-specific limits). PostgreSQL 11 or newer is required for metadata-only
+constant defaults; its indexes use `CREATE INDEX CONCURRENTLY` outside a transaction. An incompatible existing
+column/index or an unsupported online algorithm fails startup instead of falling
+back to a table copy or write-blocking index build.
+
+Recovery migration passes have a two-minute deadline and a one-second metadata
+lock wait. Replicas coordinate through database-scoped session locks on the same
+connection used for DDL. Contention can delay readiness or fail startup; after
+resolving the reported condition, restarting resumes from the database catalog.
+An interrupted PostgreSQL concurrent index is rebuilt only when no active build
+owns it. Session settings and ownership are released on failure and cancellation.
+After a canceled connection is discarded, server-side session cleanup can lag
+briefly; another replica fails safely while the old session still owns the lock.
+
+These operations can take brief metadata locks and consume I/O and disk space.
+Check `driver_retry_schema` logs for progress and failures. This availability
+contract covers the recovery schema additions; it does not establish that every
+historical schema change performed by the API server is nonblocking.
+
+Regression validation uses the native schema before these recovery additions,
+with one run and 10,000 tasks containing 255-character fingerprints, then calls
+the actual API-server migration entrypoint. Sample results from disposable
+databases are below; these measurements are not production latency guarantees.
+
+| Engine | Upgrade duration | Completed read/write pairs during upgrade | Maximum pair latency |
+| --- | --- | --- | --- |
+| MySQL 8.0.46 | 650 ms | 839 | 52.6 ms |
+| MySQL 8.4.11 | 513 ms | 704 | 36.2 ms |
+| PostgreSQL 16.15 | 1,396 ms | 127 | 139.9 ms |
+
+Both table identities and all seeded values remained unchanged. Separate checks
+completed reads and writes while index creation was active: 9.8 ms and 13.3 ms
+on MySQL with 250,000 tasks, and 5.0 ms on PostgreSQL with 10,000 tasks.
+The same tests cover contention, cancellation, competing replicas, interrupted
+indexes, and repeated startup. They do not cover every historical schema variant.
+
 ## Frontend Server
 
 When deploying frontend server called `ml-pipeline-ui`, you can pass various environment

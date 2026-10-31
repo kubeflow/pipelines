@@ -37,6 +37,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	runtimeapi "github.com/kubeflow/pipelines/backend/api/runtime/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -865,6 +866,7 @@ func registerRPCServices(s *grpc.Server, resourceManager *resource.ResourceManag
 	apiv2.RegisterRunServiceServer(registrar, RunServer)
 	apiv2.RegisterReportServiceServer(registrar, ReportServer)
 	apiv2.RegisterArtifactServiceServer(registrar, ArtifactServer)
+	runtimeapi.RegisterDriverTaskServiceServer(s, server.NewDriverTaskServer(RunServer))
 }
 
 func registerGatewayServices(register func(RegisterHttpHandlerFromEndpoint, string)) {

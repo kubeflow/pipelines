@@ -1750,6 +1750,12 @@ func toModelTask(apiTask *apiv2.PipelineTask) (*model.Task, error) {
 		return nil, util.NewInvalidInputError("Task cannot be nil")
 	}
 
+	for key := range apiTask.GetStatusMetadata().GetCustomProperties() {
+		if strings.HasPrefix(key, "_kfp_driver_") {
+			return nil, util.NewInvalidInputError("Driver recovery properties are reserved for the runtime protocol")
+		}
+	}
+
 	task := &model.Task{
 		UUID:           apiTask.GetTaskId(),
 		RunUUID:        apiTask.GetRunId(),
@@ -1906,7 +1912,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 	// Convert status metadata to new StatusMetadata struct
 	if modelTask.StatusMetadata != nil {
 		statusMeta, err := model.JSONDataToProtoMessage(
-			modelTask.StatusMetadata,
+			publicTaskStatusMetadata(modelTask.StatusMetadata),
 			func() *apiv2.PipelineTask_StatusMetadata {
 				return &apiv2.PipelineTask_StatusMetadata{}
 			})
