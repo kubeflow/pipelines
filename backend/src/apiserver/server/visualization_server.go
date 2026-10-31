@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -31,6 +32,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -46,6 +49,9 @@ type VisualizationServer struct {
 }
 
 func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
+	if os.Getenv("ENABLE_PYTHON_VISUALIZATIONS") != "true" {
+		return nil, status.Error(codes.FailedPrecondition, "Python visualizations are disabled. An administrator must set ENABLE_PYTHON_VISUALIZATIONS=true on the API server and visualization service to enable them.")
+	}
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}
@@ -83,6 +89,9 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 // It returns an error if a go_client.Visualization object does not have valid
 // values.
 func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_client.CreateVisualizationRequest) error {
+	if request == nil || request.Visualization == nil {
+		return util.NewInvalidInputError("A visualization is required")
+	}
 	// Only validate that a source is provided for non-custom visualizations.
 	if request.Visualization.Type != go_client.Visualization_CUSTOM {
 		if len(request.Visualization.Source) == 0 {

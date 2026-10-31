@@ -76,7 +76,7 @@ func (s *VisualizationApiTest) SetupTest() {
 func (s *VisualizationApiTest) TestVisualizationAPI() {
 	t := s.T()
 
-	/* ---------- Generate custom visualization --------- */
+	// Stock deployments reject generation until the operator explicitly opts in.
 	visualization := &visualization_model.APIVisualization{
 		Arguments: `{"code": ["print(2)"]}`,
 		Type:      visualization_model.APIVisualizationTypeCUSTOM.Pointer(),
@@ -84,8 +84,10 @@ func (s *VisualizationApiTest) TestVisualizationAPI() {
 	customVisualization, err := s.visualizationClient.Create(&params.VisualizationServiceCreateVisualizationV1Params{
 		Visualization: visualization,
 	})
-	assert.Nil(t, err)
-	assert.NotNil(t, customVisualization.HTML)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Python visualizations are disabled")
+	}
+	assert.Nil(t, customVisualization)
 }
 
 func TestVisualizationAPI(t *testing.T) {
