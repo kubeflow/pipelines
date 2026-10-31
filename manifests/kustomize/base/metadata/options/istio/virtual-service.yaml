@@ -12,10 +12,5 @@ spec:
   - match:
     - uri:
         prefix: /ml_metadata
-    rewrite:
-      uri: /ml_metadata
-    route:
-    - destination:
-        host: metadata-envoy-service.kubeflow.svc.cluster.local
-        port:
-          number: 9090
+    directResponse:
+      status: 403
