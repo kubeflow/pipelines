@@ -151,7 +151,7 @@ describe('2.17 compatibility through the actual MLMD validator', () => {
       { id: 2, contexts: [] },
     ];
     fixture.failedContextIds = [...ids];
-    expect(await validate()).toEqual({ valid: true, reason: 'mlmd-unavailable' });
+    expect(await validate()).toEqual({ valid: false, reason: 'mlmd-unavailable' });
     expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain('sensitive');
     expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain(customUri);
   });
@@ -166,7 +166,7 @@ describe('2.17 compatibility through the actual MLMD validator', () => {
         vi.mocked(fetch).mockResolvedValue(new Response('sensitive body', { status: 503 }));
       }
       expect(await validate()).toEqual({
-        valid: true,
+        valid: false,
         reason: fixture.missing ? 'protos-unavailable' : 'mlmd-unavailable',
       });
       expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain('sensitive');

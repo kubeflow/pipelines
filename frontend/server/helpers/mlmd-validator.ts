@@ -301,7 +301,7 @@ export function decideFromContexts(
     }
   }
   if (hadUnavailable) {
-    return { valid: true, reason: 'mlmd-unavailable' };
+    return { valid: false, reason: 'mlmd-unavailable' };
   }
   if (!hasNamespaceEvidence) {
     return { valid: true, reason: 'no-evidence' };
@@ -421,7 +421,7 @@ export async function validateArtifactNamespace(
   const keyValidation = validateArtifactKey(artifactUri, claimedNamespace);
   if (!keyValidation.valid) return keyValidation;
   if (!loadProtos()) {
-    return { valid: true, reason: 'protos-unavailable' };
+    return { valid: false, reason: 'protos-unavailable' };
   }
 
   let artifacts: ArtifactInfo[];
@@ -429,11 +429,10 @@ export async function validateArtifactNamespace(
     artifacts = await getArtifactsByUri(envoyAddress, [artifactUri]);
   } catch {
     console.warn(
-      '[SECURITY] MLMD artifact lookup failed; continuing artifact reads with 2.17 ' +
-        'compatibility without ownership verification. Check MLMD availability and the ' +
-        'frontend Envoy configuration.',
+      '[SECURITY] MLMD artifact lookup failed; blocking artifact read. Check MLMD ' +
+        'availability and the frontend Envoy configuration.',
     );
-    return { valid: true, reason: 'mlmd-unavailable' };
+    return { valid: false, reason: 'mlmd-unavailable' };
   }
 
   if (artifacts.length === 0) {
@@ -458,17 +457,16 @@ export async function validateArtifactNamespace(
     );
   } catch {
     console.warn(
-      '[SECURITY] MLMD context lookups failed; continuing artifact reads with 2.17 ' +
-        'compatibility without ownership verification. Check MLMD availability.',
+      '[SECURITY] MLMD context lookups failed; blocking artifact read. Check MLMD availability.',
     );
-    return { valid: true, reason: 'mlmd-unavailable' };
+    return { valid: false, reason: 'mlmd-unavailable' };
   }
 
   const decision = decideFromContexts(contextResults, claimedNamespace);
   if (decision.reason === 'mlmd-unavailable') {
     console.warn(
       '[SECURITY] Some MLMD contexts are unavailable and available contexts show no namespace ' +
-        'mismatch; continuing artifact reads with 2.17 compatibility. Check MLMD availability.',
+        'mismatch; blocking artifact read. Check MLMD availability.',
     );
   } else if (decision.reason === 'no-evidence') {
     console.warn(
