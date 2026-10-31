@@ -132,6 +132,9 @@ updates:
       - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen on this maintenance line; upgrades require explicit review.
+      - dependency-name: "ml-metadata"
     groups:
       # Keep shared Python constraints aligned across the monorepo.
       python-dependencies:

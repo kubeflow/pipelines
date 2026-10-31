@@ -51,6 +51,12 @@ class DependabotConfigTest(unittest.TestCase):
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
             encoding='utf-8')
 
+    def test_release_ml_metadata_updates_are_disabled(self):
+        config = yaml.safe_load(self.config)
+        pip = next(update for update in config['updates']
+                   if update['package-ecosystem'] == 'pip')
+        self.assertIn({'dependency-name': 'ml-metadata'}, pip.get('ignore', []))
+
     def test_pip_compile_headers_do_not_require_eol_updater_python(self):
         # Dependabot's PythonRequirementParser prioritizes this exact header
         # over setup.py's python_requires. One unsupported version aborts the
