@@ -97,7 +97,7 @@ class FakeCommandsTestCase(unittest.TestCase):
 
 
 class ProducerLookupRecoveryTest(FakeCommandsTestCase):
-    def run_lookup(self, artifacts, fail_api=False):
+    def run_lookup(self, artifacts, fail_api=False, default_branch='master'):
         payload = self.directory / 'artifacts.json'
         payload.write_text(json.dumps({'artifacts': artifacts}))
         github_output = self.directory / 'github-output'
@@ -127,6 +127,7 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
                 'GITHUB_OUTPUT': str(github_output),
                 'GITHUB_REPOSITORY': 'kubeflow/pipelines',
                 'SOURCE_SHA': SOURCE_SHA,
+                'DEFAULT_BRANCH': default_branch,
             },
             capture_output=True,
             text=True,
@@ -137,6 +138,20 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
             result,
             github_output.read_text(),
             gh_log.read_text().splitlines(),
+        )
+
+    def test_main_lookup_uses_current_default_instead_of_retired_master(self):
+        main = producer_artifact()
+        main['workflow_run']['head_branch'] = 'main'
+        main['workflow_run']['id'] = 20
+        result, output, _ = self.run_lookup(
+            [producer_artifact(), main], default_branch='main'
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output, 'run-id=20\n')
+        self.assertIn(
+            'DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}',
+            consumer_step('Find runtime base image producer'),
         )
 
     def test_trusted_hit_returns_producer_without_waiting(self):

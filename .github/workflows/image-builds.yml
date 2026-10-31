@@ -57,6 +57,7 @@ jobs:
         id: runtime-base-images-producer
         shell: bash
         env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           ARTIFACT_NAME: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -71,7 +72,8 @@ jobs:
                 -f per_page=100); then
               producer_run_id=$(python3 \
                 .github/resources/scripts/runtime_base_image_artifacts.py \
-                select-producer --source-sha "${SOURCE_SHA}" <<< "${artifacts}")
+                select-producer --source-sha "${SOURCE_SHA}" \
+                --default-branch "${DEFAULT_BRANCH}" <<< "${artifacts}")
             else
               echo "::warning::Failed to query runtime base image artifacts"
             fi

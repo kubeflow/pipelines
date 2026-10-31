@@ -5,7 +5,7 @@ on:
     - cron: '17 0 * * *'
   workflow_dispatch: {}
   push:
-    branches: [master]
+    branches: [master, main]
     paths:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/image-builds.yml'
@@ -84,7 +84,7 @@ jobs:
       - name: Save runtime base images to cache
         if: >-
           github.event_name != 'pull_request' &&
-          github.ref == 'refs/heads/master' &&
+          github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
           steps.cache-runtime-base-images.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -103,7 +103,7 @@ jobs:
 
   prune-runtime-base-image-caches:
     needs: produce-runtime-base-images
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+    if: ${{ github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -135,7 +135,7 @@ jobs:
 
             if python3 .github/resources/scripts/prune_runtime_base_image_caches.py \
                 --current-key "${CURRENT_CACHE_KEY}" \
-                --current-ref 'refs/heads/master' \
+                --current-ref "${GITHUB_REF}" \
                 < "${cache_pages}" > "${cache_ids}"; then
               current_cache_found=true
               break
@@ -148,7 +148,7 @@ jobs:
           done
 
           if [[ "${current_cache_found}" != true ]]; then
-            echo "::error::Current master cache was not found; refusing to delete caches"
+            echo "::error::Current default-branch cache was not found; refusing to delete caches"
             exit 1
           fi
 

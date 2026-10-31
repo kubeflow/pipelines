@@ -104,7 +104,7 @@ jobs:
       if (request.pull_number === 100) return {data: {
         number: 100, merged: true, merge_commit_sha: baseTip,
         merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z',
-        base: {ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
+        base: {ref: pr.base.ref, repo: {full_name: 'kubeflow/pipelines'}},
       }};
       if (options.recoveryDrift && pullReads >= 3) {
         if (options.recoveryDrift === 'head') pr.head.sha = 'd'.repeat(40);
@@ -687,10 +687,16 @@ async function run(liveTip) {
         self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'H'}])
 
     def test_base_advance_revokes_stale_green_across_full_reconciliation(self):
+        self.assert_base_advance_revokes_stale_green('master')
+
+    def test_main_base_advance_revokes_stale_green(self):
+        self.assert_base_advance_revokes_stale_green('main')
+
+    def assert_base_advance_revokes_stale_green(self, branch):
         B1 = 'a' * 40
         B2 = 'c' * 40
         published_stamp = hashlib.sha256(
-            json.dumps(['master', B1], separators=(',', ':')).encode()
+            json.dumps([branch, B1], separators=(',', ':')).encode()
         ).hexdigest()
         initial = (
             'Expected CI and all checks passed; base policy '
@@ -710,7 +716,7 @@ async function run(liveTip) {
                 {
                     'number': 7,
                     'base': {
-                        'ref': 'master',
+                        'ref': branch,
                         'sha': B2,
                     },
                 }
@@ -726,7 +732,7 @@ async function run(liveTip) {
                         'pr': {
                             'base': {
                                 'sha': B1,
-                                'ref': 'master',
+                                'ref': branch,
                                 'repo': {
                                     'full_name': 'kubeflow/pipelines',
                                 },
@@ -1299,6 +1305,9 @@ const LIVE = process.argv[2];
 const TIP = process.argv[3];
 const ADVANCE_AFTER = process.argv[4] || undefined;
 const FLIP = process.argv[5] || undefined;
+const BRANCH = process.argv[6] || 'master';
+const EVENT = process.argv[7] || 'push';
+const refCalls = [];
 let statusPaginationFlip = false;
 let getRefCalls = 0;
 const nextLiveTip = () => {
@@ -1307,7 +1316,7 @@ const nextLiveTip = () => {
   return (ADVANCE_AFTER !== undefined && n >= Number(ADVANCE_AFTER)) ? B2 : LIVE;
 };
 const stamp = base => crypto.createHash('sha256')
-  .update(JSON.stringify(['master', base])).digest('hex');
+  .update(JSON.stringify([BRANCH, base])).digest('hex');
 const successDesc = base =>
   'Expected CI and all checks passed; base policy ' + stamp(base) + '.';
 const statuses = {
@@ -1319,21 +1328,21 @@ const statuses = {
   blocked: {state: 'success', description: successDesc(B1)},
 };
 const prs = FLIP === 'status-pagination'
-  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []}]
+  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: BRANCH, sha: B1}, labels: []}]
   : [
-  {number: 1, head: {sha: 'stale'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 2, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 3, head: {sha: 'legacy'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 4, head: {sha: 'failure'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 5, head: {sha: 'pending'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 6, head: {sha: 'blocked'}, base: {ref: 'master', sha: B1},
+  {number: 1, head: {sha: 'stale'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 2, head: {sha: 'fresh'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 3, head: {sha: 'legacy'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 4, head: {sha: 'failure'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 5, head: {sha: 'pending'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 6, head: {sha: 'blocked'}, base: {ref: BRANCH, sha: B1},
     labels: [{name: 'needs-ok-to-test'}]},
 ];
 const listCalls = [];
 const writes = [];
 const github = {
   rest: {pulls: {list: {}},
-    git: {getRef: async () => ({data: {object: {sha: nextLiveTip()}}})},
+    git: {getRef: async request => {refCalls.push(request.ref); return {data: {object: {sha: nextLiveTip()}}};}},
     repos: {
     getCombinedStatusForRef: async ({ref}) => ({
       data: {statuses: statuses[ref] ?
@@ -1347,13 +1356,21 @@ github.paginate.iterator = async function* (method, params) {
   if (FLIP === 'status-pagination') statusPaginationFlip = true;
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
-const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
+const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7, eventName: EVENT, ref: `refs/heads/${BRANCH}`};
 revokeStaleGreens({github, context, tip: TIP}).then(count => {
-  console.log(JSON.stringify({count, writes, listCalls}));
+  console.log(JSON.stringify({count, writes, listCalls, refCalls}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
 
-    def _run_revoke(self, live_tip, tip, advance_after=None, flip=None):
+    def _run_revoke(
+        self,
+        live_tip,
+        tip,
+        advance_after=None,
+        flip=None,
+        branch='master',
+        event='push',
+    ):
         argv = [
             'node',
             '-e',
@@ -1363,6 +1380,8 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
             tip,
             str(advance_after or ''),
             flip or '',
+            branch,
+            event,
         ]
         result = subprocess.run(
             argv, check=True, capture_output=True, text=True
@@ -1413,6 +1432,84 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
         actual = self._run_revoke('a' * 40, 'a' * 40, flip='status-pagination')
         self.assertEqual(actual['count'], 0)
         self.assertEqual(actual['writes'], [])
+
+    def test_main_push_revokes_only_main_stale_greens(self):
+        actual = self._run_revoke('c' * 40, 'c' * 40, branch='main')
+        self.assertEqual(
+            [w['sha'] for w in actual['writes']], ['stale', 'legacy']
+        )
+        self.assertEqual(actual['listCalls'][0]['base'], 'main')
+        self.assertEqual(set(actual['refCalls']), {'heads/main'})
+
+    def test_main_queued_push_preserves_newer_success(self):
+        for options in ({}, {'flip': 'status-pagination'}):
+            with self.subTest(options=options):
+                actual = self._run_revoke(
+                    'a' * 40 if options else 'c' * 40,
+                    'a' * 40,
+                    branch='main',
+                    **options,
+                )
+                self.assertEqual(actual['writes'], [])
+
+    def test_main_retarget_requires_fresh_execution(self):
+        for fresh, expected in [(False, 'failure'), (True, 'success')]:
+            with self.subTest(fresh=fresh):
+                result = exercise(
+                    {
+                        'retarget': True,
+                        'fresh': fresh,
+                        'pr': {
+                            'base': {
+                                'ref': 'main',
+                                'sha': 'b' * 40,
+                                'repo': {'full_name': 'kubeflow/pipelines'},
+                            }
+                        },
+                    }
+                )
+                self.assert_last_status(result, expected)
+
+    def test_release_base_remains_frozen(self):
+        result = exercise(
+            {
+                'baseTip': 'c' * 40,
+                'baseArrivedAt': '2026-09-07T12:00:00Z',
+                'pr': {
+                    'base': {
+                        'ref': 'release-2.18',
+                        'sha': 'b' * 40,
+                        'repo': {'full_name': 'kubeflow/pipelines'},
+                    }
+                },
+            }
+        )
+        self.assert_last_status(result, 'success')
+        reads = [
+            call[1]['expression']
+            for call in result['calls']
+            if call[0] == 'base-workflows'
+        ]
+        self.assertTrue(reads)
+        self.assertEqual(set(reads), {'b' * 40 + ':.github/workflows'})
+
+    def test_push_revocation_rejects_other_branches(self):
+        for branch in ['release-2.18', 'feature', '../main', 'refs/heads/main']:
+            with self.subTest(branch=branch):
+                with self.assertRaises(subprocess.CalledProcessError) as raised:
+                    self._run_revoke('c' * 40, 'c' * 40, branch=branch)
+                self.assertIn(
+                    'requires a push to master or main', raised.exception.stderr
+                )
+
+    def test_push_revocation_rejects_non_push_events(self):
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            self._run_revoke(
+                'c' * 40, 'c' * 40, branch='main', event='workflow_dispatch'
+            )
+        self.assertIn(
+            'requires a push to master or main', raised.exception.stderr
+        )
 
     def test_push_revocation_rejects_non_sha_tip(self):
         script = r"""

@@ -13,7 +13,7 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   workflow_dispatch:
     inputs:
@@ -74,7 +74,7 @@ jobs:
 
   api-test-versions:
     # Full prefix coverage after merges, without adding PR-time clusters.
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

@@ -29,13 +29,20 @@ from osv_manifest_images import (
 from osv_manifest_source import download_manifests
 from osv_master_images import github_api, repository_name
 
-BRANCHES = ('master', 'release-2.18')
+RELEASE_BRANCH = 'release-2.18'
 
 
-def create_inventory(sources, branch_images):
+def create_inventory(sources, branch_images, default_branch='master'):
+    if default_branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
+    branches = (default_branch, RELEASE_BRANCH)
+    if set(sources) != set(branches) or set(branch_images) != set(branches):
+        raise ValueError(
+            'Inventory sources must match the default and release branches'
+        )
     rows = {}
     uploads = []
-    for branch in BRANCHES:
+    for branch in branches:
         images = branch_images[branch]
         if not images:
             raise ValueError(f'No third-party images found for {branch}')
@@ -77,22 +84,23 @@ def create_inventory(sources, branch_images):
                     'sha': sources[branch],
                     'category': (
                         f'kubeflow-pipelines-osv-image-{category}'
-                        if branch == 'master'
+                        if branch == default_branch
                         else f'{branch}-third-party-image-{category}-amd64'
                     ),
                 }
             )
-    master = {
+    development = {
         target['target']: r
         for r in rows.values()
         for target in r['targets']
-        if target['branch'] == 'master'
+        if target['branch'] == default_branch
     }
     for row in rows.values():
         candidates = {
-            master[target['target']]['key']
+            development[target['target']]['key']
             for target in row['targets']
-            if target['branch'] == 'release-2.18' and target['target'] in master
+            if target['branch'] == 'release-2.18'
+            and target['target'] in development
         }
         candidate = (
             rows[next(iter(candidates))] if len(candidates) == 1 else None
@@ -101,6 +109,7 @@ def create_inventory(sources, branch_images):
             row['candidate_key'] = candidate['key']
     return {
         'schema': 1,
+        'default_branch': default_branch,
         'sources': sources,
         'images': list(rows.values()),
         'uploads': uploads,
@@ -111,8 +120,12 @@ def create_inventory(sources, branch_images):
 
 
 def discover(repository, kustomize, output):
+    default_branch = github_api(f'repos/{repository}')['default_branch']
+    if default_branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
+    branches = (default_branch, RELEASE_BRANCH)
     sources, images = {}, {}
-    for branch in BRANCHES:
+    for branch in branches:
         sha = github_api(f'repos/{repository}/commits/{branch}')['sha']
         sources[branch] = sha
         destination = output / branch
@@ -127,7 +140,7 @@ def discover(repository, kustomize, output):
             for target in captured['targets']
             if not is_first_party(target['image'])
         ]
-    inventory = create_inventory(sources, images)
+    inventory = create_inventory(sources, images, default_branch)
     inventory['workflow_sha'] = os.environ['GITHUB_WORKFLOW_SHA']
     inventory['run_id'] = os.environ['GITHUB_RUN_ID']
     inventory['run_attempt'] = os.environ['GITHUB_RUN_ATTEMPT']
