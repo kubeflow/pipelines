@@ -6,6 +6,10 @@ inputs:
     description: "Name of the artifact to download; empty downloads all matching artifacts"
     required: false
     default: ''
+  artifact-ids:
+    description: "Comma-separated immutable artifact IDs; mutually exclusive with name"
+    required: false
+    default: ''
   path:
     description: "Absolute or workspace-relative destination without symlink or parent-traversal components"
     required: true
@@ -61,6 +65,7 @@ runs:
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
       with:
         name: ${{ inputs.name }}
+        artifact-ids: ${{ inputs.artifact-ids }}
         path: ${{ inputs.path }}
         pattern: ${{ inputs.pattern }}
         merge-multiple: ${{ inputs.merge-multiple }}
@@ -104,6 +109,7 @@ runs:
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
       with:
         name: ${{ inputs.name }}
+        artifact-ids: ${{ inputs.artifact-ids }}
         path: ${{ inputs.path }}
         pattern: ${{ inputs.pattern }}
         merge-multiple: ${{ inputs.merge-multiple }}

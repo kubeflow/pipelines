@@ -6,6 +6,10 @@ on:
         description: 'Native build architecture (amd64 or arm64)'
         type: string
         default: amd64
+      shared:
+        description: 'Publish revision- and attempt-bound artifacts for shared consumers'
+        type: boolean
+        default: false
     outputs:
       IMAGE_PATH:
         description: 'A description of my output'
@@ -132,14 +136,39 @@ jobs:
           echo "path=$rebuilt_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
+        id: upload-image
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: ${{ env.ARTIFACT_NAME }}
+          name: ${{ inputs.shared && format('{0}-attempt-{1}', env.ARTIFACT_NAME, github.run_attempt) || env.ARTIFACT_NAME }}
           path: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 1
 
+      - name: Record shared runtime archive identity
+        if: inputs.shared
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload-image.outputs.artifact-id }}
+          ARCHIVE_DIRECTORY: ${{ steps.build-runtime-base-images.outputs.path || env.ARTIFACTS_PATH }}
+        run: >-
+          python3 .github/resources/scripts/shared_ci_images.py record
+          --architecture amd64 --image runtime-base-images
+          --artifact-id "$ARTIFACT_ID" --directory "$ARCHIVE_DIRECTORY"
+          --output runtime-base-images.json
+
+      - name: Publish shared runtime archive record
+        if: inputs.shared
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: runtime-base-images-record-amd64-attempt-${{ github.run_attempt }}
+          path: runtime-base-images.json
+          if-no-files-found: error
+          retention-days: 1
+
   image-build:
+    permissions:
+      actions: read
+      contents: read
     runs-on: ${{ inputs.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     outputs:
@@ -289,12 +318,76 @@ jobs:
           "$ARTIFACTS_PATH/$ARTIFACT_NAME.json"
 
       - name: Upload artifact
+        id: upload-image
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
-          name: ${{ env.ARTIFACT_NAME }}
+          name: ${{ inputs.shared && format('{0}-attempt-{1}', env.ARTIFACT_NAME, github.run_attempt) || env.ARTIFACT_NAME }}
           path: |
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
             ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Record shared image identity
+        if: ${{ inputs.shared && (steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload-image.outputs.artifact-id }}
+          IMAGE: ${{ matrix.image }}
+        run: >-
+          python3 .github/resources/scripts/shared_ci_images.py record
+          --architecture "$TARGET_ARCH" --image "$IMAGE"
+          --artifact-id "$ARTIFACT_ID" --directory "$ARTIFACTS_PATH"
+          --output "$IMAGE.json"
+
+      - name: Publish shared image record
+        if: ${{ inputs.shared && (steps.frontend-image.outcome == 'success' || steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.image }}-record-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}
+          path: ${{ matrix.image }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: ${{ inputs.shared && always() && needs.image-build.result == 'success' && (inputs.architecture != 'amd64' || needs.runtime-base-images.result == 'success') }}
+    needs: [image-build, runtime-base-images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Download image identity records
+        uses: ./.github/actions/download-artifact-with-retry
+        with:
+          pattern: '{apiserver,persistenceagent,scheduledworkflow,launcher,driver,frontend,viewer-crd-controller}-record-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}'
+          path: image-records
+          merge-multiple: true
+          required-files: |
+            apiserver.json
+            persistenceagent.json
+            scheduledworkflow.json
+            launcher.json
+            driver.json
+            frontend.json
+            viewer-crd-controller.json
+      - name: Verify complete shared image set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHITECTURE: ${{ inputs.architecture }}
+        run: >-
+          python3 .github/resources/scripts/shared_ci_images.py publish
+          --architecture "$ARCHITECTURE" --records-dir image-records
+          --output manifest.json
+      - name: Publish ready image set
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-image-set-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}
+          path: manifest.json
           if-no-files-found: error
           retention-days: 1

@@ -62,20 +62,22 @@ class Arm64PresubmitTest(unittest.TestCase):
                     and job.get('with', {}).get('architecture') == 'arm64'
                 ):
                     consumers.append(path.name)
-        self.assertEqual(consumers, ['arm64-presubmit.yml'])
+        self.assertEqual(consumers, ['ci-images.yml'])
         workflow = yaml.safe_load(
             (workflows / 'arm64-presubmit.yml').read_text()
         )
         smoke = workflow['jobs']['smoke']
-        self.assertEqual(smoke['needs'], 'build')
+        self.assertNotIn('needs', smoke)
+        self.assertEqual(smoke['timeout-minutes'], 60)
         self.assertEqual(smoke['runs-on'], 'ubuntu-24.04-arm')
         download = next(
             step
             for step in smoke['steps']
-            if step.get('uses')
-            == './.github/actions/download-artifact-with-retry'
+            if step.get('uses') == './.github/actions/shared-ci-images'
         )
-        self.assertEqual(download['with']['pattern'], '*-arm64')
+        self.assertEqual(download['with']['architecture'], 'arm64')
+        self.assertEqual(download['with']['layout'], 'flat')
+        self.assertEqual(download['with']['path'], 'arm64-images')
         action = next(
             step
             for step in smoke['steps']

@@ -4,6 +4,42 @@ Legacy v2 integration migration is tracked in #14950. The legacy v2 workflow is 
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
+
+## Shared CI image builds
+
+`ci-images.yml` (`Shared CI Images`) is the application-image producer for the
+active integration workflows. It invokes `image-builds.yml` once per required
+architecture: seven AMD64 images shared by six workflows, and seven ARM64 images
+for the ARM smoke. Consumers start setup independently and use
+`.github/actions/shared-ci-images` at their existing image barrier. Runtime base
+archives remain available before the application-image barrier; their existing
+fingerprint cache is unchanged. The paused upgrade workflow remains paused.
+
+The producer publishes checkout identity before builds, then immutable
+attempt-specific image archives and a complete manifest for each architecture.
+Consumers require the same repository, event/ref, actual checkout SHA (the PR
+merge SHA, not only its head), PR head/base identity, architecture and producer
+attempt. They download exact artifact IDs, verify archive SHA-256 checksums and
+recheck the live attempt. Missing, expired or inconsistent evidence fails closed;
+consumers never rebuild application images or substitute default-branch images.
+The producer and consumers need only read permissions for discovery/download.
+
+If an image build fails or artifacts expire, rerun **all jobs** in the producer,
+then rerun its consumers. Failed-jobs-only producer reruns cannot assemble a
+complete new-attempt manifest and are intentionally rejected. A producer rerun
+invalidates consumers pinned to its previous attempt. Manual consumers can reuse
+a push/manual producer only at the exact same source/ref; dispatch
+`ci-images.yml` at that ref first when no eligible producer exists. Discovery is
+bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
+publication grace period. Revision-specific concurrency prevents a newer
+revision from cancelling images still needed by older consumers.
+
+When adding consumers or changing paths, update the producer trigger union and
+architecture planner, regenerate `ci-workflow-inventory.json`, and retain the
+`Shared CI Images` completion subscription in `ci-checks.yml`. Run the
+`shared_ci_images_test.py`, `shared_ci_image_producer_test.py`, artifact caller,
+and workflow overlap contracts with the rest of CI Scripts Tests.
+
 - Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
 
 - The Kubernetes-native migration experiment-creation test uses a 60-second polling budget for a reported run state. Initial Workflow persistence may temporarily omit the state before Argo reports a phase. API errors and observed failed/canceled runs fail immediately; an unreported state times out with the run ID and log guidance. CI Scripts Tests covers delayed state, timeout, and error behavior without a cluster.

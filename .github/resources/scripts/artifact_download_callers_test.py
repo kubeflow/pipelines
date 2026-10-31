@@ -24,6 +24,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import shared_ci_images
 import yaml
 from arm64_smoke import IMAGES
 from artifact_workflow_test_support import render
@@ -32,9 +33,8 @@ ROOT = Path(__file__).resolve().parents[3]
 WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
-    ('.github/actions/deploy/action.yml', 'composite'),  # Runtime images
-    ('.github/actions/deploy/action.yml', 'composite'),  # Branch images
-    ('.github/workflows/arm64-presubmit.yml', 'smoke'),
+    ('.github/actions/shared-ci-images/action.yml', 'composite'),
+    ('.github/workflows/image-builds.yml', 'publish'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
     ('.github/workflows/create-manifest.yml', 'create-manifest'),
@@ -242,108 +242,126 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 self.assertNotIn('continue-on-error', download)
                 self.assertNotIn('if', verify)
 
-    def test_deploy_manifest_matches_ci_producers_and_modelcar_selection(self):
+    def shared_outputs(self, architecture, kind):
+        images = (
+            ['runtime-base-images']
+            if kind == 'runtime'
+            else sorted(shared_ci_images.IMAGES)
+        )
+        records = [
+            {
+                'artifact_id': index + 100,
+                'files': {
+                    name: 'a' * 64
+                    for name in shared_ci_images.filenames(image, architecture)
+                },
+            }
+            for index, image in enumerate(images)
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'output'
+            shared_ci_images.emit_outputs(
+                output,
+                {
+                    'identity': {
+                        'run_id': 1234,
+                        'repository': 'upstream/pipelines',
+                    },
+                    'sets': {kind: records},
+                },
+                kind,
+            )
+            lines = output.read_text().splitlines()
+        start = lines.index('required-files<<SHARED_CI_FILES') + 1
+        files = set(lines[start : lines.index('SHARED_CI_FILES', start)])
+        return lines, files, records
+
+    def test_shared_manifest_matches_ci_producers_and_modelcar_selection(self):
         built_images = {
             item['image']
             for item in workflow('image-builds.yml')['jobs']['image-build'][
                 'strategy'
             ]['matrix']['include']
         }
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            scripts = root / '.github/resources/scripts'
-            scripts.mkdir(parents=True)
-            inventory = ROOT / '.github/resources/scripts/ci-image-artifacts.sh'
-            (scripts / inventory.name).write_text(inventory.read_text())
-            waiter = scripts / 'wait-for-image-artifacts.sh'
-            waiter.write_text(
-                '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > waiter-args\n'
-            )
-            waiter.chmod(0o755)
-            for modelcar in ('false', 'true'):
-                with self.subTest(modelcar=modelcar):
-                    context = {
-                        'inputs': {'load_modelcar_fixture': modelcar},
-                        'github': {'token': 'unused'},
-                    }
-                    runtime = self.required_files(
-                        '.github/actions/deploy/action.yml',
-                        'composite',
-                        context,
-                        cwd=root,
-                    )
-                    self.assertEqual(
-                        (root / 'waiter-args').read_text().splitlines(),
-                        ['runtime-base-images'],
-                    )
-                    branch = self.required_files(
-                        '.github/actions/deploy/action.yml',
-                        'composite',
-                        context,
-                        cwd=root,
-                        caller_index=1,
-                    )
-                    self.assertCountEqual(
-                        (root / 'waiter-args').read_text().splitlines(),
-                        built_images,
-                    )
-                    expected_runtime = {'runtime-base-images.tar'}
-                    if modelcar == 'true':
-                        expected_runtime.add('modelcar.tar')
-                    self.assertEqual(runtime, expected_runtime)
-                    self.assertEqual(
-                        branch, {f'{name}/{name}.tar' for name in built_images}
-                    )
-                    runtime_paths = {
-                        f'runtime-base-images/{name}' for name in runtime
-                    }
-                    self.assertFalse(runtime_paths & branch)
-                    self.assertEqual(
-                        runtime_paths | branch,
-                        {f'{name}/{name}.tar' for name in built_images}
-                        | runtime_paths,
-                    )
+        self.assertEqual(set(shared_ci_images.IMAGES), built_images)
+        _, runtime, _ = self.shared_outputs('amd64', 'runtime')
+        _, branch, _ = self.shared_outputs('amd64', 'images')
+        # Runtime archives are verified together; deploy still loads Modelcar only
+        # when requested, and branches are normalized into nested paths afterwards.
+        self.assertEqual(runtime, {'runtime-base-images.tar', 'modelcar.tar'})
+        self.assertEqual(branch, {f'{name}.tar' for name in built_images})
+        self.assertFalse(runtime & branch)
 
-    def test_branch_download_pattern_selects_only_branch_image_artifacts(self):
-        expected = {
-            item['image']
-            for item in workflow('image-builds.yml')['jobs']['image-build'][
-                'strategy'
-            ]['matrix']['include']
-        }
-        inventory = ROOT / '.github/resources/scripts/ci-image-artifacts.sh'
-        with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / 'github-output'
-            subprocess.run(
-                [
-                    'bash',
-                    str(inventory),
-                    '--github-output',
-                    'branch-image-files',
-                ],
-                env={**os.environ, 'GITHUB_OUTPUT': str(output_path)},
-                text=True,
-                capture_output=True,
-                check=True,
-            )
-            lines = output_path.read_text().splitlines()
-        pattern_line = next(
-            line for line in lines if line.startswith('artifact-pattern=')
+    def test_shared_download_uses_only_resolved_ids_and_verifies_after_transfer(
+        self,
+    ):
+        action = yaml.safe_load(
+            (ROOT / '.github/actions/shared-ci-images/action.yml').read_text()
         )
-        pattern = pattern_line.removeprefix('artifact-pattern=')
-        # A positive brace list has literal alternatives. Leading ! would
-        # negate the entire Minimatch pattern under download-artifact defaults.
-        match = re.fullmatch(r'\{([a-z0-9-]+(?:,[a-z0-9-]+)+)\}', pattern)
-        self.assertIsNotNone(match, pattern)
-        alternatives = match.group(1).split(',')
-        self.assertEqual(len(alternatives), 7)
-        self.assertCountEqual(alternatives, expected)
-        self.assertNotIn('runtime-base-images', alternatives)
-        self.assertNotIn('build.dockerbuild', alternatives)
-        start = lines.index('required-files<<EOF') + 1
+        steps = action['runs']['steps']
+        resolver = next(step for step in steps if step.get('id') == 'resolve')
+        download = next(step for step in steps if step.get('uses') == WRAPPER)
+        verify = next(
+            step
+            for step in steps
+            if 'shared_ci_images.py verify' in step.get('run', '')
+        )
+        self.assertLess(steps.index(resolver), steps.index(download))
+        self.assertLess(steps.index(download), steps.index(verify))
+        for key in ('artifact-ids', 'run-id', 'repository', 'required-files'):
+            self.assertEqual(
+                download['with'][key],
+                '${{ steps.resolve.outputs.' + key + ' }}',
+            )
         self.assertEqual(
-            set(lines[start : lines.index('EOF', start)]),
-            {f'{name}/{name}.tar' for name in alternatives},
+            download['with']['github-token'], '${{ github.token }}'
+        )
+        self.assertEqual(download['with']['merge-multiple'], 'true')
+        self.assertNotIn('name', download['with'])
+        self.assertNotIn('pattern', download['with'])
+        for step in (resolver, download, verify):
+            self.assertNotIn('continue-on-error', step)
+            self.assertNotIn('if', step)
+        self.assertEqual(
+            resolver['env']['PRODUCER_STATE'], verify['env']['PRODUCER_STATE']
+        )
+        self.assertEqual(
+            action['inputs']['state']['default'],
+            '${{ runner.temp }}/kfp-shared-images.json',
+        )
+        for architecture, kind in (
+            ('amd64', 'runtime'),
+            ('amd64', 'images'),
+            ('arm64', 'images'),
+        ):
+            lines, _, records = self.shared_outputs(architecture, kind)
+            self.assertIn(
+                'artifact-ids='
+                + ','.join(str(record['artifact_id']) for record in records),
+                lines,
+            )
+            self.assertIn('run-id=1234', lines)
+            self.assertIn('repository=upstream/pipelines', lines)
+
+    def test_ready_manifest_download_selects_exactly_seven_image_records(self):
+        publish = workflow('image-builds.yml')['jobs']['publish']
+        download = next(
+            step for step in publish['steps'] if step.get('uses') == WRAPPER
+        )
+        pattern = download['with']['pattern']
+        self.assertTrue(
+            pattern.endswith(
+                '-record-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}'
+            )
+        )
+        alternatives = pattern[1 : pattern.index('}')].split(',')
+        self.assertCountEqual(alternatives, shared_ci_images.IMAGES)
+        self.assertNotIn('runtime-base-images', alternatives)
+        self.assertEqual(
+            self.required_files(
+                '.github/workflows/image-builds.yml', 'publish'
+            ),
+            {f'{image}.json' for image in alternatives},
         )
 
     def test_arm_presubmit_requires_each_produced_archive_and_record(self):
@@ -363,9 +381,15 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
                 '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json',
             ],
         )
-        actual = self.required_files(
-            '.github/workflows/arm64-presubmit.yml', 'smoke'
+        smoke = workflow('arm64-presubmit.yml')['jobs']['smoke']
+        download = next(
+            step
+            for step in smoke['steps']
+            if step.get('uses') == './.github/actions/shared-ci-images'
         )
+        self.assertEqual(download['with']['architecture'], 'arm64')
+        self.assertEqual(download['with']['layout'], 'flat')
+        _, actual, _ = self.shared_outputs('arm64', 'images')
         self.assertEqual(
             actual,
             {

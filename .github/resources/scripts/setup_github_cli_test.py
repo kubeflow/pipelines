@@ -145,10 +145,13 @@ class SetupGitHubCliTest(unittest.TestCase):
         self.assertIn('setup-github-cli.sh', result.stderr)
         self.assertFalse((self.root / 'calls').exists())
 
-    def test_deploy_provisions_cli_before_polling(self):
+    def test_shared_download_provisions_cli_before_resolving(self):
         action = yaml.safe_load(
             (
-                SCRIPTS.parents[1] / 'actions' / 'deploy' / 'action.yml'
+                SCRIPTS.parents[1]
+                / 'actions'
+                / 'shared-ci-images'
+                / 'action.yml'
             ).read_text()
         )
         commands = [step.get('run', '') for step in action['runs']['steps']]
@@ -160,7 +163,7 @@ class SetupGitHubCliTest(unittest.TestCase):
         polling = next(
             i
             for i, command in enumerate(commands)
-            if 'wait-for-image-artifacts.sh' in command
+            if 'shared_ci_images.py resolve' in command
         )
         self.assertLess(setup, polling)
 

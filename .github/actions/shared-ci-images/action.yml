@@ -1,0 +1,65 @@
+name: Download shared CI images
+description: Resolve exact source and producer attempt, then verify immutable image archives
+inputs:
+  architecture:
+    description: Native image architecture
+    default: amd64
+  kind:
+    description: Branch images or runtime dependencies (images or runtime)
+    default: images
+  path:
+    description: Local destination for verified archives
+    required: true
+  layout:
+    description: Use nested directories for deploy or flat files for ARM smoke
+    default: nested
+  state:
+    description: Pin one producer run and attempt across runtime and branch downloads
+    default: ${{ runner.temp }}/kfp-shared-images.json
+outputs:
+  run-id:
+    description: Validated producer run ID
+    value: ${{ steps.resolve.outputs.run-id }}
+  artifact-ids:
+    description: Exact immutable artifact IDs consumed
+    value: ${{ steps.resolve.outputs.artifact-ids }}
+runs:
+  using: composite
+  steps:
+    - name: Ensure GitHub CLI is available
+      shell: bash
+      run: bash .github/resources/scripts/setup-github-cli.sh
+    - name: Resolve shared image producer
+      id: resolve
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        IMAGE_ARCHITECTURE: ${{ inputs.architecture }}
+        IMAGE_KIND: ${{ inputs.kind }}
+        PRODUCER_STATE: ${{ inputs.state }}
+      run: |
+        python3 .github/resources/scripts/shared_ci_images.py resolve \
+          --architecture "$IMAGE_ARCHITECTURE" --kind "$IMAGE_KIND" \
+          --state "$PRODUCER_STATE" --output "$GITHUB_OUTPUT"
+    - name: Download exact shared image artifacts
+      uses: ./.github/actions/download-artifact-with-retry
+      with:
+        artifact-ids: ${{ steps.resolve.outputs.artifact-ids }}
+        repository: ${{ steps.resolve.outputs.repository }}
+        run-id: ${{ steps.resolve.outputs.run-id }}
+        github-token: ${{ github.token }}
+        path: ${{ inputs.path }}
+        merge-multiple: 'true'
+        required-files: ${{ steps.resolve.outputs.required-files }}
+    - name: Verify source, attempt, and archive checksums
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PRODUCER_STATE: ${{ inputs.state }}
+        IMAGE_DIRECTORY: ${{ inputs.path }}
+        IMAGE_LAYOUT: ${{ inputs.layout }}
+        IMAGE_KIND: ${{ inputs.kind }}
+      run: |
+        python3 .github/resources/scripts/shared_ci_images.py verify \
+          --state "$PRODUCER_STATE" --directory "$IMAGE_DIRECTORY" \
+          --layout "$IMAGE_LAYOUT" --kind "$IMAGE_KIND"
