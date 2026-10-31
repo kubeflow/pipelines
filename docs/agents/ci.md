@@ -422,3 +422,5 @@ while the freeze remains in place. Then generate fresh runtime/image/CI evidence
 Verify stale-green revocation, retargeted PRs, normal and Dependabot merges, release
 dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.
+
+<!-- Fork benchmark: unchanged full native suite baseline. -->
