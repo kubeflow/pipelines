@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -1142,6 +1143,135 @@ func extractRetiredPodUIDs(attrs model.JSONData) []string {
 	return uids
 }
 
+type podRecord struct {
+	name       string
+	uid        string
+	isExecutor bool
+}
+
+func extractPodRecords(pods model.JSONSlice) []podRecord {
+	var records []podRecord
+	for _, item := range pods {
+		switch p := item.(type) {
+		case map[string]interface{}:
+			var r podRecord
+			if name, ok := p["name"].(string); ok {
+				r.name = name
+			} else if name, ok := p["Name"].(string); ok {
+				r.name = name
+			}
+			if uid, ok := p["uid"].(string); ok {
+				r.uid = uid
+			} else if uid, ok := p["Uid"].(string); ok {
+				r.uid = uid
+			}
+			var typeVal interface{}
+			if t, ok := p["type"]; ok {
+				typeVal = t
+			} else if t, ok := p["Type"]; ok {
+				typeVal = t
+			}
+			if typeVal != nil {
+				s := fmt.Sprint(typeVal)
+				switch {
+				case s == apiv2.PipelineTask_EXECUTOR.String() || s == "EXECUTOR" || s == "2":
+					r.isExecutor = true
+				case s == apiv2.PipelineTask_DRIVER.String() || s == "DRIVER" || s == "1":
+					r.isExecutor = false
+				default:
+					r.isExecutor = !strings.Contains(r.name, "-driver")
+				}
+			} else {
+				r.isExecutor = !strings.Contains(r.name, "-driver")
+			}
+			if r.name != "" || r.uid != "" {
+				records = append(records, r)
+			}
+		case *apiv2.PipelineTask_TaskPod:
+			if p != nil {
+				r := podRecord{
+					name: p.GetName(),
+					uid:  p.GetUid(),
+				}
+				switch p.GetType() {
+				case apiv2.PipelineTask_EXECUTOR:
+					r.isExecutor = true
+				case apiv2.PipelineTask_DRIVER:
+					r.isExecutor = false
+				default:
+					r.isExecutor = !strings.Contains(r.name, "-driver")
+				}
+				if r.name != "" || r.uid != "" {
+					records = append(records, r)
+				}
+			}
+		}
+	}
+	return records
+}
+
+func filterExecutorPods(records []podRecord) []podRecord {
+	var executors []podRecord
+	for _, r := range records {
+		if r.isExecutor {
+			executors = append(executors, r)
+		}
+	}
+	return executors
+}
+
+type executorAttemptRelation int
+
+const (
+	attemptSame executorAttemptRelation = iota
+	attemptOlder
+	attemptNewer
+)
+
+func podsMatch(p1, p2 podRecord) bool {
+	if p1.uid != "" && p2.uid != "" {
+		return p1.uid == p2.uid
+	}
+	if p1.name != "" && p2.name != "" {
+		return p1.name == p2.name
+	}
+	return false
+}
+
+func compareExecutorAttempts(oldPods, newPods model.JSONSlice) executorAttemptRelation {
+	oldExecutors := filterExecutorPods(extractPodRecords(oldPods))
+	newExecutors := filterExecutorPods(extractPodRecords(newPods))
+
+	if len(newExecutors) == 0 {
+		return attemptSame
+	}
+	if len(oldExecutors) == 0 {
+		return attemptNewer
+	}
+
+	latestOld := oldExecutors[len(oldExecutors)-1]
+	latestNew := newExecutors[len(newExecutors)-1]
+
+	if podsMatch(latestNew, latestOld) {
+		return attemptSame
+	}
+
+	// Check if latestNew matches any earlier attempt in oldExecutors
+	for i := 0; i < len(oldExecutors)-1; i++ {
+		if podsMatch(latestNew, oldExecutors[i]) {
+			return attemptOlder
+		}
+	}
+
+	for _, oldPod := range oldExecutors {
+		if podsMatch(latestNew, oldPod) {
+			return attemptOlder
+		}
+	}
+
+	return attemptNewer
+}
+
 func isTerminalTaskState(state model.TaskStatus) bool {
 	switch apiv2.PipelineTask_TaskState(state) {
 	case apiv2.PipelineTask_SUCCEEDED,
@@ -1260,6 +1390,8 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 	retiredUIDs := extractRetiredPodUIDs(lockedOld.TypeAttrs)
 	isRetried := currentRetryGeneration.Int64 > 0 || len(retiredUIDs) > 0
 
+	attemptRel := compareExecutorAttempts(lockedOld.Pods, new.Pods)
+
 	// 0. Check against retired pod UIDs from prior retry attempts
 	if len(newUIDs) > 0 {
 		if slicesOverlap(newUIDs, retiredUIDs) {
@@ -1270,12 +1402,20 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 		}
 	}
 
+	// Reject delayed callbacks from older executor attempts
+	if attemptRel == attemptOlder {
+		return nil, util.NewConflictServerError(
+			fmt.Errorf("stale task update: incoming executor pod is from an older attempt than active executor pod for task %s", new.UUID),
+			"Task update rejected due to stale executor attempt for task %s", new.UUID,
+		)
+	}
+
 	// 1. Verify active attempt pod identity.
 	// When pod UIDs are present on both sides, match strictly on pod UIDs to prevent
 	// pod name reuse across retries from accepting stale callbacks.
 	switch {
 	case len(oldUIDs) > 0 && len(newUIDs) > 0:
-		if !slicesOverlap(newUIDs, oldUIDs) {
+		if !slicesOverlap(newUIDs, oldUIDs) && attemptRel != attemptNewer {
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: incoming pods %v do not match active pods %v", newUIDs, oldUIDs),
 				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
@@ -1293,14 +1433,14 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 			)
 		}
 		// For non-terminal updates (or unretried tasks) that include pod names, ensure the pod name matches the active attempt.
-		if len(oldNames) > 0 && len(newNames) > 0 && !slicesOverlap(newNames, oldNames) {
+		if len(oldNames) > 0 && len(newNames) > 0 && !slicesOverlap(newNames, oldNames) && attemptRel != attemptNewer {
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: incoming pod names %v do not match active pod names %v", newNames, oldNames),
 				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
 			)
 		}
 	case len(oldNames) > 0 && len(newNames) > 0:
-		if !slicesOverlap(newNames, oldNames) {
+		if !slicesOverlap(newNames, oldNames) && attemptRel != attemptNewer {
 			return nil, util.NewConflictServerError(
 				fmt.Errorf("stale task update: incoming pod names %v do not match active pod names %v", newNames, oldNames),
 				"Task update rejected due to pod identity mismatch for task %s", new.UUID,
@@ -1308,24 +1448,42 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 		}
 	}
 
-	// 2. Intra-attempt terminal state protection:
-	// For ordinary callbacks (expectedRetryGeneration < 0) within the same attempt,
-	// terminal states (SUCCEEDED, FAILED, SKIPPED, CACHED) are irreversible.
-	// A delayed callback (e.g. from an earlier DRIVER pod) must not regress a terminal state back to
-	// RUNNING, nor overwrite an EXECUTOR failure with SUCCEEDED.
+	// 2. Intra-attempt terminal state protection and retry recovery:
+	// For ordinary callbacks (expectedRetryGeneration < 0):
+	// - SUCCEEDED, SKIPPED, CACHED are irreversible: cannot regress to RUNNING or overwrite with FAILED.
+	// - Within the same attempt (attemptSame): FAILED is irreversible: cannot regress to RUNNING or overwrite with SUCCEEDED.
+	// - Across automatic executor retries (attemptNewer): a newer executor attempt can recover a FAILED task to RUNNING or SUCCEEDED.
 	if expectedRetryGeneration < 0 && isTerminalTaskState(lockedOld.State) {
-		if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
-			oldStateStr := apiv2.PipelineTask_TaskState(lockedOld.State).String()
-			return nil, util.NewConflictServerError(
-				fmt.Errorf("stale task update: cannot regress terminal task %s (state %s) to RUNNING", new.UUID, oldStateStr),
-				"Task update rejected because task %s is already in terminal state %s", new.UUID, oldStateStr,
-			)
-		}
-		if lockedOld.State == model.TaskStatus(apiv2.PipelineTask_FAILED) && new.State == model.TaskStatus(apiv2.PipelineTask_SUCCEEDED) {
-			return nil, util.NewConflictServerError(
-				fmt.Errorf("stale task update: cannot overwrite FAILED state with SUCCEEDED for task %s", new.UUID),
-				"Task update rejected because task %s has already failed", new.UUID,
-			)
+		switch apiv2.PipelineTask_TaskState(lockedOld.State) {
+		case apiv2.PipelineTask_SUCCEEDED, apiv2.PipelineTask_SKIPPED, apiv2.PipelineTask_CACHED:
+			if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
+				oldStateStr := apiv2.PipelineTask_TaskState(lockedOld.State).String()
+				return nil, util.NewConflictServerError(
+					fmt.Errorf("stale task update: cannot regress terminal task %s (state %s) to RUNNING", new.UUID, oldStateStr),
+					"Task update rejected because task %s is already in terminal state %s", new.UUID, oldStateStr,
+				)
+			}
+			if new.State == model.TaskStatus(apiv2.PipelineTask_FAILED) {
+				return nil, util.NewConflictServerError(
+					fmt.Errorf("stale task update: cannot overwrite %s state with FAILED for task %s", apiv2.PipelineTask_TaskState(lockedOld.State).String(), new.UUID),
+					"Task update rejected because task %s is already terminal", new.UUID,
+				)
+			}
+		case apiv2.PipelineTask_FAILED:
+			if attemptRel != attemptNewer {
+				if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
+					return nil, util.NewConflictServerError(
+						fmt.Errorf("stale task update: cannot regress terminal task %s (state FAILED) to RUNNING within same attempt", new.UUID),
+						"Task update rejected because task %s is already in terminal state FAILED", new.UUID,
+					)
+				}
+				if new.State == model.TaskStatus(apiv2.PipelineTask_SUCCEEDED) {
+					return nil, util.NewConflictServerError(
+						fmt.Errorf("stale task update: cannot overwrite FAILED state with SUCCEEDED for task %s within same attempt", new.UUID),
+						"Task update rejected because task %s has already failed", new.UUID,
+					)
+				}
+			}
 		}
 	}
 
@@ -1445,7 +1603,17 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 		}
 	}
 	if new.Pods != nil {
-		if b, err := json.Marshal(new.Pods); err == nil {
+		podsToSave := new.Pods
+		if attemptRel == attemptNewer && len(lockedOld.Pods) > 0 {
+			if !slicesOverlap(extractPodNames(new.Pods), extractPodNames(lockedOld.Pods)) &&
+				!slicesOverlap(extractPodUIDs(new.Pods), extractPodUIDs(lockedOld.Pods)) {
+				merged := make(model.JSONSlice, 0, len(lockedOld.Pods)+len(new.Pods))
+				merged = append(merged, lockedOld.Pods...)
+				merged = append(merged, new.Pods...)
+				podsToSave = merged
+			}
+		}
+		if b, err := json.Marshal(podsToSave); err == nil {
 			setMap[q("pods")] = string(b)
 		} else {
 			return nil, util.NewInternalServerError(err, "Failed to marshal pod names in an updated task")

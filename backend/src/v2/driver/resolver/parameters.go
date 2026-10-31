@@ -704,7 +704,7 @@ func resolveTaskFinalStatusWithContext(
 		return nil, err
 	}
 
-	if apicommon.IsAuthoritativeFinalStatusRequired(ctx) && opts.RunRefresher != nil {
+	if opts.RunRefresher != nil {
 		refreshedRun, refreshErr := opts.RunRefresher(apicommon.WithAuthoritativeRequirement(ctx))
 		if refreshErr != nil {
 			return nil, fmt.Errorf("failed to authoritatively verify run state for task %q: %w", opts.Task.GetTaskInfo().GetName(), refreshErr)

@@ -22,6 +22,7 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	apicommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
@@ -1142,4 +1143,74 @@ func TestResolveTaskFinalStatus_ParentSucceededWithRunningChild_WaitsUntilChildT
 	assert.GreaterOrEqual(t, calls, 2, "Must wait until running child task completes before resolving final status")
 	assert.Equal(t, "FAILED", res.GetStructValue().GetFields()["state"].GetStringValue())
 	assert.Equal(t, "child completed with error", res.GetStructValue().GetFields()["error"].GetStructValue().GetFields()["message"].GetStringValue())
+}
+
+func TestResolveTaskFinalStatus_ProductionUnmarkedContext_AllTerminalSnapshotRefreshesEngineFailure(t *testing.T) {
+	root := &apiv2.PipelineTask{TaskId: "root", Name: "root"}
+	parentDAG := &apiv2.PipelineTask{
+		TaskId:       "dag-1",
+		Name:         "main-dag",
+		Type:         apiv2.PipelineTask_DAG,
+		ParentTaskId: util.StringPointer("root"),
+		State:        apiv2.PipelineTask_SUCCEEDED,
+	}
+	childTask := &apiv2.PipelineTask{
+		TaskId:       "child-1",
+		Name:         "child-task",
+		Type:         apiv2.PipelineTask_RUNTIME,
+		ParentTaskId: util.StringPointer("dag-1"),
+		State:        apiv2.PipelineTask_SUCCEEDED,
+	}
+
+	refreshCalls := 0
+	opts := common.Options{
+		ParentTask: root,
+		Run: &apiv2.Run{
+			RunId: "run-1",
+			// Ordinary database snapshot already appears all-terminal and SUCCEEDED
+			Tasks: []*apiv2.PipelineTask{parentDAG, childTask},
+		},
+		RunName:                 "pipeline-run",
+		IterationIndex:          -1,
+		FinalStatusPollInterval: 10 * time.Millisecond,
+		FinalStatusTimeout:      2 * time.Second,
+		RunRefresher: func(ctx context.Context) (*apiv2.Run, error) {
+			refreshCalls++
+			assert.True(t, apicommon.IsAuthoritativeFinalStatusRequired(ctx), "Refresher must receive authoritative requirement context")
+			failedChild := &apiv2.PipelineTask{
+				TaskId:         "child-1",
+				Name:           "child-task",
+				Type:           apiv2.PipelineTask_RUNTIME,
+				ParentTaskId:   util.StringPointer("dag-1"),
+				State:          apiv2.PipelineTask_FAILED,
+				StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "engine observed pod failure"},
+			}
+			failedParent := &apiv2.PipelineTask{
+				TaskId:         "dag-1",
+				Name:           "main-dag",
+				Type:           apiv2.PipelineTask_DAG,
+				ParentTaskId:   util.StringPointer("root"),
+				State:          apiv2.PipelineTask_FAILED,
+				StatusMetadata: &apiv2.PipelineTask_StatusMetadata{Message: "engine observed pod failure"},
+			}
+			return &apiv2.Run{RunId: "run-1", Tasks: []*apiv2.PipelineTask{failedParent, failedChild}}, nil
+		},
+		Task: &pipelinespec.PipelineTaskSpec{
+			TaskInfo:       &pipelinespec.PipelineTaskInfo{Name: "exit-handler"},
+			DependentTasks: []string{"main-dag"},
+		},
+	}
+	spec := &pipelinespec.TaskInputsSpec_InputParameterSpec{
+		Kind: &pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus_{
+			TaskFinalStatus: &pipelinespec.TaskInputsSpec_InputParameterSpec_TaskFinalStatus{ProducerTask: "main-dag"},
+		},
+	}
+
+	// Invoke with unmarked context (matching production driver execution)
+	unmarkedCtx := context.Background()
+	res, err := resolveTaskFinalStatusWithContext(unmarkedCtx, &opts, spec)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, refreshCalls, 1, "Must authoritatively refresh even when snapshot appears all-terminal SUCCEEDED")
+	assert.Equal(t, "FAILED", res.GetStructValue().GetFields()["state"].GetStringValue())
+	assert.Equal(t, "engine observed pod failure", res.GetStructValue().GetFields()["error"].GetStructValue().GetFields()["message"].GetStringValue())
 }

@@ -216,7 +216,8 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 		canReconcile := task.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) ||
 			task.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED) ||
 			task.State == model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED) ||
-			task.State == model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED)
+			task.State == model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED) ||
+			task.State == model.TaskStatus(apiv2beta1.PipelineTask_FAILED)
 
 		if !canReconcile {
 			continue
@@ -253,60 +254,64 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 			}
 		}
 
-		// 1. If executor pods exist, prioritize the latest executor pod.
+		// 1. If driver pods exist, check driver and discovered executor nodes (including retry nodes)
+		if len(driverPodNames) > 0 {
+			latest := driverPodNames[len(driverPodNames)-1]
+			driverNode, found := findNodeForPodName(latest, nodesByPodName, nodesByNodeID, nodesByDisplayName)
+			if found {
+				if driverNode.State == "Failed" || driverNode.State == "Error" {
+					if shouldReconcileTaskFromNode(task.State, driverNode.State, isFinalState) {
+						glog.Infof("Reconciling task %s from failed driver node %s", task.UUID, latest)
+						if err := reconcileTask(task, driverNode, ""); err != nil {
+							return false, anyRejected, err
+						}
+					}
+					continue
+				} else if driverNode.State == "Succeeded" {
+					executorNodes := findExecutorNodesFromDriver(driverNode, nodesByNodeID)
+					reconciled := false
+					for i := len(executorNodes) - 1; i >= 0; i-- {
+						en := executorNodes[i]
+						if shouldReconcileTaskFromNode(task.State, en.State, isFinalState) {
+							podName := en.ID
+							if podName == "" {
+								podName = en.DisplayName
+							}
+							glog.Infof("Reconciling task %s: driver succeeded, discovered executor node %s (%s)", task.UUID, podName, en.State)
+							if err := reconcileTask(task, en, podName); err != nil {
+								return false, anyRejected, err
+							}
+							reconciled = true
+							break
+						}
+					}
+					if reconciled {
+						continue
+					}
+					// If driver succeeded, no executor ran, and the entire workflow has finished: fail closed.
+					if task.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) && len(executorNodes) == 0 && isFinalState {
+						failNode := util.NodeStatus{
+							State:      "Failed",
+							FinishTime: nowSec,
+							Message:    "Executor failed to start or crashed before reporting",
+						}
+						glog.Infof("Reconciling stranded task %s: driver succeeded but no executor ran in terminal workflow; failing closed", task.UUID)
+						if err := reconcileTask(task, failNode, ""); err != nil {
+							return false, anyRejected, err
+						}
+					}
+					continue
+				}
+			}
+		}
+
+		// 2. If executor pods exist directly on the task:
 		if len(executorPodNames) > 0 {
 			latest := executorPodNames[len(executorPodNames)-1]
 			if node, found := findNodeForPodName(latest, nodesByPodName, nodesByNodeID, nodesByDisplayName); found && shouldReconcileTaskFromNode(task.State, node.State, isFinalState) {
 				glog.Infof("Reconciling task %s from executor node %s (%s, previous state %s)", task.UUID, latest, node.State, apiv2beta1.PipelineTask_TaskState(task.State).String())
 				if err := reconcileTask(task, node, ""); err != nil {
 					return false, anyRejected, err
-				}
-			}
-			continue
-		}
-
-		// 2. If only driver pods exist:
-		if len(driverPodNames) > 0 {
-			latest := driverPodNames[len(driverPodNames)-1]
-			driverNode, found := findNodeForPodName(latest, nodesByPodName, nodesByNodeID, nodesByDisplayName)
-			if !found {
-				continue
-			}
-			if driverNode.State == "Failed" || driverNode.State == "Error" {
-				if shouldReconcileTaskFromNode(task.State, driverNode.State, isFinalState) {
-					glog.Infof("Reconciling task %s from failed driver node %s", task.UUID, latest)
-					if err := reconcileTask(task, driverNode, ""); err != nil {
-						return false, anyRejected, err
-					}
-				}
-			} else if driverNode.State == "Succeeded" {
-				executorNodes := findExecutorNodesFromDriver(driverNode, nodesByNodeID)
-				foundTerminalExecutor := false
-				for _, en := range executorNodes {
-					if shouldReconcileTaskFromNode(task.State, en.State, isFinalState) {
-						podName := en.ID
-						if podName == "" {
-							podName = en.DisplayName
-						}
-						glog.Infof("Reconciling task %s: driver succeeded, discovered executor node %s (%s)", task.UUID, podName, en.State)
-						if err := reconcileTask(task, en, podName); err != nil {
-							return false, anyRejected, err
-						}
-						foundTerminalExecutor = true
-						break
-					}
-				}
-				// If driver succeeded, no executor ran, and the entire workflow has finished: fail closed.
-				if task.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) && !foundTerminalExecutor && isFinalState && len(executorNodes) == 0 {
-					failNode := util.NodeStatus{
-						State:      "Failed",
-						FinishTime: nowSec,
-						Message:    "Executor failed to start or crashed before reporting",
-					}
-					glog.Infof("Reconciling stranded task %s: driver succeeded but no executor ran in terminal workflow; failing closed", task.UUID)
-					if err := reconcileTask(task, failNode, ""); err != nil {
-						return false, anyRejected, err
-					}
 				}
 			}
 			continue
@@ -607,7 +612,15 @@ func shouldReconcileTaskFromNode(taskState model.TaskStatus, nodeState string, i
 		return isTerminalNodeState(nodeState, isFinalState)
 	}
 	// For already terminal SUCCEEDED or SKIPPED tasks: only reconcile if authoritative node Failed or Errored!
-	return nodeState == "Failed" || nodeState == "Error"
+	if taskState == model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED) ||
+		taskState == model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED) {
+		return nodeState == "Failed" || nodeState == "Error"
+	}
+	// For already terminal FAILED tasks: allow reconciliation if authoritative node Succeeded (recovering automatic retry)!
+	if taskState == model.TaskStatus(apiv2beta1.PipelineTask_FAILED) {
+		return nodeState == "Succeeded"
+	}
+	return false
 }
 
 func hasDAGInconsistencies(tasks []*model.Task) bool {

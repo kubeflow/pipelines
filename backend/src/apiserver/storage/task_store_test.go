@@ -2122,3 +2122,101 @@ func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), run.RetryGeneration)
 }
+
+func TestUpdateTaskWithRetryFence_AutomaticExecutorRetry_RecoversFromFailedToSucceeded(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	driverPod := createTaskPod("task-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("task-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "retry-task",
+		Fingerprint: "fp-retry-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	})
+	require.NoError(t, err)
+
+	// Attempt 2 executor pod succeeds under the same run RetryGeneration (automatic task retry)
+	exec2Pod := createTaskPod("task-exec-2", "exec-uid-2", apiv2.PipelineTask_EXECUTOR)
+	updated, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod, exec2Pod),
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), updated.State)
+	assert.Len(t, updated.Pods, 3)
+}
+
+func TestUpdateTaskWithRetryFence_DelayedCallbackFromOlderExecutorAttempt_Rejected(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	driverPod := createTaskPod("task-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("task-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	exec2Pod := createTaskPod("task-exec-2", "exec-uid-2", apiv2.PipelineTask_EXECUTOR)
+
+	// Task has already progressed to attempt 2
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "retry-task",
+		Fingerprint: "fp-retry-2",
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:        createTaskPodsAsJSONSlice(driverPod, exec1Pod, exec2Pod),
+	})
+	require.NoError(t, err)
+
+	// Delayed callback arriving from attempt 1 (only carries attempt 1 executor)
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
+
+func TestUpdateTaskWithRetryFence_SameAttempt_CannotOverwriteFailedWithSucceeded(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	driverPod := createTaskPod("task-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("task-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "failed-task",
+		Fingerprint: "fp-failed-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	})
+	require.NoError(t, err)
+
+	// Attempting to overwrite FAILED with SUCCEEDED without advancing executor attempt
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	// Attempting to regress FAILED to RUNNING within same attempt
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok = err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
