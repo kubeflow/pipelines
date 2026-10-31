@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -690,6 +691,98 @@ func TestLoadLauncherConfigFromPath_EmptyMountFallsBack(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	assert.Equal(t, "minio://from-api/empty-mount", cfg.DefaultPipelineRoot())
+}
+
+func TestLoadLauncherConfigFromPath_RejectsPercentInDefaultPipelineRootMount(t *testing.T) {
+	mountPath := t.TempDir()
+	badRoot := "s3://mounted/root%20dir"
+	require.NoError(t, os.WriteFile(filepath.Join(mountPath, "defaultPipelineRoot"), []byte(badRoot), 0o600))
+
+	cfg, err := LoadLauncherConfigFromPath(context.Background(), nil, "kubeflow", mountPath)
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), badRoot)
+}
+
+func TestFetchLauncherConfigMap_RejectsPercentInDefaultPipelineRoot(t *testing.T) {
+	badRoot := "minio://from-api/root%20dir"
+	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": badRoot,
+		},
+	})
+
+	cfg, err := FetchLauncherConfigMap(context.Background(), clientSet, "kubeflow")
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), badRoot)
+}
+
+func TestFetchLauncherConfigMap_AllowsSpacesUnicodeAmpersandAndQuery(t *testing.T) {
+	for _, validRoot := range []string{
+		"s3://bucket/root dir/sub",
+		"s3://bucket/café/日本語",
+		"s3://bucket/a&b/sub",
+		"minio://mlpipeline/v2/artifacts?endpoint=seaweedfs.kubeflow:9000&disableSSL=true",
+	} {
+		t.Run(validRoot, func(t *testing.T) {
+			clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "kfp-launcher",
+					Namespace: "kubeflow",
+				},
+				Data: map[string]string{
+					"defaultPipelineRoot": validRoot,
+				},
+			})
+
+			cfg, err := FetchLauncherConfigMap(context.Background(), clientSet, "kubeflow")
+			require.NoError(t, err)
+			require.NotNil(t, cfg)
+			assert.Equal(t, validRoot, cfg.DefaultPipelineRoot())
+		})
+	}
+}
+
+func TestPipelineRootForRun_RejectsPercentInPrefix(t *testing.T) {
+	badRuntimeRoot := "s3://bucket/root%20dir"
+	runWithBadRoot := &go_client.Run{
+		RunId: "run-123",
+		RuntimeConfig: &go_client.RuntimeConfig{
+			PipelineRoot: badRuntimeRoot,
+		},
+	}
+	_, err := PipelineRootForRun(context.Background(), "my-pipeline", "kubeflow", runWithBadRoot, func(context.Context, string) (*Config, error) {
+		t.Fatal("launcher config loader should not be called when runtime root is set")
+		return nil, nil
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), badRuntimeRoot)
+
+	badDefaultRoot := "minio://mlpipeline/default%20root"
+	_, err = PipelineRootForRun(context.Background(), "my-pipeline", "kubeflow", &go_client.Run{RunId: "run-123"}, func(context.Context, string) (*Config, error) {
+		return &Config{data: map[string]string{configKeyDefaultPipelineRoot: badDefaultRoot}}, nil
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), badDefaultRoot)
+}
+
+func TestGetPipelineRootWithPipelineRunContext_RejectsPercentInPrefix(t *testing.T) {
+	badRoot := "s3://bucket/root%20dir"
+	run := &go_client.Run{
+		RunId: "run-123",
+		RuntimeConfig: &go_client.RuntimeConfig{
+			PipelineRoot: badRoot,
+		},
+	}
+
+	_, err := GetPipelineRootWithPipelineRunContext(context.Background(), "my-pipeline", "kubeflow", nil, run)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), badRoot)
 }
 
 func fetchProviderFromData(cases TestcaseData, name string) string {
