@@ -4073,7 +4073,7 @@ s3:
           port: 9000,
           region: 'us-east-1',
           secretKey: 'someSecret',
-          useSSL: false,
+          useSSL: true,
         }),
       );
       expect(mockedS3Client).toBeCalledTimes(1);
