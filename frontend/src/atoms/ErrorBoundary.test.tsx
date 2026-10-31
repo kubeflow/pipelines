@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -34,8 +35,9 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('child content')).toBeInTheDocument();
   });
 
-  it('renders a Banner with error details when a child throws', () => {
+  it('exposes focusable native diagnostics without a theme provider', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const user = userEvent.setup();
 
     render(
       <ErrorBoundary>
@@ -43,9 +45,27 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
 
-    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByText('Something went wrong.')).toBeVisible();
+    const summary = within(alert).getByText('Details');
+    const details = summary.closest('details');
+    expect(summary.tagName).toBe('SUMMARY');
+    const diagnostics = within(alert).getByText(/Error: test render crash/);
+    expect(details).not.toHaveAttribute('open');
+    expect(diagnostics).not.toBeVisible();
 
+    await user.tab();
+    expect(summary).toHaveFocus();
+    // jsdom does not implement the browser's native summary keyboard activation.
+    await user.click(summary);
+    expect(details).toHaveAttribute('open');
+    expect(diagnostics).toBeVisible();
+    expect(diagnostics).toHaveTextContent('ThrowingChild');
+
+    await user.click(summary);
+    expect(details).not.toHaveAttribute('open');
+    expect(diagnostics).not.toBeVisible();
+    expect(summary).toHaveFocus();
     consoleSpy.mockRestore();
   });
 
@@ -79,12 +99,18 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
 
+    const details = screen.getByText('Details').closest('details');
+    fireEvent.click(screen.getByText('Details'));
+    expect(details).toHaveAttribute('open');
+
     view.rerender(
       <ErrorBoundary resetKey='page-a'>
         <div>recovered content</div>
       </ErrorBoundary>,
     );
 
+    expect(details).toHaveAttribute('open');
+    expect(screen.getByText(/Error: test render crash/)).toBeVisible();
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
     expect(screen.queryByText('recovered content')).not.toBeInTheDocument();
     consoleSpy.mockRestore();
@@ -107,8 +133,12 @@ describe('ErrorBoundary', () => {
 
     render(<Harness />);
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Details'));
+    expect(screen.getByText(/Error: test render crash/)).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'navigate' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText('Details')).not.toBeInTheDocument();
     expect(screen.queryByText('Something went wrong.')).not.toBeInTheDocument();
     expect(screen.getByText('recovered content')).toBeInTheDocument();
 

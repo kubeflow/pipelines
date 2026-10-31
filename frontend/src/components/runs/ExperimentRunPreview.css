@@ -1,0 +1,15 @@
+.kfp-experiment-run-preview li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 120px 190px;
+}
+.kfp-experiment-run-preview-date {
+  color: var(--muted-foreground);
+}
+@media (max-width: 600px) {
+  .kfp-experiment-run-preview li {
+    grid-template-columns: minmax(120px, 1fr) 100px;
+  }
+  .kfp-experiment-run-preview-date {
+    grid-column: 1 / -1;
+  }
+}

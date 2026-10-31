@@ -15,12 +15,25 @@
  */
 
 import * as React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { vi } from 'vitest';
 import TensorboardViewer, { TensorboardViewerConfig } from './Tensorboard';
 import TestUtils, { flushPromisesInAct, invokeAndFlush } from '../../TestUtils';
 import { Apis } from '../../lib/Apis';
 import { PlotType } from './Viewer';
+import { ThemeProvider } from '../shell/ThemeProvider';
+
+const render = (ui: React.ReactElement) =>
+  rtlRender(ui, {
+    wrapper: ({ children }) => <ThemeProvider defaultTheme='light'>{children}</ThemeProvider>,
+  });
 
 const DEFAULT_CONFIG: TensorboardViewerConfig = {
   type: PlotType.TENSORBOARD,
@@ -51,6 +64,11 @@ describe('Tensorboard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+    );
+
     intervalCallback = null;
     setIntervalSpy = vi.spyOn(global, 'setInterval').mockImplementation((callback: any) => {
       intervalCallback = callback;
@@ -64,6 +82,7 @@ describe('Tensorboard', () => {
     setIntervalSpy.mockRestore();
     clearIntervalSpy.mockRestore();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('base component snapshot', async () => {
@@ -177,8 +196,8 @@ describe('Tensorboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
 
     await flushPromisesInAct();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Open Tensorboard' })));
-    expect(screen.getByRole('button', { name: 'Open Tensorboard' }).closest('a')).toHaveAttribute(
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Open Tensorboard' })));
+    expect(screen.getByRole('link', { name: 'Open Tensorboard' })).toHaveAttribute(
       'href',
       'apps/tensorboard/proxy/new-token/',
     );
@@ -233,14 +252,10 @@ describe('Tensorboard', () => {
     const startAppMock = vi.fn(() => Promise.resolve(''));
     const startAppSpy = vi.spyOn(Apis, 'startTensorboardApp').mockImplementationOnce(startAppMock);
 
-    const ref = React.createRef<TensorboardViewer>();
-    render(<TensorboardViewer ref={ref} configs={[config]} />);
+    render(<TensorboardViewer configs={[config]} />);
     await flushPromisesInAct();
-
-    act(() => {
-      ref.current?.handleImageSelect({
-        target: { value: 'tensorflow/tensorflow:1.15.5' },
-      } as React.ChangeEvent<{ name?: string; value: unknown }>);
+    fireEvent.change(screen.getByRole('combobox', { name: 'TF Image' }), {
+      target: { value: 'tensorflow/tensorflow:1.15.5' },
     });
 
     await invokeAndFlush(() => {
@@ -291,7 +306,7 @@ describe('Tensorboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await flushPromisesInAct();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Open Tensorboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Tensorboard' })).toBeInTheDocument();
     expect(screen.getByText('Stop Tensorboard')).toBeInTheDocument();
   });
 
@@ -305,7 +320,7 @@ describe('Tensorboard', () => {
     await flushPromisesInAct();
     await flushPromisesAndInterval();
     expect(Apis.isTensorboardPodReady).toHaveBeenCalledWith('apps/tensorboard/proxy/test-token/');
-    expect(screen.getByRole('button', { name: 'Open Tensorboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Tensorboard' })).toBeInTheDocument();
     expect(
       screen.getByText('Tensorboard is starting, and you may need to wait for a few minutes.'),
     ).toBeInTheDocument();
@@ -316,5 +331,59 @@ describe('Tensorboard', () => {
     expect(
       screen.queryByText('Tensorboard is starting, and you may need to wait for a few minutes.'),
     ).toBeNull();
+  });
+  it('retains the selected custom image and pod template through a failed start and retry', async () => {
+    vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
+    const start = vi
+      .spyOn(Apis, 'startTensorboardApp')
+      .mockRejectedValueOnce(new Error('Start denied'))
+      .mockResolvedValueOnce('apps/tensorboard/proxy/recovered/');
+    const config = {
+      ...DEFAULT_CONFIG,
+      image: 'registry.example/tensorboard:custom',
+      podTemplateSpec: { spec: { serviceAccountName: 'viewer' } },
+    };
+    render(<TensorboardViewer configs={[config]} />);
+    await flushPromisesInAct();
+    expect(screen.getByRole('combobox', { name: 'TF Image' })).toHaveValue(config.image);
+    fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Start denied');
+    fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+    await screen.findByRole('link', { name: 'Open Tensorboard' });
+    expect(screen.queryByText('Start denied')).not.toBeInTheDocument();
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(start).toHaveBeenLastCalledWith({
+      logdir: config.url,
+      namespace: config.namespace,
+      image: config.image,
+      podTemplateSpec: config.podTemplateSpec,
+    });
+  });
+
+  it('cancels without deleting and retains the running instance after a failed stop', async () => {
+    vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_FOUND);
+    const remove = vi
+      .spyOn(Apis, 'deleteTensorboardApp')
+      .mockRejectedValueOnce(new Error('Stop denied'))
+      .mockResolvedValueOnce('');
+    render(<TensorboardViewer configs={[DEFAULT_CONFIG]} />);
+    await flushPromisesInAct();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Tensorboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Tensorboard' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Stop' }));
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('dialog')).getByRole('button', { name: 'Stop' }),
+      ).toBeEnabled(),
+    );
+    expect(screen.getByText('Stop denied')).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Stop' }));
+    await screen.findByRole('button', { name: 'Start Tensorboard' });
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenLastCalledWith(DEFAULT_CONFIG.url, DEFAULT_CONFIG.namespace);
+    expect(screen.queryByText('Stop denied')).not.toBeInTheDocument();
   });
 });

@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { readFileSync } from 'node:fs';
-import { satisfies } from 'semver';
+import { minVersion, satisfies } from 'semver';
 import { expect, it } from 'vitest';
 
 it('patches every selector parser, including nested Tailwind/PostCSS copies', () => {
@@ -22,7 +22,9 @@ it('patches every selector parser, including nested Tailwind/PostCSS copies', ()
   const parsers = Object.entries(lock.packages).filter(([path]) =>
     path.endsWith('/postcss-selector-parser'),
   );
-  expect(parsers.length).toBeGreaterThan(0);
+  // Tailwind 4 no longer installs this parser; retain the override for future transitive copies.
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  expect(satisfies(minVersion(manifest.overrides['postcss-selector-parser']), '>=7.1.6')).toBe(true);
   for (const [path, dependency] of parsers) {
     expect(satisfies(dependency.version, '>=7.1.6'), `${path}@${dependency.version}`).toBe(true);
   }

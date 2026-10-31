@@ -14,41 +14,34 @@
  * limitations under the License.
  */
 
-import { produce as immerProduce } from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router';
-import { classes } from 'typestyle';
 import { V2Pipeline, V2ListPipelinesResponse } from 'src/apisv2/pipeline';
-import CustomTable, {
-  Column,
-  CustomRendererProps,
-  ExpandState,
-  Row,
-} from 'src/components/CustomTable';
+import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import { Description } from 'src/components/Description';
-import { RoutePage, RouteParams } from 'src/components/Router';
-import { ToolbarProps } from 'src/components/Toolbar';
-import { commonCss, padding } from 'src/Css';
+import { RoutePageFactory } from 'src/components/Router';
+import { ToolbarProps } from 'src/lib/PageChromeTypes';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { Page } from './Page';
-import PipelineVersionList from './PipelineVersionList';
-import { IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { LatestPipelineVersion } from 'src/components/pipelines/LatestPipelineVersion';
+import { PipelineCollection } from 'src/components/pipelines/PipelineCollection';
+import { Button } from 'src/components/ui/button';
+import {
+  UploadedDateFilter,
+  uploadedDatePredicates,
+  type UploadedPeriod,
+} from 'src/components/pipelines/UploadedDateFilter';
 
-interface DisplayPipeline extends V2Pipeline {
-  expandState?: ExpandState;
-}
+type DisplayPipeline = V2Pipeline;
 
 interface PipelineListState {
-  moreActionsAnchor: HTMLElement | null;
+  uploadedPeriod: UploadedPeriod;
+  uploadedSince?: Date;
   displayPipelines: DisplayPipeline[];
   selectedIds: string[];
-
-  // selectedVersionIds is a map from string to string array.
-  // For each pipeline, there is a list of selected version ids.
-  selectedVersionIds: { [pipelineId: string]: string[] };
+  loadError: boolean;
 }
 
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -59,15 +52,16 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (
 
 class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
+  private _loadGeneration = 0;
 
   constructor(props: any) {
     super(props);
 
     this.state = {
-      moreActionsAnchor: null,
+      uploadedPeriod: 'all',
       displayPipelines: [],
+      loadError: false,
       selectedIds: [],
-      selectedVersionIds: {},
     };
   }
 
@@ -79,8 +73,8 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         .refresh(this.refresh.bind(this))
         .deletePipelinesAndPipelineVersions(
           () => this.state.selectedIds,
-          () => this.state.selectedVersionIds,
-          (pipelineId, ids) => this._selectionChanged(pipelineId, ids),
+          () => ({}),
+          (_pipelineId, ids) => this._selectionChanged(ids),
           false /* useCurrentResource */,
         )
         .getToolbarActionMap(),
@@ -97,73 +91,85 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
         label: 'Pipeline name',
         sortKey: PipelineSortKeys.DISPLAY_NAME,
       },
-      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
-      { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
+      { label: 'Description', width: '35%', flex: 3, customRenderer: descriptionCustomRenderer },
+      {
+        label: 'Latest version',
+        width: 180,
+        customRenderer: (props) => <LatestPipelineVersion {...props} />,
+      },
+      { label: 'Uploaded on', width: 190, sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
     const rows: Row[] = this.state.displayPipelines.map((p) => {
       return {
-        expandState: p.expandState,
         id: p.pipeline_id!,
+        error: p.error?.message,
         otherFields: [
           { display_name: p.display_name, name: p.name },
           p.description!,
+          p.pipeline_id!,
           formatDateString(p.created_at!),
         ] as any,
       };
     });
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lr'))}>
+      <div className='kfp-pipelines-page'>
         <CustomTable
           ref={this._tableRef}
+          filterPredicates={uploadedDatePredicates(this.state.uploadedSince)}
+          renderTable={(table) => (
+            <PipelineCollection
+              table={table}
+              dateFilter={
+                <UploadedDateFilter
+                  value={this.state.uploadedPeriod}
+                  onChange={this._setUploadedPeriod}
+                />
+              }
+              activeFilters={
+                this.state.uploadedPeriod !== 'all' && (
+                  <div className='kfp-pipeline-active-filters'>
+                    <Button
+                      variant='secondary'
+                      size='sm'
+                      aria-label='Clear uploaded date filter'
+                      onClick={() => this._setUploadedPeriod('all')}
+                    >
+                      Uploaded: last {this.state.uploadedPeriod} days ×
+                    </Button>
+                  </div>
+                )
+              }
+            />
+          )}
+          errorMessage={this.state.loadError ? 'Unable to load pipelines. Try Refresh.' : undefined}
           columns={columns}
           rows={rows}
           initialSortColumn={PipelineSortKeys.CREATED_AT}
-          updateSelection={this._selectionChanged.bind(this, undefined)}
+          updateSelection={this._selectionChanged.bind(this)}
           selectedIds={this.state.selectedIds}
           reload={this._reload.bind(this)}
-          toggleExpansion={this._toggleRowExpand.bind(this)}
-          getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
-          filterLabel='Filter pipelines'
-          filterActions={
-            <>
-              <Tooltip title='More actions'>
-                <IconButton
-                  id='pipeline-more-actions'
-                  aria-label='More actions'
-                  aria-haspopup='menu'
-                  aria-controls={
-                    this.state.moreActionsAnchor ? 'pipeline-more-actions-menu' : undefined
-                  }
-                  aria-expanded={!!this.state.moreActionsAnchor}
-                  onClick={(event) => this.setState({ moreActionsAnchor: event.currentTarget })}
-                >
-                  <MoreVertIcon />
-                </IconButton>
-              </Tooltip>
-              <Menu
-                id='pipeline-more-actions-menu'
-                anchorEl={this.state.moreActionsAnchor}
-                open={!!this.state.moreActionsAnchor}
-                onClose={() => this.setState({ moreActionsAnchor: null })}
-                MenuListProps={{ 'aria-labelledby': 'pipeline-more-actions' }}
-              >
-                <MenuItem
-                  component={Link}
-                  to={RoutePage.METADATA_TRANSFER}
-                  onClick={() => this.setState({ moreActionsAnchor: null })}
-                >
-                  Import / export namespace data…
-                </MenuItem>
-              </Menu>
-            </>
+          filterLabel='Search pipelines'
+          emptyMessage={
+            this.state.uploadedPeriod === 'all'
+              ? 'No pipelines found. Click "Upload pipeline" to start.'
+              : 'No pipelines match the uploaded date. Clear the date filter to see older pipelines.'
           }
-          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
         />
       </div>
     );
   }
+
+  private _setUploadedPeriod = (uploadedPeriod: UploadedPeriod): void => {
+    this.setState({
+      uploadedPeriod,
+      uploadedSince:
+        uploadedPeriod === 'all'
+          ? undefined
+          : new Date(Date.now() - Number(uploadedPeriod) * 86400000),
+    });
+  };
 
   public async refresh(): Promise<void> {
     if (this._tableRef.current) {
@@ -171,102 +177,51 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
     }
   }
 
-  private _toggleRowExpand(rowIndex: number): void {
-    const displayPipelines = immerProduce(this.state.displayPipelines, (draft) => {
-      draft[rowIndex].expandState =
-        draft[rowIndex].expandState === ExpandState.COLLAPSED
-          ? ExpandState.EXPANDED
-          : ExpandState.COLLAPSED;
-    });
-
-    this.setState({ displayPipelines });
-  }
-
-  private _getExpandedPipelineComponent(rowIndex: number): React.JSX.Element {
-    const pipeline = this.state.displayPipelines[rowIndex];
-    return (
-      <PipelineVersionList
-        pipelineId={pipeline.pipeline_id}
-        onError={() => null}
-        {...this.props}
-        selectedIds={this.state.selectedVersionIds[pipeline.pipeline_id!] || []}
-        noFilterBox={true}
-        onSelectionChange={this._selectionChanged.bind(this, pipeline.pipeline_id)}
-        disableSorting={false}
-        disablePaging={false}
-      />
-    );
-  }
-
   private async _reload(request: ListRequest): Promise<string> {
-    let response: V2ListPipelinesResponse | null = null;
-    let displayPipelines: DisplayPipeline[];
+    const generation = ++this._loadGeneration;
     try {
-      response = await Apis.pipelineServiceApiV2.listPipelines(
+      const response: V2ListPipelinesResponse = await Apis.pipelineServiceApiV2.listPipelines(
         this.props.namespace,
         request.pageToken,
         request.pageSize,
         request.sortBy,
         request.filter,
       );
-      displayPipelines = response.pipelines || [];
-      displayPipelines.forEach((exp) => (exp.expandState = ExpandState.COLLAPSED));
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
+      this.setStateSafe({
+        displayPipelines: response.pipelines || [],
+        loadError: false,
+      });
       this.clearBanner();
+      return response.next_page_token || '';
     } catch (err) {
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
+      if (!this._isMounted || generation !== this._loadGeneration) return '';
+      this.setStateSafe({ loadError: true });
       await this.showPageError('Error: failed to retrieve list of pipelines.', error);
+      return '';
     }
-
-    this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
-
-    return response ? response.next_page_token || '' : '';
   }
 
   private _nameCustomRenderer: React.FC<
     CustomRendererProps<{ display_name?: string; name: string }>
-  > = (props: CustomRendererProps<{ display_name?: string; name: string }>) => {
-    return (
-      <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
-        <Link
-          onClick={(e) => e.stopPropagation()}
-          className={commonCss.link}
-          to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
-        >
-          {props.value?.display_name || props.value?.name}
-        </Link>
-      </Tooltip>
-    );
-  };
+  > = (props) => (
+    <Link
+      onClick={(event) => event.stopPropagation()}
+      title={'Name: ' + (props.value?.name || '')}
+      to={RoutePageFactory.pipelineDetails(props.id)}
+    >
+      {props.value?.display_name || props.value?.name}
+    </Link>
+  );
 
-  // selection changes passed in via "selectedIds" can be
-  // (1) changes of selected pipeline ids, and will be stored in "this.state.selectedIds" or
-  // (2) changes of selected pipeline version ids, and will be stored in "selectedVersionIds" with key "pipelineId"
-  private _selectionChanged(pipelineId: string | undefined, selectedIds: string[]): void {
-    if (pipelineId) {
-      // Update selected pipeline version ids.
-      this.setStateSafe({
-        selectedVersionIds: {
-          ...this.state.selectedVersionIds,
-          ...{ [pipelineId!]: selectedIds || [] },
-        },
-      });
+  private _selectionChanged(selectedIds: string[]): void {
+    if (!this._isMounted) return;
+    this.setState({ selectedIds: selectedIds || [] }, () => {
       const actions = this.props.toolbarProps.actions;
-      actions[ButtonKeys.DELETE_RUN].disabled =
-        (this.state.selectedIds?.length || 0) < 1 && (selectedIds?.length || 0) < 1;
+      actions[ButtonKeys.DELETE_RUN].disabled = this.state.selectedIds.length === 0;
       this.props.updateToolbar({ actions });
-    } else {
-      // Update selected pipeline ids.
-      this.setStateSafe({ selectedIds: selectedIds || [] });
-      const selectedVersionIdsCt = this._deepCountDictionary(this.state.selectedVersionIds || {});
-      const actions = this.props.toolbarProps.actions;
-      actions[ButtonKeys.DELETE_RUN].disabled =
-        (selectedIds?.length || 0) < 1 && selectedVersionIdsCt < 1;
-      this.props.updateToolbar({ actions });
-    }
-  }
-
-  private _deepCountDictionary(dict: { [pipelineId: string]: string[] }): number {
-    return Object.keys(dict).reduce((count, pipelineId) => count + dict[pipelineId].length, 0);
+    });
   }
 }
 

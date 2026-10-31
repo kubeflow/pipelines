@@ -3,7 +3,17 @@
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { CommonTestWrapper } from 'src/TestWrapper';
+import { CommonTestWrapper as TestWrapper } from 'src/TestWrapper';
+import { ThemeProvider } from 'src/components/shell/ThemeProvider';
+import { PropsWithChildren } from 'react';
+
+function CommonTestWrapper({ children }: PropsWithChildren) {
+  return (
+    <ThemeProvider>
+      <TestWrapper>{children}</TestWrapper>
+    </ThemeProvider>
+  );
+}
 import { mockResizeObserver } from 'src/TestUtils';
 import { deeplyNestedSpec, manySubDagsSpec, nestedArtifactSpec } from 'src/data/test/groupedFlow';
 import { convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
@@ -36,9 +46,15 @@ function renderManyGroups(count = 11) {
 }
 
 beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })),
+  );
   mockResizeObserver();
   localStorage.clear();
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 it.each(['Expand all', 'Collapse all'])(
   'restores %s and individual choices after remount',
@@ -110,16 +126,13 @@ it('shows nested tasks immediately and collapses in place without navigating or 
   expect(screen.getByText('Train model')).toBeInTheDocument();
   const collapse = screen.getByRole('button', { name: 'Collapse Training pipeline' });
   expect(collapse).toHaveAttribute('aria-expanded', 'true');
-  expect(within(collapse).getByTestId('UnfoldLessIcon')).toBeInTheDocument();
   fireEvent.click(collapse);
   expect(screen.queryByText('Train model')).not.toBeInTheDocument();
   expect(screen.getByText('Deploy model')).toBeInTheDocument();
   expect(options.onElementClick).not.toHaveBeenCalled();
   const expand = screen.getByRole('button', { name: 'Expand Training pipeline' });
   expect(expand).toHaveAttribute('aria-expanded', 'false');
-  expect(within(expand).getByTestId('UnfoldMoreIcon')).toBeInTheDocument();
   fireEvent.click(expand);
-  expect(within(collapse).getByTestId('UnfoldLessIcon')).toBeInTheDocument();
   expect(screen.getByText('Train model')).toBeInTheDocument();
 });
 
@@ -315,8 +328,6 @@ it('places expand then collapse above native zoom controls and toggles all desce
   );
   const expandAll = screen.getByRole('button', { name: 'Expand all' });
   const collapseAll = screen.getByRole('button', { name: 'Collapse all' });
-  expect(within(expandAll).getByTestId('UnfoldMoreIcon')).toBeInTheDocument();
-  expect(within(collapseAll).getByTestId('UnfoldLessIcon')).toBeInTheDocument();
   const toolbar = screen.getByRole('group', { name: 'Graph controls' });
   const buttons = within(toolbar).getAllByRole('button');
   expect(buttons[0]).toBe(expandAll);
@@ -324,11 +335,15 @@ it('places expand then collapse above native zoom controls and toggles all desce
   expect(buttons[2]).toHaveAccessibleName('Zoom in');
   expect(buttons[3]).toHaveAccessibleName('Zoom out');
   expect(buttons[4]).toHaveAccessibleName('Fit view');
-  expect(buttons[5]).toHaveAccessibleName('Unlock graph');
+  expect(buttons[5]).toHaveAccessibleName('Unlock node positions');
   expect(buttons).toHaveLength(6);
+  expect(expandAll).toBeDisabled();
+  expect(collapseAll).toBeEnabled();
   expect(screen.queryByRole('button', { name: 'Render subdags' })).not.toBeInTheDocument();
   expect(screen.queryByText('Layers')).not.toBeInTheDocument();
   fireEvent.click(collapseAll);
+  expect(collapseAll).toBeDisabled();
+  expect(expandAll).toBeEnabled();
   expect(screen.queryByText('Prepare data')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Expand Training pipeline' }));
   expect(
@@ -351,9 +366,9 @@ it('places expand then collapse above native zoom controls and toggles all desce
 });
 
 it.each([
-  [13, 39],
-  [16, 48],
-])('renders node-height group headers with a %spx root font', (rootFontSize, expectedHeight) => {
+  [13, 40],
+  [16, 40],
+])('renders compact group headers with a %spx root font', (rootFontSize, expectedHeight) => {
   const previous = document.documentElement.style.fontSize;
   document.documentElement.style.fontSize = `${rootFontSize}px`;
   try {
@@ -386,15 +401,15 @@ it('starts locked while keeping node details and viewport controls available', (
       <DagCanvas {...options} />
     </CommonTestWrapper>,
   );
-  expect(screen.getByRole('button', { name: 'Unlock graph' })).toHaveAttribute(
+  expect(screen.getByRole('button', { name: 'Unlock node positions' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   fireEvent.click(screen.getByText('Train model'));
   expect(options.onElementClick).toHaveBeenCalledTimes(1);
   expect(screen.getByRole('button', { name: 'Zoom in' })).not.toBeDisabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Unlock graph' }));
-  expect(screen.getByRole('button', { name: 'Lock graph' })).toHaveAttribute(
+  fireEvent.click(screen.getByRole('button', { name: 'Unlock node positions' }));
+  expect(screen.getByRole('button', { name: 'Lock node positions' })).toHaveAttribute(
     'aria-pressed',
     'false',
   );

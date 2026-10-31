@@ -15,39 +15,9 @@
  */
 
 import * as React from 'react';
+import { Link } from 'react-router';
 import { logger } from '../lib/Utils';
-import { stylesheet, classes } from 'typestyle';
-import { color } from '../Css';
-
-const borderStyle = `1px solid ${color.divider}`;
-
-const css = stylesheet({
-  cell: {
-    border: borderStyle,
-    borderCollapse: 'collapse',
-    padding: 5,
-  },
-  labelCell: {
-    backgroundColor: color.lightGrey,
-    fontWeight: 'bold',
-    maxWidth: 200,
-    minWidth: 50,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  root: {
-    border: borderStyle,
-    borderCollapse: 'collapse',
-  },
-  row: {
-    $nest: {
-      '&:hover': {
-        backgroundColor: '#f7f7f7',
-      },
-    },
-  },
-});
+import './CompareTable.css';
 
 export interface xParentLabel {
   label: string;
@@ -59,75 +29,90 @@ export interface CompareTableProps {
   xLabels: string[];
   yLabels: string[];
   xParentLabels?: xParentLabel[];
+  label?: string;
+  xLinks?: string[];
+  missingCells?: boolean[][];
 }
 
 class CompareTable extends React.PureComponent<CompareTableProps> {
   public render(): React.JSX.Element | null {
-    const { rows, xLabels, yLabels, xParentLabels } = this.props;
+    const {
+      rows,
+      xLabels,
+      yLabels,
+      xParentLabels,
+      xLinks,
+      missingCells,
+      label = 'Run comparison',
+    } = this.props;
     if (rows.length !== yLabels.length) {
       logger.error(
         `Number of rows (${rows.length}) should match the number of Y labels (${yLabels.length}).`,
       );
     }
-
-    const xParentLabelsLength =
-      xParentLabels &&
-      xParentLabels.reduce((length, xParentLabel) => length + xParentLabel.colSpan, 0);
-    if (xParentLabels && xParentLabelsLength !== xLabels.length) {
+    const parentLength = xParentLabels?.reduce((length, parent) => length + parent.colSpan, 0);
+    if (xParentLabels && parentLength !== xLabels.length) {
       logger.error(
-        `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${xParentLabelsLength}).`,
+        `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${parentLength}).`,
       );
     }
-
-    if (!rows || rows.length === 0) {
-      return null;
-    }
-
+    if (!rows.length) return null;
     return (
-      <table className={css.root}>
-        <tbody>
-          {xParentLabels && xParentLabelsLength === xLabels.length && (
-            <tr className={css.row}>
-              <td className={css.labelCell} />
-              {/* X parent labels row */}
-              {xParentLabels.map((parentLabel, i) => (
-                <td
-                  key={i}
-                  className={classes(css.cell, css.labelCell)}
-                  title={parentLabel.label}
-                  colSpan={parentLabel.colSpan}
-                >
-                  {parentLabel.label}
-                </td>
+      <div className='kfp-compare-table-scroll' role='region' aria-label={label} tabIndex={0}>
+        <table className='kfp-compare-table' aria-label={label}>
+          <thead>
+            {xParentLabels && parentLength === xLabels.length && (
+              <tr>
+                <th scope='col'>Run</th>
+                {xParentLabels.map((parent, index) => (
+                  <th key={index} scope='colgroup' colSpan={parent.colSpan}>
+                    {parent.label}
+                  </th>
+                ))}
+              </tr>
+            )}
+            <tr>
+              <th scope='col'>Name</th>
+              {xLabels.map((name, index) => (
+                <th key={index} scope='col'>
+                  {xLinks?.[index] ? <Link to={xLinks[index]}>{name}</Link> : name}
+                </th>
               ))}
             </tr>
-          )}
-          <tr className={css.row}>
-            <td className={css.labelCell} />
-            {/* X labels row */}
-            {xLabels.map((label, i) => (
-              <td key={i} className={classes(css.cell, css.labelCell)} title={label}>
-                {label}
-              </td>
-            ))}
-          </tr>
-          {rows.map((row, i) => (
-            <tr key={i} className={css.row}>
-              {/* Y label */}
-              <td className={classes(css.cell, css.labelCell)} title={yLabels[i]}>
-                {yLabels[i]}
-              </td>
-
-              {/* Row cells */}
-              {row.map((cell, j) => (
-                <td key={j} className={css.cell} title={cell}>
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => {
+              const absent = (column: number) =>
+                missingCells?.[rowIndex]?.[column] ?? row[column] === undefined;
+              const signatures = xLabels.map((_, column) =>
+                JSON.stringify([absent(column), row[column]]),
+              );
+              const differs = new Set(signatures).size > 1;
+              return (
+                <tr key={rowIndex} data-different={differs || undefined}>
+                  <th
+                    scope='row'
+                    aria-label={`${yLabels[rowIndex]}${differs ? ' (values differ)' : ''}`}
+                  >
+                    {yLabels[rowIndex]}
+                  </th>
+                  {xLabels.map((_, column) => (
+                    <td key={column}>
+                      {absent(column) ? (
+                        <span aria-label='Not provided'>—</span>
+                      ) : row[column] === '' ? (
+                        <span aria-label='Empty string'>“”</span>
+                      ) : (
+                        row[column]
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     );
   }
 }

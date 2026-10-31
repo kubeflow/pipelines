@@ -53,6 +53,12 @@ import {
   RunSortKeys,
 } from '../src/lib/Apis';
 import { data as fixedData } from './fixed-data';
+import {
+  sampleDriverLogs,
+  sampleRunTasks,
+  sampleTaskLogs,
+  sampleRetryTaskLogs,
+} from './sample-run-tasks';
 import registerTensorboardProxy from './tensorboard-proxy';
 import datasetPreview from './data/v2/artifact-previews/dataset.json';
 import modelPreview from './data/v2/artifact-previews/model.json';
@@ -90,6 +96,47 @@ const mockV2Artifacts: V2Artifact[] = [
     uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-model',
     metadata: { _kfp_preview: { version: 2, storage: 'sibling' } },
   },
+  ...[
+    {
+      artifact_id: 'mock-artifact-2',
+      name: 'taxi-training-dataset',
+      type: ArtifactArtifactType.Dataset,
+      description: 'Cleaned taxi trips used to train the fare prediction model.',
+      created_at: new Date('2026-01-02T09:15:00.000Z'),
+    },
+    {
+      artifact_id: 'mock-artifact-3',
+      name: 'taxi-validation-dataset',
+      type: ArtifactArtifactType.Dataset,
+      description: 'Held-out taxi trips for evaluating prediction quality.',
+      created_at: new Date('2026-01-02T09:20:00.000Z'),
+    },
+    {
+      artifact_id: 'mock-artifact-4',
+      name: 'taxi-fare-xgboost',
+      type: ArtifactArtifactType.Model,
+      description: 'XGBoost fare prediction model trained on the cleaned taxi dataset.',
+      created_at: new Date('2026-01-03T14:30:00.000Z'),
+    },
+    {
+      artifact_id: 'mock-artifact-5',
+      name: 'taxi-fare-baseline',
+      type: ArtifactArtifactType.Model,
+      description: 'Baseline regression model for comparing prediction quality.',
+      created_at: new Date('2026-01-01T16:45:00.000Z'),
+    },
+    {
+      artifact_id: 'mock-artifact-6',
+      name: 'feature-statistics',
+      type: ArtifactArtifactType.Artifact,
+      description: 'Summary statistics for distance, duration, and passenger-count features.',
+      created_at: new Date('2026-01-02T10:00:00.000Z'),
+    },
+  ].map((artifact) => ({
+    ...artifact,
+    namespace: 'kubeflow-user-example-com',
+    uri: `s3://mlpipeline/private-artifacts/kubeflow-user-example-com/sample/${artifact.name}`,
+  })),
 ];
 const mockV2Tasks: V2PipelineTask[] = [
   {
@@ -192,6 +239,12 @@ const mockV2Tasks: V2PipelineTask[] = [
     type: PipelineTaskTaskType.RUNTIME,
   },
 ];
+function getMockRunTasks(runId: string): V2PipelineTask[] {
+  if (runId === mockNativeRunId) return mockV2Tasks;
+  const run = fixedData.runs.find((run) => run.run_id === runId);
+  return run ? sampleRunTasks(run) : [];
+}
+
 const mockV2ArtifactTasks: V2ArtifactTask[] = [
   {
     artifact_id: 'mock-model-1',
@@ -328,7 +381,23 @@ function getSortKeyAndOrder(
   return { desc, key };
 }
 
+// API artifact enums are strings on the wire, but the database filter uses integer values.
+const artifactTypeValues: Record<ArtifactArtifactType, number> = {
+  TYPE_UNSPECIFIED: 0,
+  Artifact: 1,
+  Model: 2,
+  Dataset: 3,
+  HTML: 4,
+  Markdown: 5,
+  Metric: 6,
+  ClassificationMetric: 7,
+  SlicedClassificationMetric: 8,
+};
+
 function getV2ResourceValue(resource: V2FilterableResource, key: string): unknown {
+  if (key === 'type' && 'artifact_id' in resource && 'type' in resource) {
+    return artifactTypeValues[resource.type as ArtifactArtifactType];
+  }
   if (key === 'name') {
     return resource.name || resource.display_name;
   }
@@ -389,6 +458,19 @@ function filterV2Resources<T extends V2FilterableResource>(
     const key = predicate.key || '';
     const stringValue = predicate.string_value || '';
     switch (predicate.operation) {
+      case V2PredicateOperation.GREATER_THAN_EQUALS:
+        if (!predicate.timestamp_value) throw new Error('Timestamp is required for date filtering');
+        return filteredResources.filter(
+          (resource) =>
+            new Date(String(getV2ResourceValue(resource, key))).getTime() >=
+            new Date(predicate.timestamp_value!).getTime(),
+        );
+      case V2PredicateOperation.IN: {
+        const values = predicate.int_values?.values || predicate.string_values?.values || [];
+        return filteredResources.filter((resource) =>
+          values.some((value) => value === getV2ResourceValue(resource, key)),
+        );
+      }
       case V2PredicateOperation.EQUALS:
         return filteredResources.filter(
           (resource) => String(getV2ResourceValue(resource, key) || '') === stringValue,
@@ -459,7 +541,18 @@ export default (app: express.Application) => {
   app.get(v2Prefix + '/experiments', (req, res) => {
     res.header('Content-Type', 'application/json');
     const experiments = sortV2Resources(
-      filterV2Resources(fixedData.experiments, getQueryString(req.query.filter)),
+      filterV2Resources(
+        fixedData.experiments.map((experiment) => {
+          const runTimes = fixedData.runs
+            .filter((run) => run.experiment_id === experiment.experiment_id && run.created_at)
+            .map((run) => new Date(run.created_at!).getTime());
+          return {
+            ...experiment,
+            last_run_created_at: runTimes.length ? new Date(Math.max(...runTimes)) : undefined,
+          };
+        }),
+        getQueryString(req.query.filter),
+      ),
       ExperimentSortKeys.NAME,
       getQueryString(req.query.sort_by),
     );
@@ -574,16 +667,44 @@ export default (app: express.Application) => {
     res.json(run);
   });
 
-  app.get(v2Prefix + '/runs/:rid/tasks', (req, res) => {
-    res.json({ tasks: req.params.rid === mockNativeRunId ? mockV2Tasks : [] });
+  app.get(v2Prefix + '/runs/:rid/tasks/:taskId', (req, res) => {
+    const task = getMockRunTasks(getQueryString(req.params.rid) || '').find(
+      (task) => task.task_id === req.params.taskId,
+    );
+    if (!task) {
+      res.status(404).json({ message: 'Task not found. Select a task from this run.' });
+      return;
+    }
+    res.json(task);
   });
 
-  app.get(v2Prefix + '/artifacts', (_req, res) => {
-    res.json({ artifacts: mockV2Artifacts, total_size: mockV2Artifacts.length });
+  app.get(v2Prefix + '/runs/:rid/tasks', (req, res) => {
+    res.json({ tasks: getMockRunTasks(getQueryString(req.params.rid) || '') });
+  });
+
+  app.get(v2Prefix + '/artifacts', (req, res) => {
+    const namespace = getQueryString(req.query.namespace);
+    const artifacts = sortV2Resources(
+      filterV2Resources(
+        mockV2Artifacts.filter((artifact) => !namespace || artifact.namespace === namespace),
+        getQueryString(req.query.filter),
+      ),
+      'created_at',
+      getQueryString(req.query.sort_by),
+    );
+    const page = getPage(artifacts, req.query.page_token, req.query.page_size);
+    res.json({
+      artifacts: page.page,
+      total_size: artifacts.length,
+      next_page_token: page.nextPageToken,
+    });
   });
 
   app.get(v2Prefix + '/artifacts/:artifactId', (req, res) => {
-    const artifact = mockV2Artifacts.find(
+    const runtimeArtifacts = fixedData.runs
+      .flatMap(sampleRunTasks)
+      .flatMap((task) => task.outputs?.artifacts?.flatMap((group) => group.artifacts || []) || []);
+    const artifact = [...mockV2Artifacts, ...runtimeArtifacts].find(
       (candidate) => candidate.artifact_id === req.params.artifactId,
     );
     if (!artifact) {
@@ -593,8 +714,32 @@ export default (app: express.Application) => {
     res.json(artifact);
   });
 
-  app.get(v2Prefix + '/artifact_tasks', (_req, res) => {
-    res.json({ artifact_tasks: mockV2ArtifactTasks });
+  app.get(v2Prefix + '/artifact_tasks', (req, res) => {
+    const artifactIds = [req.query.artifact_ids]
+      .flat()
+      .filter((id): id is string => typeof id === 'string')
+      .flatMap((ids) => ids.split(','));
+    const runtimeTasks: V2ArtifactTask[] = fixedData.runs.flatMap(sampleRunTasks).flatMap((task) =>
+      (['inputs', 'outputs'] as const).flatMap(
+        (direction) =>
+          task[direction]?.artifacts?.flatMap(
+            (group) =>
+              group.artifacts?.map((artifact) => ({
+                id: `${task.task_id}-${direction}-${group.artifact_key}`,
+                artifact_id: artifact.artifact_id,
+                run_id: task.run_id,
+                task_id: task.task_id,
+                key: group.artifact_key,
+                type: direction === 'outputs' ? V2IOType.OUTPUT : V2IOType.TASK_OUTPUT_INPUT,
+              })) || [],
+          ) || [],
+      ),
+    );
+    res.json({
+      artifact_tasks: [...mockV2ArtifactTasks, ...runtimeTasks].filter(
+        (task) => !artifactIds.length || artifactIds.includes(task.artifact_id || ''),
+      ),
+    });
   });
 
   app.get(v2Prefix + '/recurringruns', (req, res) => {
@@ -656,6 +801,39 @@ export default (app: express.Application) => {
     if (!key) {
       return;
     }
+    if (key.startsWith('review-executor-logs/')) {
+      for (const run of fixedData.runs) {
+        for (const task of sampleRunTasks(run)) {
+          const archive = task.outputs?.artifacts
+            ?.flatMap((group) => group.artifacts || [])
+            .find((artifact) => artifact.uri === `s3://mlpipeline/${key}`);
+          if (archive) {
+            const attempt = Number(key.match(/executor-logs-(\d+)$/)![1]);
+            res.type('text/plain').send(sampleRetryTaskLogs(task, run, attempt));
+            return;
+          }
+        }
+      }
+      res.status(404).send('Executor log archive not found. Select an available log source.');
+      return;
+    }
+    if (key.startsWith('review-driver-logs/')) {
+      for (const run of fixedData.runs) {
+        const task = sampleRunTasks(run).find(
+          (task) =>
+            task.task_id === key.slice('review-driver-logs/'.length) &&
+            !!task.status_metadata?.custom_properties?.driver_logs_uri,
+        );
+        if (task) {
+          res.type('text/plain').send(sampleDriverLogs(task, run.namespace || 'kubeflow'));
+          return;
+        }
+      }
+      res
+        .status(404)
+        .send('Driver log fixture not found. Select a task with available driver logs.');
+      return;
+    }
     res.header('Content-Type', 'application/json');
     if (key.endsWith('roc.csv')) {
       sendMockBackendFile(res, rocDataPath);
@@ -705,6 +883,25 @@ export default (app: express.Application) => {
     }
     if (podName === 'coinflip-recursive-q7dqb-3721646052') {
       res.status(500).send('Failed to retrieve log');
+      return;
+    }
+    for (const run of fixedData.runs) {
+      const task = sampleRunTasks(run).find((task) =>
+        task.pods?.some((pod) => pod.type === 'EXECUTOR' && pod.name === podName),
+      );
+      if (task) {
+        res
+          .type('text/plain')
+          .send(
+            podName === `${task.task_id}-executor-attempt-0`
+              ? sampleRetryTaskLogs(task, run, 0)
+              : sampleTaskLogs(task, run),
+          );
+        return;
+      }
+    }
+    if (podName.startsWith('sample-run-')) {
+      res.status(404).send('No executor logs are available for this sample task.');
       return;
     }
     const shortLog = fs.readFileSync('./mock-backend/shortlog.txt', 'utf-8');
