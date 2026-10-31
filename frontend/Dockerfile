@@ -12,7 +12,11 @@ ARG DATE
 
 WORKDIR ./src
 
-COPY . .
+# Install all three dependency trees before copying source so source-only changes
+# reuse the dependency layer. The root postinstall installs the nested packages.
+COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./frontend/
+COPY frontend/server/package.json frontend/server/package-lock.json ./frontend/server/
+COPY frontend/mock-backend/package.json frontend/mock-backend/package-lock.json ./frontend/mock-backend/
 
 WORKDIR ./frontend
 
@@ -23,6 +27,10 @@ RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 # npm ci runs the root postinstall script, which installs server and mock-backend deps.
 RUN (npm ci || (npm cache clean --force && npm ci)) && \
     echo "Frontend build dependencies installed"
+
+WORKDIR ..
+COPY . .
+WORKDIR ./frontend
 RUN npm run build
 
 RUN mkdir -p ./server/dist && \
