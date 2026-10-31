@@ -167,7 +167,7 @@ describe('decideFromContexts', () => {
         ],
         'ns-a',
       ),
-    ).toEqual({ valid: true, reason: 'mlmd-unavailable' });
+    ).toEqual({ valid: false, reason: 'mlmd-unavailable' });
   });
 
   it('returns mlmd-unavailable when some lookups failed but others have no mismatch', () => {
@@ -179,7 +179,7 @@ describe('decideFromContexts', () => {
         ],
         'ns-a',
       ),
-    ).toEqual({ valid: true, reason: 'mlmd-unavailable' });
+    ).toEqual({ valid: false, reason: 'mlmd-unavailable' });
   });
 
   it('returns no-evidence when contexts contain no PipelineRun entry at all', () => {

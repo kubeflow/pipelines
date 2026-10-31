@@ -316,21 +316,27 @@ describe('artifact ownership compatibility over real HTTP and protobuf transport
     expect(storageCalls).toHaveLength(status === 200 ? 1 : 0);
   });
 
-  it.each(['lookup', 'context', 'missing-context'] as const)(
-    'preserves legacy reads with %s unavailable',
+  it.each(['lookup', 'context'] as const)(
+    'blocks artifact reads with %s unavailable',
     async (scenario) => {
       add('legacy/model.txt', [
         {
           id: 1,
-          namespace: scenario === 'missing-context' ? undefined : namespace,
+          namespace,
           unavailable: scenario === 'context',
         },
       ]);
       lookupUnavailable = scenario === 'lookup';
-      expect((await read('legacy/model.txt')).status).toBe(200);
-      expect(storageCalls).toHaveLength(1);
+      expect((await read('legacy/model.txt')).status).toBe(503);
+      expect(storageCalls).toHaveLength(0);
     },
   );
+
+  it('preserves the separate no-evidence compatibility policy', async () => {
+    add('legacy/model.txt', [{ id: 1 }]);
+    expect((await read('legacy/model.txt')).status).toBe(200);
+    expect(storageCalls).toHaveLength(1);
+  });
 
   it.each([
     ['', namespace, 401],
