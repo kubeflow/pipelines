@@ -41,6 +41,7 @@ import {
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getTaskDisplayName, getTaskLifecycleMessage } from 'src/lib/v2/RunTaskUtils';
+import { getDebugPauseBarrier } from 'src/lib/v2/DebugPauseUtils';
 import {
   formatRuntimeIterationLayer,
   isRuntimeIterationLayer,
@@ -218,6 +219,7 @@ export function updateFlowElementsState(
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
       // Always assign so the warning clears when the message is cleared on recovery.
       data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
+      data.debugPauseBarrier = getDebugPauseBarrier(runtimeInfo.task);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = getRuntimeTaskState(

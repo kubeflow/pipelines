@@ -17,6 +17,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -39,7 +40,15 @@ function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
   // A lifecycle message is a warning, not a failure: the node only turns red once the
   // task itself is FAILED, so the failed icon takes precedence over the warning.
   const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
-  let icon = showWarning ? getWarningIcon() : getIcon(data.state);
+  // A debug-pause barrier is a separate overlay on top of the task's real
+  // state (which continues to report RUNNING while parked) - it takes
+  // visual precedence here rather than being merged into getIcon's switch,
+  // so a paused task is unmistakably distinct from a normally-running one.
+  let icon = data.debugPauseBarrier
+    ? getDebugPauseIcon()
+    : showWarning
+      ? getWarningIcon()
+      : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
@@ -140,6 +149,16 @@ function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
     >
       {element}
     </div>
+  );
+}
+
+// Deliberately grey, distinct from any color used by getIcon's real state
+// icons - a paused task is neither succeeding, failing, nor merely running;
+// it is waiting for a person to resume it.
+export function getDebugPauseIcon() {
+  return getStateIconWrapper(
+    <PauseCircleIcon data-testid='execution-icon-debug-paused' className='text-mui-grey-600' />,
+    'bg-mui-grey-200',
   );
 }
 
