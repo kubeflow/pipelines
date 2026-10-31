@@ -22,7 +22,6 @@
 package compiler
 
 import (
-	"bytes"
 	"fmt"
 	"slices"
 	"sort"
@@ -189,29 +188,27 @@ func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.Pipelin
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(jsonBytes)
 	deploymentConfig := &pipelinespec.PipelineDeploymentConfig{}
 	// Allow unknown '@type' field in the json message.
 	unmarshaler := protojson.UnmarshalOptions{
 		DiscardUnknown: true,
 	}
-	if err := unmarshaler.Unmarshal(buffer.Bytes(), deploymentConfig); err != nil {
+	if err := unmarshaler.Unmarshal(jsonBytes, deploymentConfig); err != nil {
 		return nil, err
 	}
 	return deploymentConfig, nil
 }
 
 func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
-	// TODO(Bobgy): can we avoid this marshal to string step?
-	marshaler := &protojson.MarshalOptions{}
-	jsonBytes, err := marshaler.Marshal(job.GetPipelineSpec())
+	// The job stores the spec as a google.protobuf.Struct, and protobuf has no
+	// direct Struct-to-message conversion, so JSON is the bridge.
+	jsonBytes, err := protojson.Marshal(job.GetPipelineSpec())
 	if err != nil {
 		return nil, fmt.Errorf("failed marshal pipeline spec to json: %w", err)
 	}
-	jsonStr := string(jsonBytes)
 	spec := &pipelinespec.PipelineSpec{}
-	if err := protojson.Unmarshal([]byte(jsonStr), spec); err != nil {
-		return nil, fmt.Errorf("failed to parse pipeline spec: %v", err)
+	if err := protojson.Unmarshal(jsonBytes, spec); err != nil {
+		return nil, fmt.Errorf("failed to parse pipeline spec: %w", err)
 	}
 	return spec, nil
 }
