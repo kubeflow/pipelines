@@ -98,7 +98,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install script test dependencies
-        run: python3 -m pip install PyYAML==6.0.3
+        run: python3 -m pip install PyYAML==6.0.3 packaging==25.0
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

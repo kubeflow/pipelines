@@ -18,12 +18,27 @@ from pathlib import Path
 import shlex
 import unittest
 
+from packaging.requirements import Requirement
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class PythonPackagingTest(unittest.TestCase):
+
+    def test_docs_requirements_are_independent_of_checkout_paths(self) -> None:
+        # Dependabot evaluates /docs without the repository-root SDK checkout.
+        for line in (ROOT / 'docs/requirements.txt').read_text().splitlines():
+            if line.strip() and not line.startswith('#'):
+                with self.subTest(requirement=line):
+                    Requirement(line)
+
+    def test_readthedocs_installs_checkout_sdk(self) -> None:
+        config = yaml.safe_load((ROOT / '.readthedocs.yml').read_text())
+        self.assertIn({
+            'method': 'pip',
+            'path': 'sdk/python'
+        }, config['python']['install'])
 
     def test_docs_resolve_unpublished_server_api_with_source_sdk(self) -> None:
         workflow = yaml.safe_load(
@@ -40,6 +55,7 @@ class PythonPackagingTest(unittest.TestCase):
                         for step in steps[:install]))
                 args = shlex.split(steps[install]['run'])
                 self.assertIn('./backend/api/v2beta1/python_http_client', args)
+                self.assertIn('./sdk/python', args)
                 self.assertNotIn('--no-deps', args)
 
     def test_sdk_client_installs_companion_before_pinned_requirements(
