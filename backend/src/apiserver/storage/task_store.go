@@ -1153,6 +1153,36 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		}
 	}()
 
+	var parentRunUUID string
+	{
+		q := s.dbDialect.QuoteIdentifier
+		qb := s.dbDialect.QueryBuilder()
+		sqlStr, args, err := qb.
+			Select(dialect.QuoteAll(q, taskColumns)...).
+			From(q("tasks")).
+			Where(sq.Eq{q("tasks") + "." + q("UUID"): new.UUID}).
+			Limit(1).
+			ToSql()
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to create lookup query for task: %v", err.Error())
+		}
+
+		row := tx.QueryRow(sqlStr, args...)
+		taskInfo, err := scanTaskRow(row)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil, util.NewResourceNotFoundError("task", fmt.Sprint(new.UUID))
+			}
+			return nil, util.NewInternalServerError(err, "Failed to inspect task row: %v", err)
+		}
+		parentRunUUID = taskInfo.RunUUID
+	}
+
+	// Lock the Parent Run
+	if err := s.verifyParentRunAllowsWritesForUpdate(tx, parentRunUUID); err != nil {
+		return nil, err
+	}
+
 	// Get the current task state with a row-level lock (SELECT ... FOR UPDATE)
 	// This prevents other concurrent updates from reading the same old state
 	lockedOld, err := s.getTaskForUpdate(tx, new.UUID)
@@ -1160,10 +1190,6 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 		return nil, err
 	}
 
-	// Lock parent run and enforce terminal-run immutability
-	if err := s.verifyParentRunAllowsWritesForUpdate(tx, lockedOld.RunUUID); err != nil {
-		return nil, err
-	}
 	// Use the locked version for merging instead of the 'old' parameter
 	// This ensures we merge against the most recent state
 
