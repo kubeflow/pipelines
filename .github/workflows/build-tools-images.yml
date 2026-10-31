@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - master
+      - main
       - 'release-*'
   pull_request:
     branches:
       - master
+      - main
       - 'release-*'
   workflow_dispatch: {}
 
@@ -17,7 +19,7 @@ permissions:
 env:
   IMAGE_REGISTRY: ghcr.io
   IMAGE_ORG: ${{ github.repository_owner }}
-  IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+  IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name == 'main' && 'master' || github.ref_name }}
 
 concurrency:
   group: build-tools-images-${{ github.ref_name }}
@@ -51,7 +53,10 @@ jobs:
 
   build-tools:
     name: Build tools images (${{ matrix.arch }})
-    if: github.event_name != 'pull_request'
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+       (github.ref_name != 'master' && github.ref_name != 'main'))
     strategy:
       fail-fast: false
       matrix:

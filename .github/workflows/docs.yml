@@ -14,7 +14,7 @@ on:
       - ".readthedocs.yml"
       - ".github/workflows/docs.yml"
   push:
-    branches: [master]
+    branches: [master, main]
     paths:
       - "**/pyproject.toml"
       - "uv.lock"
