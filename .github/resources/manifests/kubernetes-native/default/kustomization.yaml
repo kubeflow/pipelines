@@ -5,6 +5,9 @@ resources:
   - ../../base
   - ../../../../../manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native
 
+components:
+  - ../../components/preloaded-mysql
+
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newName: kind-registry:5000/apiserver
