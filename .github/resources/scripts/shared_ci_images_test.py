@@ -1,4 +1,4 @@
-"""Exact-revision, attempt and archive integrity contracts for shared CI images."""
+"""Validate shared CI source, attempt, and archive integrity."""
 
 import copy
 import io
@@ -169,6 +169,61 @@ class SharedImageTests(unittest.TestCase):
             shared.InvalidEvidence, 'source_sha mismatch'
         ):
             self.resolve()
+
+    def newer_candidate(self, source):
+        newer = FakeAPI(source)
+        original_artifacts = self.api.artifacts
+        original_document = self.api.document
+        self.api.runs = lambda sha: [newer.current_run, self.api.current_run]
+        self.api.artifacts = lambda run_id: (
+            newer.artifacts(run_id)
+            if run_id == source['run_id']
+            else original_artifacts(run_id)
+        )
+        self.api.document = lambda artifact, filename: (
+            newer.document(artifact, filename)
+            if artifact['workflow_run']['id'] == source['run_id']
+            else original_document(artifact, filename)
+        )
+        return newer
+
+    def test_other_pr_same_head_does_not_hide_matching_producer(self):
+        self.api.images('amd64', self.directory)
+        for failed in (False, True):
+            with self.subTest(failed=failed):
+                source = identity(30)
+                source['pr']['number'] = 24
+                source['ref'] = 'refs/pull/24/merge'
+                source['source_sha'] = 'd' * 40
+                newer = self.newer_candidate(source)
+                if failed:
+                    newer.current_run.update(
+                        status='completed', conclusion='failure'
+                    )
+                state = shared.resolve_once(
+                    self.api, self.consumer, 'amd64', 'images', None
+                )
+                self.assertEqual(state['identity'], self.producer)
+
+    def test_newest_same_source_cannot_fall_back_to_older_success(self):
+        self.api.images('amd64', self.directory)
+        for problem in ('failed', 'missing', 'malformed'):
+            with self.subTest(problem=problem):
+                newer = self.newer_candidate(identity(30))
+                if problem == 'failed':
+                    newer.current_run.update(
+                        status='completed', conclusion='failure'
+                    )
+                elif problem == 'missing':
+                    newer.items.clear()
+                else:
+                    newer.documents[1] = {'version': 1}
+                with self.assertRaises(
+                    (shared.InvalidEvidence, shared.NotReady)
+                ):
+                    shared.resolve_once(
+                        self.api, self.consumer, 'amd64', 'images', None
+                    )
 
     def test_identity_rejects_other_base_and_fork(self):
         for key, value in [

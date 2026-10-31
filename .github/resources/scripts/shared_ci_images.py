@@ -164,7 +164,7 @@ def same_source(producer, consumer):
     require(producer['event'] in events, 'Producer event mismatch')
 
 
-def validate_run(run, identity):
+def validate_run(run, identity, *, check_conclusion=True):
     validate_identity(identity)
     require(isinstance(run, dict), 'Malformed run')
     for field, expected in (
@@ -209,7 +209,7 @@ def validate_run(run, identity):
         ),
         'Unknown producer status',
     )
-    if run['status'] == 'completed':
+    if check_conclusion and run['status'] == 'completed':
         require(
             run.get('conclusion') == 'success',
             f'Producer failed ({run.get("conclusion")}); rerun the complete producer, then consumers',
@@ -579,23 +579,36 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 raise NotReady(
                     'No matching producer; run ci-images.yml for this revision'
                 )
-            run = runs[0]
-            identity = dict(
-                consumer,
-                run_id=run['id'],
-                run_attempt=run['run_attempt'],
-                event=run['event'],
-            )
-            validate_run(run, identity)
-            artifacts = api.artifacts(run['id'])
-            source = named_artifact(
-                artifacts,
-                identity,
-                f'ci-image-source-attempt-{run["run_attempt"]}',
-            )
-            identity = api.document(source, 'source.json')
-            same_source(identity, consumer)
-            validate_run(run, identity)
+            mismatch = None
+            for run in runs:
+                identity = dict(
+                    consumer,
+                    run_id=run['id'],
+                    run_attempt=run['run_attempt'],
+                    event=run['event'],
+                )
+                # A head SHA can belong to multiple PRs or merge revisions.
+                # Validate provenance before judging an unrelated run's result.
+                validate_run(run, identity, check_conclusion=False)
+                artifacts = api.artifacts(run['id'])
+                source = named_artifact(
+                    artifacts,
+                    identity,
+                    f'ci-image-source-attempt-{run["run_attempt"]}',
+                )
+                identity = api.document(source, 'source.json')
+                validate_run(run, identity, check_conclusion=False)
+                try:
+                    same_source(identity, consumer)
+                except InvalidEvidence as error:
+                    # Only a valid, API-bound source proves this run unrelated.
+                    # Missing or malformed provenance above must fail closed.
+                    mismatch = error
+                    continue
+                validate_run(run, identity)
+                break
+            else:
+                raise mismatch
             state = {
                 'consumer': consumer,
                 'identity': identity,
