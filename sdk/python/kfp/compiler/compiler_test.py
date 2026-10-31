@@ -6371,6 +6371,31 @@ class TestConditionLogic(parameterized.TestCase):
         self.assertEqual(self._compile_condition(condition_fn), expected)
 
 
+class TestConditionStringLiteral(parameterized.TestCase):
+    @parameterized.parameters(
+        ('heads', "'heads'"),
+        ("it's", "'it\\'s'"),
+        ('C:\\temp', "'C:\\\\temp'"),
+        ("\\'", "'\\\\\\''"),
+        ('line1\nline2', "'line1\\nline2'"),
+        ('line1\r\nline2', "'line1\\r\\nline2'"),
+    )
+    def test_string_literal_is_escaped(self, literal, expected_cel_literal):
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == literal):
+                print_and_return(text='Matched!')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-1'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == "
+            + expected_cel_literal,
+        )
+
+
 class TestDslOneOf(unittest.TestCase):
     # The space of possible tests is very large, so we test a representative set of cases covering the following styles of usage:
     # - upstream conditions: if/else v if/elif/else
