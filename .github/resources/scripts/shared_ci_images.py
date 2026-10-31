@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import subprocess
@@ -35,7 +36,9 @@ class NotReady(Exception):
 
 
 class APIError(Exception):
-    pass
+    def __init__(self, message, retry_after=0):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 def require(condition, message):
@@ -223,6 +226,9 @@ class GitHub:
         )
         self.prefix = f'repos/{repository}'
         self.deadline = None
+        self.polling = False
+        self.pages = {}
+        self.run_cache = {}
 
     def request(self, suffix, pages=False, binary=False):
         command = ['gh', 'api', f'{self.prefix}/{suffix}']
@@ -254,8 +260,90 @@ class GitHub:
         except (ValueError, UnicodeError) as error:
             raise InvalidEvidence('Malformed API JSON') from error
 
+    def conditional_page(self, suffix):
+        cached = self.pages.get(suffix)
+        command = ['gh', 'api', f'{self.prefix}/{suffix}', '--include']
+        if cached and cached[0]:
+            command += ['-H', f'If-None-Match: {cached[0]}']
+        remaining = (
+            90 if self.deadline is None else self.deadline - time.monotonic()
+        )
+        if remaining <= 0:
+            raise APIError('GitHub API wait deadline reached')
+        try:
+            result = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=min(90, remaining),
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise APIError('GitHub API unavailable') from error
+        header, separator, body = result.stdout.replace(
+            b'\r\n', b'\n'
+        ).partition(b'\n\n')
+        lines = header.decode('utf-8', errors='replace').splitlines()
+        valid_status = lines and re.match(
+            r'HTTP/[^ ]+ [0-9]{3}(?: |$)', lines[0]
+        )
+        if result.returncode and not valid_status:
+            raise APIError('GitHub API transport unavailable')
+        require(valid_status, 'Malformed API HTTP response')
+        status = int(lines[0].split()[1])
+        headers = {}
+        for line in lines[1:]:
+            name, colon, value = line.partition(':')
+            require(bool(colon), 'Malformed API HTTP header')
+            headers[name.lower()] = value.strip()
+        if status == 304:
+            require(cached is not None, 'Uncached API 304 response')
+            return cached[1], cached[2]
+        if status in (403, 429):
+            delay = 60
+            try:
+                if 'retry-after' in headers:
+                    delay = float(headers['retry-after'])
+                elif headers.get('x-ratelimit-remaining') == '0':
+                    delay = float(headers['x-ratelimit-reset']) - time.time()
+            except (ValueError, KeyError):
+                pass
+            delay = max(1, delay) if math.isfinite(delay) else 60
+            raise APIError('GitHub API rate limited', retry_after=delay)
+        if result.returncode or status != 200:
+            raise APIError(f'GitHub API request failed: {suffix.split("?")[0]}')
+        require(bool(separator), 'Missing API response body')
+        try:
+            document = json.loads(body)
+        except (ValueError, UnicodeError) as error:
+            raise InvalidEvidence('Malformed API JSON') from error
+        next_page = None
+        for link in headers.get('link', '').split(','):
+            if 'rel="next"' in link:
+                match = re.fullmatch(
+                    r'\s*<https://api\.github\.com/([^>]+)>;\s*rel="next"\s*',
+                    link,
+                )
+                require(match is not None, 'Unsafe API pagination link')
+                prefix = self.prefix + '/'
+                require(
+                    match[1].startswith(prefix + suffix.split('?')[0] + '?'),
+                    'Unexpected API pagination path',
+                )
+                next_page = match[1][len(prefix) :]
+        self.pages[suffix] = (headers.get('etag'), document, next_page)
+        return document, next_page
+
     def listing(self, suffix, key):
-        pages = self.request(suffix, pages=True)
+        if self.polling:
+            pages, visited = [], set()
+            while suffix is not None:
+                require(suffix not in visited, 'Repeated API pagination page')
+                visited.add(suffix)
+                page, suffix = self.conditional_page(suffix)
+                pages.append(page)
+        else:
+            pages = self.request(suffix, pages=True)
         require(isinstance(pages, list), 'Malformed API pages')
         result = []
         for page in pages:
@@ -279,6 +367,13 @@ class GitHub:
 
     def run(self, run_id):
         require(positive(run_id), 'Invalid run ID')
+        if self.polling:
+            cached = self.run_cache.get(run_id)
+            if cached and time.monotonic() - cached[0] < 30:
+                return cached[1]
+            run, _ = self.conditional_page(f'actions/runs/{run_id}')
+            self.run_cache[run_id] = (time.monotonic(), run)
+            return run
         return self.request(f'actions/runs/{run_id}')
 
     def artifacts(self, run_id):
@@ -387,20 +482,20 @@ def checksum(path):
     return digest.hexdigest()
 
 
-def make_record(identity, architecture, image, artifact_id, directory, api):
-    validate_run(api.run(identity['run_id']), identity)
-    artifact = validate_artifact(
-        api.artifact(artifact_id),
-        identity,
-        artifact_name(image, architecture, identity['run_attempt']),
-        artifact_id,
+def provenance_name(image, architecture):
+    return (
+        filenames(image, architecture)[0].removesuffix('.tar')
+        + '.provenance.json'
     )
+
+
+def make_record(identity, architecture, image, directory):
+    validate_identity(identity)
     return {
+        'version': 2,
         'identity': identity,
         'architecture': architecture,
         'image': image,
-        'artifact_id': artifact['id'],
-        'artifact_name': artifact['name'],
         'files': {
             name: checksum(directory / name)
             for name in filenames(image, architecture)
@@ -431,6 +526,7 @@ def validate_record(record, identity, architecture, image, artifacts=None):
         'image',
         'artifact_id',
         'artifact_name',
+        'provenance',
         'files',
     }
     require(
@@ -444,6 +540,10 @@ def validate_record(record, identity, architecture, image, artifacts=None):
     )
     name = artifact_name(image, architecture, identity['run_attempt'])
     require(record['artifact_name'] == name, 'Record artifact name mismatch')
+    require(
+        record['provenance'] == provenance_name(image, architecture),
+        'Provenance filename mismatch',
+    )
     files = record['files']
     require(
         isinstance(files, dict)
@@ -451,7 +551,10 @@ def validate_record(record, identity, architecture, image, artifacts=None):
         'File inventory mismatch',
     )
     require(
-        all(matches('[0-9a-f]{64}', digest) for digest in files.values()),
+        all(
+            digest is None or matches('[0-9a-f]{64}', digest)
+            for digest in files.values()
+        ),
         'Invalid checksum',
     )
     require(positive(record['artifact_id']), 'Invalid record artifact ID')
@@ -622,52 +725,31 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 pin(state)
         if artifacts is None:
             artifacts = api.artifacts(identity['run_id'])
-        attempt = identity['run_attempt']
-        indexed = artifact_index(artifacts)
-        if kind == 'runtime':
-            require(architecture == 'amd64', 'Runtime images require AMD64')
-            metadata = named_artifact(
+        images = IMAGES if kind == 'images' else ('runtime-base-images',)
+        records = []
+        for image in images:
+            artifact = named_artifact(
                 artifacts,
                 identity,
-                f'runtime-base-images-record-amd64-attempt-{attempt}',
+                artifact_name(image, architecture, identity['run_attempt']),
             )
-            record = api.document(metadata, 'runtime-base-images.json')
-            records = [
-                validate_record(
-                    record,
-                    identity,
-                    architecture,
-                    'runtime-base-images',
-                    indexed,
-                )
-            ]
-        else:
-            metadata = named_artifact(
-                artifacts,
-                identity,
-                f'ci-image-set-{architecture}-attempt-{attempt}',
+            records.append(
+                {
+                    'identity': identity,
+                    'architecture': architecture,
+                    'image': image,
+                    'artifact_id': artifact['id'],
+                    'artifact_name': artifact['name'],
+                    'provenance': provenance_name(image, architecture),
+                    'files': dict.fromkeys(filenames(image, architecture)),
+                }
             )
-            manifest = api.document(metadata, 'manifest.json')
-            require(
-                isinstance(manifest, dict)
-                and set(manifest)
-                == {'version', 'identity', 'architecture', 'records'},
-                'Malformed ready manifest',
-            )
-            require(
-                manifest['version'] == 1
-                and manifest['identity'] == identity
-                and manifest['architecture'] == architecture,
-                'Ready manifest identity mismatch',
-            )
-            records = make_manifest(
-                identity,
-                architecture,
-                manifest['records'],
-                api,
-                artifacts=indexed,
-            )['records']
-        validate_run(api.run(identity['run_id']), identity)
+        polling = getattr(api, 'polling', False)
+        api.polling = False
+        try:
+            validate_run(api.run(identity['run_id']), identity)
+        finally:
+            api.polling = polling
         state['sets'][kind] = records
         state['last_kind'] = kind
         return state
@@ -684,7 +766,7 @@ def resolve(
     kind,
     path,
     timeout=2400,
-    poll=30,
+    poll=10,
     clock=time.monotonic,
     sleep=time.sleep,
 ):
@@ -693,8 +775,9 @@ def resolve(
     deadline = clock() + timeout
     publication_deadline = None
     completed_producer = None
-    delay = min(poll, 120)
     previous_deadline = getattr(api, 'deadline', None)
+    previous_polling = getattr(api, 'polling', False)
+    api.polling = True
     try:
         while True:
             api.deadline = min(deadline, publication_deadline or deadline)
@@ -732,15 +815,24 @@ def resolve(
                         f'Timed out waiting for shared CI images: {error}'
                     ) from error
                 print(f'Waiting for shared CI images: {error}', file=sys.stderr)
-                sleep(min(delay, remaining))
-                delay = min(delay * 2, 120)
+                sleep(
+                    min(max(poll, getattr(error, 'retry_after', 0)), remaining)
+                )
     finally:
         api.deadline = previous_deadline
+        api.polling = previous_polling
+        if isinstance(api, GitHub):
+            api.pages.clear()
+            api.run_cache.clear()
 
 
 def emit_outputs(path, state, kind):
     records = state['sets'][kind]
-    names = [name for record in records for name in record['files']]
+    names = [
+        name
+        for record in records
+        for name in (*record['files'], record['provenance'])
+    ]
     with path.open('a') as stream:
         stream.write(
             f'run-id={state["identity"]["run_id"]}\nrepository={state["identity"]["repository"]}\n'
@@ -780,12 +872,37 @@ def verify(api, state, consumer, directory, layout, kind=None):
         directory.is_dir() and not directory.is_symlink(),
         'Unsafe download directory',
     )
+    verified = []
     for record in records:
-        for name, expected in record['files'].items():
+        document_path = directory / record['provenance']
+        require(
+            document_path.is_file()
+            and not document_path.is_symlink()
+            and document_path.stat().st_size <= 1024 * 1024,
+            'Missing or unsafe bundled provenance',
+        )
+        document = json.loads(document_path.read_text())
+        require(
+            isinstance(document, dict)
+            and set(document)
+            == {'version', 'identity', 'architecture', 'image', 'files'},
+            'Malformed bundled provenance',
+        )
+        require(document['version'] == 2, 'Unsupported provenance version')
+        for field in ('identity', 'architecture', 'image'):
             require(
-                checksum(directory / name) == expected,
+                document[field] == record[field],
+                'Bundled provenance identity mismatch',
+            )
+        enriched = dict(record, files=document['files'])
+        validate_record(enriched, identity, architecture, record['image'])
+        for name, expected in enriched['files'].items():
+            require(
+                expected is not None and checksum(directory / name) == expected,
                 f'Checksum mismatch: {name}',
             )
+        verified.append(enriched)
+    records = verified
     # The resolver already bound immutable IDs. Check remote availability once,
     # after hashing, then recheck the attempt immediately before accepting files.
     indexed = artifact_index(api.artifacts(identity['run_id']))
@@ -809,6 +926,8 @@ def verify(api, state, consumer, directory, layout, kind=None):
             for name in record['files']:
                 (directory / name).replace(target / name)
 
+    state['sets'][kind] = records
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -820,13 +939,8 @@ def main():
     record.add_argument(
         '--image', required=True, choices=(*IMAGES, 'runtime-base-images')
     )
-    record.add_argument('--artifact-id', required=True, type=int)
     record.add_argument('--directory', required=True, type=Path)
     record.add_argument('--output', required=True, type=Path)
-    publish = commands.add_parser('publish')
-    publish.add_argument('--architecture', required=True, choices=ARCHITECTURES)
-    publish.add_argument('--records-dir', required=True, type=Path)
-    publish.add_argument('--output', required=True, type=Path)
     resolver = commands.add_parser('resolve')
     resolver.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
@@ -837,7 +951,7 @@ def main():
     resolver.add_argument('--state', required=True, type=Path)
     resolver.add_argument('--output', required=True, type=Path)
     resolver.add_argument('--timeout-seconds', type=int, default=2400)
-    resolver.add_argument('--poll-seconds', type=int, default=30)
+    resolver.add_argument('--poll-seconds', type=int, default=10)
     verifier = commands.add_parser('verify')
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
@@ -856,24 +970,8 @@ def main():
                     identity,
                     args.architecture,
                     args.image,
-                    args.artifact_id,
                     args.directory,
-                    api,
                 ),
-            )
-        elif args.command == 'publish':
-            require(
-                {p.name for p in args.records_dir.iterdir()}
-                == {f'{image}.json' for image in IMAGES},
-                'Expected exactly seven IMAGE.json records',
-            )
-            records = [
-                json.loads((args.records_dir / f'{image}.json').read_text())
-                for image in IMAGES
-            ]
-            write_json(
-                args.output,
-                make_manifest(identity, args.architecture, records, api),
             )
         elif args.command == 'resolve':
             state = resolve(
@@ -891,6 +989,7 @@ def main():
             state = load_state(args.state, identity, architecture)
             require(state is not None, 'Missing resolver state')
             verify(api, state, identity, args.directory, args.layout, args.kind)
+            write_json(args.state, state)
     except (
         InvalidEvidence,
         APIError,

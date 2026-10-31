@@ -34,7 +34,6 @@ WRAPPER = './.github/actions/download-artifact-with-retry'
 WRAPPERS = {WRAPPER, './tooling/.github/actions/download-artifact-with-retry'}
 CALLERS = [
     ('.github/actions/shared-ci-images/action.yml', 'composite'),
-    ('.github/workflows/image-builds.yml', 'publish'),
     ('.github/workflows/build-tools-images.yml', 'compare-generated'),
     ('.github/workflows/build-tools-images.yml', 'publish-tools'),
     ('.github/workflows/create-manifest.yml', 'create-manifest'),
@@ -251,6 +250,9 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         records = [
             {
                 'artifact_id': index + 100,
+                'provenance': image
+                + ('-arm64' if architecture == 'arm64' else '')
+                + '.provenance.json',
                 'files': {
                     name: 'a' * 64
                     for name in shared_ci_images.filenames(image, architecture)
@@ -288,8 +290,22 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
         _, branch, _ = self.shared_outputs('amd64', 'images')
         # Runtime archives are verified together; deploy still loads Modelcar only
         # when requested, and branches are normalized into nested paths afterwards.
-        self.assertEqual(runtime, {'runtime-base-images.tar', 'modelcar.tar'})
-        self.assertEqual(branch, {f'{name}.tar' for name in built_images})
+        self.assertEqual(
+            runtime,
+            {
+                'runtime-base-images.tar',
+                'modelcar.tar',
+                'runtime-base-images.provenance.json',
+            },
+        )
+        self.assertEqual(
+            branch,
+            {
+                f'{name}.{extension}'
+                for name in built_images
+                for extension in ('tar', 'provenance.json')
+            },
+        )
         self.assertFalse(runtime & branch)
 
     def test_shared_download_uses_only_resolved_ids_and_verifies_after_transfer(
@@ -343,27 +359,6 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             self.assertIn('run-id=1234', lines)
             self.assertIn('repository=upstream/pipelines', lines)
 
-    def test_ready_manifest_download_selects_exactly_seven_image_records(self):
-        publish = workflow('image-builds.yml')['jobs']['publish']
-        download = next(
-            step for step in publish['steps'] if step.get('uses') == WRAPPER
-        )
-        pattern = download['with']['pattern']
-        self.assertTrue(
-            pattern.endswith(
-                '-record-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}'
-            )
-        )
-        alternatives = pattern[1 : pattern.index('}')].split(',')
-        self.assertCountEqual(alternatives, shared_ci_images.IMAGES)
-        self.assertNotIn('runtime-base-images', alternatives)
-        self.assertEqual(
-            self.required_files(
-                '.github/workflows/image-builds.yml', 'publish'
-            ),
-            {f'{image}.json' for image in alternatives},
-        )
-
     def test_arm_presubmit_requires_each_produced_archive_and_record(self):
         producer = workflow('image-builds.yml')['jobs']['image-build']
         images = {
@@ -379,6 +374,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             [
                 '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar',
                 '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.json',
+                '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.provenance.json',
             ],
         )
         smoke = workflow('arm64-presubmit.yml')['jobs']['smoke']
@@ -395,7 +391,7 @@ class ArtifactDownloadCallersTest(unittest.TestCase):
             {
                 f'{name}-arm64.{extension}'
                 for name in images
-                for extension in ('tar', 'json')
+                for extension in ('tar', 'json', 'provenance.json')
             },
         )
 

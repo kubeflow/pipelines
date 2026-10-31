@@ -217,7 +217,7 @@ class WorkflowPermissionsTest(unittest.TestCase):
     def test_test_image_builds_and_callers_are_read_only(self):
         self.assertEqual(
             self.permissions('image-builds.yml', 'image-build'),
-            {'contents': 'read', 'actions': 'read'},
+            {'contents': 'read'},
         )
         self.assertEqual(
             self.permissions('image-builds.yml', 'runtime-base-images'),
@@ -237,10 +237,6 @@ class WorkflowPermissionsTest(unittest.TestCase):
                                 'actions': 'read',
                             },
                         )
-        self.assertEqual(
-            self.permissions('image-builds.yml', 'publish'),
-            {'contents': 'read', 'actions': 'read'},
-        )
         self.assertEqual(
             self.permissions('ci-images.yml', 'source'),
             {'contents': 'read', 'pull-requests': 'read'},

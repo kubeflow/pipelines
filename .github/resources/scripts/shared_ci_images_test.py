@@ -104,41 +104,33 @@ class FakeAPI:
     def document(self, artifact, filename):
         return copy.deepcopy(self.documents[artifact['id']])
 
-    def images(self, architecture, directory):
-        records = []
-        for image in shared.IMAGES:
-            artifact_id = self.add(shared.artifact_name(image, architecture, 1))
-            for filename in shared.filenames(image, architecture):
-                (directory / filename).write_bytes(filename.encode())
-            records.append(
-                shared.make_record(
-                    self.source,
-                    architecture,
-                    image,
-                    artifact_id,
-                    directory,
-                    self,
-                )
-            )
-        manifest = shared.make_manifest(
-            self.source, architecture, records, self
+    def bundle(self, image, architecture, directory):
+        artifact_id = self.add(shared.artifact_name(image, architecture, 1))
+        for filename in shared.filenames(image, architecture):
+            (directory / filename).write_bytes(filename.encode())
+        document = shared.make_record(
+            self.source, architecture, image, directory
         )
-        self.add(f'ci-image-set-{architecture}-attempt-1', manifest)
-        return records
+        provenance = shared.provenance_name(image, architecture)
+        shared.write_json(directory / provenance, document)
+        return dict(
+            identity=self.source,
+            architecture=architecture,
+            image=image,
+            artifact_id=artifact_id,
+            artifact_name=self.items[artifact_id]['name'],
+            provenance=provenance,
+            files=document['files'],
+        )
+
+    def images(self, architecture, directory):
+        return [
+            self.bundle(image, architecture, directory)
+            for image in shared.IMAGES
+        ]
 
     def runtime(self, directory):
-        artifact_id = self.add('runtime-base-images-attempt-1')
-        for filename in shared.filenames('runtime-base-images', 'amd64'):
-            (directory / filename).write_bytes(filename.encode())
-        record = shared.make_record(
-            self.source,
-            'amd64',
-            'runtime-base-images',
-            artifact_id,
-            directory,
-            self,
-        )
-        self.add('runtime-base-images-record-amd64-attempt-1', record)
+        self.bundle('runtime-base-images', 'amd64', directory)
 
 
 class SharedImageTests(unittest.TestCase):
@@ -161,6 +153,195 @@ class SharedImageTests(unittest.TestCase):
             timeout=1,
             poll=1,
         )
+
+    def test_ready_at_eleven_seconds_resolves_by_twenty_without_publisher(self):
+        now = [0]
+
+        def sleep(seconds):
+            now[0] += seconds
+            if now[0] >= 11 and len(self.api.items) == 1:
+                self.api.images('amd64', self.directory)
+
+        state = shared.resolve(
+            self.api,
+            self.consumer,
+            'amd64',
+            'images',
+            self.state_path,
+            timeout=60,
+            clock=lambda: now[0],
+            sleep=sleep,
+        )
+        self.assertEqual(now[0], 20)
+        self.assertEqual(len(self.api.items), 8)
+        self.assertEqual(len(state['sets']['images']), 7)
+        self.assertIsNone(state['sets']['images'][0]['files']['apiserver.tar'])
+        shared.verify(self.api, state, self.consumer, self.directory, 'flat')
+        self.assertEqual(
+            state['sets']['images'][0]['files']['apiserver.tar'],
+            shared.checksum(self.directory / 'apiserver.tar'),
+        )
+
+    def test_bundled_provenance_tampering_fails_closed(self):
+        for field, value in [
+            ('version', 1),
+            ('identity', identity(99)),
+            ('architecture', 'arm64'),
+            ('image', 'launcher'),
+            ('files', {'../escape.tar': 'a' * 64}),
+        ]:
+            with self.subTest(field=field):
+                self.api = FakeAPI(self.producer)
+                self.state_path.unlink(missing_ok=True)
+                self.api.images('amd64', self.directory)
+                state = self.resolve()
+                path = self.directory / 'apiserver.provenance.json'
+                document = json.loads(path.read_text())
+                document[field] = value
+                shared.write_json(path, document)
+                with self.assertRaises(shared.InvalidEvidence):
+                    shared.verify(
+                        self.api, state, self.consumer, self.directory, 'flat'
+                    )
+
+    @staticmethod
+    def response(status=200, document=None, headers=None):
+        lines = [f'HTTP/2.0 {status} Result']
+        lines.extend(
+            f'{key}: {value}' for key, value in (headers or {}).items()
+        )
+        payload = '\r\n'.join(lines) + '\r\n\r\n'
+        if document is not None:
+            payload += json.dumps(document)
+        return mock.Mock(
+            returncode=0 if status == 200 else 1,
+            stdout=payload.encode(),
+            stderr=b'',
+        )
+
+    def test_conditional_pagination_retains_304_pages_and_refreshes_changes(
+        self,
+    ):
+        api = shared.GitHub('upstream/pipelines')
+        api.polling = True
+        suffix = 'actions/runs/10/artifacts?per_page=100'
+        page2 = suffix + '&page=2'
+        link = f'<https://api.github.com/{api.prefix}/{page2}>; rel="next"'
+        responses = [
+            self.response(
+                document={'artifacts': [{'id': 1}]},
+                headers={'ETag': '"one"', 'Link': link},
+            ),
+            self.response(
+                document={'artifacts': [{'id': 2}]}, headers={'ETag': '"two"'}
+            ),
+            self.response(304),
+            self.response(
+                document={'artifacts': [{'id': 3}]}, headers={'ETag': '"three"'}
+            ),
+            self.response(
+                document={'artifacts': [{'id': 4}]}, headers={'ETag': '"four"'}
+            ),
+        ]
+        with mock.patch.object(
+            shared.subprocess, 'run', side_effect=responses
+        ) as request:
+            self.assertEqual(api.artifacts(10), [{'id': 1}, {'id': 2}])
+            self.assertEqual(api.artifacts(10), [{'id': 1}, {'id': 3}])
+            self.assertEqual(api.artifacts(10), [{'id': 4}])
+        self.assertIn('If-None-Match: "one"', request.call_args_list[2].args[0])
+        self.assertIn('If-None-Match: "two"', request.call_args_list[3].args[0])
+        self.assertEqual(request.call_count, 5)
+
+    def test_uncached_304_and_unsafe_pagination_fail_closed(self):
+        api = shared.GitHub('upstream/pipelines')
+        for response in [
+            self.response(304),
+            self.response(
+                document={},
+                headers={'Link': '<https://evil.example/api>; rel="next"'},
+            ),
+        ]:
+            with mock.patch.object(
+                shared.subprocess, 'run', return_value=response
+            ):
+                with self.assertRaises(shared.InvalidEvidence):
+                    api.conditional_page('actions/runs/10')
+
+    def test_conditional_requests_honor_rate_headers_and_deadline(self):
+        api = shared.GitHub('upstream/pipelines')
+        api.deadline = 45
+        for headers, expected in [
+            ({'Retry-After': '17'}, 17),
+            ({'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '125'}, 25),
+        ]:
+            with (
+                mock.patch.object(shared.time, 'monotonic', return_value=40),
+                mock.patch.object(shared.time, 'time', return_value=100),
+                mock.patch.object(
+                    shared.subprocess,
+                    'run',
+                    return_value=self.response(429, headers=headers),
+                ) as request,
+            ):
+                with self.assertRaises(shared.APIError) as raised:
+                    api.conditional_page('actions/runs/10')
+                self.assertEqual(raised.exception.retry_after, expected)
+                self.assertEqual(request.call_args.kwargs['timeout'], 5)
+
+    def test_transport_errors_retry_but_malformed_success_fails_closed(self):
+        api = shared.GitHub('upstream/pipelines')
+        for stdout in (b'', b'HTTP/'):
+            with mock.patch.object(
+                shared.subprocess,
+                'run',
+                return_value=mock.Mock(
+                    returncode=1, stdout=stdout, stderr=b'sensitive diagnostic'
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    shared.APIError, 'transport unavailable'
+                ):
+                    api.conditional_page('actions/runs/10')
+        with mock.patch.object(
+            shared.subprocess,
+            'run',
+            return_value=mock.Mock(
+                returncode=0, stdout=b'bad response', stderr=b''
+            ),
+        ):
+            with self.assertRaises(shared.InvalidEvidence):
+                api.conditional_page('actions/runs/10')
+
+    def test_nonfinite_rate_delays_use_bounded_default(self):
+        api = shared.GitHub('upstream/pipelines')
+        for value in ('nan', 'inf', '-inf'):
+            with mock.patch.object(
+                shared.subprocess,
+                'run',
+                return_value=self.response(429, headers={'Retry-After': value}),
+            ):
+                with self.assertRaises(shared.APIError) as raised:
+                    api.conditional_page('actions/runs/10')
+                self.assertEqual(raised.exception.retry_after, 60)
+
+    def test_run_status_is_revalidated_every_thirty_seconds(self):
+        api = shared.GitHub('upstream/pipelines')
+        api.polling = True
+        with (
+            mock.patch.object(
+                shared.time, 'monotonic', side_effect=[0, 10, 30, 30]
+            ),
+            mock.patch.object(
+                api,
+                'conditional_page',
+                return_value=(self.api.current_run, None),
+            ) as request,
+        ):
+            api.run(10)
+            api.run(10)
+            api.run(10)
+        self.assertEqual(request.call_count, 2)
 
     def test_actual_merge_sha_not_head_sha_controls_reuse(self):
         self.api.images('amd64', self.directory)
@@ -566,7 +747,7 @@ class SharedImageTests(unittest.TestCase):
             with self.assertRaisesRegex(shared.APIError, 'deadline'):
                 api.run(10)
 
-    def test_source_is_pinned_before_wait_and_backoff_is_bounded(self):
+    def test_source_is_pinned_before_wait_and_polling_is_bounded(self):
         now = [0]
         sleeps = []
 
@@ -597,7 +778,7 @@ class SharedImageTests(unittest.TestCase):
                     )
                 self.assertEqual(runs.call_count, 1)
                 self.assertEqual(document.call_count, 1)
-        self.assertEqual(sleeps, [30, 60, 120, 120, 70])
+        self.assertEqual(sleeps, [30] * 13 + [10])
 
     def test_attempt_change_during_initial_wait_rejects_reselection(self):
         now = [0]

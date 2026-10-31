@@ -16,7 +16,11 @@ archives remain available before the application-image barrier; their existing
 fingerprint cache is unchanged. The paused upgrade workflow remains paused.
 
 The producer publishes checkout identity before builds, then immutable
-attempt-specific image archives and a complete manifest for each architecture.
+attempt-specific image archives. Each archive includes its source identity and
+file checksums in a distinct `*.provenance.json` file, prepared before upload.
+Consumers can download as soon as the seven application artifacts exist; there
+is no additional record upload, aggregate publisher job, or runtime-image job
+barrier on this path.
 Consumers require the same repository, event/ref, actual checkout SHA (the PR
 merge SHA, not only its head), PR head/base identity, architecture and producer
 attempt. They download exact artifact IDs, verify archive SHA-256 checksums and
@@ -26,13 +30,22 @@ The producer and consumers need only read permissions for discovery/download.
 
 If an image build fails or artifacts expire, rerun **all jobs** in the producer,
 then rerun its consumers. Failed-jobs-only producer reruns cannot assemble a
-complete new-attempt manifest and are intentionally rejected. A producer rerun
+complete new-attempt image set and are intentionally rejected. A producer rerun
 invalidates consumers pinned to its previous attempt. Manual consumers can reuse
 a push/manual producer only at the exact same source/ref; dispatch
 `ci-images.yml` at that ref first when no eligible producer exists. Discovery is
 bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
 publication grace period. Revision-specific concurrency prevents a newer
 revision from cancelling images still needed by older consumers.
+
+Artifact readiness is polled every ten seconds, with producer status checked
+at most thirty seconds apart and again at readiness. Authenticated conditional
+requests reuse unchanged metadata pages without charging GitHub's primary API
+quota; pagination and rate-limit retry headers are preserved. Archive verification
+uses fresh unconditional metadata after hashing. These controls keep the handoff
+short while retaining source/attempt checks under the full consumer fanout.
+Benchmark elapsed image-ready time before runner-work savings: run baseline and
+shared scenarios separately so they do not compete for the same runner slots.
 
 When adding consumers or changing paths, update the producer trigger union and
 architecture planner, regenerate `ci-workflow-inventory.json`, and retain the

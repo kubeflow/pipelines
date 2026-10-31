@@ -86,21 +86,23 @@ class SharedImageProducerTest(unittest.TestCase):
         self.assertIn('!**/*.md', producer)
         self.assertIn('!**/OWNERS', producer)
 
-    def test_attempt_bound_records_and_ready_manifest_require_complete_build(
-        self,
-    ):
+    def test_bundled_provenance_precedes_upload_without_aggregate_barrier(self):
         definition = workflow('image-builds.yml')
         self.assertFalse(
             definition[True]['workflow_call']['inputs']['shared']['default']
         )
+        self.assertEqual(
+            set(definition['jobs']), {'image-build', 'runtime-base-images'}
+        )
         for name in ('image-build', 'runtime-base-images'):
-            self.assertEqual(
-                definition['jobs'][name]['permissions']['actions'], 'read'
-            )
             steps = definition['jobs'][name]['steps']
-            upload = next(
-                step for step in steps if step.get('id') == 'upload-image'
-            )
+            uploads = [
+                step
+                for step in steps
+                if step.get('uses', '').startswith('actions/upload-artifact@')
+            ]
+            self.assertEqual(len(uploads), 1)
+            upload = uploads[0]
             self.assertIn('inputs.shared', upload['with']['name'])
             self.assertIn('github.run_attempt', upload['with']['name'])
             record = next(
@@ -108,33 +110,43 @@ class SharedImageProducerTest(unittest.TestCase):
                 for step in steps
                 if 'shared_ci_images.py record' in step.get('run', '')
             )
-            self.assertEqual(record['env']['GH_TOKEN'], '${{ github.token }}')
-            self.assertIn(
-                'steps.upload-image.outputs.artifact-id',
-                record['env']['ARTIFACT_ID'],
-            )
-        publish = definition['jobs']['publish']
-        self.assertEqual(
-            set(publish['needs']), {'image-build', 'runtime-base-images'}
-        )
-        self.assertIn("needs.image-build.result == 'success'", publish['if'])
-        self.assertIn(
-            "needs.runtime-base-images.result == 'success'", publish['if']
-        )
-        download = next(
+            self.assertLess(steps.index(record), steps.index(upload))
+            self.assertIn('inputs.shared', record['if'])
+            self.assertIn('.provenance.json', record['run'])
+            self.assertNotIn('--artifact-id', record['run'])
+            self.assertNotIn('GH_TOKEN', record.get('env', {}))
+            self.assertNotIn('continue-on-error', record)
+            if name == 'runtime-base-images':
+                self.assertEqual(
+                    record['env']['ARCHIVE_DIRECTORY'], upload['with']['path']
+                )
+                self.assertIn('--directory "$ARCHIVE_DIRECTORY"', record['run'])
+                self.assertIn(
+                    '--output "$ARCHIVE_DIRECTORY/runtime-base-images.provenance.json"',
+                    record['run'],
+                )
+            else:
+                self.assertIn(
+                    '--output "$ARTIFACTS_PATH/$ARTIFACT_NAME.provenance.json"',
+                    record['run'],
+                )
+                self.assertIn(
+                    '${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.provenance.json',
+                    upload['with']['path'],
+                )
+        image_steps = definition['jobs']['image-build']['steps']
+        record = next(
             step
-            for step in publish['steps']
-            if step.get('uses')
-            == './.github/actions/download-artifact-with-retry'
+            for step in image_steps
+            if step.get('name') == 'Record shared image identity'
         )
-        self.assertEqual(
-            set(download['with']['required-files'].split()),
-            {f'{name}.json' for name in IMAGES},
+        arm_record = next(
+            step
+            for step in image_steps
+            if step.get('name') == 'Record ARM image identity'
         )
-        ready = publish['steps'][-1]
-        self.assertEqual(
-            ready['with']['name'],
-            'ci-image-set-${{ inputs.architecture }}-attempt-${{ github.run_attempt }}',
+        self.assertLess(
+            image_steps.index(arm_record), image_steps.index(record)
         )
 
     def test_live_pr_revision_changes_cannot_skip_an_architecture(self):
