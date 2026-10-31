@@ -295,6 +295,29 @@ class TestGetOutputsFromExecutorOutput(unittest.TestCase):
         self.assertIsInstance(outputs['counts']['b'][1], float)
 
 
+class TestCastNestedWholeNumbers(parameterized.TestCase):
+    # Expected values are what Go's protojson emits for the same doubles.
+    @parameterized.parameters(
+        (1000000000000000100.0, 1000000000000000100),
+        (-1000000000000000100.0, -1000000000000000100),
+        (123456789012345678.0, 123456789012345680),
+        (9007199254740993.0, 9007199254740992),
+        (1e20, 100000000000000000000),
+        (-0.0, 0),
+    )
+    def test_large_whole_numbers_match_protojson_digits(self, value, expected):
+        result = executor_output_utils.cast_nested_whole_numbers([value])
+        self.assertEqual(result, [expected])
+        self.assertIsInstance(result[0], int)
+
+    @parameterized.parameters(1e21, -1e21, 1.5, float('inf'))
+    def test_values_protojson_does_not_write_as_integers_stay_floats(
+        self, value
+    ):
+        result = executor_output_utils.cast_nested_whole_numbers({'v': value})
+        self.assertIsInstance(result['v'], float)
+
+
 class TestPb2ValueToPython(unittest.TestCase):
     def test_null(self):
         inp = struct_pb2.Value(null_value=struct_pb2.NullValue.NULL_VALUE)

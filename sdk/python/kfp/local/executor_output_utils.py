@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for reading and processing the ExecutorOutput message."""
 
+import decimal
 import json
 import os
 from typing import Any, Dict, List, Union
@@ -41,7 +42,10 @@ def load_executor_output(
 
 # Go's protojson, which serializes the executor input and output on the remote
 # backend, writes whole numbers below this magnitude without a fractional part,
-# so the component loads them as ints. Larger ones use exponent form.
+# so the component loads them as ints. Larger ones use exponent form. The digits
+# are the shortest decimal that round-trips to the double, which is also what
+# Python's repr() produces, so int(value) would expose binary rounding instead
+# (1000000000000000128 rather than 1000000000000000100).
 _PROTOJSON_EXPONENT_THRESHOLD = 1e21
 
 NESTED_PARAMETER_TYPES = (
@@ -55,7 +59,7 @@ def cast_nested_whole_numbers(value: Any) -> Any:
     values a component receives from the remote backend."""
     if isinstance(value, float):
         if value.is_integer() and abs(value) < _PROTOJSON_EXPONENT_THRESHOLD:
-            return int(value)
+            return int(decimal.Decimal(repr(value)))
         return value
     if isinstance(value, list):
         return [cast_nested_whole_numbers(item) for item in value]

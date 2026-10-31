@@ -467,7 +467,12 @@ class TestExecutorInputToDict(unittest.TestCase):
                 'inputs': {
                     'parameterValues': {
                         'ids': [1, 2.0, 1.5, -3],
-                        'counts': {'a': 1, 'b': [4, 0.25], 'big': 1e21},
+                        'counts': {
+                            'a': 1,
+                            'b': [4, 0.25],
+                            'big': 1e21,
+                            'id': 1000000000000000100,
+                        },
                         'y': 2.0,
                         'text': '1.0',
                     }
@@ -487,7 +492,8 @@ class TestExecutorInputToDict(unittest.TestCase):
             [type(value) for value in values['ids']], [int, int, float, int]
         )
         self.assertEqual(
-            values['counts'], {'a': 1, 'b': [4, 0.25], 'big': 1e21}
+            values['counts'],
+            {'a': 1, 'b': [4, 0.25], 'big': 1e21, 'id': 1000000000000000100},
         )
         self.assertIsInstance(values['counts']['a'], int)
         self.assertIsInstance(values['counts']['b'][0], int)
