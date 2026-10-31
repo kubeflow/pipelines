@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Resolve one successful master publication and validate its image records."""
+"""Resolve one successful default-branch publication and validate its image
+records."""
 
 import argparse
 import json
@@ -25,17 +26,19 @@ from arm64_smoke import IMAGES, image_refs
 WORKFLOW = '.github/workflows/image-builds-master.yml'
 
 
-def validate_producer(run, repository):
+def validate_producer(run, repository, branch='master'):
+    if branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     expected = {
         'path': WORKFLOW,
         'event': 'push',
-        'head_branch': 'master',
+        'head_branch': branch,
         'status': 'completed',
         'conclusion': 'success',
     }
     if any(run.get(key) != value for key, value in expected.items()):
         raise ValueError(
-            'Expected a completed successful master image-build push'
+            'Expected a completed successful default-branch image-build push'
         )
     if any(
         run.get(key, {}).get('full_name') != repository
@@ -55,16 +58,16 @@ def validate_producer(run, repository):
         )
 
 
-def select_producer(runs, repository, trigger=None):
+def select_producer(runs, repository, trigger=None, branch='master'):
     """Choose source order, not completion order, for every trusted wakeup."""
     if not runs:
         raise ValueError(
-            'No successful master image build; publish images before scanning'
+            'No successful default-branch image build; publish images before scanning'
         )
     for run in runs:
-        validate_producer(run, repository)
+        validate_producer(run, repository, branch)
     if trigger is not None:
-        validate_producer(trigger, repository)
+        validate_producer(trigger, repository, branch)
     # A late completion can replace a newer pending workflow in GitHub's
     # concurrency queue. Treat it as a wakeup to scan the latest publication.
     return max(runs, key=lambda run: run['run_number'])
@@ -102,18 +105,21 @@ def github_api(endpoint):
 
 
 def resolve_producer(repository, trigger=None):
+    branch = github_api(f'repos/{repository}')['default_branch']
+    if branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     # The workflow runs API lists newest-created runs first. The first 100
-    # successful master pushes contain the newest run_number even if an older
+    # successful default-branch pushes contain the newest run_number even if an older
     # run completed or was rerun later.
     endpoint = (
         f'repos/{repository}/actions/workflows/image-builds-master.yml/runs'
     )
     runs = github_api(
-        endpoint + '?branch=master&event=push&status=success&per_page=100'
+        endpoint + f'?branch={branch}&event=push&status=success&per_page=100'
     )['workflow_runs']
-    selected = select_producer(runs, repository, trigger)
+    selected = select_producer(runs, repository, trigger, branch)
     current = github_api(f'repos/{repository}/actions/runs/{selected["id"]}')
-    validate_producer(current, repository)
+    validate_producer(current, repository, branch)
     if any(
         current[key] != selected[key]
         for key in ('id', 'run_attempt', 'head_sha')
@@ -140,6 +146,7 @@ def main():
         )
     selected = resolve_producer(args.repository, trigger)
     with args.github_output.open('a') as output:
+        output.write(f'branch={selected["head_branch"]}\n')
         output.write(f'run-id={selected["id"]}\n')
         output.write(f'run-attempt={selected["run_attempt"]}\n')
         output.write(f'sha={selected["head_sha"]}\n')

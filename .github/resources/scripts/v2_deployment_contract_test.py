@@ -202,14 +202,15 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertIn('constants.APIServerTests', specs)
         self.assertNotIn('config.UseLegacyAPIPrefix', specs)
 
-    def test_full_api_version_matrix_is_master_only(self):
+    def test_full_api_version_matrix_is_default_branch_only(self):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/api-server-tests.yml').read_text()
         )
         job = workflow['jobs']['api-test-versions']
         self.assertEqual(
             job['if'],
-            "${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}",
+            "${{ github.event_name == 'push' && github.ref == "
+            "format('refs/heads/{0}', github.event.repository.default_branch) }}",
         )
         self.assertEqual(
             job['strategy']['matrix']['api_version'], ['v2', 'v2beta1']
