@@ -213,13 +213,12 @@ func TestTerminalRunStatePredicate(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(string(tc.state), func(t *testing.T) {
-			run := &model.Run{
-				UUID: "run-1",
-				RunDetails: model.RunDetails{
-					State: tc.state,
-				},
-			}
-			err := terminalRunMutationError(run)
+			manager, store := newTerminalRunManager(tc.state)
+
+			run, err := manager.runStore.GetRun(store.run.UUID, false)
+			require.NoError(t, err)
+
+			err = terminalRunMutationError(run)
 			if tc.expectTerminal {
 				assert.Error(t, err)
 				assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
