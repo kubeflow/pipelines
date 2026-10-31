@@ -180,6 +180,13 @@ service account and requires both pinned and follow-latest authorization
 scenarios to pass. Its manifest verifier rejects missing or skipped cases.
 Keep fixture grants scoped to that account and namespace and authorization enabled.
 
+## CI performance invariants
+
+- Frontend validation runs static/generated-code checks, UI coverage, server coverage, and production-bundle smoke in independent matrix lanes. Keep `frontend-tests` as an always-running aggregate that succeeds only when every lane succeeds. `test:bundle:ci` skips lint/typecheck because the static lane owns them; developer `build` and `test:bundle` retain those checks.
+- Frontend npm caching keys all three installed lockfiles (frontend, server, and mock backend). Keep `npm ci` and its nested postinstall; clear the download cache only during failure recovery.
+- Presubmit image builds use GitHub Actions v2 BuildKit caches scoped by image and native architecture. Imports are bounded to 60 seconds; exports use `mode=max`, a 120-second limit, and nonfatal export errors. Master runs populate caches accessible to PRs under GitHub's branch restrictions. Frontend shell builds receive masked runtime cache credentials through the pinned GitHub Script action. Never pass these credentials into the Docker build.
+- Both image-build recovery paths remain uncached. Frontend dependency manifests, lockfiles, and `.npmrc` precede the full source copy so source-only edits reuse dependency layers; preserve all three install trees when changing that order.
+
 ## Common CI failures
 
 - Read the Docs release-readiness builds limit `sphinx_immaterial` font fetching to four workers with `SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS`, rather than its default 128. This reduces connection pressure on Google Fonts after observed TLS EOF and remote-disconnect failures. Both SDK documentation steps inherit the limit; fonts are still bundled, TLS verification stays enabled, and Sphinx errors still fail the job.
