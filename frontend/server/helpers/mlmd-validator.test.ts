@@ -19,6 +19,7 @@ import {
   decodeGrpcWebResponse,
   encodeGrpcWebRequest,
   namespaceFromArtifactUri,
+  validateArtifactKey,
 } from './mlmd-validator.js';
 
 const PIPELINE_RUN = 'system.PipelineRun';
@@ -294,6 +295,35 @@ describe('namespaceFromArtifactUri', () => {
     expect(
       namespaceFromArtifactUri('minio://mlpipeline/team-b/private-artifacts/team-a/object'),
     ).toBeUndefined();
+  });
+});
+
+describe('validateArtifactKey with a claimed namespace', () => {
+  it.each([
+    'minio://mlpipeline/private-artifacts/team-b/model.txt',
+    'minio://mlpipeline/private-artifacts/%74eam-b/model.txt',
+    'minio://mlpipeline/private-artifacts/team-b/',
+  ])('denies a known foreign storage namespace, including encoded aliases: %s', (uri) => {
+    expect(validateArtifactKey(uri, 'team-a')).toEqual({
+      valid: false,
+      actualNamespace: 'team-b',
+      reason: 'prefix-namespace-mismatch',
+    });
+  });
+
+  it('preserves a matching prefix and a custom root', () => {
+    expect(
+      validateArtifactKey('minio://mlpipeline/private-artifacts/team-a/model.txt', 'team-a'),
+    ).toEqual({ valid: true });
+    expect(validateArtifactKey('minio://mlpipeline/legacy/model.txt', 'team-a')).toEqual({
+      valid: true,
+    });
+  });
+
+  it('does not infer ownership from a namespace root without a trailing object segment', () => {
+    expect(validateArtifactKey('minio://mlpipeline/private-artifacts/team-b', 'team-a')).toEqual({
+      valid: true,
+    });
   });
 });
 
