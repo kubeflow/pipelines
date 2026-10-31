@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Pipeline with no caching on volume creation, mount and deletion in v2 engine pipeline."""
-from kfp import dsl
-from kfp import kubernetes
+"""Pipeline with no caching on volume creation, mount and deletion in v2 engine
+pipeline."""
+
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -57,12 +58,18 @@ def pipeline_with_volume_no_cache():
         mount_path='/data',
     )
 
-    delete_pvc1 = kubernetes.DeletePVC(
-        pvc_name=pvc1.outputs['name']).after(task2).set_caching_options(False)
+    delete_pvc1 = (
+        kubernetes.DeletePVC(pvc_name=pvc1.outputs['name'])
+        .after(task2)
+        .set_caching_options(False)
+    )
+
 
 if __name__ == '__main__':
     # execute only if run as a script
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_volume,
-        package_path='pipeline_with_volume.json')
+        package_path='pipeline_with_volume.json',
+    )

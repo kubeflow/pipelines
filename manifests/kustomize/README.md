@@ -250,6 +250,34 @@ Argo controller `workflowDefaults.spec.podMetadata` instead. This includes
 component Pods and is not an automatic translation of the old driver-only
 settings. Check template-level metadata overrides and mesh behavior before
 rollout. KFP does not install a metadata-mutating admission policy for you.
+## Image pull failure handling (opt-in)
+
+By default a pipeline run whose pod can never pull its container image stays
+`Running` until someone terminates it. The persistence agent can instead detect
+pods stuck in `ImagePullBackOff` / `ErrImagePull` and fail the run after a grace
+period (five minutes by default). The feature is off by default because it
+needs two extra permissions for the persistence agent: reading pods and
+patching Argo Workflows. Those permissions ship in opt-in components rather
+than in the base persistence agent Role / ClusterRole, so installations that do
+not opt in do not carry them.
+
+Add the matching component to your kustomization:
+
+```yaml
+components:
+# Standalone (single namespace) installations:
+- ../../components/image-pull-failure-handling
+# Multi-user installations (cluster-wide persistence agent):
+# - ../../components/image-pull-failure-handling-multi-user
+```
+
+The component sets `IMAGE_PULL_FAILURE_HANDLING_ENABLED=true` on the persistence
+agent deployment and creates a dedicated Role/RoleBinding (or
+ClusterRole/ClusterRoleBinding) bound to its service account. Adjust
+`IMAGE_PULL_FAILURE_GRACE_PERIOD_SEC` on the deployment to change the grace
+period. When a run is failed this way, the workflow is annotated with
+`pipelines.kubeflow.org/termination-reason: ImagePullFailure` and
+`pipelines.kubeflow.org/failed-image: <image>`.
 
 ## Artifact download responses
 
@@ -262,9 +290,10 @@ inline rendering.
 
 ## Custom artifact-store endpoints
 
-The UI server only accepts secret-backed S3-compatible `bucketProviders` whose
-HTTP(S) origin matches the operator-configured MinIO or AWS endpoint. Add any
-additional origins to `ALLOWED_ARTIFACT_ENDPOINTS` in `pipeline-install-config`.
+S3-compatible artifact requests may use only operator-trusted HTTP(S) origins,
+including the configured MinIO or AWS endpoint. Endpoint validation applies to
+both authenticated and anonymous requests, including Secret-backed `bucketProviders`.
+Add additional origins to `ALLOWED_ARTIFACT_ENDPOINTS` in `pipeline-install-config`.
 Entries are comma-separated absolute origins, including the scheme and optional
 port, for example `https://objects.example.com:9443`; paths and credentials are
 not accepted. HTTP origins must be listed as HTTP and should only be used for
@@ -314,12 +343,16 @@ List only destinations approved to receive storage credentials. A DNS alias is a
 separate origin: the two `store` entries above permit both hostname spellings,
 without trusting other hosts in the namespace. The provider's TLS setting must
 agree with the scheme (for example, `disableSSL: 'false'` for the HTTPS origin).
-Allowlisting does not grant bucket access or configure credentials. Authenticated
-multi-user artifact keys must still use `private-artifacts/<namespace>/` (or the
-operator-configured namespace prefix), including through tenant proxies. Configuring
-an endpoint or proxy does not make an existing custom-root object belong to a
-namespace. See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership)
-for migrating those object paths.
+Allowlisting does not grant bucket access or configure credentials. An exact
+native Artifact API match in the authorized namespace permits a custom root
+without requiring an object move. Known foreign-prefix and unsafe-key checks,
+no-record prefix/strict policy and lookup-error denial remain. This compatibility
+behavior is not complete object authorization: a tenant can register another
+object's URI, and a proxy may still have broad credentials. See
+[artifact ownership](../../frontend/README.md#multi-user-artifact-ownership) and the
+[backend authorization plan](https://github.com/kubeflow/pipelines/issues/14031).
+Keep storage and receiver access isolated; endpoint configuration and metadata
+registration alone do not establish ownership.
 
 In multi-user installations, custom tenant endpoints and tenant Secret-backed
 providers require namespace-isolated artifact proxies. Set

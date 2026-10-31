@@ -15,6 +15,7 @@
 from typing import Optional
 
 from google.protobuf import json_format
+
 from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 
@@ -55,7 +56,8 @@ def set_security_context(
     """
     if run_as_user is None and run_as_group is None and run_as_non_root is None:
         raise ValueError(
-            'At least one security context field must be provided.')
+            'At least one security context field must be provided.'
+        )
     if run_as_user is not None and isinstance(run_as_user, bool):
         raise TypeError(
             f'Argument for "run_as_user" must be an int, not bool. Got: {run_as_user}.'

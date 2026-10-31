@@ -1,11 +1,13 @@
 from typing import List
 
-from kfp.dsl import Artifact
-from kfp.dsl import Collected
-from kfp.dsl import component
-from kfp.dsl import Output
-from kfp.dsl import ParallelFor
-from kfp.dsl import pipeline
+from kfp.dsl import (
+    Artifact,
+    Collected,
+    Output,
+    ParallelFor,
+    component,
+    pipeline,
+)
 
 
 @component()
@@ -41,12 +43,15 @@ def read_single_file(file: Artifact, expected: str) -> str:
 
 
 @pipeline()
-def secondary_pipeline(model_ids: str = '',) -> List[str]:
+def secondary_pipeline(
+    model_ids: str = '',
+) -> List[str]:
     ids_split_op = split_ids(model_ids=model_ids)
     with ParallelFor(ids_split_op.output) as model_id:
         create_file_op = create_file(content=model_id)
         read_single_file_task = read_single_file(
-            file=create_file_op.outputs['file'], expected=model_id)
+            file=create_file_op.outputs['file'], expected=model_id
+        )
     read_values(values=Collected(read_single_file_task.output))
     return Collected(read_single_file_task.output)
 
@@ -60,6 +65,8 @@ def primary_pipeline():
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=primary_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

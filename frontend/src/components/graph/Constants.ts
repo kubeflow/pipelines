@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 
 export type SubDagKind = 'Sub-DAG' | 'Loop' | 'Iteration' | 'Condition';
 
@@ -27,6 +27,8 @@ export type SubDagTaskData = FlowElementDataBase & {
   groupKind?: SubDagKind;
   expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the driver pod, same semantics as on execution nodes.
+  lifecycleMessage?: string;
 };
 
 export type SubDagFlowElementData = SubDagTaskData & {
@@ -36,6 +38,9 @@ export type SubDagFlowElementData = SubDagTaskData & {
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: PipelineTaskTaskState;
+  // Pod lifecycle diagnostic from the execution engine. Set only while the task has an
+  // unresolved problem such as ImagePullBackOff, and cleared when the task recovers.
+  lifecycleMessage?: string;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {

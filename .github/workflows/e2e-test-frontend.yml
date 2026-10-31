@@ -2,7 +2,7 @@ name: KFP e2e frontend tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -25,8 +25,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   frontend-integration-dependency-checks:
@@ -37,10 +43,12 @@ jobs:
     name: Frontend Integration Dependency Checks
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: frontend/.nvmrc
 
@@ -65,10 +73,12 @@ jobs:
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: 3.11
 
@@ -134,7 +144,7 @@ jobs:
 
       - name: Collect test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
           if-no-files-found: warn

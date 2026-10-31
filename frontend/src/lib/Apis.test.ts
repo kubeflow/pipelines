@@ -129,7 +129,7 @@ describe('Apis', () => {
     };
     const spy = fetchSpy(JSON.stringify(expectedBuildInfo));
     const actualBuildInfo = await Apis.getBuildInfo();
-    expect(spy).toHaveBeenCalledWith('apis/v2beta1/healthz', { credentials: 'same-origin' });
+    expect(spy).toHaveBeenCalledWith('apis/v2/healthz', { credentials: 'same-origin' });
     expect(actualBuildInfo).toEqual(expectedBuildInfo);
   });
 
@@ -175,6 +175,19 @@ describe('Apis', () => {
     ).toEqual(
       'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey&keyEncoding=storage',
     );
+  });
+
+  it('reads a structured preview by artifact ID with cancellation and no browser cache', async () => {
+    const spy = fetchSpy('{"version":1,"kind":"model"}');
+    const signal = new AbortController().signal;
+    expect(await Apis.getArtifactContentPreview('artifact-1', 'team-a', signal)).toContain(
+      '"model"',
+    );
+    expect(spy).toHaveBeenCalledWith('artifacts/artifact-1/preview?namespace=team-a', {
+      signal,
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
   });
 
   it('buildReadFileUrl for download carries providerInfo', () => {
@@ -452,7 +465,7 @@ describe('Apis', () => {
     );
     expect(result).toEqual({ name: 'resultName' });
     expect(spy).toHaveBeenCalledWith(
-      'apis/v2beta1/pipelines/upload?name=' +
+      'apis/v2/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
         '&display_name=' +
         encodeURIComponent('test display name') +
@@ -478,7 +491,7 @@ describe('Apis', () => {
       'https://github.com/example/repo',
     );
     expect(spy).toHaveBeenCalledWith(
-      'apis/v2beta1/pipelines/upload?name=' +
+      'apis/v2/pipelines/upload?name=' +
         encodeURIComponent('test pipeline name') +
         '&display_name=' +
         encodeURIComponent('test display name') +
@@ -508,7 +521,7 @@ describe('Apis', () => {
       'https://github.com/example/repo',
     );
     expect(spy).toHaveBeenCalledWith(
-      'apis/v2beta1/pipelines/upload_version?name=' +
+      'apis/v2/pipelines/upload_version?name=' +
         encodeURIComponent('test version name') +
         '&pipelineid=' +
         encodeURIComponent('test-pipeline-id') +

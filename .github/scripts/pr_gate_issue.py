@@ -28,14 +28,16 @@ CLOSING_REFERENCE = re.compile(
 )
 
 
-def admission_issue(pr: Mapping[str, Any], repository: str,
-                    default_branch: str) -> int | None:
+def admission_issue(
+    pr: Mapping[str, Any], repository: str, default_branch: str
+) -> int | None:
     """Return a linked issue, or an explicit release-branch closing
     reference."""
     for issue in pr['closingIssuesReferences']:
         issue_repository = issue['repository']
-        full_name = (f"{issue_repository['owner']['login']}/"
-                     f"{issue_repository['name']}")
+        full_name = (
+            f'{issue_repository["owner"]["login"]}/{issue_repository["name"]}'
+        )
         if full_name.casefold() == repository.casefold():
             return issue['number']
 
@@ -44,9 +46,10 @@ def admission_issue(pr: Mapping[str, Any], repository: str,
     if pr['baseRefName'] != default_branch:
         for line in (pr['body'] or '').splitlines():
             match = CLOSING_REFERENCE.match(line)
-            if match and (not match['repository'] or
-                          match['repository'].casefold()
-                          == repository.casefold()):
+            if match and (
+                not match['repository']
+                or match['repository'].casefold() == repository.casefold()
+            ):
                 return int(match['number'])
 
     return None
@@ -54,7 +57,8 @@ def admission_issue(pr: Mapping[str, Any], repository: str,
 
 if __name__ == '__main__':
     pull_request = json.load(sys.stdin)
-    number = admission_issue(pull_request, os.environ['GH_REPO'],
-                             os.environ['DEFAULT_BRANCH'])
+    number = admission_issue(
+        pull_request, os.environ['GH_REPO'], os.environ['DEFAULT_BRANCH']
+    )
     if number is not None:
         print(number)

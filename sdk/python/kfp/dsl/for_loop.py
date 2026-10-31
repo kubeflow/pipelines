@@ -17,8 +17,7 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp.dsl import pipeline_channel
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import type_annotations, type_utils
 
 ItemList = List[Union[int, float, str, Dict[str, Any]]]
 
@@ -65,7 +64,8 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     """
     match = re.match(
         r'(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])',
-        type_name)
+        type_name,
+    )
     return match['value_type'].lstrip().rstrip() if match else None
 
 
@@ -79,10 +79,14 @@ def _get_first_element_type(item_list: ItemList) -> str:
     """
     first_element = item_list[0]
     if isinstance(first_element, dict):
-        key_type = type(list(
-            first_element.keys())[0]).__name__  # Get type of first key
-        value_type = type(list(
-            first_element.values())[0]).__name__  # Get type of first value
+        if not first_element:
+            raise ValueError('Dictionary items in ParallelFor cannot be empty.')
+        key_type = type(
+            list(first_element.keys())[0]
+        ).__name__  # Get type of first key
+        value_type = type(
+            list(first_element.values())[0]
+        ).__name__  # Get type of first value
         return f'Dict[{key_type}, {value_type}]'
     else:
         return type(first_element).__name__
@@ -133,7 +137,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         if (name_code is None) == (name_override is None):
             raise ValueError(
                 'Expect one and only one of `name_code` and `name_override` to '
-                'be specified.')
+                'be specified.'
+            )
 
         if name_override is None:
             super().__init__(name=_make_name(name_code), **kwargs)
@@ -141,8 +146,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
             super().__init__(name=name_override, **kwargs)
 
         if not isinstance(
-                items,
-            (list, tuple, pipeline_channel.PipelineParameterChannel)):
+            items, (list, tuple, pipeline_channel.PipelineParameterChannel)
+        ):
             raise TypeError(
                 f'Expected list, tuple, or PipelineParameterChannel, got {items}.'
             )
@@ -152,7 +157,8 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
 
         self.items_or_pipeline_channel = items
         self.is_with_items_loop_argument = not isinstance(
-            items, pipeline_channel.PipelineParameterChannel)
+            items, pipeline_channel.PipelineParameterChannel
+        )
         self._referenced_subvars: Dict[str, LoopArgumentVariable] = {}
 
         if isinstance(items, list) and isinstance(items[0], dict):
@@ -172,10 +178,12 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         # of time.
 
         return self._referenced_subvars.setdefault(
-            name, LoopArgumentVariable(
+            name,
+            LoopArgumentVariable(
                 loop_argument=self,
                 subvar_name=name,
-            ))
+            ),
+        )
 
     @classmethod
     def from_pipeline_channel(
@@ -194,9 +202,11 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
         # nested items are lists.
         if not isinstance(channel, LoopArgumentVariable):
             type_name = type_annotations.get_short_type_name(
-                channel.channel_type)
+                channel.channel_type
+            )
             parameter_type = type_utils.PARAMETER_TYPES_MAPPING[
-                type_name.lower()]
+                type_name.lower()
+            ]
             if parameter_type != type_utils.LIST:
                 raise ValueError(
                     'Cannot iterate over a single parameter using `dsl.ParallelFor`. Expected a list of parameters as argument to `items`.'
@@ -263,19 +273,23 @@ class LoopArtifactArgument(pipeline_channel.PipelineArtifactChannel):
         if (name_code is None) == (name_override is None):
             raise ValueError(
                 'Expect one and only one of `name_code` and `name_override` to '
-                'be specified.')
+                'be specified.'
+            )
 
         # We don't support nested lists so `is_artifact_list` is always False.
         if name_override is None:
             super().__init__(
-                name=_make_name(name_code), is_artifact_list=False, **kwargs)
+                name=_make_name(name_code), is_artifact_list=False, **kwargs
+            )
         else:
             super().__init__(
-                name=name_override, is_artifact_list=False, **kwargs)
+                name=name_override, is_artifact_list=False, **kwargs
+            )
 
         self.items_or_pipeline_channel = items
         self.is_with_items_loop_argument = not isinstance(
-            items, pipeline_channel.PipelineArtifactChannel)
+            items, pipeline_channel.PipelineArtifactChannel
+        )
 
     @classmethod
     def from_pipeline_channel(
@@ -314,6 +328,7 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
           attached to.
         subvar_name: The subvariable name.
     """
+
     SUBVAR_NAME_DELIMITER = '-subvar-'
     LEGAL_SUBVAR_NAME_REGEX = re.compile(r'^[a-zA-Z_][0-9a-zA-Z_]*$')
 
@@ -336,7 +351,8 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
         if not self._subvar_name_is_legal(subvar_name):
             raise ValueError(
                 f'Tried to create subvariable named {subvar_name}, but that is '
-                'not a legal Python variable name.')
+                'not a legal Python variable name.'
+            )
 
         self.subvar_name = subvar_name
         self.loop_argument = loop_argument
@@ -347,13 +363,14 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
                 subvar_name=subvar_name,
             ),
             task_name=loop_argument.task_name,
-            channel_type=_get_subvar_type(loop_argument.channel_type) or
-            'String',
+            channel_type=_get_subvar_type(loop_argument.channel_type)
+            or 'String',
         )
 
     @property
     def items_or_pipeline_channel(
-            self) -> Union[ItemList, pipeline_channel.PipelineParameterChannel]:
+        self,
+    ) -> Union[ItemList, pipeline_channel.PipelineParameterChannel]:
         """Returns the loop argument items."""
         return self.loop_argument.items_or_pipeline_channel
 
@@ -364,8 +381,10 @@ class LoopArgumentVariable(pipeline_channel.PipelineParameterChannel):
 
     def _subvar_name_is_legal(self, proposed_variable_name: str) -> bool:
         """Returns True if the subvar name is legal."""
-        return re.match(self.LEGAL_SUBVAR_NAME_REGEX,
-                        proposed_variable_name) is not None
+        return (
+            re.match(self.LEGAL_SUBVAR_NAME_REGEX, proposed_variable_name)
+            is not None
+        )
 
     def _get_name_override(self, loop_arg_name: str, subvar_name: str) -> str:
         """Gets the name.
@@ -425,8 +444,11 @@ class Collected(pipeline_channel.PipelineChannel):
         self._validate_no_oneof_channel(self.output)
 
     def _validate_no_oneof_channel(
-        self, channel: Union[pipeline_channel.PipelineParameterChannel,
-                             pipeline_channel.PipelineArtifactChannel]
+        self,
+        channel: Union[
+            pipeline_channel.PipelineParameterChannel,
+            pipeline_channel.PipelineArtifactChannel,
+        ],
     ) -> None:
         if isinstance(channel, pipeline_channel.OneOfMixin):
             raise ValueError(

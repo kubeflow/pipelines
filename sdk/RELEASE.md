@@ -2,8 +2,15 @@
 
 ## Features
 
+* The backend's canonical API is now `/apis/v2`, with `V2…` models. The Python
+  SDK keeps calling `/apis/v2beta1` so a routine SDK update does not require a
+  server prefix upgrade. Python `V2beta1…` model imports remain aliases of the
+  new models. New features may still require a matching backend version.
+  Operators must finish the API-server rollout before updating the UI,
+  persistence agent, scheduled-workflow controller, or driver/launcher images,
+  which use v2. See [rollout order](../docs/reference/version-compatibility.md#rollout-order).
 * The accompanying backend enables live pod-log following for direct API callers
-  through `GET /apis/v2beta1/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+  through `GET /apis/v2/runs/{run_id}/nodes/{node_id}/log?follow=true`.
   Omitting `follow` still returns a snapshot. Clients should set a deadline or
   cancel the stream; there is no dedicated server-side timeout. The UI's API-log
   proxy does not forward `follow`.
@@ -13,6 +20,11 @@
   enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
+
+* `Client.run_pipeline`, `create_run_from_pipeline_func`,
+  `create_run_from_pipeline_package` and `create_recurring_run` accept a
+  `plugins_input` argument, keyed by plugin name, that is sent as the run's
+  `plugins_input`. Recurring runs pass it to every triggered run.
 
 ## Breaking changes
 

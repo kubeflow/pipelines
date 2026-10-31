@@ -17,7 +17,7 @@
 import * as React from 'react';
 import BusyButton from 'src/atoms/BusyButton';
 import Input from 'src/atoms/Input';
-import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { V2Experiment } from 'src/apisv2/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from 'src/pages/Page';
 import { RoutePage, QUERY_PARAMS } from 'src/components/Router';
@@ -149,7 +149,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   };
 
   private _create(): void {
-    const newExperiment: V2beta1Experiment = {
+    const newExperiment: V2Experiment = {
       description: this.state.description,
       display_name: this.state.experimentName,
       namespace: this.props.namespace,

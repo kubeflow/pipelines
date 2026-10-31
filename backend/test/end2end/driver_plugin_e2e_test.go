@@ -23,9 +23,9 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	e2e_utils "github.com/kubeflow/pipelines/backend/test/end2end/utils"
@@ -67,9 +67,9 @@ var _ = Describe("Driver plugin >", Label(FullRegression, E2eDriverPlugin), func
 		randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 		testContext.Pipeline.UploadParams = upload_params.NewUploadPipelineParams()
 		testContext.Pipeline.PipelineGeneratedName = "e2e-driver-plugin-" + randomName
-		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
+		testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2Pipeline, 0)
 		testContext.PipelineRun.CreatedRunIds = make([]string, 0)
-		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2beta1Pipeline)
+		testContext.Pipeline.ExpectedPipeline = new(pipeline_upload_model.V2Pipeline)
 		testContext.Pipeline.ExpectedPipeline.CreatedAt = strfmt.DateTime(testContext.TestStartTimeUTC)
 		var err error
 		argoClient, err = testutil.CreateArgoClient()
@@ -116,7 +116,7 @@ var _ = Describe("Driver plugin >", Label(FullRegression, E2eDriverPlugin), func
 			runID, observer := runPipelineObservingPods(pipelineFile, pipelineDir, testContext, argoClient, false)
 			updatedRun := testutil.GetPipelineRun(runClient, &runID)
 			Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
 			validateDriverPluginRun(runID, observer, argoClient)
 		})
 	})
@@ -126,10 +126,10 @@ var _ = Describe("Driver plugin >", Label(FullRegression, E2eDriverPlugin), func
 			runID, observer := runPipelineObservingPods(retryPipelineFile, driverPluginPipelineDir, testContext, argoClient, true)
 			updatedRun := testutil.GetPipelineRun(runClient, &runID)
 			Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
-			if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+			if *updatedRun.State != run_model.V2RuntimeStateSUCCEEDED {
 				e2e_utils.CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, updatedRun.Tasks)
 			}
-			Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED), "Pipeline run with retries was expected to succeed, but is "+*updatedRun.State)
+			Expect(*updatedRun.State).To(Equal(run_model.V2RuntimeStateSUCCEEDED), "Pipeline run with retries was expected to succeed, but is "+*updatedRun.State)
 
 			// Task persistence may lag the terminal run update.
 			Eventually(func(g Gomega) {
@@ -174,11 +174,11 @@ func runPipelineObservingPods(pipelineFile string, pipelineDir string, testConte
 		checks = append(checks, testutil.NewRunImagePullCheck(k8Client, testutil.GetNamespace(), createdRun.RunID))
 	}
 	timeout := time.Duration(maxPipelineWaitTime)
-	testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2beta1RuntimeState{
-		run_model.V2beta1RuntimeStateSUCCEEDED,
-		run_model.V2beta1RuntimeStateSKIPPED,
-		run_model.V2beta1RuntimeStateFAILED,
-		run_model.V2beta1RuntimeStateCANCELED,
+	testutil.WaitForRunToBeInState(runClient, &createdRun.RunID, []run_model.V2RuntimeState{
+		run_model.V2RuntimeStateSUCCEEDED,
+		run_model.V2RuntimeStateSKIPPED,
+		run_model.V2RuntimeStateFAILED,
+		run_model.V2RuntimeStateCANCELED,
 	}, &timeout, checks...)
 	// Pods that outlive the workflow (the task pods) are still worth a final look.
 	Expect(observer.Check()).To(Succeed())

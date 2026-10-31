@@ -12,21 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import component
-from kfp.dsl import Metrics
-from kfp.dsl import Output
+from kfp.dsl import Metrics, Output, component
 
 
 @component
 def output_metrics(metrics: Output[Metrics]):
     """Dummy component that outputs metrics with a random accuracy."""
     import random
+
     result = random.randint(0, 100)
     metrics.log_metric('accuracy', result)
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=output_metrics,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

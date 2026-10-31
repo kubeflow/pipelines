@@ -141,14 +141,15 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:        t.templateOptions.CacheDisabled,
-			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
-			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
-			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
-			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			TokenReviewAudience:  common.GetTokenReviewAudience(),
+			CacheDisabled:          t.templateOptions.CacheDisabled,
+			DefaultWorkspace:       t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled:   t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:      t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    t.templateOptions.DefaultRunAsNonRoot,
+			DefaultHostUsers:       t.templateOptions.DefaultHostUsers,
+			DefaultPVCStorageClass: t.templateOptions.DefaultPVCStorageClass,
+			TokenReviewAudience:    common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -378,14 +379,15 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:        t.templateOptions.CacheDisabled,
-			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
-			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
-			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
-			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			TokenReviewAudience:  common.GetTokenReviewAudience(),
+			CacheDisabled:          t.templateOptions.CacheDisabled,
+			DefaultWorkspace:       t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled:   t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:      t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    t.templateOptions.DefaultRunAsNonRoot,
+			DefaultHostUsers:       t.templateOptions.DefaultHostUsers,
+			DefaultPVCStorageClass: t.templateOptions.DefaultPVCStorageClass,
+			TokenReviewAudience:    common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

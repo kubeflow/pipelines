@@ -6,6 +6,31 @@ dependencies = [
   "kfp",
 ]
 
+[tool.ruff]
+target-version = "py311"
+line-length = 80
+include = ["*.py", "*.pyi"]
+# Apply exclusions even when pre-commit passes explicit paths.
+force-exclude = true
+extend-exclude = [
+  "backend/api/v2/python_http_client",
+  "backend/api/v2beta1/python_http_client",
+  "sdk/python/kfp/server_api",
+  "*_pb2.py",
+  # Scheduled for deletion; leave this tree untouched by the tooling migration.
+  "components/google-cloud",
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+select = ["F401", "I", "W605"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package imports are public re-exports, not necessarily used in the module.
+"__init__.py" = ["F401"]
+
 [tool.uv.workspace]
 members = [
   "sdk/python",
@@ -17,7 +42,8 @@ kfp = { workspace = true }
 [tool.uv]
 # Shared constraints applied during resolution for ALL workspace members
 constraint-dependencies = [
-  "protobuf>=6.33.5",
+  # GCPC's supported Vertex AI dependency does not support protobuf 7 yet.
+  "protobuf>=6.33.5,<7",
   "kubernetes>=8.0.0",
   "google-auth>=1.6.1,<3",
   "PyYAML>=5.3,<7",
@@ -28,16 +54,17 @@ constraint-dependencies = [
 # Linting tools (pinned to avoid new lint failures)
 lint = [
   "docformatter==1.7.7",
-  "isort==5.10.1",  "pre-commit-hooks",  "pycln==2.6.0",
   "pylint==4.1.3",
-  "yapf==0.43.0",
+  "ruff==0.17.1",
 ]
 
 # Testing tools
 test = [
   "absl-py",
   "docker",
-  "google-cloud-pipeline-components",
+  # Older 1.x releases import removed kfp.dsl internals. Do not let dependency
+  # resolution backtrack to them when a newer protobuf is incompatible.
+  "google-cloud-pipeline-components>=2.22.0",
   "kfp[notebooks]",
   "kubernetes",
   "nbformat",
@@ -57,7 +84,7 @@ test = [
 dev = [
   "kfp-workspace[lint,test]",
   "mypy",
-  "pre-commit>=3.2",
+  "pre-commit>=4.7.0",
   "types-protobuf",
   "types-PyYAML",
   "types-requests",

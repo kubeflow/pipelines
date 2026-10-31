@@ -62,6 +62,10 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
+	// Optional: administrator-configured default StorageClass for PVCs created
+	// by CreatePVC pipeline tasks. Nil means not set, so tasks that omit
+	// storage_class_name fall back to Kubernetes defaulting.
+	DefaultPVCStorageClass *string
 	// Optional: base audience for projected service-account tokens used by runtime
 	// pods. Empty means DefaultTokenReviewAudience. The API server passes
 	// TOKEN_REVIEW_AUDIENCE so minted audiences match TokenReview.
@@ -237,6 +241,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
+		c.defaultPVCStorageClass = opts.DefaultPVCStorageClass
 		c.tokenReviewAudience = opts.TokenReviewAudience
 		if opts.LauncherImage != "" {
 			c.launcherImage = opts.LauncherImage
@@ -339,19 +344,20 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf                   *wfapi.Workflow
-	templates            map[string]*wfapi.Template
-	launcherImage        string
-	launcherCommand      []string
-	cacheDisabled        bool
-	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
-	mlPipelineTLSEnabled bool
-	defaultRunAsUser     *int64
-	defaultRunAsGroup    *int64
-	defaultRunAsNonRoot  *bool
-	defaultHostUsers     *bool
-	tokenReviewAudience  string
-	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
+	wf                     *wfapi.Workflow
+	templates              map[string]*wfapi.Template
+	launcherImage          string
+	launcherCommand        []string
+	cacheDisabled          bool
+	defaultWorkspace       *k8score.PersistentVolumeClaimSpec
+	mlPipelineTLSEnabled   bool
+	defaultRunAsUser       *int64
+	defaultRunAsGroup      *int64
+	defaultRunAsNonRoot    *bool
+	defaultHostUsers       *bool
+	defaultPVCStorageClass *string
+	tokenReviewAudience    string
+	kubernetesConfigs      map[string]*kubernetesplatform.KubernetesExecutorConfig
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

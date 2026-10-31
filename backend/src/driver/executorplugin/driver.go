@@ -29,7 +29,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
@@ -266,6 +266,10 @@ func (r *driverRunner) setup(ctx context.Context, args driverapi.DriverPluginArg
 		options.KubernetesExecutorConfig = k8sExecCfg
 		options.DefaultRunAsUser = args.DefaultRunAsUser
 		options.DefaultRunAsGroup = args.DefaultRunAsGroup
+		if args.DefaultPVCStorageClass != "" {
+			defaultPVCStorageClass := args.DefaultPVCStorageClass
+			options.DefaultPVCStorageClass = &defaultPVCStorageClass
+		}
 		options.DefaultRunAsNonRoot, err = driverinputs.ParseOptionalBool("default_run_as_non_root", args.DefaultRunAsNonRoot)
 		if err != nil {
 			return nil, err

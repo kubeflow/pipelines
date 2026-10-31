@@ -15,14 +15,13 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import service_path_probe
-
 
 SCRIPT = Path(__file__).with_name('service_path_probe.py')
 
@@ -38,16 +37,17 @@ def service(cluster_ip, port_name, port):
 
 def slices(name, port_name, port, endpoints):
     return {
-        'items': [{
-            'metadata': {'name': name},
-            'ports': [{'name': port_name, 'port': port}],
-            'endpoints': endpoints,
-        }]
+        'items': [
+            {
+                'metadata': {'name': name},
+                'ports': [{'name': port_name, 'port': port}],
+                'endpoints': endpoints,
+            }
+        ]
     }
 
 
 class ServicePathProbeTest(unittest.TestCase):
-
     def test_resolves_service_and_endpoint_ports_separately(self):
         seaweedfs = service_path_probe.resolve_pair(
             'seaweedfs-s3',
@@ -56,18 +56,20 @@ class ServicePathProbeTest(unittest.TestCase):
                 'seaweedfs-a',
                 'http-s3-compat',
                 8333,
-                [{
-                    'addresses': ['10.244.0.20'],
-                    'conditions': {
-                        'ready': True,
-                        'serving': True,
-                        'terminating': False,
-                    },
-                    'targetRef': {
-                        'kind': 'Pod',
-                        'name': 'seaweedfs-abc',
-                    },
-                }],
+                [
+                    {
+                        'addresses': ['10.244.0.20'],
+                        'conditions': {
+                            'ready': True,
+                            'serving': True,
+                            'terminating': False,
+                        },
+                        'targetRef': {
+                            'kind': 'Pod',
+                            'name': 'seaweedfs-abc',
+                        },
+                    }
+                ],
             ),
             'http-s3-compat',
         )
@@ -131,7 +133,10 @@ class ServicePathProbeTest(unittest.TestCase):
             [
                 {'addresses': ['10.244.0.1'], 'conditions': {'ready': False}},
                 {'addresses': ['10.244.0.2'], 'conditions': {'serving': False}},
-                {'addresses': ['10.244.0.3'], 'conditions': {'terminating': True}},
+                {
+                    'addresses': ['10.244.0.3'],
+                    'conditions': {'terminating': True},
+                },
                 {'addresses': ['10.244.0.4'], 'conditions': {'ready': True}},
             ],
         )
@@ -166,13 +171,15 @@ class ServicePathProbeTest(unittest.TestCase):
             temporary_path = Path(temporary_directory)
             input_path = temporary_path / 'probe.jsonl'
             summary_path = temporary_path / 'summary.md'
-            events = [{
-                'type': 'meta',
-                'source_pod': 'probe',
-                'source_node': 'kind-control-plane',
-                'source_pod_ip': '10.244.0.99',
-                'network_namespace': 'net:[7]',
-            }]
+            events = [
+                {
+                    'type': 'meta',
+                    'source_pod': 'probe',
+                    'source_node': 'kind-control-plane',
+                    'source_pod_ip': '10.244.0.99',
+                    'network_namespace': 'net:[7]',
+                }
+            ]
             outcomes = [
                 ('ok', 'ok'),
                 ('timeout', 'ok'),
@@ -180,55 +187,65 @@ class ServicePathProbeTest(unittest.TestCase):
                 ('timeout', 'error'),
             ]
             for cycle, (vip_result, endpoint_result) in enumerate(outcomes):
-                events.append({
-                    'type': 'cycle',
-                    'cycle': cycle,
-                    'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
-                    'loop_lag_ms': cycle,
-                })
+                events.append(
+                    {
+                        'type': 'cycle',
+                        'cycle': cycle,
+                        'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
+                        'loop_lag_ms': cycle,
+                    }
+                )
                 for path_name, result in (
                     ('vip', vip_result),
                     ('endpoint', endpoint_result),
                 ):
-                    events.append({
-                        'type': 'probe',
-                        'cycle': cycle,
-                        'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
-                        'pair': 'seaweedfs-s3',
-                        'path': path_name,
-                        'host': '10.96.1.1' if path_name == 'vip' else '10.244.0.20',
-                        'port': 9000 if path_name == 'vip' else 8333,
-                        'result': result,
-                        'latency_ms': 1.0 + cycle,
-                    })
+                    events.append(
+                        {
+                            'type': 'probe',
+                            'cycle': cycle,
+                            'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
+                            'pair': 'seaweedfs-s3',
+                            'path': path_name,
+                            'host': '10.96.1.1'
+                            if path_name == 'vip'
+                            else '10.244.0.20',
+                            'port': 9000 if path_name == 'vip' else 8333,
+                            'result': result,
+                            'latency_ms': 1.0 + cycle,
+                        }
+                    )
                 for path_name in ('vip', 'endpoint'):
-                    events.append({
-                        'type': 'probe',
-                        'cycle': cycle,
-                        'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
-                        'pair': 'kubernetes-api',
-                        'path': path_name,
-                        'host': '10.96.0.1',
-                        'port': 443,
-                        'result': 'ok',
-                        'latency_ms': 0.5,
-                    })
-            events.extend([
-                {
-                    'type': 'metric',
-                    'cycle': 0,
-                    'timestamp_ms': 1_700_000_000_000,
-                    'metric': 'TcpExt.TCPSynRetrans',
-                    'value': 2,
-                },
-                {
-                    'type': 'metric',
-                    'cycle': 1,
-                    'timestamp_ms': 1_700_000_005_000,
-                    'metric': 'TcpExt.TCPSynRetrans',
-                    'value': 9,
-                },
-            ])
+                    events.append(
+                        {
+                            'type': 'probe',
+                            'cycle': cycle,
+                            'timestamp_ms': 1_700_000_000_000 + cycle * 5000,
+                            'pair': 'kubernetes-api',
+                            'path': path_name,
+                            'host': '10.96.0.1',
+                            'port': 443,
+                            'result': 'ok',
+                            'latency_ms': 0.5,
+                        }
+                    )
+            events.extend(
+                [
+                    {
+                        'type': 'metric',
+                        'cycle': 0,
+                        'timestamp_ms': 1_700_000_000_000,
+                        'metric': 'TcpExt.TCPSynRetrans',
+                        'value': 2,
+                    },
+                    {
+                        'type': 'metric',
+                        'cycle': 1,
+                        'timestamp_ms': 1_700_000_005_000,
+                        'metric': 'TcpExt.TCPSynRetrans',
+                        'value': 9,
+                    },
+                ]
+            )
             input_path.write_text(
                 ''.join(json.dumps(event) + '\n' for event in events),
                 encoding='utf-8',

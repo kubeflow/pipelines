@@ -21,7 +21,7 @@ import {
   logger,
   sanitizeExternalHref,
 } from './Utils';
-import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 import { expectErrors } from 'src/TestUtils';
 
 describe('Utils', () => {

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     paths:
       - '**/pyproject.toml'
@@ -15,6 +16,7 @@ on:
       - 'go.sum'
       - 'backend/api/Dockerfile'
       - 'backend/api/Makefile'
+      - 'backend/api/hack/**'
       - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'backend/api/tools/go.mod'
       - 'backend/api/tools/go.sum'
@@ -47,14 +49,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   detect-generator-changes:
     runs-on: ubuntu-latest
     outputs:
       required: ${{ steps.detect.outputs.required }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Detect relevant generator changes
@@ -83,7 +89,9 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -113,16 +121,16 @@ jobs:
         working-directory: ./backend/src/crd/kubernetes
         run: make generate manifests
 
-      - name: Generate backend proto code v2beta1
+      - name: Generate backend proto code v2
         working-directory: ./backend/api
         env:
-          API_VERSION: v2beta1
+          API_VERSION: v2
         run: make generate
 
-      - name: Generate backend proto code v2beta1
+      - name: Generate backend proto code v2
         working-directory: ./backend/api
         env:
-          API_VERSION: v2beta1
+          API_VERSION: v2
         run: make generate-kfp-server-api-package
 
       - name: Check for Changes
@@ -133,7 +141,9 @@ jobs:
     if: needs.detect-generator-changes.outputs.required == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -147,6 +157,7 @@ jobs:
   # Preserve the existing required-check name even when an unrelated Go module
   # update skips the expensive generation job.
   validate-generated-files:
+    permissions: {}
     needs:
       - detect-generator-changes
       - generate-and-check

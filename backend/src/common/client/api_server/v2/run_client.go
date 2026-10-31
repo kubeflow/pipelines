@@ -20,9 +20,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
@@ -32,10 +32,10 @@ import (
 
 type RunInterface interface {
 	Archive(params *params.RunServiceArchiveRunParams) error
-	Create(params *params.RunServiceCreateRunParams) (*model.V2beta1Run, error)
-	Get(params *params.RunServiceGetRunParams) (*model.V2beta1Run, error)
-	List(params *params.RunServiceListRunsParams) ([]*model.V2beta1Run, int, string, error)
-	ListAll(params *params.RunServiceListRunsParams, maxResultSize int) ([]*model.V2beta1Run, error)
+	Create(params *params.RunServiceCreateRunParams) (*model.V2Run, error)
+	Get(params *params.RunServiceGetRunParams) (*model.V2Run, error)
+	List(params *params.RunServiceListRunsParams) ([]*model.V2Run, int, string, error)
+	ListAll(params *params.RunServiceListRunsParams, maxResultSize int) ([]*model.V2Run, error)
 	Retry(params *params.RunServiceRetryRunParams) error
 	Unarchive(params *params.RunServiceUnarchiveRunParams) error
 	Terminate(params *params.RunServiceTerminateRunParams) error
@@ -93,7 +93,7 @@ func NewMultiUserRunClient(clientConfig clientcmd.ClientConfig, userToken string
 	}, nil
 }
 
-func (c *RunClient) Create(parameters *params.RunServiceCreateRunParams) (*model.V2beta1Run, error) {
+func (c *RunClient) Create(parameters *params.RunServiceCreateRunParams) (*model.V2Run, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -115,7 +115,7 @@ func (c *RunClient) Create(parameters *params.RunServiceCreateRunParams) (*model
 	return response.Payload, nil
 }
 
-func (c *RunClient) Get(parameters *params.RunServiceGetRunParams) (*model.V2beta1Run, error) {
+func (c *RunClient) Get(parameters *params.RunServiceGetRunParams) (*model.V2Run, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -207,7 +207,7 @@ func (c *RunClient) Delete(parameters *params.RunServiceDeleteRunParams) error {
 }
 
 func (c *RunClient) List(parameters *params.RunServiceListRunsParams) (
-	[]*model.V2beta1Run, int, string, error) {
+	[]*model.V2Run, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -231,17 +231,17 @@ func (c *RunClient) List(parameters *params.RunServiceListRunsParams) (
 }
 
 func (c *RunClient) ListAll(parameters *params.RunServiceListRunsParams, maxResultSize int) (
-	[]*model.V2beta1Run, error) {
+	[]*model.V2Run, error) {
 	return listAllForRun(c, parameters, maxResultSize)
 }
 
 func listAllForRun(client RunInterface, parameters *params.RunServiceListRunsParams, maxResultSize int) (
-	[]*model.V2beta1Run, error) {
+	[]*model.V2Run, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.V2beta1Run, 0)
+	allResults := make([]*model.V2Run, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

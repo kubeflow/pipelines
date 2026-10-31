@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -167,12 +167,12 @@ func BuildRunURL(requestCtx *commonmlflow.RequestContext, experimentID, runID st
 	return trackingUIBase + uiPathPrefix + "/#" + trackingMlflowRunPath
 }
 
-func SuccessfulPluginOutput(experimentID, experimentName, runID, runURL string) *apiv2beta1.PluginOutput {
-	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+func SuccessfulPluginOutput(experimentID, experimentName, runID, runURL string) *apiv2.PluginOutput {
+	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2.PluginState_PLUGIN_SUCCEEDED, "")
 }
 
-func FailedPluginOutput(experimentID, experimentName, runID, runURL, stateMessage string) *apiv2beta1.PluginOutput {
-	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
+func FailedPluginOutput(experimentID, experimentName, runID, runURL, stateMessage string) *apiv2.PluginOutput {
+	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2.PluginState_PLUGIN_FAILED, stateMessage)
 }
 
 // maxSearchPages caps SearchRuns pagination in reopenNestedRuns (retry path).
@@ -279,24 +279,24 @@ func reopenNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestConte
 	return syncErrors
 }
 
-func buildPluginOutput(experimentID, experimentName, runID, runURL string, state apiv2beta1.PluginState, stateMessage string) *apiv2beta1.PluginOutput {
-	entries := map[string]*apiv2beta1.MetadataValue{}
+func buildPluginOutput(experimentID, experimentName, runID, runURL string, state apiv2.PluginState, stateMessage string) *apiv2.PluginOutput {
+	entries := map[string]*apiv2.MetadataValue{}
 	if experimentName != "" {
-		entries[EntryExperimentName] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(experimentName)}
+		entries[EntryExperimentName] = &apiv2.MetadataValue{Value: structpb.NewStringValue(experimentName)}
 	}
 	if experimentID != "" {
-		entries[EntryExperimentID] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(experimentID)}
+		entries[EntryExperimentID] = &apiv2.MetadataValue{Value: structpb.NewStringValue(experimentID)}
 	}
 	if runID != "" {
-		entries[EntryRootRunID] = &apiv2beta1.MetadataValue{Value: structpb.NewStringValue(runID)}
+		entries[EntryRootRunID] = &apiv2.MetadataValue{Value: structpb.NewStringValue(runID)}
 	}
 	if runURL != "" {
-		entries[EntryRunURL] = &apiv2beta1.MetadataValue{
+		entries[EntryRunURL] = &apiv2.MetadataValue{
 			Value:      structpb.NewStringValue(runURL),
-			RenderType: apiv2beta1.MetadataValue_URL.Enum(),
+			RenderType: apiv2.MetadataValue_URL.Enum(),
 		}
 	}
-	return &apiv2beta1.PluginOutput{
+	return &apiv2.PluginOutput{
 		Entries:      entries,
 		State:        state,
 		StateMessage: stateMessage,

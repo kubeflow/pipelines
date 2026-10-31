@@ -68,7 +68,7 @@ func TestTransferDownloadPreservesArchiveAndIdentity(t *testing.T) {
 			return archive, nil
 		},
 	}
-	r := transferRequest("/apis/v2beta1/transfer/export?namespace=team", `{"completed_after":100}`)
+	r := transferRequest("/apis/v2/transfer/export?namespace=team", `{"completed_after":100}`)
 	r.Header.Set("Kubeflow-Userid", "user@example.org")
 	w := httptest.NewRecorder()
 	NewTransferServer(service).Export(w, r)
@@ -89,7 +89,7 @@ func TestTransferImportDefaultsToPreviewAndPreservesBytes(t *testing.T) {
 				return transfer.Summary{Counts: transfer.Counts{Experiments: 2, Schedules: 1}}, nil
 			}})
 			w := httptest.NewRecorder()
-			s.Import(w, transferRequest("/apis/v2beta1/transfer/import?namespace=team&name_prefix=old-"+suffix, archive))
+			s.Import(w, transferRequest("/apis/v2/transfer/import?namespace=team&name_prefix=old-"+suffix, archive))
 			require.Equal(t, http.StatusOK, w.Code)
 			require.Contains(t, w.Body.String(), `"schedules":1`)
 			require.Contains(t, w.Body.String(), `"warnings":[]`)
@@ -106,7 +106,7 @@ func (b *unreadableTransferBody) Read([]byte) (int, error) {
 func (*unreadableTransferBody) Close() error { return nil }
 func TestTransferDenialDoesNotReadArchive(t *testing.T) {
 	b := &unreadableTransferBody{}
-	r := transferRequest("/apis/v2beta1/transfer/import?namespace=other", "{}")
+	r := transferRequest("/apis/v2/transfer/import?namespace=other", "{}")
 	r.Body = b
 	s := NewTransferServer(fakeTransferService{authorize: func(context.Context, string, bool) error {
 		return util.NewPermissionDeniedError(errors.New("denied"), "No access to destination")

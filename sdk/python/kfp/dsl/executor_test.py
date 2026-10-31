@@ -19,27 +19,21 @@ import os
 import shutil
 import sys
 import tempfile
-from typing import Callable, Dict, List, Literal, NamedTuple, Optional
 import unittest
+from typing import Callable, Dict, List, Literal, NamedTuple, Optional
 from unittest import mock
 
 from absl.testing import parameterized
+
 from kfp import dsl
-from kfp.dsl import executor
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp.dsl import Input, Output, executor
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
 from kfp.dsl.types import artifact_types
-from kfp.dsl.types.artifact_types import Artifact
-from kfp.dsl.types.artifact_types import Dataset
-from kfp.dsl.types.artifact_types import Metrics
-from kfp.dsl.types.artifact_types import Model
-from kfp.dsl.types.type_annotations import InputPath
-from kfp.dsl.types.type_annotations import OutputPath
+from kfp.dsl.types.artifact_types import Artifact, Dataset, Metrics, Model
+from kfp.dsl.types.type_annotations import InputPath, OutputPath
 
 
 class ExecutorTest(parameterized.TestCase):
-
     @classmethod
     def setUp(cls):
         cls.maxDiff = None
@@ -60,16 +54,18 @@ class ExecutorTest(parameterized.TestCase):
         artifact_types._S3_LOCAL_MOUNT_PREFIX = cls.prev_s3_prefix
 
     def execute(self, func: Callable, executor_input: str) -> None:
-        executor_input_dict = json.loads(executor_input %
-                                         {'test_dir': self._test_dir})
+        executor_input_dict = json.loads(
+            executor_input % {'test_dir': self._test_dir}
+        )
 
         executor.Executor(
-            executor_input=executor_input_dict,
-            function_to_execute=func).execute()
+            executor_input=executor_input_dict, function_to_execute=func
+        ).execute()
         return executor_input_dict['outputs']['outputFile']
 
-    def execute_and_load_output_metadata(self, func: Callable,
-                                         executor_input: str) -> dict:
+    def execute_and_load_output_metadata(
+        self, func: Callable, executor_input: str
+    ) -> dict:
         output_file = self.execute(func, executor_input)
         with open(output_file) as f:
             return json.loads(f.read())
@@ -98,10 +94,11 @@ class ExecutorTest(parameterized.TestCase):
             return input_parameter
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
-        self.assertEqual({'parameterValues': {
-            'Output': 'Hello, KFP'
-        }}, output_metadata)
+            test_func, executor_input
+        )
+        self.assertEqual(
+            {'parameterValues': {'Output': 'Hello, KFP'}}, output_metadata
+        )
 
     def test_builtin_generic_list_parameter(self):
         if sys.version_info < (3, 9):
@@ -178,19 +175,24 @@ class ExecutorTest(parameterized.TestCase):
 
             @property
             def path(self) -> str:
-                return self.uri.replace('gs://',
-                                        artifact_types._GCS_LOCAL_MOUNT_PREFIX)
+                return self.uri.replace(
+                    'gs://', artifact_types._GCS_LOCAL_MOUNT_PREFIX
+                )
 
         def test_func(input_artifact_one: Input[VertexDataset]):
-            self.assertEqual(input_artifact_one.uri,
-                             'gs://some-bucket/input_artifact_one')
+            self.assertEqual(
+                input_artifact_one.uri, 'gs://some-bucket/input_artifact_one'
+            )
             self.assertEqual(
                 input_artifact_one.path,
-                os.path.join(artifact_types._GCS_LOCAL_MOUNT_PREFIX,
-                             'some-bucket/input_artifact_one'))
+                os.path.join(
+                    artifact_types._GCS_LOCAL_MOUNT_PREFIX,
+                    'some-bucket/input_artifact_one',
+                ),
+            )
             self.assertEqual(
                 input_artifact_one.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
             )
             self.assertIsInstance(input_artifact_one, VertexDataset)
 
@@ -222,14 +224,16 @@ class ExecutorTest(parameterized.TestCase):
         """
 
         def test_func(input_artifact_one: Input[Dataset]):
-            self.assertEqual(input_artifact_one.uri,
-                             'gs://some-bucket/input_artifact_one')
+            self.assertEqual(
+                input_artifact_one.uri, 'gs://some-bucket/input_artifact_one'
+            )
             self.assertEqual(
                 input_artifact_one.path,
-                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'),
+            )
             self.assertEqual(
                 input_artifact_one.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
             )
             self.assertIsInstance(input_artifact_one, Dataset)
 
@@ -252,8 +256,10 @@ class ExecutorTest(parameterized.TestCase):
         def test_func(output_parameter_path: OutputPath(str)):
             # Test that output parameters just use the passed in filename.
             self.assertEqual(
-                output_parameter_path, self._test_dir +
-                '/gcs/some-bucket/some_task/nested/output_parameter')
+                output_parameter_path,
+                self._test_dir
+                + '/gcs/some-bucket/some_task/nested/output_parameter',
+            )
             with open(output_parameter_path, 'w') as f:
                 f.write('Hello, World!')
 
@@ -287,7 +293,8 @@ class ExecutorTest(parameterized.TestCase):
         def test_func(input_artifact_one_path: InputPath('Dataset')):
             self.assertEqual(
                 input_artifact_one_path,
-                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'),
+            )
 
         self.execute_and_load_output_metadata(test_func, executor_input)
 
@@ -317,7 +324,8 @@ class ExecutorTest(parameterized.TestCase):
         def test_func(output_artifact_one_path: OutputPath('Model')):
             self.assertEqual(
                 output_artifact_one_path,
-                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
+                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'),
+            )
 
         self.execute_and_load_output_metadata(test_func, executor_input)
 
@@ -353,26 +361,29 @@ class ExecutorTest(parameterized.TestCase):
             output_artifact_two.log_metric('metric', 0.9)
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'output_artifact_two': {
-                        'artifacts': [{
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'new-uri',
-                            'metadata': {
-                                'key_1': 'value_1',
-                                'key_2': 2,
-                                'metric': 0.9
+                        'artifacts': [
+                            {
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'new-uri',
+                                'metadata': {
+                                    'key_1': 'value_1',
+                                    'key_2': 2,
+                                    'metric': 0.9,
+                                },
                             }
-                        }]
+                        ]
                     }
                 }
-            })
+            },
+        )
 
     def test_function_string_output(self):
         executor_input = """\
@@ -403,12 +414,14 @@ class ExecutorTest(parameterized.TestCase):
             return first_message + second_message + third_message
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': 'Hello, World'
+            test_func, executor_input
+        )
+        self.assertDictEqual(
+            output_metadata,
+            {
+                'parameterValues': {'Output': 'Hello, World'},
             },
-        })
+        )
 
     def test_function_with_int_output(self):
         executor_input = """\
@@ -434,30 +447,28 @@ class ExecutorTest(parameterized.TestCase):
             return first + second
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': 42
+            test_func, executor_input
+        )
+        self.assertDictEqual(
+            output_metadata,
+            {
+                'parameterValues': {'Output': 42},
             },
-        })
+        )
 
     @parameterized.parameters(
         {
-            'executor_input':
-                """{
+            'executor_input': """{
                 "inputs": { "parameterValues": { "first": 0.0, "second":
                 1.2 } }, "outputs": { "parameters": { "Output": { "outputFile":
                 "gs://some-bucket/output" } }, "outputFile":
                 "%(test_dir)s/output_metadata.json" } }""",
             'expected_output_metadata': {
-                'parameterValues': {
-                    'Output': 1.2
-                },
+                'parameterValues': {'Output': 1.2},
             },
         },
         {
-            'executor_input':
-                """\
+            'executor_input': """\
             {
               "inputs": {
                 "parameterValues": {
@@ -476,20 +487,20 @@ class ExecutorTest(parameterized.TestCase):
             }
             """,
             'expected_output_metadata': {
-                'parameterValues': {
-                    'Output': 3
-                },
+                'parameterValues': {'Output': 3},
             },
         },
     )
-    def test_function_with_float_output(self, executor_input,
-                                        expected_output_metadata):
+    def test_function_with_float_output(
+        self, executor_input, expected_output_metadata
+    ):
 
         def test_func(first: float, second: float) -> float:
             return first + second
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, expected_output_metadata)
 
@@ -517,13 +528,15 @@ class ExecutorTest(parameterized.TestCase):
             return [first, second]
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': [40, 2]
+        self.assertDictEqual(
+            output_metadata,
+            {
+                'parameterValues': {'Output': [40, 2]},
             },
-        })
+        )
 
     def test_function_with_dict_output(self):
         executor_input = """\
@@ -549,16 +562,15 @@ class ExecutorTest(parameterized.TestCase):
             return {'first': first, 'second': second}
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': {
-                    'first': 40,
-                    'second': 2
-                }
+        self.assertDictEqual(
+            output_metadata,
+            {
+                'parameterValues': {'Output': {'first': 40, 'second': 2}},
             },
-        })
+        )
 
     def test_function_with_typed_list_output(self):
         executor_input = """\
@@ -584,13 +596,15 @@ class ExecutorTest(parameterized.TestCase):
             return [first, second]
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': [40, 2]
+        self.assertDictEqual(
+            output_metadata,
+            {
+                'parameterValues': {'Output': [40, 2]},
             },
-        })
+        )
 
     def test_function_with_typed_dict_output(self):
         executor_input = """\
@@ -616,16 +630,15 @@ class ExecutorTest(parameterized.TestCase):
             return {'first': first, 'second': second}
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
-        self.assertDictEqual(output_metadata, {
-            'parameterValues': {
-                'Output': {
-                    'first': 40,
-                    'second': 2
-                }
+        self.assertDictEqual(
+            output_metadata,
+            {
+                'parameterValues': {'Output': {'first': 40, 'second': 2}},
             },
-        })
+        )
 
     def test_artifact_output1(self):
         executor_input = """\
@@ -667,25 +680,26 @@ class ExecutorTest(parameterized.TestCase):
             return first + ', ' + second
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'output': {
-                        'artifacts': [{
-                            'metadata': {},
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'gs://some-bucket/output',
-                        }]
+                        'artifacts': [
+                            {
+                                'metadata': {},
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'gs://some-bucket/output',
+                            }
+                        ]
                     }
                 },
-                'parameterValues': {
-                    'Output': 'Hello, World'
-                }
-            })
+                'parameterValues': {'Output': 'Hello, World'},
+            },
+        )
 
         with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
             artifact_payload = f.read()
@@ -724,22 +738,25 @@ class ExecutorTest(parameterized.TestCase):
             return first + ', ' + second
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'Output': {
-                        'artifacts': [{
-                            'metadata': {},
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'gs://some-bucket/output',
-                        }]
+                        'artifacts': [
+                            {
+                                'metadata': {},
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'gs://some-bucket/output',
+                            }
+                        ]
                     }
                 },
-            })
+            },
+        )
 
         with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
             artifact_payload = f.read()
@@ -769,15 +786,17 @@ class ExecutorTest(parameterized.TestCase):
         """
 
         def test_func(output_artifact_one: Output[Model]):
-            self.assertEqual(output_artifact_one.uri,
-                             'gs://some-bucket/output_artifact_one')
+            self.assertEqual(
+                output_artifact_one.uri, 'gs://some-bucket/output_artifact_one'
+            )
 
             self.assertEqual(
                 output_artifact_one.path,
-                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
+                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'),
+            )
             self.assertEqual(
                 output_artifact_one.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
             )
             self.assertIsInstance(output_artifact_one, Model)
 
@@ -811,24 +830,26 @@ class ExecutorTest(parameterized.TestCase):
             output_artifact_one.custom_path = custom_path
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'output_artifact_one': {
-                        'artifacts': [{
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'gs://some-bucket/output_artifact_one',
-                            'metadata': {},
-                            'custom_path':
-                                custom_path,
-                        }]
+                        'artifacts': [
+                            {
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'gs://some-bucket/output_artifact_one',
+                                'metadata': {},
+                                'custom_path': custom_path,
+                            }
+                        ]
                     }
                 }
-            })
+            },
+        )
 
     def test_named_tuple_output(self):
         executor_input = """\
@@ -862,52 +883,64 @@ class ExecutorTest(parameterized.TestCase):
         """
 
         # Functions returning named tuples should work.
-        def func_returning_named_tuple() -> NamedTuple('Outputs', [
-            ('output_dataset', Dataset),
-            ('output_int', int),
-            ('output_string', str),
-        ]):
+        def func_returning_named_tuple() -> NamedTuple(
+            'Outputs',
+            [
+                ('output_dataset', Dataset),
+                ('output_int', int),
+                ('output_string', str),
+            ],
+        ):
             from collections import namedtuple
+
             output = namedtuple(
-                'Outputs', ['output_dataset', 'output_int', 'output_string'])
+                'Outputs', ['output_dataset', 'output_int', 'output_string']
+            )
             return output('Dataset contents', 101, 'Some output string')
 
         # Functions returning plain tuples should work too.
-        def func_returning_plain_tuple() -> NamedTuple('Outputs', [
-            ('output_dataset', Dataset),
-            ('output_int', int),
-            ('output_string', str),
-        ]):
+        def func_returning_plain_tuple() -> NamedTuple(
+            'Outputs',
+            [
+                ('output_dataset', Dataset),
+                ('output_int', int),
+                ('output_string', str),
+            ],
+        ):
             return ('Dataset contents', 101, 'Some output string')
 
         for test_func in [
-                func_returning_named_tuple, func_returning_plain_tuple
+            func_returning_named_tuple,
+            func_returning_plain_tuple,
         ]:
             output_metadata = self.execute_and_load_output_metadata(
-                test_func, executor_input)
+                test_func, executor_input
+            )
 
             self.assertDictEqual(
-                output_metadata, {
+                output_metadata,
+                {
                     'artifacts': {
                         'output_dataset': {
-                            'artifacts': [{
-                                'metadata': {},
-                                'name':
-                                    'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                                'uri':
-                                    'gs://some-bucket/output_dataset',
-                            }]
+                            'artifacts': [
+                                {
+                                    'metadata': {},
+                                    'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                    'uri': 'gs://some-bucket/output_dataset',
+                                }
+                            ]
                         }
                     },
                     'parameterValues': {
                         'output_int': 101,
-                        'output_string': 'Some output string'
+                        'output_string': 'Some output string',
                     },
-                })
+                },
+            )
 
             with open(
-                    os.path.join(self._test_dir, 'some-bucket/output_dataset'),
-                    'r') as f:
+                os.path.join(self._test_dir, 'some-bucket/output_dataset'), 'r'
+            ) as f:
                 artifact_payload = f.read()
             self.assertEqual(artifact_payload, 'Dataset contents')
 
@@ -942,33 +975,38 @@ class ExecutorTest(parameterized.TestCase):
             eighth_argument: list = [1, 2],
             ninth_argument: dict = {'a': 1},
         ) -> str:
-            return (f'{first_message} ({type(first_message)}), '
-                    f'{second_message} ({type(second_message)}), '
-                    f'{third_message} ({type(third_message)}), '
-                    f'{fourth_argument} ({type(fourth_argument)}), '
-                    f'{fifth_argument} ({type(fifth_argument)}), '
-                    f'{sixth_argument} ({type(sixth_argument)}), '
-                    f'{seventh_argument} ({type(seventh_argument)}), '
-                    f'{eighth_argument} ({type(eighth_argument)}), '
-                    f'{ninth_argument} ({type(ninth_argument)}).')
+            return (
+                f'{first_message} ({type(first_message)}), '
+                f'{second_message} ({type(second_message)}), '
+                f'{third_message} ({type(third_message)}), '
+                f'{fourth_argument} ({type(fourth_argument)}), '
+                f'{fifth_argument} ({type(fifth_argument)}), '
+                f'{sixth_argument} ({type(sixth_argument)}), '
+                f'{seventh_argument} ({type(seventh_argument)}), '
+                f'{eighth_argument} ({type(eighth_argument)}), '
+                f'{ninth_argument} ({type(ninth_argument)}).'
+            )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'parameterValues': {
                     'Output': "Hello (<class 'str'>), "
-                              "World (<class 'str'>), "
-                              "None (<class 'NoneType'>), "
-                              "abc (<class 'str'>), "
-                              "100 (<class 'int'>), "
-                              "1.23 (<class 'float'>), "
-                              "True (<class 'bool'>), "
-                              "[1, 2] (<class 'list'>), "
-                              "{'a': 1} (<class 'dict'>)."
+                    "World (<class 'str'>), "
+                    "None (<class 'NoneType'>), "
+                    "abc (<class 'str'>), "
+                    "100 (<class 'int'>), "
+                    "1.23 (<class 'float'>), "
+                    "True (<class 'bool'>), "
+                    "[1, 2] (<class 'list'>), "
+                    "{'a': 1} (<class 'dict'>)."
                 },
-            })
+            },
+        )
 
     def test_function_with_optional_input_artifact(self):
         executor_input = """\
@@ -1005,26 +1043,30 @@ class ExecutorTest(parameterized.TestCase):
     """
 
         def test_func(status: PipelineTaskFinalStatus) -> str:
-            return (f'Pipeline status: {status.state}\n'
-                    f'Job resource name: {status.pipeline_job_resource_name}\n'
-                    f'Pipeline task name: {status.pipeline_task_name}\n'
-                    f'Error code: {status.error_code}\n'
-                    f'Error message: {status.error_message}')
+            return (
+                f'Pipeline status: {status.state}\n'
+                f'Job resource name: {status.pipeline_job_resource_name}\n'
+                f'Pipeline task name: {status.pipeline_task_name}\n'
+                f'Error code: {status.error_code}\n'
+                f'Error message: {status.error_message}'
+            )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'parameterValues': {
-                    'Output':
-                        'Pipeline status: FAILED\n'
-                        'Job resource name: projects/123/locations/us-central1/pipelineJobs/pipeline-456\n'
-                        'Pipeline task name: upstream-task\n'
-                        'Error code: 9\n'
-                        'Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op].'
+                    'Output': 'Pipeline status: FAILED\n'
+                    'Job resource name: projects/123/locations/us-central1/pipelineJobs/pipeline-456\n'
+                    'Pipeline task name: upstream-task\n'
+                    'Error code: 9\n'
+                    'Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op].'
                 },
-            })
+            },
+        )
 
     def test_component_with_input_path(self):
         executor_input = """\
@@ -1081,7 +1123,7 @@ class ExecutorTest(parameterized.TestCase):
         """
         path = os.path.join(
             self._test_dir,
-            'mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/preprocess/output_dataset_one'
+            'mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/preprocess/output_dataset_one',
         )
         os.makedirs(os.path.dirname(path))
         with open(path, 'w+') as f:
@@ -1109,11 +1151,13 @@ class ExecutorTest(parameterized.TestCase):
             with open(dataset_one_path) as input_file:
                 dataset_one_contents = input_file.read()
 
-            line = (f'dataset_one_contents: {dataset_one_contents} || '
-                    f'message: {message} || '
-                    f'input_bool: {input_bool}, type {type(input_bool)} || '
-                    f'input_dict: {input_dict}, type {type(input_dict)} || '
-                    f'input_list: {input_list}, type {type(input_list)} \n')
+            line = (
+                f'dataset_one_contents: {dataset_one_contents} || '
+                f'message: {message} || '
+                f'input_bool: {input_bool}, type {type(input_bool)} || '
+                f'input_dict: {input_dict}, type {type(input_dict)} || '
+                f'input_list: {input_list}, type {type(input_list)} \n'
+            )
 
             with open(model.path, 'w') as output_file:
                 for i in range(num_steps):
@@ -1124,30 +1168,30 @@ class ExecutorTest(parameterized.TestCase):
             model.metadata['accuracy'] = 0.9
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
         self.assertEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'model': {
-                        'artifacts': [{
-                            'name':
-                                '',
-                            'uri':
-                                'gs://mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/train/model',
-                            'metadata': {
-                                'accuracy': 0.9
+                        'artifacts': [
+                            {
+                                'name': '',
+                                'uri': 'gs://mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/train/model',
+                                'metadata': {'accuracy': 0.9},
                             }
-                        }]
+                        ]
                     }
                 }
-            })
+            },
+        )
 
     @mock.patch.dict(
         os.environ,
-        {'CLUSTER_SPEC': json.dumps({'task': {
-            'type': 'workerpool0'
-        }})},
-        clear=True)
+        {'CLUSTER_SPEC': json.dumps({'task': {'type': 'workerpool0'}})},
+        clear=True,
+    )
     def test_distributed_training_strategy_write(self):
         executor_input = """\
         {
@@ -1175,15 +1219,14 @@ class ExecutorTest(parameterized.TestCase):
             executor_input=executor_input,
         )
         self.assertTrue(
-            os.path.exists(
-                os.path.join(self._test_dir, 'output_metadata.json')))
+            os.path.exists(os.path.join(self._test_dir, 'output_metadata.json'))
+        )
 
     @mock.patch.dict(
         os.environ,
-        {'CLUSTER_SPEC': json.dumps({'task': {
-            'type': 'workerpool1'
-        }})},
-        clear=True)
+        {'CLUSTER_SPEC': json.dumps({'task': {'type': 'workerpool1'}})},
+        clear=True,
+    )
     def test_distributed_training_strategy_no_write(self):
         executor_input = """\
         {
@@ -1211,8 +1254,8 @@ class ExecutorTest(parameterized.TestCase):
             executor_input=executor_input,
         )
         self.assertFalse(
-            os.path.exists(
-                os.path.join(self._test_dir, 'output_metadata.json')))
+            os.path.exists(os.path.join(self._test_dir, 'output_metadata.json'))
+        )
 
     def test_single_artifact_input(self):
         executor_input = """\
@@ -1243,11 +1286,12 @@ class ExecutorTest(parameterized.TestCase):
             self.assertIsInstance(input_artifact, Artifact)
             self.assertEqual(
                 input_artifact.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact',
             )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
@@ -1292,11 +1336,13 @@ class ExecutorTest(parameterized.TestCase):
                 self.assertEqual(artifact.name, f'datasets/{index}')
                 self.assertEqual(
                     artifact.uri,
-                    f'gs://some-bucket/output/input_dataset_{index}')
+                    f'gs://some-bucket/output/input_dataset_{index}',
+                )
                 self.assertEqual(artifact.metadata['rows'], (index + 1) * 10)
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
@@ -1329,11 +1375,12 @@ class ExecutorTest(parameterized.TestCase):
             self.assertIsInstance(input_artifact, Artifact)
             self.assertEqual(
                 input_artifact.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact',
             )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
@@ -1366,11 +1413,12 @@ class ExecutorTest(parameterized.TestCase):
             self.assertIsInstance(input_artifact, Artifact)
             self.assertEqual(
                 input_artifact.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact',
             )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
@@ -1406,24 +1454,25 @@ class ExecutorTest(parameterized.TestCase):
 
         with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
             output_metadata = self.execute_and_load_output_metadata(
-                test_func, executor_input)
+                test_func, executor_input
+            )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'Output': {
-                        'artifacts': [{
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'gs://manually_specified_bucket/foo',
-                            'metadata': {
-                                'data': 123
+                        'artifacts': [
+                            {
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'gs://manually_specified_bucket/foo',
+                                'metadata': {'data': 123},
                             }
-                        }]
+                        ]
                     }
                 },
-            })
+            },
+        )
 
     def test_single_artifact_output_pythonic_with_get_uri(self):
         executor_input = """\
@@ -1457,24 +1506,25 @@ class ExecutorTest(parameterized.TestCase):
 
         with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
             output_metadata = self.execute_and_load_output_metadata(
-                test_func, executor_input)
+                test_func, executor_input
+            )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'Output': {
-                        'artifacts': [{
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'gs://another_bucket/my_artifact',
-                            'metadata': {
-                                'data': 123
+                        'artifacts': [
+                            {
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'gs://another_bucket/my_artifact',
+                                'metadata': {'data': 123},
                             }
-                        }]
+                        ]
                     }
                 },
-            })
+            },
+        )
 
     def test_multiple_artifact_output_pythonic_with_get_uri(self):
         executor_input = """\
@@ -1522,37 +1572,39 @@ class ExecutorTest(parameterized.TestCase):
                 d=Dataset(
                     uri=dsl.get_uri(suffix='dataset'),
                     metadata={},
-                ))
+                ),
+            )
 
         with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
             output_metadata = self.execute_and_load_output_metadata(
-                test_func, executor_input)
+                test_func, executor_input
+            )
 
         self.assertDictEqual(
-            output_metadata, {
+            output_metadata,
+            {
                 'artifacts': {
                     'a': {
-                        'artifacts': [{
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
-                            'uri':
-                                'gs://another_bucket/artifact',
-                            'metadata': {
-                                'data': 123
+                        'artifacts': [
+                            {
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri': 'gs://another_bucket/artifact',
+                                'metadata': {'data': 123},
                             }
-                        }]
+                        ]
                     },
                     'd': {
-                        'artifacts': [{
-                            'name':
-                                'projects/123/locations/us-central1/metadataStores/default/artifacts/321',
-                            'uri':
-                                'gs://another_bucket/dataset',
-                            'metadata': {}
-                        }]
-                    }
+                        'artifacts': [
+                            {
+                                'name': 'projects/123/locations/us-central1/metadataStores/default/artifacts/321',
+                                'uri': 'gs://another_bucket/dataset',
+                                'metadata': {},
+                            }
+                        ]
+                    },
                 },
-            })
+            },
+        )
 
     def test_warns_if_artifact_name_for_vertex(self):
         executor_input = """\
@@ -1587,8 +1639,8 @@ class ExecutorTest(parameterized.TestCase):
 
         with temporary_envvar('VERTEX_AI_PIPELINES_RUN_LABELS', '12325'):
             with self.assertWarnsRegex(
-                    RuntimeWarning,
-                    r'If you are running your pipeline Vertex AI Pipelines, you should not provide a name for your artifact\. It will be set to the Vertex artifact resource name projects/123/locations/us-central1/metadataStores/default/artifacts/123 by default\. Got value for name: illegal_custom_name\.'
+                RuntimeWarning,
+                r'If you are running your pipeline Vertex AI Pipelines, you should not provide a name for your artifact\. It will be set to the Vertex artifact resource name projects/123/locations/us-central1/metadataStores/default/artifacts/123 by default\. Got value for name: illegal_custom_name\.',
             ):
                 self.execute_and_load_output_metadata(test_func, executor_input)
 
@@ -1629,15 +1681,16 @@ class ExecutorTest(parameterized.TestCase):
             self.assertEqual(len(input_list), 2)
             self.assertEqual(
                 input_list[0].name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0',
             )
             self.assertEqual(
                 input_list[1].name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1',
             )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
@@ -1678,15 +1731,16 @@ class ExecutorTest(parameterized.TestCase):
             self.assertEqual(len(input_list), 2)
             self.assertEqual(
                 input_list[0].name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0',
             )
             self.assertEqual(
                 input_list[1].name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1',
             )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
@@ -1727,30 +1781,28 @@ class ExecutorTest(parameterized.TestCase):
             self.assertEqual(len(input_list), 2)
             self.assertEqual(
                 input_list[0].name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0',
             )
             self.assertEqual(
                 input_list[1].name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1',
             )
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
 
         self.assertDictEqual(output_metadata, {})
 
 
 class TestDictToArtifact(parameterized.TestCase):
-
     @parameterized.parameters(
         {
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.Artifact'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.Artifact'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': artifact_types.Artifact,
             'expected_type': artifact_types.Artifact,
@@ -1759,10 +1811,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.Model'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.Model'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': artifact_types.Model,
             'expected_type': artifact_types.Model,
@@ -1771,10 +1821,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.Dataset'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.Dataset'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': artifact_types.Dataset,
             'expected_type': artifact_types.Dataset,
@@ -1783,10 +1831,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.Metrics'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.Metrics'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': artifact_types.Metrics,
             'expected_type': artifact_types.Metrics,
@@ -1795,10 +1841,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.ClassificationMetrics'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.ClassificationMetrics'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': artifact_types.ClassificationMetrics,
             'expected_type': artifact_types.ClassificationMetrics,
@@ -1807,10 +1851,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.SlicedClassificationMetrics'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.SlicedClassificationMetrics'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': artifact_types.SlicedClassificationMetrics,
             'expected_type': artifact_types.SlicedClassificationMetrics,
@@ -1819,10 +1861,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.HTML'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.HTML'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': None,
             'expected_type': artifact_types.HTML,
@@ -1831,10 +1871,8 @@ class TestDictToArtifact(parameterized.TestCase):
             'runtime_artifact': {
                 'metadata': {},
                 'name': 'input_artifact_one',
-                'type': {
-                    'schemaTitle': 'system.Markdown'
-                },
-                'uri': 'gs://some-bucket/input_artifact_one'
+                'type': {'schemaTitle': 'system.Markdown'},
+                'uri': 'gs://some-bucket/input_artifact_one',
             },
             'artifact_cls': None,
             'expected_type': artifact_types.Markdown,
@@ -1849,12 +1887,15 @@ class TestDictToArtifact(parameterized.TestCase):
         # with artifact_cls
         self.assertIsInstance(
             executor.create_artifact_instance(
-                runtime_artifact, fallback_artifact_cls=artifact_cls),
-            expected_type)
+                runtime_artifact, fallback_artifact_cls=artifact_cls
+            ),
+            expected_type,
+        )
 
         # without artifact_cls
         self.assertIsInstance(
-            executor.create_artifact_instance(runtime_artifact), expected_type)
+            executor.create_artifact_instance(runtime_artifact), expected_type
+        )
 
 
 @contextlib.contextmanager
@@ -1883,18 +1924,19 @@ except ImportError:
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
-
     @classmethod
     def setUp(cls):
         cls._test_dir = tempfile.mkdtemp()
 
-    def execute_and_load_output_metadata(self, func: Callable,
-                                         executor_input: str) -> dict:
-        executor_input_dict = json.loads(executor_input %
-                                         {'test_dir': self._test_dir})
+    def execute_and_load_output_metadata(
+        self, func: Callable, executor_input: str
+    ) -> dict:
+        executor_input_dict = json.loads(
+            executor_input % {'test_dir': self._test_dir}
+        )
         executor.Executor(
-            executor_input=executor_input_dict,
-            function_to_execute=func).execute()
+            executor_input=executor_input_dict, function_to_execute=func
+        ).execute()
         with open(executor_input_dict['outputs']['outputFile']) as f:
             return json.loads(f.read())
 
@@ -1969,12 +2011,11 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
             return MyModel(foo='bar')
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
-        self.assertEqual({'parameterValues': {
-            'Output': {
-                'foo': 'bar'
-            }
-        }}, output_metadata)
+            test_func, executor_input
+        )
+        self.assertEqual(
+            {'parameterValues': {'Output': {'foo': 'bar'}}}, output_metadata
+        )
 
     def test_pydantic_basemodel_output_is_serialized_by_alias(self):
 
@@ -1999,13 +2040,15 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
             return MyModel(personName='Alice')
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
         wire_value = output_metadata['parameterValues']['Output']
         self.assertEqual({'personName': 'Alice'}, wire_value)
         # the serialized wire value must round trip back through
         # model_validate() using the same model.
         self.assertEqual(
-            MyModel(personName='Alice'), MyModel.model_validate(wire_value))
+            MyModel(personName='Alice'), MyModel.model_validate(wire_value)
+        )
 
     def test_pydantic_basemodel_input_is_validated_by_alias(self):
 
@@ -2091,7 +2134,8 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
             pydantic.VERSION = original_version
 
     def test_optional_pydantic_basemodel_output_is_serialized_when_present(
-            self):
+        self,
+    ):
 
         class MyModel(pydantic.BaseModel):
             foo: str
@@ -2114,12 +2158,11 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
             return MyModel(foo='bar')
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
-        self.assertEqual({'parameterValues': {
-            'Output': {
-                'foo': 'bar'
-            }
-        }}, output_metadata)
+            test_func, executor_input
+        )
+        self.assertEqual(
+            {'parameterValues': {'Output': {'foo': 'bar'}}}, output_metadata
+        )
 
     def test_optional_pydantic_basemodel_output_allows_none(self):
         # A bare (non-NamedTuple) None return short-circuits before
@@ -2149,22 +2192,27 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
         }
         """
 
-        def test_func() -> NamedTuple('Outputs', [
-            ('output_model', Optional[MyModel]),
-            ('output_int', int),
-        ]):
+        def test_func() -> NamedTuple(
+            'Outputs',
+            [
+                ('output_model', Optional[MyModel]),
+                ('output_int', int),
+            ],
+        ):
             from collections import namedtuple
+
             output = namedtuple('Outputs', ['output_model', 'output_int'])
             return output(None, 5)
 
         output_metadata = self.execute_and_load_output_metadata(
-            test_func, executor_input)
+            test_func, executor_input
+        )
         # The Optional field that was None produces no entry at all, matching
         # how a fully-None (non-NamedTuple) return already omits the key
         # entirely rather than writing a null.
-        self.assertEqual({'parameterValues': {
-            'output_int': 5
-        }}, output_metadata)
+        self.assertEqual(
+            {'parameterValues': {'output_int': 5}}, output_metadata
+        )
 
     def test_non_optional_pydantic_basemodel_output_still_rejects_none(self):
         # Regression guard: only an Optional-typed field may legitimately be
@@ -2191,11 +2239,15 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
         }
         """
 
-        def test_func() -> NamedTuple('Outputs', [
-            ('output_model', MyModel),
-            ('output_int', int),
-        ]):
+        def test_func() -> NamedTuple(
+            'Outputs',
+            [
+                ('output_model', MyModel),
+                ('output_int', int),
+            ],
+        ):
             from collections import namedtuple
+
             output = namedtuple('Outputs', ['output_model', 'output_int'])
             return output(None, 5)
 
@@ -2225,7 +2277,8 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
             return IntRoot(5)
 
         output_metadata = self.execute_and_load_output_metadata(
-            produce, output_executor_input)
+            produce, output_executor_input
+        )
         # A RootModel dumps to its root value directly, not a dict.
         self.assertEqual({'parameterValues': {'Output': 5}}, output_metadata)
 
@@ -2250,7 +2303,6 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
 
 
 class TestTaskConfigDeserialization(parameterized.TestCase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -2264,15 +2316,12 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
 
     def test_resource_claims_deserialized_from_json(self):
         from kfp.dsl.task_config import TaskConfig
+
         value = {
-            'tolerations': [{
-                'key': 'k',
-                'operator': 'Exists'
-            }],
-            'resourceClaims': [{
-                'name': 'gpu',
-                'resourceClaimTemplateName': 'gpu-template'
-            },],
+            'tolerations': [{'key': 'k', 'operator': 'Exists'}],
+            'resourceClaims': [
+                {'name': 'gpu', 'resourceClaimTemplateName': 'gpu-template'},
+            ],
         }
         config = TaskConfig(
             affinity=value.get('affinity'),
@@ -2287,8 +2336,10 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
         self.assertIsNotNone(config.resource_claims)
         self.assertEqual(len(config.resource_claims), 1)
         self.assertEqual(config.resource_claims[0]['name'], 'gpu')
-        self.assertEqual(config.resource_claims[0]['resourceClaimTemplateName'],
-                         'gpu-template')
+        self.assertEqual(
+            config.resource_claims[0]['resourceClaimTemplateName'],
+            'gpu-template',
+        )
         self.assertIsNotNone(config.tolerations)
 
     def test_executor_deserializes_resource_claims_via_task_config(self):
@@ -2303,16 +2354,19 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
             'inputs': {
                 'parameterValues': {
                     'task_config': {
-                        'resourceClaims': [{
-                            'name': 'gpu',
-                            'resourceClaimTemplateName': 'gpu-template',
-                        }],
+                        'resourceClaims': [
+                            {
+                                'name': 'gpu',
+                                'resourceClaimTemplateName': 'gpu-template',
+                            }
+                        ],
                     },
                 },
             },
             'outputs': {
-                'outputFile':
-                    os.path.join(self._test_dir, 'output_metadata.json'),
+                'outputFile': os.path.join(
+                    self._test_dir, 'output_metadata.json'
+                ),
             },
         }
 
@@ -2324,8 +2378,9 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
         self.assertIsNotNone(received.get('claims'))
         self.assertEqual(len(received['claims']), 1)
         self.assertEqual(received['claims'][0]['name'], 'gpu')
-        self.assertEqual(received['claims'][0]['resourceClaimTemplateName'],
-                         'gpu-template')
+        self.assertEqual(
+            received['claims'][0]['resourceClaimTemplateName'], 'gpu-template'
+        )
 
 
 class TestLiteralParameterExecutor(parameterized.TestCase):
@@ -2361,16 +2416,16 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
             "outputFile": "%%(test_dir)s/output"
           }
         }
-        """ % {
-            'test_dir': tempfile.gettempdir()
-        }
+        """ % {'test_dir': tempfile.gettempdir()}
 
         with tempfile.TemporaryDirectory() as test_dir:
-            executor_input_dict = json.loads(executor_input %
-                                             {'test_dir': test_dir})
+            executor_input_dict = json.loads(
+                executor_input % {'test_dir': test_dir}
+            )
             result_path = executor.Executor(
                 executor_input=executor_input_dict,
-                function_to_execute=comp_with_literal).execute()
+                function_to_execute=comp_with_literal,
+            ).execute()
 
             with open(result_path) as f:
                 output = json.loads(f.read())
@@ -2379,7 +2434,8 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
             self.assertEqual(output['parameterValues']['Output'], 'b')
 
     def test_literal_parameter_execution_without_supplied_value_uses_default(
-            self):
+        self,
+    ):
         """A Literal parameter without a supplied value should use its Python
         default."""
 
@@ -2393,16 +2449,16 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
             "outputFile": "%%(test_dir)s/output"
           }
         }
-        """ % {
-            'test_dir': tempfile.gettempdir()
-        }
+        """ % {'test_dir': tempfile.gettempdir()}
 
         with tempfile.TemporaryDirectory() as test_dir:
-            executor_input_dict = json.loads(executor_input %
-                                             {'test_dir': test_dir})
+            executor_input_dict = json.loads(
+                executor_input % {'test_dir': test_dir}
+            )
             result_path = executor.Executor(
                 executor_input=executor_input_dict,
-                function_to_execute=comp_with_literal).execute()
+                function_to_execute=comp_with_literal,
+            ).execute()
 
             with open(result_path) as f:
                 output = json.loads(f.read())
@@ -2424,19 +2480,19 @@ class TestLiteralParameterExecutor(parameterized.TestCase):
             "outputFile": "%%(test_dir)s/output"
           }
         }
-        """ % {
-            'test_dir': tempfile.gettempdir()
-        }
+        """ % {'test_dir': tempfile.gettempdir()}
 
         with tempfile.TemporaryDirectory() as test_dir:
-            executor_input_dict = json.loads(executor_input %
-                                             {'test_dir': test_dir})
+            executor_input_dict = json.loads(
+                executor_input % {'test_dir': test_dir}
+            )
 
             # Should raise TypeError due to missing required parameter
             with self.assertRaises(TypeError):
                 executor.Executor(
                     executor_input=executor_input_dict,
-                    function_to_execute=comp_with_required_literal).execute()
+                    function_to_execute=comp_with_required_literal,
+                ).execute()
 
 
 if __name__ == '__main__':

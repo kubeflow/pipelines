@@ -403,3 +403,75 @@ func TestCreateRunExistingExecutionWaitsForCreatorPersistence(t *testing.T) {
 		})
 	}
 }
+
+// Report synchronously after Kubernetes accepts the Workflow but before the
+// creator can insert the run. This deterministically exercises the losing SQL
+// insert rather than relying on controller timing.
+type reportingRecurringWorkflowClient struct {
+	util.ExecutionInterface
+	report func(util.ExecutionSpec)
+}
+
+func (c *reportingRecurringWorkflowClient) Create(ctx context.Context, execution util.ExecutionSpec, options metav1.CreateOptions) (util.ExecutionSpec, error) {
+	created, err := c.ExecutionInterface.Create(ctx, execution, options)
+	if err == nil {
+		c.report(created)
+	}
+	return created, err
+}
+
+func TestSingleUserFollowLatestReportBeforeCreatorRetainsVersion(t *testing.T) {
+	initEnvVars()
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, false)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "report-first", Namespace: "ns1"})
+	require.NoError(t, err)
+	pipeline, err := manager.CreatePipeline(createPipeline("report-first", "", "ns1"))
+	require.NoError(t, err)
+	version, err := manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "selected", "", "", v2SpecHelloWorld, "", "ns1"))
+	require.NoError(t, err)
+	job, err := manager.CreateJob(ctx, &model.Job{
+		DisplayName: "follow-latest", Namespace: "ns1", ExperimentId: experiment.UUID, Enabled: true, MaxConcurrency: 1,
+		Trigger:      model.Trigger{PeriodicSchedule: model.PeriodicSchedule{IntervalSecond: util.Int64Pointer(10)}},
+		PipelineSpec: model.PipelineSpec{PipelineId: pipeline.UUID, RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+	})
+	require.NoError(t, err)
+	require.Empty(t, job.PipelineVersionId)
+	var reportedRunID string
+	manager.execClient = &retryWorkflowExecClient{workflowClient: &reportingRecurringWorkflowClient{
+		ExecutionInterface: store.ExecClientFake.Execution(job.Namespace),
+		report: func(execution util.ExecutionSpec) {
+			reportedRunID = execution.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
+			// A newer default must not change the version already selected for
+			// this Workflow, and report metadata is not authoritative.
+			store.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil))
+			manager.pipelineStore = store.PipelineStore()
+			newer, err := manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "newer", "", "", v2SpecHelloWorld, "", "ns1"))
+			require.NoError(t, err)
+			require.NotEqual(t, version.UUID, newer.UUID)
+			report := util.NewWorkflow(execution.(*util.Workflow).DeepCopy())
+			report.SetAnnotations(recurringRunPipelineVersionAnnotation, "untrusted-report-version")
+			_, err = manager.ReportWorkflowResource(ctx, report)
+			require.NoError(t, err)
+			reported, err := store.RunStore().GetRun(reportedRunID, true)
+			require.NoError(t, err)
+			require.Equal(t, version.UUID, reported.PipelineVersionId)
+			require.Equal(t, version.PipelineSpec, reported.PipelineSpecManifest)
+		},
+	}}
+	run := &model.Run{DisplayName: "first-tick", RecurringRunId: job.UUID, Namespace: job.Namespace, ExperimentId: experiment.UUID, PipelineSpec: job.PipelineSpec}
+	require.NoError(t, manager.PrepareRecurringRun(ctx, run))
+	created, err := manager.CreateRun(ctx, run)
+	require.NoError(t, err)
+	require.Equal(t, reportedRunID, created.UUID)
+	require.Equal(t, version.UUID, created.PipelineVersionId)
+	require.Equal(t, pipeline.UUID, created.PipelineId)
+	retainedJob, err := manager.GetJob(job.UUID)
+	require.NoError(t, err)
+	require.Empty(t, retainedJob.PipelineVersionId, "recovering a run must not pin its schedule")
+}

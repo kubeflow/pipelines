@@ -16,26 +16,23 @@
 import os
 import tempfile
 import textwrap
-from typing import Literal
 import unittest
+from typing import Literal
 
 from absl.testing import parameterized
-from kfp import compiler
-from kfp import components
-from kfp import dsl
-from kfp.dsl import component_factory
-from kfp.dsl import placeholders
-from kfp.dsl import structures
+
+from kfp import compiler, components, dsl
+from kfp.dsl import component_factory, placeholders, structures
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class StructuresTest(parameterized.TestCase):
-
     def test_component_spec_with_placeholder_referencing_nonexisting_input_output(
-            self):
+        self,
+    ):
         with self.assertRaisesRegex(
-                ValueError,
-                r'^Argument "InputValuePlaceholder" references nonexistent input: "input000".'
+            ValueError,
+            r'^Argument "InputValuePlaceholder" references nonexistent input: "input000".',
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -47,18 +44,21 @@ class StructuresTest(parameterized.TestCase):
                             '-c',
                             'set -ex\necho "$0" > "$1"',
                             placeholders.InputValuePlaceholder(
-                                input_name='input000'),
+                                input_name='input000'
+                            ),
                             placeholders.OutputPathPlaceholder(
-                                output_name='output1'),
+                                output_name='output1'
+                            ),
                         ],
-                    )),
+                    )
+                ),
                 inputs={'input1': structures.InputSpec(type='String')},
                 outputs={'output1': structures.OutputSpec(type='String')},
             )
 
         with self.assertRaisesRegex(
-                ValueError,
-                r'^Argument "OutputPathPlaceholder" references nonexistent output: "output000".'
+            ValueError,
+            r'^Argument "OutputPathPlaceholder" references nonexistent output: "output000".',
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -70,11 +70,14 @@ class StructuresTest(parameterized.TestCase):
                             '-c',
                             'set -ex\necho "$0" > "$1"',
                             placeholders.InputValuePlaceholder(
-                                input_name='input1'),
+                                input_name='input1'
+                            ),
                             placeholders.OutputPathPlaceholder(
-                                output_name='output000'),
+                                output_name='output000'
+                            ),
                         ],
-                    )),
+                    )
+                ),
                 inputs={'input1': structures.InputSpec(type='String')},
                 outputs={'output1': structures.OutputSpec(type='String')},
             )
@@ -87,11 +90,14 @@ class StructuresTest(parameterized.TestCase):
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh', '-c', 'set -ex\necho "$0" > "$1"',
+                        'sh',
+                        '-c',
+                        'set -ex\necho "$0" > "$1"',
                         "{{$.inputs.parameters['input1']}}",
-                        "{{$.outputs.parameters['output1'].output_file}}"
+                        "{{$.outputs.parameters['output1'].output_file}}",
                     ],
-                )),
+                )
+            ),
             inputs={'input1': structures.InputSpec(type='String')},
             outputs={'output1': structures.OutputSpec(type='String')},
         )
@@ -109,7 +115,8 @@ class StructuresTest(parameterized.TestCase):
             with open(output_path, 'r') as f:
                 contents = f.read()
             new_component_spec = structures.ComponentSpec.from_yaml_documents(
-                contents)
+                contents
+            )
 
         self.assertEqual(original_component_spec, new_component_spec)
 
@@ -164,7 +171,8 @@ sdkVersion: kfp-2.0.0-alpha.2
         """)
 
         generated_spec = structures.ComponentSpec.from_yaml_documents(
-            component_yaml_v2)
+            component_yaml_v2
+        )
 
         expected_spec = structures.ComponentSpec(
             name='component-1',
@@ -178,23 +186,26 @@ sdkVersion: kfp-2.0.0-alpha.2
                         "{{$.inputs.parameters['input1']}}",
                         "{{$.outputs.parameters['output1'].output_file}}",
                     ],
-                )),
+                )
+            ),
             inputs={'input1': structures.InputSpec(type='String')},
-            outputs={'output1': structures.OutputSpec(type='String')})
+            outputs={'output1': structures.OutputSpec(type='String')},
+        )
 
         self.assertEqual(generated_spec, expected_spec)
 
 
 class TestContainerSpecImplementation(unittest.TestCase):
-
     def test_command_and_args(self):
         obj = structures.ContainerSpecImplementation(
-            image='image', command=['command'], args=['args'])
+            image='image', command=['command'], args=['args']
+        )
         self.assertEqual(obj.command, ['command'])
         self.assertEqual(obj.args, ['args'])
 
         obj = structures.ContainerSpecImplementation(
-            image='image', command=[], args=[])
+            image='image', command=[], args=[]
+        )
         self.assertEqual(obj.command, None)
         self.assertEqual(obj.args, None)
 
@@ -203,11 +214,13 @@ class TestContainerSpecImplementation(unittest.TestCase):
             image='image',
             command=['command'],
             args=['args'],
-            env={'env': 'env'})
+            env={'env': 'env'},
+        )
         self.assertEqual(obj.env, {'env': 'env'})
 
         obj = structures.ContainerSpecImplementation(
-            image='image', command=[], args=[], env={})
+            image='image', command=[], args=[], env={}
+        )
         self.assertEqual(obj.env, None)
 
     def test_from_container_dict_no_placeholders(self):
@@ -216,21 +229,26 @@ class TestContainerSpecImplementation(unittest.TestCase):
             command=['sh', '-c', 'dummy'],
             args=['--executor_input', '{{$}}', '--function_to_execute', 'func'],
             env={'ENV1': 'val1'},
-            resources=None)
+            resources=None,
+        )
 
         container_dict = {
             'args': [
-                '--executor_input', '{{$}}', '--function_to_execute', 'func'
+                '--executor_input',
+                '{{$}}',
+                '--function_to_execute',
+                'func',
             ],
             'command': ['sh', '-c', 'dummy'],
             'image': 'python:3.11',
-            'env': {
-                'ENV1': 'val1'
-            },
+            'env': {'ENV1': 'val1'},
         }
 
-        loaded_container_spec = structures.ContainerSpecImplementation.from_container_dict(
-            container_dict)
+        loaded_container_spec = (
+            structures.ContainerSpecImplementation.from_container_dict(
+                container_dict
+            )
+        )
         self.assertEqual(expected_container_spec, loaded_container_spec)
 
     def test_raise_error_if_access_artifact_by_itself(self):
@@ -239,11 +257,14 @@ class TestContainerSpecImplementation(unittest.TestCase):
             return dsl.ContainerSpec(
                 image='gcr.io/my-image',
                 command=['sh', 'run.sh'],
-                args=[dataset])
+                args=[dataset],
+            )
 
-        def comp_with_artifact_output(dataset_old: dsl.Output[dsl.Dataset],
-                                      dataset_new: dsl.Output[dsl.Dataset],
-                                      optional_input: str = 'default'):
+        def comp_with_artifact_output(
+            dataset_old: dsl.Output[dsl.Dataset],
+            dataset_new: dsl.Output[dsl.Dataset],
+            optional_input: str = 'default',
+        ):
             return dsl.ContainerSpec(
                 image='gcr.io/my-image',
                 command=['sh', 'run.sh'],
@@ -251,60 +272,70 @@ class TestContainerSpecImplementation(unittest.TestCase):
                     dsl.IfPresentPlaceholder(
                         input_name='optional_input',
                         then=[dataset_old],
-                        else_=[dataset_new])
-                ])
+                        else_=[dataset_new],
+                    )
+                ],
+            )
 
         self.assertRaisesRegex(
             ValueError,
             r'Cannot access artifact by itself in the container definition.',
             component_factory.create_container_component_from_func,
-            comp_with_artifact_input)
+            comp_with_artifact_input,
+        )
         self.assertRaisesRegex(
             ValueError,
             r'Cannot access artifact by itself in the container definition.',
             component_factory.create_container_component_from_func,
-            comp_with_artifact_output)
+            comp_with_artifact_output,
+        )
 
 
 class TestComponentSpec(unittest.TestCase):
-
     def test_inputs(self):
         obj = structures.ComponentSpec(
             name='name',
             implementation=structures.Implementation(container=None),
-            inputs={})
+            inputs={},
+        )
         self.assertEqual(obj.inputs, None)
 
     def test_outputs(self):
         obj = structures.ComponentSpec(
             name='name',
             implementation=structures.Implementation(container=None),
-            outputs={})
+            outputs={},
+        )
         self.assertEqual(obj.outputs, None)
 
 
 class TestInputSpec(unittest.TestCase):
-
     def test_equality(self):
         self.assertEqual(
             structures.InputSpec(type='String', default=None),
-            structures.InputSpec(type='String', default=None))
+            structures.InputSpec(type='String', default=None),
+        )
         self.assertNotEqual(
             structures.InputSpec(type='String', default=None),
-            structures.InputSpec(type='String', default='test', optional=True))
+            structures.InputSpec(type='String', default='test', optional=True),
+        )
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
-            structures.InputSpec(type='typing.List', default=None))
+            structures.InputSpec(type='typing.List', default=None),
+        )
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
-            structures.InputSpec(type='typing.List[int]', default=None))
+            structures.InputSpec(type='typing.List[int]', default=None),
+        )
         self.assertEqual(
             structures.InputSpec(type='List'),
-            structures.InputSpec(type='typing.List[typing.Dict[str, str]]'))
+            structures.InputSpec(type='typing.List[typing.Dict[str, str]]'),
+        )
 
     def test_optional(self):
         input_spec = structures.InputSpec(
-            type='String', default=None, optional=True)
+            type='String', default=None, optional=True
+        )
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec.optional, True)
 
@@ -315,85 +346,94 @@ class TestInputSpec(unittest.TestCase):
     def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
-            parameter_dict)
+            parameter_dict
+        )
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, None)
 
         parameter_dict = {'parameterType': 'NUMBER_INTEGER'}
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
-            parameter_dict)
+            parameter_dict
+        )
         self.assertEqual(input_spec.type, 'Integer')
         self.assertEqual(input_spec.default, None)
 
         parameter_dict = {
             'defaultValue': 'default value',
-            'parameterType': 'STRING'
+            'parameterType': 'STRING',
         }
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
-            parameter_dict)
+            parameter_dict
+        )
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
 
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
-            parameter_dict)
+            parameter_dict
+        )
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
 
         artifact_dict = {
             'artifactType': {
                 'schemaTitle': 'system.Artifact',
-                'schemaVersion': '0.0.1'
+                'schemaVersion': '0.0.1',
             }
         }
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
-            artifact_dict)
+            artifact_dict
+        )
         self.assertEqual(input_spec.type, 'system.Artifact@0.0.1')
 
     def test_assert_optional_must_be_true_when_default_is_not_none(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'must be True if `default` is not None'):
+        with self.assertRaisesRegex(
+            ValueError, r'must be True if `default` is not None'
+        ):
             input_spec = structures.InputSpec(type='String', default='text')
 
     def test_default_matching_literals_is_valid(self):
         input_spec = structures.InputSpec(
-            type='String', default='a', optional=True, literals=['a', 'b'])
+            type='String', default='a', optional=True, literals=['a', 'b']
+        )
         self.assertEqual(input_spec.default, 'a')
 
     def test_default_not_in_literals_raises(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r"Default value 'z' is not one of the allowed values \['a', 'b'\]"
+            ValueError,
+            r"Default value 'z' is not one of the allowed values \['a', 'b'\]",
         ):
             structures.InputSpec(
-                type='String', default='z', optional=True, literals=['a', 'b'])
+                type='String', default='z', optional=True, literals=['a', 'b']
+            )
 
     def test_no_default_with_literals_is_valid(self):
         input_spec = structures.InputSpec(
-            type='String', optional=False, literals=['a', 'b'])
+            type='String', optional=False, literals=['a', 'b']
+        )
         self.assertIsNone(input_spec.default)
 
 
 class TestOutputSpec(parameterized.TestCase):
-
     def test_from_ir_component_outputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
         output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
-            parameter_dict)
+            parameter_dict
+        )
         self.assertEqual(output_spec.type, 'String')
 
         artifact_dict = {
             'artifactType': {
                 'schemaTitle': 'system.Artifact',
-                'schemaVersion': '0.0.1'
+                'schemaVersion': '0.0.1',
             }
         }
         output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
-            artifact_dict)
+            artifact_dict
+        )
         self.assertEqual(output_spec.type, 'system.Artifact@0.0.1')
 
 
 class TestReadInComponent(parameterized.TestCase):
-
     def test_simple_placeholder(self):
         compiled_yaml = textwrap.dedent("""
 components:
@@ -444,7 +484,8 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2""")
         loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
-            compiled_yaml)
+            compiled_yaml
+        )
         component_spec = structures.ComponentSpec(
             name='component1',
             implementation=structures.Implementation(
@@ -456,16 +497,19 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                         "{{$.outputs.artifacts['output1'].path}}",
                     ],
                     env=None,
-                    resources=None),
+                    resources=None,
+                ),
                 graph=None,
-                importer=None),
+                importer=None,
+            ),
             description=None,
             inputs={
                 'input1': structures.InputSpec(type='String', default=None)
             },
             outputs={
                 'output1': structures.OutputSpec(type='system.Artifact@0.0.1')
-            })
+            },
+        )
         self.assertEqual(loaded_component_spec, component_spec)
 
     def test_if_placeholder(self):
@@ -512,7 +556,8 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2""")
         loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
-            compiled_yaml)
+            compiled_yaml
+        )
         component_spec = structures.ComponentSpec(
             name='if',
             implementation=structures.Implementation(
@@ -524,15 +569,19 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                         "{{$.inputs.parameters['optional_input_1']}}",
                     ],
                     env=None,
-                    resources=None),
+                    resources=None,
+                ),
                 graph=None,
-                importer=None),
+                importer=None,
+            ),
             description=None,
             inputs={
-                'optional_input_1':
-                    structures.InputSpec(type='String', default=None)
+                'optional_input_1': structures.InputSpec(
+                    type='String', default=None
+                )
             },
-            outputs=None)
+            outputs=None,
+        )
         self.assertEqual(loaded_component_spec, component_spec)
 
     def test_concat_placeholder(self):
@@ -583,7 +632,8 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.2""")
         loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
-            compiled_yaml)
+            compiled_yaml
+        )
         component_spec = structures.ComponentSpec(
             name='concat',
             implementation=structures.Implementation(
@@ -597,15 +647,18 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     ],
                     args=None,
                     env=None,
-                    resources=None),
+                    resources=None,
+                ),
                 graph=None,
-                importer=None),
+                importer=None,
+            ),
             description=None,
             inputs={
                 'input1': structures.InputSpec(type='String', default=None),
-                'input2': structures.InputSpec(type='String', default=None)
+                'input2': structures.InputSpec(type='String', default=None),
             },
-            outputs=None)
+            outputs=None,
+        )
         self.assertEqual(loaded_component_spec, component_spec)
 
     def test_description_extraction_index_out_of_bounds(self):
@@ -615,23 +668,26 @@ sdkVersion: kfp-2.0.0-alpha.2""")
             # Description: some text
             #              continued text""")
         loaded_component_spec = structures.ComponentSpec.from_yaml_documents(
-            compiled_yaml)
-        self.assertEqual(loaded_component_spec.description,
-                         'some text\ncontinued text')
+            compiled_yaml
+        )
+        self.assertEqual(
+            loaded_component_spec.description, 'some text\ncontinued text'
+        )
 
 
 class TestNormalizeTimeString(parameterized.TestCase):
-
-    @parameterized.parameters([
-        ('1 hour', '1h'),
-        ('2 hours', '2h'),
-        ('2hours', '2h'),
-        ('2 w', '2w'),
-        ('2d', '2d'),
-        ('0.5 hours', '0.5h'),
-        ('1.5m', '1.5m'),
-        ('0.25h', '0.25h'),
-    ])
+    @parameterized.parameters(
+        [
+            ('1 hour', '1h'),
+            ('2 hours', '2h'),
+            ('2hours', '2h'),
+            ('2 w', '2w'),
+            ('2d', '2d'),
+            ('0.5 hours', '0.5h'),
+            ('1.5m', '1.5m'),
+            ('0.25h', '0.25h'),
+        ]
+    )
     def test(self, unnorm: str, norm: str):
         self.assertEqual(structures.normalize_time_string(unnorm), norm)
 
@@ -650,22 +706,24 @@ class TestNormalizeTimeString(parameterized.TestCase):
 
 
 class TestConvertDurationToSeconds(parameterized.TestCase):
-
-    @parameterized.parameters([
-        ('1 hour', 3600),
-        ('2 hours', 7200),
-        ('2hours', 7200),
-        ('2 w', 1209600),
-        ('2d', 172800),
-        ('0.5h', 1800),
-        ('1.5m', 90),
-        ('0.25h', 900),
-        ('2.5m', 150),
-        ('2.05m', 123),
-    ])
+    @parameterized.parameters(
+        [
+            ('1 hour', 3600),
+            ('2 hours', 7200),
+            ('2hours', 7200),
+            ('2 w', 1209600),
+            ('2d', 172800),
+            ('0.5h', 1800),
+            ('1.5m', 90),
+            ('0.25h', 900),
+            ('2.5m', 150),
+            ('2.05m', 123),
+        ]
+    )
     def test(self, duration: str, seconds: int):
         self.assertEqual(
-            structures.convert_duration_to_seconds(duration), seconds)
+            structures.convert_duration_to_seconds(duration), seconds
+        )
 
     def test_unsupported_duration_unit(self):
         with self.assertRaisesRegex(ValueError, 'Unsupported duration unit:'):
@@ -674,30 +732,33 @@ class TestConvertDurationToSeconds(parameterized.TestCase):
     @parameterized.parameters(['0.5s', '2.5s', '1.5s'])
     def test_non_whole_second_result_raises(self, duration: str):
         with self.assertRaisesRegex(
-                ValueError, 'must resolve to a whole number of seconds'):
+            ValueError, 'must resolve to a whole number of seconds'
+        ):
             structures.convert_duration_to_seconds(duration)
 
 
 class TestRetryPolicy(unittest.TestCase):
-
     def test_to_proto(self):
         retry_policy_struct = structures.RetryPolicy(
             max_retry_count=10,
             backoff_duration='1h',
             backoff_factor=1.5,
-            backoff_max_duration='2 weeks')
+            backoff_max_duration='2 weeks',
+        )
 
         retry_policy_proto = retry_policy_struct.to_proto()
         self.assertEqual(retry_policy_proto.max_retry_count, 10)
         self.assertEqual(retry_policy_proto.backoff_duration.seconds, 3600)
         self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
-        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds,
-                         1209600)
+        self.assertEqual(
+            retry_policy_proto.backoff_max_duration.seconds, 1209600
+        )
 
     def test_to_proto_with_policy(self):
         _Policy = pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy.Policy
         retry_policy_struct = structures.RetryPolicy(
-            max_retry_count=2, policy='OnError')
+            max_retry_count=2, policy='OnError'
+        )
         retry_policy_proto = retry_policy_struct.to_proto()
         self.assertEqual(retry_policy_proto.max_retry_count, 2)
         self.assertEqual(retry_policy_proto.policy, _Policy.POLICY_ON_ERROR)
@@ -719,16 +780,16 @@ class TestRetryPolicy(unittest.TestCase):
         for policy_str, proto_val in expected.items():
             with self.subTest(policy=policy_str):
                 proto = structures.RetryPolicy(
-                    max_retry_count=1, policy=policy_str).to_proto()
+                    max_retry_count=1, policy=policy_str
+                ).to_proto()
                 self.assertEqual(proto.policy, proto_val)
 
 
 class TestLoadDocumentsFromYAML(unittest.TestCase):
-
     def test_no_documents(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Expected one or two YAML documents in the IR YAML file\. Got\: 0\.'
+            ValueError,
+            r'Expected one or two YAML documents in the IR YAML file\. Got\: 0\.',
         ):
             structures.load_documents_from_yaml('')
 
@@ -736,7 +797,8 @@ class TestLoadDocumentsFromYAML(unittest.TestCase):
         doc1, doc2 = structures.load_documents_from_yaml(
             textwrap.dedent("""\
             key1: value1
-            """))
+            """)
+        )
         self.assertEqual(doc1, {'key1': 'value1'})
         self.assertEqual(doc2, {})
 
@@ -746,14 +808,15 @@ class TestLoadDocumentsFromYAML(unittest.TestCase):
             key1: value1
             ---
             key2: value2
-            """))
+            """)
+        )
         self.assertEqual(doc1, {'key1': 'value1'})
         self.assertEqual(doc2, {'key2': 'value2'})
 
     def test_three_documents(self):
         with self.assertRaisesRegex(
-                ValueError,
-                r'Expected one or two YAML documents in the IR YAML file\. Got\: 3\.'
+            ValueError,
+            r'Expected one or two YAML documents in the IR YAML file\. Got\: 3\.',
         ):
             structures.load_documents_from_yaml(
                 textwrap.dedent("""\
@@ -762,7 +825,8 @@ class TestLoadDocumentsFromYAML(unittest.TestCase):
                 key3: value3
                 ---
                 key3: value3
-                """))
+                """)
+            )
 
 
 class TestInputSpecLiteralsDeserialization(unittest.TestCase):
@@ -779,11 +843,13 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
 
         # Save component to YAML
         with tempfile.NamedTemporaryFile(
-                mode='w', suffix='.yaml', delete=False) as f:
+            mode='w', suffix='.yaml', delete=False
+        ) as f:
             yaml_path = f.name
         try:
             compiler.Compiler().compile(
-                pipeline_func=comp_with_literal, package_path=yaml_path)
+                pipeline_func=comp_with_literal, package_path=yaml_path
+            )
 
             # Load component from YAML
             loaded_comp = components.load_component_from_file(yaml_path)
@@ -791,9 +857,11 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
             # Verify literals are preserved
             self.assertEqual(
                 ['a', 'b', 'c'],
-                loaded_comp.component_spec.inputs['choice'].literals)
-            self.assertEqual('String',
-                             loaded_comp.component_spec.inputs['choice'].type)
+                loaded_comp.component_spec.inputs['choice'].literals,
+            )
+            self.assertEqual(
+                'String', loaded_comp.component_spec.inputs['choice'].type
+            )
         finally:
             os.unlink(yaml_path)
 
@@ -801,24 +869,14 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
         """InputSpec.from_ir_component_inputs_dict should read string literals
         from IR."""
         ir_dict = {
-            'parameterType':
-                'STRING',
-            'defaultValue': {
-                'stringValue': 'a'
-            },
-            'isOptional':
-                True,
+            'parameterType': 'STRING',
+            'defaultValue': {'stringValue': 'a'},
+            'isOptional': True,
             'literals': [
-                {
-                    'stringValue': 'a'
-                },
-                {
-                    'stringValue': 'b'
-                },
-                {
-                    'stringValue': 'c'
-                },
-            ]
+                {'stringValue': 'a'},
+                {'stringValue': 'b'},
+                {'stringValue': 'c'},
+            ],
         }
 
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(ir_dict)
@@ -832,52 +890,38 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
         """InputSpec.from_ir_component_inputs_dict should read integer literals
         from IR."""
         ir_dict = {
-            'parameterType':
-                'NUMBER_INTEGER',
-            'defaultValue': {
-                'numberValue': 1.0
-            },  # Proto stores as float
-            'isOptional':
-                True,
+            'parameterType': 'NUMBER_INTEGER',
+            'defaultValue': {'numberValue': 1.0},  # Proto stores as float
+            'isOptional': True,
             'literals': [
-                {
-                    'numberValue': 1.0
-                },
-                {
-                    'numberValue': 2.0
-                },
-                {
-                    'numberValue': 3.0
-                },
-            ]
+                {'numberValue': 1.0},
+                {'numberValue': 2.0},
+                {'numberValue': 3.0},
+            ],
         }
 
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(ir_dict)
 
         self.assertEqual('Integer', input_spec.type)
         self.assertEqual(
-            1.0, input_spec.default)  # Default stays as proto provided it
+            1.0, input_spec.default
+        )  # Default stays as proto provided it
         self.assertTrue(input_spec.optional)
-        self.assertEqual([1, 2, 3],
-                         input_spec.literals)  # Literals cast back to int
+        self.assertEqual(
+            [1, 2, 3], input_spec.literals
+        )  # Literals cast back to int
 
     def test_from_ir_component_inputs_dict_reads_float_literals(self):
         """InputSpec.from_ir_component_inputs_dict should read float literals
         from IR."""
         ir_dict = {
             'parameterType': 'NUMBER_DOUBLE',
-            'defaultValue': {
-                'numberValue': 1.5
-            },
+            'defaultValue': {'numberValue': 1.5},
             'isOptional': True,
             'literals': [
-                {
-                    'numberValue': 1.5
-                },
-                {
-                    'numberValue': 2.5
-                },
-            ]
+                {'numberValue': 1.5},
+                {'numberValue': 2.5},
+            ],
         }
 
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(ir_dict)
@@ -892,9 +936,7 @@ class TestInputSpecLiteralsDeserialization(unittest.TestCase):
         literals field gracefully."""
         ir_dict = {
             'parameterType': 'STRING',
-            'defaultValue': {
-                'stringValue': 'default'
-            },
+            'defaultValue': {'stringValue': 'default'},
             'isOptional': True,
         }
 

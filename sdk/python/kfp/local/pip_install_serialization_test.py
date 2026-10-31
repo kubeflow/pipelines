@@ -13,14 +13,12 @@
 # limitations under the License.
 """Tests for pip installation serialization across runners."""
 
-import sys
 import threading
 import time
-from typing import List
 import unittest
+from typing import List
 
-from kfp import dsl
-from kfp import local
+from kfp import dsl, local
 from kfp.dsl import pipeline_task
 from kfp.local import testing_utilities
 from kfp.local.pip_install_manager import pip_install_manager
@@ -29,8 +27,8 @@ ROOT_FOR_TESTING = './testing_root_serialization'
 
 
 class TestPipInstallSerialization(
-        testing_utilities.LocalRunnerEnvironmentTestCase):
-
+    testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def setUp(self):
         super().setUp()
         # Reset pip install manager stats for each test
@@ -43,8 +41,10 @@ class TestPipInstallSerialization(
             local.SubprocessRunner(
                 use_venv=True,
                 serialize_pip_installs=True,
-                max_concurrent_pip_installs=1),
-            pipeline_root=ROOT_FOR_TESTING)
+                max_concurrent_pip_installs=1,
+            ),
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         @dsl.component(packages_to_install=['requests==2.28.2'])
         def fetch_data(value: int) -> int:
@@ -65,8 +65,9 @@ class TestPipInstallSerialization(
         # Check that installations were serialized (should take longer due to serialization)
         stats = pip_install_manager.get_stats()
         self.assertEqual(stats['total_installs'], 4)
-        self.assertGreaterEqual(stats['total_wait_time'],
-                                0)  # Should have some wait time
+        self.assertGreaterEqual(
+            stats['total_wait_time'], 0
+        )  # Should have some wait time
 
         print(f'Serialized execution completed in {duration:.2f}s')
         print(f'Install stats: {stats}')
@@ -77,9 +78,11 @@ class TestPipInstallSerialization(
             local.SubprocessRunner(
                 use_venv=True,
                 serialize_pip_installs=False,
-                max_concurrent_pip_installs=2),
+                max_concurrent_pip_installs=2,
+            ),
             pipeline_root=ROOT_FOR_TESTING,
-            raise_on_error=False)  # Don't fail pipeline due to build conflicts
+            raise_on_error=False,
+        )  # Don't fail pipeline due to build conflicts
 
         pip_install_manager.reset_stats()
 
@@ -101,8 +104,9 @@ class TestPipInstallSerialization(
         # Check concurrent execution stats
         stats = pip_install_manager.get_stats()
         self.assertEqual(stats['total_installs'], 4)
-        self.assertLessEqual(stats['concurrent_peak'],
-                             2)  # Should respect max concurrent limit
+        self.assertLessEqual(
+            stats['concurrent_peak'], 2
+        )  # Should respect max concurrent limit
 
         print(f'Concurrent execution completed in {duration:.2f}s')
         print(f'Install stats: {stats}')
@@ -111,7 +115,8 @@ class TestPipInstallSerialization(
         """Test SubprocessRunner without virtual environment."""
         local.init(
             local.SubprocessRunner(use_venv=False),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         @dsl.component
         def simple_task(message: str) -> str:
@@ -134,7 +139,8 @@ class TestPipInstallSerialization(
         """Test pip install manager statistics tracking."""
         local.init(
             local.SubprocessRunner(use_venv=True, serialize_pip_installs=True),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         pip_install_manager.reset_stats()
 
@@ -156,19 +162,21 @@ class TestPipInstallSerialization(
         self.assertEqual(final_stats['total_installs'], 2)
         self.assertGreaterEqual(final_stats['total_wait_time'], 0)
         self.assertGreaterEqual(final_stats['max_wait_time'], 0)
-        self.assertEqual(final_stats['current_active'],
-                         0)  # Should be 0 after completion
+        self.assertEqual(
+            final_stats['current_active'], 0
+        )  # Should be 0 after completion
 
     def test_error_handling_during_install(self):
         """Test error handling when pip installation fails."""
         local.init(
             local.SubprocessRunner(use_venv=True, serialize_pip_installs=True),
             pipeline_root=ROOT_FOR_TESTING,
-            raise_on_error=False  # Don't raise to test error handling
+            raise_on_error=False,  # Don't raise to test error handling
         )
 
         @dsl.component(
-            packages_to_install=['nonexistent-package-12345==99.99.99'])
+            packages_to_install=['nonexistent-package-12345==99.99.99']
+        )
         def failing_install_task() -> str:
             return 'This should not execute'
 
@@ -191,19 +199,23 @@ class TestPipInstallSerialization(
         local.init(
             local.SubprocessRunner(
                 use_venv=True,
-                serialize_pip_installs=True  # Enable serialization
+                serialize_pip_installs=True,  # Enable serialization
             ),
-            pipeline_root=ROOT_FOR_TESTING)
+            pipeline_root=ROOT_FOR_TESTING,
+        )
 
         # Use the original component that was failing
         # Use numpy>=1.26.0 for Python 3.13 compatibility (has pre-built wheels)
         import sys
-        numpy_version = 'numpy>=1.26.0' if sys.version_info >= (
-            3, 13) else 'numpy==1.24.3'
+
+        numpy_version = (
+            'numpy>=1.26.0' if sys.version_info >= (3, 13) else 'numpy==1.24.3'
+        )
 
         @dsl.component(packages_to_install=[numpy_version])
         def package_using_op() -> List[int]:
             import numpy as np
+
             return np.array([1, 2, 3]).tolist()
 
         @dsl.pipeline
@@ -219,8 +231,9 @@ class TestPipInstallSerialization(
         # Verify serialization worked
         stats = pip_install_manager.get_stats()
         self.assertEqual(stats['total_installs'], 8)
-        self.assertGreater(stats['total_wait_time'],
-                           0)  # Should have wait time due to serialization
+        self.assertGreater(
+            stats['total_wait_time'], 0
+        )  # Should have wait time due to serialization
 
 
 class TestPipInstallManager(unittest.TestCase):
@@ -245,7 +258,8 @@ class TestPipInstallManager(unittest.TestCase):
         self.assertTrue(pip_install_manager.is_serialized())
 
         pip_install_manager.configure(
-            serialize_installs=False, max_concurrent=3)
+            serialize_installs=False, max_concurrent=3
+        )
         self.assertFalse(pip_install_manager.is_serialized())
 
     def test_docker_configuration(self):
@@ -314,8 +328,10 @@ class TestPipInstallManager(unittest.TestCase):
             current_end = results[i][2]
             next_start = results[i + 1][1]
             self.assertLessEqual(
-                current_end, next_start,
-                f'Operations {results[i][0]} and {results[i+1][0]} overlapped')
+                current_end,
+                next_start,
+                f'Operations {results[i][0]} and {results[i + 1][0]} overlapped',
+            )
 
         # Check stats
         stats = pip_install_manager.get_stats()

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -25,13 +24,15 @@ def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
             '-c',
             'mkdir --parents $(dirname "$1") && echo "$0" > "$1"',
         ],
-        args=[text, output_gcs.path])
+        args=[text, output_gcs.path],
+    )
 
 
 @dsl.container_component
 def component2(input_gcs: dsl.Input[dsl.Dataset]):
     return dsl.ContainerSpec(
-        image='docker.io/alpine:3.23', command=['cat'], args=[input_gcs.path])
+        image='docker.io/alpine:3.23', command=['cat'], args=[input_gcs.path]
+    )
 
 
 @dsl.pipeline(name='containerized-two-step-pipeline')
@@ -44,4 +45,5 @@ if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=my_pipeline,
         pipeline_parameters={'text': 'Hello KFP Containerized!'},
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

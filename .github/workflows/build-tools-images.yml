@@ -4,29 +4,31 @@ on:
   push:
     branches:
       - master
+      - main
       - 'release-*'
   pull_request:
     branches:
       - master
+      - main
       - 'release-*'
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  packages: write
 
 env:
   IMAGE_REGISTRY: ghcr.io
   IMAGE_ORG: ${{ github.repository_owner }}
-  IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+  IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name == 'main' && 'master' || github.ref_name }}
 
 concurrency:
   group: build-tools-images-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  build-tools:
-    name: Build tools images (${{ matrix.arch }})
+  build-tools-check:
+    name: Check tools images (${{ matrix.arch }})
+    if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +39,37 @@ jobs:
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/build-tools-images
+        with:
+          arch: ${{ matrix.arch }}
+
+  build-tools:
+    name: Build tools images (${{ matrix.arch }})
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
+       (github.ref_name != 'master' && github.ref_name != 'main'))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
     env:
       ARCH: ${{ matrix.arch }}
       PLATFORM: linux/${{ matrix.arch }}
@@ -44,63 +77,23 @@ jobs:
       RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.sha }}
-
-      - name: Read frontend Node version
-        id: frontend_node
-        run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
-
-      - name: Configure Docker Hub mirror
-        shell: bash
-        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
-
-      - uses: docker/setup-buildx-action@v4
-        with:
-          # The release image must inherit the generator loaded in this daemon.
-          driver: docker
+          persist-credentials: false
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        if: github.event_name != 'pull_request'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build api-generator
-        shell: bash
-        run: |
-          source ./.github/resources/scripts/helper-functions.sh
-          source .github/resources/scripts/ci-image-artifacts.sh
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
-            --file backend/api/Dockerfile --tag "$TOOL_GENERATOR_IMAGE:ci" .
-
-      - name: Build release tools from this generator
-        shell: bash
-        env:
-          NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
-        run: |
-          source ./.github/resources/scripts/helper-functions.sh
-          source .github/resources/scripts/ci-image-artifacts.sh
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
-            --file release/Dockerfile.release \
-            --build-arg "BASE_IMAGE=$TOOL_GENERATOR_IMAGE:ci" \
-            --build-arg "NODE_VERSION=$NODE_VERSION" --tag "$TOOL_RELEASE_IMAGE:ci" .
-
-      - name: Execute tools and generate sources natively
-        run: bash .github/resources/scripts/maintainer_tools_smoke.sh "$ARCH" "$RUNNER_TEMP/tool-output"
-
-      - name: Upload generated-source evidence
-        uses: actions/upload-artifact@v7
+      - uses: ./.github/actions/build-tools-images
         with:
-          name: tool-output-${{ matrix.arch }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/tool-output
-          if-no-files-found: error
+          arch: ${{ matrix.arch }}
 
       - name: Stage tested images without changing shared tags
-        if: github.event_name != 'pull_request'
         run: |
           source ./.github/resources/scripts/helper-functions.sh
           source .github/resources/scripts/ci-image-artifacts.sh
@@ -121,8 +114,7 @@ jobs:
           done
 
       - name: Upload staged image references
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: tool-digests-${{ matrix.arch }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/tool-digests
@@ -130,13 +122,19 @@ jobs:
 
   compare-generated:
     name: Compare AMD64 and ARM64 generated sources
-    needs: build-tools
+    needs: [build-tools-check, build-tools]
+    # Exactly one producer runs for each event; a skipped sibling is expected.
+    if: >-
+      !cancelled() &&
+      (needs.build-tools-check.result == 'success' || needs.build-tools.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: List required generated tool outputs
         id: tool-outputs
         shell: bash
@@ -156,11 +154,18 @@ jobs:
   publish-tools:
     name: Publish verified tooling indexes
     needs: [build-tools, compare-generated]
-    if: github.event_name != 'pull_request'
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' &&
+      needs.build-tools.result == 'success' && needs.compare-generated.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: List required tool digest records
         id: tool-digests
         shell: bash
@@ -171,12 +176,12 @@ jobs:
           path: tool-digests
           merge-multiple: 'true'
           required-files: ${{ steps.tool-digests.outputs.required-files }}
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
         with:
           driver: docker
       - name: Verify both platforms before shared-tag promotion
@@ -192,7 +197,7 @@ jobs:
               --run-tag "$RUN_TAG" --target-tag "$IMAGE_TAG" --set-latest false \
               --output "published-tool-indexes/$image.json"
           done
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: published-tool-indexes-${{ github.run_attempt }}
           path: published-tool-indexes

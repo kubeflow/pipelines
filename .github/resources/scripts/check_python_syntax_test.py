@@ -14,25 +14,24 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
-from check_python_syntax import repository_python_files
-from check_python_syntax import syntax_errors
+from check_python_syntax import repository_python_files, syntax_errors
 
 ROOT = Path(__file__).resolve().parents[3]
 PYTHON_SYNTAX_WORKFLOW_PATH = ROOT / '.github/workflows/python-syntax.yml'
 
 
 class CheckPythonSyntaxTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.python_syntax_workflow = PYTHON_SYNTAX_WORKFLOW_PATH.read_text(
-            encoding='utf-8')
+            encoding='utf-8'
+        )
 
     def test_reports_only_invalid_python(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -41,7 +40,8 @@ class CheckPythonSyntaxTest(unittest.TestCase):
             invalid_path = root / 'invalid.py'
             valid_path.write_text('value = 1\n', encoding='utf-8')
             invalid_path.write_text(
-                'ddef invalid():\n    pass\n', encoding='utf-8')
+                'ddef invalid():\n    pass\n', encoding='utf-8'
+            )
 
             errors = syntax_errors([valid_path, invalid_path])
 
@@ -54,7 +54,8 @@ class CheckPythonSyntaxTest(unittest.TestCase):
             path = Path(temporary_directory) / 'exception_groups.py'
             path.write_text(
                 'try:\n    pass\nexcept* ValueError:\n    pass\n',
-                encoding='utf-8')
+                encoding='utf-8',
+            )
 
             self.assertEqual(syntax_errors([path]), [])
 
@@ -62,7 +63,8 @@ class CheckPythonSyntaxTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / 'type_alias.py'
             path.write_text(
-                'type Coordinates = tuple[float, float]\n', encoding='utf-8')
+                'type Coordinates = tuple[float, float]\n', encoding='utf-8'
+            )
 
             errors = syntax_errors([path])
 
@@ -103,11 +105,15 @@ class CheckPythonSyntaxTest(unittest.TestCase):
             root = Path(temporary_directory)
             encoded_name = b'\xff.py'
             git_result = subprocess.CompletedProcess(
-                args=['git'], returncode=0, stdout=encoded_name + b'\0')
-            with mock.patch(
+                args=['git'], returncode=0, stdout=encoded_name + b'\0'
+            )
+            with (
+                mock.patch(
                     'check_python_syntax.subprocess.run',
-                    return_value=git_result), mock.patch.object(
-                        Path, 'is_file', return_value=True):
+                    return_value=git_result,
+                ),
+                mock.patch.object(Path, 'is_file', return_value=True),
+            ):
                 paths = repository_python_files(root)
 
         self.assertEqual(len(paths), 1)
@@ -115,8 +121,9 @@ class CheckPythonSyntaxTest(unittest.TestCase):
 
     def test_ci_checks_syntax_for_every_python_change(self):
         self.assertIn("      - '**/*.py'", self.python_syntax_workflow)
-        self.assertIn('name: Check Python 3.11 syntax',
-                      self.python_syntax_workflow)
+        self.assertIn(
+            'name: Check Python 3.11 syntax', self.python_syntax_workflow
+        )
         self.assertIn("python-version: '3.11'", self.python_syntax_workflow)
         self.assertIn(
             'run: python3 .github/resources/scripts/check_python_syntax.py',

@@ -13,8 +13,7 @@
 # limitations under the License.
 
 # Simple two-step pipeline with 'producer' and 'consumer' steps
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -26,9 +25,11 @@ def producer(input_text: str, output_value: dsl.OutputPath(str)):
     return dsl.ContainerSpec(
         image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=[
-            'sh', '-c',
+            'sh',
+            '-c',
             'set -e -x\nmkdir -p "$(dirname "$1")"\necho "$0, this is an output parameter" > "$1"\n',
-            input_text, output_value
+            input_text,
+            output_value,
         ],
     )
 
@@ -44,9 +45,10 @@ def consumer(input_value: str):
     return dsl.ContainerSpec(
         image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=[
-            'sh', '-c',
+            'sh',
+            '-c',
             'set -e -x\necho "Read from an input parameter: " && echo "$0"\n',
-            input_value
+            input_value,
         ],
     )
 
@@ -60,8 +62,9 @@ def producer_consumer_param_pipeline(text: str = 'Hello world'):
     consumer = consumer_op(input_value=producer.outputs['output_value'])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # execute only if run as a script
     compiler.Compiler().compile(
         pipeline_func=producer_consumer_param_pipeline,
-        package_path='producer_consumer_param_pipeline.yaml')
+        package_path='producer_consumer_param_pipeline.yaml',
+    )

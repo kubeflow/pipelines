@@ -23,9 +23,10 @@ import re
 EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 TOKEN = re.compile(
     r"\s+|(?P<literal>'(?:[^']|'')*')|"
-    r'(?P<reference>(?:inputs|steps|github|env)(?:\.[\w-]+)+)|'
-    r'(?P<word>true|false|null|always|cancelled|success|failure)\b|'
-    r'(?P<operator>==|!=|&&|\|\||!|\(|\))')
+    r'(?P<reference>(?:inputs|steps|github|env|needs|matrix)(?:\.[\w-]+)+)|'
+    r'(?P<word>true|false|null|always|cancelled|success|failure|format)\b|'
+    r'(?P<operator>==|!=|&&|\|\||!|\(|\)|,)'
+)
 
 
 def evaluate(expression, context, statuses=None):
@@ -72,6 +73,19 @@ def evaluate(expression, context, statuses=None):
                 raise AssertionError(f'Unsupported expression value: {token}')
             return value
         if kind == 'word':
+            if token == 'format':
+                if not take('('):
+                    raise AssertionError('Missing format opening parenthesis')
+                arguments = [disjunction()]
+                while take(','):
+                    arguments.append(disjunction())
+                if not take(')') or not all(
+                    isinstance(arg, str) for arg in arguments
+                ):
+                    raise AssertionError(
+                        'Only string format arguments are supported'
+                    )
+                return arguments[0].format(*arguments[1:])
             if token in ('true', 'false', 'null'):
                 return {'true': True, 'false': False, 'null': None}[token]
             if not take('(') or not take(')') or token not in (statuses or {}):
@@ -88,11 +102,14 @@ def evaluate(expression, context, statuses=None):
             other = atom()
             if type(value) is not type(other):
                 raise AssertionError(
-                    'Mixed-type Actions coercion is unsupported')
+                    'Mixed-type Actions coercion is unsupported'
+                )
             # GitHub string equality ignores case; Python equality does not.
             equal = (
                 value.casefold() == other.casefold()
-                if isinstance(value, str) else value == other)
+                if isinstance(value, str)
+                else value == other
+            )
             value = not equal if negate else equal
         return value
 

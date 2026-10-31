@@ -18,12 +18,12 @@ import { NavigationProps } from 'src/lib/Navigation';
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import { ExperimentInfo } from 'src/lib/ExperimentInfo';
-import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
-import { ResponseError, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Run, V2RuntimeState, V2RunStorageState } from 'src/apisv2/run';
+import { V2ListExperimentsResponse } from 'src/apisv2/experiment';
+import { ResponseError, V2PipelineVersion } from 'src/apisv2/pipeline';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link } from 'react-router';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from 'src/components/Router';
 import { URLParser } from 'src/lib/URLParser';
 import { commonCss } from 'src/Css';
@@ -49,7 +49,7 @@ interface RecurringRunInfo {
 interface DisplayRun {
   experiment?: ExperimentInfo;
   recurringRun?: RecurringRunInfo;
-  run: V2beta1Run;
+  run: V2Run;
   pipelineVersion?: PipelineVersionInfo;
   error?: string;
 }
@@ -71,7 +71,7 @@ export type RunListProps = MaskProps &
     onSelectionChange?: (selectedRunIds: string[]) => void;
     runIdListMask?: string[];
     selectedIds?: string[];
-    storageState?: V2beta1RunStorageState;
+    storageState?: V2RunStorageState;
   };
 
 interface RunListState {
@@ -154,9 +154,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           emptyMessage={
             `No` +
             `${
-              this.props.storageState === V2beta1RunStorageState.ARCHIVED
-                ? ' archived'
-                : ' available'
+              this.props.storageState === V2RunStorageState.ARCHIVED ? ' archived' : ' available'
             }` +
             ` runs found` +
             `${
@@ -285,8 +283,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     );
   };
 
-  public _statusCustomRenderer: React.FC<CustomRendererProps<V2beta1RuntimeState>> = (
-    props: CustomRendererProps<V2beta1RuntimeState>,
+  public _statusCustomRenderer: React.FC<CustomRendererProps<V2RuntimeState>> = (
+    props: CustomRendererProps<V2RuntimeState>,
   ) => {
     return statusToIcon(props.value);
   };
@@ -299,12 +297,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns = this.props.runIdListMask.map((id) => ({ run: { run_id: id } }));
       const filter = JSON.parse(
         decodeURIComponent(request.filter || '{"predicates": []}'),
-      ) as V2beta1Filter;
+      ) as V2Filter;
       // listRuns doesn't currently support batching by IDs, so in this case we retrieve and filter
       // each run individually.
       await this._getAndSetRuns(displayRuns);
       const predicates = filter.predicates?.filter(
-        (p) => p.key === 'name' && p.operation === V2beta1PredicateOperation.IS_SUBSTRING,
+        (p) => p.key === 'name' && p.operation === V2PredicateOperation.IS_SUBSTRING,
       );
       const substrings = predicates?.map((p) => p.string_value?.toLowerCase() || '') || [];
       displayRuns = displayRuns.filter((runDetail) => {
@@ -322,17 +320,17 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           // Augment the request filter with the storage state predicate
           const filter = JSON.parse(
             decodeURIComponent(request.filter || '{"predicates": []}'),
-          ) as V2beta1Filter;
+          ) as V2Filter;
           filter.predicates = (filter.predicates || []).concat([
             {
               key: 'storage_state',
               // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
               // is missing, in which case it should be counted as available.
               operation:
-                this.props.storageState === V2beta1RunStorageState.ARCHIVED
-                  ? V2beta1PredicateOperation.EQUALS
-                  : V2beta1PredicateOperation.NOT_EQUALS,
-              string_value: V2beta1RunStorageState.ARCHIVED.toString(),
+                this.props.storageState === V2RunStorageState.ARCHIVED
+                  ? V2PredicateOperation.EQUALS
+                  : V2PredicateOperation.NOT_EQUALS,
+              string_value: V2RunStorageState.ARCHIVED.toString(),
             },
           ]);
           request.filter = encodeURIComponent(JSON.stringify(filter));
@@ -377,7 +375,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   }
 
   private async _setColumns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    let experimentsResponse: V2beta1ListExperimentsResponse;
+    let experimentsResponse: V2ListExperimentsResponse;
     let experimentsGetError: string;
     try {
       if (!this.props.namespaceMask) {
@@ -444,7 +442,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
       displayRuns.map(async (displayRun) => {
-        let getRunResponse: V2beta1Run;
+        let getRunResponse: V2Run;
         try {
           getRunResponse = await Apis.runServiceApiV2.getRun(displayRun.run!.run_id!);
           displayRun.run = getRunResponse;
@@ -463,7 +461,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * per run into one call per unique version.
    */
   private async _getReferencedPipelineVersions(displayRuns: DisplayRun[]): Promise<{
-    pipelineVersionsByKey: Map<string, V2beta1PipelineVersion>;
+    pipelineVersionsByKey: Map<string, V2PipelineVersion>;
     errorsByKey: Map<string, string>;
   }> {
     const uniqueVersionRefs = new Map<string, { pipelineId: string; pipelineVersionId: string }>();
@@ -478,7 +476,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
     });
 
-    const pipelineVersionsByKey = new Map<string, V2beta1PipelineVersion>();
+    const pipelineVersionsByKey = new Map<string, V2PipelineVersion>();
     const errorsByKey = new Map<string, string>();
     await Promise.all(
       Array.from(uniqueVersionRefs.entries()).map(
@@ -513,7 +511,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    */
   private _setPipelineVersionName(
     displayRun: DisplayRun,
-    pipelineVersionsByKey: Map<string, V2beta1PipelineVersion>,
+    pipelineVersionsByKey: Map<string, V2PipelineVersion>,
     errorsByKey: Map<string, string>,
   ): void {
     const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;

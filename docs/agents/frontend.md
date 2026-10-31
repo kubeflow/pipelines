@@ -2,6 +2,11 @@
 
 The frontend is React 19, TypeScript, MUI, TanStack Query, Vitest, Prettier, and ESLint. Use the Node version in `frontend/.nvmrc` and the npm version pinned by `frontend/package.json`.
 
+Keep `.nvmrc` and `package.json`'s Node engine identical when advancing Node.
+CI, frontend images, release tooling, and browser-integration images read this
+shared pin. jsdom 30's CSS dependencies require Node 24.15.0 or newer on Node 24;
+do not bypass engine checks to install dependency updates.
+
 ```bash
 cd frontend
 npm ci

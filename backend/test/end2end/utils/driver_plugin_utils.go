@@ -26,7 +26,7 @@ import (
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
 	argocommon "github.com/argoproj/argo-workflows/v4/workflow/common"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -347,7 +347,7 @@ func ValidateDriverPluginPods(pods []v1.Pod) DriverPluginPodReport {
 }
 
 // DriverLogsURI returns the driver_logs_uri custom property of a task, or "".
-func DriverLogsURI(task *run_model.V2beta1PipelineTask) string {
+func DriverLogsURI(task *run_model.V2PipelineTask) string {
 	if task == nil || task.StatusMetadata == nil {
 		return ""
 	}
@@ -356,7 +356,7 @@ func DriverLogsURI(task *run_model.V2beta1PipelineTask) string {
 }
 
 // HasDriverPod reports whether the driver plugin registered a DRIVER pod for the task.
-func HasDriverPod(task *run_model.V2beta1PipelineTask) bool {
+func HasDriverPod(task *run_model.V2PipelineTask) bool {
 	if task == nil {
 		return false
 	}

@@ -39,6 +39,7 @@ class PipelineTaskFinalStatus:
         def my_pipeline():
             task = task_status(user_input='my_input')
     """
+
     state: str
     """Final state of the task.
 

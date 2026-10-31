@@ -1726,10 +1726,19 @@ func TestWorkflow_GenerateRetryExecution_SkippedNode(t *testing.T) {
 func TestWorkflow_GenerateRetryExecution_WithTerminatedDeadline(t *testing.T) {
 	zero := int64(0)
 	workflow := NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{Name: "my-wf", Labels: map[string]string{}},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "my-wf",
+			Labels: map[string]string{},
+			Annotations: map[string]string{
+				AnnotationKeyTerminationReason: TerminationReasonImagePullFailure,
+				AnnotationKeyFailedImage:       "bad-image:latest",
+				AnnotationKeyRunName:           "my-run",
+			},
+		},
 		Spec: workflowapi.WorkflowSpec{
 			Entrypoint:            "main",
 			ActiveDeadlineSeconds: &zero,
+			Shutdown:              workflowapi.ShutdownStrategyTerminate,
 		},
 		Status: workflowapi.WorkflowStatus{
 			Phase: workflowapi.WorkflowFailed,
@@ -1752,6 +1761,15 @@ func TestWorkflow_GenerateRetryExecution_WithTerminatedDeadline(t *testing.T) {
 	retryWorkflow := retryExec.(*Workflow)
 	// ActiveDeadlineSeconds should be unset (was 0 indicating termination)
 	assert.Nil(t, retryWorkflow.Spec.ActiveDeadlineSeconds)
+	// The shutdown strategy should be cleared so the retry can run.
+	assert.Equal(t, workflowapi.ShutdownStrategyNone, retryWorkflow.Spec.Shutdown)
+	// The image pull failure annotations belong to the terminated attempt and
+	// must not be carried onto the retry; unrelated annotations are kept.
+	assert.NotContains(t, retryWorkflow.Annotations, AnnotationKeyTerminationReason)
+	assert.NotContains(t, retryWorkflow.Annotations, AnnotationKeyFailedImage)
+	assert.Equal(t, "my-run", retryWorkflow.Annotations[AnnotationKeyRunName])
+	// The original workflow is left untouched.
+	assert.Equal(t, TerminationReasonImagePullFailure, workflow.Annotations[AnnotationKeyTerminationReason])
 }
 
 func TestWorkflow_GenerateRetryExecution_OnExitNode(t *testing.T) {

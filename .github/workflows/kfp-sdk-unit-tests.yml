@@ -2,7 +2,7 @@ name: KFP SDK Unit Tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
     paths:
       - '**/pyproject.toml'
@@ -23,6 +23,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   sdk-unit-tests:
     runs-on: ubuntu-latest
@@ -32,7 +35,9 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
 
     - name: Setup Python with uv
       uses: ./.github/actions/setup-python
@@ -55,7 +60,7 @@ jobs:
         echo "JUNIT_XML=$JUNIT_XML" >> "$GITHUB_OUTPUT"
 
     - name: Run generated API client tests
-      run: uv run pytest backend/api/v2beta1/python_http_client_smoke
+      run: uv run pytest backend/api/v2/python_http_client_smoke backend/api/hack/generate_python_compat_test.py
 
     - name: Check unified wheel and standalone sdist
       run: |

@@ -10,7 +10,7 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -23,6 +23,7 @@ on:
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
+      - 'backend/api/v2/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
       - 'backend/test/v2/api/**'
@@ -36,10 +37,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
     # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
     if: ${{ false }}
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
@@ -56,13 +63,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: 3.11
 
@@ -117,24 +126,23 @@ jobs:
         if: ${{ steps.deploy-release.outcome == 'success' }}
         shell: bash
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
 
       - name: Prepare for Upgrade
         id: prepare-upgrade
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: ${{ env.TESTS_DIR }}
         run: |
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
-        continue-on-error: true
+          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation" -- -useLegacyAPIPrefix=true
 
       - name: Stop port forwarding
+        if: ${{ always() }}
         run: |
           pkill -f "port-forward"
         continue-on-error: true
 
       - name: Deploy from Branch
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
           image_path: images_${{ github.run_id }}
@@ -144,7 +152,7 @@ jobs:
 
       - name: Verify Upgrade
         uses: ./.github/actions/test-and-report
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.prepare-upgrade.outcome == 'success' && steps.deploy.outcome == 'success' }}
         with:
           test_directory: ${{ env.TESTS_DIR }}
           test_label: "UpgradeVerification"

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
@@ -35,34 +35,34 @@ func TestHandleInputTaskArtifactsCreation_OmitsLinkPersistedByPriorAttempt(t *te
 	ctx := context.Background()
 	mockAPI := kfpapi.NewMockAPI()
 	runID := "run-id"
-	task, err := mockAPI.CreateTask(ctx, &apiv2beta1.CreateTaskRequest{
+	task, err := mockAPI.CreateTask(ctx, &apiv2.CreateTaskRequest{
 		RunId: runID,
-		Task: &apiv2beta1.PipelineTask{
+		Task: &apiv2.PipelineTask{
 			RunId:     runID,
 			Name:      "consumer",
 			ScopePath: "root.consumer",
-			Type:      apiv2beta1.PipelineTask_RUNTIME,
+			Type:      apiv2.PipelineTask_RUNTIME,
 		},
 	})
 	require.NoError(t, err)
-	_, err = mockAPI.CreateArtifact(ctx, &apiv2beta1.CreateArtifactRequest{
-		Artifact: &apiv2beta1.Artifact{ArtifactId: "artifact-id"},
+	_, err = mockAPI.CreateArtifact(ctx, &apiv2.CreateArtifactRequest{
+		Artifact: &apiv2.Artifact{ArtifactId: "artifact-id"},
 	})
 	require.NoError(t, err)
 	artifactMetadata := []resolver.ArtifactMetadata{{
-		ArtifactIO: &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
-			Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "artifact-id"}},
-			Type:        apiv2beta1.IOType_TASK_OUTPUT_INPUT,
+		ArtifactIO: &apiv2.PipelineTask_InputOutputs_IOArtifact{
+			Artifacts:   []*apiv2.Artifact{{ArtifactId: "artifact-id"}},
+			Type:        apiv2.IOType_TASK_OUTPUT_INPUT,
 			ArtifactKey: "metrics",
-			Producer:    &apiv2beta1.IOProducer{TaskName: "producer"},
+			Producer:    &apiv2.IOProducer{TaskName: "producer"},
 		},
 	}}
-	opts := common.Options{Run: &apiv2beta1.Run{RunId: runID}}
+	opts := common.Options{Run: &apiv2.Run{RunId: runID}}
 
 	require.NoError(t, handleInputTaskArtifactsCreation(ctx, opts, artifactMetadata, task, mockAPI))
 	require.NoError(t, handleInputTaskArtifactsCreation(ctx, opts, artifactMetadata, task, mockAPI))
 
-	artifactTasks, err := mockAPI.ListArtifactTasks(ctx, &apiv2beta1.ListArtifactTasksRequest{
+	artifactTasks, err := mockAPI.ListArtifactTasks(ctx, &apiv2.ListArtifactTasksRequest{
 		TaskIds: []string{task.GetTaskId()},
 		RunIds:  []string{runID},
 	})
@@ -71,7 +71,7 @@ func TestHandleInputTaskArtifactsCreation_OmitsLinkPersistedByPriorAttempt(t *te
 	for _, artifactTask := range artifactTasks.GetArtifactTasks() {
 		if artifactTask.GetTaskId() == task.GetTaskId() &&
 			artifactTask.GetArtifactId() == "artifact-id" &&
-			artifactTask.GetType() == apiv2beta1.IOType_TASK_OUTPUT_INPUT &&
+			artifactTask.GetType() == apiv2.IOType_TASK_OUTPUT_INPUT &&
 			artifactTask.GetKey() == "metrics" {
 			matchingLinks++
 		}
@@ -584,6 +584,61 @@ func Test_resolveContainerArgs(t *testing.T) {
 			},
 			expected: []string{"--out={{$.outputs.artifacts['result'].uri}}"},
 			wantErr:  false,
+		},
+		{
+			name: "top-level Concat is resolved like a nested one",
+			args: []string{
+				`{"Concat": ["{{$.inputs.parameters['first']}}", "+", "{{$.inputs.parameters['second']}}"]}`,
+				`{"IfPresent": {"InputName": "second", "Then": [{"Concat": ["nested:", "{{$.inputs.parameters['second']}}"]}]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"first":  structpb.NewStringValue("one"),
+						"second": structpb.NewStringValue("two"),
+					},
+				},
+			},
+			expected: []string{"one+two", "nested:two"},
+			wantErr:  false,
+		},
+		{
+			name: "top-level Concat keeps output placeholders for the launcher",
+			args: []string{
+				`{"Concat": ["--out=", "{{$.outputs.artifacts['result'].path}}", "/", "{{$.inputs.parameters['name']}}"]}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"name": structpb.NewStringValue("model.bin"),
+					},
+				},
+			},
+			expected: []string{"--out={{$.outputs.artifacts['result'].path}}/model.bin"},
+			wantErr:  false,
+		},
+		{
+			name: "top-level Concat with a parameter value containing quotes",
+			args: []string{
+				`{"Concat": ["--msg=", "{{$.inputs.parameters['msg']}}"]}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"msg": structpb.NewStringValue(`say "hi"`),
+					},
+				},
+			},
+			expected: []string{`--msg=say "hi"`},
+			wantErr:  false,
+		},
+		{
+			name: "malformed top-level Concat",
+			args: []string{
+				`{"Concat": ["unterminated"`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{},
+			wantErr:       true,
 		},
 		{
 			name: "embedded placeholder in fstring should be template-substituted",

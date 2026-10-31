@@ -18,7 +18,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { nestedArtifactSpec } from 'src/data/test/groupedFlow';
@@ -27,10 +27,10 @@ import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 
 testBestPractices();
 describe('PipelineDetailsV2', () => {
-  let testV2Pipeline: V2beta1Pipeline = {};
-  let testV2PipelineVersion: V2beta1PipelineVersion = {};
-  let newTestV2PipelineVersion: V2beta1PipelineVersion = {};
-  let thirdPipelineVersion: V2beta1PipelineVersion = {};
+  let testV2Pipeline: V2Pipeline = {};
+  let testV2PipelineVersion: V2PipelineVersion = {};
+  let newTestV2PipelineVersion: V2PipelineVersion = {};
+  let thirdPipelineVersion: V2PipelineVersion = {};
 
   testV2Pipeline = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
@@ -213,6 +213,27 @@ describe('PipelineDetailsV2', () => {
     fireEvent.click(screen.getByText('Training pipeline'));
     expect(screen.queryByRole('button', { name: 'Open Sub-DAG' })).not.toBeInTheDocument();
     expect(screen.getByText('Deploy model')).toBeInTheDocument();
+  });
+
+  it('retains the selected node when switching to the spec tab and back', async () => {
+    render(
+      <CommonTestWrapper>
+        <PipelineDetailsV2
+          templateString={JSON.stringify(PipelineSpec.toJSON(nestedArtifactSpec))}
+          pipelineFlowElements={convertFlowElements(nestedArtifactSpec)}
+          pipeline={null}
+          selectedVersion={undefined}
+          versions={[]}
+          handleVersionSelected={async () => {}}
+        />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByText('Train model'));
+    expect(screen.getByText('Output Artifacts')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Pipeline Spec' }));
+    expect(screen.queryByTestId('DagCanvas')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Graph', exact: true }));
+    expect(screen.getByText('Output Artifacts')).toBeInTheDocument();
   });
 
   it('Show Side panel when select node', async () => {

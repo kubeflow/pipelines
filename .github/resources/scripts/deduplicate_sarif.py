@@ -16,8 +16,8 @@
 import argparse
 import json
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from typing import Any
 
 
@@ -27,7 +27,8 @@ def _result_key(result: dict[str, Any]) -> str:
 
 
 def deduplicate_sarif(sarif: dict[str, Any]) -> int:
-    """Removes structurally identical results within each SARIF run in place."""
+    """Removes structurally identical results within each SARIF run in
+    place."""
     runs = sarif.get('runs')
     if not isinstance(runs, list):
         raise ValueError('SARIF document must contain a runs array')
@@ -41,8 +42,7 @@ def deduplicate_sarif(sarif: dict[str, Any]) -> int:
         if results is None:
             continue
         if not isinstance(results, list):
-            raise ValueError(
-                f'SARIF run {run_index} results must be an array')
+            raise ValueError(f'SARIF run {run_index} results must be an array')
 
         unique_results = []
         seen_results = set()
@@ -69,12 +69,12 @@ def write_sarif(path: Path, sarif: dict[str, Any]) -> None:
     temporary_file = None
     try:
         with tempfile.NamedTemporaryFile(
-                mode='w',
-                encoding='utf-8',
-                dir=path.parent,
-                prefix=f'.{path.name}.',
-                suffix='.tmp',
-                delete=False,
+            mode='w',
+            encoding='utf-8',
+            dir=path.parent,
+            prefix=f'.{path.name}.',
+            suffix='.tmp',
+            delete=False,
         ) as output_file:
             temporary_file = Path(output_file.name)
             json.dump(sarif, output_file, separators=(',', ':'))
@@ -87,7 +87,8 @@ def write_sarif(path: Path, sarif: dict[str, Any]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Remove exact duplicate results from an OSV SARIF report.')
+        description='Remove exact duplicate results from an OSV SARIF report.'
+    )
     parser.add_argument('--input', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     return parser.parse_args()
@@ -99,7 +100,8 @@ def main() -> None:
         sarif = json.loads(args.input.read_text(encoding='utf-8'))
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(
-            f'Unable to read SARIF input {args.input}: {error}') from error
+            f'Unable to read SARIF input {args.input}: {error}'
+        ) from error
     if not isinstance(sarif, dict):
         raise ValueError('SARIF document must be a JSON object')
 

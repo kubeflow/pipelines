@@ -16,10 +16,10 @@
 import argparse
 import ast
 import os
-from pathlib import Path
 import subprocess
-from typing import Iterable
 import warnings
+from pathlib import Path
+from typing import Iterable
 
 PYTHON_FEATURE_VERSION = 11
 
@@ -27,8 +27,14 @@ PYTHON_FEATURE_VERSION = 11
 def repository_python_files(repository_root: Path) -> list[Path]:
     result = subprocess.run(
         [
-            'git', '-C',
-            str(repository_root), 'ls-files', '-z', '--cached', '--', '*.py'
+            'git',
+            '-C',
+            str(repository_root),
+            'ls-files',
+            '-z',
+            '--cached',
+            '--',
+            '*.py',
         ],
         check=True,
         stdout=subprocess.PIPE,
@@ -54,20 +60,24 @@ def syntax_errors(paths: Iterable[Path]) -> list[tuple[Path, str, int, int]]:
                     feature_version=PYTHON_FEATURE_VERSION,
                 )
         except (SyntaxError, ValueError) as error:
-            message = error.msg if isinstance(error,
-                                              SyntaxError) else str(error)
-            errors.append((
-                path,
-                message,
-                getattr(error, 'lineno', None) or 1,
-                getattr(error, 'offset', None) or 1,
-            ))
+            message = (
+                error.msg if isinstance(error, SyntaxError) else str(error)
+            )
+            errors.append(
+                (
+                    path,
+                    message,
+                    getattr(error, 'lineno', None) or 1,
+                    getattr(error, 'offset', None) or 1,
+                )
+            )
     return errors
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Check repository Python files for valid syntax.')
+        description='Check repository Python files for valid syntax.'
+    )
     parser.add_argument(
         '--repository-root',
         type=Path,

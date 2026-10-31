@@ -18,7 +18,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-import { UIConfigs } from './configs.js';
+import { UIConfigs, legacyApiVersion2Prefix } from './configs.js';
 import { getAddress } from './utils.js';
 import { getBuildMetadata, getHealthzEndpoint, getHealthzHandler } from './handlers/healthz.js';
 import {
@@ -26,8 +26,10 @@ import {
   getArtifactsProxyHandler,
   getArtifactServiceGetter,
   getArtifactsAuthMiddleware,
+  getArtifactsRateLimiter,
 } from './handlers/artifacts.js';
 import { getTensorboardHandlers } from './handlers/tensorboard.js';
+import { getArtifactPreviewHandler } from './handlers/artifact-preview.js';
 import { getAuthorizeFn } from './helpers/auth.js';
 import { getPodLogsHandler } from './handlers/pod-logs.js';
 import { getPodInfoHandlers } from './handlers/pod-info.js';
@@ -58,7 +60,10 @@ function getRegisterHandler(app: Application, basePath: string) {
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
-    return func.call(app, `${basePath}${route}`, handler);
+    const prefixedRoutes = Array.isArray(route)
+      ? route.map((entry) => `${basePath}${entry}`)
+      : `${basePath}${route}`;
+    return func.call(app, prefixedRoutes, handler);
   };
 }
 
@@ -146,6 +151,24 @@ function createUIServer(options: UIConfigs) {
     next();
   });
 
+  // Normalize legacy API paths before health, deny-list, and proxy handlers.
+  // Rewriting only req.url preserves the method, stream, headers, query, and
+  // originalUrl for logging; no client-visible redirect is necessary.
+  app.use((req, _res, next) => {
+    for (const prefix of ['', basePath]) {
+      const legacy = `${prefix}/${legacyApiVersion2Prefix}`;
+      if (
+        req.url === legacy ||
+        req.url.startsWith(`${legacy}/`) ||
+        req.url.startsWith(`${legacy}?`)
+      ) {
+        req.url = `${prefix}/${apiVersion2Prefix}${req.url.slice(legacy.length)}`;
+        break;
+      }
+    }
+    next();
+  });
+
   /** Healthz */
   registerHandler(
     app.get,
@@ -158,12 +181,17 @@ function createUIServer(options: UIConfigs) {
 
   /** Authorize function - created early so it can be used by artifact handlers */
   const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+  const artifactsRateLimiter = getArtifactsRateLimiter({
+    authEnabled: options.auth.enabled,
+    kubeflowUserIdHeader: options.auth.kubeflowUserIdHeader,
+    disabled: options.artifacts.rateLimitDisabled,
+  });
 
   /**
    * Artifact Authorization Middleware
    * Security fix for https://github.com/kubeflow/pipelines/issues/9889
-   * This middleware validates namespace access before allowing artifact retrieval,
-   * preventing unauthorized cross-namespace artifact access.
+   * This middleware authorizes namespace access and checks artifact metadata/path consistency.
+   * A metadata match is not an independent grant to bytes accessible with shared credentials.
    */
   const artifactsAuthMiddleware = getArtifactsAuthMiddleware(
     authorizeFn,
@@ -171,6 +199,12 @@ function createUIServer(options: UIConfigs) {
     options.auth.kubeflowUserIdHeader,
     apiServerAddress,
     options.artifacts.proxy.enabled,
+  );
+
+  app.get(
+    ['/artifacts/:artifactId/preview', `${basePath}/artifacts/:artifactId/preview`],
+    artifactsRateLimiter,
+    getArtifactPreviewHandler(options, apiServerAddress, authorizeFn),
   );
 
   /** Artifact */
@@ -182,6 +216,7 @@ function createUIServer(options: UIConfigs) {
   // Proxy handler (checked first — if enabled, proxies to namespaced artifact service)
   app.get(
     '/artifacts/*',
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,
@@ -191,6 +226,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.get(
     `${basePath}/artifacts/*`,
+    artifactsRateLimiter,
     artifactsAuthMiddleware,
     getArtifactsProxyHandler({
       enabled: options.artifacts.proxy.enabled,

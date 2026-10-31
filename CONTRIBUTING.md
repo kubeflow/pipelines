@@ -96,6 +96,9 @@ PR does not exempt it from the gate.
   applied by a Kubeflow Pipelines maintainer. Find or create an issue, discuss
   the proposed change with maintainers, and wait for that label before opening
   your PR. An open or assigned issue without `ready` does not qualify.
+  Maintainers and `approvers` listed in any `OWNERS` file apply the label by
+  commenting `/ready` on its own line in the issue. The command reacts with 👎
+  and does nothing for other users.
 
 For example, replace `1234` with your issue number and include this line in
 your PR description:
@@ -187,7 +190,7 @@ The following sections describe the details of the PR title convention.
 PR titles should use the following structure.
 
 ```
-<type>[optional scope]: <description>[ Fixes #<issue-number>]
+<type>[optional scope][!]: <description>[ Fixes #<issue-number>]
 ```
 
 Replace the following:
@@ -208,8 +211,13 @@ Type can be one of the following:
 * **test**: Adding or updating tests only. Please note, **feat** and **fix** PRs should have related tests too.
 * **refactor**: A code change that neither fixes a bug nor adds a feature.
 * **perf**: A code change that improves performance.
+* **security**: A security fix.
+* **deprecate**: An explicit deprecation (`deprecated` and `deprecation` are also accepted).
+* **style**: Formatting changes that do not affect behavior.
+* **build**: Changes to build tooling or dependencies.
+* **revert**: Reverting an earlier change.
 
-Note, only feature, fix and perf type PRs will be included in CHANGELOG, because they are user facing.
+See the [release-note policy](#release-note-policy) for which changes appear in generated notes.
 
 If you think the PR contains multiple types, you can choose the major one or
 split the PR to focused sub-PRs.
@@ -224,7 +232,7 @@ Scope is optional, it can be one of the following:
 * **frontend**: user interface or frontend server related, folder `frontend`, `frontend/server`
 * **backend**: Backend, folder `backend`
 * **sdk**: `kfp` python package, folder `sdk`
-* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2beta1/python_http_client`
+* **sdk/client**: `kfp-server-api` python package, folder `backend/api/v2/python_http_client`
 * **components**: Pipeline components, folder `components`
 * **deployment**: Kustomize or gcp marketplace manifests, folder `manifests`
 * **metadata**: Related to machine learning metadata (MLMD), folder `backend/metadata_writer`
@@ -239,6 +247,49 @@ usually have different reviewers.
 
 If you are not sure, or the PR doesn't fit into above scopes. You can either
 omit the scope because it's optional, or propose an additional scope here.
+
+## Release-note policy
+
+The detailed changelog and generated release notes follow the same inclusion rules:
+
+* Include user-facing `feat`, `fix`, and `perf` changes.
+* Include breaking changes regardless of type. Mark them with `!` after the type
+  or scope, such as `refactor(sdk)!: remove the legacy compiler`, or a
+  `BREAKING CHANGE:` / `BREAKING-CHANGE:` footer in the final commit body.
+* Include explicit deprecations (`deprecate`, `deprecated`, or `deprecation`
+  type/scope, or a `DEPRECATED:` / `DEPRECATION:` footer) and security changes
+  (`security` type or `security` / `cve` scope), even when they are maintenance work.
+* Omit routine `chore`, `test`, `ci`, `build`, `docs`, and non-breaking `refactor`
+  changes unless they meet one of the breaking, security, or deprecation rules above.
+  For example, use `chore(security): update a vulnerable runtime dependency` to
+  retain a security update; a routine dependency refresh can remain `chore(deps)`.
+
+Complete the PR template's user-impact field with the affected components, the
+behavior before and after the change, and any required migration steps. A PR body
+alone is not a release-note inclusion signal: preserve the conventional title and
+any breaking-change footer in the final squash commit. Generated notes retain
+breaking-change and deprecation footer paragraphs, including migration guidance.
+Use `deprecate(sdk): ...`
+for an explicit deprecation instead of relying on the word appearing in prose.
+
+Scopes identify affected components. SDK scopes include `sdk`, `sdk/client`,
+`kfp`, `kfp-server-api`, and `kfp-kubernetes`. Shared API and pipeline-spec scopes
+(`api`, `pipeline-spec`, `kfp-pipeline-spec`) appear in both streams. For a change
+that affects multiple components, use comma-separated scopes (for example,
+`fix(sdk,backend): preserve optional input values`) or describe each impact in
+the curated notes. Aliases are normalized for display and routing: `deployment` becomes `manifests`,
+`cache` and `metadata` become `backend/cache` and `backend/metadata`, `swf` becomes
+`backend/scheduled-workflow`, and `viewer` becomes `frontend/viewer`. These scopes
+appear in backend notes, not SDK-only notes. Unscoped or entirely unrecognized
+scopes appear only in backend notes; SDK notes require an SDK or shared scope. Release tooling fixes with user impact remain `fix(release)`; do not hide them as housekeeping.
+
+Keep detailed SDK migration instructions under `Current Version (in development)`
+in [sdk/RELEASE.md](sdk/RELEASE.md). Release preparation preserves that handwritten
+text and appends generated entries separately. Maintainers then review the
+[Markdown preview](release/README.md#review-release-notes-before-publishing),
+remove duplicates, summarize highlights and upgrade actions, and omit empty
+sections before publishing. Generated commit lists complement the curated
+explanation of what users need to do.
 
 ## Adding Kubernetes Enhancement Proposals (KEPs)
 
