@@ -12,10 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import tempfile
 import unittest
 
-from kfp import dsl
-from kfp.dsl import for_loop, pipeline_context, tasks_group
+from kfp import compiler, dsl
+from kfp.dsl import (
+    Artifact,
+    Input,
+    Output,
+    for_loop,
+    pipeline_context,
+    tasks_group,
+)
 
 
 class ParallelForTest(unittest.TestCase):
@@ -87,3 +96,68 @@ class TestConditionDeprecated(unittest.TestCase):
             ):
                 with dsl.Condition(string == 'text'):
                     foo()
+
+
+class ExitHandlerTest(unittest.TestCase):
+    def test_exit_task_with_upstream_artifact_raises(self):
+        """Tests that an exit task cannot depend on an upstream artifact."""
+
+        @dsl.component
+        def producer(a: Output[Artifact]):
+            pass
+
+        @dsl.component
+        def exit_comp(a: Input[Artifact]):
+            pass
+
+        with self.assertRaisesRegex(
+            ValueError, r'exit_task cannot depend on any other tasks\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                t1 = producer()
+                exit_task = exit_comp(a=t1.outputs['a'])
+                with dsl.ExitHandler(exit_task):
+                    pass
+
+    def test_exit_task_with_upstream_parameter_raises(self):
+        """Tests that an exit task cannot depend on an upstream parameter."""
+
+        @dsl.component
+        def producer() -> str:
+            return 'out'
+
+        @dsl.component
+        def exit_comp(param: str):
+            pass
+
+        with self.assertRaisesRegex(
+            ValueError, r'exit_task cannot depend on any other tasks\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                t1 = producer()
+                exit_task = exit_comp(param=t1.output)
+                with dsl.ExitHandler(exit_task):
+                    pass
+
+    def test_exit_task_with_pipeline_inputs_allowed(self):
+        """Tests that an exit task can consume pipeline-level inputs."""
+
+        @dsl.component
+        def exit_comp(param: str, art: Input[Artifact]):
+            pass
+
+        @dsl.pipeline
+        def my_pipeline(p: str, a: Input[Artifact]):
+            exit_task = exit_comp(param=p, art=a)
+            with dsl.ExitHandler(exit_task):
+                pass
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )

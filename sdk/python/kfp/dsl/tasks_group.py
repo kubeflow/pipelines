@@ -19,7 +19,6 @@ import warnings
 from typing import List, Optional, Union
 
 from kfp.dsl import for_loop, pipeline_channel, pipeline_context, pipeline_task
-from kfp.dsl.pipeline_channel import PipelineParameterChannel
 
 
 class TasksGroupType(str, enum.Enum):
@@ -152,7 +151,7 @@ class ExitHandler(TasksGroup):
 
         for task_input in self.exit_task.inputs.values():
             if (
-                isinstance(task_input, PipelineParameterChannel)
+                isinstance(task_input, pipeline_channel.PipelineChannel)
                 and task_input.task is not None
             ):
                 return True
