@@ -745,9 +745,57 @@ preserving a separate safe workspace description. The retention model is not dec
 Should the [on-demand GC](#on-demand-garbage-collection) reconciliation also run periodically?
 Whether automatic collection runs inside a worker or as a separate scheduled process remains open.
 
+## Implementation Plan
+
+### Phase 1 Milestones
+
+Establish local blob storage, then deliver Docker execution before subprocess support. Execution
+milestones support source-based startup and the existing SDK and UI; polished CLI integration and
+wheels remain in Phase 2. Unsupported features are rejected synchronously, not silently degraded.
+
+1. **Local blob storage**
+   - Filesystem-backed implementation of the existing object-store abstraction with `file://`
+     pipeline roots.
+   - **Acceptance:** write and retrieve artifact and log blobs across restarts without an external
+     object store.
+2. **Single-task Docker runs**
+   - SQLite, an embedded worker, and the Docker executor.
+   - Retained logs in local blob storage.
+   - Submission, status, parameter outputs, and live and retained logs.
+   - **Acceptance:** submit a single-task pipeline and inspect its result and locally retained logs
+     in the UI, without an external object store or external database.
+3. **Artifact-backed DAGs**
+   - Dependencies, concurrent tasks, and parallelism limits.
+   - Artifact staging and publication through local blob storage with `file://` pipeline roots.
+   - Artifact previews and downloads.
+   - **Acceptance:** run preprocessing, training, and evaluation components in different images and
+     inspect their exchanged artifacts.
+4. **Full orchestration semantics**
+   - Conditions, loops, nested DAGs, and exit handling.
+   - Caching and retry policies.
+   - **Acceptance:** run a parameter sweep with conditional evaluation and a deliberate retry, then
+     verify cache reuse on a second run.
+5. **Subprocess execution**
+   - Isolated per-attempt Python environments.
+   - **Acceptance:** run a compatible pipeline through both executors and verify common
+     orchestration and artifact contracts.
+6. **Shared workspaces**
+   - Host-directory provisioner for both executors.
+   - **Acceptance:** run tasks that exchange files through a shared workspace with each executor and
+     verify workspace lifecycle and cleanup.
+7. **Restart-safe local operation**
+   - Docker recovery, cleanup retries, on-demand GC, and deletion guards.
+   - Independent-worker layout.
+   - Explicit interrupted-attempt behavior for subprocess, without unsafe replay.
+   - **Acceptance:** interrupt the worker during execution, recover the same Docker attempt after
+     restart, and clean up retained resources without losing logs or artifacts.
+
 ## Test Plan
 
 ### Phase 1
+
+Exercise each [implementation milestone's](#phase-1-milestones) acceptance scenario as an end-to-end
+test, in addition to the following coverage:
 
 1. Verify both executors' pipeline semantics, caching, retries, artifacts, and logs.
 2. Verify synchronous submission errors for unsupported requirements, UI display, and worker
