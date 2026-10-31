@@ -10,7 +10,7 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -37,10 +37,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   build:
     # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
     if: ${{ false }}
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
@@ -57,13 +63,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: 3.11
 

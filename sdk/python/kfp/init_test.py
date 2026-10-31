@@ -12,34 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import runpy
 import sys
 import unittest
+from pathlib import Path
 from unittest import mock
 
 
 class TestPythonMinimum(unittest.TestCase):
-
     def test_unsupported_python_fails_before_dependency_imports(self):
         for version in ((3, 9, 25), (3, 10, 19)):
             for runtime in ('false', 'true'):
                 with self.subTest(version=version, runtime=runtime):
-                    with mock.patch.object(sys, 'version_info', version), \
-                            mock.patch.dict('os.environ', {'_KFP_RUNTIME': runtime}):
+                    with (
+                        mock.patch.object(sys, 'version_info', version),
+                        mock.patch.dict(
+                            'os.environ', {'_KFP_RUNTIME': runtime}
+                        ),
+                    ):
                         with self.assertRaisesRegex(
-                                RuntimeError,
-                                'KFP requires Python 3.11 or later'):
+                            RuntimeError, 'KFP requires Python 3.11 or later'
+                        ):
                             runpy.run_path(
                                 str(Path(__file__).with_name('__init__.py')),
-                                init_globals={'__path__': []})
+                                init_globals={'__path__': []},
+                            )
 
     def test_supported_python_runtime_import_needs_no_dependencies(self):
-        with mock.patch.object(sys, 'version_info', (3, 11, 0)), \
-                mock.patch.dict('os.environ', {'_KFP_RUNTIME': 'true'}):
+        with (
+            mock.patch.object(sys, 'version_info', (3, 11, 0)),
+            mock.patch.dict('os.environ', {'_KFP_RUNTIME': 'true'}),
+        ):
             namespace = runpy.run_path(
                 str(Path(__file__).with_name('__init__.py')),
-                init_globals={'__path__': []})
+                init_globals={'__path__': []},
+            )
         self.assertTrue(namespace['TYPE_CHECK'])
 
 

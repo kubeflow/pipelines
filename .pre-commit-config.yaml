@@ -1,4 +1,4 @@
-exclude: ^(backend/api/(v2|v2beta1)/python_http_client/|sdk/python/kfp/server_api/|sdk/python/kfp/(pipeline_spec/pipeline_spec|kubernetes/kubernetes_executor_config)_pb2\.py$)
+exclude: (^backend/api/(v2|v2beta1)/python_http_client/|^sdk/python/kfp/server_api/|^components/google-cloud/|_pb2\.py$)
 
 repos:
   # other fast helpful checks
@@ -9,49 +9,19 @@ repos:
         args: [--allow-multiple-documents]
       - id: check-json
       - id: end-of-file-fixer
+        # Preserve Vite's emitted bytes, including third-party template strings.
+        exclude: ^sdk/python/kfp/cli/viewer_assets/viewer\.(js|css)$
       - id: trailing-whitespace
-        # Snapshot whitespace represents rendered text and is owned by Vitest.
-        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$)
+        # Snapshots and bundled strings are owned by their generators.
+        exclude: (^manifests/gcp_marketplace/test/|^frontend/.*\.snap$|^sdk/python/kfp/cli/viewer_assets/viewer\.(js|css)$)
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
       - id: no-commit-to-branch
-        args: [--branch, master]
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.4.1
-    hooks:
-      - id: flake8
-        args:
-          - --select=W605
-  # required formatting jobs (run these last)
-
-  # add comment "noqa" to ignore an import that should not be removed
-  # (e.g., for an import with desired side-effects)
-  - repo: https://github.com/hadialqattan/pycln
-    rev: v2.6.0
-    hooks:
-      - id: pycln
-        name: pycln
-        language: python
-        entry: pycln --all
-        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
-  - repo: local
-    hooks:
-      - id: isort
-        name: isort
-        entry: uv run --frozen --extra lint isort --profile google
-        language: system
-        require_serial: true
-        types_or: [cython, pyi, python]
-        args: ['--filter-files']
-        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
-  - repo: https://github.com/google/yapf
-    rev: "v0.43.0"
-    hooks:
-      - id: yapf
-        exclude: ^sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2\.py$
+        args: [--branch, master, --branch, main]
+  # Format docstring prose before Ruff applies the final Python layout.
   - repo: https://github.com/pycqa/docformatter
-    # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
+    # v1.7.8 has continuation and blank-line tokenization regressions.
     rev: v1.7.7
     hooks:
       - id: docformatter
@@ -61,6 +31,32 @@ repos:
         # docformatter messes up certain sphinx link formatting.
         # The kubernetes_platform/python docstrings are heavy on links, so ignore.
         exclude: (sdk/python/kfp/compiler/compiler_test.py|sdk/python/kfp/kubernetes/|kubernetes_platform/python/)
+
+  - repo: local
+    hooks:
+      - id: sdk-viewer-assets
+        name: Rebuild SDK viewer assets (run npm ci in frontend first)
+        entry: npm --prefix frontend run build:viewer
+        language: system
+        files: ^(frontend/|sdk/python/kfp/cli/viewer_assets/|\.pre-commit-config\.yaml$|\.github/workflows/pre-commit\.yml$)
+        pass_filenames: false
+        require_serial: true
+      - id: ruff-check
+        name: ruff check
+        # The lint extra pins docformatter, whose untokenize dependency cannot
+        # build on Python >= 3.12, so pin the lint env to Python 3.11. The
+        # --isolated flag keeps this from repinning the project's .venv.
+        entry: uv run --python 3.11 --isolated --frozen --extra lint ruff check
+        language: system
+        args: [--fix]
+        require_serial: true
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --python 3.11 --isolated --frozen --extra lint ruff format
+        language: system
+        require_serial: true
+        types_or: [python, pyi]
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint

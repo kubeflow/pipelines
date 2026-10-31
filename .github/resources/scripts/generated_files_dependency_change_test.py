@@ -14,11 +14,13 @@
 # limitations under the License.
 """Tests for generated-file dependency change detection."""
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
-from generated_files_dependency_change import module_version
-from generated_files_dependency_change import requires_validation
+from generated_files_dependency_change import (
+    module_version,
+    requires_validation,
+)
 
 ROOT_BASE = """require (
     github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
@@ -26,7 +28,7 @@ ROOT_BASE = """require (
     google.golang.org/protobuf v1.36.11
 )
 """
-TOOLS_BASE = "require github.com/go-swagger/go-swagger v0.32.3\n"
+TOOLS_BASE = 'require github.com/go-swagger/go-swagger v0.32.3\n'
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -38,11 +40,11 @@ def manifests(root: str = ROOT_BASE, tools: str = TOOLS_BASE) -> dict[str, str]:
 
 
 class GeneratedFilesDependencyChangeTest(unittest.TestCase):
-
     def test_module_version_reads_require_block(self):
         self.assertEqual(
-            module_version(ROOT_BASE,
-                           'github.com/grpc-ecosystem/grpc-gateway/v2'),
+            module_version(
+                ROOT_BASE, 'github.com/grpc-ecosystem/grpc-gateway/v2'
+            ),
             'v2.29.0',
         )
 
@@ -58,8 +60,10 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
     def test_runtime_coupled_generator_update_requires_validation(self):
         updated = ROOT_BASE.replace('v2.29.0', 'v2.30.0')
         self.assertTrue(
-            requires_validation(['go.mod', 'go.sum'], manifests(),
-                                manifests(root=updated)))
+            requires_validation(
+                ['go.mod', 'go.sum'], manifests(), manifests(root=updated)
+            )
+        )
 
     def test_standalone_generator_update_requires_validation(self):
         updated = TOOLS_BASE.replace('v0.32.3', 'v0.33.0')
@@ -68,41 +72,45 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
                 ['backend/api/tools/go.mod'],
                 manifests(),
                 manifests(tools=updated),
-            ))
+            )
+        )
 
     def test_existing_generator_input_requires_validation(self):
         self.assertTrue(
-            requires_validation(['backend/api/v2/run.proto'], manifests(),
-                                manifests()))
-
-    def test_generator_version_sources_are_wired_to_automation(self):
-        tools_manifest = (REPOSITORY_ROOT /
-                          'backend/api/tools/go.mod').read_text(
-                              encoding='utf-8')
-        self.assertIn(
-            'tool github.com/go-swagger/go-swagger/cmd/swagger',
-            tools_manifest.splitlines(),
+            requires_validation(
+                ['backend/api/v2/run.proto'], manifests(), manifests()
+            )
         )
 
-        dockerfile = (REPOSITORY_ROOT /
-                      'backend/api/Dockerfile').read_text(encoding='utf-8')
+    def test_generator_version_sources_are_wired_to_automation(self):
+        tools_manifest = (
+            REPOSITORY_ROOT / 'backend/api/tools/go.mod'
+        ).read_text(encoding='utf-8')
+        self.assertIn(
+            'github.com/go-swagger/go-swagger/cmd/swagger',
+            [line.strip() for line in tools_manifest.splitlines()],
+        )
+
+        dockerfile = (REPOSITORY_ROOT / 'backend/api/Dockerfile').read_text(
+            encoding='utf-8'
+        )
         for removed_pin in (
-                'GRPC_GATEWAY_VERSION',
-                'GO_SWAGGER_VERSION',
-                'GRPC_VERSION',
-                'PROTOC_GEN_GO_GRPC',
-                'PROTOBUF_GO',
+            'GRPC_GATEWAY_VERSION',
+            'GO_SWAGGER_VERSION',
+            'GRPC_VERSION',
+            'PROTOC_GEN_GO_GRPC',
+            'PROTOBUF_GO',
         ):
             self.assertNotIn(f'ENV {removed_pin}=', dockerfile)
         self.assertIn('COPY go.mod /tmp/kfp-module/go.mod', dockerfile)
         self.assertIn(
-            'COPY backend/api/tools/go.mod '
-            '/tmp/api-generator-tools/go.mod',
+            'COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod',
             dockerfile,
         )
 
-        dependabot = (REPOSITORY_ROOT /
-                      '.github/dependabot.yml').read_text(encoding='utf-8')
+        dependabot = (REPOSITORY_ROOT / '.github/dependabot.yml').read_text(
+            encoding='utf-8'
+        )
         self.assertRegex(
             dependabot,
             r'(?ms)^  - package-ecosystem: gomod\n'
@@ -110,15 +118,17 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
             r'^    directories:\n      - "\*\*/\*"$',
         )
 
-        makefile = (REPOSITORY_ROOT /
-                    'backend/api/Makefile').read_text(encoding='utf-8')
-        self.assertIn('.image-built: Dockerfile ../../go.mod tools/go.mod',
-                      makefile)
+        makefile = (REPOSITORY_ROOT / 'backend/api/Makefile').read_text(
+            encoding='utf-8'
+        )
+        self.assertIn(
+            '.image-built: Dockerfile ../../go.mod tools/go.mod', makefile
+        )
 
     def test_workflow_runs_detector_and_preserves_required_check(self):
-        workflow = (REPOSITORY_ROOT /
-                    '.github/workflows/validate-generated-files.yml').read_text(
-                        encoding='utf-8')
+        workflow = (
+            REPOSITORY_ROOT / '.github/workflows/validate-generated-files.yml'
+        ).read_text(encoding='utf-8')
         self.assertIn("- 'go.mod'", workflow)
         self.assertIn("- 'backend/api/hack/**'", workflow)
         self.assertIn(
@@ -131,9 +141,8 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
         self.assertIn('validate-generated-files:', workflow)
 
         ci_scripts_workflow = (
-            REPOSITORY_ROOT /
-            '.github/workflows/ci-scripts-tests.yml').read_text(
-                encoding='utf-8')
+            REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
+        ).read_text(encoding='utf-8')
         self.assertIn(
             "- '.github/workflows/validate-generated-files.yml'",
             ci_scripts_workflow,

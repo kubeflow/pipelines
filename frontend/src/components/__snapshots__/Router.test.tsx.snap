@@ -7,7 +7,7 @@ exports[`Router > initial render 1`] = `
   >
     <div
       class="flexGrow_fr87ocy"
-      style="min-height: 0;"
+      style="min-height: 0px;"
     >
       <div
         class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
@@ -15,7 +15,7 @@ exports[`Router > initial render 1`] = `
         id="sideNav"
       >
         <div
-          style="flex-grow: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; position: relative;"
+          style="flex-grow: 1; min-height: 0px; overflow-x: hidden; overflow-y: auto; position: relative;"
         >
           <div
             class="indicator_f1itm870 indicatorHidden_fnu5k6u"

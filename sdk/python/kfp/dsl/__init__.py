@@ -49,20 +49,24 @@ import os
 from kfp.dsl.notebook_helpers import run_notebook
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
-from kfp.dsl.types.artifact_types import Artifact
-from kfp.dsl.types.artifact_types import ClassificationMetrics
-from kfp.dsl.types.artifact_types import Dataset
-from kfp.dsl.types.artifact_types import get_uri
-from kfp.dsl.types.artifact_types import HTML
-from kfp.dsl.types.artifact_types import Markdown
-from kfp.dsl.types.artifact_types import Metrics
-from kfp.dsl.types.artifact_types import Model
-from kfp.dsl.types.artifact_types import SlicedClassificationMetrics
-from kfp.dsl.types.type_annotations import EmbeddedAnnotation
-from kfp.dsl.types.type_annotations import InputAnnotation
-from kfp.dsl.types.type_annotations import InputPath
-from kfp.dsl.types.type_annotations import OutputAnnotation
-from kfp.dsl.types.type_annotations import OutputPath
+from kfp.dsl.types.artifact_types import (
+    HTML,
+    Artifact,
+    ClassificationMetrics,
+    Dataset,
+    Markdown,
+    Metrics,
+    Model,
+    SlicedClassificationMetrics,
+    get_uri,
+)
+from kfp.dsl.types.type_annotations import (
+    EmbeddedAnnotation,
+    InputAnnotation,
+    InputPath,
+    OutputAnnotation,
+    OutputPath,
+)
 
 try:
     from typing import Annotated
@@ -203,7 +207,9 @@ Example:
             value=dsl.PIPELINE_JOB_CREATE_TIME_UTC,
         )
 """
-PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER = '{{$.pipeline_job_schedule_time_utc}}'
+PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER = (
+    '{{$.pipeline_job_schedule_time_utc}}'
+)
 """A placeholder used to obtain the time for which a pipeline job is scheduled.
 
 Example:
@@ -297,33 +303,58 @@ Example:
 # compile-time only dependencies
 if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.component_decorator import component
-    from kfp.dsl.component_task_config import TaskConfigField
-    from kfp.dsl.component_task_config import TaskConfigPassthrough
+    from kfp.dsl.component_task_config import (
+        TaskConfigField,
+        TaskConfigPassthrough,
+    )
     from kfp.dsl.container_component_decorator import container_component
+
     # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
     from kfp.dsl.notebook_component_decorator import notebook_component
     from kfp.dsl.pipeline_channel import OneOf
-    from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
-    from kfp.dsl.pipeline_config import PipelineConfig
-    from kfp.dsl.pipeline_config import WorkspaceConfig
+    from kfp.dsl.pipeline_config import (
+        KubernetesWorkspaceConfig,
+        PipelineConfig,
+        WorkspaceConfig,
+    )
     from kfp.dsl.pipeline_context import pipeline
     from kfp.dsl.pipeline_task import PipelineTask
-    from kfp.dsl.placeholders import ConcatPlaceholder
-    from kfp.dsl.placeholders import IfPresentPlaceholder
+    from kfp.dsl.placeholders import ConcatPlaceholder, IfPresentPlaceholder
     from kfp.dsl.structures import ContainerSpec
-    from kfp.dsl.tasks_group import Condition
-    from kfp.dsl.tasks_group import Elif
-    from kfp.dsl.tasks_group import Else
-    from kfp.dsl.tasks_group import ExitHandler
-    from kfp.dsl.tasks_group import If
-    from kfp.dsl.tasks_group import ParallelFor
-    __all__.extend([
-        'component', 'container_component', 'pipeline', 'importer',
-        'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
-        'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
-        'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
-        'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
-        'TaskConfigPassthrough', 'notebook_component'
-    ])
+    from kfp.dsl.tasks_group import (
+        Condition,
+        Elif,
+        Else,
+        ExitHandler,
+        If,
+        ParallelFor,
+    )
+
+    __all__.extend(
+        [
+            'component',
+            'container_component',
+            'pipeline',
+            'importer',
+            'ContainerSpec',
+            'Condition',
+            'If',
+            'Elif',
+            'Else',
+            'OneOf',
+            'ExitHandler',
+            'ParallelFor',
+            'Collected',
+            'IfPresentPlaceholder',
+            'ConcatPlaceholder',
+            'PipelineTask',
+            'PipelineConfig',
+            'WorkspaceConfig',
+            'KubernetesWorkspaceConfig',
+            'TaskConfigField',
+            'TaskConfigPassthrough',
+            'notebook_component',
+        ]
+    )

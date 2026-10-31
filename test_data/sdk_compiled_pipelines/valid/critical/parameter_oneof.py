@@ -1,17 +1,20 @@
 import os
 
-from kfp import Client
-from kfp import dsl
+from kfp import Client, dsl
+
 
 @dsl.component
 def flip_coin() -> str:
     import random
+
     return 'heads' if random.randint(0, 1) == 0 else 'tails'
+
 
 @dsl.component
 def core_comp(input: str) -> str:
     print('input :', input)
     return input
+
 
 @dsl.component
 def core_output_comp(input: str, output_key: dsl.OutputPath(str)):
@@ -19,9 +22,11 @@ def core_output_comp(input: str, output_key: dsl.OutputPath(str)):
     with open(output_key, 'w') as f:
         f.write(input)
 
+
 @dsl.component
 def crust_comp(input: str):
     print('input :', input)
+
 
 @dsl.pipeline
 def core() -> str:
@@ -32,12 +37,14 @@ def core() -> str:
         t2 = core_output_comp(input='Got tails!').set_caching_options(False)
     return dsl.OneOf(t1.output, t2.outputs['output_key'])
 
+
 @dsl.pipeline
 def mantle() -> str:
     dag_task = core()
     dag_task.set_caching_options(False)
 
     return dag_task.output
+
 
 @dsl.pipeline(name=os.path.basename(__file__).removesuffix('.py') + '-pipeline')
 def crust():

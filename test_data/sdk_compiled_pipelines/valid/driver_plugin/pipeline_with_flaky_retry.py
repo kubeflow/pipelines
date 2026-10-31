@@ -23,13 +23,13 @@ succeeds when the retry attempt's output flowed downstream.
 Used by backend/test/end2end/driver_plugin_e2e_test.go.
 """
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
 def flaky_add(a: float, b: float) -> float:
     import os
+
     attempt = int(os.environ.get('KFP_RETRY_INDEX') or '0')
     print(f'attempt index {attempt}')
     if attempt == 0:
@@ -55,5 +55,5 @@ def my_pipeline(a: float = 1, b: float = 7):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

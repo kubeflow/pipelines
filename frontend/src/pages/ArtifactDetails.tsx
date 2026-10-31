@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Link, Route, Routes } from 'react-router';
@@ -42,6 +42,7 @@ import {
 } from 'src/lib/v2/ArtifactTaskUtils';
 import {
   getArtifactTypeName,
+  hasArtifactContentPreview,
   isLegacyUiMetadataArtifact,
   isVisualizableArtifact,
   LEGACY_UI_METADATA_ARTIFACT_KEYS,
@@ -221,6 +222,9 @@ function ArtifactOverview({
   refreshGeneration: number;
 }) {
   const [mountedAt] = React.useState(() => Date.now());
+  const [openedPreviewId, setOpenedPreviewId] = React.useState<string>();
+  const hasContentPreview = hasArtifactContentPreview(artifact);
+  const contentPreviewOpen = !!artifact.artifact_id && openedPreviewId === artifact.artifact_id;
   const directlyVisualizable = isVisualizableArtifact(artifact);
   const shouldLookUpLegacyKey =
     !directlyVisualizable &&
@@ -311,11 +315,26 @@ function ArtifactOverview({
           />
         )}
         {(directlyVisualizable || legacyArtifactKey) && (
-          <RuntimeMetricsVisualizations
-            artifacts={[artifact]}
-            artifactKey={legacyArtifactKey}
-            namespace={artifact.namespace}
-          />
+          <>
+            {hasContentPreview && (
+              <Button
+                size='small'
+                aria-expanded={contentPreviewOpen}
+                onClick={() =>
+                  setOpenedPreviewId(contentPreviewOpen ? undefined : artifact.artifact_id)
+                }
+              >
+                {contentPreviewOpen ? 'Hide artifact visualization' : 'Show artifact visualization'}
+              </Button>
+            )}
+            <RuntimeMetricsVisualizations
+              artifacts={[artifact]}
+              artifactKey={legacyArtifactKey}
+              namespace={artifact.namespace}
+              active={!hasContentPreview || contentPreviewOpen}
+              refreshGeneration={refreshGeneration}
+            />
+          </>
         )}
       </div>
     </>

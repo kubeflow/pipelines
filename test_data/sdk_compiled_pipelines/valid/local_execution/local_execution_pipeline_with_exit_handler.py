@@ -18,8 +18,8 @@ On success the body task runs, and the exit task runs with
 `state='SUCCEEDED'`. The pipeline has no output because KFP rejects
 returning a value from inside an ExitHandler.
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 from kfp.dsl import PipelineTaskFinalStatus
 
 

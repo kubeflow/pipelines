@@ -38,6 +38,104 @@ upgrading. Update direct imports of `kfp_server_api` to `kfp.server_api`;
 explicitly require the retired distributions must also be migrated; use a fresh
 environment if other applications still need the split SDK.
 
+## Preview pipelines locally
+
+`kfp visualize` reads Python (`.py`) or compiled KFP v2 specifications
+(`.yaml`, `.yml`, `.json`), without a cluster or server credentials:
+
+```sh
+# Offline, interactive React Flow HTML (defaults to pipeline.html).
+kfp visualize pipeline.py
+
+# Select a function when a Python file defines multiple pipelines.
+kfp visualize pipeline.py --function training -o training.html
+
+# Mermaid diagrams in Markdown; the output extension selects the format.
+kfp visualize pipeline.yaml -o pipeline.md
+# Equivalent: kfp visualize pipeline.yaml --format markdown
+
+# Regenerate HTML on saved changes, without starting a server.
+kfp visualize pipeline.py -w
+
+# Regenerate Markdown for an editor or third-party Mermaid viewer.
+kfp visualize pipeline.py --format markdown -w
+
+# Compile once per change and update both pipeline.html and pipeline.md.
+kfp visualize pipeline.py --format both -w
+# Choose another output stem: report.html and report.md.
+kfp visualize pipeline.py --format both -o report -w
+
+# Serve a live preview and automatically open it in the default browser.
+kfp visualize pipeline.py --format both -w -s
+
+# Serve and open a snapshot without watching for edits.
+kfp visualize pipeline.py -s
+
+# Serve without launching a browser (useful on remote/headless machines).
+kfp visualize pipeline.py -w -s --no-open
+# Short form: kfp visualize pipeline.py -w -s -n
+```
+
+`--format` accepts `html`, `both`, or `markdown`, defaulting to HTML. When
+`--format` is omitted, an explicit `.html` or `.md` output path selects the
+format. With `both`, `-o report`, `-o report.html`, and `-o report.md` all produce
+`report.html` and `report.md`. Both artifacts are rendered and staged before
+either destination is replaced. Each replacement is atomic, but the pair is
+not a filesystem transaction.
+
+HTML exports include JavaScript, styles, data, and third-party licenses: they
+work offline, including in HTML previewers that permit JavaScript. They contain
+the same graph canvas, task/artifact cards, inline DAG expansion, controls, and
+node inspector as the KFP pipeline UI. Markdown exports contain one Mermaid
+task-dependency diagram per DAG and need a Mermaid-aware renderer. Both show
+static dependencies, including parameter/artifact inputs and explicit ordering;
+loops are not unrolled, and no runtime execution status is shown. Legacy Argo
+Workflow YAML and standalone component specs are not supported. Compiler multi-document YAML and Kubernetes `PipelineVersion`
+manifests are supported. JSON files use JSON parsing to preserve Unicode and
+numeric constants.
+
+HTML validates reusable DAG definitions once and keeps the spec compact.
+Markdown expands instance paths, with a limit of 10,000 DAGs, tasks, and
+dependency edges in total; use HTML for pipelines that exceed this limit.
+Missing/empty task display names and incomplete task-output or final-status
+producer references are rejected before replacing an export. All formats require
+a `deploymentSpec` field so their validated state can also be served by the shared
+KFP graph/inspector; an explicit empty object is supported. Removing the field
+or a producer name during an edit preserves the previous exports and preview.
+
+`-w` is a short alias for `--watch`. Watching only updates files; it never
+starts a server unless `--serve` / `-s` is also supplied. Watch mode observes
+**saved files**, not unsaved editor buffers. Python inputs are recompiled in a
+fresh process after changes to `.py` files beneath the
+input's directory (excluding hidden directories, `venv`, `node_modules`, and
+`__pycache__`). Imports outside that directory and non-Python configuration files
+are not watched. YAML/JSON inputs watch only the input file. Compilation has a
+60-second timeout. Compilation, rendering, or staging failures preserve the
+last successful exports and print the error; the live HTML viewer also displays
+it and recovers on the next valid change. Third-party HTML/Markdown viewers
+control their own reload behavior.
+
+`--serve` / `-s` serves an HTML preview with any export format and opens the
+preview once in the default browser after the server starts. The launch attempt
+runs in the background, so a browser command that waits for its window to close
+does not block updates. Stopping the CLI does not wait for or close the browser.
+By itself it serves a snapshot; combine it with `--watch` / `-w` for live updates. Pass `--no-open` /
+`-n` to keep serving without launching a browser. The URL is always printed, and
+if automatic launch fails, serving continues with a warning so you can open it
+manually. Plain exports and watch-only commands never launch a browser.
+
+The server binds only to
+`127.0.0.1` on an automatically selected port and serves only the viewer and its
+graph data, not the workspace. Keep it private: the graph includes component
+specifications. A separately opened `.html` file is an offline snapshot, not a
+live connection. Remote environments require port forwarding to reach the
+printed URL; retain its `127.0.0.1:<port>` Host and token path. Stop with Ctrl+C.
+
+**Only compile trusted Python:** importing a pipeline executes its module-level
+code, including arbitrary side effects. The visualizer does not itself submit
+runs. Exported task/component specifications can contain source code or literal
+credentials; review them before sharing.
+
 ## Getting started
 
 The following is an example of a simple pipeline that uses the `kfp` v2 syntax:

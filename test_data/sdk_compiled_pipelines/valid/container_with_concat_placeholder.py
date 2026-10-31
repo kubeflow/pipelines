@@ -11,28 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.dsl import ConcatPlaceholder
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Dataset
-from kfp.dsl import Output
-from kfp.dsl import OutputPath
+from kfp.dsl import (
+    ConcatPlaceholder,
+    ContainerSpec,
+    Dataset,
+    Output,
+    OutputPath,
+    container_component,
+)
 
 
 @container_component
-def container_with_concat_placeholder(text1: str, text2: Output[Dataset],
-                                      output_path: OutputPath(str)):
+def container_with_concat_placeholder(
+    text1: str, text2: Output[Dataset], output_path: OutputPath(str)
+):
     return ContainerSpec(
         image='registry.access.redhat.com/ubi9/python-311:latest',
         command=[
             'my_program',
-            ConcatPlaceholder(['prefix-', text1, text2.uri])
+            ConcatPlaceholder(['prefix-', text1, text2.uri]),
         ],
-        args=['--output_path', output_path])
+        args=['--output_path', output_path],
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=container_with_concat_placeholder,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

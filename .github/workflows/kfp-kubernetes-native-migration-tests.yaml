@@ -2,7 +2,7 @@ name: KFP Kubernetes Native Migration Tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -23,8 +23,14 @@ on:
       - "!**/*.md"
       - "!**/OWNERS"
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/image-builds.yml
 
   kfp-kubernetes-native-migration-tests:
@@ -38,7 +44,9 @@ jobs:
     name: KFP Kubernetes Native Migration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Setup Python with uv
         uses: ./.github/actions/setup-python
@@ -181,7 +189,7 @@ jobs:
 
       - name: Collect test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: kfp-kubernetes-native-migration-tests-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*

@@ -2,7 +2,7 @@ name: KFP SDK Tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
     paths:
       - '**/pyproject.toml'
@@ -21,6 +21,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   sdk-tests:
     runs-on: ubuntu-latest
@@ -31,7 +34,9 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        persist-credentials: false
 
     - name: Setup Python with uv
       uses: ./.github/actions/setup-python

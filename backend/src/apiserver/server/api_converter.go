@@ -1839,6 +1839,17 @@ func toModelTask(apiTask *apiv2.PipelineTask) (*model.Task, error) {
 		lm := model.LargeText(apiTask.GetLifecycleMessage())
 		task.LifecycleMessage = &lm
 	}
+	if apiTask.LifecycleCategory != nil {
+		category := apiTask.GetLifecycleCategory()
+		if category != "" && apiTask.GetLifecycleMessage() == "" {
+			return nil, util.NewInvalidInputError("lifecycle_category requires a non-empty lifecycle_message")
+		}
+		task.LifecycleCategory = &category
+	} else if apiTask.LifecycleMessage != nil && apiTask.GetLifecycleMessage() == "" {
+		// Clearing the message clears the category with it.
+		cleared := ""
+		task.LifecycleCategory = &cleared
+	}
 
 	return task, nil
 }
@@ -2083,6 +2094,10 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 	if modelTask.LifecycleMessage != nil && *modelTask.LifecycleMessage != "" {
 		msg := string(*modelTask.LifecycleMessage)
 		apiTask.LifecycleMessage = &msg
+	}
+	if modelTask.LifecycleCategory != nil && *modelTask.LifecycleCategory != "" {
+		category := *modelTask.LifecycleCategory
+		apiTask.LifecycleCategory = &category
 	}
 
 	return apiTask, nil

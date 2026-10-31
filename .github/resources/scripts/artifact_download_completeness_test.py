@@ -15,22 +15,23 @@
 """Execute the composite action with local download outcomes and files."""
 
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
-from artifact_workflow_test_support import evaluate
-from artifact_workflow_test_support import render
 import yaml
+from artifact_workflow_test_support import evaluate, render
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 ACTION_DIRECTORY = (
-    REPOSITORY_ROOT / '.github/actions/download-artifact-with-retry')
+    REPOSITORY_ROOT / '.github/actions/download-artifact-with-retry'
+)
 ARTIFACT_FILES = REPOSITORY_ROOT / '.github/resources/scripts/artifact-files.sh'
 ACTION_FILE = Path(
-    os.environ.get('ARTIFACT_RETRY_ACTION', ACTION_DIRECTORY / 'action.yml'))
+    os.environ.get('ARTIFACT_RETRY_ACTION', ACTION_DIRECTORY / 'action.yml')
+)
 
 
 class CompositeAction:
@@ -83,8 +84,9 @@ class CompositeAction:
         }
 
     def evaluate(self, expression):
-        return evaluate(expression, self.expression_context(),
-                        self.status_functions())
+        return evaluate(
+            expression, self.expression_context(), self.status_functions()
+        )
 
     def render(self, value):
         return render(value, self.expression_context(), self.status_functions())
@@ -93,9 +95,10 @@ class CompositeAction:
         for index, step in enumerate(self.action['runs']['steps']):
             step_id = step.get('id', f'step-{index}')
             condition = str(step.get('if', 'success()'))
-            status_check = re.search(r'\b(always|cancelled|success|failure)\(',
-                                     condition)
-            enabled = (status_check or not self.failed and not self.cancelled)
+            status_check = re.search(
+                r'\b(always|cancelled|success|failure)\(', condition
+            )
+            enabled = status_check or not self.failed and not self.cancelled
             if not enabled or not self.evaluate(condition):
                 self.steps[step_id] = {'outcome': 'skipped'}
                 continue
@@ -125,19 +128,26 @@ class CompositeAction:
                 environment.pop('GITHUB_ACTION_PATH', None)
                 environment.pop('ACTION_PATH', None)
                 environment.pop('ARTIFACT_FILES', None)
-                environment.update({
-                    key: self.render(value)
-                    for key, value in step.get('env', {}).items()
-                })
+                environment.update(
+                    {
+                        key: self.render(value)
+                        for key, value in step.get('env', {}).items()
+                    }
+                )
                 with tempfile.TemporaryDirectory() as directory:
                     output = Path(directory) / 'github-output'
                     output.touch()
                     environment['GITHUB_OUTPUT'] = str(output)
                     result = subprocess.run(
                         [
-                            'bash', '--noprofile', '--norc', '-e', '-o',
-                            'pipefail', '-c',
-                            self.render(step['run'])
+                            'bash',
+                            '--noprofile',
+                            '--norc',
+                            '-e',
+                            '-o',
+                            'pipefail',
+                            '-c',
+                            self.render(step['run']),
                         ],
                         cwd=REPOSITORY_ROOT,
                         env=environment,
@@ -148,7 +158,8 @@ class CompositeAction:
                     # This action emits only single-line key=value outputs.
                     outputs.update(
                         line.split('=', 1)
-                        for line in output.read_text().splitlines())
+                        for line in output.read_text().splitlines()
+                    )
                 self.log += result.stdout + result.stderr
                 outcome = 'success' if result.returncode == 0 else 'failure'
             self.steps[step_id] = {'outcome': outcome, 'outputs': outputs}
@@ -156,8 +167,13 @@ class CompositeAction:
                 self.cancelled = True
             elif outcome == 'failure' and not step.get('continue-on-error'):
                 self.failed = True
-        return ('cancelled'
-                if self.cancelled else 'failure' if self.failed else 'success')
+        return (
+            'cancelled'
+            if self.cancelled
+            else 'failure'
+            if self.failed
+            else 'success'
+        )
 
 
 def download(outcome='success', files=None):
@@ -173,7 +189,6 @@ def download(outcome='success', files=None):
 
 
 class ArtifactDownloadCompletenessTest(unittest.TestCase):
-
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -190,8 +205,9 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         return runner, result
 
     def test_complete_first_attempt_does_not_retry(self):
-        runner, result = self.run_action([download(files=self.complete)],
-                                         self.required)
+        runner, result = self.run_action(
+            [download(files=self.complete)], self.required
+        )
         self.assertEqual(result, 'success', runner.log)
         self.assertEqual(runner.downloads, ['primary'])
         output = runner.action['outputs']['download-path']['value']
@@ -210,8 +226,9 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertEqual(received[0]['run-id'], '123')
 
     def test_rendered_download_inputs_preserve_literal_characters(self):
-        self.path = Path(
-            self.directory.name).resolve() / 'downloads with spaces'
+        self.path = (
+            Path(self.directory.name).resolve() / 'downloads with spaces'
+        )
         filename = 'archive with ! && || != and \'single\' "double" quotes.tar'
         received = []
 
@@ -222,19 +239,28 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
             return download(files={filename: 'image'})(path, inputs)
 
         runner = CompositeAction(self.path, [attempt, attempt], filename)
-        runner.inputs.update({
-            'pattern': '!*.dockerbuild',
-            'name': 'artifact ! && || != \'single\' "double" quotes',
-            'github-token': 'test-token!&&||!=',
-            'repository': 'owner/repository',
-            'run-id': '123',
-            'merge-multiple': 'true',
-        })
+        runner.inputs.update(
+            {
+                'pattern': '!*.dockerbuild',
+                'name': 'artifact ! && || != \'single\' "double" quotes',
+                'github-token': 'test-token!&&||!=',
+                'repository': 'owner/repository',
+                'run-id': '123',
+                'merge-multiple': 'true',
+            }
+        )
         self.assertEqual(runner.run(), 'success', runner.log)
         expected = {
             key: runner.inputs[key]
-            for key in ('name', 'path', 'pattern', 'merge-multiple',
-                        'github-token', 'repository', 'run-id')
+            for key in (
+                'name',
+                'path',
+                'pattern',
+                'merge-multiple',
+                'github-token',
+                'repository',
+                'run-id',
+            )
         }
         self.assertEqual(received, [expected, expected])
         self.assertTrue((self.path / filename).is_file())
@@ -248,24 +274,31 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertTrue(
             runner.evaluate(
                 "inputs.pattern == '! && || != ''quoted'' inputs.pattern' "
-                "&& !cancelled() && inputs.pattern != 'other'"))
+                "&& !cancelled() && inputs.pattern != 'other'"
+            )
+        )
 
     def test_successful_but_incomplete_download_retries(self):
-        runner, result = self.run_action([
-            download(files={'frontend/image.tar': 'partial'}),
-            download(files=self.complete),
-        ], self.required)
+        runner, result = self.run_action(
+            [
+                download(files={'frontend/image.tar': 'partial'}),
+                download(files=self.complete),
+            ],
+            self.required,
+        )
         self.assertEqual(runner.downloads, ['primary', 'retry'], runner.log)
         self.assertEqual(result, 'success', runner.log)
         self.assertEqual(runner.steps['verify-primary']['outcome'], 'success')
-        self.assertEqual(runner.steps['verify-primary']['outputs']['complete'],
-                         'false')
+        self.assertEqual(
+            runner.steps['verify-primary']['outputs']['complete'], 'false'
+        )
         self.assertNotIn('::warning::', runner.log)
         self.assertNotIn('::error::', runner.log)
 
     def test_missing_file_after_both_attempts_fails(self):
-        runner, result = self.run_action([download(), download()],
-                                         self.required)
+        runner, result = self.run_action(
+            [download(), download()], self.required
+        )
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
         self.assertIn('frontend/image.tar', runner.log)
@@ -273,26 +306,37 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         self.assertIn('after 2 attempt', runner.log)
 
     def test_transport_failure_retries(self):
-        runner, result = self.run_action([
-            download('failure', {'frontend/image.tar': 'partial'}),
-            download(files=self.complete),
-        ], self.required)
+        runner, result = self.run_action(
+            [
+                download('failure', {'frontend/image.tar': 'partial'}),
+                download(files=self.complete),
+            ],
+            self.required,
+        )
         self.assertEqual(result, 'success', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
 
     def test_failed_retry_with_complete_residue_cannot_pass(self):
-        runner, result = self.run_action([
-            download(files={'frontend/image.tar': 'partial'}),
-            download('failure', self.complete),
-        ], self.required)
+        runner, result = self.run_action(
+            [
+                download(files={'frontend/image.tar': 'partial'}),
+                download('failure', self.complete),
+            ],
+            self.required,
+        )
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
 
     def test_retry_cannot_combine_partial_attempts(self):
-        runner, result = self.run_action([
-            download(files={'frontend/image.tar': 'old partial'}),
-            download(files={'runtime-base-images/images.tar': 'new partial'}),
-        ], self.required)
+        runner, result = self.run_action(
+            [
+                download(files={'frontend/image.tar': 'old partial'}),
+                download(
+                    files={'runtime-base-images/images.tar': 'new partial'}
+                ),
+            ],
+            self.required,
+        )
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
 
@@ -300,8 +344,9 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
         download(files=self.complete)(self.path)
         unrelated = self.path / 'unrelated.txt'
         unrelated.write_text('keep')
-        runner, result = self.run_action([download(), download()],
-                                         self.required)
+        runner, result = self.run_action(
+            [download(), download()], self.required
+        )
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(unrelated.read_text(), 'keep')
 
@@ -325,7 +370,8 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
 
     def test_two_transport_failures_do_not_pass(self):
         runner, result = self.run_action(
-            [download('failure'), download('failure')], self.required)
+            [download('failure'), download('failure')], self.required
+        )
         self.assertEqual(result, 'failure', runner.log)
         self.assertEqual(runner.downloads, ['primary', 'retry'])
         self.assertIn('after 2 attempt', runner.log)
@@ -338,7 +384,8 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
 
         def incomplete_download(path, inputs):
             (path / 'runtime-base-images').symlink_to(
-                outside, target_is_directory=True)
+                outside, target_is_directory=True
+            )
             return 'failure'
 
         runner, result = self.run_action([incomplete_download], self.required)
@@ -364,22 +411,29 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
                         target.mkdir()
                     return 'success'
 
-                runner = CompositeAction(destination, [unsafe_download],
-                                         self.required)
+                runner = CompositeAction(
+                    destination, [unsafe_download], self.required
+                )
                 self.assertEqual(runner.run(), 'failure', runner.log)
                 self.assertEqual(runner.downloads, ['primary'])
-                self.assertEqual(runner.steps['verify-primary']['outcome'],
-                                 'failure')
-                self.assertNotIn('complete',
-                                 runner.steps['verify-primary']['outputs'])
+                self.assertEqual(
+                    runner.steps['verify-primary']['outcome'], 'failure'
+                )
+                self.assertNotIn(
+                    'complete', runner.steps['verify-primary']['outputs']
+                )
                 self.assertNotIn('retrying in', runner.log)
                 self.assertEqual(outside.read_text(), 'keep')
 
     def test_missing_verification_helper_is_fatal_without_retry(self):
-        runner = CompositeAction(self.path, [download(files=self.complete)],
-                                 self.required)
-        verifier = next(step for step in runner.action['runs']['steps']
-                        if step.get('id') == 'verify-primary')
+        runner = CompositeAction(
+            self.path, [download(files=self.complete)], self.required
+        )
+        verifier = next(
+            step
+            for step in runner.action['runs']['steps']
+            if step.get('id') == 'verify-primary'
+        )
         # Fault injection changes only helper availability, not retry logic.
         verifier['env']['ARTIFACT_FILES'] = str(self.path / 'missing-helper.sh')
         self.assertEqual(runner.run(), 'failure', runner.log)
@@ -409,7 +463,6 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
 
 
 class RequiredFilesSafetyTest(unittest.TestCase):
-
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -422,12 +475,11 @@ class RequiredFilesSafetyTest(unittest.TestCase):
             ['bash', str(ARTIFACT_FILES), mode],
             env={
                 **os.environ,
-                'DOWNLOAD_PATH':
-                    str(self.path if download_path is None else download_path),
-                'REQUIRED_FILES':
-                    required_files,
-                'GITHUB_OUTPUT':
-                    str(self.output),
+                'DOWNLOAD_PATH': str(
+                    self.path if download_path is None else download_path
+                ),
+                'REQUIRED_FILES': required_files,
+                'GITHUB_OUTPUT': str(self.output),
             },
             text=True,
             capture_output=True,
@@ -436,46 +488,65 @@ class RequiredFilesSafetyTest(unittest.TestCase):
         )
 
     def test_destination_and_ancestor_symlinks_fail_before_filesystem_changes(
-            self):
+        self,
+    ):
         outside = self.path / 'outside'
         outside.mkdir()
         sentinel = outside / 'archive.tar'
         sentinel.write_text('keep')
         link = self.path / 'destination'
         link.symlink_to(outside, target_is_directory=True)
-        for destination in (str(link), str(link) + '/', str(link / 'new'),
-                            'destination', 'destination/',
-                            './destination/new/'):
+        for destination in (
+            str(link),
+            str(link) + '/',
+            str(link / 'new'),
+            'destination',
+            'destination/',
+            './destination/new/',
+        ):
             for mode in ('prepare', 'verify', 'check'):
                 with self.subTest(destination=destination, mode=mode):
                     result = self.run_helper(mode, 'archive.tar', destination)
                     self.assertEqual(result.returncode, 2, result.stderr)
-                    self.assertIn('destination contains a symlink',
-                                  result.stdout)
+                    self.assertIn(
+                        'destination contains a symlink', result.stdout
+                    )
                     self.assertEqual(sentinel.read_text(), 'keep')
                     self.assertFalse((outside / 'new').exists())
 
     def test_physical_absolute_and_relative_destinations_are_supported(self):
-        for destination in ('new/nested/', './new/nested',
-                            str(self.path / 'new/nested') + '/'):
+        for destination in (
+            'new/nested/',
+            './new/nested',
+            str(self.path / 'new/nested') + '/',
+        ):
             with self.subTest(destination=destination):
                 result = self.run_helper('prepare', 'archive.tar', destination)
-                self.assertEqual(result.returncode, 0,
-                                 result.stdout + result.stderr)
+                self.assertEqual(
+                    result.returncode, 0, result.stdout + result.stderr
+                )
                 self.assertTrue((self.path / 'new/nested').is_dir())
 
     def test_empty_or_parent_traversal_destination_is_rejected(self):
         for destination in ('', '../outside', 'new/../outside'):
             with self.subTest(destination=destination):
                 result = self.run_helper('prepare', 'archive.tar', destination)
-                self.assertEqual(result.returncode, 2,
-                                 result.stdout + result.stderr)
+                self.assertEqual(
+                    result.returncode, 2, result.stdout + result.stderr
+                )
                 self.assertFalse((self.path / 'new').exists())
 
     def test_invalid_paths_fail_before_removing_any_file(self):
         sentinel = self.path / 'sentinel'
-        for invalid in ('/absolute', '../outside', 'a/../outside', './sentinel',
-                        'a//file', 'directory/', ' \t../outside\r'):
+        for invalid in (
+            '/absolute',
+            '../outside',
+            'a/../outside',
+            './sentinel',
+            'a//file',
+            'directory/',
+            ' \t../outside\r',
+        ):
             for mode in ('prepare', 'verify', 'check'):
                 with self.subTest(path=invalid, mode=mode):
                     sentinel.write_text('keep')
@@ -535,7 +606,8 @@ class RequiredFilesSafetyTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_outer_whitespace_and_crlf_are_trimmed_but_internal_spaces_remain(
-            self):
+        self,
+    ):
         target = self.path / 'artifact  with spaces.tar'
         required = ' \tartifact  with spaces.tar \t\r\n \t\r\n'
         target.write_text('image')

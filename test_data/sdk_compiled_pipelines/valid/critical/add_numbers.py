@@ -21,6 +21,7 @@ def add_numbers(a: int, b: int) -> int:
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pipeline_func=add_numbers,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=add_numbers, package_path=__file__.replace('.py', '.yaml')
+    )

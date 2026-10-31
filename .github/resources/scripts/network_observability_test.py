@@ -14,17 +14,15 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('network-observability.sh')
 
 
 class NetworkObservabilityTest(unittest.TestCase):
-
     def test_resolves_ready_vips_and_direct_endpoint_ports(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
@@ -56,17 +54,11 @@ class NetworkObservabilityTest(unittest.TestCase):
             kubectl_calls = kubectl_log.read_text(encoding='utf-8').splitlines()
 
         self.assertIn('seaweedfs-s3\tvip\t10.96.1.1\t9000\n', targets)
-        self.assertIn(
-            'seaweedfs-s3\tendpoint\t10.244.0.20\t8333\n', targets
-        )
+        self.assertIn('seaweedfs-s3\tendpoint\t10.244.0.20\t8333\n', targets)
         self.assertIn('kubernetes-api\tvip\t10.96.0.1\t443\n', targets)
-        self.assertIn(
-            'kubernetes-api\tendpoint\t172.18.0.2\t6443\n', targets
-        )
+        self.assertIn('kubernetes-api\tendpoint\t172.18.0.2\t6443\n', targets)
         self.assertIn('kube-dns-tcp\tvip\t10.96.0.10\t53\n', targets)
-        self.assertIn(
-            'kube-dns-tcp\tendpoint\t10.244.0.2\t53\n', targets
-        )
+        self.assertIn('kube-dns-tcp\tendpoint\t10.244.0.2\t53\n', targets)
         self.assertNotIn('10.244.0.21', targets)
         self.assertTrue(kubectl_calls)
         self.assertTrue(
@@ -98,8 +90,9 @@ class NetworkObservabilityTest(unittest.TestCase):
     def test_teardown_quiesces_probe_before_final_observation_and_cleanup(self):
         script = SCRIPT.read_text(encoding='utf-8')
         stop_body = script[
-            script.index('stop_observability() {'):
-            script.index('report_packet_capture() {')
+            script.index('stop_observability() {') : script.index(
+                'report_packet_capture() {'
+            )
         ]
 
         quiesce = stop_body.index('quiesce_probe ')
@@ -216,8 +209,7 @@ class NetworkObservabilityTest(unittest.TestCase):
                 env=environment,
             )
             state = (
-                output_directory
-                / 'kindnet-kind-control-plane-baseline.txt'
+                output_directory / 'kindnet-kind-control-plane-baseline.txt'
             ).read_text(encoding='utf-8')
             nodes = (output_directory / 'kind-nodes.txt').read_text(
                 encoding='utf-8'
@@ -229,7 +221,9 @@ class NetworkObservabilityTest(unittest.TestCase):
         self.assertIn('101 2538 3 2 65535 7 5 106 1', state)
         self.assertIn('__NFT__', state)
         self.assertIn('kindnet-network-policies', state)
-        self.assertLess(state.index('__NFQUEUE__'), state.index('__CONTAINERS__'))
+        self.assertLess(
+            state.index('__NFQUEUE__'), state.index('__CONTAINERS__')
+        )
         script = SCRIPT.read_text(encoding='utf-8')
         self.assertIn('head -n 2', script)
         self.assertIn('crictl logs --tail 200', script)
@@ -324,7 +318,7 @@ class NetworkObservabilityTest(unittest.TestCase):
         )
 
 
-_FAKE_KUBECTL = r'''#!/usr/bin/env bash
+_FAKE_KUBECTL = r"""#!/usr/bin/env bash
 args="$*"
 if [[ -n "${FAKE_KUBECTL_LOG:-}" ]]; then
   printf '%s\n' "$args" >> "$FAKE_KUBECTL_LOG"
@@ -352,34 +346,34 @@ case "$args" in
     exit 1
     ;;
 esac
-'''
+"""
 
-_CAPTURE_KUBECTL = r'''#!/usr/bin/env bash
+_CAPTURE_KUBECTL = r"""#!/usr/bin/env bash
 echo "kind-control-plane"
-'''
+"""
 
-_CAPTURE_DOCKER = r'''#!/usr/bin/env bash
+_CAPTURE_DOCKER = r"""#!/usr/bin/env bash
 echo "1234"
-'''
+"""
 
-_CAPTURE_AWK = r'''#!/usr/bin/env bash
+_CAPTURE_AWK = r"""#!/usr/bin/env bash
 echo "test-start"
-'''
+"""
 
-_CAPTURE_SUDO = r'''#!/usr/bin/env bash
+_CAPTURE_SUDO = r"""#!/usr/bin/env bash
 if [[ "${5:-}" == "kfp-network-capture-check" ]]; then
   exit 0
 fi
 shift
 exec "$@"
-'''
+"""
 
-_CAPTURE_NSENTER = r'''#!/usr/bin/env bash
+_CAPTURE_NSENTER = r"""#!/usr/bin/env bash
 shift 3
 exec "$@"
-'''
+"""
 
-_CAPTURE_TCPDUMP = r'''#!/usr/bin/env bash
+_CAPTURE_TCPDUMP = r"""#!/usr/bin/env bash
 printf '%s\n' "$*" > "$FAKE_TCPDUMP_LOG"
 if [[ "${FAKE_TCPDUMP_EXIT:-0}" == "1" ]]; then
   exit 1
@@ -395,10 +389,10 @@ done
 : > "${output}0"
 trap 'exit 0' INT TERM
 while true; do sleep 1; done
-'''
+"""
 
 
-_KINDNET_KUBECTL = r'''#!/usr/bin/env bash
+_KINDNET_KUBECTL = r"""#!/usr/bin/env bash
 case "$*" in
   *"get nodes -o jsonpath="*)
     echo "kind-control-plane"
@@ -414,10 +408,10 @@ case "$*" in
     exit 1
     ;;
 esac
-'''
+"""
 
 
-_KINDNET_DOCKER = r'''#!/usr/bin/env bash
+_KINDNET_DOCKER = r"""#!/usr/bin/env bash
 cat <<'EOF'
 __NFQUEUE__
 101 2538 3 2 65535 7 5 106 1
@@ -428,19 +422,19 @@ container_id=kindnet-container
 __LOG_kindnet-container__
 kindnet log line
 EOF
-'''
+"""
 
 
-_KINDNET_TIMEOUT = r'''#!/usr/bin/env bash
+_KINDNET_TIMEOUT = r"""#!/usr/bin/env bash
 shift
 exec "$@"
-'''
+"""
 
 
-_KINDNET_LOG_KUBECTL = r'''#!/usr/bin/env bash
+_KINDNET_LOG_KUBECTL = r"""#!/usr/bin/env bash
 printf '%s\n' "$*" > "$FAKE_KUBECTL_LOG"
 echo '[pod/kindnet-abc/kindnet-cni] 2026-07-17T16:19:01Z "failed to set verdict with label"'
-'''
+"""
 
 
 if __name__ == '__main__':

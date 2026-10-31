@@ -17,6 +17,7 @@ from kfp import dsl
 @dsl.component
 def flip_coin() -> str:
     import random
+
     return 'heads' if random.randint(0, 1) == 0 else 'tails'
 
 
@@ -40,6 +41,8 @@ def flip_coin_pipeline() -> str:
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=flip_coin_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

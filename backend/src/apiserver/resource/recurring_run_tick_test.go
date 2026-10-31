@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -234,4 +235,44 @@ func TestCreateRunAcknowledgesTickAfterPipelineVersionDeletion(t *testing.T) {
 			require.Equal(t, workflowCount+1, store.ExecClientFake.GetWorkflowCount())
 		})
 	}
+}
+
+func TestPrepareRecurringRunTickWithZeroScheduleBounds(t *testing.T) {
+	initEnvVars()
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := multiUserContext()
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "zero-bounds", Namespace: "ns1"})
+	require.NoError(t, err)
+	pipeline, err := manager.CreatePipeline(createPipeline("zero-bounds", "", "ns1"))
+	require.NoError(t, err)
+	_, err = manager.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "version", "version", "", v2SpecHelloWorld, "", "ns1"))
+	require.NoError(t, err)
+	// Omitted date-time fields in the generated HTTP client serialize as year 1.
+	zero := (time.Time{}).Unix()
+	job, err := manager.CreateJob(ctx, &model.Job{
+		DisplayName: "zero-bounds", Namespace: "ns1", ExperimentId: experiment.UUID,
+		Enabled: true, MaxConcurrency: 1, NoCatchup: true,
+		Trigger: model.Trigger{PeriodicSchedule: model.PeriodicSchedule{
+			PeriodicScheduleStartTimeInSec: &zero, PeriodicScheduleEndTimeInSec: &zero, IntervalSecond: util.Int64Pointer(60),
+		}},
+		PipelineSpec: model.PipelineSpec{PipelineId: pipeline.UUID},
+	})
+	require.NoError(t, err)
+	owner, err := manager.swfClient.ScheduledWorkflow(job.Namespace).Get(ctx, job.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	owner.CreationTimestamp = metav1.NewTime(time.Unix(120, 0))
+	run := &model.Run{DisplayName: "first-tick", RecurringRunId: job.UUID, Namespace: job.Namespace}
+	// The API must still enforce the interval before admitting the first tick.
+	_, err = manager.prepareRecurringRunTick(run, owner, 179)
+	require.Error(t, err)
+	require.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition))
+	tick, err := manager.prepareRecurringRunTick(run, owner, 200)
+	require.NoError(t, err)
+	require.Equal(t, int64(180), tick.scheduledAt)
+	require.Equal(t, int64(1), tick.index)
 }

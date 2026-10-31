@@ -2,14 +2,14 @@
 """Build the frontend with bounded attempts and isolated BuildKit recovery."""
 
 import argparse
-from contextlib import contextmanager
 import os
-from pathlib import Path
 import signal
 import subprocess
 import tempfile
 import time
 import uuid
+from contextlib import contextmanager
+from pathlib import Path
 
 
 class CommandTimeout(RuntimeError):
@@ -39,8 +39,11 @@ def run(command, seconds, grace=10, stdout=None):
             try:
                 os.killpg(process.pid, signal.SIGTERM)
                 # Children may outlive the leader. Always kill the group.
-                stop_grace = min(grace, 1) if isinstance(
-                    error, KeyboardInterrupt) else grace
+                stop_grace = (
+                    min(grace, 1)
+                    if isinstance(error, KeyboardInterrupt)
+                    else grace
+                )
                 time.sleep(stop_grace)
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
@@ -58,16 +61,18 @@ def bounded(command, seconds, grace):
         return 124
 
 
-def build(context,
-          dockerfile,
-          tag,
-          node_version,
-          output,
-          attempt_seconds=480,
-          maintenance_seconds=15,
-          grace=10,
-          platform=None,
-          additional_tags=()):
+def build(
+    context,
+    dockerfile,
+    tag,
+    node_version,
+    output,
+    attempt_seconds=480,
+    maintenance_seconds=15,
+    grace=10,
+    platform=None,
+    additional_tags=(),
+):
     output = Path(output)
     partial = output.with_name(output.name + '.partial')
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -83,8 +88,11 @@ def build(context,
         cancelled = False
         try:
             print(f'Frontend build attempt {attempt}/2: {builder}', flush=True)
-            status = run(['bash', str(setup), builder],
-                         deadline - time.monotonic(), grace)
+            status = run(
+                ['bash', str(setup), builder],
+                deadline - time.monotonic(),
+                grace,
+            )
             if status == 0:
                 command = [
                     'docker',
@@ -109,16 +117,18 @@ def build(context,
                     command.extend(['--tag', additional_tag])
                 if attempt == 2:
                     command.append('--no-cache')
-                status = run(command + [context], deadline - time.monotonic(),
-                             grace)
+                status = run(
+                    command + [context], deadline - time.monotonic(), grace
+                )
             succeeded = (
-                status == 0 and partial.is_file() and
-                partial.stat().st_size > 0)
+                status == 0 and partial.is_file() and partial.stat().st_size > 0
+            )
         except CommandTimeout:
             print(
                 f'::warning::Frontend attempt {attempt} exceeded '
                 f'{attempt_seconds}s; collecting diagnostics before recovery.',
-                flush=True)
+                flush=True,
+            )
         except KeyboardInterrupt:
             cancelled = True
         finally:
@@ -133,29 +143,42 @@ def build(context,
                         bounded(command, maintenance_seconds, grace)
                 # BuildKit runs outside the client process group. Remove it before
                 # retrying so an abandoned build cannot consume the next attempt.
-                cleaned = bounded(
-                    ['docker', 'buildx', 'rm', '--force', builder],
-                    maintenance_seconds, grace) == 0
+                cleaned = (
+                    bounded(
+                        ['docker', 'buildx', 'rm', '--force', builder],
+                        maintenance_seconds,
+                        grace,
+                    )
+                    == 0
+                )
                 if not cleaned:
-                    cleaned = bounded(['docker', 'rm', '--force', container],
-                                      maintenance_seconds, grace) == 0
+                    cleaned = (
+                        bounded(
+                            ['docker', 'rm', '--force', container],
+                            maintenance_seconds,
+                            grace,
+                        )
+                        == 0
+                    )
                 if not cleaned:
                     # Setup may fail before creating the daemon. Verified absence
                     # is safe to retry; a Docker query failure is not.
                     with tempfile.TemporaryFile() as listing:
                         try:
-                            status = run([
-                                'docker',
-                                'ps',
-                                '--all',
-                                '--filter',
-                                f'name=^/{container}$',
-                                '--format',
-                                '{{.ID}}',
-                            ],
-                                         maintenance_seconds,
-                                         grace,
-                                         stdout=listing)
+                            status = run(
+                                [
+                                    'docker',
+                                    'ps',
+                                    '--all',
+                                    '--filter',
+                                    f'name=^/{container}$',
+                                    '--format',
+                                    '{{.ID}}',
+                                ],
+                                maintenance_seconds,
+                                grace,
+                                stdout=listing,
+                            )
                             listing.seek(0)
                             cleaned = status == 0 and not listing.read().strip()
                         except CommandTimeout:
@@ -167,8 +190,9 @@ def build(context,
                 # Remove the daemon first and ignore repeated cancellation.
                 with ignore_cancellation():
                     bounded(['docker', 'rm', '--force', container], 2, 0.5)
-                    bounded(['docker', 'buildx', 'rm', '--force', builder], 2,
-                            0.5)
+                    bounded(
+                        ['docker', 'buildx', 'rm', '--force', builder], 2, 0.5
+                    )
                     partial.unlink(missing_ok=True)
                 raise
         if succeeded and cleaned:
@@ -178,12 +202,14 @@ def build(context,
             print(
                 '::error::Could not remove the frontend builder; retry the '
                 'job on a fresh runner.',
-                flush=True)
+                flush=True,
+            )
             return 1
     print(
         '::error::Both frontend build attempts failed. Inspect the build and '
         'BuildKit diagnostics before retrying the job.',
-        flush=True)
+        flush=True,
+    )
     return 1
 
 
@@ -207,7 +233,8 @@ def main():
             args.node_version,
             args.output,
             platform=args.platform,
-            additional_tags=args.additional_tag)
+            additional_tags=args.additional_tag,
+        )
     except KeyboardInterrupt:
         return 130
 

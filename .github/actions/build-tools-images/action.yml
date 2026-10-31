@@ -1,0 +1,60 @@
+name: Build and test native tools images
+description: Build the generator and release tools, then record their native generated output
+
+inputs:
+  arch:
+    description: Native architecture, amd64 or arm64
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Read frontend Node version
+      id: frontend_node
+      shell: bash
+      run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
+
+    - name: Configure Docker Hub mirror
+      shell: bash
+      run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      with:
+        # The release image must inherit the generator loaded in this daemon.
+        driver: docker
+
+    - name: Build api-generator
+      shell: bash
+      env:
+        PLATFORM: linux/${{ inputs.arch }}
+      run: |
+        source ./.github/resources/scripts/helper-functions.sh
+        source .github/resources/scripts/ci-image-artifacts.sh
+        retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
+          --file backend/api/Dockerfile --tag "$TOOL_GENERATOR_IMAGE:ci" .
+
+    - name: Build release tools from this generator
+      shell: bash
+      env:
+        PLATFORM: linux/${{ inputs.arch }}
+        NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
+      run: |
+        source ./.github/resources/scripts/helper-functions.sh
+        source .github/resources/scripts/ci-image-artifacts.sh
+        retry 3 20 env DOCKER_BUILDKIT=1 docker build --platform "$PLATFORM" \
+          --file release/Dockerfile.release \
+          --build-arg "BASE_IMAGE=$TOOL_GENERATOR_IMAGE:ci" \
+          --build-arg "NODE_VERSION=$NODE_VERSION" --tag "$TOOL_RELEASE_IMAGE:ci" .
+
+    - name: Execute tools and generate sources natively
+      shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+      run: bash .github/resources/scripts/maintainer_tools_smoke.sh "$ARCH" "$RUNNER_TEMP/tool-output"
+
+    - name: Upload generated-source evidence
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: tool-output-${{ inputs.arch }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/tool-output
+        if-no-files-found: error

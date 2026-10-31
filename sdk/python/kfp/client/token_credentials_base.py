@@ -19,7 +19,6 @@ from kubernetes.client import configuration
 
 
 class TokenCredentialsBase(abc.ABC):
-
     @abc.abstractmethod
     def refresh_api_key_hook(self, config: configuration.Configuration) -> None:
         """Refreshes the api key.

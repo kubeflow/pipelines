@@ -10,12 +10,13 @@
     {
       "path": ".github/workflows/api-server-tests.yml",
       "name": "API Server Tests",
-      "header_sha256": "d34af02c14292366d5464618afc1e931569eb95a506d2e101be05fe5a9f0ea68",
+      "header_sha256": "58967a5ff65903fee9e21641f72362d4fe08fa90982eb6d6b27136419c085137",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/api-server-tests.yml",
+          ".github/workflows/legacy-v2-api-integration-tests.yml",
           ".github/workflows/image-builds.yml",
           ".github/actions/create-cluster/**",
           ".github/actions/deploy/**",
@@ -23,11 +24,12 @@
           ".github/actions/test-and-report/**",
           ".github/actions/junit-summary/**",
           ".github/resources/**",
-          "backend/api/v2/**",
-          "backend/api/v2beta1/**",
-          "backend/src/**",
-          "backend/test/v2/api/**",
+          "api/**",
+          "go.mod",
+          "go.sum",
+          "backend/**",
           "backend/test/constants/**",
+          "test/**",
           "manifests/kustomize/**",
           "test_data/sdk_compiled_pipelines/**",
           "!**/*.md",
@@ -77,10 +79,11 @@
     {
       "path": ".github/workflows/build-tools-images.yml",
       "name": "Build tools images",
-      "header_sha256": "43ed9e33916c7eba206af695c729f1b8f455f79a3d07046965ff71403fdf3580",
+      "header_sha256": "27674b0ed3154f88ad2ae62e170a22a4574133d4a748529c5ae3dd5b4483a79e",
       "pull_request": {
         "branches": [
           "master",
+          "main",
           "release-*"
         ]
       }
@@ -106,7 +109,7 @@
     {
       "path": ".github/workflows/check-uv-lock.yml",
       "name": "Check uv.lock sync",
-      "header_sha256": "9641003c2eb8353bcbd8d6885cf9fe6c8559339351fc9bf1843a5ee536a0aff5",
+      "header_sha256": "abec27de7bbe8552350d1430598a6839a1434eb7ecc8555e3d51d98af040cc96",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -118,7 +121,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "154fb1fa1f854e7be7ba13c783e53deb887e22df9415e9744a1fb018e4a48e4d",
+      "header_sha256": "bd982c49b5acbab574767638ed892cba1fb1d1c2f88d9758f7742192326de8d1",
       "pull_request": null
     },
     {
@@ -130,17 +133,18 @@
     {
       "path": ".github/workflows/ci-passed-stale-revoke.yml",
       "name": "Revoke Stale CI Passed",
-      "header_sha256": "a981787ec7e3690d4eeba7bd799fb7e49cd76adeff0f8066495d97ed919a5cd2",
+      "header_sha256": "617dc16494df6d1e90ef984f887f23620ab754d2f43542916bb48df6b30819bd",
       "pull_request": null
     },
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "bb5c4e5ed6236b9864602b12420ebe0187960c59f1b4499940dbcc11a0c93309",
+      "header_sha256": "0e05602846a6f97c4a166ddb9400978f3da66bfd67d068940fe09c4c24879193",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
           "**/go.mod",
+          "backend/api/hack/uv.sh",
           "**/package.json",
           "**/requirements*.txt",
           "**/setup.py",
@@ -159,6 +163,8 @@
           ".github/resources/scripts/*.py",
           ".github/resources/scripts/*.js",
           ".github/resources/ci-workflow-inventory.json",
+          ".github/resources/legacy-v2-migration-specs.json",
+          ".github/resources/legacy-v2-service-account-specs.json",
           "test/presubmit-backend-test.sh",
           "hack/update-all-requirements.sh",
           ".github/workflows/**",
@@ -180,6 +186,7 @@
           ".github/workflows/build-tools-images.yml",
           ".github/workflows/runtime-base-images.yml",
           ".github/workflows/ci-scripts-tests.yml",
+          ".github/workflows/third-party-image-upgrades.yml",
           ".github/workflows/check-requirements-txt.yml",
           ".github/workflows/check-uv-lock.yml",
           ".github/workflows/publish-packages.yml",
@@ -198,13 +205,15 @@
           "Makefile",
           "api/Makefile",
           "backend/src/v2/Makefile",
-          "release/kfpr/core.py",
+          "release/kfpr/**",
+          "release/pyproject.toml",
+          ".github/workflows/release-branch-image-scanning.yml",
+          ".github/workflows/release-qualification.yml",
           "test_data/sdk_compiled_pipelines/valid/**",
           "backend/test/end2end/pipeline_e2e_test.go",
           "backend/test/v2/resources/env-var.yaml",
           "backend/test/v2/resources/hello-world-with-returning-component.yaml",
           "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
           "backend/Dockerfile",
           "backend/api/build_kfp_server_api_python_package.sh",
           "api/v2alpha1/python/generate_proto.py",
@@ -239,7 +248,7 @@
     {
       "path": ".github/workflows/compiler-tests.yml",
       "name": "Workflow Compiler Tests",
-      "header_sha256": "4bc98b63cea6c9a5189a38cf540570447244f955764535c21147149e3cbf6a9e",
+      "header_sha256": "b39c211b2a29f2ef8bd4f2d447ee1740df158e25d5d070acbf7196d06c72649e",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -270,7 +279,7 @@
     {
       "path": ".github/workflows/docs-freshness.yml",
       "name": "KFP Docs Freshness",
-      "header_sha256": "cc53f3313456a9d4273da9771552a7e931b6867de7566a2965762f9c21aa5ce8",
+      "header_sha256": "1c0f7ba9248de5af61cb2c36b5c681d22ef6cc65b24554f5c792770f43ef6d9a",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -284,7 +293,7 @@
     {
       "path": ".github/workflows/docs.yml",
       "name": "Documentation",
-      "header_sha256": "e738bdc319f41a5c63a709d6923bcd8463db5846e6d734442e0b0c444fb11677",
+      "header_sha256": "6ee3c778b67c03b3654980442067b1a4b46b7d57837dd0ce7bb74cf33915217c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -300,7 +309,7 @@
     {
       "path": ".github/workflows/e2e-test-frontend.yml",
       "name": "KFP e2e frontend tests",
-      "header_sha256": "05bcd7ee821f1ba93548e56c98f1409bdc672ecf157bdb623487eb7c6497f3a5",
+      "header_sha256": "b8888e416c0b55041a072f855471a92a8efdd83334228d31f418d5ee7af2de61",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -322,7 +331,7 @@
     {
       "path": ".github/workflows/e2e-test.yml",
       "name": "KFP E2E Pipeline tests",
-      "header_sha256": "593f38af09ca8065fdd48c3eba6004cd4724b5d672d36a5fcd856b70e90661fd",
+      "header_sha256": "89f6e67282eab666fe86ae1fc6123581670a54111ba629ab29478d089fe413e6",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -343,6 +352,7 @@
           "go.sum",
           "backend/**",
           "frontend/server/handlers/artifacts.ts",
+          "test/seaweedfs/**",
           "proxy/**",
           "manifests/kustomize/**",
           "test/artifact-proxy/**",
@@ -357,10 +367,11 @@
     {
       "path": ".github/workflows/frontend.yml",
       "name": "Frontend Tests",
-      "header_sha256": "ad213cb370af3e573a7e0c7bdcec60c0a93cb6c882ac2fe3b148934ba46d964b",
+      "header_sha256": "43e419463376effd8c307ed04c3f2c168aa6cf484d6919e56ca12ff950805cfe",
       "pull_request": {
         "branches": [
-          "master"
+          "master",
+          "main"
         ],
         "paths": [
           "frontend/**",
@@ -398,7 +409,7 @@
     {
       "path": ".github/workflows/image-builds-master.yml",
       "name": "Build and Push for master",
-      "header_sha256": "9859de028fdf59b3e2e4fd1f78abdc1f878954d9d9a0db5ce9cf13be392dd40a",
+      "header_sha256": "38f41194f287a7c07000256c43810b1be458e21f8b4622f93c5e87a2d8167bac",
       "pull_request": null
     },
     {
@@ -416,7 +427,7 @@
     {
       "path": ".github/workflows/kfp-kubernetes-library-test.yml",
       "name": "kfp-kubernetes library tests",
-      "header_sha256": "8e2396bf7e4da40d14f2abb430f45108206da64e24e35734197563cdd7834156",
+      "header_sha256": "add630730793de27f27dcc92b4617e9e58c3ea1b93a9d727998c8448723b2663",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -435,7 +446,7 @@
     {
       "path": ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
       "name": "KFP Kubernetes Native Migration Tests",
-      "header_sha256": "5f00a8715ab9596b8e87858226ca3b63cec918c68870626b0dc223c50d09144d",
+      "header_sha256": "1c8edb4d34201b570f58b227970de8cf40e80c7014ee0be42bb39620a265c3ba",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -460,7 +471,7 @@
     {
       "path": ".github/workflows/kfp-sdk-client-tests.yml",
       "name": "KFP Python Client Tests",
-      "header_sha256": "09dc15a0094a03eb80a8b555992a565b20eb5f1f69e637324c9802c48224da7c",
+      "header_sha256": "0f1c895da1d0b3c329007317b34c4e4a43a62390f23f7b65e725d5ee31639e6b",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -483,7 +494,7 @@
     {
       "path": ".github/workflows/kfp-sdk-tests.yml",
       "name": "KFP SDK Tests",
-      "header_sha256": "ce059c79143253d1b6a2dfdee9cb3bd6aa96466f91a2efaa458d7fe259990e9c",
+      "header_sha256": "6410eee8e9c6ad442de52e94a6972ee81ead96d3f4f44ae0f569725d664d70ae",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -503,7 +514,7 @@
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
       "name": "KFP SDK Unit Tests",
-      "header_sha256": "831442d8a0b8cdf53fd4da52dc6d754874cfd840256036ddcd8c78055afb65b4",
+      "header_sha256": "0834a77289193ab4daa572c08a3372b8f89cae6dc613262a762a304088d7ff43",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -525,7 +536,7 @@
     {
       "path": ".github/workflows/kfp-webhooks.yml",
       "name": "KFP Webhook Integration",
-      "header_sha256": "86522bbc691144a165bb02332a067b6f3cde4453bc40df5c039c5de26c6d90b3",
+      "header_sha256": "ec0cc33819c87437ebfbe900244448148e35ae5668847dbf8c30ff7c3ae75949",
       "pull_request": {
         "paths": [
           ".github/actions/create-cluster/**",
@@ -543,11 +554,14 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "11c6ddce6b7ab467eb789df790d1b9a1134e9d3514ad417e2a9466c019ddf83a",
+      "header_sha256": "38c40a9bacc544c308bba1905f4fcdb0677acef99e97bc02148999c97e917a49",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
+          "backend/api/tools/**",
+          "go.mod",
+          ".github/actions/setup-go/**",
           "!**/*.md",
           "!**/OWNERS",
           "docs/operator-guides/server-config.md"
@@ -555,34 +569,9 @@
       }
     },
     {
-      "path": ".github/workflows/legacy-v2-api-integration-tests.yml",
-      "name": "KFP API Integration V2 (Legacy)",
-      "header_sha256": "df0d9f1098b9e404e8e66229d84acafc1605f27757adc35176b63998d9ea99fc",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          "api/**",
-          "go.mod",
-          "go.sum",
-          "backend/**",
-          "manifests/kustomize/**",
-          "test/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      }
-    },
-    {
       "path": ".github/workflows/osv-scanner.yml",
       "name": "OSV-Scanner Vulnerability Scan",
-      "header_sha256": "1f4a31bf78499730b30cbc64047d44eead6a0e34390719c0439a5d777b6b6206",
+      "header_sha256": "93918884dd870756eaddb7fb40807a892ecd58e28874425ea2ed06dc0579c262",
       "pull_request": null
     },
     {
@@ -594,17 +583,18 @@
     {
       "path": ".github/workflows/pre-commit.yml",
       "name": "pre-commit",
-      "header_sha256": "956759e53cbccf45e00f0133ac0d6e3d16bdede1856619714f27bf7a2b890841",
+      "header_sha256": "4bcf7cdc5e5d40b90a2d9414a07809c4e86e8cd09899bda0c71352185e00c1aa",
       "pull_request": {
         "branches": [
-          "master"
+          "master",
+          "main"
         ]
       }
     },
     {
       "path": ".github/workflows/presubmit-backend.yml",
       "name": "KFP Backend Tests",
-      "header_sha256": "388a9398f2d9580d3641b5a989edff8af18c0beb9b1b517ccf27e58d36d4e023",
+      "header_sha256": "51b003a7417c71028ecaf495050907a77f3019146a5470d5911fe791269b54bd",
       "pull_request": {
         "paths": [
           ".github/workflows/presubmit-backend.yml",
@@ -638,7 +628,7 @@
     {
       "path": ".github/workflows/readthedocs-builds.yml",
       "name": "KFP Readthedocs Release Readiness",
-      "header_sha256": "22395116f0ca872ff3e8c9bf197eba4f579d5b1b330ed79b1bc0704ffbf9ed47",
+      "header_sha256": "729429de43efe1984dff5e63cd2cca0f618b6019193bc68bc102e557272d607b",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -654,9 +644,33 @@
       }
     },
     {
+      "path": ".github/workflows/ready-command.yml",
+      "name": "Ready Command",
+      "header_sha256": "e78b97894460946dfb3f90af4e6f0a1885f06671675dcdd7329a3e1b4633154e",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/release-branch-image-scanning.yml",
+      "name": "Release Branch Image Scanning",
+      "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/release-promote-latest.yml",
+      "name": "Promote Published Release Images",
+      "header_sha256": "9959b76421cf287b008dde6705e571752c118477dd39115f8fc33f2719c93539",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/release-qualification.yml",
+      "name": "Release Qualification",
+      "header_sha256": "ecf394b4eb4fee70bb811aeb30b78513ed1c6ec5cde0bedc3fbfac4c3eaf0298",
+      "pull_request": null
+    },
+    {
       "path": ".github/workflows/runtime-base-images.yml",
       "name": "Runtime Base Images",
-      "header_sha256": "c5007f2a38ed6d560497dd78d9c5dfff59677aa808f75d85340f5665567fb1c3",
+      "header_sha256": "844f3bc71c1a2b4dbff70423773723c49d67858a3b07377db752355f11b9d3f0",
       "pull_request": {
         "paths": [
           ".github/workflows/runtime-base-images.yml",
@@ -675,7 +689,7 @@
     {
       "path": ".github/workflows/sdk-docformatter.yml",
       "name": "KFP SDK Docformatter Test",
-      "header_sha256": "f512a5fa7115d1dd9962cdfd53e8fef2f78d256601ef898509a5e0e79ace5022",
+      "header_sha256": "a8ea10d6c7ab9a01e58ab6a5d16d38212f846d648381e4e302a03ff5f18e7140",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -691,15 +705,17 @@
     },
     {
       "path": ".github/workflows/sdk-isort.yml",
-      "name": "KFP SDK Isort Test",
-      "header_sha256": "d4081b2b982f45f9a58681556375d20302490b155e3f1ed07587de328bc96138",
+      "name": "Python Ruff Lint",
+      "header_sha256": "a31207f19a8622fc1d6e39b0b7c1c853686b7ee9cb47c0b7655304410c6a3972",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
-          "api/**",
-          "sdk/python/**",
-          "test/presubmit-isort-sdk.sh",
+          "**/*.py",
+          "**/*.pyi",
+          ".gitignore",
+          ".pre-commit-config.yaml",
+          "test/presubmit-ruff.sh",
           ".github/workflows/sdk-isort.yml",
           ".github/actions/setup-python/**",
           "!**/*.md",
@@ -710,7 +726,7 @@
     {
       "path": ".github/workflows/sdk-upgrade.yml",
       "name": "KFP SDK Upgrade Test",
-      "header_sha256": "834e234ecde78ceaaefaa13c19d5997ba57e0e5098139e178dfa3667bf77ed46",
+      "header_sha256": "0f0b808307c7591b8f2ecb5da901da8dea1a58bef771ed507a45b3e8902a2f50",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -726,15 +742,17 @@
     },
     {
       "path": ".github/workflows/sdk-yapf.yml",
-      "name": "KFP SDK YAPF Tests",
-      "header_sha256": "52da9933b091d486a5d674b0e2811b05d54b3023cf8b7a914b046318024e28ff",
+      "name": "Python Ruff Format",
+      "header_sha256": "4af8779430d8f68e8e1994645f4c246cfd07b6e0f8a9381b7cd4599b2829b2b0",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
-          "api/**",
-          "sdk/python/**",
-          "test/presubmit-yapf-sdk.sh",
+          "**/*.py",
+          "**/*.pyi",
+          ".gitignore",
+          ".pre-commit-config.yaml",
+          "test/presubmit-ruff.sh",
           ".github/workflows/sdk-yapf.yml",
           ".github/actions/setup-python/**",
           "!**/*.md",
@@ -749,9 +767,29 @@
       "pull_request": null
     },
     {
+      "path": ".github/workflows/third-party-image-scanning.yml",
+      "name": "Third-party Image Security",
+      "header_sha256": "9162eb1ecd0c71c55eae7338c45999a6905ed50e1a9a41ff71b884173bda77c1",
+      "pull_request": null
+    },
+    {
+      "path": ".github/workflows/third-party-image-upgrades.yml",
+      "name": "Third-party Image Upgrade Checks",
+      "header_sha256": "8052861c0d241e8c6a91780122dfaaefe93e406b9392157b52f1bd074159c098",
+      "pull_request": {
+        "paths": [
+          "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
+          "manifests/kustomize/third-party/seaweedfs/**",
+          "manifests/kustomize/third-party/argo/**",
+          ".github/resources/scripts/third_party_upgrade_*.py",
+          ".github/workflows/third-party-image-upgrades.yml"
+        ]
+      }
+    },
+    {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "7137ec8a53d6b9eb36a192bcce329387f6bcbd4f39648dd4dcc7fbac8dd95225",
+      "header_sha256": "fa746c3b3d18099448e5c9af480fcbfd356a0f104f76c45e41a0806bc0412d75",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -778,7 +816,7 @@
     {
       "path": ".github/workflows/validate-generated-files.yml",
       "name": "Validate Generated Files",
-      "header_sha256": "d37f1f278ebcf6cc3e733c94cd3ffd4602f6e7b7d7ac90d908f7e9e2b240ccc8",
+      "header_sha256": "1b91d4d443569b025ce752fbcdce2fb1a21f31ff6d1f815c26980b27440ab5c0",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",

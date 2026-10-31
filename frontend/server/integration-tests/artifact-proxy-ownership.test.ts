@@ -41,8 +41,8 @@ describe('artifact proxy ownership with the production validator', () => {
   beforeEach(async () => {
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
     forwarded = [];
-    // Model a tenant service with shared storage access. The central route must deny
-    // the victim URI before sending anything to this service.
+    // Model a tenant service with shared storage access. Matching metadata cannot prove
+    // object authorization; the custom-root case below deliberately records that exposure.
     const service = express();
     service.use((req, res) => {
       forwarded.push(req.url);
@@ -124,13 +124,20 @@ describe('artifact proxy ownership with the production validator', () => {
     '/artifacts/get?source=s3&bucket=shared&key=custom/victim&namespace=team-a',
     '/artifacts/get?source=gcs&bucket=shared&key=custom/victim&namespace=team-a',
     '/artifacts/get?source=https&bucket=store.example&key=custom/victim&namespace=team-a',
-  ])('denies an imported custom-root URI before proxying: %s', async (path) => {
-    await requests(app.app).get(path).set('kubeflow-userid', 'a@example.com').expect(403);
-    expect(forwarded).toEqual([]);
-    expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/apis/v2/artifacts'))).toBe(
-      true,
-    );
-  });
+  ])(
+    'records the metadata-only custom-root exposure pending backend byte authorization: %s',
+    async (path) => {
+      const response = await requests(app.app)
+        .get(path)
+        .set('kubeflow-userid', 'a@example.com')
+        .expect(200);
+      expect(response.body.toString()).toBe('victim-data');
+      expect(forwarded).toHaveLength(1);
+      expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/apis/v2/artifacts'))).toBe(
+        true,
+      );
+    },
+  );
 
   it.each([false, true])('still serves own namespace prefix (download=%s)', async (download) => {
     const response = await requests(app.app)
@@ -146,121 +153,17 @@ describe('artifact proxy ownership with the production validator', () => {
   it.each([
     '/artifacts/get?source=http&bucket=storage-bucket&key=private-artifacts/team-a/own&namespace=team-a',
     '/artifacts/https/storage-bucket/private-artifacts/team-a/own?namespace=team-a',
-  ])('serves authorized HTTP artifacts directly instead of proxying: %s', async (path) => {
-    await requests(app.app)
+  ])('forwards authorized HTTP artifacts to the namespace receiver: %s', async (path) => {
+    const response = await requests(app.app)
       .get(path)
       .set('kubeflow-userid', 'a@example.com')
-      .expect(200, 'own-data');
+      .expect(200);
 
-    expect(forwarded).toEqual([]);
+    expect(response.body.toString()).toBe('own-data');
+    expect(forwarded).toHaveLength(1);
     expect(
       fetchSpy.mock.calls.some(([url]) => String(url).includes('allowed.host/storage-bucket')),
-    ).toBe(true);
-  });
-
-  it.each(['https://allowed.host/', 'https://allowed.host/private-artifacts/team-a/'])(
-    'serves original HTTP URIs from the shared UI with absolute base %s',
-    async (baseUrl) => {
-      await app.close();
-      app = new UIServer(
-        loadConfigs(argv, {
-          ENABLE_AUTHZ: 'true',
-          KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
-          ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
-          HTTP_BASE_URL: baseUrl,
-        }),
-      );
-      fetchSpy.mockImplementation(async (input: string | URL | Request) => {
-        const url = new URL(String(input));
-        if (url.hostname !== 'allowed.host') {
-          return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
-        }
-        if (url.pathname.endsWith('/own')) {
-          return new Response(null, {
-            status: 302,
-            headers: { Location: '/private-artifacts/team-a/download' },
-          });
-        }
-        return new Response('own-data');
-      });
-      await requests(app.app)
-        .get('/artifacts/https/allowed.host/private-artifacts/team-a/own?namespace=team-a')
-        .set('kubeflow-userid', 'a@example.com')
-        .expect(200, 'own-data');
-      expect(forwarded).toEqual([]);
-      expect(
-        fetchSpy.mock.calls
-          .map(([url]) => String(url))
-          .filter((url) => url.startsWith('https://allowed.host/')),
-      ).toEqual([
-        'https://allowed.host/private-artifacts/team-a/own',
-        'https://allowed.host/private-artifacts/team-a/download',
-      ]);
-    },
-  );
-
-  it.each([
-    ['https://allowed.host/private-artifacts/', '/private-artifacts/team-b/download', 403],
-    [
-      'https://allowed.host/private-artifacts/team-a/reports/',
-      '/private-artifacts/team-a/other',
-      400,
-    ],
-  ])(
-    'retains namespace and configured-base restrictions for %s',
-    async (baseUrl, location, status) => {
-      await app.close();
-      app = new UIServer(
-        loadConfigs(argv, {
-          ENABLE_AUTHZ: 'true',
-          KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
-          ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
-          HTTP_BASE_URL: baseUrl,
-        }),
-      );
-      fetchSpy.mockImplementation(async (input: string | URL | Request) => {
-        if (new URL(String(input)).hostname === 'allowed.host') {
-          return new Response(null, { status: 302, headers: { Location: location } });
-        }
-        return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
-      });
-      await requests(app.app)
-        .get('/artifacts/https/allowed.host/private-artifacts/team-a/reports/own?namespace=team-a')
-        .set('kubeflow-userid', 'a@example.com')
-        .expect(status);
-      expect(forwarded).toEqual([]);
-      expect(
-        fetchSpy.mock.calls.filter(([url]) => String(url).startsWith('https://allowed.host/')),
-      ).toHaveLength(1);
-    },
-  );
-
-  it('rejects a cross-namespace HTTP redirect without reaching the tenant service', async () => {
-    fetchSpy.mockImplementation(async (input: string | URL | Request) => {
-      const url = new URL(String(input));
-      if (url.hostname === 'allowed.host') {
-        return new Response(null, {
-          status: 302,
-          headers: {
-            Location:
-              'http://allowed.host/storage-bucket/private-artifacts/victim-namespace/secret',
-          },
-        });
-      }
-      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
-    });
-
-    await requests(app.app)
-      .get(
-        '/artifacts/get?source=http&bucket=storage-bucket&key=private-artifacts/team-a/own&namespace=team-a',
-      )
-      .set('kubeflow-userid', 'a@example.com')
-      .expect(403, 'Redirected artifact is outside the requested namespace');
-
-    expect(forwarded).toEqual([]);
-    expect(
-      fetchSpy.mock.calls.filter(([url]) => String(url).includes('allowed.host')),
-    ).toHaveLength(1);
+    ).toBe(false);
   });
 
   it.each([

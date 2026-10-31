@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
 import kfp.compiler as compiler
+from kfp import dsl
 
 
 @dsl.container_component
@@ -23,7 +23,7 @@ def component_with_concat_placeholder(input_one: str, input_two: str):
         command=['sh', '-ec'],
         args=[
             'echo "$0" > /tmp/test && [[ "$0" == \'one+two=three\' ]]',
-            dsl.ConcatPlaceholder([input_one, '+', input_two, '=three'])
+            dsl.ConcatPlaceholder([input_one, '+', input_two, '=three']),
         ],
     )
 
@@ -39,4 +39,5 @@ def pipeline_with_concat_placeholder():
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_concat_placeholder,
-        package_path='pipeline_with_concat_placeholder.yaml')
+        package_path='pipeline_with_concat_placeholder.yaml',
+    )

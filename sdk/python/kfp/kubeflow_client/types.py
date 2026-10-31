@@ -36,6 +36,6 @@ Run = kfp.server_api.V2Run
 Experiment = kfp.server_api.V2Experiment
 
 ListPipelinesResponse = kfp.server_api.V2ListPipelinesResponse
-ListPipelineVersionsResponse = (kfp.server_api.V2ListPipelineVersionsResponse)
+ListPipelineVersionsResponse = kfp.server_api.V2ListPipelineVersionsResponse
 ListRunsResponse = kfp.server_api.V2ListRunsResponse
 ListExperimentsResponse = kfp.server_api.V2ListExperimentsResponse

@@ -11,18 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import inspect
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from kfp import dsl
-from kfp.dsl import task_final_status
+from kfp.dsl import _artifact_preview, task_final_status
 from kfp.dsl.task_config import TaskConfig
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import artifact_types, type_annotations, type_utils
 
 
 class Executor:
@@ -31,8 +30,12 @@ class Executor:
     def __init__(
         self,
         executor_input: Dict,
-        function_to_execute: Union[Callable,
-                                   'python_component.PythonComponent'],
+        function_to_execute: Union[
+            Callable, 'python_component.PythonComponent'
+        ],
+        *,
+        artifact_previews: bool = True,
+        artifact_preview_rows: bool = True,
     ):
 
         if hasattr(function_to_execute, 'python_func'):
@@ -45,34 +48,50 @@ class Executor:
 
         # drop executor_output.json part from the outputFile path
         artifact_types.CONTAINER_TASK_ROOT = os.path.split(
-            self.executor_output_path)[0]
+            self.executor_output_path
+        )[0]
 
-        self.input_artifacts: Dict[str, Union[dsl.Artifact,
-                                              List[dsl.Artifact]]] = {}
+        self.input_artifacts: Dict[
+            str, Union[dsl.Artifact, List[dsl.Artifact]]
+        ] = {}
         self.output_artifacts: Dict[str, dsl.Artifact] = {}
         self.assign_input_and_output_artifacts()
 
         self.return_annotation = inspect.signature(self.func).return_annotation
         self.excutor_output = {}
+        self._artifact_previews = (
+            _artifact_preview.ArtifactPreviewSession(
+                self.output_artifacts, artifact_preview_rows
+            )
+            if artifact_previews
+            else None
+        )
 
     def assign_input_and_output_artifacts(self) -> None:
-        for name, artifacts in self.executor_input.get('inputs',
-                                                       {}).get('artifacts',
-                                                               {}).items():
+        for name, artifacts in (
+            self.executor_input.get('inputs', {}).get('artifacts', {}).items()
+        ):
             list_of_artifact_proto_structs = artifacts.get('artifacts')
             if list_of_artifact_proto_structs:
                 annotation = self.func.__annotations__[name]
                 # InputPath has no attribute __origin__ and also should be handled as a single artifact
-                annotation = type_annotations.maybe_strip_optional_from_annotation(
-                    annotation)
+                annotation = (
+                    type_annotations.maybe_strip_optional_from_annotation(
+                        annotation
+                    )
+                )
                 is_list_of_artifacts = (
                     type_annotations.is_Input_Output_artifact_annotation(
-                        annotation) and
-                    type_annotations.is_list_of_artifacts(annotation.__origin__)
+                        annotation
+                    )
+                    and type_annotations.is_list_of_artifacts(
+                        annotation.__origin__
+                    )
                 ) or type_annotations.is_list_of_artifacts(annotation)
                 if is_list_of_artifacts:
                     inner_annotation = self._resolve_list_artifact_inner_type(
-                        input_name=name, list_annotation=annotation)
+                        input_name=name, list_annotation=annotation
+                    )
 
                     self.input_artifacts[name] = [
                         self.make_artifact(
@@ -80,7 +99,8 @@ class Executor:
                             name,
                             self.func,
                             annotation=inner_annotation,
-                        ) for msg in list_of_artifact_proto_structs
+                        )
+                        for msg in list_of_artifact_proto_structs
                     ]
                 else:
                     self.input_artifacts[name] = self.make_artifact(
@@ -89,9 +109,9 @@ class Executor:
                         self.func,
                     )
 
-        for name, artifacts in self.executor_input.get('outputs',
-                                                       {}).get('artifacts',
-                                                               {}).items():
+        for name, artifacts in (
+            self.executor_input.get('outputs', {}).get('artifacts', {}).items()
+        ):
             list_of_artifact_proto_structs = artifacts.get('artifacts')
             if list_of_artifact_proto_structs:
                 output_artifact = self.make_artifact(
@@ -102,8 +122,9 @@ class Executor:
                 self.output_artifacts[name] = output_artifact
                 makedirs_recursively(output_artifact.path)
 
-    def _resolve_list_artifact_inner_type(self, input_name: str,
-                                          list_annotation: Any) -> Any:
+    def _resolve_list_artifact_inner_type(
+        self, input_name: str, list_annotation: Any
+    ) -> Any:
         """Unwraps nested list annotations and validates the inner artifact
         type."""
         inner_annotation = type_annotations.get_inner_type(list_annotation)
@@ -111,29 +132,34 @@ class Executor:
         if inner_annotation is None:
             raise TypeError(
                 f"Input '{input_name}' expects a list of artifacts, but "
-                f'received {list_annotation!r} without an inner type.')
+                f'received {list_annotation!r} without an inner type.'
+            )
 
         while type_annotations.is_list_of_artifacts(inner_annotation):
             if isinstance(inner_annotation, tuple):
                 raise TypeError(
                     f"Input '{input_name}' expects a single artifact type but "
-                    f'received a union {inner_annotation!r}.')
+                    f'received a union {inner_annotation!r}.'
+                )
             inner_annotation = type_annotations.get_inner_type(inner_annotation)
             if inner_annotation is None:
                 raise TypeError(
                     f"Input '{input_name}' expects a list of artifacts, but "
                     f'could not determine the inner annotation from '
-                    f'{list_annotation!r}.')
+                    f'{list_annotation!r}.'
+                )
 
         if isinstance(inner_annotation, tuple):
             raise TypeError(
                 f"Input '{input_name}' expects a single artifact type but "
-                f'received a union {inner_annotation!r}.')
+                f'received a union {inner_annotation!r}.'
+            )
         if not type_annotations.is_artifact_class(inner_annotation):
             raise TypeError(
                 f"Input '{input_name}' expects a list of artifacts, but "
                 f'received {list_annotation!r} whose inner type '
-                f'{inner_annotation!r} is not an artifact.')
+                f'{inner_annotation!r} is not an artifact.'
+            )
 
         return inner_annotation
 
@@ -144,16 +170,19 @@ class Executor:
         func: Callable,
         annotation: Optional[Any] = None,
     ) -> Any:
-        annotation = func.__annotations__.get(
-            name) if annotation is None else annotation
+        annotation = (
+            func.__annotations__.get(name) if annotation is None else annotation
+        )
         if type_annotations.is_list_of_artifacts(annotation):
             annotation = self._resolve_list_artifact_inner_type(
-                input_name=name, list_annotation=annotation)
+                input_name=name, list_annotation=annotation
+            )
         if isinstance(annotation, type_annotations.InputPath):
             schema_title, _ = annotation.type.split('@')
             if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:
                 artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE[
-                    schema_title]
+                    schema_title
+                ]
             else:
                 raise TypeError(
                     f'Invalid type argument to {type_annotations.InputPath.__name__}: {annotation.type}'
@@ -161,7 +190,8 @@ class Executor:
         else:
             artifact_cls = annotation
         return create_artifact_instance(
-            runtime_artifact, fallback_artifact_cls=artifact_cls)
+            runtime_artifact, fallback_artifact_cls=artifact_cls
+        )
 
     def get_input_artifact(self, name: str) -> Optional[dsl.Artifact]:
         return self.input_artifacts.get(name)
@@ -170,9 +200,11 @@ class Executor:
         return self.output_artifacts.get(name)
 
     def get_input_parameter_value(
-            self, parameter_name: str) -> Optional[Union[str, dict]]:
+        self, parameter_name: str
+    ) -> Optional[Union[str, dict]]:
         parameter_values = self.executor_input.get('inputs', {}).get(
-            'parameterValues', None)
+            'parameterValues', None
+        )
 
         if parameter_values is not None:
             return parameter_values.get(parameter_name, None)
@@ -180,8 +212,11 @@ class Executor:
         return None
 
     def get_output_parameter_path(self, parameter_name: str) -> Optional[str]:
-        parameter = self.executor_input.get('outputs', {}).get(
-            'parameters', {}).get(parameter_name, None)
+        parameter = (
+            self.executor_input.get('outputs', {})
+            .get('parameters', {})
+            .get(parameter_name, None)
+        )
         if parameter is None:
             return None
 
@@ -207,8 +242,10 @@ class Executor:
         return input_artifact.path
 
     def write_output_parameter_value(
-        self, name: str, value: Union[str, int, float, bool, dict, list, Dict,
-                                      List, None]) -> None:
+        self,
+        name: str,
+        value: Union[str, int, float, bool, dict, list, Dict, List, None],
+    ) -> None:
         if value is None:
             # An Optional-typed output (e.g. Optional[Person]) may
             # legitimately produce no value; matching write_executor_output's
@@ -237,14 +274,20 @@ class Executor:
         with open(path, 'w') as f:
             f.write(str(value))
 
-    def handle_single_return_value(self, output_name: str, annotation_type: Any,
-                                   return_value: Any) -> None:
+    def handle_single_return_value(
+        self, output_name: str, annotation_type: Any, return_value: Any
+    ) -> None:
         if is_parameter(annotation_type):
-            stripped_annotation_type = type_annotations.maybe_strip_optional_from_annotation(
-                annotation_type)
+            stripped_annotation_type = (
+                type_annotations.maybe_strip_optional_from_annotation(
+                    annotation_type
+                )
+            )
             is_optional = stripped_annotation_type is not annotation_type
-            origin_type = getattr(stripped_annotation_type, '__origin__',
-                                  None) or stripped_annotation_type
+            origin_type = (
+                getattr(stripped_annotation_type, '__origin__', None)
+                or stripped_annotation_type
+            )
             # relax float-typed return to allow both int and float.
             if origin_type == float:
                 accepted_types = (int, float)
@@ -254,32 +297,41 @@ class Executor:
             # A None return is only valid for an Optional-typed annotation (e.g.
             # Optional[Person]); for a non-Optional annotation, None still fails
             # the type check below same as before.
-            return_value_is_permitted_none = is_optional and return_value is None
+            return_value_is_permitted_none = (
+                is_optional and return_value is None
+            )
             if not return_value_is_permitted_none and not isinstance(
-                    return_value, accepted_types):
+                return_value, accepted_types
+            ):
                 raise ValueError(
                     f'Function `{self.func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
                 )
-            if not return_value_is_permitted_none and type_utils.is_pydantic_basemodel_subclass(
-                    origin_type):
+            if (
+                not return_value_is_permitted_none
+                and type_utils.is_pydantic_basemodel_subclass(origin_type)
+            ):
                 type_utils.validate_pydantic_basemodel_version(origin_type)
                 # by_alias=True so the wire format matches what
                 # model_validate() expects back for fields with a
                 # validation alias, keeping serialize/deserialize a
                 # round trip.
                 return_value = return_value.model_dump(
-                    mode='json', by_alias=True)
+                    mode='json', by_alias=True
+                )
             self.write_output_parameter_value(output_name, return_value)
 
         elif is_artifact(annotation_type):
             if isinstance(return_value, artifact_types.Artifact):
                 # for -> Artifact annotations, where the user returns an artifact
                 artifact_name = self.executor_input['outputs']['artifacts'][
-                    output_name]['artifacts'][0]['name']
+                    output_name
+                ]['artifacts'][0]['name']
                 # users should not override the name for Vertex Pipelines
                 # if empty string, replace
                 # else provide descriptive warning and prefer letting backend throw exception
-                running_on_vertex = 'VERTEX_AI_PIPELINES_RUN_LABELS' in os.environ
+                running_on_vertex = (
+                    'VERTEX_AI_PIPELINES_RUN_LABELS' in os.environ
+                )
                 if running_on_vertex:
                     if return_value.name == '':
                         return_value.name = artifact_name
@@ -288,7 +340,8 @@ class Executor:
                         warnings.warn(
                             f'If you are running your pipeline Vertex AI Pipelines, you should not provide a name for your artifact. It will be set to the Vertex artifact resource name {artifact_name} by default. Got value for name: {return_value.name}.',
                             RuntimeWarning,
-                            stacklevel=2)
+                            stacklevel=2,
+                        )
                 self.output_artifacts[output_name] = return_value
             else:
                 # for -> Artifact annotations, where the user returns some data that the executor should serialize
@@ -298,9 +351,9 @@ class Executor:
                 f'Unknown return type: {annotation_type}. Must be one of the supported data types: https://www.kubeflow.org/docs/components/pipelines/v2/data-types/'
             )
 
-    def write_executor_output(self,
-                              func_output: Optional[Any] = None
-                             ) -> Optional[str]:
+    def write_executor_output(
+        self, func_output: Optional[Any] = None
+    ) -> Optional[str]:
         """Writes executor output containing the Python function output. The
         executor output file will not be written if this code is executed from
         a non-chief node in a mirrored execution strategy.
@@ -314,11 +367,12 @@ class Executor:
 
         if func_output is not None:
             if is_parameter(self.return_annotation) or is_artifact(
-                    self.return_annotation):
+                self.return_annotation
+            ):
                 # Note: single output is named `Output` in component.yaml.
-                self.handle_single_return_value('Output',
-                                                self.return_annotation,
-                                                func_output)
+                self.handle_single_return_value(
+                    'Output', self.return_annotation, func_output
+                )
             elif is_named_tuple(self.return_annotation):
                 if len(self.return_annotation._fields) != len(func_output):
                     raise RuntimeError(
@@ -331,8 +385,9 @@ class Executor:
                         field_value = func_output[i]
                     else:
                         field_value = getattr(func_output, field)
-                    self.handle_single_return_value(field, field_type,
-                                                    field_value)
+                    self.handle_single_return_value(
+                        field, field_type, field_value
+                    )
             else:
                 raise RuntimeError(
                     f'Unknown return type: {self.return_annotation}. Must be one of `str`, `int`, `float`, a subclass of `Artifact`, or a NamedTuple collection of these types.'
@@ -365,6 +420,8 @@ class Executor:
             write_file = cluster_spec['task']['type'] in CHIEF_NODE_LABELS
 
         if write_file:
+            if self._artifact_previews is not None:
+                self._artifact_previews.generate()
             makedirs_recursively(self.executor_output_path)
             with open(self.executor_output_path, 'w') as f:
                 f.write(json.dumps(self.excutor_output))
@@ -406,7 +463,8 @@ class Executor:
                 func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
                     state=value.get('state'),
                     pipeline_job_resource_name=value.get(
-                        pipline_job_resource_name),
+                        pipline_job_resource_name
+                    ),
                     pipeline_task_name=value.get(pipeline_task_name),
                     error_code=value.get('error', {}).get('code', None),
                     error_message=value.get('error', {}).get('message', None),
@@ -434,11 +492,13 @@ class Executor:
             elif is_parameter(v):
                 value = self.get_input_parameter_value(k)
                 if value is not None:
-                    stripped_v = type_annotations.maybe_strip_optional_from_annotation(
-                        v)
+                    stripped_v = (
+                        type_annotations.maybe_strip_optional_from_annotation(v)
+                    )
                     if type_utils.is_pydantic_basemodel_subclass(stripped_v):
                         type_utils.validate_pydantic_basemodel_version(
-                            stripped_v)
+                            stripped_v
+                        )
                         value = stripped_v.model_validate(value)
                     func_kwargs[k] = value
 
@@ -451,12 +511,17 @@ class Executor:
             elif type_annotations.is_embedded_input_annotation(v):
                 # Inject a runtime-only artifact pointing to the extracted embedded asset
                 inner_type = type_annotations.strip_Input_or_Output_marker(v)
-                artifact_cls = inner_type if type_annotations.is_artifact_class(
-                    inner_type) else artifact_types.Artifact
+                artifact_cls = (
+                    inner_type
+                    if type_annotations.is_artifact_class(inner_type)
+                    else artifact_types.Artifact
+                )
                 embedded_dir = self.func.__globals__.get(
-                    '__KFP_EMBEDDED_ASSET_DIR')
+                    '__KFP_EMBEDDED_ASSET_DIR'
+                )
                 embedded_file = self.func.__globals__.get(
-                    '__KFP_EMBEDDED_ASSET_FILE')
+                    '__KFP_EMBEDDED_ASSET_FILE'
+                )
                 artifact_instance = artifact_cls()
                 if embedded_file:
                     artifact_instance.path = embedded_file
@@ -480,8 +545,9 @@ class Executor:
             elif isinstance(v, type_annotations.InputPath):
                 func_kwargs[k] = self.get_input_artifact_path(k)
 
-        result = self.func(**func_kwargs)
-        return self.write_executor_output(result)
+        with self._artifact_previews or contextlib.nullcontext():
+            result = self.func(**func_kwargs)
+            return self.write_executor_output(result)
 
 
 def create_artifact_instance(
@@ -492,15 +558,20 @@ def create_artifact_instance(
     dictionary."""
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
-        schema_title, fallback_artifact_cls)
-    return artifact_cls._from_executor_fields(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
-    ) if hasattr(artifact_cls, '_from_executor_fields') else artifact_cls(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
+        schema_title, fallback_artifact_cls
+    )
+    return (
+        artifact_cls._from_executor_fields(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}),
+        )
+        if hasattr(artifact_cls, '_from_executor_fields')
+        else artifact_cls(
+            uri=runtime_artifact.get('uri', ''),
+            name=runtime_artifact.get('name', ''),
+            metadata=runtime_artifact.get('metadata', {}),
+        )
     )
 
 
@@ -521,10 +592,13 @@ def is_parameter(annotation: Any) -> bool:
     # instance (it's a typing.Union), so it falls through the isinstance
     # check above even though the wrapped type is a pydantic model.
     stripped_annotation = type_annotations.maybe_strip_optional_from_annotation(
-        annotation)
-    if stripped_annotation is not annotation and isinstance(
-            stripped_annotation, type
-    ) and type_utils.is_pydantic_basemodel_subclass(stripped_annotation):
+        annotation
+    )
+    if (
+        stripped_annotation is not annotation
+        and isinstance(stripped_annotation, type)
+        and type_utils.is_pydantic_basemodel_subclass(stripped_annotation)
+    ):
         return True
 
     return type_utils.is_parameter_type(str(annotation))
@@ -538,8 +612,11 @@ def is_artifact(annotation: Any) -> bool:
 
 def is_named_tuple(annotation: Any) -> bool:
     if type(annotation) == type:
-        return issubclass(annotation, tuple) and hasattr(
-            annotation, '_fields') and hasattr(annotation, '__annotations__')
+        return (
+            issubclass(annotation, tuple)
+            and hasattr(annotation, '_fields')
+            and hasattr(annotation, '__annotations__')
+        )
     return False
 
 

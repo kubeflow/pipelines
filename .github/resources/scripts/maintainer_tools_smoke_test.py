@@ -14,16 +14,16 @@
 
 import hashlib
 import os
-from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('maintainer_tools_smoke.sh')
 
 
 class SnapshotTests(unittest.TestCase):
-
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -35,26 +35,35 @@ class SnapshotTests(unittest.TestCase):
         destination.write_text(content)
 
     def snapshot(self, *directories):
-        return subprocess.run([
-            'bash', '-c', 'source "$1"; shift; snapshot_sources "$@"', 'test',
-            str(SCRIPT),
-            str(self.root), *directories
-        ],
-                              check=False,
-                              capture_output=True,
-                              text=True)
+        return subprocess.run(
+            [
+                'bash',
+                '-c',
+                'source "$1"; shift; snapshot_sources "$@"',
+                'test',
+                str(SCRIPT),
+                str(self.root),
+                *directories,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
 
     def api_source_directories(self) -> list[str]:
         """Read the inventory used by the real cross-image comparison."""
-        result = subprocess.run([
-            'bash', '-c',
-            'source "$1"; printf "%s\\n" "${API_SOURCE_DIRECTORIES[@]}"',
-            'test',
-            str(SCRIPT)
-        ],
-                                check=True,
-                                capture_output=True,
-                                text=True)
+        result = subprocess.run(
+            [
+                'bash',
+                '-c',
+                'source "$1"; printf "%s\\n" "${API_SOURCE_DIRECTORIES[@]}"',
+                'test',
+                str(SCRIPT),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
         return result.stdout.splitlines()
 
     def test_api_inventory_tracks_sdk_client_and_documentation(self) -> None:
@@ -67,14 +76,15 @@ class SnapshotTests(unittest.TestCase):
         self.assertIn('backend/api/v2beta1/go_http_client', directories)
         self.assertIn(
             'snapshot_sources "$source_dir" "${API_SOURCE_DIRECTORIES[@]}"',
-            SCRIPT.read_text())
+            SCRIPT.read_text(),
+        )
         for directory in directories:
             self.write(f'{directory}/generated.txt', 'source')
         for path in (
-                'sdk/python/kfp/server_api/api_client.py',
-                'backend/api/v2/python_http_client/docs/RunServiceApi.md',
-                'backend/api/v2beta1/go_client/aliases.go',
-                'backend/api/v2beta1/go_http_client/run_model/aliases.go',
+            'sdk/python/kfp/server_api/api_client.py',
+            'backend/api/v2/python_http_client/docs/RunServiceApi.md',
+            'backend/api/v2beta1/go_client/aliases.go',
+            'backend/api/v2beta1/go_http_client/run_model/aliases.go',
         ):
             with self.subTest(path=path):
                 self.write(path, 'before')
@@ -94,8 +104,9 @@ class SnapshotTests(unittest.TestCase):
                 self.write(f'{directory}/generated.txt', 'source')
         result = self.snapshot(*directories)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('No generated files in sdk/python/kfp/server_api',
-                      result.stderr)
+        self.assertIn(
+            'No generated files in sdk/python/kfp/server_api', result.stderr
+        )
 
     def test_snapshot_hashes_sorted_relative_source_paths(self):
         self.write('generated/z.go', 'last')
@@ -104,14 +115,20 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         expected = ''.join(
             f'{hashlib.sha256(content).hexdigest()}  {path}\n'
-            for path, content in [('generated/a.py',
-                                   b'first'), ('generated/z.go', b'last')])
+            for path, content in [
+                ('generated/a.py', b'first'),
+                ('generated/z.go', b'last'),
+            ]
+        )
         self.assertEqual(result.stdout, expected)
         self.assertNotIn(str(self.root), result.stdout)
 
     def test_excludes_build_products_not_generator_metadata(self):
-        for path in ('dist/package.tar.gz', 'kfp_server_api.egg-info/PKG-INFO',
-                     '__pycache__/module.pyc'):
+        for path in (
+            'dist/package.tar.gz',
+            'kfp_server_api.egg-info/PKG-INFO',
+            '__pycache__/module.pyc',
+        ):
             self.write(f'generated/{path}', 'volatile')
         self.write('generated/.openapi-generator/VERSION', '4.3.1')
         self.write('generated/kfp_server_api/api.py', 'source')
@@ -134,13 +151,14 @@ class SnapshotTests(unittest.TestCase):
 
 
 class NativeGuardTests(unittest.TestCase):
-
     def test_local_invocation_reaches_usage_guard(self):
-        result = subprocess.run(['bash', SCRIPT.name],
-                                cwd=SCRIPT.parent,
-                                capture_output=True,
-                                text=True,
-                                check=False)
+        result = subprocess.run(
+            ['bash', SCRIPT.name],
+            cwd=SCRIPT.parent,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
         self.assertEqual(result.returncode, 1)
         self.assertIn('Usage:', result.stderr)
         self.assertNotIn('Not a directory', result.stderr)
@@ -151,19 +169,17 @@ class NativeGuardTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.log = self.root / 'docker.log'
         for name, body in {
-                'uname':
-                    '''#!/bin/bash
+            'uname': """#!/bin/bash
 if [[ $1 == -s ]]; then echo "$TEST_OS"; else echo "$TEST_MACHINE"; fi
-''',
-                'docker':
-                    '''#!/bin/bash
+""",
+            'docker': """#!/bin/bash
 printf '%s\\n' "$*" >> "$TEST_DOCKER_LOG"
 if [[ ${*: -1} == kfp-release:ci ]]; then
   echo "$TEST_RELEASE_PLATFORM"
 else
   echo "$TEST_GENERATOR_PLATFORM"
 fi
-''',
+""",
         }.items():
             path = self.root / name
             path.write_text(body)
@@ -172,28 +188,28 @@ fi
     def validate(self, architecture, **overrides):
         environment = {
             **os.environ,
-            'PATH':
-                f'{self.root}{os.pathsep}{os.environ["PATH"]}',
-            'TEST_DOCKER_LOG':
-                str(self.log),
-            'TEST_OS':
-                'Linux',
-            'TEST_MACHINE':
-                'aarch64' if architecture == 'arm64' else 'x86_64',
-            'TEST_GENERATOR_PLATFORM':
-                f'linux/{architecture}',
-            'TEST_RELEASE_PLATFORM':
-                f'linux/{architecture}',
+            'PATH': f'{self.root}{os.pathsep}{os.environ["PATH"]}',
+            'TEST_DOCKER_LOG': str(self.log),
+            'TEST_OS': 'Linux',
+            'TEST_MACHINE': 'aarch64' if architecture == 'arm64' else 'x86_64',
+            'TEST_GENERATOR_PLATFORM': f'linux/{architecture}',
+            'TEST_RELEASE_PLATFORM': f'linux/{architecture}',
             **overrides,
         }
-        return subprocess.run([
-            'bash', '-c', 'source "$1"; validate_native_images "$2"', 'test',
-            str(SCRIPT), architecture
-        ],
-                              env=environment,
-                              check=False,
-                              capture_output=True,
-                              text=True)
+        return subprocess.run(
+            [
+                'bash',
+                '-c',
+                'source "$1"; validate_native_images "$2"',
+                'test',
+                str(SCRIPT),
+                architecture,
+            ],
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
 
     def test_native_images_on_both_architectures(self):
         for architecture in ('amd64', 'arm64'):
@@ -225,12 +241,43 @@ fi
             with self.subTest(variable=variable):
                 result = self.validate('arm64', **{variable: 'linux/amd64'})
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn('does not match native Linux arm64',
-                              result.stderr)
+                self.assertIn(
+                    'does not match native Linux arm64', result.stderr
+                )
+
+
+class ChangelogSmokeTests(unittest.TestCase):
+    def test_host_renderer_is_deterministic_and_preserves_history_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copytree(
+                SCRIPT.parents[3] / 'release/kfpr', root / 'release/kfpr'
+            )
+            history = b'Changelog\r\n\r\n## 1.0.0\r\nhandwritten history\r\n'
+            (root / 'CHANGELOG.md').write_bytes(history)
+            output = root / 'notes.md'
+            command = [
+                'bash',
+                '-c',
+                'source "$1"; render_changelog_smoke "$2" "$3"',
+                'test',
+                str(SCRIPT),
+                str(root),
+                str(output),
+            ]
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            first = output.read_bytes()
+            self.assertIn(b'### Features', first)
+            self.assertIn(b'native maintainer tooling smoke', first)
+            self.assertIn(b'### Breaking changes', first)
+            self.assertIn(b'Update the fixture client before deploying.', first)
+            self.assertTrue(first.endswith(history))
+            self.assertEqual((root / 'CHANGELOG.md').read_bytes(), history)
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            self.assertEqual(output.read_bytes(), first)
 
 
 class ScriptContractTests(unittest.TestCase):
-
     def test_shell_syntax(self):
         subprocess.run(['bash', '-n', str(SCRIPT)], check=True)
 
@@ -239,8 +286,9 @@ class ScriptContractTests(unittest.TestCase):
         script = SCRIPT.read_text()
         self.assertIn('test -s sdk/python/kfp/server_api/api_client.py', script)
         self.assertIn(
-            'python3 -m pip wheel --no-deps ./sdk/python '
-            '--wheel-dir /tmp/kfp-smoke-dist', script)
+            'uv build --wheel ./sdk/python --out-dir /tmp/kfp-smoke-dist',
+            script,
+        )
         self.assertIn("compgen -G '/tmp/kfp-smoke-dist/kfp-*.whl'", script)
         self.assertNotIn('python_http_client/kfp_server_api/', script)
         self.assertNotIn('python_http_client/dist/', script)
@@ -249,11 +297,12 @@ class ScriptContractTests(unittest.TestCase):
         script = SCRIPT.read_text()
         self.assertIn('git -C "$root" archive HEAD', script)
         self.assertIn('backend/api/hack/generator.sh', script)
-        self.assertIn('backend/api/build_kfp_server_api_python_package.sh',
-                      script)
+        self.assertIn(
+            'backend/api/build_kfp_server_api_python_package.sh', script
+        )
         self.assertIn('manifests/kustomize/hack/release.sh 3.0.0-smoke', script)
-        self.assertIn('git-cliff -c cliff.toml', script)
-        self.assertIn('git init -q', script)
+        self.assertIn('render_changelog_smoke', script)
+        self.assertNotIn('git-cliff', script)
         self.assertIn('--user "$(id -u):$(id -g)"', script)
         self.assertIn('--env HOME=/tmp/kfp-smoke-home', script)
         self.assertNotIn('--platform', script)

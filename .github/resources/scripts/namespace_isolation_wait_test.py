@@ -13,11 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import subprocess
 import textwrap
 import unittest
-
+from pathlib import Path
 
 SCRIPT = (
     Path(__file__).parents[3]
@@ -28,7 +27,6 @@ SCRIPT = (
 
 
 class NamespaceIsolationCredentialWaitTest(unittest.TestCase):
-
     def _run(self, shell_body: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
@@ -45,7 +43,7 @@ class NamespaceIsolationCredentialWaitTest(unittest.TestCase):
         )
 
     def test_waits_for_both_profile_credentials(self):
-        result = self._run('''
+        result = self._run("""
             kubectl() {
               if [[ "$*" == "get secret -n test-profile-1 mlpipeline-minio-artifact" ||
                     "$*" == "get secret -n test-profile-2 mlpipeline-minio-artifact" ]]; then
@@ -54,7 +52,7 @@ class NamespaceIsolationCredentialWaitTest(unittest.TestCase):
               return 1
             }
             wait_for_credentials test-profile-1 test-profile-2
-        ''')
+        """)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(
@@ -62,19 +60,17 @@ class NamespaceIsolationCredentialWaitTest(unittest.TestCase):
         )
 
     def test_timeout_reports_each_missing_profile_and_controller(self):
-        result = self._run('''
+        result = self._run("""
             CREDENTIAL_TIMEOUT_SECONDS=0
             kubectl() {
               echo "kubectl $*"
               return 1
             }
             wait_for_credentials test-profile-1 test-profile-2
-        ''')
+        """)
 
         self.assertEqual(result.returncode, 1)
-        self.assertIn(
-            'credentials were not created within 0s', result.stdout
-        )
+        self.assertIn('credentials were not created within 0s', result.stdout)
         self.assertIn(
             'credential reconciliation diagnostics for test-profile-1',
             result.stdout,

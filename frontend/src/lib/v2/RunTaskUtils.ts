@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PipelineTaskTaskType, V2PipelineTask, V2Run } from 'src/apisv2/run';
+import { PipelineTaskTaskState, PipelineTaskTaskType, V2PipelineTask, V2Run } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 import { listAllPages } from './PaginationUtils';
 
@@ -38,6 +38,22 @@ export function getTaskDisplayName(task: V2PipelineTask, fallback = 'Task'): str
     return `${task.name} (Loop)`;
   }
   return task.display_name || task.name || fallback;
+}
+
+// Returns the pod lifecycle diagnostic for a task that has not completed successfully.
+// A message left on a succeeded, cached or skipped task is stale, so it is ignored.
+export function getTaskLifecycleMessage(task?: V2PipelineTask): string | undefined {
+  if (!task?.lifecycle_message) {
+    return undefined;
+  }
+  if (
+    task.state === PipelineTaskTaskState.SUCCEEDED ||
+    task.state === PipelineTaskTaskState.CACHED ||
+    task.state === PipelineTaskTaskState.SKIPPED
+  ) {
+    return undefined;
+  }
+  return task.lifecycle_message;
 }
 
 export function getRunDisplayName(run: V2Run, fallback = 'Run'): string {

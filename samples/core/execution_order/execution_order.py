@@ -14,29 +14,31 @@
 # limitations under the License.
 
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
 def echo1_op(text1: str):
-  print(text1)
+    print(text1)
 
 
 @dsl.component
 def echo2_op(text2: str):
-  print(text2)
+    print(text2)
 
 
 @dsl.pipeline(
-  name='execution-order-pipeline',
-  description='A pipeline to demonstrate execution order management.'
+    name='execution-order-pipeline',
+    description='A pipeline to demonstrate execution order management.',
 )
-def execution_order_pipeline(text1: str='message 1', text2: str='message 2'):
-  """A two step pipeline with an explicitly defined execution order."""
-  step1_task = echo1_op(text1=text1)
-  step2_task = echo2_op(text2=text2)
-  step2_task.after(step1_task)
+def execution_order_pipeline(
+    text1: str = 'message 1', text2: str = 'message 2'
+):
+    """A two step pipeline with an explicitly defined execution order."""
+    step1_task = echo1_op(text1=text1)
+    step2_task = echo2_op(text2=text2)
+    step2_task.after(step1_task)
+
 
 if __name__ == '__main__':
-  compiler.Compiler().compile(execution_order_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(execution_order_pipeline, __file__ + '.yaml')

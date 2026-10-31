@@ -521,23 +521,6 @@ func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceM
 	return store, manager, experiment, p, pv
 }
 
-func initWithExperimentAndPipelineAndRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline, *model.PipelineVersion, *model.Run) {
-	store, manager, exp, pipeline, version := initWithExperimentAndPipeline(t)
-	// The pipeline specified via pipeline id will be converted to this
-	// pipeline's default version, which will be used to create run.
-	apiRun := &model.Run{
-		DisplayName:  "run1",
-		ExperimentId: exp.UUID,
-		PipelineSpec: model.PipelineSpec{
-			PipelineId:    pipeline.UUID,
-			RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`},
-		},
-	}
-	run, err := manager.CreateRun(context.Background(), apiRun)
-	assert.Nil(t, err)
-	return store, manager, exp, pipeline, version, run
-}
-
 // Util function to create an initial state with pipeline uploaded
 func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
 	store, manager, exp := initWithExperiment(t)
@@ -4094,6 +4077,8 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, got.LifecycleMessage)
 	assert.Equal(t, model.LargeText(`Back-off pulling image "ghcr.io/example/missing:v1"`), *got.LifecycleMessage)
+	require.NotNil(t, got.LifecycleCategory)
+	assert.Equal(t, string(util.FailureCategoryImagePull), *got.LifecycleCategory)
 
 	workflow.Status.Nodes["executor-pod"] = v1alpha1.NodeStatus{
 		ID:          "executor-pod",
@@ -4108,6 +4093,7 @@ func TestReportWorkflowResource_PersistsLifecycleMessage(t *testing.T) {
 	got, err = manager.GetTask(task.UUID)
 	require.NoError(t, err)
 	assert.Nil(t, got.LifecycleMessage, "lifecycle message should be cleared after transient startup message")
+	assert.Nil(t, got.LifecycleCategory, "lifecycle category should be cleared with the message")
 }
 
 type runStoreWithBeforeWorkflowUpdateHook struct {
@@ -4866,6 +4852,47 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 		},
 	}
 	assert.Equal(t, expectedRunDetail.ToV2(), runDetail.ToV2())
+}
+
+func TestReportWorkflowResource_RecurringRunObservesReportGap(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	manager.options.CollectMetrics = true
+	sampleCount := func() uint64 {
+		metric := &dto.Metric{}
+		require.NoError(t, recurringPipelineRunReportGap.Write(metric))
+		return metric.GetHistogram().GetSampleCount()
+	}
+	newRecurringWorkflow := func(id string, startedAt v1.Time) *util.Workflow {
+		return util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      id,
+				Namespace: job.Namespace,
+				UID:       types.UID(id),
+				Labels:    map[string]string{util.LabelKeyWorkflowRunId: id},
+				OwnerReferences: []v1.OwnerReference{{
+					APIVersion: "kubeflow.org/v1beta1",
+					Kind:       "ScheduledWorkflow",
+					Name:       job.K8SName,
+					UID:        types.UID(job.UUID),
+				}},
+			},
+			Status: v1alpha1.WorkflowStatus{StartedAt: startedAt},
+		})
+	}
+	before := sampleCount()
+
+	started := newRecurringWorkflow("started-workflow", v1.NewTime(time.Now().Add(-time.Minute)))
+	syncWorkflowReportWithFakeCluster(t, store, started)
+	_, err := manager.ReportWorkflowResource(context.Background(), started)
+	require.NoError(t, err)
+	assert.Equal(t, before+1, sampleCount())
+
+	notStarted := newRecurringWorkflow("not-started-workflow", v1.Time{})
+	syncWorkflowReportWithFakeCluster(t, store, notStarted)
+	_, err = manager.ReportWorkflowResource(context.Background(), notStarted)
+	require.NoError(t, err)
+	assert.Equal(t, before+1, sampleCount(), "a workflow without a start time must not be observed")
 }
 
 func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatch_Rejected(t *testing.T) {
@@ -7213,31 +7240,6 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-1.6.5
 `
 
-var v2SpecHelloWorldMutated = `
-components:
-  comp-hello-world:
-    executorLabel: exec-hello-world
-deploymentSpec:
-  executors:
-    exec-hello-world:
-      container:
-        image: python:3.11
-pipelineInfo:
-  name: pipelines/p1/versions/v1
-root:
-  dag:
-    tasks:
-      hello-world:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-hello-world
-        taskInfo:
-          name: hello-world
-schemaVersion: 2.1.0
-sdkVersion: kfp-1.6.5
-`
-
 // v2SpecWithLiterals is a v2 pipeline spec with literal parameter constraints for testing.
 var v2SpecWithLiterals = `
 components:
@@ -8811,7 +8813,7 @@ func TestLifecycleMessageForTask_MatchesPodName(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "system-container-impl", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": `Back-off pulling image "bad"`}
-	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.True(t, matched)
 	assert.Equal(t, `Back-off pulling image "bad"`, msg)
 }
@@ -8823,7 +8825,7 @@ func TestLifecycleMessageForTask_NoPodNamesNoMatch(t *testing.T) {
 		"parent": {ID: "parent", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"parent": "ImagePullBackOff"}
-	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.False(t, matched)
 }
 
@@ -8846,11 +8848,11 @@ func TestLifecycleMessageForTask_LoopIterationIsolated(t *testing.T) {
 	}
 	resolved := map[string]string{"node-0": "ImagePullBackOff", "node-1": ""}
 
-	msg0, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
+	msg0, _, matched0 := lifecycleMessageForTask(failTask, nodes, resolved)
 	assert.True(t, matched0)
 	assert.Equal(t, "ImagePullBackOff", msg0)
 
-	msg1, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
+	msg1, _, matched1 := lifecycleMessageForTask(healthyTask, nodes, resolved)
 	assert.True(t, matched1)
 	assert.Equal(t, "", msg1)
 }
@@ -8861,7 +8863,7 @@ func TestLifecycleMessageForTask_Unmatched(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Pending"},
 	}
 	resolved := map[string]string{"node-1": "ImagePullBackOff"}
-	_, matched := lifecycleMessageForTask(task, nodes, resolved)
+	_, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.False(t, matched)
 }
 
@@ -8876,7 +8878,7 @@ func TestLifecycleMessageForTask_MatchedEmptyClears(t *testing.T) {
 		"node-1": {ID: "executor-pod", DisplayName: "train", State: "Running"},
 	}
 	resolved := map[string]string{"node-1": ""}
-	msg, matched := lifecycleMessageForTask(task, nodes, resolved)
+	msg, _, matched := lifecycleMessageForTask(task, nodes, resolved)
 	assert.True(t, matched)
 	assert.Equal(t, "", msg)
 }

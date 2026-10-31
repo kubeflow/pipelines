@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
 import pytest
+from google.protobuf import json_format
+from kfp import dsl, kubernetes
 
 
 class TestSecurityContext:
-
     def test_security_context_all_fields(self):
 
         @dsl.pipeline
@@ -50,8 +48,8 @@ class TestSecurityContext:
 
     def test_security_context_negative_run_as_user(self):
         with pytest.raises(
-                ValueError,
-                match=r'Argument for "run_as_user" must be greater than or equal to 0. Got invalid input: -1.',
+            ValueError,
+            match=r'Argument for "run_as_user" must be greater than or equal to 0. Got invalid input: -1.',
         ):
 
             @dsl.pipeline
@@ -61,8 +59,8 @@ class TestSecurityContext:
 
     def test_security_context_negative_run_as_group(self):
         with pytest.raises(
-                ValueError,
-                match=r'Argument for "run_as_group" must be greater than or equal to 0. Got invalid input: -2.',
+            ValueError,
+            match=r'Argument for "run_as_group" must be greater than or equal to 0. Got invalid input: -2.',
         ):
 
             @dsl.pipeline
@@ -72,8 +70,8 @@ class TestSecurityContext:
 
     def test_security_context_no_arguments(self):
         with pytest.raises(
-                ValueError,
-                match=r'At least one security context field must be provided.',
+            ValueError,
+            match=r'At least one security context field must be provided.',
         ):
 
             @dsl.pipeline
@@ -129,8 +127,8 @@ class TestSecurityContext:
 
     def test_security_context_bool_run_as_user(self):
         with pytest.raises(
-                TypeError,
-                match=r'Argument for "run_as_user" must be an int, not bool',
+            TypeError,
+            match=r'Argument for "run_as_user" must be an int, not bool',
         ):
 
             @dsl.pipeline
@@ -140,8 +138,8 @@ class TestSecurityContext:
 
     def test_security_context_bool_run_as_group(self):
         with pytest.raises(
-                TypeError,
-                match=r'Argument for "run_as_group" must be an int, not bool',
+            TypeError,
+            match=r'Argument for "run_as_group" must be an int, not bool',
         ):
 
             @dsl.pipeline
@@ -227,8 +225,8 @@ class TestSecurityContext:
 
     def test_security_context_run_as_non_root_wrong_type(self):
         with pytest.raises(
-                TypeError,
-                match=r'Argument for "run_as_non_root" must be a bool',
+            TypeError,
+            match=r'Argument for "run_as_non_root" must be a bool',
         ):
 
             @dsl.pipeline

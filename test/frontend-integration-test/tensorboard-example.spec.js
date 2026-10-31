@@ -13,6 +13,7 @@
 // limitations under the License.
 
 const assert = require('assert');
+const path = require('path');
 const {
   buildTableRowSelector,
   clearDefaultInput,
@@ -238,8 +239,7 @@ describe('deploy tensorboard example run', () => {
 
       await $('#localPackageBtn').waitForDisplayed({ timeout: uiTimeout });
       await $('#localPackageBtn').click();
-      const remoteFilePath = await browser.uploadFile('./tensorboard-example.yaml');
-      await $('#dropZone input[type="file"]').addValue(remoteFilePath);
+      await $('#dropZone input[type="file"]').setFiles(path.resolve('./tensorboard-example.yaml'));
 
       await $('#newPipelineName').waitForDisplayed({ timeout: uiTimeout });
       await $('#newPipelineName').click();

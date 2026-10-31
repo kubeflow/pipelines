@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.server_api import V2RuntimeConfig
 from kfp.server_api.api_client import ApiClient
-import pytest
 
 
 class TestResourceClaim:
-
     def test_add_one(self):
 
         @dsl.pipeline
@@ -39,10 +37,11 @@ class TestResourceClaim:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'podResourceClaims': [{
-                                    'resourceClaimTemplateName':
-                                        'gpu-claim-template',
-                                }]
+                                'podResourceClaims': [
+                                    {
+                                        'resourceClaimTemplateName': 'gpu-claim-template',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -72,12 +71,10 @@ class TestResourceClaim:
                             'exec-comp': {
                                 'podResourceClaims': [
                                     {
-                                        'resourceClaimTemplateName':
-                                            'gpu-claim-template',
+                                        'resourceClaimTemplateName': 'gpu-claim-template',
                                     },
                                     {
-                                        'resourceClaimTemplateName':
-                                            'nic-claim-template',
+                                        'resourceClaimTemplateName': 'nic-claim-template',
                                     },
                                 ]
                             }
@@ -109,15 +106,18 @@ class TestResourceClaim:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'tolerations': [{
-                                    'key': 'key1',
-                                    'operator': 'Equal',
-                                    'value': 'value1',
-                                }],
-                                'podResourceClaims': [{
-                                    'resourceClaimTemplateName':
-                                        'gpu-claim-template',
-                                }],
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                    }
+                                ],
+                                'podResourceClaims': [
+                                    {
+                                        'resourceClaimTemplateName': 'gpu-claim-template',
+                                    }
+                                ],
                             }
                         }
                     }
@@ -142,10 +142,11 @@ class TestResourceClaim:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'podResourceClaims': [{
-                                    'resourceClaimTemplateName':
-                                        'gpu-claim-template',
-                                }]
+                                'podResourceClaims': [
+                                    {
+                                        'resourceClaimTemplateName': 'gpu-claim-template',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -167,7 +168,6 @@ class TestResourceClaim:
 
 
 class TestResourceClaimJSON:
-
     def test_pipeline_input_parameter(self):
 
         @dsl.pipeline
@@ -184,12 +184,13 @@ class TestResourceClaimJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'podResourceClaims': [{
-                                    'resourceClaimJson': {
-                                        'componentInputParameter':
-                                            'resource_claim'
+                                'podResourceClaims': [
+                                    {
+                                        'resourceClaimJson': {
+                                            'componentInputParameter': 'resource_claim'
+                                        }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -205,7 +206,8 @@ class TestResourceClaimJSON:
             kubernetes.add_resource_claim_json(
                 task,
                 resource_claim_json=kubernetes.ResourceClaimConfig(
-                    resource_claim_template_name='gpu-claim-template',),
+                    resource_claim_template_name='gpu-claim-template',
+                ),
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -214,16 +216,17 @@ class TestResourceClaimJSON:
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'podResourceClaims': [{
-                                    'resourceClaimJson': {
-                                        'runtimeValue': {
-                                            'constant': {
-                                                'resourceClaimTemplateName':
-                                                    'gpu-claim-template'
+                                'podResourceClaims': [
+                                    {
+                                        'resourceClaimJson': {
+                                            'runtimeValue': {
+                                                'constant': {
+                                                    'resourceClaimTemplateName': 'gpu-claim-template'
+                                                }
                                             }
                                         }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -240,9 +243,11 @@ class TestResourceClaimJSON:
                 task,
                 resource_claim_json=[
                     kubernetes.ResourceClaimConfig(
-                        resource_claim_template_name='gpu-claim-template',),
+                        resource_claim_template_name='gpu-claim-template',
+                    ),
                     kubernetes.ResourceClaimConfig(
-                        resource_claim_template_name='nic-claim-template',),
+                        resource_claim_template_name='nic-claim-template',
+                    ),
                 ],
             )
 
@@ -257,8 +262,7 @@ class TestResourceClaimJSON:
                                         'resourceClaimJson': {
                                             'runtimeValue': {
                                                 'constant': {
-                                                    'resourceClaimTemplateName':
-                                                        'gpu-claim-template'
+                                                    'resourceClaimTemplateName': 'gpu-claim-template'
                                                 }
                                             }
                                         }
@@ -267,8 +271,7 @@ class TestResourceClaimJSON:
                                         'resourceClaimJson': {
                                             'runtimeValue': {
                                                 'constant': {
-                                                    'resourceClaimTemplateName':
-                                                        'nic-claim-template'
+                                                    'resourceClaimTemplateName': 'nic-claim-template'
                                                 }
                                             }
                                         }
@@ -292,10 +295,9 @@ class TestResourceClaimJSON:
                     task,
                     resource_claim_json=[
                         kubernetes.ResourceClaimConfig(
-                            resource_claim_template_name='gpu-claim-template',),
-                        {
-                            'resourceClaimTemplateName': 'bad'
-                        },
+                            resource_claim_template_name='gpu-claim-template',
+                        ),
+                        {'resourceClaimTemplateName': 'bad'},
                     ],
                 )
 
@@ -322,23 +324,28 @@ class TestResourceClaimJSON:
                 resource_claim_json=t2.output,
             )
 
-        assert my_pipeline.pipeline_spec.components[
-            'comp-comp-with-output'].output_definitions.parameters[
-                'Output'].parameter_type == pipeline_spec_pb2.ParameterType.STRUCT
+        assert (
+            my_pipeline.pipeline_spec.components['comp-comp-with-output']
+            .output_definitions.parameters['Output']
+            .parameter_type
+            == pipeline_spec_pb2.ParameterType.STRUCT
+        )
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
                 'kubernetes': {
                     'deploymentSpec': {
                         'executors': {
                             'exec-comp': {
-                                'podResourceClaims': [{
-                                    'resourceClaimJson': {
-                                        'taskOutputParameter': {
-                                            'outputParameterKey': 'Output',
-                                            'producerTask': 'comp-with-output'
+                                'podResourceClaims': [
+                                    {
+                                        'resourceClaimJson': {
+                                            'taskOutputParameter': {
+                                                'outputParameterKey': 'Output',
+                                                'producerTask': 'comp-with-output',
+                                            }
                                         }
                                     }
-                                }]
+                                ]
                             }
                         }
                     }
@@ -348,15 +355,17 @@ class TestResourceClaimJSON:
 
 
 class TestResourceClaimConfig:
-
     def test_valid_creation(self):
         config = kubernetes.ResourceClaimConfig(
-            resource_claim_template_name='gpu-claim-template',)
+            resource_claim_template_name='gpu-claim-template',
+        )
         assert config.resource_claim_template_name == 'gpu-claim-template'
 
     def test_empty_name_raises_error(self):
         with pytest.raises(ValueError):
-            kubernetes.ResourceClaimConfig(resource_claim_template_name='',)
+            kubernetes.ResourceClaimConfig(
+                resource_claim_template_name='',
+            )
 
     def test_missing_name_raises_error(self):
         with pytest.raises(TypeError):
@@ -364,7 +373,8 @@ class TestResourceClaimConfig:
 
     def test_to_dict(self):
         config = kubernetes.ResourceClaimConfig(
-            resource_claim_template_name='gpu-claim-template',)
+            resource_claim_template_name='gpu-claim-template',
+        )
         assert config.to_dict() == {
             'resourceClaimTemplateName': 'gpu-claim-template',
         }
@@ -383,19 +393,17 @@ class TestResourceClaimConfig:
                     kubernetes.ResourceClaimConfig('nic-claim-template'),
                 ],
                 [
-                    {
-                        'resourceClaimTemplateName': 'gpu-claim-template'
-                    },
-                    {
-                        'resourceClaimTemplateName': 'nic-claim-template'
-                    },
+                    {'resourceClaimTemplateName': 'gpu-claim-template'},
+                    {'resourceClaimTemplateName': 'nic-claim-template'},
                 ],
                 id='claim-list',
             ),
         ],
     )
     def test_serializes_as_runtime_parameter(self, config, expected):
-        runtime_config = V2RuntimeConfig(parameters={'resource_claim': config},)
+        runtime_config = V2RuntimeConfig(
+            parameters={'resource_claim': config},
+        )
 
         with ApiClient() as api_client:
             serialized = api_client.sanitize_for_serialization(runtime_config)

@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from google.protobuf import json_format
-from kfp import dsl
-from kfp import kubernetes
 import pytest
+from google.protobuf import json_format
+from kfp import dsl, kubernetes
 
 
 class TestAddInitContainer:
-
     def test_add_init_container_all_fields(self):
 
         @dsl.pipeline
@@ -41,26 +39,28 @@ class TestAddInitContainer:
                     'deploymentSpec': {
                         'executors': {
                             'exec-print-greeting': {
-                                'initContainers': [{
-                                    'name':
-                                        'fetch-config',
-                                    'image':
-                                        'busybox:1.36',
-                                    'command': ['sh', '-c'],
-                                    'args': [
-                                        'wget -O /config/settings.json $CONFIG_URL'
-                                    ],
-                                    'env': [{
-                                        'name':
-                                            'CONFIG_URL',
-                                        'value':
-                                            'http://config-server/settings.json'
-                                    }],
-                                    'volumeMounts': [{
-                                        'volumeName': 'config-volume',
-                                        'mountPath': '/config'
-                                    }],
-                                }]
+                                'initContainers': [
+                                    {
+                                        'name': 'fetch-config',
+                                        'image': 'busybox:1.36',
+                                        'command': ['sh', '-c'],
+                                        'args': [
+                                            'wget -O /config/settings.json $CONFIG_URL'
+                                        ],
+                                        'env': [
+                                            {
+                                                'name': 'CONFIG_URL',
+                                                'value': 'http://config-server/settings.json',
+                                            }
+                                        ],
+                                        'volumeMounts': [
+                                            {
+                                                'volumeName': 'config-volume',
+                                                'mountPath': '/config',
+                                            }
+                                        ],
+                                    }
+                                ]
                             }
                         }
                     }
@@ -85,10 +85,12 @@ class TestAddInitContainer:
                     'deploymentSpec': {
                         'executors': {
                             'exec-print-greeting': {
-                                'initContainers': [{
-                                    'name': 'wait-for-database',
-                                    'image': 'busybox:1.36',
-                                }]
+                                'initContainers': [
+                                    {
+                                        'name': 'wait-for-database',
+                                        'image': 'busybox:1.36',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -112,17 +114,19 @@ class TestAddInitContainer:
                 image='busybox:1.36',
             )
 
-        init_containers = json_format.MessageToDict(
-            my_pipeline.platform_spec
-        )['platforms']['kubernetes']['deploymentSpec']['executors'][
-            'exec-print-greeting']['initContainers']
-        assert [init_container['name'] for init_container in init_containers
-               ] == ['first-init', 'second-init']
+        init_containers = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-print-greeting'][
+            'initContainers'
+        ]
+        assert [
+            init_container['name'] for init_container in init_containers
+        ] == ['first-init', 'second-init']
 
     def test_add_init_container_reserved_name(self):
         with pytest.raises(
-                ValueError,
-                match=r'Init container name "kfp-launcher" is reserved by Kubeflow Pipelines.',
+            ValueError,
+            match=r'Init container name "kfp-launcher" is reserved by Kubeflow Pipelines.',
         ):
 
             @dsl.pipeline
@@ -136,8 +140,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_empty_name(self):
         with pytest.raises(
-                ValueError,
-                match=r'Argument for "name" must be a non-empty string.',
+            ValueError,
+            match=r'Argument for "name" must be a non-empty string.',
         ):
 
             @dsl.pipeline
@@ -151,8 +155,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_empty_image(self):
         with pytest.raises(
-                ValueError,
-                match=r'Argument for "image" must be a non-empty string.',
+            ValueError,
+            match=r'Argument for "image" must be a non-empty string.',
         ):
 
             @dsl.pipeline
@@ -166,8 +170,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_duplicate_name(self):
         with pytest.raises(
-                ValueError,
-                match=r'An init container named "fetch-config" was already added to this task.',
+            ValueError,
+            match=r'An init container named "fetch-config" was already added to this task.',
         ):
 
             @dsl.pipeline
@@ -202,11 +206,13 @@ class TestAddInitContainer:
                     'deploymentSpec': {
                         'executors': {
                             'exec-print-greeting': {
-                                'initContainers': [{
-                                    'name': 'log-forwarder',
-                                    'image': 'busybox:1.36',
-                                    'restartPolicy': 'Always',
-                                }]
+                                'initContainers': [
+                                    {
+                                        'name': 'log-forwarder',
+                                        'image': 'busybox:1.36',
+                                        'restartPolicy': 'Always',
+                                    }
+                                ]
                             }
                         }
                     }
@@ -216,8 +222,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_invalid_restart_policy(self):
         with pytest.raises(
-                ValueError,
-                match=r'Argument for "restart_policy" must be "Always" if provided. Got: Never.',
+            ValueError,
+            match=r'Argument for "restart_policy" must be "Always" if provided. Got: Never.',
         ):
 
             @dsl.pipeline
@@ -240,14 +246,8 @@ class TestAddInitContainer:
                 name='log-forwarder',
                 image='busybox:1.36',
                 restart_policy='Always',
-                resource_requests={
-                    'cpu': '250m',
-                    'memory': '128Mi'
-                },
-                resource_limits={
-                    'cpu': '500m',
-                    'memory': '256Mi'
-                },
+                resource_requests={'cpu': '250m', 'memory': '128Mi'},
+                resource_limits={'cpu': '500m', 'memory': '256Mi'},
             )
 
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
@@ -256,21 +256,23 @@ class TestAddInitContainer:
                     'deploymentSpec': {
                         'executors': {
                             'exec-print-greeting': {
-                                'initContainers': [{
-                                    'name': 'log-forwarder',
-                                    'image': 'busybox:1.36',
-                                    'restartPolicy': 'Always',
-                                    'resources': {
-                                        'requests': {
-                                            'cpu': '250m',
-                                            'memory': '128Mi'
+                                'initContainers': [
+                                    {
+                                        'name': 'log-forwarder',
+                                        'image': 'busybox:1.36',
+                                        'restartPolicy': 'Always',
+                                        'resources': {
+                                            'requests': {
+                                                'cpu': '250m',
+                                                'memory': '128Mi',
+                                            },
+                                            'limits': {
+                                                'cpu': '500m',
+                                                'memory': '256Mi',
+                                            },
                                         },
-                                        'limits': {
-                                            'cpu': '500m',
-                                            'memory': '256Mi'
-                                        },
-                                    },
-                                }]
+                                    }
+                                ]
                             }
                         }
                     }
@@ -280,8 +282,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_empty_resource_quantity(self):
         with pytest.raises(
-                ValueError,
-                match=r'Resource names and quantities in "resource_limits" must be non-empty strings.',
+            ValueError,
+            match=r'Resource names and quantities in "resource_limits" must be non-empty strings.',
         ):
 
             @dsl.pipeline
@@ -296,8 +298,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_empty_env_name(self):
         with pytest.raises(
-                ValueError,
-                match=r'Environment variable names in "env" must be non-empty strings.',
+            ValueError,
+            match=r'Environment variable names in "env" must be non-empty strings.',
         ):
 
             @dsl.pipeline
@@ -312,8 +314,8 @@ class TestAddInitContainer:
 
     def test_add_init_container_relative_mount_path(self):
         with pytest.raises(
-                ValueError,
-                match=r'Mount path for volume "config-volume" must be an absolute path. Got: config.',
+            ValueError,
+            match=r'Mount path for volume "config-volume" must be an absolute path. Got: config.',
         ):
 
             @dsl.pipeline
