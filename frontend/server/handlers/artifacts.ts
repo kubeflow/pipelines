@@ -413,7 +413,7 @@ export function getArtifactsAuthMiddleware(
       const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
       const validation = envoyAddress
         ? await validateArtifactNamespace(envoyAddress, artifactUri, namespace)
-        : validateArtifactKey(artifactUri);
+        : validateArtifactKey(artifactUri, namespace);
 
       if (!validation.valid) {
         if (validation.reason === 'key-not-normalized') {
