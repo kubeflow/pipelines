@@ -416,6 +416,17 @@ export function getArtifactsAuthMiddleware(
         : validateArtifactKey(artifactUri);
 
       if (!validation.valid) {
+        if (
+          validation.reason === 'mlmd-unavailable' ||
+          validation.reason === 'protos-unavailable'
+        ) {
+          sendArtifactError(
+            response,
+            503,
+            'Artifact ownership could not be verified. Retry when the metadata service is available.',
+          );
+          return;
+        }
         if (validation.reason === 'key-not-normalized') {
           sendArtifactError(
             response,
