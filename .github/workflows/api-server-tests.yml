@@ -275,8 +275,10 @@ jobs:
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
         argo_version: [ "v4.0.13", "v4.1.6" ]
         pipeline_store: [ "kubernetes" ]
+        # Manual runs retain the full native suite in every configuration.
+        test_shard: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["all"]' || '["A", "B"]') }}
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
-    name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
+    name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }} shard=${{ matrix.test_shard }}
 
     steps:
       - name: Checkout code
@@ -305,6 +307,20 @@ jobs:
           image_tag: latest
           image_registry: kind-registry:5000
 
+      - name: Configure native test shard
+        id: configure
+        shell: bash
+        env:
+          AUTOMATIC_TEST_LABEL: ${{ env.TESTS_LABEL }}
+          AUTOMATIC_TEST_SHARD: ${{ matrix.test_shard }}
+        run: |
+          TEST_LABEL=$AUTOMATIC_TEST_LABEL
+          case "$AUTOMATIC_TEST_SHARD" in
+            A) TEST_LABEL="($TEST_LABEL) && (ApiPipelineShardA || Pipeline)" ;;
+            B) TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline)" ;;
+          esac
+          echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"
+
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         if: ${{ steps.deploy.outcome == 'success' }}
@@ -313,15 +329,15 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           cluster_name: ${{ env.CLUSTER_NAME }}
-          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' }}
+          prepare_cache_fixtures: ${{ matrix.cache_enabled == 'true' && matrix.test_shard != 'A' }}
           upload_pipelines_with_kubernetes_client: ${{ matrix.uploadPipelinesWithKubernetesClient }}
           test_directory: ${{ env.API_TESTS_DIR }}
-          required_migration_specs: 'true'
-          test_label: ${{ env.TESTS_LABEL }}
+          required_migration_specs: ${{ matrix.test_shard != 'A' }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
+          report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}_shard=${{ matrix.test_shard }}"
 
 
   api-test-multi-user:
