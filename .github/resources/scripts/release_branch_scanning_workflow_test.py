@@ -42,7 +42,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         self.assertIn('workflow_dispatch', triggers)
         self.assertNotIn('conclusion', str(workflow))
         self.assertIn(
-            "github.ref == 'refs/heads/master'",
+            "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
             workflow['jobs']['inventory']['if'],
         )
 
@@ -54,7 +54,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         )
         self.assertEqual(
             workflow['jobs']['upload']['if'],
-            "github.ref == 'refs/heads/master'",
+            "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
         )
 
     def test_concurrency_keeps_valid_scans_separate_from_untrusted_wakeups(
@@ -64,7 +64,7 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
         self.assertFalse(concurrency['cancel-in-progress'])
         group = concurrency['group']
         for guard in (
-            "github.ref == 'refs/heads/master'",
+            "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
             "event == 'push'",
             "path == '.github/workflows/pre-commit.yml'",
             "head_branch == 'release-2.18'",
@@ -86,7 +86,10 @@ class ReleaseBranchScanningWorkflowTest(unittest.TestCase):
             self.assertEqual(job['permissions'], permissions)
         upload = workflow['jobs']['upload']
         self.assertEqual(upload['needs'], ['inventory', 'aggregate'])
-        self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
+        self.assertEqual(
+            upload['if'],
+            "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
+        )
         scripts = [step for step in upload['steps'] if 'run' in step]
         self.assertEqual(
             [step['name'] for step in scripts],
