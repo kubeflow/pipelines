@@ -39,6 +39,7 @@ import (
 )
 
 func TestCreateVisualization_MissingVisualizationReturnsInvalidInput(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	wire, err := proto.Marshal(&apiv1beta1.CreateVisualizationRequest{Namespace: "ns1"})
 	require.NoError(t, err)
 	var callErr error
@@ -53,6 +54,7 @@ func TestCreateVisualization_MissingVisualizationReturnsInvalidInput(t *testing.
 }
 
 func TestCreateVisualization_NilRequestReturnsInvalidInput(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	var err error
 	if assert.NotPanics(t, func() {
 		_, err = (&VisualizationServer{}).CreateVisualizationV1(context.Background(), nil)
@@ -296,6 +298,7 @@ func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
 }
 
 func TestCreateVisualization_Unauthorized(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -338,6 +341,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 }
 
 func TestCreateVisualization_Unauthenticated(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -378,6 +382,7 @@ func (f visualizationRoundTripper) RoundTrip(request *http.Request) (*http.Respo
 }
 
 func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	tests := []struct {
 		name          string
 		multiUser     bool
@@ -487,5 +492,19 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCreateVisualization_Disabled(t *testing.T) {
+	for _, value := range []string{"", "false", "TRUE", "1", "invalid"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", value)
+			server := &VisualizationServer{}
+			result, err := server.CreateVisualizationV1(context.Background(), nil)
+			assert.Nil(t, result)
+			require.Error(t, err)
+			assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+			assert.Contains(t, err.Error(), "Python visualizations are disabled")
+		})
 	}
 }

@@ -31,8 +31,8 @@ upgrade. Use the feature-specific sections for the integrations you have enabled
    [SDK changes](#sdk-and-custom-client-migration), particularly preview privacy
    and private package mirrors.
 5. **Assess legacy Python visualization usage before upgrading the API server.**
-   Multi-user requests without a namespace are rejected after this upgrade.
-   Deployments with only a central visualization service lose that generation
+   Generation is disabled by default after this upgrade.
+   Multi-user deployments with only a central visualization service lose that generation
    path; adding a namespace alone does not restore it. Review
    [Python visualization compatibility](#legacy-python-visualization-compatibility).
 
@@ -96,35 +96,42 @@ Do not delete history, reset counters, or edit ownership fields to force progres
 | Custom artifact storage | Preserve credential placement and verify both artifact reads and archived logs. See [storage configuration](#custom-storage-configuration-and-rollout). |
 | Large pipeline specifications | Uploads, extracted specifications, and update bodies have separate 32 MiB default limits. Overrides are bounded at 128 MiB. Existing object-store specifications used by later executions are also checked. See [size limits](server-config.md#pipeline-size-limits). |
 | Legacy V1 metrics | Each metrics file has a configurable 1 MiB default limit. An oversized file can leave metrics missing from an otherwise completed task. See [metrics limits](server-config.md#legacy-metrics-file-limit). |
-| Legacy Python visualization generation | Multi-user requests require a namespace and an authorized caller, and route to a visualization service in that namespace. Central-only deployments lose the empty-namespace generation path. See [visualization compatibility](#legacy-python-visualization-compatibility). |
+| Legacy Python visualization generation | Generation requires explicit opt-in on both the API server and Python service. Multi-user requests also require namespace authorization and a service in that namespace. See [visualization compatibility](#legacy-python-visualization-compatibility). |
 | Saved pagination tokens | Affected listings must restart. The updated UI retries once; SDK/custom clients must handle `PAGINATION_RESTART_REQUIRED` without appending restarted results to an old traversal. See [pagination recovery](pagination-recovery.md). |
 | Direct pipeline-by-name API calls | Supply the owning namespace for private pipelines. See [lookup compatibility](#custom-api-integrations-pipeline-name-lookup-compatibility). |
 
 ## Legacy Python visualization compatibility
 
-**The security fix is in the KFP API server (`ml-pipeline`), not the Python
-visualization server.** In multi-user mode, the API server rejects an empty
-namespace before contacting any visualization service, including its health
-check. This removes the empty-namespace route to the central service that
-bypassed namespace authorization. Updating only the Python visualization server
-does not apply this fix.
+Python visualization generation is disabled by default in both the API server
+and the Python service, including standalone installations. All visualization
+types are disabled, including TABLE and CUSTOM. The Python health endpoint stays
+available, so a healthy Pod does not indicate that generation is enabled. The
+current V2 Run Details artifact viewers do not use this Python generation API.
 
-A nonempty namespace still requires permission to create
-`pipelines.kubeflow.org/visualizations` in that namespace and routes to
+Upgrade both images and roll out all replicas. Updating only one component leaves
+older direct or proxied entry points with their previous behavior. Existing
+installations using this feature must explicitly opt in after the upgrade.
+
+To enable legacy generation, set `ENABLE_PYTHON_VISUALIZATIONS=true` on both the
+`ml-pipeline` API-server container and each intended Python visualization service
+container. Only the exact value `true` enables generation; omitted, malformed,
+or other values keep it disabled. Persist the settings in your deployment
+overlay. If custom generation is needed through the UI, also set
+`ALLOW_CUSTOM_VISUALIZATIONS=true` on `ml-pipeline-ui`; that UI setting alone
+does not enable the backend.
+
+Opt-in retains the service's execution model: CUSTOM runs supplied Python and
+built-in renderers can read sources available to the service identity. Enable it
+only for trusted callers or an isolated service whose filesystem, credentials,
+network access, and permissions are appropriate for those callers. Disabling the
+feature mitigates exposure; it does not make the enabled service a sandbox.
+
+In multi-user mode, the API server still requires a nonempty namespace and
+permission to create `pipelines.kubeflow.org/visualizations` there. It routes to
 `http://<VisualizationService.Name>.<namespace>:<VisualizationService.Port>`.
-**Adding a namespace alone is insufficient for a central-only deployment:** the
-shipped Pipelines profile controller does not provision tenant-local Python
-visualization services. Authorized requests to existing tenant-local services
-and standalone (single-user) generation remain supported. There is no audit
-mode or central-service fallback for this check.
-
-Before upgrading, identify clients and workflows that use the legacy Python
-generation API, including legacy Run Details visualization generation, and
-verify whether their namespaces have working visualization services. Plan for
-the loss of this feature in central-only multi-user deployments. The current
-V2 Run Details UI does not call the Python generation API; its artifact viewers
-are unaffected by this namespace check. Remaining on an affected API-server
-version preserves the vulnerability and is not a mitigation.
+There is no central-service fallback. The shipped profile controller does not
+provision tenant-local Python visualization services; operators opting in must
+provide them. Standalone installations use the configured central service.
 
 ## Database migration paths
 
