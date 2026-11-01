@@ -4,6 +4,12 @@ Legacy v2 integration migration is tracked in #14950. The legacy v2 workflow is 
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
+- Backend CI supplies `KFP_MLMD_MYSQL_TEST_DSN` and `KFP_MLMD_POSTGRES_TEST_DSN`
+  to the pinned MLMD-era startup characterization tests. Each test replays the
+  captured 2.17.3 schema into its own disposable database and calls the actual
+  current database initializer in a subprocess. These tests document the
+  pre-migration failure; they do not enable the paused end-to-end upgrade lane.
+
 - Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
 
 - The Kubernetes-native migration experiment-creation test uses a 60-second polling budget for a reported run state. Initial Workflow persistence may temporarily omit the state before Argo reports a phase. API errors and observed failed/canceled runs fail immediately; an unreported state times out with the run ID and log guidance. CI Scripts Tests covers delayed state, timeout, and error behavior without a cluster.
