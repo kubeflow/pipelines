@@ -165,6 +165,13 @@ class LoopParameterArgument(pipeline_channel.PipelineParameterChannel):
             subvar_names = set(items[0].keys())
             # then this block creates loop_arg.variable_a and loop_arg.variable_b
             for subvar_name in subvar_names:
+                # Check if the subvar_name would overwrite an existing attribute
+                if hasattr(self, subvar_name) and not subvar_name.startswith('_'):
+                    raise ValueError(
+                        f'Dict key "{subvar_name}" conflicts with an existing '
+                        f'attribute on the loop item. Please rename the key to '
+                        f'avoid this conflict.'
+                    )
                 loop_arg_var = LoopArgumentVariable(
                     loop_argument=self,
                     subvar_name=subvar_name,
