@@ -98,34 +98,18 @@ updates:
       npm-dependencies:
         group-by: dependency-name
   - package-ecosystem: pip
-    # Generated API clients are excluded: their requirements express generated
-    # compatibility minimums and must be changed through API regeneration.
-    # TensorBoard stays in this release inventory; its effective scheduler is
-    # the master entry with target-branch: release-2.18.
+    # Sdk job; effective scheduling is on master for release-2.18.
     directories:
-      - "/.github/resources/postgresql-upgrade"
-      - "/.github/resources/scripts/kfp-readiness"
       - "/api/v2alpha1/python"
-      - "/backend"
-      - "/backend/metadata_writer"
-      - "/backend/src/apiserver/visualization"
-      - "/backend/src/tensorboard"
-      - "/backend/src/v2/test"
-      - "/components/google-cloud"
-      - "/docs"
-      - "/docs/sdk"
+      - "/sdk/python"
       - "/kubernetes_platform/python"
       - "/kubernetes_platform/python/docs"
-      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
-      - "/proxy"
-      - "/release"
-      - "/samples/core/artifact_previews"
-      - "/sdk/python"
+      - "/backend/src/v2/test"
+      - "/components/google-cloud"
       - "/test/kfp-kubernetes-native-migration-tests"
-      - "/tools/upgrade-readiness"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "python"
@@ -133,11 +117,85 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     ignore:
-      # MLMD is frozen on this maintenance line; upgrades require explicit review.
+      # MLMD is frozen; protobuf 7 is incompatible with this release.
       - dependency-name: "ml-metadata"
+      - dependency-name: "protobuf"
+        versions: [">=7"]
     groups:
-      # Keep shared Python constraints aligned across the monorepo.
-      python-dependencies:
+      release-python-sdk:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    # Runtime job; effective scheduling is on master for release-2.18.
+    directories:
+      - "/backend"
+      - "/backend/metadata_writer"
+      - "/backend/src/apiserver/visualization"
+      - "/backend/src/tensorboard"
+      - "/proxy"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen; protobuf 7 is incompatible with this release.
+      - dependency-name: "ml-metadata"
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+    groups:
+      release-python-runtime:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    # Docs job; effective scheduling is on master for release-2.18.
+    directories:
+      - "/docs"
+      - "/docs/sdk"
+      - "/release"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "python"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen; protobuf 7 is incompatible with this release.
+      - dependency-name: "ml-metadata"
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+    groups:
+      release-python-docs:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    # Tools job; effective scheduling is on master for release-2.18.
+    directories:
+      - "/.github/resources/postgresql-upgrade"
+      - "/.github/resources/scripts/kfp-readiness"
+      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
+      - "/samples/core/artifact_previews"
+      - "/tools/upgrade-readiness"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "python"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen; protobuf 7 is incompatible with this release.
+      - dependency-name: "ml-metadata"
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+    groups:
+      release-python-tools:
         group-by: dependency-name
   - package-ecosystem: github-actions
     # Root covers .github/workflows; the glob covers reusable actions.
