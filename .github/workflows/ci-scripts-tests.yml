@@ -9,6 +9,7 @@ on:
     branches: [release-2.18]
   pull_request:
     paths:
+      - '**/.python-version'
       - 'VERSION'
       - '.github/workflows/docs.yml'
       - '.github/workflows/kfp-sdk-client-tests.yml'

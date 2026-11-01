@@ -319,3 +319,66 @@ selected native config. Missing, tampered, ambiguous or mismatched chains fail.
 - TensorBoard deployed acceptance provisions Python 3.10 before deployment, matching the frontend acceptance lane. The shared deployment readiness helper invokes `python` and `pip`; do not rely on runner-provided `python3` alone.
 
 - Validate Generated Files also builds standalone v1beta1/v2beta1 Python client wheels on Python 3.9 and 3.10 and checks interpreter markers, dependency floors and local HTTP success/error handling at the minimum supported urllib3 versions. Template changes trigger this workflow.
+
+## Release Python dependency resolution
+
+Dependabot does not read the interpreter in uv's generated requirements header.
+Use project-scoped `.python-version` files for dependencies that cannot resolve on
+its newest interpreter. Full patch versions must exist in pyenv; Dependabot then
+uses its available patch within that minor line. These files select dependency
+and local development tooling, not the package's supported Python range.
+
+The backend, metadata writer and visualization projects select Python 3.11,
+matching their runtime images. SDK and Kubernetes platform development tooling
+also select 3.11: the pinned docformatter 1.4 metadata build fails on Python 3.14.
+The PostgreSQL retained-data harness selects 3.10 for frozen MLMD 1.14. SDK and
+platform package metadata, universal requirements markers and CI retain Python
+3.9 support. MLMD updates remain ignored; package pins are unchanged.
+
+### Release updater audit
+
+All 20 configured projects were checked with uv 0.13.5 against
+`x86_64-manylinux_2_39`. The table records the resolver interpreter, not the
+minimum supported product Python. Pass means the existing requirements resolve;
+it does not guarantee every future proposed upgrade or hosted updater run passes.
+
+| Configured project | Resolver Python | Result |
+| --- | --- | --- |
+| `.github/resources/postgresql-upgrade` | 3.10 (explicit) | Pass |
+| `.github/resources/scripts/kfp-readiness` | 3.14 | Pass |
+| `api/v2alpha1/python` | 3.14 | Pass |
+| `backend` | 3.11 (explicit) | Pass, including immediate metadata-writer requirements separately |
+| `backend/metadata_writer` | 3.11 (explicit) | Pass |
+| `backend/src/apiserver/visualization` | 3.11 (explicit) | Pass |
+| `backend/src/tensorboard` | 3.14 | Pass |
+| `backend/src/v2/test` | 3.14 | Pass; local SDK path handled separately |
+| `components/google-cloud` | 3.14 | Pass, setup dependencies |
+| `docs` | 3.14 | Pass, including `sdk` child requirements |
+| `docs/sdk` | 3.14 | Pass |
+| `kubernetes_platform/python` | 3.11 (explicit) | Pass, normal and development requirements |
+| `kubernetes_platform/python/docs` | 3.14 | Pass |
+| `manifests/kustomize/base/installs/multi-user/pipelines-profile-controller` | 3.14 | Pass |
+| `proxy` | 3.14 | Pass |
+| `release` | 3.14 | Pass, pyproject dependencies |
+| `samples/core/artifact_previews` | 3.14 | Pass, including the PyTorch index |
+| `sdk/python` | 3.11 (explicit) | Pass, normal and development requirements |
+| `test/kfp-kubernetes-native-migration-tests` | 3.14 | Pass |
+| `tools/upgrade-readiness` | 3.14 | Pass |
+
+Reproduce each requirements file independently (use `pyproject.toml` for the
+release tool, and the table's interpreter):
+
+```sh
+uv tool run --from uv==0.13.5 uv pip compile path/to/requirements.txt \
+  --python-version 3.11 --python-platform x86_64-manylinux_2_39 \
+  -o /tmp/resolver-proof.txt
+```
+
+Include development `.txt` files and source `.in` files. Dependabot fetches
+requirements in the configured directory and its immediate child directories,
+then follows `-r`/`-c` includes; child interpreter files do not override the
+parent project's selection. Do not combine independent lockfiles into one
+resolution: they may intentionally pin different versions. Check local path
+handling against Dependabot's preparer rather than requiring a full checkout
+for every isolated project. Keep the hosted post-merge check separate from these
+local resolver checks.
