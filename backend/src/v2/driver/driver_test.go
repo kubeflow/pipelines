@@ -2504,3 +2504,171 @@ func Test_initPodSpecPatch_keepsUserEnvOrder(t *testing.T) {
 		{Name: "A", Value: "x"},
 	}, userEnv)
 }
+
+type retryAwareMockAPI struct {
+	kfpapi.API
+	cachedTask        *apiv2.PipelineTask
+	registeredTaskID  string
+	hasRegisteredPods bool
+	updatedStates     []apiv2.PipelineTask_TaskState
+}
+
+func (r *retryAwareMockAPI) FindCachedTask(
+	_ context.Context,
+	_ *apiv2.FindCachedTaskRequest,
+) (*apiv2.FindCachedTaskResponse, error) {
+	if r.cachedTask != nil {
+		return &apiv2.FindCachedTaskResponse{Task: r.cachedTask}, nil
+	}
+	return r.API.FindCachedTask(context.Background(), nil)
+}
+
+func (r *retryAwareMockAPI) UpdateTask(
+	ctx context.Context,
+	req *apiv2.UpdateTaskRequest,
+) (*apiv2.PipelineTask, error) {
+	r.updatedStates = append(r.updatedStates, req.GetTask().GetState())
+	if req.GetTaskId() == r.registeredTaskID && !r.hasRegisteredPods {
+		isTerminal := req.GetTask().GetState() == apiv2.PipelineTask_CACHED ||
+			req.GetTask().GetState() == apiv2.PipelineTask_SKIPPED ||
+			req.GetTask().GetState() == apiv2.PipelineTask_FAILED ||
+			req.GetTask().GetState() == apiv2.PipelineTask_SUCCEEDED
+		if isTerminal {
+			return nil, fmt.Errorf("stale task update: terminal update rejected because task %s is waiting for retry pod to register", req.GetTaskId())
+		}
+		if req.GetTask().GetState() == apiv2.PipelineTask_RUNNING && len(req.GetTask().GetPods()) > 0 {
+			r.hasRegisteredPods = true
+		}
+	}
+	return r.API.UpdateTask(ctx, req)
+}
+
+func TestContainer_RetryCacheHit_EstablishesDriverAttemptBeforeTerminalCached(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
+	opts.Task.CachingOptions = &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true}
+
+	cachedTask := &apiv2.PipelineTask{
+		TaskId: "prior-cached-task",
+		RunId:  "prior-run",
+		Name:   "create-dataset",
+		State:  apiv2.PipelineTask_SUCCEEDED,
+		Outputs: &apiv2.PipelineTask_InputOutputs{
+			Artifacts: []*apiv2.PipelineTask_InputOutputs_IOArtifact{},
+		},
+	}
+	existingResetTask := &apiv2.PipelineTask{
+		TaskId:       "retry-task-1",
+		RunId:        opts.Run.GetRunId(),
+		ParentTaskId: util.StringPointer(opts.ParentTask.GetTaskId()),
+		ScopePath:    opts.ScopePath.DotNotation(),
+		Name:         opts.TaskName,
+		Type:         apiv2.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_RUNNING,
+		// Pods is empty, matching task reset for retry
+	}
+	_, err = tc.MockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
+		Task:  existingResetTask,
+		RunId: opts.Run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	mock := &retryAwareMockAPI{
+		API:              tc.MockAPI,
+		cachedTask:       cachedTask,
+		registeredTaskID: "retry-task-1",
+	}
+	tc.ClientManager = clientmanager.NewFakeClientManager(
+		tc.ClientManager.K8sClient(),
+		mock,
+	)
+
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NotNil(t, execution.Cached)
+	assert.True(t, *execution.Cached)
+
+	// Verify driver established RUNNING attempt before finalizing to CACHED
+	require.GreaterOrEqual(t, len(mock.updatedStates), 2)
+	assert.Equal(t, apiv2.PipelineTask_RUNNING, mock.updatedStates[0], "first update must register attempt in RUNNING state")
+	assert.Equal(t, apiv2.PipelineTask_CACHED, mock.updatedStates[1], "second update must finalize to CACHED")
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2.PipelineTask_CACHED, recorder.endStates[0])
+}
+
+func TestContainer_RetrySkipped_EstablishesDriverAttemptBeforeTerminalSkipped(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
+	opts.Task.TriggerPolicy = &pipelinespec.PipelineTaskSpec_TriggerPolicy{
+		Condition: "false",
+	}
+
+	existingResetTask := &apiv2.PipelineTask{
+		TaskId:       "retry-task-2",
+		RunId:        opts.Run.GetRunId(),
+		ParentTaskId: util.StringPointer(opts.ParentTask.GetTaskId()),
+		ScopePath:    opts.ScopePath.DotNotation(),
+		Name:         opts.TaskName,
+		Type:         apiv2.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_RUNNING,
+		// Pods is empty, matching task reset for retry
+	}
+	_, err = tc.MockAPI.CreateTask(context.Background(), &apiv2.CreateTaskRequest{
+		Task:  existingResetTask,
+		RunId: opts.Run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	mock := &retryAwareMockAPI{
+		API:              tc.MockAPI,
+		registeredTaskID: "retry-task-2",
+	}
+	tc.ClientManager = clientmanager.NewFakeClientManager(
+		tc.ClientManager.K8sClient(),
+		mock,
+	)
+
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NotNil(t, execution.Condition)
+	assert.False(t, *execution.Condition)
+
+	// Verify driver established RUNNING attempt before finalizing to SKIPPED
+	require.GreaterOrEqual(t, len(mock.updatedStates), 2)
+	assert.Equal(t, apiv2.PipelineTask_RUNNING, mock.updatedStates[0], "first update must register attempt in RUNNING state")
+	assert.Equal(t, apiv2.PipelineTask_SKIPPED, mock.updatedStates[1], "second update must finalize to SKIPPED")
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2.PipelineTask_SKIPPED, recorder.endStates[0])
+}

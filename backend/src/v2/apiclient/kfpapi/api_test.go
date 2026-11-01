@@ -76,7 +76,7 @@ func TestUpdateStatuses_FailsParentBeforeAllChildrenExist(t *testing.T) {
 	require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[0].GetTaskId())
 }
 
-func TestUpdateStatuses_PropagatesFailedDespiteRunningSibling(t *testing.T) {
+func TestUpdateStatuses_DefersFailureWhileSiblingRuns(t *testing.T) {
 	pipelineSpec := &pipelinespec.PipelineSpec{
 		Root: &pipelinespec.ComponentSpec{
 			Implementation: &pipelinespec.ComponentSpec_Dag{
@@ -130,12 +130,183 @@ func TestUpdateStatuses_PropagatesFailedDespiteRunningSibling(t *testing.T) {
 				_, err := api.CreateTask(context.Background(), &gc.CreateTaskRequest{Task: task, RunId: run.GetRunId()})
 				require.NoError(t, err)
 			}
+
+			// Parent status update must be deferred while sibling is still RUNNING
 			require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, failedChild))
-			require.Len(t, api.updatedTasks, 1)
-			require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[0].GetTaskId())
-			require.Equal(t, gc.PipelineTask_FAILED, api.updatedTasks[0].GetState())
+			require.Empty(t, api.updatedTasks, "Expected no parent task update while a sibling is still RUNNING")
+
+			// When the running sibling finishes (e.g. SUCCEEDED), parent must transition to FAILED
+			runningChild.State = gc.PipelineTask_SUCCEEDED
+			_, err := api.UpdateTask(context.Background(), &gc.UpdateTaskRequest{
+				TaskId: runningChild.GetTaskId(),
+				Task:   runningChild,
+				RunId:  run.GetRunId(),
+			})
+			require.NoError(t, err)
+
+			require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, runningChild))
+			require.Len(t, api.updatedTasks, 2) // 1 from UpdateTask above + 1 from updateStatuses
+			parentUpdate := api.updatedTasks[1]
+			require.Equal(t, rootTask.GetTaskId(), parentUpdate.GetTaskId())
+			require.Equal(t, gc.PipelineTask_FAILED, parentUpdate.GetState())
 		})
 	}
+}
+
+func TestUpdateStatuses_NestedDAGDefersFailureWhileSiblingRuns(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"mid": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "mid"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "mid-comp"},
+						},
+					},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"mid-comp": {
+				Implementation: &pipelinespec.ComponentSpec_Dag{
+					Dag: &pipelinespec.DagSpec{
+						Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+							"leaf-a": {TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "leaf-a"}},
+							"leaf-b": {TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "leaf-b"}},
+						},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpecJSON, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, protojson.Unmarshal(pipelineSpecJSON, pipelineSpecStruct))
+
+	rootTask := &gc.PipelineTask{
+		TaskId:    "root-task",
+		RunId:     "run-nested-defer",
+		Name:      "ROOT",
+		Type:      gc.PipelineTask_ROOT,
+		State:     gc.PipelineTask_RUNNING,
+		ScopePath: "root",
+	}
+	midTask := &gc.PipelineTask{
+		TaskId:       "mid-task",
+		RunId:        "run-nested-defer",
+		Name:         "mid",
+		Type:         gc.PipelineTask_DAG,
+		State:        gc.PipelineTask_RUNNING,
+		ParentTaskId: &rootTask.TaskId,
+		ScopePath:    "root.mid",
+	}
+	failedLeaf := &gc.PipelineTask{
+		TaskId:       "leaf-a-task",
+		RunId:        "run-nested-defer",
+		Name:         "leaf-a",
+		ParentTaskId: &midTask.TaskId,
+		State:        gc.PipelineTask_FAILED,
+	}
+	runningLeaf := &gc.PipelineTask{
+		TaskId:       "leaf-b-task",
+		RunId:        "run-nested-defer",
+		Name:         "leaf-b",
+		ParentTaskId: &midTask.TaskId,
+		State:        gc.PipelineTask_RUNNING,
+	}
+	run := &gc.Run{
+		RunId: "run-nested-defer",
+		Tasks: []*gc.PipelineTask{rootTask, midTask, failedLeaf, runningLeaf},
+	}
+
+	api := &recordingAPI{MockAPI: NewMockAPI()}
+	api.AddRun(run)
+	for _, task := range run.GetTasks() {
+		_, err := api.CreateTask(context.Background(), &gc.CreateTaskRequest{Task: task, RunId: run.GetRunId()})
+		require.NoError(t, err)
+	}
+
+	// While leaf-b is RUNNING, neither midTask nor rootTask should update
+	require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, failedLeaf))
+	require.Empty(t, api.updatedTasks, "Expected no status updates while nested sibling is RUNNING")
+
+	// When leaf-b completes, both midTask and rootTask should transition to FAILED
+	runningLeaf.State = gc.PipelineTask_SUCCEEDED
+	_, err = api.UpdateTask(context.Background(), &gc.UpdateTaskRequest{
+		TaskId: runningLeaf.GetTaskId(),
+		Task:   runningLeaf,
+		RunId:  run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, runningLeaf))
+	// 1 from UpdateTask above + 1 for midTask + 1 for rootTask = 3 total updates
+	require.Len(t, api.updatedTasks, 3)
+	require.Equal(t, midTask.GetTaskId(), api.updatedTasks[1].GetTaskId())
+	require.Equal(t, gc.PipelineTask_FAILED, api.updatedTasks[1].GetState())
+	require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[2].GetTaskId())
+	require.Equal(t, gc.PipelineTask_FAILED, api.updatedTasks[2].GetState())
+}
+
+func TestUpdateStatuses_RetryRecoveryUpdatesParentOnSuccess(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"child-a": {TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "child-a"}},
+						"child-b": {TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "child-b"}},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpecJSON, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, protojson.Unmarshal(pipelineSpecJSON, pipelineSpecStruct))
+
+	rootTask := &gc.PipelineTask{
+		TaskId:    "root-task",
+		RunId:     "run-retry",
+		Name:      "ROOT",
+		Type:      gc.PipelineTask_ROOT,
+		State:     gc.PipelineTask_FAILED,
+		ScopePath: "root",
+	}
+	retriedChildA := &gc.PipelineTask{
+		TaskId:       "child-a-task",
+		RunId:        "run-retry",
+		Name:         "child-a",
+		ParentTaskId: &rootTask.TaskId,
+		State:        gc.PipelineTask_SUCCEEDED,
+	}
+	successfulChildB := &gc.PipelineTask{
+		TaskId:       "child-b-task",
+		RunId:        "run-retry",
+		Name:         "child-b",
+		ParentTaskId: &rootTask.TaskId,
+		State:        gc.PipelineTask_SUCCEEDED,
+	}
+	run := &gc.Run{
+		RunId: "run-retry",
+		Tasks: []*gc.PipelineTask{rootTask, retriedChildA, successfulChildB},
+	}
+
+	api := &recordingAPI{MockAPI: NewMockAPI()}
+	api.AddRun(run)
+	for _, task := range run.GetTasks() {
+		_, err := api.CreateTask(context.Background(), &gc.CreateTaskRequest{Task: task, RunId: run.GetRunId()})
+		require.NoError(t, err)
+	}
+
+	// When retried child-a succeeds, rootTask should be updated to SUCCEEDED
+	require.NoError(t, updateStatuses(context.Background(), run, api, pipelineSpecStruct, retriedChildA))
+	require.Len(t, api.updatedTasks, 1)
+	require.Equal(t, rootTask.GetTaskId(), api.updatedTasks[0].GetTaskId())
+	require.Equal(t, gc.PipelineTask_SUCCEEDED, api.updatedTasks[0].GetState())
 }
 
 func TestUpdateStatuses_PropagatesThroughNestedParentsOnce(t *testing.T) {
