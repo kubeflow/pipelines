@@ -215,7 +215,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   // must apply in the trusted base, and uses the same run/freshness checks below.
   const legacyPath = '.github/workflows/legacy-v2-api-integration-tests.yml';
   const replacementPath = '.github/workflows/api-server-tests.yml';
-  if (pullRequest.base.ref === 'master' && applicableWorkflows.some(workflow => workflow.path === legacyPath)) {
+  if (['master', 'main'].includes(pullRequest.base.ref) && applicableWorkflows.some(workflow => workflow.path === legacyPath)) {
     if (applicableWorkflows.some(workflow => workflow.path === replacementPath)) {
       disabled.push({path: legacyPath, reason: `Legacy coverage is required through ${replacementPath} (#14950)`});
     } else {
@@ -313,7 +313,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     // until a strictly later run.
     if (liveBase && baseSha) {
       if (baseArrived.status === 'error') {
-        pending.push(`${workflow.path}: Cannot establish master arrival for base ${baseSha}: lookup failed. Retrying.`);
+        pending.push(`${workflow.path}: Cannot establish development-branch arrival for base ${baseSha}: lookup failed. Retrying.`);
       } else if (baseArrived.status === 'arrived' && Date.parse(run.created_at) <= baseArrived.arrivedAt) {
         pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
       }

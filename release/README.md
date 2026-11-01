@@ -134,7 +134,9 @@ resuming; pass `--force` to resume without that prompt. Review notes again at
 publication even when resuming a checkpoint.
 
 For major or minor releases, change `--release-type`, omit `--patch-prs`, and
-pass `--release-source-branch BRANCH` to skip the source branch prompt. For patch
+pass `--release-source-branch BRANCH` to skip the source branch prompt. Leaving
+the prompt blank resolves the upstream repository default branch at preparation
+time. Explicit or previously saved source branches remain unchanged. For patch
 releases, list the PRs to cherry-pick or follow the prompt when the desired changes
 are already merged. Patch releases also update the persistent SDK documentation branch; split-package
 releases additionally update the Kubernetes documentation branch.
@@ -217,14 +219,14 @@ maintainer can verify the selected range.
 
 ## Continue 2.18 from an existing version PR
 
-Use the current master CLI to finish a maintenance release, even when the target
+Use the current default-branch CLI to finish a maintenance release, even when the target
 branch contains older release automation. Install a non-editable copy from the
-reviewed master checkout into a separate environment; this keeps switching the
+reviewed default-branch checkout into a separate environment; this keeps switching the
 release checkout to `release-2.18` from replacing the running tool's source:
 
 ```bash
 python3.11 -m venv /tmp/kfpr-tools
-/tmp/kfpr-tools/bin/pip install /path/to/current-master-checkout/release
+/tmp/kfpr-tools/bin/pip install /path/to/current-default-branch-checkout/release
 ```
 
 For 2.18.0, the version PR
@@ -290,7 +292,7 @@ commits normally before finding the PR; divergent history fails instead of
 silently qualifying an older remote head.
 It records the tested PR head and merged commit. The next checkpoint,
 `qualify-release`, dispatches the read-only `release-qualification.yml` workflow
-on upstream `master` for that exact commit. All builds, installed-wheel smoke
+on the upstream default branch for that exact commit. All builds, installed-wheel smoke
 tests and vulnerability scans run in CI:
 
 - Source dependencies are scanned with checksum-pinned OSV Scanner 2.5.0 before
@@ -316,7 +318,19 @@ tests and vulnerability scans run in CI:
   settings from hiding findings. SARIF alone is insufficient for qualification
   because it does not supply the full package-specific fix information.
 
-Qualification requires the workflow merged on upstream `master` and an
+Release dispatch resolves the authenticated upstream repository's default branch
+(`master` or `main`) and captures its workflow commit before starting CI. The
+matching run must retain that branch, commit, repository, and attempt. Lookup
+failures stop dispatch; there is no fallback to the old branch name. Promotion
+also requires execution on the current upstream default branch.
+
+The `sync-master` checkpoint keeps its existing name for saved-state compatibility,
+but opens its sync PR against the current default branch. Tooling image tags such
+as `kfp-release:master` remain unchanged by the Git branch migration. Offline dry
+runs show `<repository-default>` for unresolved branch selections and do not save
+that placeholder.
+
+Qualification requires the workflow merged on the upstream default branch and an
 authenticated `gh` session authorized to dispatch it. There is no local
 qualification mode or local Python-interpreter override. Local Trivy, pip-audit,
 Docker and per-minor Python installations are not required for qualification.
@@ -493,7 +507,7 @@ Dry-run publication builds images without running checks against published tags.
 For backend 3.0 and later, the existing `create-backend-release` checkpoint asks the
 release manager to review the successful release run and retain its published-index,
 native image-validation, and smoke artifacts before creating the GitHub release.
-Release notes and final communications link to the policy. A successful master smoke is not a substitute
+Release notes and final communications link to the policy. A successful development-branch smoke is not a substitute
 for validating the release images. Existing checkpoint IDs are unchanged; when
 resuming a release whose backend-release step was already marked done, review the
 new checklist explicitly rather than recreating an existing release.
@@ -501,7 +515,7 @@ new checklist explicitly rather than recreating an existing release.
 The remaining **2.18 release does not acquire ARM64 support or these validation
 requirements**. Use the current CLI with version `2.18.0` (or a 2.18 patch version):
 it dispatches `image-builds-release.yml` from `release-2.18`, using that branch's
-existing inputs and image inventory. Do not dispatch the master workflow for 2.x
+existing inputs and image inventory. Do not dispatch the development-branch workflow for 2.x
 or backport the 3.x image inventory. SDK-only releases also have no backend-image
 architecture checkpoint. All workflow watchers stop on failure, including on 2.x.
 
@@ -727,7 +741,7 @@ Thus 2.17.3 can become latest after 2.17.2, but cannot replace stable 2.18.0 or 
 Malformed or unavailable discovery stops publication; dry runs perform no query.
 SDK GitHub releases always use `--latest=false` to preserve the shared backend designation.
 
-Maintenance patches still leave master version files, changelog and Read the Docs
+Maintenance patches still leave development-branch version files, changelog and Read the Docs
 defaults unchanged. The final website checklist preserves its existing latest-version
 pointer; these separate maintenance safeguards are not part of latest selection.
 
