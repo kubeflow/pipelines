@@ -51,12 +51,14 @@ class DependabotConfigTest(unittest.TestCase):
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
             encoding='utf-8')
 
-    def test_wheel_bound_projects_select_their_runtime_python(self):
+    def test_projects_select_compatible_updater_python(self):
         projects = {
             '/backend': '3.11',
             '/backend/metadata_writer': '3.11',
             '/backend/src/apiserver/visualization': '3.11',
             '/.github/resources/postgresql-upgrade': '3.10',
+            '/sdk/python': '3.11',
+            '/kubernetes_platform/python': '3.11',
         }
         for directory, minor in projects.items():
             with self.subTest(directory=directory):
