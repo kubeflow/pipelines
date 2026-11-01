@@ -155,7 +155,7 @@ def regenerate_preview(
         ) from error
     print(f'Release notes backup: {backup}')
     try:
-        _write_atomic(path, result.stdout)
+        _write_atomic(path, merged.encode('utf-8'))
         _write_atomic(provenance_path, encoded_provenance)
     except OSError as error:
         restore_failed = False

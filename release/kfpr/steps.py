@@ -1366,7 +1366,8 @@ def _release_preview_path(context: ReleaseContext, tag: str) -> Path:
 def _editorial_evidence(
     context: ReleaseContext, selected: ReleaseRange, product: str
 ) -> str:
-    """Keep complete evidence beside each range-bound preview, outside prose."""
+    """Keep complete evidence beside each range-bound preview, outside
+    prose."""
     inventory = build_inventory(context.root, selected, context.metadata.tag)
     tag = context.metadata.sdk_tag if product == 'sdk' else context.metadata.tag
     directory = _release_preview_path(context, tag).parent

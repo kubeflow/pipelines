@@ -388,6 +388,29 @@ class ReleaseNotesIntegrationTest(unittest.TestCase):
             path.read_text().count('Handwritten upgrade advice.'), 1
         )
 
+    def test_regeneration_saves_repaired_generated_blocks(self):
+        selected = steps._notes_range(self.context, 'sdk')
+        generated = steps._sdk_release_body(self.context, selected)
+        path = steps._release_notes_preview(
+            self.context, 'sdk-2.1.1', lambda: generated, selected
+        )
+        # Model a clean merge that retained prose but omitted managed blocks.
+        merged = 'Reviewed café migration instructions.\n'
+        result = subprocess.CompletedProcess([], 0, merged.encode('utf-8'), b'')
+        with mock.patch.object(previews.subprocess, 'run', return_value=result):
+            self.assertTrue(
+                previews.regenerate_preview(path, selected, generated)
+            )
+        saved = path.read_text()
+        self.assertTrue(saved.startswith(merged))
+        for section in ('credits', 'assets'):
+            pattern = rf'<!-- kfpr:generated:{section}:start -->.*?<!-- kfpr:generated:{section}:end -->'
+            self.assertEqual(
+                re.findall(pattern, saved, re.DOTALL),
+                re.findall(pattern, generated, re.DOTALL),
+            )
+        self.assertEqual(saved.count('## Assets'), 1)
+
     def test_preview_scaffold_is_shared_and_editorial_warnings_are_advisory(
         self,
     ):

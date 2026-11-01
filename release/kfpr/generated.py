@@ -6,6 +6,14 @@ _NAMES = ('credits', 'assets')
 
 
 def _validate_blocks(text: str) -> None:
+    for comment in re.findall(r'<!--.*?(?:-->|$)', text, re.DOTALL):
+        if 'kfpr:generated:' in comment and not re.fullmatch(
+            r'<!-- kfpr:generated:(credits|assets):(start|end) -->', comment
+        ):
+            raise ValueError(
+                'Malformed generated marker: restore the canonical comment spelling '
+                'and spacing before retrying.'
+            )
     active = None
     seen = set()
     for name, boundary in re.findall(
@@ -31,10 +39,12 @@ def _validate_blocks(text: str) -> None:
 
 
 def restore_generated_sections(text: str, generated: str) -> str:
-    """Restore deleted/edited managed blocks, leaving editorial prose untouched.
+    """Restore deleted/edited managed blocks, leaving editorial prose
+    untouched.
 
-    Legacy previews without managed blocks are unchanged. Ambiguous markers
-    fail closed so malformed edits cannot cause unrelated prose to be removed.
+    Legacy previews without managed blocks are unchanged. Ambiguous
+    markers fail closed so malformed edits cannot cause unrelated prose
+    to be removed.
     """
     if not isinstance(generated, str):
         raise ValueError(

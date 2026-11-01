@@ -1,7 +1,8 @@
 """Exact-range evidence and reviewed facts for release editorial work.
 
-This module does not infer compatibility or turn commit mentions into features.
-Editors select benefits from the complete inventory before rendering documents.
+This module does not infer compatibility or turn commit mentions into
+features. Editors select benefits from the complete inventory before
+rendering documents.
 """
 
 import html
@@ -44,7 +45,8 @@ _NESTED_SUBJECT = re.compile(
 
 
 def nested_subjects(message: str) -> list[dict]:
-    """Expose squash/backport subjects with body line numbers, excluding fences."""
+    """Expose squash/backport subjects with body line numbers, excluding
+    fences."""
     result = []
     marker = ''
     for number, line in enumerate(message.splitlines()[1:], 2):
@@ -223,7 +225,8 @@ def _validate_entries(entries: object) -> None:
 
 
 def verify_evidence(root: Path, inventory: dict) -> None:
-    """Prevent stale/mutated inventories and master-only additions from rendering."""
+    """Prevent stale/mutated inventories and master-only additions from
+    rendering."""
     validate_inventory(inventory)
     selected = ReleaseRange(**inventory['range'])
     expected = build_inventory(root, selected, inventory['version'])
@@ -268,7 +271,8 @@ def review_warnings(inventory: dict) -> list[str]:
 
 
 def release_scaffolding(inventory: dict, product: str) -> str:
-    """Generate credits and source assets from evidence, never guess GitHub handles."""
+    """Generate credits and source assets from evidence, never guess GitHub
+    handles."""
     tag = ('sdk-' if product == 'sdk' else '') + inventory['version']
     authors = {}
     for change in inventory['changes']:
@@ -298,7 +302,8 @@ def release_scaffolding(inventory: dict, product: str) -> str:
 
 
 def render_document(inventory: dict, product: str) -> str:
-    """Render only reviewed prose, with one shared source for cross-product facts."""
+    """Render only reviewed prose, with one shared source for cross-product
+    facts."""
     validate_inventory(inventory)
     if product not in PRODUCTS:
         raise ValueError('Choose backend, sdk, or upgrade.')
@@ -337,7 +342,8 @@ def render_document(inventory: dict, product: str) -> str:
 
 
 def write_bundle(root: Path, inventory: dict, output: Path) -> None:
-    """Write a new review bundle without overwriting a previous editorial pass."""
+    """Write a new review bundle without overwriting a previous editorial
+    pass."""
     verify_evidence(root, inventory)
     documents = {
         product: render_document(inventory, product) for product in PRODUCTS

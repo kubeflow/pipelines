@@ -389,7 +389,8 @@ def prepare_editorial(
         ..., help='New directory for evidence and document templates.'
     ),
 ) -> None:
-    """Create an offline editorial inventory and backend/SDK/upgrade templates."""
+    """Create an offline editorial inventory and backend/SDK/upgrade
+    templates."""
     try:
         root = Path(
             subprocess.check_output(
@@ -418,7 +419,8 @@ def render_editorial(
         ..., help='New output directory; existing drafts are never overwritten.'
     ),
 ) -> None:
-    """Render reviewed benefits and shared facts without publishing or changing state."""
+    """Render reviewed benefits and shared facts without publishing or changing
+    state."""
     try:
         root = Path(
             subprocess.check_output(

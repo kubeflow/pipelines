@@ -381,6 +381,24 @@ class InventoryTest(unittest.TestCase):
             'Legacy editorial prose',
         )
 
+    def test_noncanonical_generated_comments_are_rejected(self):
+        baseline = inventory.release_scaffolding(self.data, 'backend')
+        for name in ('credits', 'assets'):
+            for transform in (
+                lambda marker: marker.replace(' -->', '-->'),
+                lambda marker: marker.replace('<!-- ', '<!--'),
+                lambda marker: marker.replace(':start', ':unknown'),
+            ):
+                edited = baseline
+                for boundary in ('start', 'end'):
+                    marker = f'<!-- kfpr:generated:{name}:{boundary} -->'
+                    edited = edited.replace(marker, transform(marker))
+                with self.subTest(name=name, edited=edited):
+                    with self.assertRaisesRegex(ValueError, '(?i)malformed'):
+                        restore_generated_sections(edited, baseline)
+                    with self.assertRaisesRegex(ValueError, '(?i)malformed'):
+                        restore_generated_sections('Human prose', edited)
+
     def test_malformed_generated_baseline_is_rejected(self):
         baseline = inventory.release_scaffolding(self.data, 'backend')
         for name in ('credits', 'assets'):
