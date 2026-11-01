@@ -518,6 +518,8 @@ class PipelineTask:
         if isinstance(limit, pipeline_channel.PipelineChannel):
             limit = str(limit)
         else:
+            if isinstance(limit, float):
+                raise ValueError('limit must be a non-negative integer.')
             if isinstance(limit, int):
                 if limit < 0:
                     raise ValueError('limit must be a non-negative integer.')
