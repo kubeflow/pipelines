@@ -68,10 +68,11 @@ gcsfs==2026.7.0
     # via -r requirements.in
 google-api-core[grpc]==2.32.0
     # via
+    #   google-api-python-client
     #   google-cloud-core
     #   google-cloud-storage
     #   google-cloud-storage-control
-google-api-python-client==1.7.12
+google-api-python-client==2.201.0
     # via -r requirements.in
 google-auth==2.40.3
     # via
@@ -339,7 +340,6 @@ scipy==1.16.1
 six==1.17.0
     # via
     #   astunparse
-    #   google-api-python-client
     #   google-pasta
     #   python-dateutil
     #   tensorflow
