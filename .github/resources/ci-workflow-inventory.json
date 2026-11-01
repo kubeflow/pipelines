@@ -554,11 +554,13 @@
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
       "name": "KFP Manifests",
-      "header_sha256": "38c40a9bacc544c308bba1905f4fcdb0677acef99e97bc02148999c97e917a49",
+      "header_sha256": "c0a522138965c104193fa8f99750701188a862cf21bb039b70fd651835ca567f",
       "pull_request": {
         "paths": [
           ".github/workflows/kubeflow-pipelines-manifests.yml",
           "manifests/kustomize/**",
+          ".github/resources/manifests/**",
+          ".github/resources/runtime-base-images.txt",
           "backend/api/tools/**",
           "go.mod",
           ".github/actions/setup-go/**",
