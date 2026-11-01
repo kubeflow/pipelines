@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob"
@@ -120,6 +121,35 @@ func TestResolveArtifactBucketConfig_NilConfigAllowsUnderDefaultRoot(t *testing.
 		sessionLookupPath,
 	)
 	assert.NotNil(t, bucketConfig)
+}
+
+func TestResolveArtifactBucketConfig_AllowsPercentInImportedArtifactPath(t *testing.T) {
+	ctx := context.Background()
+	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "minio://mlpipeline/root",
+		},
+	})
+	launcherConfig, err := config.FetchLauncherConfigMap(ctx, clientSet, "kubeflow")
+	require.NoError(t, err)
+
+	// An imported artifact URI with an escaped "%" decodes to a parent path
+	// containing "%". Only the configured pipeline root is restricted, so this
+	// artifact must still resolve.
+	prefix, base, err := objectstore.SplitObjectURI("minio://mlpipeline/root/100%25complete/model")
+	require.NoError(t, err)
+	assert.Equal(t, "model", base)
+
+	bucketConfig, sessionLookupPath, err := resolveArtifactBucketConfig(launcherConfig, prefix)
+	require.NoError(t, err)
+	assert.Equal(t, "root/100%complete/", bucketConfig.Prefix)
+
+	_, err = launcherConfig.GetStoreSessionInfo(sessionLookupPath)
+	require.NoError(t, err)
 }
 
 func TestObjectStoreClientGetBucket_RejectsEncodedQueryDelimiterBypass(t *testing.T) {
