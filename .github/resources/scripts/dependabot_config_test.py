@@ -61,8 +61,10 @@ class DependabotConfigTest(unittest.TestCase):
         )
 
     def test_release_ml_metadata_updates_are_disabled(self):
-        pip = self.release_update('pip')
-        self.assertIn({'dependency-name': 'ml-metadata'}, pip.get('ignore', []))
+        for pip in self.release_pip_updates():
+            self.assertIn(
+                {'dependency-name': 'ml-metadata'}, pip.get('ignore', [])
+            )
 
     def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
         docker = next(
@@ -243,6 +245,37 @@ class DependabotConfigTest(unittest.TestCase):
             if update.get('target-branch') == 'release-2.18'
         ]
 
+    def release_pip_updates(self):
+        return [
+            entry
+            for entry in self.release_updates()
+            if entry['package-ecosystem'] == 'pip'
+        ]
+
+    def test_release_pip_jobs_are_bounded_and_disjoint(self):
+        jobs = self.release_pip_updates()
+        self.assertGreater(len(jobs), 1)
+        self.assertEqual(
+            sum(job['open-pull-requests-limit'] for job in jobs), 10
+        )
+        directories = []
+        group_names = []
+        for job in jobs:
+            self.assertLessEqual(len(job['directories']), 7)
+            self.assertGreater(job['open-pull-requests-limit'], 0)
+            directories.extend(job['directories'])
+            group_names.extend(job['groups'])
+        self.assertEqual(len(directories), len(set(directories)))
+        self.assertEqual(len(group_names), len(set(group_names)))
+        # Parents fetch immediate child requirements, so keep these together.
+        for parent, child in [
+            ('/backend', '/backend/metadata_writer'),
+            ('/docs', '/docs/sdk'),
+            ('/kubernetes_platform/python', '/kubernetes_platform/python/docs'),
+        ]:
+            job = next(job for job in jobs if parent in job['directories'])
+            self.assertIn(child, job['directories'])
+
     def release_update(self, ecosystem):
         matches = [
             update
@@ -262,14 +295,17 @@ class DependabotConfigTest(unittest.TestCase):
             'github-actions': 'github_actions',
             'pre-commit': 'pre_commit',
         }
-        self.assertEqual(len(release), len(labels))
+        self.assertEqual(
+            len(release), len(labels) - 1 + len(self.release_pip_updates())
+        )
         self.assertEqual(
             {entry['package-ecosystem'] for entry in release}, set(labels)
         )
         for update in release:
             with self.subTest(ecosystem=update['package-ecosystem']):
                 self.assertEqual(update['schedule']['interval'], 'weekly')
-                self.assertEqual(update['open-pull-requests-limit'], 10)
+                if update['package-ecosystem'] != 'pip':
+                    self.assertEqual(update['open-pull-requests-limit'], 10)
                 self.assertEqual(
                     update['labels'],
                     [
@@ -319,7 +355,11 @@ class DependabotConfigTest(unittest.TestCase):
             '/test/kfp-kubernetes-native-migration-tests',
             '/tools/upgrade-readiness',
         }
-        directories = self.release_update('pip')['directories']
+        directories = [
+            directory
+            for job in self.release_pip_updates()
+            for directory in job['directories']
+        ]
         self.assertEqual(len(directories), len(expected))
         self.assertEqual(set(directories), expected)
         for generated in (
@@ -335,10 +375,11 @@ class DependabotConfigTest(unittest.TestCase):
     def test_release_known_incompatible_python_and_formatter_updates_are_ignored(
         self,
     ):
-        self.assertIn(
-            {'dependency-name': 'protobuf', 'versions': ['>=7']},
-            self.release_update('pip')['ignore'],
-        )
+        for job in self.release_pip_updates():
+            self.assertIn(
+                {'dependency-name': 'protobuf', 'versions': ['>=7']},
+                job['ignore'],
+            )
         self.assertIn(
             {
                 'dependency-name': 'https://github.com/pycqa/docformatter',
@@ -387,10 +428,12 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(
             npm['npm-dependencies'], {'group-by': 'dependency-name'}
         )
-        self.assertEqual(
-            self.release_update('pip')['groups']['python-dependencies'],
-            {'group-by': 'dependency-name'},
-        )
+        for job in self.release_pip_updates():
+            self.assertEqual(len(job['groups']), 1)
+            self.assertEqual(
+                next(iter(job['groups'].values())),
+                {'group-by': 'dependency-name'},
+            )
 
     def test_argo_updates_remain_visible_outside_bulk_go_group(self):
         config = yaml.safe_load(self.config)

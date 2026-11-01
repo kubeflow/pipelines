@@ -310,32 +310,19 @@ updates:
         group-by: dependency-name
   - package-ecosystem: pip
     target-branch: "release-2.18"
-    # Generated API clients are excluded: their requirements express generated
-    # compatibility minimums and must be changed through API regeneration.
+    # Bound directory traversal per dependency group below the hosted timeout.
+    # Four disjoint jobs retain all 20 projects and a combined ten-PR budget.
     directories:
-      - "/.github/resources/postgresql-upgrade"
-      - "/.github/resources/scripts/kfp-readiness"
       - "/api/v2alpha1/python"
-      - "/backend"
-      - "/backend/metadata_writer"
-      - "/backend/src/apiserver/visualization"
-      - "/backend/src/tensorboard"
-      - "/backend/src/v2/test"
-      - "/components/google-cloud"
-      - "/docs"
-      - "/docs/sdk"
+      - "/sdk/python"
       - "/kubernetes_platform/python"
       - "/kubernetes_platform/python/docs"
-      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
-      - "/proxy"
-      - "/release"
-      - "/samples/core/artifact_previews"
-      - "/sdk/python"
+      - "/backend/src/v2/test"
+      - "/components/google-cloud"
       - "/test/kfp-kubernetes-native-migration-tests"
-      - "/tools/upgrade-readiness"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "python"
@@ -349,8 +336,87 @@ updates:
       - dependency-name: "protobuf"
         versions: [">=7"]
     groups:
-      # Keep shared Python constraints aligned across the monorepo.
-      python-dependencies:
+      # Align shared constraints within this job; review cross-job compatibility.
+      release-python-sdk:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    target-branch: "release-2.18"
+    directories:
+      - "/backend"
+      - "/backend/metadata_writer"
+      - "/backend/src/apiserver/visualization"
+      - "/backend/src/tensorboard"
+      - "/proxy"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "python"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen on this maintenance line; upgrades require explicit review.
+      - dependency-name: "ml-metadata"
+      # The release SDK/platform and legacy runtime sources require protobuf <7.
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+    groups:
+      # Align shared constraints within this job; review cross-job compatibility.
+      release-python-runtime:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    target-branch: "release-2.18"
+    directories:
+      - "/docs"
+      - "/docs/sdk"
+      - "/release"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "python"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen on this maintenance line; upgrades require explicit review.
+      - dependency-name: "ml-metadata"
+      # The release SDK/platform and legacy runtime sources require protobuf <7.
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+    groups:
+      # Align shared constraints within this job; review cross-job compatibility.
+      release-python-docs:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    target-branch: "release-2.18"
+    directories:
+      - "/.github/resources/postgresql-upgrade"
+      - "/.github/resources/scripts/kfp-readiness"
+      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
+      - "/samples/core/artifact_previews"
+      - "/tools/upgrade-readiness"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "python"
+      - "do-not-merge/hold"
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      # MLMD is frozen on this maintenance line; upgrades require explicit review.
+      - dependency-name: "ml-metadata"
+      # The release SDK/platform and legacy runtime sources require protobuf <7.
+      - dependency-name: "protobuf"
+        versions: [">=7"]
+    groups:
+      # Align shared constraints within this job; review cross-job compatibility.
+      release-python-tools:
         group-by: dependency-name
   - package-ecosystem: github-actions
     target-branch: "release-2.18"

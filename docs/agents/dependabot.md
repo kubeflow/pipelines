@@ -75,7 +75,7 @@ WebdriverIO 10/Mocha 12 upgrades.
 
 ## Release 2.18 maintenance
 
-Dependabot reads its schedule from the default branch. Six weekly entries target
+Dependabot reads its schedule from the default branch. Weekly entries target six ecosystems on
 `release-2.18`: Go modules, Docker/Kubernetes image references, npm, pip, GitHub
 Actions and pre-commit. The release-local configuration remains an inventory; it
 does not independently schedule these PRs. Keep the default-branch release entries
@@ -90,8 +90,23 @@ PyYAML requirements. It does not use master's uv workspace. The two generated
 backend HTTP clients remain excluded; update them through API regeneration. TensorBoard's pip
 directory and Dockerfile are present on release-2.18 after #15152 merged.
 
-Each release ecosystem retains weekly updates, a ten-PR limit, dependency labels
-and `do-not-merge/hold`. Grouping preserves golang.org/x modules, paired Argo
+Release pip runs in four disjoint jobs: SDK/integration (seven directories, three
+open PRs), runtimes (five, three), docs/release tooling (three, two), and support
+tools/samples (five, two). This retains a combined ten-PR budget. Keep immediate
+parent/child projects together because pip fetches child requirements too.
+Shared dependency grouping applies within each job; updates crossing jobs can
+produce separate PRs and still require compatibility review.
+
+The [55-minute hosted timeout](https://github.com/kubeflow/pipelines/actions/runs/41309055846)
+occurred after 837 directory visits across 42 dependency-group passes. The 56
+pip-compile subprocesses took about six minutes combined; repeatedly visiting
+all 20 directories dominated the work. Splitting the schedule bounds that
+repeated traversal without excluding projects or freezing more dependencies.
+Verify each new job completes after the schedule merges; this partition does
+not guarantee every future dependency update resolves or meets the time limit.
+
+Each release ecosystem retains weekly updates, dependency labels and
+`do-not-merge/hold`. Non-pip ecosystems retain a ten-PR limit per entry. Grouping preserves golang.org/x modules, paired Argo
 controller/executor images, MUI peers and shared package updates. Argo remains
 outside generic Go minor/patch batches. The protobuf >=7 and docformatter 1.7.8
 ignores retain explicit release compatibility constraints; they are not security
