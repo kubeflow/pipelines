@@ -606,6 +606,8 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Package URL is empty")
 	} else if request.GetPipelineId() == "" || request.GetPipelineVersion().GetPipelineId() == "" {
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Parent pipeline id is empty")
+	} else if request.GetPipelineId() != request.GetPipelineVersion().GetPipelineId() {
+		return nil, util.NewInvalidInputError("Failed to create a pipeline version. Parent pipeline id %v does not match pipeline_version.pipeline_id %v", request.GetPipelineId(), request.GetPipelineVersion().GetPipelineId())
 	}
 
 	// Convert to pipeline
@@ -613,14 +615,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to conversion error")
 	}
-
-	// Extract pipeline id
-	if request.GetPipelineId() != "" {
-		pv.PipelineId = request.GetPipelineId()
-	}
-	if pv.PipelineId == "" {
-		return nil, util.Wrap(err, "Failed to create a pipeline version due to missing pipeline id")
-	}
+	pv.PipelineId = request.GetPipelineId()
 
 	newPipelineVersion, err := s.createPipelineVersion(ctx, pv)
 	if err != nil {
@@ -657,7 +652,29 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2.
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version %s", request.GetPipelineVersionId())
 	}
+	if err := checkPipelineVersionParent(pipelineVersion, request.GetPipelineId()); err != nil {
+		return nil, util.Wrapf(err, "Failed to get a pipeline version %s", request.GetPipelineVersionId())
+	}
 	return toAPIPipelineVersion(pipelineVersion), nil
+}
+
+// checkPipelineVersionParent returns NotFound when the request names a pipeline
+// other than the version's own, so a version is only reachable under its parent.
+// Runs that reference both a pipeline and a version are checked the same way.
+func checkPipelineVersionParent(pipelineVersion *model.PipelineVersion, pipelineID string) error {
+	if pipelineID != "" && pipelineVersion.PipelineId != "" && pipelineVersion.PipelineId != pipelineID {
+		return util.NewResourceNotFoundError("PipelineVersion", pipelineVersion.UUID+" under pipeline "+pipelineID)
+	}
+	return nil
+}
+
+// checkPipelineVersionUnderParent loads a version and checks that it belongs to pipelineID.
+func (s *BasePipelineServer) checkPipelineVersionUnderParent(pipelineID string, pipelineVersionID string) error {
+	pipelineVersion, err := s.resourceManager.GetPipelineVersion(pipelineVersionID)
+	if err != nil {
+		return err
+	}
+	return checkPipelineVersionParent(pipelineVersion, pipelineID)
 }
 
 // Fetches an array of pipeline versions for given search query parameters.
@@ -739,6 +756,9 @@ func (s *BasePipelineServer) deletePipelineVersion(ctx context.Context, pipeline
 	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete a pipeline version id %v due to authorization error for pipeline id %v", pipelineVersionId, pipelineId)
+	}
+	if err := s.checkPipelineVersionUnderParent(pipelineId, pipelineVersionId); err != nil {
+		return util.Wrapf(err, "Failed to delete a pipeline version id %v under pipeline id %v", pipelineVersionId, pipelineId)
 	}
 
 	return s.resourceManager.DeletePipelineVersion(pipelineVersionId)
@@ -843,6 +863,9 @@ func (s *PipelineServer) UpdatePipelineVersion(ctx context.Context, request *api
 	}
 	if err := s.canAccessPipelineVersion(ctx, pipelineVersionID, resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to update pipeline version %v due to authorization error", pipelineVersionID)
+	}
+	if err := s.checkPipelineVersionUnderParent(pipelineID, pipelineVersionID); err != nil {
+		return nil, util.Wrapf(err, "Failed to update pipeline version %v under pipeline %v", pipelineVersionID, pipelineID)
 	}
 
 	tags := recoverClearTagsIntent(ctx, pipelineVersion.GetTags())
