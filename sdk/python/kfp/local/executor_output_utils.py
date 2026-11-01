@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for reading and processing the ExecutorOutput message."""
 
+import decimal
 import json
 import os
 from typing import Any, Dict, List, Union
@@ -39,13 +40,44 @@ def load_executor_output(
     return executor_output
 
 
+# Go's protojson, which serializes the executor input and output on the remote
+# backend, writes whole numbers below this magnitude without a fractional part,
+# so the component loads them as ints. Larger ones use exponent form. The digits
+# are the shortest decimal that round-trips to the double, which is also what
+# Python's repr() produces, so int(value) would expose binary rounding instead
+# (1000000000000000128 rather than 1000000000000000100).
+_PROTOJSON_EXPONENT_THRESHOLD = 1e21
+
+NESTED_PARAMETER_TYPES = (
+    pipeline_spec_pb2.ParameterType.ParameterTypeEnum.LIST,
+    pipeline_spec_pb2.ParameterType.ParameterTypeEnum.STRUCT,
+)
+
+
+def cast_nested_whole_numbers(value: Any) -> Any:
+    """Casts whole-number floats inside lists and dicts to ints, matching the
+    values a component receives from the remote backend."""
+    if isinstance(value, float):
+        if value.is_integer() and abs(value) < _PROTOJSON_EXPONENT_THRESHOLD:
+            return int(decimal.Decimal(repr(value)))
+        return value
+    if isinstance(value, list):
+        return [cast_nested_whole_numbers(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: cast_nested_whole_numbers(item) for key, item in value.items()
+        }
+    return value
+
+
 def cast_protobuf_numbers(
     output_parameters: Dict[str, Any],
     output_parameter_types: Dict[
         str, pipeline_spec_pb2.ComponentOutputsSpec.ParameterSpec
     ],
 ) -> Dict[str, Any]:
-    """Casts output fields that are typed as NUMBER_INTEGER to a Python int.
+    """Casts output fields that are typed as NUMBER_INTEGER to a Python int,
+    and whole numbers nested in LIST and STRUCT outputs to ints.
 
     This is required, since google.protobuf.struct_pb2.Value uses
     number_value to represent both floats and ints. When converting
@@ -63,6 +95,14 @@ def cast_protobuf_numbers(
         if int_output_key in output_parameters:
             output_parameters[int_output_key] = int(
                 output_parameters[int_output_key]
+            )
+    for output_param_name, parameter_spec in output_parameter_types.items():
+        if (
+            parameter_spec.parameter_type in NESTED_PARAMETER_TYPES
+            and output_param_name in output_parameters
+        ):
+            output_parameters[output_param_name] = cast_nested_whole_numbers(
+                output_parameters[output_param_name]
             )
     return output_parameters
 

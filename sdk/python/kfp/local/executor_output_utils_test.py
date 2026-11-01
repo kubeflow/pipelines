@@ -254,6 +254,69 @@ class TestGetOutputsFromExecutorOutput(unittest.TestCase):
         self.assertEqual(outputs['int_out'], 1)
         self.assertEqual(outputs['str_out'], 'foo')
 
+    def test_whole_numbers_nested_in_list_and_struct_outputs_become_ints(self):
+        executor_output = pipeline_spec_pb2.ExecutorOutput()
+        json_format.ParseDict(
+            {
+                'parameterValues': {
+                    'ids': [1, 2, 3.5],
+                    'counts': {'a': 1, 'b': [2, 0.5]},
+                }
+            },
+            executor_output,
+        )
+        component_spec = pipeline_spec_pb2.ComponentSpec()
+        json_format.ParseDict(
+            {
+                'outputDefinitions': {
+                    'parameters': {
+                        'ids': {'parameterType': 'LIST'},
+                        'counts': {'parameterType': 'STRUCT'},
+                    }
+                },
+                'executorLabel': 'exec-comp',
+            },
+            component_spec,
+        )
+
+        outputs = executor_output_utils.get_outputs_from_executor_output(
+            executor_output=executor_output,
+            executor_input=pipeline_spec_pb2.ExecutorInput(),
+            component_spec=component_spec,
+        )
+
+        self.assertEqual(outputs['ids'], [1, 2, 3.5])
+        self.assertEqual(
+            [type(value) for value in outputs['ids']], [int, int, float]
+        )
+        self.assertEqual(outputs['counts'], {'a': 1, 'b': [2, 0.5]})
+        self.assertIsInstance(outputs['counts']['a'], int)
+        self.assertIsInstance(outputs['counts']['b'][0], int)
+        self.assertIsInstance(outputs['counts']['b'][1], float)
+
+
+class TestCastNestedWholeNumbers(parameterized.TestCase):
+    # Expected values are what Go's protojson emits for the same doubles.
+    @parameterized.parameters(
+        (1000000000000000100.0, 1000000000000000100),
+        (-1000000000000000100.0, -1000000000000000100),
+        (123456789012345678.0, 123456789012345680),
+        (9007199254740993.0, 9007199254740992),
+        (1e20, 100000000000000000000),
+        (-0.0, 0),
+    )
+    def test_large_whole_numbers_match_protojson_digits(self, value, expected):
+        result = executor_output_utils.cast_nested_whole_numbers([value])
+        self.assertEqual(result, [expected])
+        self.assertIsInstance(result[0], int)
+
+    @parameterized.parameters(1e21, -1e21, 1.5, float('inf'))
+    def test_values_protojson_does_not_write_as_integers_stay_floats(
+        self, value
+    ):
+        result = executor_output_utils.cast_nested_whole_numbers({'v': value})
+        self.assertIsInstance(result['v'], float)
+
 
 class TestPb2ValueToPython(unittest.TestCase):
     def test_null(self):
