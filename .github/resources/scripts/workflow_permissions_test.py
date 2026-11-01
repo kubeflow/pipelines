@@ -50,6 +50,7 @@ WRITE_PERMISSIONS = {
     'ci-checks.yml': {
         'check_ci_status': {'pull-requests', 'statuses'},
         'recover_merged_release': {'statuses'},
+        'check_merge_group_status': {'statuses'},
     },
     'ci-health-report.yml': {
         'report': {'issues'},
