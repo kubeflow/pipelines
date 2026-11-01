@@ -1,6 +1,9 @@
 name: Build tools images
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches:
       - master
@@ -28,7 +31,7 @@ concurrency:
 jobs:
   build-tools-check:
     name: Check tools images (${{ matrix.arch }})
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +57,7 @@ jobs:
   build-tools:
     name: Build tools images (${{ matrix.arch }})
     if: >-
-      github.event_name != 'pull_request' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
        (github.ref_name != 'master' && github.ref_name != 'main'))
     strategy:
@@ -155,7 +158,7 @@ jobs:
     name: Publish verified tooling indexes
     needs: [build-tools, compare-generated]
     if: >-
-      !cancelled() && github.event_name != 'pull_request' &&
+      !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       needs.build-tools.result == 'success' && needs.compare-generated.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15

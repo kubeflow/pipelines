@@ -4,6 +4,9 @@ name: Documentation
 # (.readthedocs.yml), not by this workflow.
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   pull_request:
     paths:
       - "**/pyproject.toml"

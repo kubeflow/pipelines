@@ -1,6 +1,9 @@
 name: KFP Readthedocs Release Readiness
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches: [ master, main ]
   pull_request:
