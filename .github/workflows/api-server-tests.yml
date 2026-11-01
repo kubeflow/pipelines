@@ -352,13 +352,16 @@ jobs:
         cache_enabled: [ "true", "false" ]
         db_type: [ "mysql", "pgx" ]
         # Manual dispatch retains one user-selected suite per deployment.
-        test_shard: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["all"]' || '["A", "B"]') }}
+        test_shard: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["all"]' || '["A", "B", "C"]') }}
         exclude:
           # No cache-disabled PostgreSQL multi-user overlay exists yet.
           - db_type: "pgx"
             cache_enabled: "false"
+          # Only cache-enabled B needs migration/fixture isolation.
+          - cache_enabled: "false"
+            test_shard: "C"
         include:
-          # Preserve the existing cache-specific API coverage within each pair.
+          # Preserve the existing cache-specific API coverage across shards.
           - cache_enabled: "true"
             test_label: "ApiServerTests && (PipelineUpload || PipelineCacheEnabled)"
           - cache_enabled: "false"
@@ -419,7 +422,13 @@ jobs:
           TEST_LABEL=$AUTOMATIC_TEST_LABEL
           case "$AUTOMATIC_TEST_SHARD" in
             A) TEST_LABEL="($TEST_LABEL) && (ApiPipelineShardA || Pipeline)" ;;
-            B) TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline)" ;;
+            B)
+              TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline)"
+              if [ "${{ matrix.cache_enabled }}" == "true" ]; then
+                TEST_LABEL="$TEST_LABEL && LegacyMigration"
+              fi
+              ;;
+            C) TEST_LABEL="($TEST_LABEL) && !(ApiPipelineShardA || Pipeline) && !LegacyMigration" ;;
           esac
           TEST_LABEL="($TEST_LABEL) || LegacyAPICompatibility"
           NAMESPACE=${{ env.NAMESPACE }}
