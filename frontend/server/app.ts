@@ -373,20 +373,26 @@ function createUIServer(options: UIConfigs) {
     getAllowCustomVisualizationsHandler(options.visualizations.allowCustomVisualizations),
   );
 
-  /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
-  app.all(
-    '/ml_metadata.*',
-    createProxyMiddleware({
-      changeOrigin: true,
-      on: {
-        proxyReq: (proxyReq) => {
-          console.log('Metadata proxied request: ', (proxyReq as any).path);
+  /** Shared MLMD has no tenant-aware authorization for browser requests. */
+  if (options.auth.enabled) {
+    app.all('/ml_metadata.*', (_req, res) => {
+      res.status(403).send('Direct ML Metadata access is disabled in multi-user mode.');
+    });
+  } else {
+    app.all(
+      '/ml_metadata.*',
+      createProxyMiddleware({
+        changeOrigin: true,
+        on: {
+          proxyReq: (proxyReq) => {
+            console.log('Metadata proxied request: ', (proxyReq as any).path);
+          },
         },
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      target: envoyServiceAddress,
-    }),
-  );
+        headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+        target: envoyServiceAddress,
+      }),
+    );
+  }
 
   registerHandler(
     app.use,
