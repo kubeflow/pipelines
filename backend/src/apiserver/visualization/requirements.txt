@@ -28,7 +28,7 @@ beautifulsoup4==4.13.5
     # via nbconvert
 bleach[css]==6.4.0
     # via nbconvert
-bokeh==3.8.2
+bokeh==3.9.2
     # via -r requirements.in
 cachetools==5.5.2
     # via google-auth
@@ -240,9 +240,7 @@ packaging==25.0
     #   tensorflow
     #   wheel
 pandas==2.3.2
-    # via
-    #   bokeh
-    #   itables
+    # via itables
 pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.5

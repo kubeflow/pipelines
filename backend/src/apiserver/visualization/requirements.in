@@ -1,4 +1,4 @@
-bokeh==3.8.2
+bokeh==3.9.2
 gcsfs>=2026.10.1
 google-api-python-client==2.201.*
 itables==0.1.0
