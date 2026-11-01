@@ -18,6 +18,8 @@ on:
       - 'uv.lock'
       - '.github/workflows/upgrade-test.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
@@ -41,14 +43,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ false }}
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/image-builds.yml
-
   upgrade-test:
     # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
     if: ${{ false }}

@@ -41,6 +41,8 @@ on:
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
@@ -66,12 +68,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/image-builds.yml
-
   api-test-versions:
     # Full prefix coverage after merges, without adding PR-time clusters.
     if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}

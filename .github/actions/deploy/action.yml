@@ -90,24 +90,14 @@ runs:
 
     # Start the largest transfer while the branch images are still building.
     # Keep the same archive and Kind image verification as the combined path.
-    - name: Wait for runtime base image artifact
-      id: runtime-image-artifacts
+    - name: Download shared runtime base images
       if: steps.runtime-image-cache-files.outputs.ready != 'true'
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
-        LOAD_MODELCAR_FIXTURE: ${{ inputs.load_modelcar_fixture }}
-      run: |
-        ./.github/resources/scripts/wait-for-image-artifacts.sh runtime-base-images
-        bash .github/resources/scripts/ci-image-artifacts.sh --github-output runtime-base-image-files "$LOAD_MODELCAR_FIXTURE"
-
-    - name: Download runtime base images
-      if: steps.runtime-image-cache-files.outputs.ready != 'true'
-      uses: ./.github/actions/download-artifact-with-retry
+      uses: ./.github/actions/shared-ci-images
       with:
-        name: runtime-base-images
+        kind: runtime
+        architecture: amd64
+        layout: flat
         path: "${{ inputs.image_path }}/runtime-base-images"
-        required-files: ${{ steps.runtime-image-artifacts.outputs.required-files }}
 
     - name: Load Runtime Base Images Into Kind
       shell: bash
@@ -141,22 +131,12 @@ runs:
           load image-archive "${MODELCAR_IMAGE_ARCHIVE}"
         rm "${MODELCAR_IMAGE_ARCHIVE}"
 
-    - name: Wait for branch image artifacts
-      id: image-artifacts
-      shell: bash
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        source .github/resources/scripts/ci-image-artifacts.sh
-        ./.github/resources/scripts/wait-for-image-artifacts.sh "${BRANCH_CI_IMAGE_ARTIFACTS[@]}"
-        bash .github/resources/scripts/ci-image-artifacts.sh --github-output branch-image-files
-
-    - name: Download Docker Images
-      uses: ./.github/actions/download-artifact-with-retry
+    - name: Download shared branch images
+      uses: ./.github/actions/shared-ci-images
       with:
+        architecture: amd64
+        layout: nested
         path: "${{ inputs.image_path }}"
-        pattern: ${{ steps.image-artifacts.outputs.artifact-pattern }}
-        required-files: ${{ steps.image-artifacts.outputs.required-files }}
 
     - name: Load Control Plane Images Into Kind
       shell: bash

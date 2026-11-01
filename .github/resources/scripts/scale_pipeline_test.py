@@ -86,7 +86,18 @@ class ScalePipelineTest(unittest.TestCase):
         self.assertEqual(test['test_label'], 'E2EScale')
         self.assertEqual(test['num_parallel_nodes'], '1')
         self.assertEqual(test['cache_enabled'], 'false')
-        self.assertIn('build', workflow['jobs'])
+        self.assertNotIn('build', workflow['jobs'])
+        self.assertNotIn('needs', job)
+        deployment = yaml.safe_load(
+            (ROOT / '.github/actions/deploy/action.yml').read_text()
+        )
+        self.assertTrue(
+            any(
+                step.get('uses') == './.github/actions/shared-ci-images'
+                and step.get('with', {}).get('layout') == 'nested'
+                for step in deployment['runs']['steps']
+            )
+        )
 
 
 if __name__ == '__main__':
