@@ -38,6 +38,8 @@ from .core import (
 )
 from .dependency_pins import preserve_dependency_pins
 from .editorial import editorial_scaffold, validate_notes
+from .generated import restore_generated_sections
+from .inventory import build_inventory, release_scaffolding
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
 from .previews import _write_atomic, has_conflicts, regenerate_preview
@@ -1363,6 +1365,25 @@ def _release_preview_path(context: ReleaseContext, tag: str) -> Path:
     return state_path.parent / f'{state_path.stem}-notes' / f'{tag}.md'
 
 
+def _editorial_evidence(
+    context: ReleaseContext, selected: ReleaseRange, product: str
+) -> str:
+    """Keep complete evidence beside each range-bound preview, outside
+    prose."""
+    inventory = build_inventory(context.root, selected, context.metadata.tag)
+    tag = context.metadata.sdk_tag if product == 'sdk' else context.metadata.tag
+    directory = _release_preview_path(context, tag).parent
+    directory.mkdir(parents=True, exist_ok=True)
+    path = (
+        directory
+        / f'{tag}.{selected.base_sha[:12]}.{selected.target_sha[:12]}.inventory.json'
+    )
+    if not path.exists():
+        path.write_text(json.dumps(inventory, indent=2) + '\n')
+    print(f'Complete release inventory: {path}')
+    return release_scaffolding(inventory, product)
+
+
 def regenerate_release_notes(context: ReleaseContext, product: str) -> bool:
     """Refresh an existing preview without publishing or changing
     checkpoints."""
@@ -1442,6 +1463,20 @@ def _release_notes_preview(
         raise ValueError(
             f'Release notes are empty: {path}. Edit them before retrying.'
         )
+    baseline = json.loads(provenance_path.read_text()).get(
+        'generated_notes', ''
+    )
+    restored = restore_generated_sections(path.read_text(), baseline)
+    if restored != path.read_text():
+        if context.runner.dry_run:
+            print(
+                '[dry-run] generated contributor and asset sections would be restored before publication.'
+            )
+        else:
+            _write_atomic(path, restored.encode('utf-8'))
+            print(
+                'Restored generated contributor and asset sections; editorial prose is unchanged.'
+            )
     return path
 
 
@@ -1505,12 +1540,17 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
 """
     changes = _generate_sdk_release_notes(context.root, selected)
     if changes:
-        notes += f"\n## What's Changed\n\n{changes}\n"
+        notes += f'\n<details>\n<summary>Commit reference for editors</summary>\n\n{changes}\n</details>\n'
     return (
-        editorial_scaffold()
+        re.sub(
+            r'(?ms)^## Installation\n.*?(?=^## |\Z)',
+            '',
+            editorial_scaffold('sdk'),
+        )
         + '## Installation\n\n'
         + notes
-        + f'\n**Full changelog:** {selected.compare_url}\n'
+        + f'\n**Full changelog:** {selected.compare_url}\n\n'
+        + _editorial_evidence(context, selected, 'sdk')
     )
 
 
@@ -1542,6 +1582,7 @@ def step_create_sdk_release(context: ReleaseContext) -> None:
         if choice == 'u':
             return
     selected = _notes_range(context, 'sdk', publishing=True)
+    _verify_release_target(context, metadata.sdk_tag, selected)
     notes_path = _release_notes_preview(
         context,
         metadata.sdk_tag,
@@ -1826,8 +1867,11 @@ def _backend_release_body(
             f'No backend release notes found after {selected.base_ref}. '
             'Check the previous release tag and commit history before retrying.'
         )
-    notes = f"""## What's Changed
+    notes = f"""<details>
+<summary>Commit reference for editors</summary>
+
 {changed}
+</details>
 
 **Full Changelog**: {selected.compare_url}
 """
@@ -1839,7 +1883,12 @@ Linux AMD64 and ARM64 are supported starting with KFP 3.0. Standard manifests us
 the container runtime selects the matching architecture. Pipeline component images must support
 the architecture of their execution nodes. See the [supported-platforms policy](https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md).
 """
-    return editorial_scaffold() + notes
+    return (
+        editorial_scaffold('backend')
+        + notes
+        + '\n'
+        + _editorial_evidence(context, selected, 'backend')
+    )
 
 
 def step_create_backend_release(context: ReleaseContext) -> None:
@@ -1857,6 +1906,8 @@ def step_create_backend_release(context: ReleaseContext) -> None:
             )
 
     selected = _notes_range(context, 'backend', publishing=True)
+    if not context.runner.dry_run:
+        _verify_release_target(context, metadata.tag, selected)
     notes_path = _release_notes_preview(
         context,
         metadata.tag,

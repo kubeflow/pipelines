@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile, TemporaryDirectory, mkdtemp
 
+from .generated import restore_generated_sections
 from .ranges import ReleaseRange
 
 
@@ -83,6 +84,7 @@ def regenerate_preview(
         raise ValueError(
             'Resolve existing conflict markers before regenerating the preview.'
         )
+    current = restore_generated_sections(current, baseline)
     with TemporaryDirectory(prefix='kfpr-preview-merge-') as directory:
         inputs = [
             Path(directory) / name
@@ -131,6 +133,8 @@ def regenerate_preview(
         raise ValueError(
             'git merge-file produced an unexpected result; existing files were not changed.'
         )
+    if clean:
+        merged = restore_generated_sections(merged, generated_notes)
     updated = selected.as_dict() | {'generated_notes': generated_notes}
     encoded_provenance = (json.dumps(updated, indent=2) + '\n').encode('utf-8')
     if (
@@ -151,7 +155,7 @@ def regenerate_preview(
         ) from error
     print(f'Release notes backup: {backup}')
     try:
-        _write_atomic(path, result.stdout)
+        _write_atomic(path, merged.encode('utf-8'))
         _write_atomic(provenance_path, encoded_provenance)
     except OSError as error:
         restore_failed = False

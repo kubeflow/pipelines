@@ -237,6 +237,13 @@ class ReleaseLayoutTest(QualifiedPublicationTest):
 
     def setUp(self) -> None:
         super().setUp()
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         """Mock external operations without changing the current checkout."""
         for name, value in (
             ('_notes_range', SELECTED_RANGE),
@@ -898,6 +905,13 @@ class CreateSdkReleaseStepTest(QualifiedPublicationTest):
 class CreateBackendReleaseStepTest(QualifiedPublicationTest):
     def setUp(self):
         super().setUp()
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         patcher = mock.patch.object(
             steps,
             'resolve_range',
@@ -3402,6 +3416,13 @@ class DryRunOutputTest(unittest.TestCase):
 class ReleaseNotesPreviewTest(QualifiedPublicationTest):
     def setUp(self):
         super().setUp()
+        evidence = mock.patch.object(
+            steps,
+            '_editorial_evidence',
+            return_value='## Contributors\n\nFixture contributors.\n\n## Assets\n\nFixture source archives.\n',
+        )
+        evidence.start()
+        self.addCleanup(evidence.stop)
         layout = mock.patch.object(
             steps, '_sdk_release_is_consolidated', return_value=True
         )

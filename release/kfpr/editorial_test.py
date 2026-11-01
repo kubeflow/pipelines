@@ -12,7 +12,7 @@ class EditorialScaffoldTest(unittest.TestCase):
             'Highlights',
             'Action required',
             'Compatibility',
-            'Known issues',
+            'Known limitations',
         ):
             self.assertIn('## ' + heading, scaffold)
         self.assertIn('before/after', scaffold)
@@ -20,14 +20,42 @@ class EditorialScaffoldTest(unittest.TestCase):
         self.assertIn(
             'tested combinations from supported combinations', scaffold
         )
-        self.assertEqual(scaffold.count('<!-- TODO:'), 4)
+        self.assertGreaterEqual(scaffold.count('<!-- TODO:'), 4)
         self.assertTrue(scaffold.endswith('\n\n'))
         self.assertIn('unevaluated combinations', scaffold)
         warnings = validate_notes(scaffold)
         self.assertEqual(
-            sum('placeholder' in warning for warning in warnings), 4
+            sum('placeholder' in warning for warning in warnings),
+            scaffold.count('<!-- TODO:'),
         )
-        self.assertEqual(sum('is empty' in warning for warning in warnings), 4)
+        self.assertEqual(
+            sum('is empty' in warning for warning in warnings),
+            scaffold.count('## '),
+        )
+
+    def test_product_templates_cover_distinct_editorial_decisions(self):
+        backend = editorial_scaffold('backend')
+        sdk = editorial_scaffold('sdk')
+        upgrade = editorial_scaffold('upgrade')
+        self.assertIn('## Bug fixes', backend)
+        self.assertIn('## Security improvements', backend)
+        self.assertIn('## Availability and resilience', backend)
+        self.assertIn('## Installation', sdk)
+        self.assertIn('target packaging layout', sdk)
+        for heading in (
+            'Prepare',
+            'Roll out',
+            'Verify',
+            'Custom configurations',
+        ):
+            self.assertIn('## ' + heading, upgrade)
+        self.assertIn('custom overlays', upgrade)
+        self.assertIn(
+            'only when the released implementation requires it', upgrade
+        )
+        self.assertNotIn('3.0', backend + sdk + upgrade)
+        with self.assertRaises(ValueError):
+            editorial_scaffold('invalid')
 
 
 class ValidateNotesTest(unittest.TestCase):
@@ -196,8 +224,81 @@ Requires the matching backend release.
             [],
         )
 
+    def test_every_template_section_requires_content(self):
+        for product in ('backend', 'sdk', 'upgrade'):
+            scaffold = editorial_scaffold(product)
+            headings = [
+                line for line in scaffold.splitlines() if line.startswith('## ')
+            ]
+            for heading in headings:
+                with self.subTest(product=product, heading=heading):
+                    warnings = validate_notes(
+                        heading + '\n<!-- Add verified facts. -->\n'
+                    )
+                    self.assertEqual(len(warnings), 1)
+                    self.assertIn('is empty', warnings[0])
+                    self.assertEqual(
+                        validate_notes(heading + '\nVerified behavior.\n'), []
+                    )
+
     def test_blank_notes_have_no_invented_warnings(self):
         self.assertEqual(validate_notes(''), [])
+
+    def test_multiple_version_sections_warn_but_one_release_heading_does_not(
+        self,
+    ):
+        self.assertEqual(
+            validate_notes('## 2.18.0 (2026-10-27)\nRelease notes.'), []
+        )
+        warnings = validate_notes(
+            '## 2.18.0\nNew release.\n## 2.17.3\nOld release.\n'
+        )
+        self.assertTrue(any('prior-release' in warning for warning in warnings))
+        self.assertEqual(
+            validate_notes('```markdown\n## 2.18.0\n## 2.17.3\n```'), []
+        )
+        self.assertEqual(
+            validate_notes('## Python 3.9 compatibility\nSupported.'), []
+        )
+
+    def test_word_count_excludes_code_and_complete_generated_blocks(self):
+        long_text = 'word ' * 1300
+        self.assertTrue(
+            any('1300 words' in w for w in validate_notes(long_text))
+        )
+        self.assertEqual(validate_notes('```text\n' + long_text + '\n```'), [])
+        for kind in ('credits', 'contributors', 'assets'):
+            text = (
+                f'<!-- kfpr:generated:{kind}:start -->\n'
+                + long_text
+                + f'\n<!-- kfpr:generated:{kind}:end -->'
+            )
+            self.assertEqual(validate_notes(text), [])
+        unfinished = '<!-- kfpr:generated:credits:start -->\n' + long_text
+        self.assertTrue(any('words' in w for w in validate_notes(unfinished)))
+        self.assertFalse(
+            any(
+                'words' in w
+                for w in validate_notes(long_text, product='upgrade')
+            )
+        )
+
+    def test_product_section_checks_are_explicit_and_advisory(self):
+        self.assertEqual(validate_notes('Release text.'), [])
+        for product in ('backend', 'sdk'):
+            warnings = validate_notes('Release text.', product=product)
+            self.assertEqual(len(warnings), 3)
+            self.assertTrue(all('Missing' in w for w in warnings))
+            self.assertEqual(
+                validate_notes(
+                    '## Bug fixes\nA fix.\n## New Contributors\nA contributor.\n## Assets\nA download.',
+                    product=product,
+                ),
+                [],
+            )
+        self.assertEqual(validate_notes('Upgrade text.', product='upgrade'), [])
+        with self.assertRaises(ValueError):
+            validate_notes('text', product='invalid')
 
 
 if __name__ == '__main__':
