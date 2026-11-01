@@ -72,3 +72,53 @@ This is a reachability assessment, not a patched dependency. The two lockfile
 alerts remain pending an upstream fix or removal of their dependency chains.
 The integration test project instead removes `braces` through coordinated
 WebdriverIO 10/Mocha 12 upgrades.
+
+## Release 2.18 maintenance
+
+Dependabot reads its schedule from the default branch. Six weekly entries target
+`release-2.18`: Go modules, Docker/Kubernetes image references, npm, pip, GitHub
+Actions and pre-commit. The release-local configuration remains an inventory; it
+does not independently schedule these PRs. Keep the default-branch release entries
+aligned when adding maintained release projects, and remove them when that line
+is no longer maintained.
+
+Release Python uses independent requirements projects, including the SDK,
+Kubernetes platform, legacy metadata/visualization services, proxy, readiness
+tools and the PostgreSQL retained-data upgrade harness. The release schedule
+covers 20 maintained Python projects, including the harness's MLMD, NumPy and
+PyYAML requirements. It does not use master's uv workspace. The two generated
+backend HTTP clients remain excluded; update them through API regeneration. TensorBoard's pip
+directory and Dockerfile are present on release-2.18 after #15152 merged.
+
+Each release ecosystem retains weekly updates, a ten-PR limit, dependency labels
+and `do-not-merge/hold`. Grouping preserves golang.org/x modules, paired Argo
+controller/executor images, MUI peers and shared package updates. Argo remains
+outside generic Go minor/patch batches. The protobuf >=7 and docformatter 1.7.8
+ignores retain explicit release compatibility constraints; they are not security
+waivers.
+
+Remove a release PR's hold only after current-head CI and compatibility review:
+
+- Use the release's coordinated Go and Argo update commands; generated clients,
+  runtime images, manifests, CRDs and test versions must agree.
+- Preserve frontend Node/npm engine pins, Python package support metadata and
+  peer constraints. A proposed version bump does not authorize dropping support.
+- Review each database line separately. The branch retains MySQL 8.4, legacy
+  8.0.3 and CI 8.0, plus PostgreSQL 18 and 14 overlays. Master's global MySQL
+  8.4-only range would incorrectly cross these boundaries, so it is not copied.
+  The generic Docker schedule proposes updates; it does not enforce a per-path
+  database support matrix. Legacy MySQL and MLMD migrations remain explicit
+  release decisions, and PostgreSQL production support remains deferred to 3.0.
+- Qualify changed runtime images, including retained data and TensorBoard
+  local/S3/GCS storage behavior, before publishing them. Restore the hold if the
+  proposed head changes.
+
+`target-branch` schedules version-update PRs, not security-update PRs: GitHub's
+security updates apply to the default branch. Continue release-specific dependency
+and image scans and advisory triage. These schedules do not enable automatic
+merging, suppress findings or replace release acceptance.
+
+Release 2.18 freezes `ml-metadata`: the active release pip schedule and release-local
+inventory ignore all direct MLMD version updates. Keep the other dependencies in
+those projects scheduled. This does not remove MLMD from dependency resolution or
+waive advisory triage; any necessary MLMD change requires explicit review.

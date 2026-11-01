@@ -134,7 +134,9 @@ resuming; pass `--force` to resume without that prompt. Review notes again at
 publication even when resuming a checkpoint.
 
 For major or minor releases, change `--release-type`, omit `--patch-prs`, and
-pass `--release-source-branch BRANCH` to skip the source branch prompt. For patch
+pass `--release-source-branch BRANCH` to skip the source branch prompt. Leaving
+the prompt blank resolves the upstream repository default branch at preparation
+time. Explicit or previously saved source branches remain unchanged. For patch
 releases, list the PRs to cherry-pick or follow the prompt when the desired changes
 are already merged. Patch releases also update the persistent SDK documentation branch; split-package
 releases additionally update the Kubernetes documentation branch.
@@ -191,11 +193,90 @@ all four wheels (`kfp-pipeline-spec`, `kfp-server-api`, `kfp`, and
 `kfp-kubernetes`). Before committing, it checks wheel versions and required Python
 modules to catch successful builds with missing generated sources.
 
-Legacy dependency resolution reuses the existing `requirements.txt` pins with
-`pip-compile --output-file`; it does not truncate the lockfile before resolving.
-Review the resulting lockfile diff, including environment markers, on each
-supported Python version. If changelog filtering produces no user-facing entries, preparation stops with
-an actionable error so the maintainer can verify the selected range.
+Version preparation is not a dependency upgrade. Legacy resolution reuses the
+existing `requirements.txt` pins with `pip-compile --output-file`; uv releases
+reuse `uv.lock`. The four release packages may advance together, but third-party
+package additions, removals, or version changes stop preparation before the
+resolved SDK is built. For uv, changing a package source also stops preparation.
+The CLI restores existing lockfiles on failure or interruption, reports the drift,
+and requires a separately reviewed dependency update before retrying. It does not
+automatically accept a newer dependency just because the resolver needs it.
+Review environment markers and generated exports as well; these checks do not
+replace installed-wheel qualification on each supported Python version.
+
+Authored `CHANGELOG.md` Unreleased guidance and SDK Current Version notes are
+carried into the release alongside generated changes. SDK preparation is
+idempotent. Backend preparation saves the exact prepared section and comparison
+SHAs in the checkpoint before writing it. It writes the changelog to a temporary
+file and atomically replaces the original only after the write succeeds, so a
+partial write leaves existing guidance and history intact. Retrying with that
+checkpoint preserves curated guidance without duplicating it. Keep the checkpoint
+across interruptions. If the range changes or a prepared backend section is edited,
+preparation stops without overwriting the notes; review the candidate and its
+notes explicitly rather than deleting guidance to make generation pass. If
+changelog filtering produces no user-facing entries, preparation stops so the
+maintainer can verify the selected range.
+
+## Continue 2.18 from an existing version PR
+
+Use the current default-branch CLI to finish a maintenance release, even when the target
+branch contains older release automation. Install a non-editable copy from the
+reviewed default-branch checkout into a separate environment; this keeps switching the
+release checkout to `release-2.18` from replacing the running tool's source:
+
+```bash
+python3.11 -m venv /tmp/kfpr-tools
+/tmp/kfpr-tools/bin/pip install /path/to/current-default-branch-checkout/release
+```
+
+For 2.18.0, the version PR
+[#15217](https://github.com/kubeflow/pipelines/pull/15217) merged as
+`97561db87ad2b82c7dc6b8a29284c1f0ca0fd7e7`. Do not regenerate that PR or create
+a tag merely to initialize kfpr. In a clean dedicated release
+checkout, configure `upstream`, fetch the release branch and tags, then create a
+new checkpoint outside the checkout (replace the fork URL with your actual fork):
+
+```json
+{
+  "answers": {
+    "release_type": "minor",
+    "version": "2.18.0",
+    "fork_remote": "https://github.com/USER/pipelines.git",
+    "release_source_branch": "release-2.18",
+    "include_backend": true,
+    "include_sdk": true,
+    "previous_release": "2.17.3",
+    "previous_sdk_release": "sdk-2.17.3",
+    "version_pr_url": "https://github.com/kubeflow/pipelines/pull/15217"
+  },
+  "completed_steps": ["prepare-release-branch", "update-version-tags"]
+}
+```
+
+Save it as `/tmp/kfp-2.18.0.json`, then run from that release checkout:
+
+```bash
+/tmp/kfpr-tools/bin/kfpr run preflight --state-file /tmp/kfp-2.18.0.json --done
+/tmp/kfpr-tools/bin/kfpr run merge-version-pr --state-file /tmp/kfp-2.18.0.json --done
+/tmp/kfpr-tools/bin/kfpr run qualify-release --state-file /tmp/kfp-2.18.0.json --done
+```
+
+A recorded `version_pr_url` resumes CI/merge verification directly: it does not
+push or recreate a version branch, create another PR, or create a tag. A canonical
+pending Tide merge-queue status does not block CI verification; actual CI still
+has to pass. The merge
+checkpoint records the actual tested head and merge commit; do not fill those
+SHAs in by hand. Qualification is read-only. Complete the final live acceptance
+and residual-finding review before proceeding to the publication steps below.
+The default zero-fixable policy still applies; previous release exceptions or
+tracker dispositions are not automatic approvals for 2.18.
+
+If a later fix changes the candidate, use a fresh checkpoint with that merged
+PR's URL and only the already-completed preparation steps. Do not copy
+`release_sha`, `version_pr_head_sha`, qualification receipts, or publication
+checkpoints from the previous candidate. Reverify merge/CI and requalify. A
+published tag is immutable: selecting a different candidate after publication
+requires a new release version, not a forced tag update.
 
 ## Qualification and publication gates
 
@@ -206,9 +287,12 @@ into the intended release branch, and have successful CI. Existing recorded head
 and merge SHAs cannot change silently; selecting a new release commit requires
 fresh qualification for that commit.
 `merge-version-pr` waits for CI and a maintainer merge; kfpr does not merge the PR.
+When reusing its usual version branch without a recorded PR, it pushes local
+commits normally before finding the PR; divergent history fails instead of
+silently qualifying an older remote head.
 It records the tested PR head and merged commit. The next checkpoint,
 `qualify-release`, dispatches the read-only `release-qualification.yml` workflow
-on upstream `master` for that exact commit. All builds, installed-wheel smoke
+on the upstream default branch for that exact commit. All builds, installed-wheel smoke
 tests and vulnerability scans run in CI:
 
 - Source dependencies are scanned with checksum-pinned OSV Scanner 2.5.0 before
@@ -234,7 +318,19 @@ tests and vulnerability scans run in CI:
   settings from hiding findings. SARIF alone is insufficient for qualification
   because it does not supply the full package-specific fix information.
 
-Qualification requires the workflow merged on upstream `master` and an
+Release dispatch resolves the authenticated upstream repository's default branch
+(`master` or `main`) and captures its workflow commit before starting CI. The
+matching run must retain that branch, commit, repository, and attempt. Lookup
+failures stop dispatch; there is no fallback to the old branch name. Promotion
+also requires execution on the current upstream default branch.
+
+The `sync-master` checkpoint keeps its existing name for saved-state compatibility,
+but opens its sync PR against the current default branch. Tooling image tags such
+as `kfp-release:master` remain unchanged by the Git branch migration. Offline dry
+runs show `<repository-default>` for unresolved branch selections and do not save
+that placeholder.
+
+Qualification requires the workflow merged on the upstream default branch and an
 authenticated `gh` session authorized to dispatch it. There is no local
 qualification mode or local Python-interpreter override. Local Trivy, pip-audit,
 Docker and per-minor Python installations are not required for qualification.
@@ -253,12 +349,47 @@ across all severities. Findings without a published fix remain in the report. Mi
 scanner errors, incomplete dependency coverage and unrecognized reports block
 publication. A scanner-reported fix requiring a newer Python still blocks; kfpr
 does not silently waive an advisory or change supported Python versions.
+Ubuntu Pro-only fixes are labeled separately from standard Ubuntu fixes: those
+findings remain visible residuals requiring support-channel review, and do not
+claim an available fix in the image's standard package channel.
+
+Backend qualification derives its external-image inventory from the exact
+release commit: all environment and legacy metadata profiles, configured Argo
+executor and cache helper where present, the UI/controller TensorBoard defaults,
+and separately identified pinned cluster prerequisites. It preserves source inputs and rendered manifests,
+scans each distinct image on Linux AMD64, and revalidates complete coverage with
+the receipt. Arbitrary workloads, operator overrides and non-default TensorBoard
+menu selections are outside this inventory. Findings use the same
+fixable-vulnerability policy as first-party images. A scanner with no recognizable
+package inventory produces unknown coverage, never a zero-vulnerability result.
+Collection retains failed-scan diagnostics and attempts the remaining images;
+any incomplete coverage still blocks qualification and publication.
+Missing third-party coverage blocks qualification; older receipts must be
+regenerated. Scheduled image-comparison reports cannot substitute for this
+candidate-bound evidence.
+
+The inventory is derived from the selected source, not a fixed image count.
+Release 2.18 now uses the KFP-built TensorBoard runtime and a digest-pinned Alpine
+cache helper. TensorBoard belongs to the native image inventory and needs matching
+candidate publication records; a source default tag does not prove that the
+version-stamped image exists or is publicly pullable. The Alpine helper has APK
+package metadata, but qualification must still verify package extraction and scan
+the exact selected image. Historical unknown coverage for the previous BusyBox
+helper does not describe the new default, and earlier successful candidate scans
+do not certify a later merged or version-stamped release.
+
+Image-upgrade compatibility checks are separate evidence. Passing the persistent
+SeaweedFS/profile checks or the PostgreSQL/TensorBoard acceptance lanes does not
+waive scan findings or authorize publication. Rebuild the selected release source,
+verify the published image identities and supported platforms, and regenerate the
+complete qualification receipt after the final image and dependency changes.
 
 For explicitly accepted findings, select `--security-exceptions /path/to/exceptions.json`.
 The [exception file](SECURITY_POLICY.md) identifies each exact artifact, advisory,
-package and installed version, with a justification and UTC expiry date. This
+package and installed version, with a justification and either a UTC expiry date
+or an exact final release version. This
 selects `approved-exceptions` and binds the file contents to qualification.
-Publication checks those contents and expiry again. All findings remain in the
+Publication checks those contents and the calendar or release bound again. All findings remain in the
 report; scanner errors and incomplete coverage always block. Selecting
 `--security-policy zero-fixable` clears the exception selection and requires fresh
 qualification. The historical `2.17.3-approved-exceptions-v1` policy retains its
@@ -376,7 +507,7 @@ Dry-run publication builds images without running checks against published tags.
 For backend 3.0 and later, the existing `create-backend-release` checkpoint asks the
 release manager to review the successful release run and retain its published-index,
 native image-validation, and smoke artifacts before creating the GitHub release.
-Release notes and final communications link to the policy. A successful master smoke is not a substitute
+Release notes and final communications link to the policy. A successful development-branch smoke is not a substitute
 for validating the release images. Existing checkpoint IDs are unchanged; when
 resuming a release whose backend-release step was already marked done, review the
 new checklist explicitly rather than recreating an existing release.
@@ -384,7 +515,7 @@ new checklist explicitly rather than recreating an existing release.
 The remaining **2.18 release does not acquire ARM64 support or these validation
 requirements**. Use the current CLI with version `2.18.0` (or a 2.18 patch version):
 it dispatches `image-builds-release.yml` from `release-2.18`, using that branch's
-existing inputs and image inventory. Do not dispatch the master workflow for 2.x
+existing inputs and image inventory. Do not dispatch the development-branch workflow for 2.x
 or backport the 3.x image inventory. SDK-only releases also have no backend-image
 architecture checkpoint. All workflow watchers stop on failure, including on 2.x.
 
@@ -610,7 +741,7 @@ Thus 2.17.3 can become latest after 2.17.2, but cannot replace stable 2.18.0 or 
 Malformed or unavailable discovery stops publication; dry runs perform no query.
 SDK GitHub releases always use `--latest=false` to preserve the shared backend designation.
 
-Maintenance patches still leave master version files, changelog and Read the Docs
+Maintenance patches still leave development-branch version files, changelog and Read the Docs
 defaults unchanged. The final website checklist preserves its existing latest-version
 pointer; these separate maintenance safeguards are not part of latest selection.
 

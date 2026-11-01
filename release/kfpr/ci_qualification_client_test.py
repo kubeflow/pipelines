@@ -36,6 +36,22 @@ class ArtifactTest(unittest.TestCase):
             'workflow': client.WORKFLOW,
             'title': 'request title',
         }
+        self.third_party_scan = {
+            'name': 'third-party-abcd',
+            'target': IMAGE,
+            'raw_report': 'third-party/scans/abcd/scan.json',
+            'findings': [],
+        }
+        self.third_party = {
+            'images': [],
+            'scans': [self.third_party_scan],
+            'inventory': {'first_party_names': ['api']},
+        }
+        patcher = mock.patch.object(
+            client, 'verify_third_party', return_value=self.third_party
+        )
+        self.third_party_verify = patcher.start()
+        self.addCleanup(patcher.stop)
         self.expected = {
             'schema': 1,
             **{
@@ -96,6 +112,9 @@ class ArtifactTest(unittest.TestCase):
             'include_backend': True,
             'include_sdk': False,
             'images': [],
+            'third_party_manifest_sha256': self.write(
+                'third-party/third-party.json', {'schema': 1}
+            ),
             'security_manifest_sha256': self.write(
                 'security/security.json', security
             ),
@@ -119,7 +138,10 @@ class ArtifactTest(unittest.TestCase):
         self.artifact()
         result = client.read_artifact(self.root, IMAGES, [], self.identity)
         self.assertEqual(len(result['images']), 2)
-        self.assertEqual(len(result['scans']), 3)
+        self.assertEqual(len(result['scans']), 4)
+        self.assertEqual(
+            result['third_party']['scans'], [self.third_party_scan]
+        )
         self.assertIsNone(result['wheels'])
 
     def test_identity_and_scope_mutations_fail_before_acceptance(self):
@@ -205,6 +227,30 @@ class ArtifactTest(unittest.TestCase):
             (self.root / 'security', self.expected, {'3.10', '3.13'}),
         )
 
+    def test_backend_requires_third_party_checksum_and_complete_verification(
+        self,
+    ):
+        baseline = self.artifact()
+        for checksum in (None, 'f' * 64):
+            self.write(
+                'manifest.json',
+                {**baseline, 'third_party_manifest_sha256': checksum},
+            )
+            with self.assertRaisesRegex(ValueError, 'Third-party.*checksum'):
+                client.read_artifact(self.root, IMAGES, [], self.identity)
+        self.write('manifest.json', baseline)
+        self.third_party_verify.side_effect = ValueError(
+            'Third-party inventory incomplete'
+        )
+        with self.assertRaisesRegex(ValueError, 'inventory incomplete'):
+            client.read_artifact(self.root, IMAGES, [], self.identity)
+
+    def test_ownership_exclusions_must_match_native_release_inventory(self):
+        self.artifact()
+        self.third_party['inventory']['first_party_names'].append('seaweedfs')
+        with self.assertRaisesRegex(ValueError, 'ownership'):
+            client.read_artifact(self.root, IMAGES, [], self.identity)
+
     def test_symlinked_evidence_is_rejected(self):
         self.artifact()
         path = self.root / 'scans/api-amd64.json'
@@ -250,7 +296,9 @@ class DispatchPolicyTest(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
 
     def fake_api(self, context, endpoint):
-        if endpoint == 'commits/master':
+        if endpoint == '':
+            return {'default_branch': getattr(self, 'branch', 'master')}
+        if endpoint == 'commits/' + getattr(self, 'branch', 'master'):
             return {'sha': 'b' * 40}
         return {'type': 'file', 'path': client.WORKFLOW}
 
@@ -259,6 +307,12 @@ class DispatchPolicyTest(unittest.TestCase):
         identity.update(run_id='123', run_attempt=2)
         self.identity = identity
         return self.final
+
+    def test_dispatch_uses_main_after_default_branch_rename(self):
+        self.branch = 'main'
+        self.qualify()
+        self.assertEqual(self.identity['workflow_ref'], 'main')
+        self.assertEqual(self.identity['workflow_sha'], 'b' * 40)
 
     def qualify(self):
         return client.qualify_ci(
@@ -313,6 +367,7 @@ class DispatchPolicyTest(unittest.TestCase):
             self.finding('source', 'go.mod'),
             self.finding('python-3.10', '3.10'),
             self.finding('image-api-amd64', IMAGE),
+            self.finding('third-party-external-amd64', IMAGE),
         ]
         document = {
             'schema': 1,
@@ -336,12 +391,20 @@ class DispatchPolicyTest(unittest.TestCase):
         path = self.root / 'exceptions.json'
         path.write_text(json.dumps(document))
         self.context.state.answers.update(
-            security_policy='approved-exceptions', security_exceptions=str(path)
+            security_policy='approved-exceptions',
+            security_exceptions=str(path),
         )
         result = self.qualify()
-        self.assertEqual(result['security']['accepted_count'], 3)
+        self.assertEqual(result['security']['accepted_count'], 4)
         self.assertEqual(result['security']['blocking_count'], 0)
         self.assertEqual(result['security']['exceptions'], document)
+
+    def test_third_party_findings_block_without_an_exact_exception(self):
+        self.result['scans'] = [self.finding('third-party-external', IMAGE)]
+        with self.assertRaisesRegex(ValueError, 'fixable blocking'):
+            self.qualify()
+        evidence = json.loads((self.output / 'security.json').read_text())
+        self.assertEqual(evidence['blocking_count'], 1)
 
     def test_failed_workflow_downloads_diagnostics_without_acceptance(self):
         self.final['conclusion'] = 'failure'

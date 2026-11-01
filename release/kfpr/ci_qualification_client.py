@@ -8,10 +8,12 @@ from pathlib import Path
 
 from .ci_images_client import REPO, WORKFLOW, _api, verify_run
 from .ci_security_runner import verify_security
+from .core import default_branch
 from .osv_image_scan import SCANNER, validate_report
 from .osv_reports import findings
 from .security import evaluate_policy
 from .security_exceptions import exception_digest, load_exceptions
+from .third_party import verify as verify_third_party
 from .workflow_runs import dispatch_and_watch
 
 
@@ -90,6 +92,33 @@ def read_artifact(directory, expected_images, expected_minors, identity):
                 'findings': findings(envelope['report']),
             }
         )
+    third_party = None
+    third_party_scans = []
+    if expected_images:
+        third_party_directory = directory / 'third-party'
+        manifest_path = third_party_directory / 'third-party.json'
+        checksum = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        if checksum != manifest.get('third_party_manifest_sha256'):
+            raise ValueError(
+                'Third-party qualification manifest checksum mismatch'
+            )
+        third_party = verify_third_party(third_party_directory, expected)
+        if third_party['inventory']['first_party_names'] != sorted(
+            {record['name'] for record in expected_images}
+        ):
+            raise ValueError(
+                'Third-party ownership does not match the release image inventory'
+            )
+        third_party_scans = third_party['scans']
+        third_party = {
+            **third_party,
+            'evidence_directory': str(third_party_directory.resolve()),
+            'manifest_sha256': checksum,
+        }
+    elif manifest.get('third_party_manifest_sha256') is not None:
+        raise ValueError(
+            'SDK-only qualification contains unexpected third-party evidence'
+        )
     security_manifest = directory / 'security/security.json'
     if hashlib.sha256(
         security_manifest.read_bytes()
@@ -103,7 +132,8 @@ def read_artifact(directory, expected_images, expected_minors, identity):
     return {
         'images': records,
         'wheels': security['wheels'],
-        'scans': security['scans'] + image_scans,
+        'third_party': third_party,
+        'scans': security['scans'] + image_scans + third_party_scans,
         'run': identity,
     }
 
@@ -127,7 +157,8 @@ def qualify_ci(context, expected_images, expected_minors, output_dir):
         policy=policy,
         exceptions=exceptions,
     )
-    workflow_sha = _api(context, 'commits/master')['sha']
+    workflow_ref = default_branch(lambda endpoint: _api(context, endpoint))
+    workflow_sha = _api(context, f'commits/{workflow_ref}')['sha']
     if not re.fullmatch(r'[0-9a-f]{40}', workflow_sha):
         raise ValueError('Invalid upstream workflow commit')
     workflow = _api(context, f'contents/{WORKFLOW}?ref={workflow_sha}')
@@ -138,6 +169,7 @@ def qualify_ci(context, expected_images, expected_minors, output_dir):
         'repository': REPO,
         'workflow': WORKFLOW,
         'workflow_sha': workflow_sha,
+        'workflow_ref': workflow_ref,
         'source_sha': source_sha,
         'version': context.metadata.tag,
         'request_id': request_id,

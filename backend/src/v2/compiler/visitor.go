@@ -22,9 +22,10 @@
 package compiler
 
 import (
-	"bytes"
 	"fmt"
+	"slices"
 	"sort"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -84,15 +85,24 @@ type pipelineDFS struct {
 	visitor        Visitor
 	// Records which DAG components are visited, map key is component name.
 	visited map[string]bool
+	// Component names from the root to the component being visited.
+	path []string
 }
 
 func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
+	// A component already on the path would make the generated templates call
+	// themselves forever, while one visited on another branch is plain reuse.
+	if slices.Contains(state.path, name) {
+		cycle := strings.Join(append(slices.Clone(state.path), name), " -> ")
+		return fmt.Errorf("circular component reference detected: %s. Remove the task that references an enclosing component", cycle)
+	}
 	// each component is only visited once
-	// TODO(Bobgy): return an error when circular reference detected
 	if state.visited[name] {
 		return nil
 	}
 	state.visited[name] = true
+	state.path = append(state.path, name)
+	defer func() { state.path = state.path[:len(state.path)-1] }()
 	if component == nil {
 		return nil
 	}
@@ -178,29 +188,27 @@ func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.Pipelin
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(jsonBytes)
 	deploymentConfig := &pipelinespec.PipelineDeploymentConfig{}
 	// Allow unknown '@type' field in the json message.
 	unmarshaler := protojson.UnmarshalOptions{
 		DiscardUnknown: true,
 	}
-	if err := unmarshaler.Unmarshal(buffer.Bytes(), deploymentConfig); err != nil {
+	if err := unmarshaler.Unmarshal(jsonBytes, deploymentConfig); err != nil {
 		return nil, err
 	}
 	return deploymentConfig, nil
 }
 
 func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
-	// TODO(Bobgy): can we avoid this marshal to string step?
-	marshaler := &protojson.MarshalOptions{}
-	jsonBytes, err := marshaler.Marshal(job.GetPipelineSpec())
+	// The job stores the spec as a google.protobuf.Struct, and protobuf has no
+	// direct Struct-to-message conversion, so JSON is the bridge.
+	jsonBytes, err := protojson.Marshal(job.GetPipelineSpec())
 	if err != nil {
 		return nil, fmt.Errorf("failed marshal pipeline spec to json: %w", err)
 	}
-	jsonStr := string(jsonBytes)
 	spec := &pipelinespec.PipelineSpec{}
-	if err := protojson.Unmarshal([]byte(jsonStr), spec); err != nil {
-		return nil, fmt.Errorf("failed to parse pipeline spec: %v", err)
+	if err := protojson.Unmarshal(jsonBytes, spec); err != nil {
+		return nil, fmt.Errorf("failed to parse pipeline spec: %w", err)
 	}
 	return spec, nil
 }

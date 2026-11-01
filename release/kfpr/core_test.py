@@ -3,6 +3,7 @@
 
 import contextlib
 import io
+import json
 import os
 import subprocess
 import unittest
@@ -358,6 +359,27 @@ class GithubCommandTest(unittest.TestCase):
             1,
         )
         self.assertNotIn('done-job:', output.getvalue())
+
+    def test_pending_merge_queue_alone_is_not_successful_ci(self):
+        runner = mock.Mock(spec=core.CommandRunner)
+        runner.dry_run = False
+        runner.capture.return_value = json.dumps(
+            [
+                {
+                    '__typename': 'StatusContext',
+                    'context': 'tide',
+                    'targetUrl': 'https://oss.gprow.dev/tide',
+                    'state': 'PENDING',
+                }
+            ]
+        )
+        with mock.patch.object(
+            core.time, 'sleep', side_effect=RuntimeError('still waiting')
+        ):
+            with self.assertRaisesRegex(RuntimeError, 'still waiting'):
+                core.watch_pr_ci(
+                    runner, 'https://github.com/kubeflow/pipelines/pull/1'
+                )
 
     def test_watch_pr_ci_waits_for_pending_ci_passed_status(self):
         runner = mock.Mock(dry_run=False)
@@ -1134,7 +1156,7 @@ class PromptValidationTest(unittest.TestCase):
                 state.answers['release_source_branch'], 'release-candidate'
             )
 
-    def test_collect_context_defaults_major_minor_source_branch_to_master(self):
+    def test_collect_context_defers_blank_source_to_repository_default(self):
         with TemporaryDirectory() as tmpdir:
             state = ReleaseState(Path(tmpdir) / 'state.json')
             args = type(
@@ -1152,7 +1174,42 @@ class PromptValidationTest(unittest.TestCase):
             ):
                 core.collect_context(args, state)
 
-            self.assertEqual(state.answers['release_source_branch'], 'master')
+            self.assertNotIn('release_source_branch', state.answers)
+
+
+class DefaultBranchTest(unittest.TestCase):
+    def test_only_supported_upstream_defaults_are_accepted(self):
+        for branch in ('master', 'main'):
+            with self.subTest(branch=branch):
+                self.assertEqual(
+                    core.default_branch(lambda _: {'default_branch': branch}),
+                    branch,
+                )
+        for metadata in (
+            {},
+            {'default_branch': 'release-3.0'},
+            {'default_branch': None},
+        ):
+            with (
+                self.subTest(metadata=metadata),
+                self.assertRaisesRegex(ValueError, 'default branch'),
+            ):
+                core.default_branch(lambda _: metadata)
+
+    def test_api_failure_does_not_fall_back_to_master(self):
+        api = mock.Mock(side_effect=RuntimeError('API unavailable'))
+        with self.assertRaisesRegex(RuntimeError, 'API unavailable'):
+            core.default_branch(api)
+
+    def test_dry_run_uses_placeholder_without_live_lookup(self):
+        runner = core.CommandRunner(dry_run=True)
+        with mock.patch.object(
+            subprocess, 'check_output', side_effect=AssertionError('live API')
+        ):
+            self.assertEqual(
+                core.upstream_default_branch(runner, Path('.')),
+                '<repository-default>',
+            )
 
 
 if __name__ == '__main__':

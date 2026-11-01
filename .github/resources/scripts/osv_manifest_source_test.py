@@ -55,6 +55,32 @@ class ManifestSourceTest(unittest.TestCase):
             self.assertEqual(manifest.stat().st_mode & 0o111, 0)
             self.assertFalse((destination / '.github').exists())
 
+    def test_requested_runtime_source_is_data_and_other_code_is_excluded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = self.archive(
+                directory,
+                [
+                    ('repo/manifests/kustomize/base.yaml', tarfile.REGTYPE),
+                    ('repo/backend/Makefile', tarfile.REGTYPE),
+                    (
+                        'repo/backend/src/cache/server/mutation.go',
+                        tarfile.REGTYPE,
+                    ),
+                    ('repo/backend/other.py', tarfile.REGTYPE),
+                ],
+            )
+            destination = Path(directory) / 'producer'
+            runtime_paths = (
+                'backend/Makefile',
+                'backend/src/cache/server/mutation.go',
+            )
+            extract_manifests(archive, destination, extra_paths=runtime_paths)
+            for relative in runtime_paths:
+                source = destination / relative
+                self.assertTrue(source.is_file())
+                self.assertEqual(source.stat().st_mode & 0o111, 0)
+            self.assertFalse((destination / 'backend/other.py').exists())
+
     def test_rejects_traversal_links_and_special_files(self):
         for name, kind in [
             ('repo/manifests/../../outside', tarfile.REGTYPE),

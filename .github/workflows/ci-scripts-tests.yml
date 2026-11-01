@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     paths:
       # The offline cache fixture image copies this SDK source tree.
@@ -56,6 +57,7 @@ on:
       - '.github/workflows/build-tools-images.yml'
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/third-party-image-upgrades.yml'
       - '.github/workflows/check-requirements-txt.yml'
       - '.github/workflows/check-uv-lock.yml'
       - '.github/workflows/publish-packages.yml'
@@ -149,11 +151,11 @@ jobs:
           PYTHONPATH: release
         run: >-
           python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test
-          kfpr.osv_image_scan_test kfpr.osv_reports_test
+          kfpr.image_summary_test kfpr.osv_image_scan_test kfpr.osv_reports_test
           kfpr.ci_security_runner_test kfpr.ci_qualification_runner_test
           kfpr.ci_qualification_client_test kfpr.qualification_test
           kfpr.qualification_exceptions_test kfpr.security_test
-          kfpr.security_exceptions_test
+          kfpr.security_exceptions_test kfpr.third_party_test
       - name: Run repo-local workflow script unit tests
         working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

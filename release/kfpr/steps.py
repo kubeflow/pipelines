@@ -21,6 +21,7 @@ from .core import (
     confirm,
     emphasize_prompt,
     image_workflow_command,
+    is_pending_merge_queue_check,
     kfp_kubernetes_docs_build_command,
     kfp_requirements_command,
     kubernetes_requirements_command,
@@ -30,14 +31,16 @@ from .core import (
     release_version_bump_command,
     sdk_workflow_command,
     underline_links,
+    upstream_default_branch,
     wait_for_pr_merge,
     watch_latest_workflow_run,
     watch_pr_ci,
 )
+from .dependency_pins import preserve_dependency_pins
 from .editorial import editorial_scaffold, validate_notes
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
-from .previews import has_conflicts, regenerate_preview
+from .previews import _write_atomic, has_conflicts, regenerate_preview
 from .ranges import ReleaseRange, commit_date, read_commits, resolve_range
 
 
@@ -172,7 +175,8 @@ def step_prepare_release_branch(context: ReleaseContext) -> None:
     """
     branch = context.metadata.release_branch
     source_branch = str(
-        context.state.answers.get('release_source_branch', 'master')
+        context.state.answers.get('release_source_branch')
+        or upstream_default_branch(context.runner, context.root)
     )
     context.runner.run(['git', 'checkout', source_branch], cwd=context.root)
     pull_if_upstream(context)
@@ -340,7 +344,7 @@ def step_update_version_tags(context: ReleaseContext) -> None:
         if context.runner.dry_run:
             print(f'[dry-run] would write VERSION: {metadata.tag}')
         else:
-            (root / 'VERSION').write_text(metadata.tag)
+            (root / 'VERSION').write_text(metadata.tag + '\n')
         release_image_tag = (
             'master'
             if metadata.release_type in ('major', 'minor')
@@ -420,6 +424,10 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
     Args:
       context: Release context with runner, metadata, and fork_remote.
     """
+    recorded_pr = str(context.state.answers.get('version_pr_url', ''))
+    if recorded_pr:
+        _wait_for_version_pr(context, recorded_pr)
+        return
     metadata = context.metadata
     version_branch = f'{metadata.tag}-update-version-tags'
     upstream_remote = f'https://github.com/{REPO}.git'
@@ -472,7 +480,13 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
                 ['u', 'r'],
                 default='u',
             )
-            if choice == 'r':
+            if choice == 'u':
+                # A normal push uploads local fixes but rejects divergent history.
+                context.runner.run(
+                    ['git', 'push', context.fork_remote, version_branch],
+                    cwd=context.root,
+                )
+            else:
                 context.runner.run(
                     [
                         'git',
@@ -556,6 +570,21 @@ def step_merge_version_pr(context: ReleaseContext) -> None:
         )
     context.state.answers['version_pr_url'] = pr_url.strip()
     context.state.save()
+    _wait_for_version_pr(context, pr_url)
+
+
+def _wait_for_version_pr(context: ReleaseContext, pr_url: str) -> None:
+    if not re.fullmatch(
+        r'https://github[.]com/kubeflow/pipelines/pull/[0-9]+', pr_url
+    ):
+        raise ValueError(
+            'Record an upstream kubeflow/pipelines version_pr_url before resuming.'
+        )
+    if context.runner.dry_run:
+        print(
+            f'[dry-run] would verify CI and merge for recorded version PR: {pr_url}'
+        )
+        return
     print(underline_links(f'Version PR: {pr_url}'))
     watch_pr_ci(context.runner, pr_url)
     wait_for_pr_merge(context.runner, pr_url)
@@ -609,12 +638,7 @@ def validate_release_pr(context: ReleaseContext) -> str:
     for check in checks:
         # Tide reports merge-queue eligibility, not a CI result. Its pending
         # status can remain on the tested head after the PR has been merged.
-        if (
-            check.get('__typename') == 'StatusContext'
-            and check.get('context') == 'tide'
-            and check.get('targetUrl') == 'https://oss.gprow.dev/tide'
-            and check.get('state') == 'PENDING'
-        ):
+        if is_pending_merge_queue_check(check):
             continue
         status = check.get('status') or check.get('state')
         result = check.get('conclusion') if status == 'COMPLETED' else status
@@ -994,11 +1018,25 @@ def _update_changelog(
         + re.sub(r'(?m)^## ', '### ', body)
         + f'\n\n**Full changelog:** {selected.compare_url}\n'
     )
+    identity = {
+        'version': version,
+        'base_sha': selected.base_sha,
+        'target_sha': selected.target_sha,
+    }
+    prepared = context.state.answers.get('prepared_changelog')
+    if prepared and any(
+        prepared.get(key) != value for key, value in identity.items()
+    ):
+        raise ValueError(
+            'Changelog preparation range changed. Review the existing notes and '
+            'use a fresh release state before preparing a different candidate.'
+        )
     existing = re.search(rf'(?m)^## {re.escape(version)}(?:[ \n]|$)', text)
     if existing:
         end = re.search(r'(?m)^## ', text[existing.end() :])
         stop = existing.end() + end.start() if end else len(text)
-        if text[existing.start() : stop].strip() != entry.strip():
+        expected = prepared['entry'] if prepared else entry
+        if text[existing.start() : stop].strip() != expected.strip():
             raise ValueError(
                 f'CHANGELOG.md already contains reviewed or edited notes for {version}. '
                 'Review that section manually; release preparation will not overwrite it.'
@@ -1021,7 +1059,11 @@ def _update_changelog(
     else:
         header, separator, history = text.partition('\n')
         text = header + '\n\n' + entry + '\n' + history.lstrip('\n')
-    path.write_text(text)
+    # Persist before writing: a failure after writing the changelog must be
+    # resumable without duplicating authored guidance or accepting a new range.
+    context.state.answers['prepared_changelog'] = {**identity, 'entry': entry}
+    context.state.save()
+    _write_atomic(path, text.encode('utf-8'))
 
 
 def _update_sdk_release_notes(
@@ -1086,7 +1128,9 @@ def _update_uv_package_versions(root: Path, sdk_version: str) -> None:
     )
 
 
-def _refresh_uv_release_packages(context: ReleaseContext) -> None:
+def _refresh_uv_release_packages(
+    context: ReleaseContext, verify_pins: Callable[[], None] | None = None
+) -> None:
     """Regenerate the workspace lock and release dists, preserving legacy
     exports."""
     if (context.root / 'sdk/python/kfp/server_api/__init__.py').is_file():
@@ -1094,6 +1138,8 @@ def _refresh_uv_release_packages(context: ReleaseContext) -> None:
             ['make', '-C', 'sdk', 'generate-python'], cwd=context.root
         )
         context.runner.run(['uv', 'lock'], cwd=context.root)
+        if verify_pins:
+            verify_pins()
         if (context.root / 'requirements.txt').is_file():
             # Older consolidated checkouts still commit both requirements exports.
             # Current checkouts build from metadata and the lock without exports.
@@ -1131,6 +1177,8 @@ def _refresh_uv_release_packages(context: ReleaseContext) -> None:
         cwd=context.root / 'backend/api',
     )
     context.runner.run(['uv', 'lock'], cwd=context.root)
+    if verify_pins:
+        verify_pins()
     export_command = ['uv', 'export', '--frozen', '--no-dev', '--no-hashes']
     context.runner.run(
         export_command
@@ -1238,44 +1286,50 @@ def _update_sdk_version_files(
             generated_notes,
         )
 
-    if uses_uv:
-        _refresh_uv_release_packages(context)
-        return
+    with preserve_dependency_pins(
+        root, dry_run=context.runner.dry_run
+    ) as verify_pins:
+        if uses_uv:
+            _refresh_uv_release_packages(context, verify_pins)
+            return
 
-    # Retain imported helpers: release checkout may remove their source files.
-    if context.runner.dry_run:
-        print('[dry-run] would clean legacy release distributions')
-    else:
-        clean_legacy_distributions(root)
-    # Legacy wheels need generated sources before resolving unpublished dists.
-    context.runner.run(['make', 'python'], cwd=root / 'api')
-    context.runner.run(
-        [sys.executable, '-m', 'build', '.'], cwd=root / 'api/v2alpha1/python'
-    )
-    context.runner.run(
-        [sys.executable, '-m', 'build', '.'],
-        cwd=root / 'backend/api/v2beta1/python_http_client',
-    )
-    context.runner.run(kfp_requirements_command(), cwd=root / 'sdk/python')
-    context.runner.run(
-        [sys.executable, '-m', 'build', '.'], cwd=root / 'sdk/python'
-    )
-    context.runner.run(
-        kubernetes_requirements_command(),
-        cwd=root / 'kubernetes_platform/python',
-    )
-    context.runner.run(
-        ['make', 'python', 'USE_FIND_LINKS=true'],
-        cwd=root / 'kubernetes_platform',
-    )
-    context.runner.run(
-        [sys.executable, '-m', 'build', '.'],
-        cwd=root / 'kubernetes_platform/python',
-    )
-    if context.runner.dry_run:
-        print('[dry-run] would validate legacy release wheels')
-    else:
-        validate_legacy_wheels(root, metadata.tag)
+        # Retain imported helpers: release checkout may remove their source files.
+        if context.runner.dry_run:
+            print('[dry-run] would clean legacy release distributions')
+        else:
+            clean_legacy_distributions(root)
+        # Legacy wheels need generated sources before resolving unpublished dists.
+        context.runner.run(['make', 'python'], cwd=root / 'api')
+        context.runner.run(
+            [sys.executable, '-m', 'build', '.'],
+            cwd=root / 'api/v2alpha1/python',
+        )
+        context.runner.run(
+            [sys.executable, '-m', 'build', '.'],
+            cwd=root / 'backend/api/v2beta1/python_http_client',
+        )
+        context.runner.run(kfp_requirements_command(), cwd=root / 'sdk/python')
+        verify_pins()
+        context.runner.run(
+            [sys.executable, '-m', 'build', '.'], cwd=root / 'sdk/python'
+        )
+        context.runner.run(
+            kubernetes_requirements_command(),
+            cwd=root / 'kubernetes_platform/python',
+        )
+        verify_pins()
+        context.runner.run(
+            ['make', 'python', 'USE_FIND_LINKS=true'],
+            cwd=root / 'kubernetes_platform',
+        )
+        context.runner.run(
+            [sys.executable, '-m', 'build', '.'],
+            cwd=root / 'kubernetes_platform/python',
+        )
+        if context.runner.dry_run:
+            print('[dry-run] would validate legacy release wheels')
+        else:
+            validate_legacy_wheels(root, metadata.tag)
 
 
 def step_create_sdk_tag(context: ReleaseContext) -> None:
@@ -1835,7 +1889,7 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
 
 def step_sync_master(context: ReleaseContext) -> None:
-    """Sync release version to master branch.
+    """Sync release version to the upstream default branch.
 
     Args:
       context: Release context with runner, metadata, and root path.
@@ -1843,23 +1897,24 @@ def step_sync_master(context: ReleaseContext) -> None:
     qualification.require_qualification(context)
     if context.metadata.release_type == 'patch':
         print(
-            'Patch release: preserving master version and changelog; no sync required.'
+            'Patch release: preserving development version and changelog; no sync required.'
         )
         return
     _ensure_release_tag(context, context.metadata.tag)
     metadata = context.metadata
     root = context.root
-    branch = f'chore-release-{metadata.tag}-master'
+    development_branch = upstream_default_branch(context.runner, root)
+    branch = f'chore-release-{metadata.tag}-{development_branch}'
 
-    context.runner.run(['git', 'checkout', 'master'], cwd=root)
+    context.runner.run(['git', 'checkout', development_branch], cwd=root)
     context.runner.run(['git', 'pull', '--ff-only'], cwd=root)
     context.runner.run(['git', 'checkout', '-b', branch], cwd=root)
 
-    # Write VERSION file without trailing newline - guarded in dry-run
+    # Keep VERSION compatible with the repository end-of-file formatting hook.
     if context.runner.dry_run:
         print(f'[dry-run] would write VERSION: {metadata.tag}')
     else:
-        (root / 'VERSION').write_text(metadata.tag)
+        (root / 'VERSION').write_text(metadata.tag + '\n')
 
     release_image_tag = (
         'master'
@@ -1883,7 +1938,7 @@ def step_sync_master(context: ReleaseContext) -> None:
             'commit',
             '-s',
             '-m',
-            f'chore(release): bump version to {metadata.tag} on master branch',
+            f'chore(release): bump version to {metadata.tag} on {development_branch} branch',
         ],
         cwd=root,
     )
@@ -1899,16 +1954,16 @@ def step_sync_master(context: ReleaseContext) -> None:
             '--repo',
             REPO,
             '--base',
-            'master',
+            development_branch,
             '--head',
             f'{owner}:{branch}',
             '--title',
-            f'chore(release): sync {metadata.tag} to master',
+            f'chore(release): sync {metadata.tag} to {development_branch}',
             '--body',
-            f'Syncs KFP {metadata.tag} release version files back to master.',
+            f'Syncs KFP {metadata.tag} release version files back to {development_branch}.',
         ]
     )
-    print(underline_links(f'Master sync PR: {pr_url}'))
+    print(underline_links(f'Development branch sync PR: {pr_url}'))
     watch_pr_ci(context.runner, pr_url)
     wait_for_pr_merge(context.runner, pr_url)
 
@@ -1970,7 +2025,7 @@ def build_steps(
         steps.append(
             Step(
                 'prepare-release-branch',
-                'Create release branch from master',
+                'Create release branch from the selected source',
                 'step_prepare_release_branch',
             )
         )
@@ -2039,7 +2094,7 @@ def build_steps(
                 ),
                 Step(
                     'sync-master',
-                    'Sync release version to master',
+                    'Sync release version to the default branch',
                     'step_sync_master',
                 ),
                 Step(

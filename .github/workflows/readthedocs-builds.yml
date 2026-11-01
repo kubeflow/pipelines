@@ -2,7 +2,7 @@ name: KFP Readthedocs Release Readiness
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
   pull_request:
     paths:
       - '**/pyproject.toml'
@@ -50,7 +50,7 @@ jobs:
         run: |
           git config user.name "$(git log -1 --format=%an)"
           git config user.email "$(git log -1 --format=%ae)"
-          uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test release.kfpr.notes_test release.kfpr.ranges_test release.kfpr.notes_integration_test release.kfpr.previews_test release.kfpr.editorial_test
+          uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test release.kfpr.dependency_pins_test release.kfpr.gates_test release.kfpr.notes_test release.kfpr.ranges_test release.kfpr.notes_integration_test release.kfpr.previews_test release.kfpr.editorial_test
 
       - name: Build KFP SDK Docs
         working-directory: docs/sdk

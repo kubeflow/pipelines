@@ -124,6 +124,32 @@ func TestDriverPluginArgs_UsesRunTokenAudience(t *testing.T) {
 	}
 }
 
+func TestContainerDriverPluginArgs_DefaultPVCStorageClass(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	for _, test := range []struct {
+		name          string
+		defaultClass  *string
+		wantKey       bool
+		expectedValue string
+	}{
+		{name: "unset omits the key", wantKey: false},
+		{name: "configured emits the key", defaultClass: new("server-default"), wantKey: true, expectedValue: "server-default"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			c := newCompilerWithCustomTokenAudience("")
+			c.defaultPVCStorageClass = test.defaultClass
+			name, err := c.addContainerDriverTemplate()
+			require.NoError(t, err)
+			args := requireDriverPluginArgs(t, c.templates[name])
+			if test.wantKey {
+				assert.Equal(t, test.expectedValue, args["default_pvc_storage_class"])
+			} else {
+				assert.NotContains(t, args, "default_pvc_storage_class")
+			}
+		})
+	}
+}
+
 func TestContainerDriverPluginArgs_PreservesOptionalSecurityDefaults(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	for _, configured := range []bool{false, true} {

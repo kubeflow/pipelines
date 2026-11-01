@@ -18,7 +18,7 @@ repos:
       - id: check-merge-conflict
       - id: name-tests-test
       - id: no-commit-to-branch
-        args: [--branch, master]
+        args: [--branch, master, --branch, main]
   # Format docstring prose before Ruff applies the final Python layout.
   - repo: https://github.com/pycqa/docformatter
     # v1.7.8 has continuation and blank-line tokenization regressions.

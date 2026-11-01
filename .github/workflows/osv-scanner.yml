@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - master
+      - main
   schedule:
     # Every Friday at 19:39
     - cron: '39 19 * * 5'
   workflow_dispatch:
   workflow_run:
     workflows: ['Build and Push for master']
-    branches: [master]
+    branches: [master, main]
     types: [completed]
 
 # Keep older scans from uploading after a newer publication's scan. Selection
@@ -94,6 +95,7 @@ jobs:
       contents: read
       actions: read
     outputs:
+      branch: ${{ steps.producer.outputs.branch }}
       run-id: ${{ steps.producer.outputs.run-id }}
       run-attempt: ${{ steps.producer.outputs.run-attempt }}
       sha: ${{ steps.producer.outputs.sha }}
@@ -121,7 +123,7 @@ jobs:
 
   discover-images:
     needs: resolve-images
-    name: Discover published master and third-party images
+    name: Discover published master images
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -130,6 +132,7 @@ jobs:
     outputs:
       matrix: ${{ steps.images.outputs.matrix }}
       images: ${{ steps.images.outputs.images }}
+      branch: ${{ needs.resolve-images.outputs.branch }}
       sha: ${{ needs.resolve-images.outputs.sha }}
     steps:
       - name: Checkout code
@@ -193,6 +196,7 @@ jobs:
             --kustomize "${RUNNER_TEMP}/kustomize" \
             --overlay producer/manifests/kustomize/env/platform-agnostic \
             --overlay producer/manifests/kustomize/env/platform-agnostic-multi-user \
+            --image-scope first-party \
             --published-records published-indexes \
             --source-sha "${SOURCE_SHA}" --image-owner "${IMAGE_OWNER}")
           echo "matrix=$(jq -c .matrix <<< "${image_inventory}")" >> "${GITHUB_OUTPUT}"
@@ -231,44 +235,65 @@ jobs:
           chmod +x osv-scanner
           ./osv-scanner --version
 
-      - name: Scan deployed container image
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r .github/scripts/requirements.txt
+
+      - name: Scan immutable image and retain full JSON and SARIF
         env:
           IMAGE: ${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}
+          PYTHONPATH: release
         run: |
-          bash .github/resources/scripts/docker-pull-with-retry.sh "${IMAGE}"
+          export PATH="$PWD:$PATH"
+          python .github/resources/scripts/third_party_image_scan.py scan \
+            --image "$IMAGE" --output evidence
 
-          scan_exit_code=0
-          ./osv-scanner scan image "${IMAGE}" \
-            --format sarif \
-            --output-file osv-image-results.sarif \
-            || scan_exit_code=$?
-
-          if [[ "${scan_exit_code}" -ne 0 && "${scan_exit_code}" -ne 1 ]]; then
-            echo "::error::OSV-Scanner failed with exit code ${scan_exit_code} for ${IMAGE}"
-            exit "${scan_exit_code}"
-          fi
-
-      - name: Remove exact duplicate image results
-        if: always() && hashFiles('osv-image-results.sarif') != ''
+      - name: Summarize image findings
+        env:
+          IMAGE: ${{ fromJSON(needs.discover-images.outputs.images)[matrix.category] }}
+          IMAGE_CATEGORY: kubeflow-pipelines-osv-image-${{ matrix.category }}
+          EVIDENCE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          PYTHONPATH: release
         run: |
-          python3 .github/resources/scripts/deduplicate_sarif.py \
-            --input osv-image-results.sarif \
-            --output osv-image-results-deduplicated.sarif
+          python -m kfpr.image_summary \
+            --input evidence/github/scan.sarif \
+            --identity "$IMAGE_CATEGORY" --image "$IMAGE" \
+            --platform linux/amd64 --evidence-url "$EVIDENCE_URL" \
+            --output image-summary.sarif
+
+      - name: Preserve raw image evidence and summary
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: master-image-${{ matrix.category }}-${{ github.run_attempt }}
+          path: |
+            evidence
+            image-summary.sarif
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Checkout producer source for scan attribution
-        if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
           ref: ${{ needs.discover-images.outputs.sha }}
           path: producer
           persist-credentials: false
 
-      - name: Upload image results to GitHub Security
-        if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
+      - name: Upload image summary to GitHub Security
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
-          sarif_file: osv-image-results-deduplicated.sarif
+          sarif_file: image-summary.sarif
           sha: ${{ needs.discover-images.outputs.sha }}
-          ref: refs/heads/master
+          ref: refs/heads/${{ needs.discover-images.outputs.branch }}
           checkout_path: producer
           category: kubeflow-pipelines-osv-image-${{ matrix.category }}
+
+  third-party-evidence:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    uses: ./.github/workflows/third-party-image-scanning.yml
+    permissions:
+      contents: read
+      actions: read
+      security-events: write

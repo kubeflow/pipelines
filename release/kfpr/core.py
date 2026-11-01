@@ -22,6 +22,24 @@ ANSI_RESET = '\033[0m'
 URL_RE = re.compile(r'https?://\S+')
 
 
+def default_branch(api) -> str:
+    """Resolve the upstream development branch without a stale-name
+    fallback."""
+    branch = api('').get('default_branch')
+    if branch not in ('master', 'main'):
+        raise ValueError(f'Unsupported upstream default branch: {branch!r}')
+    return branch
+
+
+def upstream_default_branch(runner, root: Path) -> str:
+    """Read the authenticated upstream repository's development branch."""
+    metadata = runner.capture(['gh', 'api', f'repos/{REPO}'], cwd=root)
+    if runner.dry_run and not metadata:
+        # Dry runs do not perform API reads or persist this placeholder.
+        return '<repository-default>'
+    return default_branch(lambda _: json.loads(metadata))
+
+
 def underline_links(text: str) -> str:
     """Underline URLs in terminal output."""
     return URL_RE.sub(
@@ -733,6 +751,16 @@ def wait_for_pr_merge(runner: CommandRunner, pr_url: str) -> None:
         time.sleep(60)
 
 
+def is_pending_merge_queue_check(check: dict) -> bool:
+    """Tide's pending merge eligibility is not an unfinished CI test."""
+    return (
+        check.get('__typename') == 'StatusContext'
+        and check.get('context') == 'tide'
+        and check.get('targetUrl') == 'https://oss.gprow.dev/tide'
+        and check.get('state') == 'PENDING'
+    )
+
+
 def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
     """Poll PR checks until one fails or all reported checks complete.
 
@@ -760,6 +788,9 @@ def watch_pr_ci(runner: CommandRunner, pr_url: str) -> None:
                 ]
             )
         )
+        checks = [
+            check for check in checks if not is_pending_merge_queue_check(check)
+        ]
         if not checks:
             print('No CI gates reported yet')
             time.sleep(60)
@@ -1053,9 +1084,11 @@ def collect_context(
             getattr(args, 'prompt_release_source_branch', False)
             and 'release_source_branch' not in answers
         ):
-            answers['release_source_branch'] = (
-                input('Release source branch [master]: ').strip() or 'master'
-            )
+            source_branch = input(
+                'Release source branch [repository default]: '
+            ).strip()
+            if source_branch:
+                answers['release_source_branch'] = source_branch
         if 'include_backend' not in answers:
             answers['include_backend'] = True
         if 'include_sdk' not in answers:

@@ -310,7 +310,7 @@ def run(
     ),
     security_exceptions: Optional[Path] = typer.Option(
         None,
-        help='JSON exception file with exact findings, justifications and expiries; selects approved-exceptions.',
+        help='JSON exception file with exact findings, justifications and UTC expiries or an exact release bound; selects approved-exceptions.',
     ),
     image_qualification: Optional[ImageQualification] = typer.Option(
         None,
@@ -764,7 +764,7 @@ def _make_step_command(step_id: str):
         ),
         security_exceptions: Optional[Path] = typer.Option(
             None,
-            help='JSON exception file with exact findings, justifications and expiries; selects approved-exceptions.',
+            help='JSON exception file with exact findings, justifications and UTC expiries or an exact release bound; selects approved-exceptions.',
         ),
         image_qualification: Optional[ImageQualification] = typer.Option(
             None,
