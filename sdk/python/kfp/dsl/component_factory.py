@@ -337,7 +337,11 @@ def get_name_to_specs(
             type_string = type_utils._annotation_to_type_struct(annotation)
             name_to_input_specs[
                 maybe_make_unique(name, list(name_to_input_specs))
-            ] = make_input_spec(type_string, func_param)
+            ] = make_input_spec(
+                type_string,
+                func_param,
+                literals=type_utils.get_literal_values(annotation),
+            )
 
     ### handle return annotations ###
     return_ann = signature.return_annotation
@@ -414,9 +418,23 @@ def make_output_spec(annotation: Any) -> structures.OutputSpec:
 
 
 def make_input_spec(
-    annotation: Any, inspect_param: inspect.Parameter
+    annotation: Any,
+    inspect_param: inspect.Parameter,
+    literals: Optional[Union[List[str], List[int], List[float]]] = None,
 ) -> structures.InputSpec:
-    """Makes an InputSpec from a cleaned output annotation."""
+    """Makes an InputSpec from a cleaned output annotation.
+
+    Args:
+        annotation: The input's type annotation. By the time this is called,
+            callers in `get_name_to_specs` have already converted most
+            parameter-type annotations (str, int, List[...], Literal[...],
+            etc.) to their compiled type-struct string, so `literals` must be
+            extracted from the original annotation by the caller and passed
+            in explicitly rather than derived here.
+        inspect_param: The `inspect.Parameter` for this input.
+        literals: The input's allowed values, if it was declared with a
+            `typing.Literal[...]` annotation.
+    """
     annotation = canonicalize_annotation(annotation)
     input_output_spec_args = make_input_output_spec_args(annotation)
 
@@ -448,6 +466,7 @@ def make_input_spec(
         **input_output_spec_args,
         default=default,
         optional=optional,
+        literals=literals,
     )
 
 
@@ -771,7 +790,6 @@ def create_notebook_component_from_func(
     component-building logic is reused by passing the template and the
     notebook path as an embedded artifact.
     """
-
     # Resolve default packages for notebooks when not specified
     if packages_to_install is None:
         packages_to_install = [
@@ -871,7 +889,6 @@ def create_component_from_func(
     The decorator is defined under component_decorator.py. See the
     decorator for the canonical documentation for this function.
     """
-
     if not isinstance(artifact_previews, bool) or not isinstance(
         artifact_preview_rows, bool
     ):
@@ -1005,8 +1022,15 @@ def make_input_for_parameterized_container_component_function(
             # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
+            # Literal[...] and Optional[Literal[...]] must be normalized to
+            # their underlying scalar type before get_parameter_type_name(),
+            # which does not understand Literal annotations.
+            normalized = annotation
+            literal_values = type_utils.get_literal_values(annotation)
+            if literal_values is not None:
+                normalized = type(literal_values[0])
             placeholder._ir_type = type_utils.get_parameter_type_name(
-                annotation
+                normalized
             )
         return placeholder
 
@@ -1019,7 +1043,6 @@ def create_container_component_from_func(
     The decorator is defined under container_component_decorator.py. See
     the decorator for the canonical documentation for this function.
     """
-
     component_spec = extract_component_interface(func, containerized=True)
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
@@ -1059,7 +1082,6 @@ def create_graph_component_from_func(
     The decorator is defined under pipeline_context.py. See the
     decorator for the canonical documentation for this function.
     """
-
     component_spec = extract_component_interface(
         func,
         description=description,

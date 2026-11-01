@@ -20,7 +20,7 @@ import itertools
 import re
 import uuid
 from decimal import Decimal
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import yaml
 from google.protobuf import json_format
@@ -43,6 +43,7 @@ class InputSpec:
         optional: Wether the input is optional. An input is optional when it has an explicit default value.
         is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
         description: Input description.
+        literals: The allowed values for this input, if it was declared with a `typing.Literal[...]` annotation. Only applies when `type` is a parameter type.
     """
 
     type: str
@@ -51,10 +52,12 @@ class InputSpec:
     # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
     is_artifact_list: bool = False
     description: Optional[str] = None
+    literals: Optional[Union[List[str], List[int], List[float]]] = None
 
     def __post_init__(self) -> None:
         self._validate_type()
         self._validate_usage_of_optional()
+        self._validate_default_against_literals()
 
     @classmethod
     def from_ir_component_inputs_dict(
@@ -77,14 +80,44 @@ class InputSpec:
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
+            if isinstance(default_value, dict):
+                for k in (
+                    'stringValue',
+                    'numberValue',
+                    'boolValue',
+                    'listValue',
+                    'structValue',
+                ):
+                    if k in default_value:
+                        default_value = default_value[k]
+                        break
             # fallback to checking if the parameter has a default value,
             # since some IR compiled with kfp<=2.0.0b8 will have defaults
             # without isOptional=True
             optional = ir_component_inputs_dict.get(
                 'isOptional', 'defaultValue' in ir_component_inputs_dict
             )
+            # Restore allowed Literal values written by the compiler. Each
+            # entry is a protobuf Value serialized to a plain Python scalar.
+            raw_literals = ir_component_inputs_dict.get('literals')
+            if raw_literals:
+                literals = [
+                    (v.get('stringValue') or v.get('numberValue'))
+                    if isinstance(v, dict)
+                    else v
+                    for v in raw_literals
+                ]
+                # Cast integer literals back to int (proto stores all numbers
+                # as float/double, so 1.0 -> 1 when the type is INTEGER).
+                if type_ == 'Integer':
+                    literals = [int(v) for v in literals]
+            else:
+                literals = None
             return InputSpec(
-                type=type_, default=default_value, optional=optional
+                type=type_,
+                default=default_value,
+                optional=optional,
+                literals=literals,
             )
 
         else:
@@ -107,8 +140,9 @@ class InputSpec:
             )
 
     def __eq__(self, other: Any) -> bool:
-        """Equality comparison for InputSpec. Robust to different type
-        representations, such that it respects the maximum amount of
+        """Equality comparison for InputSpec.
+
+        Robust to different type representations, such that it respects the maximum amount of
         information possible to encode in IR. That is, because
         `typing.List[str]` can only be represented a `List` in IR,
         'typing.List' == 'List' in this comparison.
@@ -144,6 +178,24 @@ class InputSpec:
         if self.optional is False and self.default is not None:
             raise ValueError(
                 f'`optional` argument to {self.__class__.__name__} must be True if `default` is not None.'
+            )
+
+    def _validate_default_against_literals(self) -> None:
+        """Validates that a default value is one of the input's allowed Literal
+        values, if any.
+
+        A default value is a hard-coded input value, same as one passed
+        explicitly to a task; it must satisfy the same Literal
+        constraint.
+        """
+        if (
+            self.literals
+            and self.default is not None
+            and self.default not in self.literals
+        ):
+            raise ValueError(
+                f'Default value {self.default!r} is not one of the allowed '
+                f'values {self.literals!r}.'
             )
 
 
@@ -204,8 +256,9 @@ class OutputSpec:
             )
 
     def __eq__(self, other: Any) -> bool:
-        """Equality comparison for OutputSpec. Robust to different type
-        representations, such that it respects the maximum amount of
+        """Equality comparison for OutputSpec.
+
+        Robust to different type representations, such that it respects the maximum amount of
         information possible to encode in IR. That is, because
         `typing.List[str]` can only be represented a `List` in IR,
         'typing.List' == 'List' in this comparison.
@@ -370,7 +423,6 @@ class ContainerSpecImplementation:
         Returns:
             ContainerSpecImplementation: The ContainerSpecImplementation instance.
         """
-
         return ContainerSpecImplementation(
             image=container_dict['image'],
             command=container_dict.get('command'),
