@@ -69,7 +69,7 @@ test = [
   "kubernetes",
   "nbformat",
   "pip",
-  "pydantic>=2",
+  "pydantic>=2.14.2",
   # pytest 9.0.3 contains the tmpdir handling fix.
   "pytest>=9.2.0",
   "pytest-cov>=7.1.0",
