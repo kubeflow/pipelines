@@ -1,6 +1,6 @@
 bokeh==3.8.2
 gcsfs>=2024.2.0
-google-api-python-client==1.7.*
+google-api-python-client==2.201.*
 itables==0.1.0
 ipykernel==7.1.0
 ipython==8.10.0
