@@ -59,10 +59,14 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 	if job == nil {
 		return nil
 	}
-	// TODO(Bobgy): reserve root as a keyword that cannot be user component names
 	spec, err := GetPipelineSpec(job)
 	if err != nil {
 		return err
+	}
+	// The root DAG is visited under this name, so a user component with the
+	// same name would be mistaken for it.
+	if _, ok := spec.GetComponents()[RootComponentName]; ok {
+		return fmt.Errorf("component name %q is reserved for the pipeline's root DAG. Rename the component", RootComponentName)
 	}
 	deploy, err := GetDeploymentConfig(spec)
 	if err != nil {
@@ -75,7 +79,7 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 		visitor:        v,
 		visited:        make(map[string]bool),
 	}
-	return state.dfs(RootComponentName, spec.GetRoot(), nil)
+	return state.dfs(RootComponentName, spec.GetRoot(), "", nil)
 }
 
 type pipelineDFS struct {
@@ -89,7 +93,17 @@ type pipelineDFS struct {
 	path []string
 }
 
-func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
+// describeTask names a task by its key in the DAG's tasks map, which is what
+// locates it in the spec, adding the display name when it differs.
+func describeTask(taskKey string, task *pipelinespec.PipelineTaskSpec) string {
+	displayName := task.GetTaskInfo().GetName()
+	if displayName == "" || displayName == taskKey {
+		return fmt.Sprintf("%q", taskKey)
+	}
+	return fmt.Sprintf("%q (display name %q)", taskKey, displayName)
+}
+
+func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, taskKey string, componentTask *pipelinespec.PipelineTaskSpec) error {
 	// A component already on the path would make the generated templates call
 	// themselves forever, while one visited on another branch is plain reuse.
 	if slices.Contains(state.path, name) {
@@ -116,7 +130,13 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 	if executorLabel != "" {
 		executor, ok := state.deploy.GetExecutors()[executorLabel]
 		if !ok {
-			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config", executorLabel))
+			usage := ""
+			// The path ends with this component, so its parent is the one before it.
+			if len(state.path) >= 2 {
+				usage = fmt.Sprintf(", used by task %s in component %q", describeTask(taskKey, componentTask), state.path[len(state.path)-2])
+			}
+			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config%s. Add the executor to deploymentSpec.executors or fix the component's executorLabel",
+				executorLabel, usage))
 		}
 
 		// Add kubernetes spec to annotation
@@ -164,16 +184,17 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		}
 		refName := task.GetComponentRef().GetName()
 		if refName == "" {
-			return componentError(fmt.Errorf("component ref name is empty for task name=%q", task.GetTaskInfo().GetName()))
+			return componentError(fmt.Errorf("component ref name is empty for task %s", describeTask(key, task)))
 		}
 		subComponent, ok := state.spec.Components[refName]
 		if !ok {
-			return componentError(fmt.Errorf("cannot find component ref name=%q", refName))
+			return componentError(fmt.Errorf("task %s references component %q, which is not defined in the pipeline spec's components. Add the component or fix the task's componentRef",
+				describeTask(key, task), refName))
 		}
 		if task.GetRetryPolicy() == nil && componentTask != nil {
 			task.RetryPolicy = componentTask.GetRetryPolicy()
 		}
-		err := state.dfs(refName, subComponent, task)
+		err := state.dfs(refName, subComponent, key, task)
 		if err != nil {
 			return err
 		}
