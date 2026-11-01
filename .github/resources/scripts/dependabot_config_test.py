@@ -60,6 +60,10 @@ class DependabotConfigTest(unittest.TestCase):
             '/sdk/python': '3.11',
             '/kubernetes_platform/python': '3.11',
         }
+        # Hosted updater 8786cc385190 uses pyenv v2.6.16. Newer patch
+        # names are silently ignored, even when newer runtimes are bundled.
+        # Keep this catalog bound tied to the hosted image (see CI guide).
+        supported_patch_limits = {'3.10': 19, '3.11': 14}
         for directory, minor in projects.items():
             with self.subTest(directory=directory):
                 self.assertIn(directory, self.configured_directories('pip'))
@@ -71,6 +75,13 @@ class DependabotConfigTest(unittest.TestCase):
                 # lists full patch versions rather than bare minor versions.
                 self.assertRegex(path.read_text().strip(),
                                  rf'^{re.escape(minor)}\.\d+$')
+                version = path.read_text().strip()
+                self.assertIn(
+                    version, {
+                        f'{minor}.{patch}'
+                        for patch in range(supported_patch_limits[minor] + 1)
+                    }, 'Selector is absent from the hosted pyenv catalog; '
+                    'Dependabot would ignore it and use a newer interpreter.')
                 self.assertTrue(
                     any(
                         fnmatchcase(
