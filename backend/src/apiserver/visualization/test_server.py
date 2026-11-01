@@ -14,6 +14,7 @@
 
 import ast
 import importlib
+import os
 import re
 from typing import Text
 import unittest
@@ -32,6 +33,13 @@ def wrap_error_in_html(error: Text) -> bytes:
 
 
 class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
+
+    def setUp(self):
+        self.enabled = mock.patch.dict(os.environ,
+                                       {"ENABLE_PYTHON_VISUALIZATIONS": "true"})
+        self.enabled.start()
+        self.addCleanup(self.enabled.stop)
+        super().setUp()
 
     def get_app(self):
         return tornado.web.Application([
@@ -84,6 +92,30 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             method="POST",
             body='type=test&source=gs://ml-pipeline/data.csv')
         self.assertEqual(200, response.code)
+
+
+class TestDisabledServerEndpoints(tornado.testing.AsyncHTTPTestCase):
+
+    def get_app(self):
+        return tornado.web.Application([(r"/", server.VisualizationHandler)])
+
+    def test_disabled_requests_never_generate_notebooks(self):
+        with mock.patch.object(server.VisualizationHandler,
+                               "generate_notebook_from_arguments") as generate:
+            for value in (None, "false", "TRUE", "1", "invalid", ""):
+                with self.subTest(value=value), mock.patch.dict(os.environ):
+                    if value is None:
+                        os.environ.pop("ENABLE_PYTHON_VISUALIZATIONS", None)
+                    else:
+                        os.environ["ENABLE_PYTHON_VISUALIZATIONS"] = value
+                    for body in ("", "type=custom",
+                                 "type=table&source=/tmp/input"):
+                        response = self.fetch("/", method="POST", body=body)
+                        self.assertEqual(503, response.code)
+                        self.assertIn(b"Python visualizations are disabled",
+                                      response.body)
+                    self.assertEqual(200, self.fetch("/").code)
+            generate.assert_not_called()
 
 
 class TestSourceInjection(unittest.TestCase):

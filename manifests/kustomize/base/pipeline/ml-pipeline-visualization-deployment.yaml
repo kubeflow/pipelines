@@ -23,6 +23,9 @@ spec:
       - image: ghcr.io/kubeflow/kfp-visualization-server:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-visualizationserver
+        env:
+        - name: ENABLE_PYTHON_VISUALIZATIONS
+          value: "false"
         ports:
         - name: http
           containerPort: 8888

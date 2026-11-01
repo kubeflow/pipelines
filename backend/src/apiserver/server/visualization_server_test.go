@@ -33,8 +33,35 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
+
+func TestCreateVisualization_MissingVisualizationReturnsInvalidInput(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
+	wire, err := proto.Marshal(&apiv1beta1.CreateVisualizationRequest{Namespace: "ns1"})
+	require.NoError(t, err)
+	var callErr error
+	if assert.NotPanics(t, func() {
+		_, callErr = apiv1beta1.VisualizationService_ServiceDesc.Methods[0].Handler(
+			&VisualizationServer{}, context.Background(),
+			func(dst interface{}) error { return proto.Unmarshal(wire, dst.(proto.Message)) }, nil,
+		)
+	}) {
+		assert.Equal(t, codes.InvalidArgument, status.Code(callErr))
+	}
+}
+
+func TestCreateVisualization_NilRequestReturnsInvalidInput(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
+	var err error
+	if assert.NotPanics(t, func() {
+		_, err = (&VisualizationServer{}).CreateVisualizationV1(context.Background(), nil)
+	}) {
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	}
+}
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
@@ -271,6 +298,7 @@ func TestGetVisualizationServiceURL_Multiuser(t *testing.T) {
 }
 
 func TestCreateVisualization_Unauthorized(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -313,6 +341,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 }
 
 func TestCreateVisualization_Unauthenticated(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -353,6 +382,7 @@ func (f visualizationRoundTripper) RoundTrip(request *http.Request) (*http.Respo
 }
 
 func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
+	t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", "true")
 	tests := []struct {
 		name          string
 		multiUser     bool
@@ -462,5 +492,19 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCreateVisualization_Disabled(t *testing.T) {
+	for _, value := range []string{"", "false", "TRUE", "1", "invalid"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("ENABLE_PYTHON_VISUALIZATIONS", value)
+			server := &VisualizationServer{}
+			result, err := server.CreateVisualizationV1(context.Background(), nil)
+			assert.Nil(t, result)
+			require.Error(t, err)
+			assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+			assert.Contains(t, err.Error(), "Python visualizations are disabled")
+		})
 	}
 }
