@@ -9,13 +9,13 @@
 # not by this file. This file does not turn them on or off, though they still
 # honor configuration here such as `ignore` rules and directory/ecosystem scope.
 #
-# Default-branch Dependabot PRs are not held by default. Merging is gated by the
-# required `ci-passed` commit status on the verified head SHA (published by the
-# CI Check workflow) and the deployed Tide policy, so a PR auto-merges once
-# `ci-passed` is green. Maintainers can still apply `do-not-merge/hold` to a
-# specific PR to hold it back; that PR-specific hold is never removed by the
-# publisher. Custom labels replace Dependabot's defaults, so each ecosystem
-# explicitly retains the dependencies and ecosystem labels.
+# Dependabot PRs are not held by default, including release-2.18 updates.
+# Merging remains subject to each target branch's CI and deployed Tide policy.
+# The default branch requires the `ci-passed` commit status on the verified head;
+# release-2.18 retains its existing CI gate. Maintainers can still apply
+# `do-not-merge/hold` to a specific PR; automation does not remove explicit holds.
+# Custom labels replace Dependabot's defaults, so each ecosystem explicitly
+# retains the dependencies and ecosystem labels.
 #
 # Tracks: https://github.com/kubeflow/pipelines/issues/13490
 version: 2
@@ -221,7 +221,7 @@ updates:
         patterns:
           - "*"
   # Release scheduling must live on the default branch. Preserve 2.18's pip
-  # layout and explicit holds rather than inheriting master's uv/merge policy.
+  # layout and compatibility constraints; master uses a uv workspace.
   # TensorBoard files arrive through #15152; merge after that prerequisite.
   - package-ecosystem: gomod
     target-branch: "release-2.18"
@@ -233,7 +233,6 @@ updates:
     labels:
       - "dependencies"
       - "go"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -269,7 +268,6 @@ updates:
     labels:
       - "dependencies"
       - "docker"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -293,7 +291,6 @@ updates:
     labels:
       - "dependencies"
       - "javascript"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -326,7 +323,6 @@ updates:
     labels:
       - "dependencies"
       - "python"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     ignore:
@@ -353,7 +349,6 @@ updates:
     labels:
       - "dependencies"
       - "python"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     ignore:
@@ -378,7 +373,6 @@ updates:
     labels:
       - "dependencies"
       - "python"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     ignore:
@@ -405,7 +399,6 @@ updates:
     labels:
       - "dependencies"
       - "python"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     ignore:
@@ -430,7 +423,6 @@ updates:
     labels:
       - "dependencies"
       - "github_actions"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -445,7 +437,6 @@ updates:
     labels:
       - "dependencies"
       - "pre_commit"
-      - "do-not-merge/hold"
     commit-message:
       prefix: "chore(deps)"
     ignore:

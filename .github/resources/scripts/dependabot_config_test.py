@@ -285,7 +285,7 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertEqual(len(matches), 1, ecosystem)
         return matches[0]
 
-    def test_release_ecosystems_are_complete_and_held(self):
+    def test_release_ecosystems_are_complete_without_default_holds(self):
         release = self.release_updates()
         labels = {
             'gomod': 'go',
@@ -311,7 +311,6 @@ class DependabotConfigTest(unittest.TestCase):
                     [
                         'dependencies',
                         labels[update['package-ecosystem']],
-                        'do-not-merge/hold',
                     ],
                 )
                 self.assertNotIn('allow', update)

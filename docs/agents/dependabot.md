@@ -105,14 +105,20 @@ repeated traversal without excluding projects or freezing more dependencies.
 Verify each new job completes after the schedule merges; this partition does
 not guarantee every future dependency update resolves or meets the time limit.
 
-Each release ecosystem retains weekly updates, dependency labels and
-`do-not-merge/hold`. Non-pip ecosystems retain a ten-PR limit per entry. Grouping preserves golang.org/x modules, paired Argo
-controller/executor images, MUI peers and shared package updates. Argo remains
+Each release ecosystem retains weekly updates and dependency labels without a
+default `do-not-merge/hold`, matching master. Release-branch CI and the deployed
+merge policy still gate merging; release-2.18 retains its older CI gate rather
+than master's `ci-passed` commit-status publisher. Maintainers can apply a hold
+to an individual PR when needed; automation does not remove explicit holds.
+Changing the schedule does not remove holds already present on open PRs.
+Non-pip ecosystems retain a ten-PR limit per entry. Grouping preserves
+golang.org/x modules, paired Argo controller/executor images, MUI peers and shared
+package updates. Argo remains
 outside generic Go minor/patch batches. The protobuf >=7 and docformatter 1.7.8
 ignores retain explicit release compatibility constraints; they are not security
 waivers.
 
-Remove a release PR's hold only after current-head CI and compatibility review:
+Apply a PR-specific hold when an update needs coordinated compatibility work:
 
 - Use the release's coordinated Go and Argo update commands; generated clients,
   runtime images, manifests, CRDs and test versions must agree.
@@ -125,13 +131,14 @@ Remove a release PR's hold only after current-head CI and compatibility review:
   database support matrix. Legacy MySQL and MLMD migrations remain explicit
   release decisions, and PostgreSQL production support remains deferred to 3.0.
 - Qualify changed runtime images, including retained data and TensorBoard
-  local/S3/GCS storage behavior, before publishing them. Restore the hold if the
-  proposed head changes.
+  local/S3/GCS storage behavior, before publishing them. Clear an explicit hold
+  only after that work and current-head CI are verified; restore it if a new head
+  invalidates that review.
 
 `target-branch` schedules version-update PRs, not security-update PRs: GitHub's
 security updates apply to the default branch. Continue release-specific dependency
-and image scans and advisory triage. These schedules do not enable automatic
-merging, suppress findings or replace release acceptance.
+and image scans and advisory triage. Removing default holds does not bypass merge
+requirements, suppress findings or replace release acceptance.
 
 Release 2.18 freezes `ml-metadata`: the active release pip schedule and release-local
 inventory ignore all direct MLMD version updates. Keep the other dependencies in
