@@ -33,8 +33,33 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
+
+func TestCreateVisualization_MissingVisualizationReturnsInvalidInput(t *testing.T) {
+	wire, err := proto.Marshal(&apiv1beta1.CreateVisualizationRequest{Namespace: "ns1"})
+	require.NoError(t, err)
+	var callErr error
+	if assert.NotPanics(t, func() {
+		_, callErr = apiv1beta1.VisualizationService_ServiceDesc.Methods[0].Handler(
+			&VisualizationServer{}, context.Background(),
+			func(dst interface{}) error { return proto.Unmarshal(wire, dst.(proto.Message)) }, nil,
+		)
+	}) {
+		assert.Equal(t, codes.InvalidArgument, status.Code(callErr))
+	}
+}
+
+func TestCreateVisualization_NilRequestReturnsInvalidInput(t *testing.T) {
+	var err error
+	if assert.NotPanics(t, func() {
+		_, err = (&VisualizationServer{}).CreateVisualizationV1(context.Background(), nil)
+	}) {
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	}
+}
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
