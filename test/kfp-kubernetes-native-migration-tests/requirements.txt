@@ -5,4 +5,4 @@ requests==2.32.5; python_version < "3.10"
 requests>=2.33.0; python_version >= "3.10"
 pyyaml>=6.0
 kfp>=2.0.0
-kubernetes>=28.0.0
+kubernetes>=37.0.1
