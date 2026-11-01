@@ -319,3 +319,16 @@ selected native config. Missing, tampered, ambiguous or mismatched chains fail.
 - TensorBoard deployed acceptance provisions Python 3.10 before deployment, matching the frontend acceptance lane. The shared deployment readiness helper invokes `python` and `pip`; do not rely on runner-provided `python3` alone.
 
 - Validate Generated Files also builds standalone v1beta1/v2beta1 Python client wheels on Python 3.9 and 3.10 and checks interpreter markers, dependency floors and local HTTP success/error handling at the minimum supported urllib3 versions. Template changes trigger this workflow.
+
+## Release Python dependency resolution
+
+The backend, metadata writer and visualization projects use `.python-version`
+to select Python 3.11 for dependency tooling, matching their compiled requirements
+and runtime images. The retained-data PostgreSQL harness selects Python 3.10 for
+its frozen MLMD 1.14 client. Dependabot validates full patch versions against
+pyenv, then uses its available patch within that minor line. Keep these files
+aligned with project runtimes; do not replace them with an SDK support minimum.
+The SDK and platform packages continue to support Python >=3.9. MLMD updates
+remain ignored; compatible interpreter selection lets other dependencies resolve
+without upgrading MLMD. The backend pin also covers recursively fetched nested
+requirements.

@@ -51,6 +51,32 @@ class DependabotConfigTest(unittest.TestCase):
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
             encoding='utf-8')
 
+    def test_wheel_bound_projects_select_their_runtime_python(self):
+        projects = {
+            '/backend': '3.11',
+            '/backend/metadata_writer': '3.11',
+            '/backend/src/apiserver/visualization': '3.11',
+            '/.github/resources/postgresql-upgrade': '3.10',
+        }
+        for directory, minor in projects.items():
+            with self.subTest(directory=directory):
+                self.assertIn(directory, self.configured_directories('pip'))
+                path = REPOSITORY_ROOT / directory.lstrip(
+                    '/') / '.python-version'
+                self.assertTrue(path.is_file(),
+                                'Declare the updater interpreter')
+                # Dependabot validates this against pyenv install --list, which
+                # lists full patch versions rather than bare minor versions.
+                self.assertRegex(path.read_text().strip(),
+                                 rf'^{re.escape(minor)}\.\d+$')
+                self.assertTrue(
+                    any(
+                        fnmatchcase(
+                            str(path.relative_to(REPOSITORY_ROOT)), pattern)
+                        for pattern in yaml.safe_load(self.ci_scripts_workflow)
+                        [True]['pull_request']['paths']),
+                    'Interpreter changes must run the configuration regression')
+
     def test_release_ml_metadata_updates_are_disabled(self):
         config = yaml.safe_load(self.config)
         pip = next(update for update in config['updates']
