@@ -52,7 +52,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/zap v1.28.0
 	gocloud.dev v0.47.0
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.307.0
 	// Pre-generated Go code (.pb.go files) for a subset of the .proto files found in
