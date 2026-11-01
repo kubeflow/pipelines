@@ -22,7 +22,7 @@ import { commonSetup } from './test-helper.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
-vi.mock('../k8s-helper.js');
+vi.mock('../k8s-helper.js', () => ({ getK8sSecret: vi.fn(), getPod: vi.fn() }));
 
 vi.mock('../gcs-helper.js', () => ({
   getGCSClient: () => Promise.resolve({}),
@@ -568,10 +568,10 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('does not belong to the requested namespace');
     });
 
-    it('continues when the validator allows legacy fallback', async () => {
+    it('returns 503 when artifact ownership cannot be verified', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
-        valid: true,
+        valid: false,
         reason: 'mlmd-unavailable',
       });
 
@@ -583,7 +583,7 @@ describe('/artifacts authorization', () => {
           '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace',
         )
         .set('kubeflow-userid', 'user@example.com')
-        .expect(200, artifactContent);
+        .expect(503);
     });
 
     it('rejects http source artifact when namespace ownership mismatches', async () => {
