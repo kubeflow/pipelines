@@ -16,6 +16,7 @@ type (
 	MetadataValueRenderType         = canonical.MetadataValueRenderType
 	PipelineTaskChildTask           = canonical.PipelineTaskChildTask
 	PipelineTaskInputOutputs        = canonical.PipelineTaskInputOutputs
+	PipelineTaskLogHistory          = canonical.PipelineTaskLogHistory
 	PipelineTaskStatusMetadata      = canonical.PipelineTaskStatusMetadata
 	PipelineTaskTaskPod             = canonical.PipelineTaskTaskPod
 	PipelineTaskTaskPodType         = canonical.PipelineTaskTaskPodType

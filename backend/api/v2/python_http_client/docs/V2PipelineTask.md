@@ -24,6 +24,7 @@ Name | Type | Description | Notes
 **scope_path** | **str** |  | [optional] 
 **lifecycle_message** | **str** | Latest pod lifecycle diagnostic from the execution engine. Read-only via REST; the persistence agent clears this field automatically on recovery. | [optional] 
 **lifecycle_category** | **str** | Classified category of lifecycle_message. One of image-pull, scheduling, runtime, admission, or unknown. Empty when lifecycle_message is empty. | [optional] 
+**log_history** | [**list[PipelineTaskLogHistory]**](PipelineTaskLogHistory.md) | Output only. Prior executions archived by manual retries, oldest first. History begins when preservation is enabled; older retries are not backfilled. | [optional] [readonly] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

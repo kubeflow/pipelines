@@ -1872,6 +1872,7 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2.Pipeline
 		Name:             modelTask.Name,
 		DisplayName:      modelTask.DisplayName,
 		CacheFingerprint: modelTask.Fingerprint,
+		LogHistory:       modelTask.LogHistory,
 		Inputs:           &apiv2.PipelineTask_InputOutputs{},
 		Outputs:          &apiv2.PipelineTask_InputOutputs{},
 	}
