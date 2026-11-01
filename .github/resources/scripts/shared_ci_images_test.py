@@ -289,6 +289,72 @@ class SharedImageTests(unittest.TestCase):
                 self.assertEqual(raised.exception.retry_after, expected)
                 self.assertEqual(request.call_args.kwargs['timeout'], 5)
 
+    def test_unconditional_requests_preserve_rate_limits_without_cache(self):
+        for mode in ({}, {'binary': True}, {'pages': True}):
+            for headers, expected in [
+                ({'Retry-After': '120'}, 120),
+                (
+                    {'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '225'},
+                    125,
+                ),
+            ]:
+                with self.subTest(mode=mode, headers=headers):
+                    api = shared.GitHub('upstream/pipelines')
+                    api.pages['actions/runs/10'] = ('"cached"', {}, None)
+                    with (
+                        mock.patch.object(
+                            shared.time, 'time', return_value=100
+                        ),
+                        mock.patch.object(
+                            shared.subprocess,
+                            'run',
+                            return_value=self.response(429, headers=headers),
+                        ) as request,
+                    ):
+                        with self.assertRaises(shared.APIError) as raised:
+                            api.request('actions/runs/10', **mode)
+                    self.assertEqual(raised.exception.retry_after, expected)
+                    self.assertNotIn(
+                        'If-None-Match: "cached"', request.call_args.args[0]
+                    )
+
+    def test_unconditional_binary_response_keeps_exact_bytes(self):
+        api = shared.GitHub('upstream/pipelines')
+        payload = b'PK\x03\x04\r\n\r\n\x00\xff'
+        response = self.response()
+        response.stdout += payload
+        with mock.patch.object(shared.subprocess, 'run', return_value=response):
+            self.assertEqual(
+                api.request('actions/artifacts/1/zip', binary=True), payload
+            )
+        self.assertEqual(api.pages, {})
+
+    def test_unconditional_binary_304_fails_closed(self):
+        api = shared.GitHub('owner/repo')
+        with mock.patch.object(
+            shared.subprocess, 'run', return_value=self.response(304)
+        ):
+            with self.assertRaises(shared.InvalidEvidence):
+                api.request('actions/artifacts/1/zip', binary=True)
+
+    def test_unconditional_pagination_remains_fresh(self):
+        api = shared.GitHub('upstream/pipelines')
+        suffix = 'actions/runs/10/artifacts?per_page=100'
+        second = suffix + '&page=2'
+        responses = [
+            self.response(
+                document={'artifacts': [{'id': 1}]},
+                headers={
+                    'ETag': '"one"',
+                    'Link': f'<https://api.github.com/{api.prefix}/{second}>; rel="next"',
+                },
+            ),
+            self.response(document={'artifacts': [{'id': 2}]}),
+        ]
+        with mock.patch.object(shared.subprocess, 'run', side_effect=responses):
+            self.assertEqual(api.artifacts(10), [{'id': 1}, {'id': 2}])
+        self.assertEqual(api.pages, {})
+
     def test_transport_errors_retry_but_malformed_success_fails_closed(self):
         api = shared.GitHub('upstream/pipelines')
         for stdout in (b'', b'HTTP/'):
@@ -736,7 +802,7 @@ class SharedImageTests(unittest.TestCase):
     def test_api_request_timeout_respects_remaining_wait_budget(self):
         api = shared.GitHub('upstream/pipelines')
         api.deadline = 15
-        response = mock.Mock(returncode=0, stdout=b'{}')
+        response = self.response(document={})
         with mock.patch.object(shared.time, 'monotonic', return_value=10):
             with mock.patch.object(
                 shared.subprocess, 'run', return_value=response

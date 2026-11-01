@@ -231,9 +231,24 @@ class GitHub:
         self.run_cache = {}
 
     def request(self, suffix, pages=False, binary=False):
-        command = ['gh', 'api', f'{self.prefix}/{suffix}']
-        if pages:
-            command += ['--paginate', '--slurp']
+        if binary:
+            status, _, body = self.response(suffix, binary=True)
+            require(status != 304, 'Uncached API 304 response')
+            return body
+        if not pages:
+            return self.page(suffix, cache=False)[0]
+        documents, visited = [], set()
+        while suffix is not None:
+            require(suffix not in visited, 'Repeated API pagination page')
+            visited.add(suffix)
+            document, suffix = self.page(suffix, cache=False)
+            documents.append(document)
+        return documents
+
+    def response(self, suffix, etag=None, binary=False):
+        command = ['gh', 'api', f'{self.prefix}/{suffix}', '--include']
+        if etag:
+            command += ['-H', f'If-None-Match: {etag}']
         if binary:
             command += ['--allow-escape-sequences']
         remaining = (
@@ -251,38 +266,9 @@ class GitHub:
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             raise APIError('GitHub API unavailable') from error
-        if result.returncode:
-            raise APIError(f'GitHub API request failed: {suffix.split("?")[0]}')
-        if binary:
-            return result.stdout
-        try:
-            return json.loads(result.stdout)
-        except (ValueError, UnicodeError) as error:
-            raise InvalidEvidence('Malformed API JSON') from error
-
-    def conditional_page(self, suffix):
-        cached = self.pages.get(suffix)
-        command = ['gh', 'api', f'{self.prefix}/{suffix}', '--include']
-        if cached and cached[0]:
-            command += ['-H', f'If-None-Match: {cached[0]}']
-        remaining = (
-            90 if self.deadline is None else self.deadline - time.monotonic()
-        )
-        if remaining <= 0:
-            raise APIError('GitHub API wait deadline reached')
-        try:
-            result = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=min(90, remaining),
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired) as error:
-            raise APIError('GitHub API unavailable') from error
-        header, separator, body = result.stdout.replace(
-            b'\r\n', b'\n'
-        ).partition(b'\n\n')
+        header, separator, body = result.stdout.partition(b'\r\n\r\n')
+        if not separator:
+            header, separator, body = result.stdout.partition(b'\n\n')
         lines = header.decode('utf-8', errors='replace').splitlines()
         valid_status = lines and re.match(
             r'HTTP/[^ ]+ [0-9]{3}(?: |$)', lines[0]
@@ -296,9 +282,6 @@ class GitHub:
             name, colon, value = line.partition(':')
             require(bool(colon), 'Malformed API HTTP header')
             headers[name.lower()] = value.strip()
-        if status == 304:
-            require(cached is not None, 'Uncached API 304 response')
-            return cached[1], cached[2]
         if status in (403, 429):
             delay = 60
             try:
@@ -310,9 +293,24 @@ class GitHub:
                 pass
             delay = max(1, delay) if math.isfinite(delay) else 60
             raise APIError('GitHub API rate limited', retry_after=delay)
+        if status == 304:
+            return status, headers, body
         if result.returncode or status != 200:
             raise APIError(f'GitHub API request failed: {suffix.split("?")[0]}')
         require(bool(separator), 'Missing API response body')
+        return status, headers, body
+
+    def conditional_page(self, suffix):
+        return self.page(suffix, cache=True)
+
+    def page(self, suffix, cache):
+        cached = self.pages.get(suffix) if cache else None
+        status, headers, body = self.response(
+            suffix, cached[0] if cached else None
+        )
+        if status == 304:
+            require(cached is not None, 'Uncached API 304 response')
+            return cached[1], cached[2]
         try:
             document = json.loads(body)
         except (ValueError, UnicodeError) as error:
@@ -331,7 +329,8 @@ class GitHub:
                     'Unexpected API pagination path',
                 )
                 next_page = match[1][len(prefix) :]
-        self.pages[suffix] = (headers.get('etag'), document, next_page)
+        if cache:
+            self.pages[suffix] = (headers.get('etag'), document, next_page)
         return document, next_page
 
     def listing(self, suffix, key):
