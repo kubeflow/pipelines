@@ -14,4 +14,4 @@
 # 6.x aligns with 30.x+.
 # See for support tiers:
 # https://protobuf.dev/support/version-support/#python
-protobuf>=6.31.1,<7.0
+protobuf>=6.33.6,<7.0
