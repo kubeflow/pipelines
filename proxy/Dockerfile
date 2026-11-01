@@ -64,7 +64,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildv
        END { exit !(version == expected && revision) }' /out/kubectl.buildinfo
 
 # Keep only the runtime tools needed by registration and the Cloud SDK.
-FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+FROM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends bash ca-certificates curl jq python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
