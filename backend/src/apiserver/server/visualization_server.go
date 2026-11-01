@@ -68,6 +68,12 @@ func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize on namespace")
 		}
+		// Python visualizations can execute code and read files as the service identity.
+		// Require the same namespace privilege needed to run user-supplied workloads.
+		resourceAttributes.Resource = common.RbacResourceTypeRuns
+		if err := s.resourceManager.IsAuthorized(ctx, resourceAttributes); err != nil {
+			return nil, util.Wrap(err, "Python visualizations require permission to create runs in the namespace")
+		}
 	}
 
 	body, err := s.generateVisualizationFromRequest(request)
