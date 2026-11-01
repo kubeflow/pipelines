@@ -117,3 +117,8 @@ Remove a release PR's hold only after current-head CI and compatibility review:
 security updates apply to the default branch. Continue release-specific dependency
 and image scans and advisory triage. These schedules do not enable automatic
 merging, suppress findings or replace release acceptance.
+
+Release 2.18 freezes `ml-metadata`: the active release pip schedule and release-local
+inventory ignore all direct MLMD version updates. Keep the other dependencies in
+those projects scheduled. This does not remove MLMD from dependency resolution or
+waive advisory triage; any necessary MLMD change requires explicit review.
