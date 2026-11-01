@@ -324,8 +324,10 @@ selected native config. Missing, tampered, ambiguous or mismatched chains fail.
 
 Dependabot does not read the interpreter in uv's generated requirements header.
 Use project-scoped `.python-version` files for dependencies that cannot resolve on
-its newest interpreter. Full patch versions must exist in pyenv; Dependabot then
-uses its available patch within that minor line. These files select dependency
+its newest interpreter. Full patch versions must exist in the **hosted updater's
+bundled pyenv catalog**, not merely in current upstream pyenv. An unrecognized
+selector is silently ignored. Dependabot then uses its available patch within
+that minor line. These files select dependency
 and local development tooling, not the package's supported Python range.
 
 The backend, metadata writer and visualization projects select Python 3.11,
@@ -334,6 +336,19 @@ also select 3.11: the pinned docformatter 1.4 metadata build fails on Python 3.1
 The PostgreSQL retained-data harness selects 3.10 for frozen MLMD 1.14. SDK and
 platform package metadata, universal requirements markers and CI retain Python
 3.9 support. MLMD updates remain ignored; package pins are unchanged.
+
+The [verified updater image](https://github.com/dependabot/dependabot-core/blob/8786cc38519048e4031db4fa07a1e90eddcc5a35/python/Dockerfile)
+bundles pyenv v2.6.16. Its catalog recognizes `3.11.14` and `3.10.19`, whereas
+`3.11.17` and `3.10.20` are ignored. The recognized selectors choose the updater's
+bundled Python 3.11.15 and 3.10.20 respectively; they do not downgrade deployment
+images or pin Dependabot to those older patches. Locally, pyenv/uv may use the
+literal patch selected by the file.
+
+`test_projects_select_compatible_updater_python` checks the selectors against the
+3.10/3.11 catalog bounds from that image. Before changing these bounds, inspect
+the image tag in the latest hosted run and its pinned pyenv release. Verify
+interpreter recognition as well as dependency resolution; a local resolver run
+with an explicitly supplied Python version bypasses the failure this test guards.
 
 ### Release updater audit
 
