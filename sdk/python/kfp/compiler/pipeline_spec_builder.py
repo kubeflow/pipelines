@@ -1360,7 +1360,14 @@ def _single_binary_operation_to_cel_condition(
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
                     pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
                 ]
-                operand_value = f"'{operand_value}'"
+                if isinstance(
+                    value_or_reference, pipeline_channel.PipelineChannel
+                ):
+                    # The operand is already a CEL expression.
+                    operand_value = f'string({operand_value})'
+                else:
+                    # Python literals need to be quoted as CEL strings.
+                    operand_value = f"'{operand_value}'"
             elif (
                 canonical_parameter_type
                 == pipeline_spec_pb2.ParameterType.BOOLEAN

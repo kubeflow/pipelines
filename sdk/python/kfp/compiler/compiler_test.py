@@ -6362,6 +6362,26 @@ class TestConditionLogic(parameterized.TestCase):
             "double(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == 1.5",
         ),
         (
+            'int_chan_equals_string_literal',
+            lambda t: t['int'].output == '5',
+            "string(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == '5'",
+        ),
+        (
+            'string_literal_equals_int_chan',
+            lambda t: '5' == t['int'].output,
+            "string(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == '5'",
+        ),
+        (
+            'bool_chan_equals_string_literal',
+            lambda t: t['bool'].output == 'true',
+            "string(inputs.parameter_values['pipelinechannel--return-bool-Output']) == 'true'",
+        ),
+        (
+            'float_chan_equals_string_literal',
+            lambda t: t['float'].output == '1.0',
+            "string(inputs.parameter_values['pipelinechannel--return-float-Output']) == '1.0'",
+        ),
+        (
             'str_chan_equals_true',
             lambda t: t['str'].output == True,
             "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'true'",
