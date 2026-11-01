@@ -18,7 +18,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Frontend integration tests require Node >=22.12 because of the `@puppeteer/browsers` 3.x pin explained in `test/frontend-integration-test/README.md`. `e2e-test-frontend.yml` runs `npm run test:dependencies` once in a plain Node job alongside the Kind lanes; the checks cover configuration merging, the installer API WebdriverIO calls, and remote Selenium setup. Keep the pin, the README rationale, and the checks aligned.
 - `frontend.yml` sets up Python for the server integration test that feeds actual profile-controller artifact repositories into archived-log retrieval. Changes to `pipelines-profile-controller/sync.py` also trigger this workflow so producer and consumer changes both exercise the test.
 - Non-documentation changes under `third_party/metadata_envoy/` trigger `e2e-test-frontend.yml`, which builds and deploys the metadata-envoy image before exercising the frontend-to-MLMD path.
-- `.github/dependabot.yml` schedules weekly updates for every supported dependency ecosystem present in the repository: Go modules, Docker and Kubernetes image references, npm, pip, GitHub Actions, and pre-commit. Every generated PR starts with `do-not-merge/hold`; remove it only immediately before merge after verifying CI for the current head, and restore it after any head change. npm and pip updates are grouped by dependency name across their monorepo directories; generated Python API-client compatibility constraints remain excluded.
+- `.github/dependabot.yml` schedules weekly updates for every supported dependency ecosystem present in the repository: Go modules, Docker and Kubernetes image references, npm, pip, GitHub Actions, and pre-commit. Every generated PR starts with `do-not-merge/hold`; remove it only immediately before merge after verifying CI for the current head, and restore it after any head change. npm updates are grouped by dependency name across their monorepo directories; pip updates are grouped within the bounded jobs described below; generated Python API-client compatibility constraints remain excluded.
 - `python-syntax.yml` parses every tracked Python file with Python 3.9 grammar without importing it, so syntax errors fail presubmit without creating `__pycache__` directories.
 - `docs.yml` builds the Sphinx documentation site with warnings treated as errors and runs a non-blocking external link check; Read the Docs (`.readthedocs.yml`) handles publishing, not this workflow. Before installing `docs/requirements.txt` through `setup-python-pip-cache` under the `docs` cache scope, both jobs generate the Python API protobuf bindings and install the source-built `kfp-pipeline-spec` package through `.github/actions/protobuf`. They explicitly install the checked-out SDK and server API client alongside the documentation requirements (which contain only external dependencies so Dependabot can evaluate them in isolation) so an unpublished release version does not require its companion wheel on PyPI. The SDK client lane likewise installs the local server API before resolving SDK requirements. DRA includes all four local KFP packages in both its host environment and component image; preserve both paths when changing version pins.
 - `osv-scanner.yml` runs on every push to master, weekly, and on manual dispatch. It scans supported dependency manifests and lockfiles and separately scans the container images rendered by the standard standalone and multi-user Kustomize overlays, removing structurally identical SARIF results before uploading both result sets to code scanning. Compiled Python requirements are scanned without dependency re-resolution; generated API-client constraint directories are excluded because they specify compatibility minimums rather than installed versions. Dependabot remains responsible for remediation PRs.
@@ -321,6 +321,23 @@ selected native config. Missing, tampered, ambiguous or mismatched chains fail.
 - Validate Generated Files also builds standalone v1beta1/v2beta1 Python client wheels on Python 3.9 and 3.10 and checks interpreter markers, dependency floors and local HTTP success/error handling at the minimum supported urllib3 versions. Template changes trigger this workflow.
 
 ## Release Python dependency resolution
+
+The release pip inventory is split into four disjoint jobs: SDK (7 projects,
+3 open PRs), runtime (5 projects, 3 PRs), docs/release tooling (3 projects, 2 PRs),
+and tools/samples (5 projects, 2 PRs). Together they cover all 20 maintained
+projects with the existing aggregate limit of ten open PRs. Shared dependencies
+are grouped by name within each job; changes shared across jobs may produce
+separate PRs and still require compatibility review. Parent projects and their
+explicitly monitored immediate children stay together.
+
+This bounds directory visits during grouped updates after the single 20-project
+job exceeded the hosted 55-minute limit. It is not a promise that every future
+update completes within the limit. Verify all four hosted jobs after the active
+schedule changes. GitHub reads that schedule from master's entries targeting
+`release-2.18`; this release-local file is the matching inventory, not an
+independent scheduler. Every job retains weekly updates, hold labels, the MLMD
+freeze and the active schedule's protobuf >=7 exclusion. Generated HTTP clients
+remain outside scheduled updates.
 
 Dependabot does not read the interpreter in uv's generated requirements header.
 Use project-scoped `.python-version` files for dependencies that cannot resolve on

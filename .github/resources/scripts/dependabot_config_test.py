@@ -90,11 +90,47 @@ class DependabotConfigTest(unittest.TestCase):
                         [True]['pull_request']['paths']),
                     'Interpreter changes must run the configuration regression')
 
-    def test_release_ml_metadata_updates_are_disabled(self):
-        config = yaml.safe_load(self.config)
-        pip = next(update for update in config['updates']
-                   if update['package-ecosystem'] == 'pip')
-        self.assertIn({'dependency-name': 'ml-metadata'}, pip.get('ignore', []))
+    def test_release_python_compatibility_ignores_are_preserved(self):
+        for pip in self.ecosystem_updates('pip'):
+            with self.subTest(directories=pip['directories']):
+                self.assertIn({'dependency-name': 'ml-metadata'},
+                              pip.get('ignore', []))
+                self.assertIn(
+                    {
+                        'dependency-name': 'protobuf',
+                        'versions': ['>=7']
+                    }, pip.get('ignore', []))
+
+    def test_pip_jobs_are_bounded_and_disjoint(self):
+        jobs = self.ecosystem_updates('pip')
+        self.assertGreater(
+            len(jobs), 1,
+            'Split the 20-project job before it reaches the hosted timeout')
+        directories = []
+        group_names = []
+        for job in jobs:
+            self.assertLessEqual(len(job['directories']), 7)
+            self.assertGreater(job['open-pull-requests-limit'], 0)
+            self.assertNotIn('allow', job)
+            self.assertNotIn('exclude-paths', job)
+            group_names.extend(job['groups'])
+            self.assertEqual(
+                list(job['groups'].values()), [{
+                    'group-by': 'dependency-name'
+                }])
+            directories.extend(job['directories'])
+        self.assertEqual(len(group_names), len(set(group_names)))
+        self.assertEqual(len(directories), 20)
+        self.assertEqual(len(directories), len(set(directories)))
+        self.assertEqual(
+            sum(job['open-pull-requests-limit'] for job in jobs), 10)
+        for parent, child in (
+            ('/backend', '/backend/metadata_writer'),
+            ('/docs', '/docs/sdk'),
+            ('/kubernetes_platform/python', '/kubernetes_platform/python/docs'),
+        ):
+            owner = next(job for job in jobs if parent in job['directories'])
+            self.assertIn(child, owner['directories'])
 
     def test_pip_compile_headers_do_not_require_eol_updater_python(self):
         # Dependabot's PythonRequirementParser prioritizes this exact header
@@ -120,40 +156,21 @@ class DependabotConfigTest(unittest.TestCase):
             flags=re.MULTILINE | re.DOTALL,
         )
 
-    def update_block(self, ecosystem: str) -> str:
-        matching_blocks = [
-            block for configured_ecosystem, block in self.update_blocks()
-            if configured_ecosystem == ecosystem
+    def ecosystem_updates(self, ecosystem):
+        return [
+            update for update in yaml.safe_load(self.config)['updates']
+            if update['package-ecosystem'] == ecosystem
         ]
-        self.assertEqual(
-            len(matching_blocks),
-            1,
-            f'expected exactly one Dependabot ecosystem {ecosystem}',
-        )
-        return matching_blocks[0]
 
     def configured_directories(self, ecosystem: str) -> set[str]:
-        block = self.update_block(ecosystem)
-        singular_match = re.search(r'^    directory: "([^"]+)"$', block,
-                                   re.MULTILINE)
-        if singular_match:
-            return {singular_match.group(1)}
+        directories = set()
+        for update in self.ecosystem_updates(ecosystem):
+            directories.update(
+                update.get('directories', [update.get('directory')]))
+        self.assertNotIn(None, directories)
+        return directories
 
-        directories_match = re.search(
-            r'^    directories:\n((?:      - "[^"]+"\n)+)',
-            block,
-            re.MULTILINE,
-        )
-        self.assertIsNotNone(
-            directories_match,
-            f'missing directories for Dependabot ecosystem {ecosystem}',
-        )
-        return set(
-            re.findall(r'^      - "([^"]+)"$', directories_match.group(1),
-                       re.MULTILINE))
-
-    def configured_labels(self, ecosystem: str) -> list[str]:
-        block = self.update_block(ecosystem)
+    def configured_labels(self, ecosystem: str, block: str) -> list[str]:
         label_keys = re.findall(
             r'^    (?:labels|[\'\"]labels[\'\"])\s*:',
             block,
@@ -182,10 +199,13 @@ class DependabotConfigTest(unittest.TestCase):
         ]
 
         self.assertCountEqual(
-            configured_ecosystems,
+            set(configured_ecosystems),
             ('gomod', 'docker', 'npm', 'pip', 'github-actions', 'pre-commit'))
         self.assertEqual(
-            len(configured_ecosystems), len(set(configured_ecosystems)))
+            len([
+                ecosystem for ecosystem in configured_ecosystems
+                if ecosystem != 'pip'
+            ]), 5)
 
     def test_version_and_security_updates_start_held_with_defaults_preserved(
             self):
@@ -198,14 +218,15 @@ class DependabotConfigTest(unittest.TestCase):
             'pre-commit': 'pre_commit',
         }
 
-        for ecosystem, ecosystem_label in ecosystem_labels.items():
-            with self.subTest(ecosystem=ecosystem):
+        for ecosystem, block in self.update_blocks():
+            ecosystem_label = ecosystem_labels[ecosystem]
+            with self.subTest(ecosystem=ecosystem, block=block):
                 self.assertNotRegex(
-                    self.update_block(ecosystem),
+                    block,
                     r'(?m)^    (?:target-branch|[\'\"]target-branch[\'\"])\s*:',
                 )
                 self.assertEqual(
-                    self.configured_labels(ecosystem),
+                    self.configured_labels(ecosystem, block),
                     ['dependencies', ecosystem_label, 'do-not-merge/hold'],
                 )
 
@@ -303,11 +324,15 @@ class DependabotConfigTest(unittest.TestCase):
 
     def test_new_ecosystems_use_bounded_weekly_updates(self):
         for ecosystem in ('npm', 'pip', 'github-actions', 'pre-commit'):
-            with self.subTest(ecosystem=ecosystem):
-                block = self.update_block(ecosystem)
-                self.assertIn('      interval: weekly', block)
-                self.assertIn('    open-pull-requests-limit: 10', block)
-                self.assertIn('      prefix: "chore(deps)"', block)
+            updates = self.ecosystem_updates(ecosystem)
+            self.assertEqual(
+                sum(update['open-pull-requests-limit'] for update in updates),
+                10)
+            for update in updates:
+                with self.subTest(ecosystem=ecosystem, update=update):
+                    self.assertEqual(update['schedule']['interval'], 'weekly')
+                    self.assertEqual(update['commit-message']['prefix'],
+                                     'chore(deps)')
 
     def test_config_changes_run_ci_script_tests(self):
         self.assertIn("      - '.github/dependabot.yml'",
