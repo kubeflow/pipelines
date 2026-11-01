@@ -23,6 +23,8 @@ on:
       - 'uv.lock'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/setup-python/**'
       - '.github/actions/protobuf/**'
@@ -78,12 +80,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/image-builds.yml
-
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
     permissions:

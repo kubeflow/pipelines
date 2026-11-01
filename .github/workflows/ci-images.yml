@@ -1,0 +1,125 @@
+name: Shared CI Images
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    paths:
+      - '**/pyproject.toml'
+      - '.dockerignore'
+      - '.github/actions/arm64-smoke/**'
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
+      - '.github/actions/github-disk-cleanup/**'
+      - '.github/actions/install-dra-driver/**'
+      - '.github/actions/install-fgo-fake/**'
+      - '.github/actions/junit-summary/**'
+      - '.github/actions/protobuf/**'
+      - '.github/actions/setup-python/**'
+      - '.github/actions/shared-ci-images/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/resources/**'
+      - '.github/resources/buildkitd.toml'
+      - '.github/resources/curl-retry/**'
+      - '.github/resources/scripts/**'
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/arm64-presubmit.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/workflows/e2e-test-frontend.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/workflows/kfp-kubernetes-native-migration-tests.yaml'
+      - '.github/workflows/kfp-sdk-client-tests.yml'
+      - '.github/workflows/kfp-webhooks.yml'
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
+      - 'api/**'
+      - 'api/v2alpha1/**'
+      - 'backend/**'
+      - 'backend/src/apiserver/**'
+      - 'backend/src/common/**'
+      - 'backend/test/constants/**'
+      - 'frontend/**'
+      - 'frontend/server/handlers/artifacts.ts'
+      - 'go.mod'
+      - 'go.sum'
+      - 'kubernetes_platform/**'
+      - 'manifests/kustomize/**'
+      - 'proxy/**'
+      - 'pyproject.toml'
+      - 'samples/**'
+      - 'sdk/**'
+      - 'sdk/python/**'
+      - 'test/**'
+      - 'test/artifact-proxy/**'
+      - 'test/frontend-integration-test/**'
+      - 'test/kfp-kubernetes-native-migration-tests/**'
+      - 'test/seaweedfs/**'
+      - 'test/server-integration-test/**'
+      - 'test_data/pipeline_files/valid/**'
+      - 'test_data/sdk_compiled_pipelines/**'
+      - 'third_party/**'
+      - 'tools/k8s-native/**'
+      - 'uv.lock'
+      - '!**/*.md'
+      - '!**/OWNERS'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer PR revision must not cancel images still needed by an older consumer.
+concurrency:
+  group: shared-ci-images-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      amd64: ${{ steps.plan.outputs.amd64 }}
+      arm64: ${{ steps.plan.outputs.arm64 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Record checked-out source identity
+        run: python3 .github/resources/scripts/shared_ci_images.py source --output source.json
+      - name: Publish source identity before image builds
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ci-image-source-attempt-${{ github.run_attempt }}
+          path: source.json
+          if-no-files-found: error
+          retention-days: 1
+      - name: Select required architectures
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/resources/scripts/shared_ci_image_plan.js
+
+  amd64:
+    needs: source
+    if: needs.source.outputs.amd64 == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/image-builds.yml
+    with:
+      architecture: amd64
+      shared: true
+
+  arm64:
+    needs: source
+    if: needs.source.outputs.arm64 == 'true'
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/image-builds.yml
+    with:
+      architecture: arm64
+      shared: true
