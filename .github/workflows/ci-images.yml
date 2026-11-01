@@ -1,6 +1,9 @@
 name: Shared CI Images
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches: [master, main]
   pull_request:

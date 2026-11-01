@@ -492,6 +492,8 @@ Verify stale-green revocation, retargeted PRs, normal and Dependabot merges, rel
 dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.
 
+- Master merge-queue candidates run all master PR CI lanes via `merge_group`, ignoring PR path filters. CI Check uses a separate trusted `workflow_run` publisher for exact queue-SHA `ci-passed` evidence; see [ci-passed.md](ci-passed.md#master-merge-group-ci). Preserve nonpublishing queue image builds and immutable candidate refs in SDK/test downloads. Adding a master PR lane also requires a master merge-group trigger and inventory regeneration. GitHub/Tide activation is a separate coordinated change.
+
 ### GitHub API efficiency
 
 - Requested/in-progress CI events use the existing writer lock to invalidate green after checking the current PR and run identity; active runs do not trigger full evidence scans. Completed delayed events still reconcile all evidence. A prepared pending/failure workflow result can be reused only within the same job after successful preparation and a fresh PR/head check; external checks remain fresh, and every success retains full pre/post-publication verification.

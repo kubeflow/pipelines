@@ -1,6 +1,9 @@
 name: KFP e2e frontend tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches: [master, main]
 

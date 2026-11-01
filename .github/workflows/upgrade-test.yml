@@ -9,6 +9,9 @@ env:
   PYTHON_VERSION: "3.11"
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches: [master, main]
 
