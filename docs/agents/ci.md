@@ -391,6 +391,7 @@ ARM summary migration requires a separate status API check for the exact upload 
 
 - Explicit default-branch `CI Check` dispatch can recover a pending aggregate on an already merged release PR. It requires the PR number and exact tested head and reuses the required workflow inventory, external checks and pinned independent checker. Interrupted recovery cleanup uses bounded exact-ID retries and a fresh authenticated dispatch; normal merged-PR status preservation remains unchanged; see [merged release recovery](ci-passed.md#recover-a-pending-aggregate-after-a-release-merge).
 
+- Before the default branch rename, run the read-only [main branch readiness checker](../contributing/main-branch-cutover.md#read-only-readiness-report). It checks live GitHub/Prow evidence, fails closed on unknowns, and keeps owner authorization separate from automated checks.
 
 ## Default branch migration preparation
 

@@ -7,7 +7,7 @@
  * need to be restarted.
  *
  * Usage:
- *   node detect-changes.js --base master
+ *   node detect-changes.js --base main
  *   node detect-changes.js --base release
  *   node detect-changes.js --base 2.15.0
  */
@@ -108,7 +108,7 @@ function getLatestRelease() {
 
 /**
  * Resolve a base ref string to an actual git ref.
- *   "master" → "master"
+ *   "main" → "main"
  *   "release" → latest semver tag (e.g. "2.15.0")
  *   anything else → passed through as-is
  */
@@ -131,7 +131,7 @@ function resolveBaseRef(ref) {
  * include files changed on the base branch since divergence, causing
  * unnecessary backend rebuilds for frontend-only PRs.
  *
- * @param {string} baseRef - Base git ref (e.g. "master", "2.15.0")
+ * @param {string} baseRef - Base git ref (e.g. "main", "2.15.0")
  * @param {string} [headRef='HEAD'] - Head git ref (e.g. "HEAD", "pr-12756")
  */
 function getChangedFiles(baseRef, headRef = 'HEAD') {
@@ -160,7 +160,7 @@ function fileMatchesComponent(file, component) {
 /**
  * Detect which components changed between baseRef and headRef.
  *
- * @param {string} baseRef - Base ref string ("master", "release", or a tag/SHA)
+ * @param {string} baseRef - Base ref string ("main", "release", or a tag/SHA)
  * @param {string} [headRef='HEAD'] - Head ref (e.g. "HEAD", "pr-12756")
  *
  * Returns:
@@ -224,7 +224,7 @@ if (require.main === module) {
     return index !== -1 && args[index + 1] ? args[index + 1] : defaultValue;
   };
 
-  const baseRef = getArg('base', 'master');
+  const baseRef = getArg('base', 'main');
 
   try {
     const result = detectChanges(baseRef);
