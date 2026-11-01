@@ -1297,6 +1297,41 @@ func isStructuralTaskType(t model.TaskType) bool {
 	}
 }
 
+func (s *TaskStore) hasNonSuccessfulChildren(tx *sql.Tx, parentUUID string) (bool, error) {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	sqlStr, args, err := qb.
+		Select(q("State")).
+		From(q(tableName)).
+		Where(sq.Eq{q("ParentTaskUUID"): parentUUID}).
+		ToSql()
+	if err != nil {
+		return false, err
+	}
+	rows, err := tx.Query(sqlStr, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var state int32
+		if err := rows.Scan(&state); err != nil {
+			return false, err
+		}
+		taskState := apiv2.PipelineTask_TaskState(state)
+		if taskState == apiv2.PipelineTask_FAILED ||
+			taskState == apiv2.PipelineTask_RUNNING ||
+			taskState == apiv2.PipelineTask_RUNTIME_STATE_UNSPECIFIED {
+			return true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
 // UpdateTask updates an existing task in the tasks table and returns the updated task.
 // Uses row-level locking to prevent race conditions when multiple concurrent updates
 // try to modify the same task (e.g., loop iterations propagating parameters to parent task).
@@ -1450,12 +1485,13 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 
 	// 2. Intra-attempt terminal state protection and retry recovery:
 	// For ordinary callbacks (expectedRetryGeneration < 0):
-	// - SUCCEEDED, SKIPPED, CACHED are irreversible: cannot regress to RUNNING or overwrite with FAILED.
-	// - Within the same attempt (attemptSame): FAILED is irreversible: cannot regress to RUNNING or overwrite with SUCCEEDED.
-	// - Across automatic executor retries (attemptNewer): a newer executor attempt can recover a FAILED task to RUNNING or SUCCEEDED.
+	// - Terminal states (SUCCEEDED, SKIPPED, CACHED) cannot regress to RUNNING.
+	// - For structural tasks (DAG, ROOT, etc.): which have no executor pods of their own, recovery from FAILED to SUCCEEDED
+	//   is permitted when validated that all children in the database are successful (no failed or running children).
+	// - For runtime tasks: within the same attempt (attemptSame), FAILED is irreversible: cannot regress to RUNNING or overwrite with SUCCEEDED.
+	// - For runtime tasks: across automatic executor retries (attemptNewer), a newer executor attempt can recover a FAILED task to RUNNING or SUCCEEDED.
 	if expectedRetryGeneration < 0 && isTerminalTaskState(lockedOld.State) {
-		switch apiv2.PipelineTask_TaskState(lockedOld.State) {
-		case apiv2.PipelineTask_SUCCEEDED, apiv2.PipelineTask_SKIPPED, apiv2.PipelineTask_CACHED:
+		if lockedOld.State != model.TaskStatus(apiv2.PipelineTask_FAILED) {
 			if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
 				oldStateStr := apiv2.PipelineTask_TaskState(lockedOld.State).String()
 				return nil, util.NewConflictServerError(
@@ -1463,25 +1499,36 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 					"Task update rejected because task %s is already in terminal state %s", new.UUID, oldStateStr,
 				)
 			}
-			if new.State == model.TaskStatus(apiv2.PipelineTask_FAILED) {
-				return nil, util.NewConflictServerError(
-					fmt.Errorf("stale task update: cannot overwrite %s state with FAILED for task %s", apiv2.PipelineTask_TaskState(lockedOld.State).String(), new.UUID),
-					"Task update rejected because task %s is already terminal", new.UUID,
-				)
-			}
-		case apiv2.PipelineTask_FAILED:
-			if attemptRel != attemptNewer {
-				if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
-					return nil, util.NewConflictServerError(
-						fmt.Errorf("stale task update: cannot regress terminal task %s (state FAILED) to RUNNING within same attempt", new.UUID),
-						"Task update rejected because task %s is already in terminal state FAILED", new.UUID,
-					)
-				}
+		}
+
+		if lockedOld.State == model.TaskStatus(apiv2.PipelineTask_FAILED) {
+			if isStructuralTaskType(lockedOld.Type) {
 				if new.State == model.TaskStatus(apiv2.PipelineTask_SUCCEEDED) {
-					return nil, util.NewConflictServerError(
-						fmt.Errorf("stale task update: cannot overwrite FAILED state with SUCCEEDED for task %s within same attempt", new.UUID),
-						"Task update rejected because task %s has already failed", new.UUID,
-					)
+					hasNonSuccess, err := s.hasNonSuccessfulChildren(tx, new.UUID)
+					if err != nil {
+						return nil, util.NewInternalServerError(err, "Failed to validate children for structural task %s", new.UUID)
+					}
+					if hasNonSuccess {
+						return nil, util.NewConflictServerError(
+							fmt.Errorf("stale task update: structural task %s still has failed or running children", new.UUID),
+							"Task update rejected because structural task %s has incomplete or failed children", new.UUID,
+						)
+					}
+				}
+			} else {
+				if attemptRel != attemptNewer {
+					if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
+						return nil, util.NewConflictServerError(
+							fmt.Errorf("stale task update: cannot regress terminal task %s (state FAILED) to RUNNING within same attempt", new.UUID),
+							"Task update rejected because task %s is already in terminal state FAILED", new.UUID,
+						)
+					}
+					if new.State == model.TaskStatus(apiv2.PipelineTask_SUCCEEDED) {
+						return nil, util.NewConflictServerError(
+							fmt.Errorf("stale task update: cannot overwrite FAILED state with SUCCEEDED for task %s within same attempt", new.UUID),
+							"Task update rejected because task %s has already failed", new.UUID,
+						)
+					}
 				}
 			}
 		}
@@ -1591,6 +1638,8 @@ func (s *TaskStore) UpdateTaskWithRetryFence(new *model.Task, expectedRetryGener
 	}
 	if new.FinishedInSec != 0 {
 		setMap[q("FinishedInSec")] = new.FinishedInSec
+	} else if new.State == model.TaskStatus(apiv2.PipelineTask_RUNNING) {
+		setMap[q("FinishedInSec")] = int64(0)
 	}
 
 	// JSON/slice/map fields: update only if not nil (presence indicates intent).

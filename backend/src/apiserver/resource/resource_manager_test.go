@@ -10049,3 +10049,205 @@ func TestSynchronizeRunFromLiveWorkflow_TaskLevelRejectionPreventsRunLevelFailur
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbTask.State, "task in database must remain RUNNING")
 }
+
+func TestSynchronizeRunFromLiveWorkflow_SelectsCurrentRunningRetry_DoesNotFallBackToOlderFailed(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   run.UUID,
+		Name:      "dag",
+		ScopePath: "root.dag",
+		Type:      model.TaskType(apiv2.PipelineTask_DAG),
+		State:     model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	})
+	require.NoError(t, err)
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{
+		{Name: "worker-driver", Type: apiv2.PipelineTask_DRIVER},
+		{Name: "worker-exec-0", Type: apiv2.PipelineTask_EXECUTOR},
+	})
+	require.NoError(t, err)
+
+	workerTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "worker",
+		ScopePath:      "root.dag.worker",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec:  100,
+		Pods:           pods,
+	})
+	require.NoError(t, err)
+
+	// Workflow has driver succeeded, with a Retry node containing Attempt 0 (Failed) and Attempt 1 (Running)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-driver": {
+					ID:          "worker-driver",
+					Name:        "worker-driver",
+					DisplayName: "worker-driver",
+					Type:        v1alpha1.NodeTypePod,
+					Phase:       v1alpha1.NodeSucceeded,
+					Children:    []string{"worker-retry"},
+				},
+				"worker-retry": {
+					ID:          "worker-retry",
+					Name:        "worker-retry",
+					DisplayName: "worker",
+					Type:        v1alpha1.NodeTypeRetry,
+					Phase:       v1alpha1.NodeRunning,
+					Children:    []string{"worker-exec-0", "worker-exec-1"},
+				},
+				"worker-exec-0": {
+					ID:          "worker-exec-0",
+					Name:        "worker-exec-0",
+					DisplayName: "worker(0)",
+					Type:        v1alpha1.NodeTypePod,
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "OOM killed in attempt 0",
+					FinishedAt:  v1.Time{Time: time.Unix(100, 0)},
+				},
+				"worker-exec-1": {
+					ID:          "worker-exec-1",
+					Name:        "worker-exec-1",
+					DisplayName: "worker(1)",
+					Type:        v1alpha1.NodeTypePod,
+					Phase:       v1alpha1.NodeRunning,
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	performed, err := manager.synchronizeRunFromLiveWorkflow(authCtx, run)
+	require.NoError(t, err)
+	assert.True(t, performed)
+
+	dbWorker, err := manager.GetTask(workerTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbWorker.State,
+		"reconciler must select current running attempt and transition task to RUNNING")
+	assert.Equal(t, int64(0), dbWorker.FinishedInSec, "finished time must be reset to 0 while retrying")
+	assert.Nil(t, dbWorker.LifecycleMessage, "stale error message from older attempt must be cleared")
+
+	dbDag, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), dbDag.State,
+		"parent DAG must remain RUNNING and not be falsely failed by older attempt")
+}
+
+func TestSynchronizeRunFromLiveWorkflow_SelectsCurrentSucceededRetry_RestoresParentDAG(t *testing.T) {
+	store, manager, run := initWithOneTimeRunWithUUID(t)
+	defer store.Close()
+
+	dagTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:     "ns1",
+		RunUUID:       run.UUID,
+		Name:          "dag",
+		ScopePath:     "root.dag",
+		Type:          model.TaskType(apiv2.PipelineTask_DAG),
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 100,
+	})
+	require.NoError(t, err)
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{
+		{Name: "worker-driver", Type: apiv2.PipelineTask_DRIVER},
+		{Name: "worker-exec-0", Type: apiv2.PipelineTask_EXECUTOR},
+	})
+	require.NoError(t, err)
+
+	workerTask, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        run.UUID,
+		ParentTaskUUID: &dagTask.UUID,
+		Name:           "worker",
+		ScopePath:      "root.dag.worker",
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec:  100,
+		Pods:           pods,
+	})
+	require.NoError(t, err)
+
+	// Workflow completes successfully: driver succeeded, Attempt 0 failed, Attempt 1 succeeded
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:        run.K8SName,
+			UID:         types.UID(run.UUID),
+			Namespace:   "ns1",
+			Labels:      map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{"workflows.argoproj.io/pod-name-format": "v1"},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowSucceeded,
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"worker-driver": {
+					ID:          "worker-driver",
+					Name:        "worker-driver",
+					DisplayName: "worker-driver",
+					Type:        v1alpha1.NodeTypePod,
+					Phase:       v1alpha1.NodeSucceeded,
+					Children:    []string{"worker-retry"},
+				},
+				"worker-retry": {
+					ID:          "worker-retry",
+					Name:        "worker-retry",
+					DisplayName: "worker",
+					Type:        v1alpha1.NodeTypeRetry,
+					Phase:       v1alpha1.NodeSucceeded,
+					Children:    []string{"worker-exec-0", "worker-exec-1"},
+				},
+				"worker-exec-0": {
+					ID:          "worker-exec-0",
+					Name:        "worker-exec-0",
+					DisplayName: "worker(0)",
+					Type:        v1alpha1.NodeTypePod,
+					Phase:       v1alpha1.NodeFailed,
+					Message:     "OOM killed in attempt 0",
+					FinishedAt:  v1.Time{Time: time.Unix(100, 0)},
+				},
+				"worker-exec-1": {
+					ID:          "worker-exec-1",
+					Name:        "worker-exec-1",
+					DisplayName: "worker(1)",
+					Type:        v1alpha1.NodeTypePod,
+					Phase:       v1alpha1.NodeSucceeded,
+					FinishedAt:  v1.Time{Time: time.Unix(200, 0)},
+				},
+			},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	authCtx := common.WithAuthoritativeRequirement(context.Background())
+	performed, err := manager.synchronizeRunFromLiveWorkflow(authCtx, run)
+	require.NoError(t, err)
+	assert.True(t, performed)
+
+	dbWorker, err := manager.GetTask(workerTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), dbWorker.State,
+		"reconciler must select current succeeded attempt and transition task to SUCCEEDED")
+
+	dbDag, err := manager.GetTask(dagTask.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), dbDag.State,
+		"parent DAG must be restored to SUCCEEDED after child retry success")
+}

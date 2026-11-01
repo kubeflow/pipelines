@@ -2220,3 +2220,89 @@ func TestUpdateTaskWithRetryFence_SameAttempt_CannotOverwriteFailedWithSucceeded
 	require.True(t, ok)
 	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
 }
+
+func TestUpdateTaskWithRetryFence_StructuralParentRecovery_AfterChildRetrySuccess(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	// 1. Create parent DAG task that initially failed
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	parentDag, err := taskStore.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "parent-dag",
+		State:     model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Type:      model.TaskType(apiv2.PipelineTask_DAG),
+		Pods:      model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// 2. Create child task associated with parentDag (succeeded after retry)
+	driverPod := createTaskPod("child-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("child-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	exec2Pod := createTaskPod("child-exec-2", "exec-uid-2", apiv2.PipelineTask_EXECUTOR)
+	parentUUID := parentDag.UUID
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	childTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        "run-1",
+		Name:           "child-task",
+		ParentTaskUUID: &parentUUID,
+		State:          model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		Pods:           createTaskPodsAsJSONSlice(driverPod, exec1Pod, exec2Pod),
+	})
+	require.NoError(t, err)
+	_ = childTask
+
+	// 3. Ordinary callback (expectedRetryGeneration = -1) recovers parent DAG from FAILED to SUCCEEDED
+	updatedParent, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  parentDag.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), updatedParent.State)
+}
+
+func TestUpdateTaskWithRetryFence_StructuralParentRecovery_RejectedWhileChildStillFailed(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	// 1. Create parent DAG task that is FAILED
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	parentDag, err := taskStore.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "parent-dag",
+		State:     model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Type:      model.TaskType(apiv2.PipelineTask_DAG),
+		Pods:      model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// 2. Create child task associated with parentDag that is still FAILED
+	driverPod := createTaskPod("child-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("child-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	parentUUID := parentDag.UUID
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	_, err = taskStore.CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        "run-1",
+		Name:           "child-task",
+		ParentTaskUUID: &parentUUID,
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		Pods:           createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	})
+	require.NoError(t, err)
+
+	// 3. Attempting to update parent DAG to SUCCEEDED while a child is still FAILED must be rejected
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  parentDag.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}

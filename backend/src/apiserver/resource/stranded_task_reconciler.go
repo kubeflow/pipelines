@@ -191,10 +191,31 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 	reconcileTask := func(task *model.Task, node util.NodeStatus, extraPodName string) error {
 		applyNodeStatusToTask(task, node, nowSec)
 		if extraPodName != "" {
-			task.Pods = append(task.Pods, map[string]interface{}{
-				"name": extraPodName,
-				"type": apiv2beta1.PipelineTask_EXECUTOR.String(),
-			})
+			hasPod := false
+			for _, pod := range task.Pods {
+				switch p := pod.(type) {
+				case map[string]interface{}:
+					name, _ := p["name"].(string)
+					if name == "" {
+						name, _ = p["Name"].(string)
+					}
+					if name == extraPodName {
+						hasPod = true
+						break
+					}
+				case *apiv2beta1.PipelineTask_TaskPod:
+					if p != nil && p.GetName() == extraPodName {
+						hasPod = true
+						break
+					}
+				}
+			}
+			if !hasPod {
+				task.Pods = append(task.Pods, map[string]interface{}{
+					"name": extraPodName,
+					"type": apiv2beta1.PipelineTask_EXECUTOR.String(),
+				})
+			}
 		}
 		if _, err := r.taskStore.UpdateTaskWithRetryFence(task, reportedGeneration); err != nil {
 			if util.IsUserErrorCodeMatch(err, codes.Aborted) {
@@ -269,23 +290,18 @@ func (r *ResourceManager) reconcileStrandedTasks(ctx context.Context, run *model
 					continue
 				} else if driverNode.State == "Succeeded" {
 					executorNodes := findExecutorNodesFromDriver(driverNode, nodesByNodeID)
-					reconciled := false
-					for i := len(executorNodes) - 1; i >= 0; i-- {
-						en := executorNodes[i]
-						if shouldReconcileTaskFromNode(task.State, en.State, isFinalState) {
-							podName := en.ID
+					if currentAttempt, found := selectCurrentExecutorAttempt(executorNodes); found {
+						if shouldReconcileTaskFromNode(task.State, currentAttempt.State, isFinalState) {
+							podName := currentAttempt.ID
 							if podName == "" {
-								podName = en.DisplayName
+								podName = currentAttempt.DisplayName
 							}
-							glog.Infof("Reconciling task %s: driver succeeded, discovered executor node %s (%s)", task.UUID, podName, en.State)
-							if err := reconcileTask(task, en, podName); err != nil {
+							glog.Infof("Reconciling task %s: driver succeeded, current executor attempt %s (%s)", task.UUID, podName, currentAttempt.State)
+							if err := reconcileTask(task, currentAttempt, podName); err != nil {
 								return false, anyRejected, err
 							}
-							reconciled = true
-							break
 						}
-					}
-					if reconciled {
+						// Terminate inspection on the current attempt; do not fall back to older attempts.
 						continue
 					}
 					// If driver succeeded, no executor ran, and the entire workflow has finished: fail closed.
@@ -455,6 +471,8 @@ func (r *ResourceManager) aggregateDAGTaskStatuses(runID string, reportedGenerat
 					if parent.FinishedInSec == 0 {
 						parent.FinishedInSec = nowSec
 					}
+					parent.StatusMetadata = nil
+					parent.LifecycleMessage = nil
 
 					if _, err := r.taskStore.UpdateTaskWithRetryFence(parent, reportedGeneration); err != nil {
 						if util.IsUserErrorCodeMatch(err, codes.Aborted) {
@@ -579,26 +597,67 @@ func findExecutorNodesFromDriver(driverNode util.NodeStatus, nodesByNodeID map[s
 	return executorNodes
 }
 
+func selectCurrentExecutorAttempt(executorNodes []util.NodeStatus) (util.NodeStatus, bool) {
+	if len(executorNodes) == 0 {
+		return util.NodeStatus{}, false
+	}
+	// 1. If an attempt is currently running, that is authoritatively the current attempt.
+	for _, n := range executorNodes {
+		if n.State == "Running" {
+			return n, true
+		}
+	}
+	// 2. Otherwise, start from the last discovered node (matching BFS/retry order)
+	// and select the attempt with the latest finish/start/create timestamp.
+	current := executorNodes[len(executorNodes)-1]
+	for _, n := range executorNodes {
+		if n.FinishTime > current.FinishTime {
+			current = n
+		} else if n.FinishTime == current.FinishTime {
+			if n.StartTime > current.StartTime {
+				current = n
+			} else if n.StartTime == current.StartTime && n.CreateTime > current.CreateTime {
+				current = n
+			}
+		}
+	}
+	return current, true
+}
+
 func applyNodeStatusToTask(task *model.Task, node util.NodeStatus, defaultFinishTime int64) {
 	var newState apiv2beta1.PipelineTask_TaskState
 	switch node.State {
+	case "Running":
+		newState = apiv2beta1.PipelineTask_RUNNING
+		task.FinishedInSec = 0
 	case "Succeeded":
 		newState = apiv2beta1.PipelineTask_SUCCEEDED
+		task.FinishedInSec = node.FinishTime
+		if task.FinishedInSec == 0 {
+			task.FinishedInSec = defaultFinishTime
+		}
 	case "Skipped", "Omitted":
 		newState = apiv2beta1.PipelineTask_SKIPPED
+		task.FinishedInSec = node.FinishTime
+		if task.FinishedInSec == 0 {
+			task.FinishedInSec = defaultFinishTime
+		}
 	default:
 		newState = apiv2beta1.PipelineTask_FAILED
+		task.FinishedInSec = node.FinishTime
+		if task.FinishedInSec == 0 {
+			task.FinishedInSec = defaultFinishTime
+		}
 	}
 
 	task.State = model.TaskStatus(newState)
-	task.FinishedInSec = node.FinishTime
-	if task.FinishedInSec == 0 {
-		task.FinishedInSec = defaultFinishTime
-	}
 	if node.Message != "" {
 		task.StatusMetadata = model.JSONData{"message": node.Message}
 		lm := model.LargeText(node.Message)
 		task.LifecycleMessage = &lm
+	} else if newState == apiv2beta1.PipelineTask_RUNNING || newState == apiv2beta1.PipelineTask_SUCCEEDED {
+		task.StatusMetadata = nil
+		task.LifecycleMessage = nil
 	}
 }
 
@@ -616,9 +675,9 @@ func shouldReconcileTaskFromNode(taskState model.TaskStatus, nodeState string, i
 		taskState == model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED) {
 		return nodeState == "Failed" || nodeState == "Error"
 	}
-	// For already terminal FAILED tasks: allow reconciliation if authoritative node Succeeded (recovering automatic retry)!
+	// For already terminal FAILED tasks: allow reconciliation if authoritative node Succeeded or Running (recovering automatic retry)!
 	if taskState == model.TaskStatus(apiv2beta1.PipelineTask_FAILED) {
-		return nodeState == "Succeeded"
+		return nodeState == "Succeeded" || nodeState == "Running"
 	}
 	return false
 }
@@ -645,6 +704,19 @@ func hasDAGInconsistencies(tasks []*model.Task) bool {
 					child.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED) {
 					return true
 				}
+			}
+		} else if parent.State == model.TaskStatus(apiv2beta1.PipelineTask_FAILED) {
+			hasFailureOrRunning := false
+			for _, child := range children {
+				if child.State == model.TaskStatus(apiv2beta1.PipelineTask_FAILED) ||
+					child.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNNING) ||
+					child.State == model.TaskStatus(apiv2beta1.PipelineTask_RUNTIME_STATE_UNSPECIFIED) {
+					hasFailureOrRunning = true
+					break
+				}
+			}
+			if !hasFailureOrRunning {
+				return true
 			}
 		}
 	}
