@@ -16,10 +16,12 @@
 runtimes."""
 
 import copy
+import io
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -221,65 +223,138 @@ class CacheFixtureImageTest(unittest.TestCase):
                     else:
                         self.assertIn('hello', result.stdout)
 
-    def test_image_preparation_stops_on_export_or_load_failure(self):
+    @staticmethod
+    def image_archive():
+        output = io.BytesIO()
+        with tarfile.open(fileobj=output, mode='w') as archive:
+            for name, data in (
+                (
+                    'manifest.json',
+                    b'[{"Config":"config.json","Layers":["layer.tar"]}]',
+                ),
+                ('config.json', b'{}'),
+                ('layer.tar', b'layer contents' * 100),
+            ):
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        return output.getvalue()
+
+    def run_image_preparation(
+        self, archive, failure='', platform='linux/amd64'
+    ):
         with tempfile.TemporaryDirectory() as directory:
             work = Path(directory)
             binaries = work / 'bin'
             binaries.mkdir()
+            exported = work / 'export.tar'
+            exported.write_bytes(archive)
+            log = work / 'commands'
+            log.touch()
             for command in ('docker', 'kind', 'python'):
                 stub = binaries / command
                 stub.write_text(
                     '#!/bin/bash\n'
-                    'echo "$(basename "$0") $*" >> "$COMMAND_LOG"\n'
-                    'if [[ "$(basename "$0")" == kind && "$1" == get ]]; then\n'
-                    '  echo test-control-plane\n'
-                    'fi\n'
-                    'if [[ "$(basename "$0") $*" == *"$FAIL_COMMAND"* ]]; then exit 1; fi\n'
+                    'command="$(basename "$0")"\n'
+                    'echo "$command $*" >> "$COMMAND_LOG"\n'
+                    'if [[ -n "$FAIL_COMMAND" && "$command $*" == *"$FAIL_COMMAND"* ]]; then exit 1; fi\n'
+                    'if [[ "$command $1" == "kind get" ]]; then echo test-control-plane; fi\n'
+                    'if [[ "$command $1" == "docker inspect" ]]; then echo node-image; fi\n'
+                    'if [[ "$command $1 $2" == "docker image inspect" ]]; then echo "$NODE_PLATFORM"; fi\n'
+                    'if [[ "$command $1" == "docker exec" ]]; then cat "$EXPORT_ARCHIVE"; fi\n'
+                    # Confirm validation does not alter the loaded bytes.
+                    'if [[ "$command $1" == "docker load" ]]; then cmp "$EXPORT_ARCHIVE" "$3" || exit 2; fi\n'
                     'if [[ "$*" == *--image-matrix* ]]; then echo "python:3.12 2.13.0 kfp-cache-fixture:2.13.0-python3.12"; fi\n'
                 )
                 stub.chmod(0o755)
-            for failure in ('docker exec', 'python -m pip wheel', 'kind load'):
-                with self.subTest(failure=failure):
-                    log = work / 'commands'
-                    log.write_text('')
-                    result = subprocess.run(
-                        [
-                            'bash',
-                            str(
-                                ROOT
-                                / '.github/resources/scripts/build-cache-fixture-image.sh'
-                            ),
-                            'test',
-                            str(work / 'output'),
-                        ],
-                        cwd=ROOT,
-                        env={
-                            **os.environ,
-                            'PATH': str(binaries)
-                            + os.pathsep
-                            + os.environ['PATH'],
-                            'COMMAND_LOG': str(log),
-                            'FAIL_COMMAND': failure,
-                            # A persistently failing load is retried; do not
-                            # sleep between the stubbed attempts.
-                            'KIND_LOAD_RETRY_INTERVAL': '0',
-                        },
-                        capture_output=True,
-                        text=True,
+            result = subprocess.run(
+                [
+                    'bash',
+                    str(
+                        ROOT
+                        / '.github/resources/scripts/build-cache-fixture-image.sh'
+                    ),
+                    'test',
+                    str(work / 'output'),
+                ],
+                cwd=ROOT,
+                env={
+                    **os.environ,
+                    'PATH': str(binaries) + os.pathsep + os.environ['PATH'],
+                    'COMMAND_LOG': str(log),
+                    'FAIL_COMMAND': failure,
+                    'EXPORT_ARCHIVE': str(exported),
+                    'NODE_PLATFORM': platform,
+                    'KIND_LOAD_RETRY_INTERVAL': '0',
+                },
+                capture_output=True,
+                text=True,
+            )
+            return result, log.read_text()
+
+    def test_image_preparation_loads_complete_archive_for_node_platform(self):
+        for platform in ('linux/amd64', 'linux/arm64'):
+            with self.subTest(platform=platform):
+                result, commands = self.run_image_preparation(
+                    self.image_archive(), platform=platform
+                )
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn(
+                    f'images export --local --platform {platform}', commands
+                )
+                self.assertLess(
+                    commands.index('docker exec'), commands.index('docker load')
+                )
+                self.assertLess(
+                    commands.index('docker load'),
+                    commands.index('docker build'),
+                )
+                self.assertIn('kind load docker-image', commands)
+                self.assertIn('prepare_cache_fixtures.py ', commands)
+                self.assertNotIn('docker pull', commands)
+
+    def test_image_preparation_rejects_invalid_archive_before_load(self):
+        ordinary_tar = io.BytesIO()
+        with tarfile.open(fileobj=ordinary_tar, mode='w') as archive:
+            archive.addfile(tarfile.TarInfo('ordinary-file'))
+        for name, archive in (
+            ('empty', b''),
+            ('not-tar', b'Exporting image\n'),
+            ('not-image', ordinary_tar.getvalue()),
+            # Cut within the final layer payload, after manifest.json exists.
+            ('truncated-layer', self.image_archive()[:2700]),
+        ):
+            with self.subTest(archive=name):
+                result, commands = self.run_image_preparation(archive)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn(
+                    'Invalid or incomplete image archive', result.stderr
+                )
+                self.assertNotIn('docker load', commands)
+                self.assertNotIn('docker build', commands)
+
+    def test_image_preparation_stops_on_export_or_load_failure(self):
+        for failure, diagnostic in (
+            ('docker exec', 'Failed to export preloaded image'),
+            ('docker load', 'Failed to load exported image'),
+            ('python -m pip wheel', ''),
+            ('kind load', ''),
+        ):
+            with self.subTest(failure=failure):
+                result, commands = self.run_image_preparation(
+                    self.image_archive(), failure=failure
+                )
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn(diagnostic, result.stderr)
+                if failure == 'docker exec':
+                    self.assertNotIn('docker load', commands)
+                if failure in ('docker exec', 'docker load'):
+                    self.assertNotIn('docker build', commands)
+                if failure == 'kind load':
+                    self.assertEqual(
+                        3, commands.count('kind load docker-image')
                     )
-                    self.assertNotEqual(0, result.returncode)
-                    self.assertNotIn(
-                        'prepare_cache_fixtures.py ' + str(work / 'output'),
-                        log.read_text(),
-                    )
-                    if failure == 'docker exec':
-                        self.assertNotIn('docker build', log.read_text())
-                    if failure == 'kind load':
-                        # A truncated load stream is retried before failing.
-                        self.assertEqual(
-                            3,
-                            log.read_text().count('kind load docker-image'),
-                        )
+                self.assertNotIn('prepare_cache_fixtures.py /', commands)
 
     def test_shell_reuses_preloaded_base_without_network(self):
         script = (
@@ -289,7 +364,7 @@ class CacheFixtureImageTest(unittest.TestCase):
             ROOT / 'backend/test/v2/resources/cache-image/Dockerfile'
         ).read_text()
         self.assertIn(
-            'images export --platform linux/amd64 - "docker.io/library/$base"',
+            'images export --local --platform "$platform" - "docker.io/library/$base"',
             script,
         )
         self.assertIn(

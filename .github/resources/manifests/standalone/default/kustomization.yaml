@@ -9,6 +9,7 @@ resources:
 # job so backend/test/v2/api/image_pull_failure_api_test.go runs against a real
 # persistence agent. The grace period is shortened to keep that test fast.
 components:
+  - ../../components/preloaded-mysql
   - ../../../../../manifests/kustomize/components/image-pull-failure-handling
 
 images:

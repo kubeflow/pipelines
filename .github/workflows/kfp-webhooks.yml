@@ -13,6 +13,8 @@ on:
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - 'backend/**'
       - '!**/*.md'
       - '!**/OWNERS'
@@ -26,12 +28,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/image-builds.yml
-
   webhook-tests:
     runs-on: ubuntu-latest
     permissions:

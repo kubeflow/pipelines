@@ -10,6 +10,8 @@ on:
       - 'uv.lock'
       - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/**'
@@ -29,12 +31,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/image-builds.yml
-
   frontend-integration-dependency-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 10

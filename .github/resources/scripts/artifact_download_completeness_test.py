@@ -254,6 +254,7 @@ class ArtifactDownloadCompletenessTest(unittest.TestCase):
             key: runner.inputs[key]
             for key in (
                 'name',
+                'artifact-ids',
                 'path',
                 'pattern',
                 'merge-multiple',

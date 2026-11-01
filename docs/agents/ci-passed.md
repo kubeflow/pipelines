@@ -35,6 +35,14 @@ replacement of a pending job within the same group.
 
 ## Contract and enforcement
 
+`Shared CI Images` is an expected workflow whenever its PR path filters match.
+Its completion events wake CI Check; image consumers also fail if source,
+architecture, producer attempt or artifact checksums do not match. Keep the
+producer in the generated workflow inventory and completion subscription when
+changing the shared build topology. A successful consumer does not waive a
+failed producer or another required check.
+
+
 | Condition | Required behavior | Enforcement |
 | --- | --- | --- |
 | `needs-ok-to-test` present | No success, regardless of author | Explicit publisher veto; current Tide queries rely on this protection |
