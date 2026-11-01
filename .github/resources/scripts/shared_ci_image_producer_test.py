@@ -44,8 +44,21 @@ class SharedImageProducerTest(unittest.TestCase):
         self.assertCountEqual(
             callers,
             [
-                ('ci-images.yml', arch, {'architecture': arch, 'shared': True})
-                for arch in ('amd64', 'arm64')
+                (
+                    'ci-images.yml',
+                    'amd64',
+                    {
+                        'architecture': 'amd64',
+                        'shared': True,
+                        'cache-write': "${{ github.event_name == 'push' && github.ref == "
+                        "format('refs/heads/{0}', github.event.repository.default_branch) }}",
+                    },
+                ),
+                (
+                    'ci-images.yml',
+                    'arm64',
+                    {'architecture': 'arm64', 'shared': True},
+                ),
             ],
         )
         for name in CONSUMERS:

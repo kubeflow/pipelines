@@ -84,6 +84,7 @@
     "pretest:ui:coverage": "npm run build:tailwind",
     "test": "LC_ALL=\"en_US.UTF-8\" vitest run",
     "test:ui": "vitest run",
+    "test:bundle:ci": "npm run build:tailwind && vite build && node --test scripts/production-bundle.smoke.mjs",
     "test:bundle": "npm run build && node --test scripts/production-bundle.smoke.mjs",
     "test:ui:watch": "vitest",
     "test:ui:coverage": "vitest run --coverage",
@@ -95,7 +96,8 @@
     "visual:diff": "node scripts/visual-compare.mjs diff --baseline-dir .visual/baseline --current-dir .visual/current --diff-dir .visual/diff --report .visual/report.html",
     "test:server:coverage": "npm --prefix ./server test -- --coverage",
     "test:coverage": "npm run test:ui:coverage && npm run test:server:coverage",
-    "test:ci": "export CI=true && npm run format:check && npm run lint && npm run typecheck && npm run typecheck:mock-backend && npm run check:react-peers && npm run test:coverage",
+    "test:static": "npm run format:check && npm run lint && npm run typecheck && npm run typecheck:mock-backend && npm run check:react-peers",
+    "test:ci": "export CI=true && npm run test:static && npm run test:coverage",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build"
   },
