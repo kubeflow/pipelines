@@ -1,5 +1,5 @@
 bokeh==3.8.2
-gcsfs>=2024.2.0
+gcsfs>=2026.10.1
 google-api-python-client==2.201.*
 itables==0.1.0
 ipykernel==7.1.0
