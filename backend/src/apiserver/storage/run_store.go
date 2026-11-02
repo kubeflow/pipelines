@@ -1780,32 +1780,76 @@ func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunS
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
-	// TODO(gkcalat): append CANCELLING to StateHistory
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 
-	sql, args, err := qb.
-		Update(q("run_details")).
-		SetMap(sq.Eq{
-			q("Conditions"): string(model.RuntimeStateCancelling.ToExecutionPhase()),
-			q("State"):      model.RuntimeStateCancelling.ToString(),
-		}).
-		Where(sq.And{
-			sq.Eq{q("UUID"): runId},
-			effectiveStatePredicate(
-				q,
-				model.RuntimeStatePaused,
-				model.RuntimeStatePending,
-				model.RuntimeStateRunning,
-				model.RuntimeStateUnspecified,
-				model.RuntimeStateCancelling,
-			),
-		}).
+	terminable := sq.And{
+		sq.Eq{q("UUID"): runId},
+		effectiveStatePredicate(
+			q,
+			model.RuntimeStatePaused,
+			model.RuntimeStatePending,
+			model.RuntimeStateRunning,
+			model.RuntimeStateUnspecified,
+			model.RuntimeStateCancelling,
+		),
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start transaction for terminating run %s", runId)
+	}
+	defer tx.Rollback()
+
+	// Lock the row so the history read below and the update cannot interleave
+	// with another state transition.
+	selectSQL, selectArgs, err := qb.
+		Select(q("StateHistory")).
+		From(q("run_details")).
+		Where(terminable).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
 	}
-	result, err := s.db.Exec(sql, args...)
+	var stateHistoryString sql.NullString
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(selectSQL), selectArgs...).Scan(&stateHistoryString); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+		}
+		return util.NewInternalServerError(err, "Failed to read run %s for termination", runId)
+	}
+	var stateHistory []*model.RuntimeStatus
+	if stateHistoryString.Valid && stateHistoryString.String != "" {
+		if err := json.Unmarshal([]byte(stateHistoryString.String), &stateHistory); err != nil {
+			return util.NewInternalServerError(err, "Failed to parse state history of run %s", runId)
+		}
+	}
+	// Terminating an already-canceling run is idempotent, so record the
+	// transition only once.
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != model.RuntimeStateCancelling {
+		stateHistory = append(stateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           model.RuntimeStateCancelling,
+		})
+	}
+	updatedHistory, err := json.Marshal(stateHistory)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to serialize state history of run %s", runId)
+	}
+
+	updateSQL, updateArgs, err := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{
+			q("Conditions"):   string(model.RuntimeStateCancelling.ToExecutionPhase()),
+			q("State"):        model.RuntimeStateCancelling.ToString(),
+			q("StateHistory"): string(updatedHistory),
+		}).
+		Where(terminable).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
+	}
+	result, err := tx.Exec(updateSQL, updateArgs...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
@@ -1818,6 +1862,9 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 	if r != 1 {
 		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit termination of run %s", runId)
 	}
 	return nil
 }
