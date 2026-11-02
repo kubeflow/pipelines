@@ -283,7 +283,7 @@ func TestArtifactServer_CreateArtifact_RejectsReuseIfExistsWithOperationID(t *te
 	assert.Contains(t, err.Error(), "reuse_if_exists cannot be combined with operation_id")
 }
 
-func TestArtifactServer_CreateArtifact_UsesRunRetryGeneration(t *testing.T) {
+func TestArtifactServer_CreateArtifact_PreservesLegacyRetryGenerationBehavior(t *testing.T) {
 	viper.Set(common.MultiUserMode, "false")
 	t.Cleanup(func() {
 		viper.Set(common.MultiUserMode, "false")
@@ -364,6 +364,98 @@ func TestArtifactServer_CreateArtifact_UsesRunRetryGeneration(t *testing.T) {
 
 	require.NotEmpty(t, second.GetArtifactId())
 	require.NotEqual(t, first.GetArtifactId(), second.GetArtifactId())
+}
+
+func TestArtifactServer_CreateArtifact_ReplayWithOperationIDAcrossRetryGeneration(t *testing.T) {
+	viper.Set(common.MultiUserMode, "false")
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, "false")
+	})
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(
+		clientManager,
+		&resource.ResourceManagerOptions{CollectMetrics: false},
+	)
+	s := createArtifactServer(resourceManager)
+
+	runID := "retry-generation-run"
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runID,
+		K8SName:      "retry-generation-run",
+		DisplayName:  "retry-generation-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+			RetryGeneration:  7,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runID,
+		Name:      "retry-generation-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	request := &apiv2beta1.CreateArtifactRequest{
+		RunId:       runID,
+		TaskId:      task.UUID,
+		ProducerKey: "output",
+		OperationId: "operation-1",
+		Artifact: &apiv2beta1.Artifact{
+			Namespace: "ns1",
+			Type:      apiv2beta1.Artifact_Artifact,
+			Uri:       strPTR("gs://bucket/output"),
+			Name:      "output",
+		},
+	}
+
+	// First write uses RetryGeneration = 7.
+	first, err := s.CreateArtifact(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, first)
+
+	require.NotEmpty(t, first.GetArtifactId())
+
+	firstArtifactID := first.GetArtifactId()
+
+	run, err := clientManager.RunStore().GetRun(runID, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(7), run.RetryGeneration)
+
+	// Move the run to a terminal state while preserving generation 7.
+	run.State = model.RuntimeStateSucceeded
+	require.NoError(t, clientManager.RunStore().UpdateRun(run))
+
+	// Use the real retry-claim path. This advances the authoritative
+	// attempt identity from generation 7 to generation 8.
+	_, _, _, newGeneration, err :=
+		clientManager.RunStore().ClaimRunForRetry(runID, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(8), newGeneration)
+
+	// Replay the same logical write after the run's retry generation advances.
+	// The caller-supplied operation ID must preserve the original artifact.
+	replayed, err := s.CreateArtifact(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, replayed)
+	require.Equal(t, firstArtifactID, replayed.GetArtifactId())
+
+	// A different operation ID represents a distinct logical write.
+	request.OperationId = "operation-2"
+
+	distinct, err := s.CreateArtifact(context.Background(), request)
+	require.NoError(t, err)
+	require.NotNil(t, distinct)
+	require.NotEmpty(t, distinct.GetArtifactId())
+	require.NotEqual(t, firstArtifactID, distinct.GetArtifactId())
 }
 
 func TestArtifactServer_CreateArtifact_RejectsNamespaceMismatch(t *testing.T) {
