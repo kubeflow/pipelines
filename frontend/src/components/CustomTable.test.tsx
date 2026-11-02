@@ -611,6 +611,60 @@ describe('CustomTable', () => {
     wrapper.unmount();
   });
 
+  it('appends the next page token without mutating the previous token list', async () => {
+    const nextTokens: Record<string, string> = { '': 'token 1', 'token 1': 'token 2' };
+    const reload = vi.fn(async (request: { pageToken?: string }) => {
+      return nextTokens[request.pageToken || ''] || '';
+    });
+    const wrapper = renderTable({ rows, columns, reload });
+    await flushPromisesInAct();
+    const tokenListBeforePaging = wrapper.state('tokenList') as string[];
+    expect(tokenListBeforePaging).toEqual(['', 'token 1']);
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await flushPromisesInAct();
+
+    expect(wrapper.state('currentPage')).toBe(1);
+    expect(wrapper.state('tokenList')).toEqual(['', 'token 1', 'token 2']);
+    expect(wrapper.state('tokenList')).not.toBe(tokenListBeforePaging);
+    expect(tokenListBeforePaging).toEqual(['', 'token 1']);
+    wrapper.unmount();
+  });
+
+  it('ignores a page response that finishes after a filter change resets the table', async () => {
+    let resolvePageRequest: (token: string) => void = () => undefined;
+    const reload = vi.fn((request: { filter?: string; pageToken?: string }) => {
+      if (request.filter) {
+        return Promise.resolve('new query token 1');
+      }
+      if (request.pageToken === 'old query token 1') {
+        return new Promise<string>((resolve) => {
+          resolvePageRequest = resolve;
+        });
+      }
+      return Promise.resolve('old query token 1');
+    });
+    const wrapper = renderTable({ rows, columns, reload });
+    await flushPromisesInAct();
+    expect(wrapper.state('tokenList')).toEqual(['', 'old query token 1']);
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await act(async () => {
+      await wrapper.instance()._requestFilter('new filter');
+    });
+    expect(wrapper.state('tokenList')).toEqual(['', 'new query token 1']);
+
+    await act(async () => {
+      resolvePageRequest('old query token 2');
+      await TestUtils.flushPromises();
+    });
+
+    expect(wrapper.state('currentPage')).toBe(0);
+    expect(wrapper.state('maxPageIndex')).toBe(Number.MAX_SAFE_INTEGER);
+    expect(wrapper.state('tokenList')).toEqual(['', 'new query token 1']);
+    wrapper.unmount();
+  });
+
   it('reloads with new page size and resets token list when no next page exists', async () => {
     const reloadResult = Promise.resolve('');
     const spy = vi.fn(() => reloadResult);
