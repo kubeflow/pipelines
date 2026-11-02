@@ -1011,6 +1011,45 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 	}
 }
 
+// A terminal report that loaded the run before TerminateRun committed passes
+// the manifest preconditions, because termination changes neither manifest nor
+// RetryGeneration. Its stale history must not erase the CANCELING entry.
+func TestUpdateRunIfRuntimeManifestsUnchanged_KeepsConcurrentCancellationHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1", true)
+	require.NoError(t, err)
+	require.Len(t, staleRun.StateHistory, 1)
+	expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
+	expectedPipelineRuntimeManifest := staleRun.PipelineRuntimeManifest
+	require.NoError(t, runStore.TerminateRun("1"))
+
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = string(model.RuntimeStateSucceeded.ToExecutionPhase())
+	staleRun.WorkflowRuntimeManifest = "finished-workflow"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		expectedWorkflowRuntimeManifest,
+		expectedPipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	require.True(t, updated)
+
+	persistedRun, err := runStore.GetRun("1", true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, persistedRun.State)
+	var states []model.RuntimeState
+	for _, status := range persistedRun.StateHistory {
+		states = append(states, status.State)
+	}
+	assert.Equal(t, []model.RuntimeState{
+		model.RuntimeStateRunning,
+		model.RuntimeStateCancelling,
+		model.RuntimeStateSucceeded,
+	}, states)
+}
+
 func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
 	for _, test := range []struct {
 		name       string

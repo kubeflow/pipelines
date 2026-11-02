@@ -1019,16 +1019,25 @@ type runRuntimeManifestPrecondition struct {
 	state           *model.RuntimeState
 }
 
+// lockedRun is the state of a run row read under lockRunForRuntimeManifestWrite.
+type lockedRun struct {
+	exists             bool
+	preconditionsMatch bool
+	// stateHistory is the persisted history, which may be newer than the
+	// caller's snapshot when another transition committed in between.
+	stateHistory sql.NullString
+}
+
 func lockRunForRuntimeManifestWrite(
 	tx *sql.Tx,
 	d dialect.DBDialect,
 	runID string,
 	expected runRuntimeManifestPrecondition,
-) (bool, bool, error) {
+) (lockedRun, error) {
 	q := d.QuoteIdentifier
 	qb := d.QueryBuilder()
 
-	lockColumns := []string{"WorkflowRuntimeManifest"}
+	lockColumns := []string{"StateHistory", "WorkflowRuntimeManifest"}
 	checkPipelineRuntimeManifest := expected.workflow == ""
 	if checkPipelineRuntimeManifest {
 		lockColumns = append(lockColumns, "PipelineRuntimeManifest")
@@ -1046,15 +1055,16 @@ func lockRunForRuntimeManifestWrite(
 		Where(sq.Eq{q("UUID"): runID}).
 		ToSql()
 	if err != nil {
-		return false, false, err
+		return lockedRun{}, err
 	}
+	var locked lockedRun
 	var currentWorkflowRuntimeManifest model.LargeText
 	var currentPipelineRuntimeManifest model.LargeText
 	var currentNamespace string
 	var currentState sql.NullString
 	var currentConditions sql.NullString
 	var currentRetryGeneration sql.NullInt64
-	lockScanTargets := []any{&currentWorkflowRuntimeManifest}
+	lockScanTargets := []any{&locked.stateHistory, &currentWorkflowRuntimeManifest}
 	if checkPipelineRuntimeManifest {
 		lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
 	}
@@ -1067,22 +1077,23 @@ func lockRunForRuntimeManifestWrite(
 	lockScanTargets = append(lockScanTargets, &currentRetryGeneration)
 	if err := tx.QueryRow(d.SelectForUpdate(lockSQL), lockArgs...).Scan(lockScanTargets...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, false, nil
+			return lockedRun{}, nil
 		}
-		return false, false, err
+		return lockedRun{}, err
 	}
+	locked.exists = true
 	effectiveState := model.RuntimeStateUnspecified
 	if currentState.Valid && currentState.String != "" {
 		effectiveState = model.RuntimeState(currentState.String).ToV2()
 	} else if currentConditions.Valid {
 		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
 	}
-	matches := currentWorkflowRuntimeManifest == expected.workflow &&
+	locked.preconditionsMatch = currentWorkflowRuntimeManifest == expected.workflow &&
 		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
 		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
 		(expected.state == nil || effectiveState == expected.state.ToV2()) &&
 		currentRetryGeneration.Int64 == expected.retryGeneration
-	return true, matches, nil
+	return locked, nil
 }
 
 func (s *RunStore) updateRun(
@@ -1098,7 +1109,7 @@ func (s *RunStore) updateRun(
 	}
 	defer tx.Rollback()
 	if expectedRuntimeManifests != nil {
-		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
+		locked, lockError := lockRunForRuntimeManifestWrite(
 			tx,
 			s.dbDialect,
 			run.UUID,
@@ -1112,17 +1123,29 @@ func (s *RunStore) updateRun(
 				run.UUID,
 			)
 		}
-		if !runExists {
+		if !locked.exists {
 			tx.Rollback()
 			return false, util.Wrap(
 				util.NewResourceNotFoundError("Run", run.UUID),
 				"Failed to update run",
 			)
 		}
-		if !preconditionMatches {
+		if !locked.preconditionsMatch {
 			tx.Rollback()
 			return false, nil
 		}
+		// The preconditions don't cover StateHistory, so a transition that
+		// committed after the caller loaded the run (such as TerminateRun
+		// recording CANCELING) would be lost if the snapshot's history were
+		// written back. Build on the persisted history instead.
+		var persistedHistory []*model.RuntimeStatus
+		if locked.stateHistory.Valid && locked.stateHistory.String != "" {
+			if err := json.Unmarshal([]byte(locked.stateHistory.String), &persistedHistory); err != nil {
+				tx.Rollback()
+				return false, util.NewInternalServerError(err, "Failed to parse state history of run %s", run.UUID)
+			}
+		}
+		run.StateHistory = persistedHistory
 	}
 	if len(run.StateHistory) == 0 || run.StateHistory[len(run.StateHistory)-1].State != run.State {
 		run.StateHistory = append(run.StateHistory, &model.RuntimeStatus{
