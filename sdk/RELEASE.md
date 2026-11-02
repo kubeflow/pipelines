@@ -71,6 +71,10 @@
   item reserves (`name`, `task_name`, `channel_type`, `full_name`, `pattern`, `task`,
   `items_or_pipeline_channel`), instead of crashing or hanging during compilation.
 
+* Fields of `dsl.ParallelFor` dict items (for example `item.greeting`) can be used inside
+  `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
+  into an enclosing `dsl.ExitHandler`, which failed at runtime.
+
 # 2.15.2
 
 ## Bug fixes and other changes
