@@ -2019,6 +2019,67 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.max_retry_count, 3)
         self.assertEqual(retry_policy.policy, _Policy.POLICY_ON_ERROR)
 
+    def test_set_retry_inside_parallel_for(self):
+        # #13897 / #12389: the retry policy belongs to the task inside the
+        # loop body, so each iteration retries independently.
+        @dsl.pipeline
+        def my_pipeline(workers: List[str] = ['A', 'B', 'C']):
+            with dsl.ParallelFor(workers) as worker:
+                hello_world(text=worker).set_retry(num_retries=20)
+
+        loop_components = [
+            component
+            for name, component in my_pipeline.pipeline_spec.components.items()
+            if name.startswith('comp-for-loop')
+        ]
+        self.assertEqual(len(loop_components), 1)
+        retry_policy = loop_components[0].dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 20)
+
+
+class TestBuiltinListOfStrCompilation(unittest.TestCase):
+    """#12036: builtin list[str] is accepted like typing.List[str]."""
+
+    def test_component_input(self):
+        @dsl.component
+        def print_list(input_list: list[str]):
+            for entry in input_list:
+                print(entry)
+
+        @dsl.pipeline
+        def my_pipeline():
+            print_list(input_list=['a', 'b', 'c'])
+
+        spec = my_pipeline.pipeline_spec
+        self.assertEqual(
+            spec.components['comp-print-list']
+            .input_definitions.parameters['input_list']
+            .parameter_type,
+            pipeline_spec_pb2.ParameterType.LIST,
+        )
+
+    def test_pipeline_input_with_default(self):
+        @dsl.component
+        def print_list(input_list: list[str]):
+            for entry in input_list:
+                print(entry)
+
+        @dsl.pipeline
+        def my_pipeline(input_list: list[str] = ['a', 'b', 'c']):
+            print_list(input_list=input_list)
+
+        root_input = (
+            my_pipeline.pipeline_spec.root.input_definitions.parameters[
+                'input_list'
+            ]
+        )
+        self.assertEqual(
+            root_input.parameter_type, pipeline_spec_pb2.ParameterType.LIST
+        )
+        self.assertEqual(
+            json_format.MessageToDict(root_input.default_value), ['a', 'b', 'c']
+        )
+
 
 from google.protobuf import json_format
 
