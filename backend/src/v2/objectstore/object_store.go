@@ -63,12 +63,12 @@ func OpenBucket(
 					return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 				}
 				if s3Client != nil {
-					// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic.
-					openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+					// Use the configured S3 client to leverage retry logic.
+					openedBucket, err2 := openS3Bucket(ctx, s3Client, config.BucketName)
 					if err2 != nil {
 						return nil, err2
 					}
-					// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
+					// Opening the bucket from a client does not allow overriding prefix via bucketConfig.BucketURL().
 					// Therefore, we need to explicitly configure the prefixed bucket.
 					return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 				}
@@ -99,7 +99,7 @@ func OpenBucket(
 		if err1 != nil {
 			return nil, err1
 		}
-		openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+		openedBucket, err2 := openS3Bucket(ctx, s3Client, config.BucketName)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -107,6 +107,16 @@ func OpenBucket(
 	}
 
 	return openBucketURL(ctx, bucketURL)
+}
+
+// openS3Bucket opens a bucket whose uploads use the client's checksum setting.
+// s3blob uploads through the S3 transfer manager, which ignores the client's
+// RequestChecksumCalculation and defaults to when_supported. Over HTTPS that
+// sends aws-chunked trailers, which some S3-compatible stores reject with 501.
+func openS3Bucket(ctx context.Context, s3Client *s3.Client, bucketName string) (*blob.Bucket, error) {
+	return s3blob.OpenBucketV2(ctx, s3Client, bucketName, &s3blob.Options{
+		RequestChecksumCalculation: s3Client.Options().RequestChecksumCalculation,
+	})
 }
 
 // invocationTransport clones rather than changes the process-wide HTTP transport.

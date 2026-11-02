@@ -1606,7 +1606,11 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 			return err
 		}
 
-		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, nil)
+		// s3blob uploads through the S3 transfer manager, which ignores the
+		// client's RequestChecksumCalculation unless it is passed here.
+		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, &s3blob.Options{
+			RequestChecksumCalculation: s3Client.Options().RequestChecksumCalculation,
+		})
 		return err
 	}
 
