@@ -556,6 +556,107 @@ alter the release CLI's existing image-tag and branch-selection behavior.
 
 ## Review release notes before publishing
 
+### Build a release-wide editorial inventory
+
+Before selecting highlights, create a local evidence bundle from the actual release
+range. These commands do not publish, change tags, or update release checkpoints:
+
+```bash
+kfpr prepare-editorial --version 3.2.1 --base 3.2.0 \
+  --target RELEASE_COMMIT --output /tmp/kfp-3.2.1-editorial
+```
+
+Use explicit fetched refs. When SDK and backend baselines or versions differ,
+create separate bundles with their own ranges and use the corresponding document.
+Never use today's master history to fill gaps in a maintenance release.
+
+The bundle contains `inventory.json`, `backend.md`, `sdk.md`, and `upgrade.md`.
+Every selected commit is retained, including nonconventional titles and CI changes.
+Consolidated backport subjects are exposed with their parent SHA and body line;
+they are **review candidates**, not proof that every mentioned upstream change
+shipped. Fenced examples are ignored. Inspect the released implementation before
+turning a candidate into a feature or compatibility claim.
+
+Edit only the review fields in `inventory.json`:
+
+- `decision`: `pending`, `include`, or `omit`; explain omissions in `reason`.
+- `notes`: reviewed benefits or fixes with `products`, `section`, and `text`.
+- `facts`: verified statements shared across documents, with the same fields and
+  a `commit` from the range or either boundary. Use this for Python support,
+  packaging, defaults, prerequisites, and retained limitations.
+- `coverage`: summarize coverage or intentional omission for features, bug fixes,
+  security, resilience, compatibility, and operator actions.
+
+For example, an included change can have this note:
+
+```json
+{
+  "products": ["sdk"],
+  "section": "bug_fixes",
+  "text": "Explain the previously failing user operation and its corrected behavior."
+}
+```
+
+Allowed sections are `highlights`, `bug_fixes`, `security`, `resilience`,
+`compatibility`, `limitations`, `action`, `prepare`, `rollout`, `verify`, and
+`custom`. Assign every shared fact to all affected products (`backend`, `sdk`,
+`upgrade`) so their wording stays consistent. A `commit` is an evidence pointer,
+not an automated proof of the statement; reviewers must check its contents.
+
+Render the reviewed inventory into a **new** directory:
+
+```bash
+kfpr render-editorial /tmp/kfp-3.2.1-editorial/inventory.json \
+  --output /tmp/kfp-3.2.1-reviewed
+kfpr validate-notes /tmp/kfp-3.2.1-reviewed/backend.md --product backend
+kfpr validate-notes /tmp/kfp-3.2.1-reviewed/sdk.md --product sdk
+kfpr validate-notes /tmp/kfp-3.2.1-reviewed/upgrade.md --product upgrade
+```
+
+Rendering verifies that evidence still matches the immutable Git range and refuses
+to overwrite an existing directory. It includes only reviewed `include` notes and
+shared facts; pending decisions and incomplete category coverage are reported.
+Unfilled template prompts remain visible. Finish the review before publishing;
+the tool does not infer prose, release support policy, or approval from a clean lint.
+
+Generate the normal checkpoint-bound previews below, then use the reviewed prose
+to edit their Markdown files. Keep their `.json` provenance sidecars and generated
+installation instructions intact. Do not copy the bundle's `inventory.json` over
+a preview sidecar. Submit the completed upgrade guide as a normal docs PR, preserving
+existing anchors and verifying the Sphinx build. A link to an existing source file
+is insufficient if that file is excluded from the documentation build.
+
+### Editorial and generated sections
+
+Backend and SDK templates include explicit **Bug fixes** sections. Backend prompts
+cover security and resilience; SDK prompts focus on authoring, APIs, installation,
+and compatibility. The upgrade template follows prepare → roll out → verify,
+with separate custom-configuration guidance. Describe normal manifest upgrades as
+normal upgrades; require special coordination only when the released implementation
+requires it. Keep future-release plans and release-team qualification history out
+of operator instructions.
+
+Aim for about 500–800 words for backend notes and 400–600 for SDK notes, excluding
+credits and code. Cover each benefit once, link detailed guidance, and select
+representative bug fixes rather than pasting the complete commit log. The generated
+commit reference is collapsed and can be removed after review. Do not import older
+version sections from `CHANGELOG.md` or `sdk/RELEASE.md`.
+
+New standard previews also save a range-specific inventory beside the Markdown.
+Generated contributor and source-archive sections use marked blocks. Credits use
+Git author names and coauthor trailers linked to commits; the offline tool does not guess GitHub handles
+or claim first-time contributor status. Source links become usable after tag
+publication; the release page links to actual uploaded assets. This does not claim
+that wheels, container images, or other binaries are attached. Add verified package
+or image links in editorial prose outside the managed blocks when appropriate.
+
+Deleting or editing a complete managed block is repaired from its generated
+baseline during preview/publication review or regeneration. Malformed/duplicate
+markers fail with an actionable error. Existing previews without these markers
+retain their legacy behavior; regenerate them to adopt the new sections. Rewrites
+must preserve credits and downloads while leaving the editorial text editable.
+
+
 Write user-facing SDK changes and upgrade instructions under `Current Version
 (in development)` in `sdk/RELEASE.md`. During version preparation, `kfpr` moves
 that text into the versioned release section and appends commit-derived entries
@@ -653,7 +754,9 @@ kfpr validate-notes /tmp/kfp-release-state-notes/3.2.1.md
 
 Validation also runs when previewing or regenerating notes. It warns about
 unfinished editorial prompts, empty editorial sections, duplicate bullet entries,
-and breaking/deprecation entries without explanatory guidance or migration links.
+breaking/deprecation entries without explanatory guidance or migration links,
+multiple version-history headings, and excessive prose. With `--product`, it also
+checks for missing Bug fixes, Contributors, and Assets release sections.
 These checks are heuristics, not a substitute for review. Editorial warnings are
 advisory and return success; unreadable input fails. Existing empty-note, stale
 range, qualification, and merge-conflict gates still block publication. Resolve
