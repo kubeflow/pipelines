@@ -31,6 +31,7 @@ from .core import (
     release_version_bump_command,
     sdk_workflow_command,
     underline_links,
+    upstream_default_branch,
     wait_for_pr_merge,
     watch_latest_workflow_run,
     watch_pr_ci,
@@ -174,7 +175,8 @@ def step_prepare_release_branch(context: ReleaseContext) -> None:
     """
     branch = context.metadata.release_branch
     source_branch = str(
-        context.state.answers.get('release_source_branch', 'master')
+        context.state.answers.get('release_source_branch')
+        or upstream_default_branch(context.runner, context.root)
     )
     context.runner.run(['git', 'checkout', source_branch], cwd=context.root)
     pull_if_upstream(context)
@@ -1887,7 +1889,7 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
 
 def step_sync_master(context: ReleaseContext) -> None:
-    """Sync release version to master branch.
+    """Sync release version to the upstream default branch.
 
     Args:
       context: Release context with runner, metadata, and root path.
@@ -1895,15 +1897,16 @@ def step_sync_master(context: ReleaseContext) -> None:
     qualification.require_qualification(context)
     if context.metadata.release_type == 'patch':
         print(
-            'Patch release: preserving master version and changelog; no sync required.'
+            'Patch release: preserving development version and changelog; no sync required.'
         )
         return
     _ensure_release_tag(context, context.metadata.tag)
     metadata = context.metadata
     root = context.root
-    branch = f'chore-release-{metadata.tag}-master'
+    development_branch = upstream_default_branch(context.runner, root)
+    branch = f'chore-release-{metadata.tag}-{development_branch}'
 
-    context.runner.run(['git', 'checkout', 'master'], cwd=root)
+    context.runner.run(['git', 'checkout', development_branch], cwd=root)
     context.runner.run(['git', 'pull', '--ff-only'], cwd=root)
     context.runner.run(['git', 'checkout', '-b', branch], cwd=root)
 
@@ -1935,7 +1938,7 @@ def step_sync_master(context: ReleaseContext) -> None:
             'commit',
             '-s',
             '-m',
-            f'chore(release): bump version to {metadata.tag} on master branch',
+            f'chore(release): bump version to {metadata.tag} on {development_branch} branch',
         ],
         cwd=root,
     )
@@ -1951,16 +1954,16 @@ def step_sync_master(context: ReleaseContext) -> None:
             '--repo',
             REPO,
             '--base',
-            'master',
+            development_branch,
             '--head',
             f'{owner}:{branch}',
             '--title',
-            f'chore(release): sync {metadata.tag} to master',
+            f'chore(release): sync {metadata.tag} to {development_branch}',
             '--body',
-            f'Syncs KFP {metadata.tag} release version files back to master.',
+            f'Syncs KFP {metadata.tag} release version files back to {development_branch}.',
         ]
     )
-    print(underline_links(f'Master sync PR: {pr_url}'))
+    print(underline_links(f'Development branch sync PR: {pr_url}'))
     watch_pr_ci(context.runner, pr_url)
     wait_for_pr_merge(context.runner, pr_url)
 
@@ -2022,7 +2025,7 @@ def build_steps(
         steps.append(
             Step(
                 'prepare-release-branch',
-                'Create release branch from master',
+                'Create release branch from the selected source',
                 'step_prepare_release_branch',
             )
         )
@@ -2091,7 +2094,7 @@ def build_steps(
                 ),
                 Step(
                     'sync-master',
-                    'Sync release version to master',
+                    'Sync release version to the default branch',
                     'step_sync_master',
                 ),
                 Step(

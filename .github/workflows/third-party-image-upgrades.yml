@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       baseline_ref:
-        description: Git revision whose manifests supply the baseline images
-        required: true
-        default: master
+        description: Baseline revision (blank uses the default branch)
+        required: false
+        default: ''
         type: string
 permissions:
   contents: read
@@ -30,7 +30,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref }}
+          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -82,7 +82,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref }}
+          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7

@@ -898,6 +898,78 @@ class TestCompilePipeline(parameterized.TestCase):
                     in pipeline_spec['deploymentSpec']['executors']
                 )
 
+    def test_pipeline_in_pipeline_with_conditions_in_both(self):
+        # The inner and outer pipelines both create groups named
+        # condition-branches-1, condition-2 and condition-3.
+
+        @dsl.pipeline(name='inner-pipeline')
+        def inner_pipeline(flag: str):
+            with dsl.If(flag == 'a'):
+                print_op(message='inner if')
+            with dsl.Else():
+                print_op(message='inner else')
+
+        @dsl.pipeline(name='outer-pipeline')
+        def outer_pipeline(flag: str = 'a'):
+            with dsl.If(flag == 'a'):
+                print_op(message='outer if')
+            with dsl.Else():
+                print_op(message='outer else')
+            inner_pipeline(flag=flag)
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output_yaml = os.path.join(temporary_directory, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=outer_pipeline, package_path=output_yaml
+            )
+            with open(output_yaml, 'r') as output_file:
+                pipeline_spec = yaml.safe_load(output_file)
+
+        components = pipeline_spec['components']
+        for name, component in components.items():
+            self.assertTrue(
+                'dag' in component or 'executorLabel' in component,
+                f'{name} has no implementation',
+            )
+
+        def component_for(task: Dict[str, Any]) -> Dict[str, Any]:
+            return components[task['componentRef']['name']]
+
+        def branch_messages(dag: Dict[str, Any]) -> List[List[str]]:
+            """Returns the print_op messages of each branch, in branch order."""
+            [branches_task] = [
+                task
+                for task in dag['tasks'].values()
+                if task['componentRef']['name'].startswith(
+                    'comp-condition-branches'
+                )
+            ]
+            branch_tasks = component_for(branches_task)['dag']['tasks']
+            messages = []
+            for branch_name in sorted(branch_tasks):
+                branch_dag = component_for(branch_tasks[branch_name])['dag']
+                messages.append(
+                    [
+                        task['inputs']['parameters']['message']['runtimeValue'][
+                            'constant'
+                        ]
+                        for task in branch_dag['tasks'].values()
+                    ]
+                )
+            return messages
+
+        self.assertEqual(
+            [['outer if'], ['outer else']],
+            branch_messages(pipeline_spec['root']['dag']),
+        )
+        inner_component_name = pipeline_spec['root']['dag']['tasks'][
+            'inner-pipeline'
+        ]['componentRef']['name']
+        self.assertEqual(
+            [['inner if'], ['inner else']],
+            branch_messages(components[inner_component_name]['dag']),
+        )
+
     def test_pipeline_with_invalid_output(self):
         with self.assertRaisesRegex(
             ValueError, r'Pipeline or component output not defined: msg1'
@@ -1255,6 +1327,189 @@ class TestCompilePipeline(parameterized.TestCase):
                     }
                 },
             )
+
+
+class TestParallelForDictItemScoping(parameterized.TestCase):
+    """Fields of dict loop items used below other groups (#13273)."""
+
+    ITEMS = [
+        {'who': 'alice', 'greeting': 'hello alice'},
+        {'who': 'bob', 'greeting': 'hello bob'},
+    ]
+
+    @staticmethod
+    def _spec(pipeline_func) -> Dict[str, Any]:
+        return json_format.MessageToDict(pipeline_func.pipeline_spec)
+
+    @staticmethod
+    def _input_names(component: Dict[str, Any]) -> List[str]:
+        return sorted(
+            component.get('inputDefinitions', {}).get('parameters', {})
+        )
+
+    @staticmethod
+    def _named(entries: Dict[str, Any], prefix: str) -> List[Any]:
+        # Group ids come from a shared counter, so match by kind only.
+        return [
+            value
+            for name, value in sorted(entries.items())
+            if re.fullmatch(rf'{prefix}-\d+', name)
+        ]
+
+    def _only(self, entries: Dict[str, Any], prefix: str) -> Any:
+        matches = self._named(entries, prefix)
+        self.assertLen(matches, 1, f'expected one {prefix} in {list(entries)}')
+        return matches[0]
+
+    def _loop_item_input(self, spec: Dict[str, Any]) -> str:
+        loop = self._only(spec['components'], 'comp-for-loop')
+        (name,) = [
+            n
+            for n in self._input_names(loop)
+            if re.fullmatch(r'pipelinechannel--loop-item-param-\d+', n)
+        ]
+        return name
+
+    def test_field_used_inside_condition_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline(should_run: bool = True):
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(should_run == True):  # noqa: E712
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        condition = self._only(spec['components'], 'comp-condition')
+        self.assertIn(item_input, self._input_names(condition))
+        msg = condition['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(
+            msg,
+            {
+                'componentInputParameter': item_input,
+                'parameterExpressionSelector': 'parseJson(string_value)["greeting"]',
+            },
+        )
+        # The loop passes its whole item to the condition.
+        loop_dag = self._only(spec['components'], 'comp-for-loop')['dag']
+        condition_task = self._only(loop_dag['tasks'], 'condition')
+        self.assertEqual(
+            condition_task['inputs']['parameters'][item_input],
+            {'componentInputParameter': item_input},
+        )
+
+    def test_field_used_inside_nested_conditions_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline(a: bool = True, b: bool = True):
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(a == True):  # noqa: E712
+                    with dsl.If(b == True):  # noqa: E712
+                        show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        conditions = self._named(spec['components'], 'comp-condition')
+        self.assertLen(conditions, 2)
+        for component in conditions:
+            self.assertIn(item_input, self._input_names(component))
+        (outer,) = [c for c in conditions if 'show' not in c['dag']['tasks']]
+        inner_task = self._only(outer['dag']['tasks'], 'condition')
+        self.assertEqual(
+            inner_task['inputs']['parameters'][item_input],
+            {'componentInputParameter': item_input},
+        )
+
+    def test_condition_on_field_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(item.who == 'alice'):
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        loop_dag = self._only(spec['components'], 'comp-for-loop')['dag']
+        condition_task = self._only(loop_dag['tasks'], 'condition')
+        self.assertEqual(
+            condition_task['inputs']['parameters'][f'{item_input}-subvar-who'],
+            {
+                'componentInputParameter': item_input,
+                'parameterExpressionSelector': 'parseJson(string_value)["who"]',
+            },
+        )
+        self.assertIn(
+            f"inputs.parameter_values['{item_input}-subvar-who']",
+            condition_task['triggerPolicy']['condition'],
+        )
+        condition = self._only(spec['components'], 'comp-condition')
+        msg = condition['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(msg['componentInputParameter'], item_input)
+
+    def test_field_does_not_leak_above_its_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.component
+        def on_exit():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = on_exit()
+            with dsl.ExitHandler(exit_task):
+                with dsl.ParallelFor(items=self.ITEMS) as item:
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        exit_handler = self._only(spec['components'], 'comp-exit-handler')
+        self.assertEqual(self._input_names(exit_handler), [])
+        exit_handler_task = self._only(
+            spec['root']['dag']['tasks'], 'exit-handler'
+        )
+        self.assertNotIn('inputs', exit_handler_task)
+
+    def test_outer_loop_field_used_in_inner_loop(self):
+        @dsl.component
+        def show(msg: str, n: int) -> str:
+            return f'{msg} {n}'
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.ParallelFor(items=[1, 2]) as number:
+                    show(msg=item.greeting, n=number)
+
+        spec = self._spec(my_pipeline)
+        loops = self._named(spec['components'], 'comp-for-loop')
+        self.assertLen(loops, 2)
+        (outer,) = [c for c in loops if 'show' not in c['dag']['tasks']]
+        (inner,) = [c for c in loops if 'show' in c['dag']['tasks']]
+        (outer_item,) = [
+            n
+            for n in self._input_names(outer)
+            if re.fullmatch(r'pipelinechannel--loop-item-param-\d+', n)
+        ]
+        self.assertIn(outer_item, self._input_names(inner))
+        msg = inner['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(
+            msg,
+            {
+                'componentInputParameter': outer_item,
+                'parameterExpressionSelector': 'parseJson(string_value)["greeting"]',
+            },
+        )
 
 
 class TestCompilePipelineCaching(unittest.TestCase):
@@ -5739,7 +5994,17 @@ class TestCannotReturnFromWithinControlFlowGroup(unittest.TestCase):
                     return print_and_return(text=string).output
 
 
-class TestConditionLogic(unittest.TestCase):
+@dsl.component
+def return_float() -> float:
+    return 1.0
+
+
+@dsl.component
+def return_bool() -> bool:
+    return True
+
+
+class TestConditionLogic(parameterized.TestCase):
     def test_if(self):
 
         @dsl.pipeline
@@ -6116,6 +6381,202 @@ class TestConditionLogic(unittest.TestCase):
                     print_and_return(text=item)
                 with dsl.Else():
                     print_and_return(text='Got tails!')
+
+    def _compile_condition(self, condition_fn, condition_cls=dsl.If):
+
+        @dsl.pipeline
+        def my_pipeline():
+            tasks = {
+                'int': return_1(),
+                'int2': return_1(),
+                'float': return_float(),
+                'float2': return_float(),
+                'bool': return_bool(),
+                'str': flip_coin(),
+            }
+            if condition_cls is dsl.Elif:
+                with dsl.If(tasks['int'].output == 0):
+                    print_and_return(text='body-1')
+                with dsl.Elif(condition_fn(tasks)):
+                    print_and_return(text='body-2')
+            else:
+                with condition_cls(condition_fn(tasks)):
+                    print_and_return(text='body')
+
+        if condition_cls is dsl.Elif:
+            return (
+                my_pipeline.pipeline_spec.components[
+                    'comp-condition-branches-1'
+                ]
+                .dag.tasks['condition-3']
+                .trigger_policy.condition
+            )
+        return my_pipeline.pipeline_spec.root.dag.tasks[
+            'condition-1'
+        ].trigger_policy.condition
+
+    @parameterized.named_parameters(
+        (
+            'int_chan_equals_true',
+            lambda t: t['int'].output == True,
+            dsl.If,
+            "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true",
+        ),
+        (
+            'true_equals_int_chan_reflected',
+            lambda t: True == t['int'].output,
+            dsl.If,
+            "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true",
+        ),
+        (
+            'int_chan_not_equals_true',
+            lambda t: t['int'].output != True,
+            dsl.If,
+            "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) != true",
+        ),
+        (
+            'int_chan_equals_false',
+            lambda t: t['int'].output == False,
+            dsl.If,
+            "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == false",
+        ),
+        (
+            'float_chan_equals_true',
+            lambda t: t['float'].output == True,
+            dsl.If,
+            "(inputs.parameter_values['pipelinechannel--return-float-Output'] != 0.0) == true",
+        ),
+        (
+            'float_chan_equals_false',
+            lambda t: t['float'].output == False,
+            dsl.If,
+            "(inputs.parameter_values['pipelinechannel--return-float-Output'] != 0.0) == false",
+        ),
+        (
+            'float_chan_not_equals_true',
+            lambda t: t['float'].output != True,
+            dsl.If,
+            "(inputs.parameter_values['pipelinechannel--return-float-Output'] != 0.0) != true",
+        ),
+        (
+            'condition_alias_int_chan_equals_true',
+            lambda t: t['int'].output == True,
+            dsl.Condition,
+            "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true",
+        ),
+        (
+            'elif_int_chan_equals_true',
+            lambda t: t['int'].output == True,
+            dsl.Elif,
+            "!(int(inputs.parameter_values['pipelinechannel--return-1-Output']) == 0) && (int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == true",
+        ),
+        (
+            'int_chan_equals_bool_chan',
+            lambda t: t['int'].output == t['bool'].output,
+            dsl.If,
+            "(int(inputs.parameter_values['pipelinechannel--return-1-Output']) != 0) == inputs.parameter_values['pipelinechannel--return-bool-Output']",
+        ),
+        (
+            'bool_chan_equals_one',
+            lambda t: t['bool'].output == 1,
+            dsl.If,
+            "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true",
+        ),
+        (
+            'bool_chan_equals_zero',
+            lambda t: t['bool'].output == 0,
+            dsl.If,
+            "inputs.parameter_values['pipelinechannel--return-bool-Output'] == false",
+        ),
+        (
+            'bool_chan_equals_float_literal',
+            lambda t: t['bool'].output == 1.5,
+            dsl.If,
+            "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true",
+        ),
+        (
+            'one_equals_bool_chan_reflected',
+            lambda t: 1 == t['bool'].output,
+            dsl.If,
+            "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true",
+        ),
+    )
+    def test_numeric_bool_condition_bug_cases(
+        self, condition_fn, condition_cls, expected
+    ):
+        self.assertEqual(
+            self._compile_condition(condition_fn, condition_cls), expected
+        )
+
+    @parameterized.named_parameters(
+        (
+            'bool_chan_equals_true',
+            lambda t: t['bool'].output == True,
+            "inputs.parameter_values['pipelinechannel--return-bool-Output'] == true",
+        ),
+        (
+            'bool_chan_equals_false',
+            lambda t: t['bool'].output == False,
+            "inputs.parameter_values['pipelinechannel--return-bool-Output'] == false",
+        ),
+        (
+            'int_chan_equals_one',
+            lambda t: t['int'].output == 1,
+            "int(inputs.parameter_values['pipelinechannel--return-1-Output']) == 1",
+        ),
+        (
+            'int_chan_equals_int_chan',
+            lambda t: t['int'].output == t['int2'].output,
+            "int(inputs.parameter_values['pipelinechannel--return-1-Output']) == int(inputs.parameter_values['pipelinechannel--return-1-2-Output'])",
+        ),
+        (
+            'float_chan_equals_float_chan',
+            lambda t: t['float'].output == t['float2'].output,
+            "inputs.parameter_values['pipelinechannel--return-float-Output'] == inputs.parameter_values['pipelinechannel--return-float-2-Output']",
+        ),
+        (
+            'float_chan_equals_literal',
+            lambda t: t['float'].output == 1.5,
+            "inputs.parameter_values['pipelinechannel--return-float-Output'] == 1.5",
+        ),
+        (
+            'int_chan_equals_float_literal',
+            lambda t: t['int'].output == 1.5,
+            "double(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == 1.5",
+        ),
+        (
+            'str_chan_equals_true',
+            lambda t: t['str'].output == True,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'true'",
+        ),
+    )
+    def test_condition_guard_cases(self, condition_fn, expected):
+        self.assertEqual(self._compile_condition(condition_fn), expected)
+
+
+class TestConditionStringLiteral(parameterized.TestCase):
+    @parameterized.parameters(
+        ('heads', "'heads'"),
+        ("it's", "'it\\'s'"),
+        ('C:\\temp', "'C:\\\\temp'"),
+        ("\\'", "'\\\\\\''"),
+        ('line1\nline2', "'line1\\nline2'"),
+        ('line1\r\nline2', "'line1\\r\\nline2'"),
+    )
+    def test_string_literal_is_escaped(self, literal, expected_cel_literal):
+        @dsl.pipeline
+        def flip_coin_pipeline():
+            flip_coin_task = flip_coin()
+            with dsl.If(flip_coin_task.output == literal):
+                print_and_return(text='Matched!')
+
+        self.assertEqual(
+            flip_coin_pipeline.pipeline_spec.root.dag.tasks[
+                'condition-1'
+            ].trigger_policy.condition,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == "
+            + expected_cel_literal,
+        )
 
 
 class TestDslOneOf(unittest.TestCase):

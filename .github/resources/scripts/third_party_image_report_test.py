@@ -47,6 +47,13 @@ class ImageReportTest(unittest.TestCase):
             [('GHSA-one', ['CVE-2026-1'])],
         )
 
+    def test_default_branch_marker_must_match_immutable_sources(self):
+        for branch in ('main', 'feature'):
+            with self.subTest(branch=branch):
+                self.document['default_branch'] = branch
+                with self.assertRaisesRegex(ValueError, 'default branch'):
+                    aggregate(self.document, self.evidence)
+
     def test_unknown_lane_retains_other_counts_and_blocks_coverage(self):
         second = 'c' * 16
         image = 'example/unknown:latest'
@@ -256,7 +263,7 @@ class ImageReportTest(unittest.TestCase):
     def test_candidate_requires_master_provenance(self):
         self.add_candidate([])
         self.document['images'][1]['branches'] = ['release-2.18']
-        with self.assertRaisesRegex(ValueError, 'deployed master'):
+        with self.assertRaisesRegex(ValueError, 'deployed default-branch'):
             aggregate(self.document, self.evidence)
 
     def test_support_channel_evidence_is_visible_in_summary(self):

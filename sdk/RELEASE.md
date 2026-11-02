@@ -21,6 +21,11 @@
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
 
+* `Client.run_pipeline`, `create_run_from_pipeline_func`,
+  `create_run_from_pipeline_package` and `create_recurring_run` accept a
+  `plugins_input` argument, keyed by plugin name, that is sent as the run's
+  `plugins_input`. Recurring runs pass it to every triggered run.
+
 ## Breaking changes
 
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
@@ -58,6 +63,17 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* Local execution passes whole numbers inside `List` and `Dict` parameters
+  and outputs as ints, as the remote backend does, instead of floats.
+
+* `dsl.ParallelFor` raises a `ValueError` naming the key when a dict item uses a key the loop
+  item reserves (`name`, `task_name`, `channel_type`, `full_name`, `pattern`, `task`,
+  `items_or_pipeline_channel`), instead of crashing or hanging during compilation.
+
+* Fields of `dsl.ParallelFor` dict items (for example `item.greeting`) can be used inside
+  `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
+  into an enclosing `dsl.ExitHandler`, which failed at runtime.
 
 # 2.15.2
 

@@ -1161,12 +1161,17 @@ class PublishSdksStepTest(QualifiedPublicationTest):
 
 class SyncMasterStepTest(QualifiedPublicationTest):
     def test_sync_master_opens_pr_and_waits_for_merge(self):
+        development_branch = getattr(self, 'development_branch', 'master')
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
 
             class SyncMasterRunner(core.CommandRunner):
                 def capture(self, command, cwd=None):
                     self.commands.append(command)
+                    if command == ['gh', 'api', 'repos/kubeflow/pipelines']:
+                        return json.dumps(
+                            {'default_branch': development_branch}
+                        )
                     if command[:3] == ['gh', 'pr', 'create']:
                         return 'https://github.com/kubeflow/pipelines/pull/123'
                     raise AssertionError(f'unexpected capture: {command}')
@@ -1193,7 +1198,7 @@ class SyncMasterStepTest(QualifiedPublicationTest):
                     'push',
                     '--set-upstream',
                     'git@github.com:testuser/pipelines.git',
-                    'chore-release-3.2.0-master',
+                    f'chore-release-3.2.0-{development_branch}',
                 ],
                 context.runner.commands,
             )
@@ -1205,12 +1210,27 @@ class SyncMasterStepTest(QualifiedPublicationTest):
                 ['gh', 'pr', 'create'],
                 [command[:3] for command in context.runner.commands],
             )
+            create_pr = next(
+                command
+                for command in context.runner.commands
+                if command[:3] == ['gh', 'pr', 'create']
+            )
+            self.assertEqual(
+                create_pr[create_pr.index('--base') + 1], development_branch
+            )
+            self.assertIn(
+                ['git', 'checkout', development_branch], context.runner.commands
+            )
             watch_ci.assert_called_once_with(
                 context.runner, 'https://github.com/kubeflow/pipelines/pull/123'
             )
             wait_merge.assert_called_once_with(
                 context.runner, 'https://github.com/kubeflow/pipelines/pull/123'
             )
+
+    def test_sync_master_targets_main_after_rename(self):
+        self.development_branch = 'main'
+        self.test_sync_master_opens_pr_and_waits_for_merge()
 
     def test_sync_master_prompts_for_local_review_before_commit(self):
         with TemporaryDirectory() as tmpdir:
@@ -1223,6 +1243,8 @@ class SyncMasterStepTest(QualifiedPublicationTest):
 
                 def capture(self, command, cwd=None):
                     self.commands.append(command)
+                    if command == ['gh', 'api', 'repos/kubeflow/pipelines']:
+                        return json.dumps({'default_branch': 'master'})
                     if command[:3] == ['gh', 'pr', 'create']:
                         return 'https://github.com/kubeflow/pipelines/pull/123'
                     return ''
@@ -1275,6 +1297,8 @@ class SyncMasterStepTest(QualifiedPublicationTest):
 
                 def capture(self, command, cwd=None):
                     self.commands.append(command)
+                    if command == ['gh', 'api', 'repos/kubeflow/pipelines']:
+                        return json.dumps({'default_branch': 'master'})
                     if command[:3] == ['gh', 'pr', 'create']:
                         return 'https://github.com/kubeflow/pipelines/pull/123'
                     return ''
@@ -1303,6 +1327,34 @@ class SyncMasterStepTest(QualifiedPublicationTest):
 
 
 class PrepareReleaseBranchStepTest(unittest.TestCase):
+    def test_prepare_release_branch_resolves_upstream_default(self):
+        for branch in ('master', 'main'):
+            with self.subTest(branch=branch), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                runner = core.CommandRunner(dry_run=True)
+                context = core.ReleaseContext(
+                    root=root,
+                    state=core.ReleaseState(root / 'state.json'),
+                    runner=runner,
+                    metadata=core.ReleaseMetadata.from_version(
+                        'minor', '3.2.0'
+                    ),
+                    fork_remote='origin',
+                    include_backend=True,
+                    include_sdk=True,
+                )
+                with mock.patch.object(
+                    runner,
+                    'capture',
+                    return_value=json.dumps({'default_branch': branch}),
+                ) as capture:
+                    steps.step_prepare_release_branch(context)
+                capture.assert_called_once_with(
+                    ['gh', 'api', 'repos/kubeflow/pipelines'], cwd=root
+                )
+                self.assertIn(['git', 'checkout', branch], runner.commands)
+                self.assertNotIn('release_source_branch', context.state.answers)
+
     def test_prepare_release_branch_uses_selected_source_branch(self):
         with TemporaryDirectory() as tmpdir:
             state = core.ReleaseState(Path(tmpdir) / 'state.json')

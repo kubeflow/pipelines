@@ -5,6 +5,9 @@ paths:
       # Keep exceptions file-scoped and remove once actionlint supports them.
       - '^unexpected key "queue" for "concurrency" section\. expected one of "cancel-in-progress", "group"$'
       - '^unknown permission scope "copilot-requests"\. all available permission scopes are .+$'
+      # job.workflow_ref is a GitHub job-context field gh-aw v0.93 reads; the
+      # pattern is pinned to actionlint's exact job-context type signature.
+      - '^property "workflow_ref" is not defined in object type \{check_run_id: number; container: \{id: string; network: string\}; services: \{string => \{id: string; network: string; ports: \{string => string\}\}\}; status: string\}$'
   .github/workflows/upgrade-test.yml:
     ignore:
       # This deliberate checked-in pause is required until #14029 is delivered.

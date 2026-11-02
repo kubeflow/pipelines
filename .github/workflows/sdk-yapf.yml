@@ -3,7 +3,7 @@ name: Python Ruff Format
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
