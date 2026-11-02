@@ -33,7 +33,7 @@ def exercise(options=None):
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
-const HEAD = options.mergedRecovery ? 'a'.repeat(40) : 'head';
+const HEAD = options.mergedRecovery || options.verifyRecovery ? 'a'.repeat(40) : 'head';
 const calls = [], outputs = {}, descriptions = [], targetUrls = [];
 const workflowName = options.workflowName || 'frontend.yml';
 let cycle = 0;
@@ -78,6 +78,15 @@ const statusHistory = options.statusHistory || [];
 if (options.initialStatus) statusHistory.push({context: 'ci-passed',
   created_at: options.registrationStartedAt || new Date().toISOString()});
 const github = {graphql: async (query, variables) => {
+  if (query.includes('query RecoveryStatuses')) {
+    const repository = {nameWithOwner: 'kubeflow/pipelines'};
+    for (const [name, oid] of Object.entries(variables)) {
+      if (name.startsWith('sha')) repository[`head${name.slice(3)}`] = {
+        __typename: 'Commit', oid, status: {context: status ? {
+          context: 'ci-passed', state: status.toUpperCase(), description: description ?? null} : null}};
+    }
+    return {repository};
+  }
   calls.push(['base-workflows', variables]);
   if (options.inventoryFailure) throw Error('Workflow tree unavailable');
   const content = `name: Frontend
@@ -588,7 +597,7 @@ class CIPassedTest(unittest.TestCase):
 const {recoveryCandidates} = require(process.argv[1]);
 const requests = [];
 const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success'].map((state, i) => ({
-  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
+  number: i + 1, head: {sha: (i + 1).toString(16).padStart(40, '0')}, fixtureState: state, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
   labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
 }));
 const github = {paginate: async () => prs, rest: {pulls: {list: {}}, git: {
@@ -596,18 +605,31 @@ const github = {paginate: async () => prs, rest: {pulls: {list: {}}, git: {
 }, repos: {
   getCombinedStatusForRef: async ({ref}) => {
     requests.push(ref);
-    const state = ref.endsWith('success') ? 'success' : ref;
+    const state = ref.endsWith('success') ? 'success' : ref === 'untrusted' ? 'failure' : ref;
     const description = ref === 'legacy-success' ? 'Expected CI and all checks passed for this head.' :
       ref === 'stale-success' ? 'Expected CI and all checks passed; base policy f5b15f0f51bf0e3cbf5297bbe7629a426d5320f3955fbeb78d2de0c60e0e19a8.' : ref === 'retarget-success' ? 'Expected CI and all checks passed; base policy 3088c340a17fbd230c03d711b568e0962de9b3aa3565c6ab227bd0638dae905e.' : 'Expected CI and all checks passed; base policy bf60a45a7f48d31d1cf806d3517d6cc8d24985621eaf55baea8599faee6e508c.';
     return {data: {statuses: ref === 'missing' ? [] : [{context: 'ci-passed', state, description}]}};
   },
 }}};
+github.graphql = async (query, variables) => {
+  const repository = {nameWithOwner: 'o/r'};
+  for (const [name, oid] of Object.entries(variables)) {
+    if (!name.startsWith('sha')) continue;
+    const pr = prs.find(pr => pr.head.sha === oid);
+    const {data} = await github.rest.repos.getCombinedStatusForRef({ref: pr.fixtureState});
+    const status = data.statuses[0];
+    repository[`head${name.slice(3)}`] = {__typename: 'Commit', oid,
+      status: {context: status ? {...status, state: status.state.toUpperCase()} : null}};
+  }
+  return {repository};
+};
 github.paginate.iterator = async function* (method, params) {
   yield {data: {statuses: [{context: 'other', state: 'success'}]}};
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(result => {
-  console.log(JSON.stringify({result, requests}));
+  console.log(JSON.stringify({result: result.map(pr => ({...pr,
+    head: prs.find(item => item.number === pr.number).fixtureState})), requests}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
         result = subprocess.run(
@@ -652,7 +674,7 @@ const B2 = 'c'.repeat(40);
 const publishedStamp = crypto.createHash('sha256')
   .update(JSON.stringify(['master', B1])).digest('hex');
 async function run(liveTip) {
-  const pr = {number: 42, head: {sha: 'H'}, base: {ref: 'master', sha: B1},
+  const pr = {number: 42, head: {sha: 'd'.repeat(40)}, base: {ref: 'master', sha: B1},
     labels: [], author_association: 'NONE'};
   const github = {rest: {pulls: {list: {}},
     git: {getRef: async () => ({data: {object: {sha: liveTip}}})},
@@ -660,6 +682,11 @@ async function run(liveTip) {
       data: {statuses: [{context: 'ci-passed', state: 'success',
         description: 'Expected CI and all checks passed; base policy ' + publishedStamp + '.'}]}
     })}}};
+  github.graphql = async (query, variables) => {
+    const {data} = await github.rest.repos.getCombinedStatusForRef({ref: variables.sha0});
+    return {repository: {nameWithOwner: 'o/r', head0: {__typename: 'Commit', oid: variables.sha0,
+      status: {context: {...data.statuses[0], state: 'SUCCESS'}}}}};
+  };
   github.paginate = async () => [pr];
   github.paginate.iterator = async function* (method, params) {
     yield {data: {statuses: [{context: 'other', state: 'success'}]}};
@@ -684,7 +711,7 @@ async function run(liveTip) {
         actual = json.loads(result.stdout)
         self.assertNotEqual(actual['publishedStamp'], actual['advancedStamp'])
         self.assertEqual(actual['noAdvance'], [])
-        self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'H'}])
+        self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'd' * 40}])
 
     def test_base_advance_revokes_stale_green_across_full_reconciliation(self):
         self.assert_base_advance_revokes_stale_green('master')
@@ -749,18 +776,25 @@ async function run(liveTip) {
                 # the live tip B2 no longer matches the stored stamp.
                 self.assertEqual(
                     result['recoveryBefore'],
-                    [{'number': 7, 'head': 'head'}],
+                    [{'number': 7, 'head': 'a' * 40}],
                     result,
                 )
                 # Reconciliation revokes the green instead of re-stamping it.
-                self.assertNotIn(['status', 'success', 'head'], result['calls'])
-                self.assert_last_status(result, 'pending')
+                self.assertNotIn(
+                    ['status', 'success', 'a' * 40], result['calls']
+                )
+                self.assertEqual(
+                    [call for call in result['calls'] if call[0] == 'status'][
+                        -1
+                    ],
+                    ['status', 'pending', 'a' * 40],
+                )
                 self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
                 self.assertIn(['remove-label', 'ci-passed'], result['calls'])
                 # Next sweep still selects the PR: it is not green.
                 self.assertEqual(
                     result['recoveryAfter'],
-                    [{'number': 7, 'head': 'head'}],
+                    [{'number': 7, 'head': 'a' * 40}],
                     result,
                 )
 
