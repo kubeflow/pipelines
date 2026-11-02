@@ -132,7 +132,7 @@
     "pixelmatch": "^8.0.0",
     "playwright": "^1.64.1",
     "pngjs": "^7.0.0",
-    "postcss": "^8.5.23",
+    "postcss": "^8.5.32",
     "prettier": "^3.9.10",
     "rollup-plugin-visualizer": "^7.1.1",
     "semver": "^7.8.5",
