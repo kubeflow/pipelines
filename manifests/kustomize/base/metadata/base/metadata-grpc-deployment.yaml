@@ -73,7 +73,7 @@ spec:
         # * backend/metadata_writer/requirements.in and requirements.txt
         # * frontend/src/third_party/mlmd/generated
         # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml
-        image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.21.0
         securityContext:
           allowPrivilegeEscalation: false
           seccompProfile:
