@@ -677,10 +677,11 @@
     {
       "path": ".github/workflows/postgresql-image-upgrade.yml",
       "name": "PostgreSQL image retained-data upgrade",
-      "header_sha256": "25bdfdf55a8af8180dc473c9f751ffb6c2aaab845961f1090b3e480ac4a822be",
+      "header_sha256": "33594381f1692ab0dc0557a2f63a83005ade8e026c3a9faa5bafde66f1c4958f",
       "pull_request": {
         "branches": [
-          "master"
+          "master",
+          "main"
         ],
         "paths": [
           "manifests/kustomize/third-party/postgresql/**",
@@ -894,7 +895,7 @@
     {
       "path": ".github/workflows/tensorboard-acceptance.yml",
       "name": "TensorBoard runtime acceptance",
-      "header_sha256": "c0168ce239a43c333df1a1b26f5939cc30751ca72189756d01a69484713d8450",
+      "header_sha256": "63ae517d8de899faea78146d35b857d3ffc6ee231ef69fb1dab124bc04a3a321",
       "pull_request": {
         "paths": [
           "backend/Dockerfile.tensorboard",

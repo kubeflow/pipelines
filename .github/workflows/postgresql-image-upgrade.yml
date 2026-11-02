@@ -3,7 +3,7 @@ name: PostgreSQL image retained-data upgrade
 on:
   workflow_dispatch:
   pull_request:
-    branches: [master]
+    branches: [master, main]
     paths:
       - manifests/kustomize/third-party/postgresql/**
       - backend/src/apiserver/client_manager/**
@@ -20,7 +20,7 @@ on:
       - .github/actions/setup-python-pip-cache/**
   merge_group:
     types: [checks_requested]
-    branches: [master]
+    branches: [master, main]
 
 permissions:
   contents: read

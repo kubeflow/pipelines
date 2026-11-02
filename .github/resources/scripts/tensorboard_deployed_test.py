@@ -37,17 +37,20 @@ class TensorBoardDeployedTest(unittest.TestCase):
         )
         steps = {step.get('name'): step for step in action['runs']['steps']}
         for name in (
-            'Wait for TensorBoard image artifact',
-            'Download TensorBoard image',
+            'Download shared TensorBoard image',
             'Load TensorBoard Default Image Into Kind',
         ):
             self.assertEqual(
                 steps[name]['if'],
                 "${{ inputs.load_tensorboard_image == 'true' }}",
             )
-        self.assertIn(
-            './.github/resources/scripts/wait-for-image-artifacts.sh tensorboard',
-            steps['Wait for TensorBoard image artifact']['run'],
+        self.assertEqual(
+            steps['Download shared TensorBoard image']['uses'],
+            './.github/actions/shared-ci-images',
+        )
+        self.assertEqual(
+            steps['Download shared TensorBoard image']['with']['kind'],
+            'tensorboard',
         )
         opted_in = set()
         for path in (ROOT / '.github/workflows').glob('*.y*ml'):
@@ -66,10 +69,7 @@ class TensorBoardDeployedTest(unittest.TestCase):
         acceptance = yaml.safe_load(
             (ROOT / '.github/workflows/tensorboard-acceptance.yml').read_text()
         )
-        self.assertEqual(
-            acceptance['jobs']['build']['uses'],
-            './.github/workflows/image-builds.yml',
-        )
+        self.assertNotIn('build', acceptance['jobs'])
 
     def test_second_storage_failure_preserves_first_case_without_passing(self):
         with tempfile.TemporaryDirectory() as directory:

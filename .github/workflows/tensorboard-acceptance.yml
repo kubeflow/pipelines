@@ -21,6 +21,7 @@ name: TensorBoard runtime acceptance
     - checks_requested
     branches:
     - master
+    - main
   workflow_dispatch: null
 permissions:
   contents: read
