@@ -760,6 +760,41 @@ class TestClient(parameterized.TestCase):
         self.assertEqual(get_healthz.call_count, 2)
         sleep.assert_called_once_with(5)
 
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_healthz_default_makes_five_attempts(self, get_healthz, sleep):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=503)
+        with self.assertRaisesRegex(TimeoutError, 'after 5 attempts'):
+            self.client.get_kfp_healthz()
+        self.assertEqual(get_healthz.call_count, 5)
+        # No sleep after the last attempt.
+        self.assertEqual(sleep.call_count, 4)
+
+    @parameterized.parameters(1, 3, 8)
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_healthz_max_attempts_limits_attempts(
+        self, max_attempts, get_healthz, sleep
+    ):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=503)
+        with self.assertRaisesRegex(
+            TimeoutError, f'after {max_attempts} attempts'
+        ):
+            self.client.get_kfp_healthz(max_attempts=max_attempts)
+        self.assertEqual(get_healthz.call_count, max_attempts)
+        self.assertEqual(sleep.call_count, max_attempts - 1)
+
+    @parameterized.parameters(0, -1, 1.5, '3', True)
+    def test_healthz_invalid_max_attempts_raises(self, max_attempts):
+        with patch.object(
+            self.client._healthz_api, 'healthz_service_get_healthz'
+        ) as get_healthz:
+            with self.assertRaisesRegex(
+                ValueError, 'max_attempts must be an integer >= 1'
+            ):
+                self.client.get_kfp_healthz(max_attempts=max_attempts)
+        get_healthz.assert_not_called()
+
     def test_upload_pipeline_without_name(self):
 
         @component
@@ -957,6 +992,53 @@ class TestClient(parameterized.TestCase):
             )
 
             self.assertEqual(result, expected_result)
+
+
+def _no_cached_namespace(self):
+    self._context_setting = {'namespace': ''}
+
+
+@patch.object(
+    client.Client, '_load_context_setting_or_default', _no_cached_namespace
+)
+class TestClientHealthzMaxAttempts(parameterized.TestCase):
+    """Tests the eager healthz check that ``Client.__init__`` runs when no
+    namespace is cached."""
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_init_fails_fast_with_one_attempt(self, get_healthz, sleep):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=503)
+        with self.assertRaisesRegex(TimeoutError, 'after 1 attempts'):
+            client.Client(healthz_max_attempts=1)
+        get_healthz.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_init_default_makes_five_attempts(self, get_healthz, sleep):
+        get_healthz.side_effect = kfp.server_api.ApiException(status=503)
+        with self.assertRaisesRegex(TimeoutError, 'after 5 attempts'):
+            client.Client()
+        self.assertEqual(get_healthz.call_count, 5)
+
+    @patch('kfp.client.client.time.sleep')
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_init_retries_up_to_healthz_max_attempts(self, get_healthz, sleep):
+        response = kfp.server_api.V2GetHealthzResponse(multi_user=False)
+        get_healthz.side_effect = [
+            kfp.server_api.ApiException(status=503)
+        ] * 6 + [response]
+        client.Client(healthz_max_attempts=7)
+        self.assertEqual(get_healthz.call_count, 7)
+
+    @patch('kfp.server_api.HealthzServiceApi.healthz_service_get_healthz')
+    def test_init_invalid_healthz_max_attempts_raises(self, get_healthz):
+        with self.assertRaisesRegex(
+            ValueError, 'healthz_max_attempts must be an integer'
+        ):
+            client.Client(healthz_max_attempts=0)
+        get_healthz.assert_not_called()
 
 
 class TestInverseProxyCredentials(parameterized.TestCase):

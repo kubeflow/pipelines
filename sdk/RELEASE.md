@@ -26,6 +26,12 @@
   `plugins_input` argument, keyed by plugin name, that is sent as the run's
   `plugins_input`. Recurring runs pass it to every triggered run.
 
+* `Client.get_kfp_healthz` accepts `max_attempts` (default 5), and `Client`
+  accepts `healthz_max_attempts` for the health check it runs at startup when
+  no namespace is cached. Pass 1 to fail fast when the backend is unreachable,
+  or a larger value for slow clusters. The health check no longer sleeps after
+  its final failed attempt.
+
 ## Breaking changes
 
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
