@@ -5,6 +5,8 @@ resources:
   - ml-pipeline-apiserver-deployment.yaml
   - ml-pipeline-apiserver-role.yaml
   - ml-pipeline-apiserver-rolebinding.yaml
+  - ml-pipeline-apiserver-tokenreview-clusterrole.yaml
+  - ml-pipeline-apiserver-tokenreview-clusterrolebinding.yaml
   - ml-pipeline-apiserver-sa.yaml
   - ml-pipeline-apiserver-service.yaml
   - ml-pipeline-persistenceagent-deployment.yaml
