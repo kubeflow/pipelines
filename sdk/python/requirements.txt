@@ -16,11 +16,9 @@ click==8.1.8
     #   click-option-group
 click-option-group==0.5.7
     # via -r requirements.in
-colorama==0.4.6 ; sys_platform == 'win32'
-    # via click
 docstring-parser==0.17.0
     # via -r requirements.in
-google-api-core==2.28.1
+google-api-core==2.43.2
     # via
     #   -r requirements.in
     #   google-cloud-core
@@ -57,6 +55,8 @@ oauthlib==4.0.0
     #   -r requirements.in
     #   kubernetes
     #   requests-oauthlib
+opentelemetry-api==1.45.2
+    # via google-api-core
 proto-plus==1.26.1
     # via google-api-core
 protobuf==6.33.5
@@ -80,15 +80,7 @@ pyyaml==6.0.3
     # via
     #   -r requirements.in
     #   kubernetes
-requests==2.32.5 ; python_full_version < '3.10'
-    # via
-    #   -r requirements.in
-    #   google-api-core
-    #   google-cloud-storage
-    #   kubernetes
-    #   requests-oauthlib
-    #   requests-toolbelt
-requests==2.33.0 ; python_full_version >= '3.10'
+requests==2.33.0 ; python_version >= "3.10"
     # via
     #   -r requirements.in
     #   google-api-core
@@ -109,13 +101,9 @@ six==1.17.0
     #   python-dateutil
 tabulate==0.9.0
     # via -r requirements.in
-urllib3==2.6.3 ; python_full_version < '3.10'
-    # via
-    #   -r requirements.in
-    #   kfp-server-api
-    #   kubernetes
-    #   requests
-urllib3==2.8.0 ; python_full_version >= '3.10'
+typing-extensions==4.16.0
+    # via opentelemetry-api
+urllib3==2.8.0 ; python_version >= "3.10"
     # via
     #   -r requirements.in
     #   kfp-server-api
