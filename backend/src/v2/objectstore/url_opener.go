@@ -152,13 +152,12 @@ func (invocationS3URLOpener) OpenBucketURL(ctx context.Context, u *url.URL) (*bl
 		}
 		config.Credentials = stscreds.NewAssumeRoleProvider(sts.NewFromConfig(stsConfig), role)
 	}
-	bucketOptions.RequestChecksumCalculation = config.RequestChecksumCalculation
 	clientS3 := s3.NewFromConfig(config, func(options *s3.Options) {
 		options.UseAccelerate = clientOptions.UseAccelerate
 		options.UsePathStyle = clientOptions.UsePathStyle
 		options.EndpointOptions.DisableHTTPS = clientOptions.EndpointOptions.DisableHTTPS
 	})
-	return s3blob.OpenBucketV2(ctx, clientS3, u.Host, &bucketOptions)
+	return OpenS3Bucket(ctx, clientS3, u.Host, &bucketOptions)
 }
 
 type invocationGCSURLOpener struct{}
