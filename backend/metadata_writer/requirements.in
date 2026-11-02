@@ -1,4 +1,4 @@
-kubernetes>=8.0.0,<=31.0.0
+kubernetes<=37.0.1,>=37.0.1
 ml-metadata==1.21.0
 lru-dict>=1.1.7,<2.0.0
 PyYAML>=5.3,<7
