@@ -13,6 +13,7 @@
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {verifyCheckRuns} = require('./ci_check_runs');
+const {readRecoveryStatuses} = require('./ci_recovery_statuses');
 
 function isDevelopmentBranch(ref) {
   return ref === 'master' || ref === 'main';
@@ -80,12 +81,14 @@ async function recoveryCandidates({github, context}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
   });
+  const unblockedPRs = prs.filter(pr => !blocked(pr));
+  const statuses = await readRecoveryStatuses({github, ...context.repo,
+    heads: unblockedPRs.map(pr => pr.head.sha)});
   const candidates = [];
-  for (const pr of prs) {
-    if (blocked(pr)) continue;
+  for (const pr of unblockedPRs) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
-    const status = await currentStatus(github, context, pr.head.sha);
+    const status = statuses.get(pr.head.sha);
     if (status?.state === 'success' &&
         status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
@@ -237,7 +240,7 @@ async function evidence(github, context, pr, root) {
   // unchanged.
   const liveBase = isDevelopmentBranch(pr.base.ref);
   const [inventory, cutoff] = await Promise.all([
-    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
+    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),
     freshAfter(github, context, pr),
   ]);
   const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};

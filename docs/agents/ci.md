@@ -483,3 +483,9 @@ dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.
 
 - Master merge-queue candidates run all master PR CI lanes via `merge_group`, ignoring PR path filters. CI Check uses a separate trusted `workflow_run` publisher for exact queue-SHA `ci-passed` evidence; see [ci-passed.md](ci-passed.md#master-merge-group-ci). Preserve nonpublishing queue image builds and immutable candidate refs in SDK/test downloads. Adding a master PR lane also requires a master merge-group trigger and inventory regeneration. GitHub/Tide activation is a separate coordinated change.
+
+### GitHub API efficiency
+
+- CI gate workflow inventories are fetched by immutable base SHA and reused only within the trusted publisher job. Runner-local entries include run/attempt and verifier/parser revisions and are validated before reuse; never restore them from shared Actions caches or PR artifacts. PR files, timeline, PR snapshots, and workflow runs remain fresh at every existing publication boundary. PR-number file responses are mutable and must not be cached under a prior head snapshot.
+- Scheduled recovery keeps the paginated REST PR listing and batches exact upstream-repository commit-status reads in sequential GraphQL groups of at most 50 unique heads. Missing or malformed commit evidence fails discovery; absent status contexts remain recovery candidates.
+- Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.

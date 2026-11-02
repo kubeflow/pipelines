@@ -69,15 +69,17 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                       if [[ "$JOBS_API_FAILS" == "true" ]]; then
                         exit 1
                       fi
-                      printf '%s\n' "$PRODUCER_JOBS"
+                      printf '%s\\n' "$PRODUCER_JOBS"
                       exit 0
                     fi
                     count=$(cat "$GH_COUNTER")
                     count=$((count + 1))
                     echo "$count" > "$GH_COUNTER"
                     if (( count >= READY_AFTER )); then
-                      printf '%s\n' $ARTIFACT_NAMES
+                      printf 'HTTP/2.0 200 OK\\nETag: ready\\n\\n'
+                      printf '%s\\n' $ARTIFACT_NAMES
                     else
+                      printf 'HTTP/2.0 200 OK\\nETag: pending\\n\\n'
                       for artifact in $ARTIFACT_NAMES; do
                         if [[ "$artifact" != "$MISSING_ARTIFACT" ]]; then
                           echo "$artifact"
