@@ -481,3 +481,9 @@ while the freeze remains in place. Then generate fresh runtime/image/CI evidence
 Verify stale-green revocation, retargeted PRs, normal and Dependabot merges, release
 dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.
+
+### GitHub API efficiency
+
+- CI gate workflow inventories are fetched by immutable base SHA and reused only within the trusted publisher job. Runner-local entries include run/attempt and verifier/parser revisions and are validated before reuse; never restore them from shared Actions caches or PR artifacts. PR files, timeline, PR snapshots, and workflow runs remain fresh at every existing publication boundary. PR-number file responses are mutable and must not be cached under a prior head snapshot.
+- Scheduled recovery keeps the paginated REST PR listing and batches exact upstream-repository commit-status reads in sequential GraphQL groups of at most 50 unique heads. Missing or malformed commit evidence fails discovery; absent status contexts remain recovery candidates.
+- Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.
