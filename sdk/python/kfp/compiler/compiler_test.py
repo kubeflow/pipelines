@@ -1329,6 +1329,189 @@ class TestCompilePipeline(parameterized.TestCase):
             )
 
 
+class TestParallelForDictItemScoping(parameterized.TestCase):
+    """Fields of dict loop items used below other groups (#13273)."""
+
+    ITEMS = [
+        {'who': 'alice', 'greeting': 'hello alice'},
+        {'who': 'bob', 'greeting': 'hello bob'},
+    ]
+
+    @staticmethod
+    def _spec(pipeline_func) -> Dict[str, Any]:
+        return json_format.MessageToDict(pipeline_func.pipeline_spec)
+
+    @staticmethod
+    def _input_names(component: Dict[str, Any]) -> List[str]:
+        return sorted(
+            component.get('inputDefinitions', {}).get('parameters', {})
+        )
+
+    @staticmethod
+    def _named(entries: Dict[str, Any], prefix: str) -> List[Any]:
+        # Group ids come from a shared counter, so match by kind only.
+        return [
+            value
+            for name, value in sorted(entries.items())
+            if re.fullmatch(rf'{prefix}-\d+', name)
+        ]
+
+    def _only(self, entries: Dict[str, Any], prefix: str) -> Any:
+        matches = self._named(entries, prefix)
+        self.assertLen(matches, 1, f'expected one {prefix} in {list(entries)}')
+        return matches[0]
+
+    def _loop_item_input(self, spec: Dict[str, Any]) -> str:
+        loop = self._only(spec['components'], 'comp-for-loop')
+        (name,) = [
+            n
+            for n in self._input_names(loop)
+            if re.fullmatch(r'pipelinechannel--loop-item-param-\d+', n)
+        ]
+        return name
+
+    def test_field_used_inside_condition_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline(should_run: bool = True):
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(should_run == True):  # noqa: E712
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        condition = self._only(spec['components'], 'comp-condition')
+        self.assertIn(item_input, self._input_names(condition))
+        msg = condition['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(
+            msg,
+            {
+                'componentInputParameter': item_input,
+                'parameterExpressionSelector': 'parseJson(string_value)["greeting"]',
+            },
+        )
+        # The loop passes its whole item to the condition.
+        loop_dag = self._only(spec['components'], 'comp-for-loop')['dag']
+        condition_task = self._only(loop_dag['tasks'], 'condition')
+        self.assertEqual(
+            condition_task['inputs']['parameters'][item_input],
+            {'componentInputParameter': item_input},
+        )
+
+    def test_field_used_inside_nested_conditions_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline(a: bool = True, b: bool = True):
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(a == True):  # noqa: E712
+                    with dsl.If(b == True):  # noqa: E712
+                        show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        conditions = self._named(spec['components'], 'comp-condition')
+        self.assertLen(conditions, 2)
+        for component in conditions:
+            self.assertIn(item_input, self._input_names(component))
+        (outer,) = [c for c in conditions if 'show' not in c['dag']['tasks']]
+        inner_task = self._only(outer['dag']['tasks'], 'condition')
+        self.assertEqual(
+            inner_task['inputs']['parameters'][item_input],
+            {'componentInputParameter': item_input},
+        )
+
+    def test_condition_on_field_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(item.who == 'alice'):
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        loop_dag = self._only(spec['components'], 'comp-for-loop')['dag']
+        condition_task = self._only(loop_dag['tasks'], 'condition')
+        self.assertEqual(
+            condition_task['inputs']['parameters'][f'{item_input}-subvar-who'],
+            {
+                'componentInputParameter': item_input,
+                'parameterExpressionSelector': 'parseJson(string_value)["who"]',
+            },
+        )
+        self.assertIn(
+            f"inputs.parameter_values['{item_input}-subvar-who']",
+            condition_task['triggerPolicy']['condition'],
+        )
+        condition = self._only(spec['components'], 'comp-condition')
+        msg = condition['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(msg['componentInputParameter'], item_input)
+
+    def test_field_does_not_leak_above_its_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.component
+        def on_exit():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = on_exit()
+            with dsl.ExitHandler(exit_task):
+                with dsl.ParallelFor(items=self.ITEMS) as item:
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        exit_handler = self._only(spec['components'], 'comp-exit-handler')
+        self.assertEqual(self._input_names(exit_handler), [])
+        exit_handler_task = self._only(
+            spec['root']['dag']['tasks'], 'exit-handler'
+        )
+        self.assertNotIn('inputs', exit_handler_task)
+
+    def test_outer_loop_field_used_in_inner_loop(self):
+        @dsl.component
+        def show(msg: str, n: int) -> str:
+            return f'{msg} {n}'
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.ParallelFor(items=[1, 2]) as number:
+                    show(msg=item.greeting, n=number)
+
+        spec = self._spec(my_pipeline)
+        loops = self._named(spec['components'], 'comp-for-loop')
+        self.assertLen(loops, 2)
+        (outer,) = [c for c in loops if 'show' not in c['dag']['tasks']]
+        (inner,) = [c for c in loops if 'show' in c['dag']['tasks']]
+        (outer_item,) = [
+            n
+            for n in self._input_names(outer)
+            if re.fullmatch(r'pipelinechannel--loop-item-param-\d+', n)
+        ]
+        self.assertIn(outer_item, self._input_names(inner))
+        msg = inner['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(
+            msg,
+            {
+                'componentInputParameter': outer_item,
+                'parameterExpressionSelector': 'parseJson(string_value)["greeting"]',
+            },
+        )
+
+
 class TestCompilePipelineCaching(unittest.TestCase):
     def test_compile_pipeline_with_caching_enabled(self):
         """Test pipeline compilation with caching enabled."""
