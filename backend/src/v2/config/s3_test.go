@@ -108,12 +108,17 @@ func TestS3ProvideSessionInfoMaxRetries(t *testing.T) {
 				},
 			}
 
-			sessionInfo, err := providerConfig.ProvideSessionInfo(path)
+			sessionInfo, err := providerConfig.ProvideSessionInfo(path, false)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedMaxRetries, sessionInfo.Params["maxRetries"])
 		})
 	}
 }
+
+// The override-bypass regression cases (override/default winning over a
+// hostile query, the allowUnmanagedProviderQueries gate, and the SSRF/
+// disableSSL guardrails) live in provider_policy_conformance_test.go,
+// shared with the frontend's mirror implementation. See kubeflow/pipelines#14046.
 
 func TestS3ProvideSessionInfoOverrideKeepsRemainingParams(t *testing.T) {
 	providerConfig := S3ProviderConfig{
@@ -135,7 +140,7 @@ func TestS3ProvideSessionInfoOverrideKeepsRemainingParams(t *testing.T) {
 		},
 	}
 
-	sessionInfo, err := providerConfig.ProvideSessionInfo("s3://team-bucket/team-a/model")
+	sessionInfo, err := providerConfig.ProvideSessionInfo("s3://team-bucket/team-a/model", false)
 	require.NoError(t, err)
 	assert.Equal(t, objectstore.SessionInfo{
 		Provider: "s3",
