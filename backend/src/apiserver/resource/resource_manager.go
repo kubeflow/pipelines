@@ -2572,6 +2572,13 @@ func (r *ResourceManager) reportWorkflowResource(
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
+
+		if len(run.Tasks) > 0 {
+			if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+				return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
+			}
+		}
+
 		if execStatus.IsInFinalState() {
 			updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
 				run,
@@ -2623,11 +2630,7 @@ func (r *ResourceManager) reportWorkflowResource(
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
 	}
-	if len(run.Tasks) > 0 {
-		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
-			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
-		}
-	}
+
 	// Delete a fully persisted workflow only after the version check above:
 	// a stale snapshot carrying the persisted-final-state label must not
 	// delete the live workflow object that a retry has since resubmitted

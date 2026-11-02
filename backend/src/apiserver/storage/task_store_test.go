@@ -506,6 +506,71 @@ func TestUpdateTask_Success(t *testing.T) {
 	assert.Equal(t, model.TaskStatus(2), updated.State)
 }
 
+func TestUpdateTask_RejectsTerminalParentRun(t *testing.T) {
+	db, taskStore, runStore := initializeTaskStore()
+	defer db.Close()
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	created, err := taskStore.CreateTask(&model.Task{
+		Namespace:    "ns1",
+		RunUUID:      "run-1",
+		Name:         "task-1",
+		State:        1,
+		StateHistory: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	run, err := runStore.GetRun("run-1", false)
+	require.NoError(t, err)
+	run.State = model.RuntimeStateSucceeded
+	require.NoError(t, runStore.UpdateRun(run))
+
+	_, err = taskStore.UpdateTask(&model.Task{
+		UUID:  created.UUID,
+		State: 2,
+	})
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+	assert.Contains(t, err.Error(), "terminal state")
+}
+
+func TestUpdateTask_RejectsImportedParentRun(t *testing.T) {
+	db, taskStore, runStore := initializeTaskStore()
+	defer db.Close()
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "imported-run",
+		ExperimentId: "exp-1",
+		Namespace:    "ns1",
+		ImportedFrom: "external-archive",
+		RunDetails: model.RunDetails{
+			State: model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	createdTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:    "ns1",
+		RunUUID:      "imported-run",
+		Name:         "task-1",
+		State:        1,
+		StateHistory: model.JSONSlice{},
+	})
+
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTask(&model.Task{
+		UUID:  createdTask.UUID,
+		State: 2,
+	})
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+	assert.Contains(t, err.Error(), "imported history")
+}
+
 func TestUpdateTask_LifecycleMessageSetAndCleared(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
