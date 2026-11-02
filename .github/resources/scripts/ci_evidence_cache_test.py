@@ -9,7 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Cache only immutable gate evidence, including across github-script processes."""
+"""Cache only immutable gate evidence, including across github-script
+processes."""
 
 import hashlib
 import json
