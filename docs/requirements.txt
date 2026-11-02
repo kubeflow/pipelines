@@ -1,4 +1,4 @@
-sphinx>=7.2.0,<8.0.0
+sphinx>=9.2.0,<10.0.0
 furo>=2025.12.19
 myst-parser>=3.0.0,<4.0.0
 sphinxcontrib-mermaid>=0.9.0,<1.0.0
