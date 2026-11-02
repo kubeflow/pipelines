@@ -484,6 +484,8 @@ image tags as part of the Git branch rename.
 
 ### GitHub API efficiency
 
+- CI status publication deduplicates state/description transitions and reconciles the informational `ci-passed` label only when its fresh PR snapshot differs. Successful label writes update the local snapshot for rollback; ambiguous write errors invalidate it, and unknown state still permits conservative removal. Preserve green invalidation, live-base checks and post-publication rollback; do not add polling delays to reduce API load.
+
 - CI gate workflow inventories are fetched by immutable base SHA and reused only within the trusted publisher job. Runner-local entries include run/attempt and verifier/parser revisions and are validated before reuse; never restore them from shared Actions caches or PR artifacts. PR files, timeline, PR snapshots, and workflow runs remain fresh at every existing publication boundary. PR-number file responses are mutable and must not be cached under a prior head snapshot.
 - Scheduled recovery keeps the paginated REST PR listing and batches exact upstream-repository commit-status reads in sequential GraphQL groups of at most 50 unique heads. Missing or malformed commit evidence fails discovery; absent status contexts remain recovery candidates.
 - Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.
