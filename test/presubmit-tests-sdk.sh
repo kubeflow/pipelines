@@ -39,7 +39,9 @@ if [[ ${#runtime_wheels[@]} -ne 1 || ! -f "${runtime_wheels[0]}" ]]; then
 fi
 
 # Docker-backed cases need a source URL accessible inside their containers.
-if [[ -z "${PULL_NUMBER}" ]]; then
+if [[ -n "${TEST_SOURCE_REF:-}" ]]; then
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${TEST_SOURCE_REF}#egg=kfp&subdirectory=sdk/python"
+elif [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"

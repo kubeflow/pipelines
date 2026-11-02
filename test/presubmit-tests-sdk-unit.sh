@@ -18,7 +18,9 @@ JUNIT_XML="${JUNIT_XML:-sdk-unit.xml}"
 # Number of pytest-xdist workers; set to 0 to disable xdist (e.g. for bisecting).
 PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-auto}"
 
-if [[ -z "${PULL_NUMBER}" ]]; then
+if [[ -n "${TEST_SOURCE_REF:-}" ]]; then
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${TEST_SOURCE_REF}#egg=kfp&subdirectory=sdk/python"
+elif [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"

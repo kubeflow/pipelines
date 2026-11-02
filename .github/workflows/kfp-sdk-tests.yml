@@ -1,6 +1,9 @@
 name: KFP SDK Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches: [master, main]
   pull_request:
@@ -53,6 +56,7 @@ jobs:
         SETUP_ENV: false
         REPO_NAME: ${{ github.repository }}
         PULL_NUMBER: ${{ github.event.pull_request.number }}
+        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha }}
         PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh

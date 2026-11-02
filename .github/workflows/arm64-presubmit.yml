@@ -1,6 +1,9 @@
 name: KFP ARM64 Presubmit
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   pull_request:
     paths:
       - '.github/workflows/arm64-presubmit.yml'

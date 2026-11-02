@@ -1,5 +1,8 @@
 name: Third-party Image Upgrade Checks
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   pull_request:
     paths:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**'
@@ -30,7 +33,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
+          ref: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -82,7 +85,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
+          ref: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7

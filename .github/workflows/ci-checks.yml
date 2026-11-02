@@ -245,3 +245,38 @@ jobs:
             await finalizeMergedRecovery({github, context, core,
               number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD,
               before: process.env.RECOVERY_SNAPSHOT, pollPassed: true});
+
+  check_merge_group_status:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'merge_group' &&
+      startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    concurrency:
+      group: ci-passed-merge-group-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      statuses: write
+    steps:
+      - name: Check out the trusted publisher revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.11'
+      - name: Install trusted workflow parser dependencies
+        run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Reconcile exact merge-group status
+        if: always() && !cancelled()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {reconcile} = require('./.github/resources/scripts/ci_merge_group.js');
+            await reconcile({github, context, core});

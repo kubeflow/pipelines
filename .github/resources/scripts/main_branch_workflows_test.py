@@ -35,6 +35,10 @@ class MainBranchWorkflowsTest(unittest.TestCase):
                 if not isinstance(config, dict):
                     continue
                 branches = config.get('branches', [])
+                if event == 'merge_group':
+                    # Queue rollout is staged on master before branch rename.
+                    self.assertEqual(branches, ['master'])
+                    continue
                 if 'master' in branches:
                     with self.subTest(workflow=path.name, event=event):
                         self.assertIn('main', branches)
