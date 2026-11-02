@@ -51,6 +51,7 @@ if ! [[ "$PRODUCER_STATE_UNAVAILABLE_EXTENSIONS" =~ ^[0-9]+$ ]]; then
 fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
+source "${BASH_SOURCE%/*}/list-image-artifacts.sh"
 
 # Require an explicit selection so callers cannot accidentally wait on extra producers.
 if (( $# == 0 )); then
@@ -71,6 +72,9 @@ for requested_artifact in "${required_artifacts[@]}"; do
     exit 2
   fi
 done
+
+artifact_cache_dir=$(mktemp -d)
+trap 'rm -rf "$artifact_cache_dir"' EXIT
 
 active_missing_producers=()
 failed_missing_producers=()
@@ -125,9 +129,7 @@ while true; do
   attempt=$((attempt + 1))
   window_attempt=$((((attempt - 1) % WAIT_ATTEMPTS) + 1))
   artifact_names=""
-  if ! artifact_names=$(gh api --paginate \
-      "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
-      --jq '.artifacts[].name'); then
+  if ! artifact_names=$(list_image_artifacts "$artifact_cache_dir"); then
     echo "::warning::Could not list image artifacts on attempt ${window_attempt}/${WAIT_ATTEMPTS}."
   fi
 

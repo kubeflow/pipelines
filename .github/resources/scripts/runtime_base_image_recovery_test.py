@@ -457,7 +457,10 @@ class RuntimeArchiveRecoveryWiringTest(unittest.TestCase):
         self.assertLess(job.index(build), job.index(upload))
         self.assertNotIn('continue-on-error', build)
         self.assertNotIn('if:', upload)
-        self.assertIn('name: ${{ env.ARTIFACT_NAME }}', upload)
+        self.assertIn(
+            "name: ${{ inputs.shared && format('{0}-attempt-{1}', env.ARTIFACT_NAME, github.run_attempt) || env.ARTIFACT_NAME }}",
+            upload,
+        )
         self.assertIn('ARTIFACT_NAME: "runtime-base-images"', job)
         self.assertIn('      actions: read\n      contents: read', job)
         self.assertNotIn(': write', job)

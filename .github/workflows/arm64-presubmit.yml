@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/arm64-presubmit.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/arm64-smoke/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/github-disk-cleanup/**'
@@ -38,37 +40,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    # One invocation for the entire ARM lane, sharing the maintained image matrix.
+  smoke:
     permissions:
       actions: read
       contents: read
-    uses: ./.github/workflows/image-builds.yml
-    with:
-      architecture: arm64
-
-  smoke:
-    permissions:
-      contents: read
     name: Native ARM64 installation and pipeline
-    needs: build
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+    # Includes the formerly separate 30-minute image-build dependency.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: List required ARM image artifacts
-        id: image-artifacts
-        shell: bash
-        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output arm64-image-files
-      - name: Download only ARM image artifacts from this run
-        uses: ./.github/actions/download-artifact-with-retry
+      - name: Download verified shared ARM images
+        uses: ./.github/actions/shared-ci-images
         with:
-          pattern: '*-arm64'
+          architecture: arm64
           path: arm64-images
-          merge-multiple: 'true'
-          required-files: ${{ steps.image-artifacts.outputs.required-files }}
+          layout: flat
       - name: Install KFP and run a pipeline natively
         uses: ./.github/actions/arm64-smoke
         with:
