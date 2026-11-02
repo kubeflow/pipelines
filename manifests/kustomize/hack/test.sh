@@ -66,5 +66,6 @@ python3 "${DIR}/tensorboard_signing_key_test.py"
 python3 "${DIR}/driver_plugin_test.py"
 python3 "${DIR}/ci_mysql_image_test.py"
 python3 "${DIR}/yq_release_test.py"
+python3 "${DIR}/scheduledworkflow_leader_election_test.py"
 
 kpt pkg tree "${MANIFESTS_DIR}" >/dev/null
