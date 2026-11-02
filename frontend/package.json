@@ -121,7 +121,7 @@
     "@typescript-eslint/parser": "8.72.0",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/coverage-v8": "^5.0.5",
-    "autoprefixer": "^10.6.1",
+    "autoprefixer": "^10.6.2",
     "browserslist": "4.29.4",
     "eslint": "^10.13.0",
     "eslint-plugin-import-x": "^4.17.1",
