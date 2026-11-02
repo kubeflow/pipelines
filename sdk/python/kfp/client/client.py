@@ -101,6 +101,12 @@ class RunPipelineResult:
         return f'RunPipelineResult(run_id={self.run_id})'
 
 
+def _validate_max_attempts(value: int, name: str) -> None:
+    # bool is a subclass of int, so reject it explicitly.
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f'{name} must be an integer >= 1, got {value!r}.')
+
+
 class Client:
     """The KFP SDK client for the Kubeflow Pipelines backend API.
 
@@ -128,6 +134,10 @@ class Client:
         ui_host: Base URL to use to open the Kubeflow Pipelines UI. This is used
             when running the client from a notebook to generate and print links.
         verify_ssl: Whether to verify the server's TLS certificate.
+        healthz_max_attempts: Maximum number of attempts for the health check
+            that runs during initialization when no namespace is set in the
+            local context. Set it to 1 to fail fast when the backend is
+            unreachable, or raise it for slow clusters. Defaults to 5.
     """
 
     # in-cluster DNS name of the pipeline service
@@ -157,8 +167,10 @@ class Client:
         credentials: Optional[TokenCredentialsBase] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
+        healthz_max_attempts: int = 5,
     ) -> None:
         """Create a new instance of kfp client."""
+        _validate_max_attempts(healthz_max_attempts, 'healthz_max_attempts')
         warnings.warn(
             'This client requires a Kubeflow Pipelines backend that exposes '
             'the v2 pipeline runtime. The SDK uses /apis/v2beta1 for server compatibility.',
@@ -224,7 +236,10 @@ class Client:
         self._healthz_api = kfp.server_api.HealthzServiceApi(api_client)
         if (
             not self._context_setting['namespace']
-            and self.get_kfp_healthz().multi_user is True
+            and self.get_kfp_healthz(
+                max_attempts=healthz_max_attempts
+            ).multi_user
+            is True
         ):
             try:
                 with open(Client._NAMESPACE_PATH, 'r') as f:
@@ -499,18 +514,21 @@ class Client:
     def get_kfp_healthz(
         self,
         sleep_duration: int = 5,
+        max_attempts: int = 5,
     ) -> kfp.server_api.V2GetHealthzResponse:
         """Gets healthz info for KFP deployment.
 
         Args:
             sleep_duration: Time in seconds between retries.
+            max_attempts: Maximum number of attempts before raising
+                ``TimeoutError``. Must be at least 1.
 
         Returns:
             JSON response from the healthz endpoint.
         """
+        _validate_max_attempts(max_attempts, 'max_attempts')
         count = 0
         response = None
-        max_attempts = 5
         while not response:
             count += 1
             if count > max_attempts:
@@ -533,7 +551,8 @@ class Client:
                 logging.exception(
                     f'Failed to get healthz info attempt {count} of {max_attempts}.'
                 )
-                time.sleep(sleep_duration)
+                if count < max_attempts:
+                    time.sleep(sleep_duration)
 
     def get_user_namespace(self) -> str:
         """Gets user namespace in context config.
