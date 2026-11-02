@@ -29,8 +29,15 @@ permissions:
   contents: read
 
 jobs:
-  frontend-tests:
+  frontend-checks:
+    name: Frontend (${{ matrix.check }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [static, ui, server, bundle]
+    env:
+      CI: 'true'
 
     steps:
     - name: Checkout code
@@ -42,8 +49,14 @@ jobs:
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
       with:
         node-version-file: frontend/.nvmrc
+        cache: npm
+        cache-dependency-path: |
+          frontend/package-lock.json
+          frontend/server/package-lock.json
+          frontend/mock-backend/package-lock.json
 
     - name: Set up Python for profile-controller regression tests
+      if: matrix.check == 'server'
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
       with:
         python-version: '3.13'
@@ -55,19 +68,19 @@ jobs:
         npm --version
 
     - name: Check for toolchain version drift
-      if: github.event_name == 'pull_request'
+      if: matrix.check == 'static' && github.event_name == 'pull_request'
       run: |
         git fetch origin ${{ github.base_ref }} --depth=1
         git fetch --deepen=100 2>/dev/null || true
         cd frontend && node scripts/check-lockfile-drift.mjs --base-ref "origin/${{ github.base_ref }}"
 
-    - name: Clean npm cache
-      run: npm cache clean --force
-
     - name: Install dependencies
-      run: cd ./frontend && npm ci
+      working-directory: frontend
+      # Recover the intermittent npm cache race without discarding warm caches.
+      run: npm ci || (npm cache clean --force && npm ci)
 
     - name: Verify generated API clients are up to date
+      if: matrix.check == 'static'
       run: |
         cd ./frontend
         npm run apis:all
@@ -78,6 +91,7 @@ jobs:
           server/src/generated/apisv2
 
     - name: Verify pipeline and platform spec generation
+      if: matrix.check == 'static'
       working-directory: frontend
       run: |
         # Protobuf only needs Ubuntu sources, not the runner's third-party repositories.
@@ -90,11 +104,35 @@ jobs:
         sudo apt-get "${apt_sources[@]}" install --yes protobuf-compiler
         bash scripts/check-spec-generation.sh
 
-    - name: Run Frontend Tests
-      run: cd ./frontend && npm run test:ci
+    - name: Run static checks
+      if: matrix.check == 'static'
+      working-directory: frontend
+      run: npm run test:static
+
+    - name: Run UI tests
+      if: matrix.check == 'ui'
+      working-directory: frontend
+      run: npm run test:ui:coverage
+
+    - name: Run server tests
+      if: matrix.check == 'server'
+      working-directory: frontend
+      run: npm run test:server:coverage
 
     - name: Verify production bundle startup
+      if: matrix.check == 'bundle'
       working-directory: frontend
       run: |
         npx playwright install --with-deps chromium
-        npm run test:bundle
+        npm run test:bundle:ci
+
+  # Preserve the existing check name and require every matrix lane to pass.
+  frontend-tests:
+    needs: frontend-checks
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all frontend checks
+        env:
+          CHECK_RESULT: ${{ needs.frontend-checks.result }}
+        run: test "$CHECK_RESULT" = success
