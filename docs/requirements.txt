@@ -1,5 +1,5 @@
 sphinx>=7.2.0,<8.0.0
-furo>=2024.8.6
+furo>=2025.12.19
 myst-parser>=3.0.0,<4.0.0
 sphinxcontrib-mermaid>=0.9.0,<1.0.0
 sphinx-copybutton>=0.5.2,<1.0.0
