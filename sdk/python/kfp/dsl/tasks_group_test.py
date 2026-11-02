@@ -71,6 +71,15 @@ class ParallelForTest(unittest.TestCase):
             with pipeline_context.Pipeline('pipeline') as p:
                 tasks_group.ParallelFor(items=[{}])
 
+    def test_parallelfor_dict_key_name_raises(self):
+        with self.assertRaisesRegex(
+            ValueError, r"ParallelFor item key 'name' is reserved"
+        ):
+            with pipeline_context.Pipeline('pipeline'):
+                tasks_group.ParallelFor(
+                    items=[{'name': 'alice', 'greeting': 'hi'}]
+                )
+
 
 class TestConditionDeprecated(unittest.TestCase):
     def test(self):

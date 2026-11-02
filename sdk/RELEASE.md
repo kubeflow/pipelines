@@ -67,6 +67,10 @@
 * Local execution passes whole numbers inside `List` and `Dict` parameters
   and outputs as ints, as the remote backend does, instead of floats.
 
+* `dsl.ParallelFor` raises a `ValueError` naming the key when a dict item uses a key the loop
+  item reserves (`name`, `task_name`, `channel_type`, `full_name`, `pattern`, `task`,
+  `items_or_pipeline_channel`), instead of crashing or hanging during compilation.
+
 # 2.15.2
 
 ## Bug fixes and other changes
