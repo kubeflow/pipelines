@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/kubeflow-pipelines-manifests.yml'
       - 'manifests/kustomize/**'
+      - '.github/resources/manifests/**'
+      - '.github/resources/runtime-base-images.txt'
       - 'backend/api/tools/**'
       - 'go.mod'
       - '.github/actions/setup-go/**'

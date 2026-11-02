@@ -165,6 +165,31 @@ class ConditionEvaluatorTest(unittest.TestCase):
             ConditionEvaluator.evaluate_condition(condition, self.store)
         )
 
+    def test_compiler_escaped_string_literals_match_output(self):
+        channel = pipeline_channel.PipelineParameterChannel(
+            name='Output', channel_type='String', task_name='producer'
+        )
+        for value in (
+            "it's",
+            'C:\\temp',
+            "\\'",
+            'say "hi"',
+            'line1\nline2',
+            'line1\r\nline2',
+        ):
+            with self.subTest(value=value):
+                condition = pipeline_spec_builder._single_binary_operation_to_cel_condition(
+                    pipeline_channel.ConditionOperation('==', channel, value)
+                )
+                self.store.put_task_output('producer', 'Output', value)
+                self.assertTrue(
+                    ConditionEvaluator.evaluate_condition(condition, self.store)
+                )
+                self.store.put_task_output('producer', 'Output', value + 'x')
+                self.assertFalse(
+                    ConditionEvaluator.evaluate_condition(condition, self.store)
+                )
+
     def test_large_numeric_conversion_fails_closed(self):
         self.store.put_task_output('number', 'Output', 10**400)
         self.assertFalse(

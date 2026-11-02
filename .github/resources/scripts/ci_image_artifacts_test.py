@@ -104,8 +104,20 @@ class CiImageArtifactsTest(unittest.TestCase):
         )[1].split('\n\nconcurrency:', maxsplit=1)[0]
 
         self.assertNotIn('metadata_envoy', pull_request_block)
+        consumer = yaml.safe_load(frontend_e2e_workflow)['jobs']
+        self.assertNotIn('build', consumer)
+        self.assertTrue(
+            any(
+                step.get('uses') == './.github/actions/deploy'
+                for job in consumer.values()
+                for step in job.get('steps', [])
+            )
+        )
+        shared = yaml.safe_load(
+            (ROOT / '.github/workflows/ci-images.yml').read_text()
+        )
         self.assertEqual(
-            yaml.safe_load(frontend_e2e_workflow)['jobs']['build']['uses'],
+            shared['jobs']['amd64']['uses'],
             './.github/workflows/image-builds.yml',
         )
         self.assertNotIn('metadata-envoy', image_builds_workflow)

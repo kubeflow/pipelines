@@ -5,6 +5,9 @@ resources:
   - ../../../../../manifests/kustomize/env/platform-agnostic-multi-user
   - ../../base
 
+components:
+  - ../../components/preloaded-mysql
+
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newName: kind-registry:5000/apiserver
