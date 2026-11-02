@@ -1001,12 +1001,53 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 			assert.Equal(t, "Terminating", persistedRun.Conditions)
 			assert.Equal(t, expectedWorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
-			assert.Equal(t, []*model.RuntimeStatus{{
+			require.Len(t, persistedRun.StateHistory, 2)
+			assert.Equal(t, &model.RuntimeStatus{
 				UpdateTimeInSec: 1,
 				State:           model.RuntimeStateRunning,
-			}}, persistedRun.StateHistory)
+			}, persistedRun.StateHistory[0])
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.StateHistory[1].State)
 		})
 	}
+}
+
+// A terminal report that loaded the run before TerminateRun committed passes
+// the manifest preconditions, because termination changes neither manifest nor
+// RetryGeneration. Its stale history must not erase the CANCELING entry.
+func TestUpdateRunIfRuntimeManifestsUnchanged_KeepsConcurrentCancellationHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1", true)
+	require.NoError(t, err)
+	require.Len(t, staleRun.StateHistory, 1)
+	expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
+	expectedPipelineRuntimeManifest := staleRun.PipelineRuntimeManifest
+	require.NoError(t, runStore.TerminateRun("1"))
+
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = string(model.RuntimeStateSucceeded.ToExecutionPhase())
+	staleRun.WorkflowRuntimeManifest = "finished-workflow"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		expectedWorkflowRuntimeManifest,
+		expectedPipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	require.True(t, updated)
+
+	persistedRun, err := runStore.GetRun("1", true)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, persistedRun.State)
+	var states []model.RuntimeState
+	for _, status := range persistedRun.StateHistory {
+		states = append(states, status.State)
+	}
+	assert.Equal(t, []model.RuntimeState{
+		model.RuntimeStateRunning,
+		model.RuntimeStateCancelling,
+		model.RuntimeStateSucceeded,
+	}, states)
 }
 
 func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
@@ -1113,6 +1154,10 @@ func TestTerminateRun(t *testing.T) {
 					UpdateTimeInSec: 1,
 					State:           model.RuntimeStateRunning,
 				},
+				{
+					UpdateTimeInSec: 4,
+					State:           model.RuntimeStateCancelling,
+				},
 			},
 		},
 
@@ -1127,6 +1172,50 @@ func TestTerminateRun(t *testing.T) {
 	runDetail, err := runStore.GetRun("1", false)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV2(), runDetail.ToV2())
+}
+
+func TestTerminateRun_AppendsCancelingToStateHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	require.NoError(t, runStore.TerminateRun("1"))
+	run, err := runStore.GetRun("1", false)
+	require.NoError(t, err)
+	require.Len(t, run.StateHistory, 2)
+	assert.Equal(t, &model.RuntimeStatus{UpdateTimeInSec: 1, State: model.RuntimeStateRunning}, run.StateHistory[0])
+	assert.Equal(t, model.RuntimeStateCancelling, run.StateHistory[1].State)
+	assert.Positive(t, run.StateHistory[1].UpdateTimeInSec)
+
+	require.NoError(t, runStore.TerminateRun("1"))
+	run, err = runStore.GetRun("1", false)
+	require.NoError(t, err)
+	assert.Len(t, run.StateHistory, 2, "terminating an already-canceling run should not add another entry")
+}
+
+func TestTerminateRun_EmptyStateHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+	_, err := db.Exec("UPDATE run_details SET StateHistory = NULL WHERE UUID = ?", "1")
+	require.NoError(t, err)
+
+	require.NoError(t, runStore.TerminateRun("1"))
+	run, err := runStore.GetRun("1", false)
+	require.NoError(t, err)
+	require.Len(t, run.StateHistory, 1)
+	assert.Equal(t, model.RuntimeStateCancelling, run.StateHistory[0].State)
+}
+
+func TestTerminateRun_FinishedRunKeepsStateHistory(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+	before, err := runStore.GetRun("2", false)
+	require.NoError(t, err)
+
+	require.Error(t, runStore.TerminateRun("2"))
+	after, err := runStore.GetRun("2", false)
+	require.NoError(t, err)
+	assert.Equal(t, before.StateHistory, after.StateHistory)
+	assert.Equal(t, before.State, after.State)
 }
 
 func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
