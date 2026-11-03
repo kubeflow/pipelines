@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -103,7 +103,7 @@ func getFingerPrintsAndID(
 	execution *Execution,
 	kfpAPI kfpapi.API,
 	opts *common.Options,
-	pvcNames []string) (fingerprint string, task *apiv2beta1.PipelineTask, err error) {
+	pvcNames []string) (fingerprint string, task *apiv2.PipelineTask, err error) {
 
 	if opts.CacheDisabled || !execution.WillTrigger() || !opts.Task.GetCachingOptions().GetEnableCache() {
 		return "", nil, nil
@@ -120,7 +120,7 @@ func getFingerPrintsAndID(
 		// API server can TokenReview the run-scoped projected token.
 		ctx = metadata.AppendToOutgoingContext(ctx, auth.BoundRunIDMetadataKey, opts.Run.GetRunId())
 	}
-	cachedTaskResponse, err := kfpAPI.FindCachedTask(ctx, &apiv2beta1.FindCachedTaskRequest{
+	cachedTaskResponse, err := kfpAPI.FindCachedTask(ctx, &apiv2.FindCachedTaskRequest{
 		Namespace:        opts.Namespace,
 		CacheFingerprint: fingerPrint,
 	})

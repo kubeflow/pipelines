@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler, dsl
 from typing import List
+
+from kfp import compiler, dsl
 
 
 @dsl.component
@@ -35,6 +36,7 @@ def my_pipeline():
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
         print_op(s=item)
+
 
 if __name__ == '__main__':
     compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')

@@ -17,13 +17,13 @@ package resolver
 import (
 	"fmt"
 
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 )
 
 func findParameterByIOKey(
 	key string,
 	pms []ParameterMetadata,
-) (*apiV2beta1.PipelineTask_InputOutputs_IOParameter, error) {
+) (*apiV2.PipelineTask_InputOutputs_IOParameter, error) {
 	for _, pm := range pms {
 		if pm.ParameterIO.GetParameterKey() == key {
 			return pm.ParameterIO, nil
@@ -35,7 +35,7 @@ func findParameterByIOKey(
 func findArtifactByIOKey(
 	key string,
 	ams []ArtifactMetadata,
-) (*apiV2beta1.PipelineTask_InputOutputs_IOArtifact, error) {
+) (*apiV2.PipelineTask_InputOutputs_IOArtifact, error) {
 	for _, am := range ams {
 		if am.Key == key {
 			return am.ArtifactIO, nil

@@ -79,6 +79,7 @@ def evaluate_parameter_expression(loop_item: Any, expression: str) -> Any:
                     )
                 if isinstance(loop_item, str):
                     import json
+
                     parsed_item = json.loads(loop_item)
                     if field_name in parsed_item:
                         return parsed_item[field_name]
@@ -86,11 +87,13 @@ def evaluate_parameter_expression(loop_item: Any, expression: str) -> Any:
                         f'Field "{field_name}" not found in parsed loop item: {parsed_item}'
                     )
                 logging.warning(
-                    f'Cannot parse JSON from loop item type: {type(loop_item)}')
+                    f'Cannot parse JSON from loop item type: {type(loop_item)}'
+                )
                 return loop_item
 
             if isinstance(loop_item, str):
                 import json
+
                 return json.loads(loop_item)
             return loop_item
 
@@ -109,7 +112,8 @@ def evaluate_parameter_expression(loop_item: Any, expression: str) -> Any:
         return loop_item
     except Exception as exc:
         logging.warning(
-            f'Failed to evaluate parameter expression "{expression}": {exc}')
+            f'Failed to evaluate parameter expression "{expression}": {exc}'
+        )
         return loop_item
 
 
@@ -142,12 +146,16 @@ def create_parameter_loop_iteration_task_spec(
             runtime_value = input_spec.runtime_value
             if runtime_value.WhichOneof('value') == 'constant':
                 constant_value = executor_output_utils.pb2_value_to_python(
-                    runtime_value.constant)
-                if (isinstance(constant_value, str) and
-                        'pipelinechannel--' in constant_value and
-                        f'{loop_task_name}-loop-item' in constant_value):
+                    runtime_value.constant
+                )
+                if (
+                    isinstance(constant_value, str)
+                    and 'pipelinechannel--' in constant_value
+                    and f'{loop_task_name}-loop-item' in constant_value
+                ):
                     new_constant = pipeline_spec_builder.to_protobuf_value(
-                        loop_item)
+                        loop_item
+                    )
                     runtime_value.constant.CopyFrom(new_constant)
 
         elif input_spec.HasField('task_output_parameter'):
@@ -158,32 +166,39 @@ def create_parameter_loop_iteration_task_spec(
         elif input_spec.HasField('component_input_parameter'):
             param_name = input_spec.component_input_parameter
             has_expression_selector = bool(
-                input_spec.parameter_expression_selector)
+                input_spec.parameter_expression_selector
+            )
 
-            if (param_name.endswith('-loop-item') or
-                    f'{loop_task_name}-loop-item' in param_name):
+            if (
+                param_name.endswith('-loop-item')
+                or f'{loop_task_name}-loop-item' in param_name
+            ):
                 if has_expression_selector:
                     expression = input_spec.parameter_expression_selector
                     extracted_value = evaluate_parameter_expression(
-                        loop_item, expression)
+                        loop_item, expression
+                    )
                     input_spec.ClearField('component_input_parameter')
                     input_spec.ClearField('parameter_expression_selector')
                     if extracted_value is None:
                         raise ValueError('Extracted value is None')
                     new_constant = pipeline_spec_builder.to_protobuf_value(
-                        extracted_value)
+                        extracted_value
+                    )
                     input_spec.runtime_value.constant.CopyFrom(new_constant)
                 else:
                     input_spec.ClearField('component_input_parameter')
                     if loop_item is None:
                         raise ValueError('Loop item is None')
                     new_constant = pipeline_spec_builder.to_protobuf_value(
-                        loop_item)
+                        loop_item
+                    )
                     input_spec.runtime_value.constant.CopyFrom(new_constant)
             elif loop_item_param_name and param_name == loop_item_param_name:
                 input_spec.ClearField('component_input_parameter')
                 new_constant = pipeline_spec_builder.to_protobuf_value(
-                    loop_item)
+                    loop_item
+                )
                 input_spec.runtime_value.constant.CopyFrom(new_constant)
 
     return iteration_task_spec
@@ -205,9 +220,11 @@ def create_artifact_loop_iteration_task_spec(
     for input_spec in iteration_task_spec.inputs.artifacts.values():
         if input_spec.HasField('component_input_artifact'):
             artifact_name = input_spec.component_input_artifact
-            if (artifact_name == artifact_item_input or
-                    artifact_name.endswith('-loop-item') or
-                    f'{loop_task_name}-loop-item' in artifact_name):
+            if (
+                artifact_name == artifact_item_input
+                or artifact_name.endswith('-loop-item')
+                or f'{loop_task_name}-loop-item' in artifact_name
+            ):
                 iteration_key = f'{artifact_name}-iteration-{iteration_index}'
                 input_spec.component_input_artifact = iteration_key
 
@@ -228,7 +245,8 @@ def build_nested_dag_arguments(
         )
     else:
         task_arguments = OrchestratorUtils.make_task_arguments(
-            task_spec.inputs, io_store)
+            task_spec.inputs, io_store
+        )
 
     for input_name in component_spec.input_definitions.parameters:
         if input_name not in task_arguments:

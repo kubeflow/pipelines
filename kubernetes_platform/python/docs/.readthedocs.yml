@@ -3,11 +3,15 @@ version: 2
 sphinx:
   configuration: kubernetes_platform/python/docs/conf.py
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
+  apt_packages:
+    - protobuf-compiler
   tools:
-    python: "3.9"
-python:
-  install:
-    - requirements: kubernetes_platform/python/docs/requirements.txt
-    - method: pip
-      path: kubernetes_platform/python/
+    python: "3.12"
+    uv: "latest"
+  commands:
+    - uv sync --frozen --extra docs
+    - make -C api fetch-protos
+    - uv run python api/v2alpha1/python/generate_proto.py
+    - uv run python kubernetes_platform/python/generate_proto.py
+    - uv run sphinx-build -b html kubernetes_platform/python/docs $READTHEDOCS_OUTPUT/html

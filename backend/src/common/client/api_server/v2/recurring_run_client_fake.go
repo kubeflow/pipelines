@@ -16,12 +16,12 @@ package api_server_v2
 
 import (
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
 )
 
-func getDefaultJob(id string, name string) *model.V2beta1RecurringRun {
-	return &model.V2beta1RecurringRun{
+func getDefaultJob(id string, name string) *model.V2RecurringRun {
+	return &model.V2RecurringRun{
 		CreatedAt:      strfmt.NewDateTime(),
 		Description:    "RECURRING_RUN_DESCRIPTION",
 		RecurringRunID: id,
@@ -36,12 +36,12 @@ func NewRecurringRunClientFake() *RecurringRunClientFake {
 }
 
 func (c *RecurringRunClientFake) Create(params *params.RecurringRunServiceCreateRecurringRunParams) (
-	*model.V2beta1RecurringRun, error) {
+	*model.V2RecurringRun, error) {
 	return getDefaultJob("500", params.RecurringRun.DisplayName), nil
 }
 
 func (c *RecurringRunClientFake) Get(params *params.RecurringRunServiceGetRecurringRunParams) (
-	*model.V2beta1RecurringRun, error) {
+	*model.V2RecurringRun, error) {
 	return getDefaultJob(params.RecurringRunID, "RECURRING_RUN_NAME"), nil
 }
 
@@ -58,14 +58,14 @@ func (c *RecurringRunClientFake) Disable(params *params.RecurringRunServiceDisab
 }
 
 func (c *RecurringRunClientFake) List(params *params.RecurringRunServiceListRecurringRunsParams) (
-	[]*model.V2beta1RecurringRun, int, string, error) {
-	return []*model.V2beta1RecurringRun{
+	[]*model.V2RecurringRun, int, string, error) {
+	return []*model.V2RecurringRun{
 		getDefaultJob("100", "MY_FIRST_RECURRING_RUN"),
 		getDefaultJob("101", "MY_SECOND_RECURRING_RUN"),
 	}, 2, "", nil
 }
 
 func (c *RecurringRunClientFake) ListAll(params *params.RecurringRunServiceListRecurringRunsParams,
-	maxResultSize int) ([]*model.V2beta1RecurringRun, error) {
+	maxResultSize int) ([]*model.V2RecurringRun, error) {
 	return listAllForJob(c, params, maxResultSize)
 }

@@ -27,11 +27,6 @@ endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
 
-# Set USE_FIND_LINKS=true to use local sdk and pipeline_spec for buildling python builds rather than pulling from pypi
-# applies to `make python` and make pythone-dev` commands.
-# e.g. make python USE_FIND_LINKS=true FIND_LINKS_PATH="path1 path2 ..."
-FIND_LINKS_PATH := /go/src/github.com/kubeflow/pipelines/sdk/python/dist /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python/dist /go/src/github.com/kubeflow/pipelines/backend/api/v2beta1/python_http_client/dist
-
 .PHONY: all
 all: golang python
 
@@ -77,14 +72,9 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 ifeq ($(USE_PREBUILT_IMAGE),true)
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
-		-e HOME=/tmp \
-		$(if $(USE_FIND_LINKS),-e PIP_FIND_LINKS="$(FIND_LINKS_PATH)") \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
-		    python3 generate_proto.py && \
-		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		python3 /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python/generate_proto.py
 else
 	$(MAKE) python-from-source
 endif
@@ -94,19 +84,14 @@ endif
 python-from-source: ensure-api-generator-image proto/kubernetes_executor_config.proto fetch-protos
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
-		-e HOME=/tmp \
-		$(if $(USE_FIND_LINKS),-e PIP_FIND_LINKS="$(FIND_LINKS_PATH)") \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(IMAGE_TAG) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
-		    python3 generate_proto.py && \
-		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		python3 /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python/generate_proto.py
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
 python-dev: proto/kubernetes_executor_config.proto fetch-protos
-	python3 python/generate_proto.py && cd python && pip install -e .[dev]
+	python3 python/generate_proto.py
 
 # Delete all generated Python packages
 .PHONY: clean-python
@@ -114,7 +99,7 @@ clean-python:
 	rm -rf python/build
 	rm -rf python/dist
 	rm -rf python/kfp_kubernetes.egg-info
-	rm -f python/kfp/kubernetes/kubernetes_executor_config_pb2.py
+	rm -f ../sdk/python/kfp/kubernetes/kubernetes_executor_config_pb2.py
 
 ##########################
 # IMPLEMENTATION DETAILS -- run inside of container for generating go

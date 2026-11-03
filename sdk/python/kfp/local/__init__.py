@@ -14,9 +14,7 @@
 """The `kfp.local` module contains objects for running KFP components
 locally."""
 
-from kfp.local.config import DockerRunner
-from kfp.local.config import init
-from kfp.local.config import SubprocessRunner
+from kfp.local.config import DockerRunner, SubprocessRunner, init
 
 __all__ = [
     'init',

@@ -19,11 +19,13 @@
 # http://www.sphinx-doc.org/en/master/config
 
 import functools
+import inspect
 import os
 import sys
 from typing import List, Optional
 
 import sphinx
+from kfp import kubernetes
 from sphinx import application  # noqa
 
 # -- Path setup --------------------------------------------------------------
@@ -32,6 +34,19 @@ from sphinx import application  # noqa
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../sdk/python'))
+
+# Document component signatures and docstrings, not their callable wrappers.
+for component in (kubernetes.CreatePVC, kubernetes.DeletePVC):
+    function = component.pipeline_func
+    signature = inspect.signature(function)
+    function.__signature__ = signature.replace(
+        parameters=[
+            parameter
+            for parameter in signature.parameters.values()
+            if parameter.name in component.component_spec.inputs
+        ]
+    )
+    setattr(kubernetes, function.__name__, function)
 
 # -- Project information -----------------------------------------------------
 project = 'Kubeflow Pipelines'
@@ -79,16 +94,11 @@ html_theme_options = {
     'icon': {
         'repo': 'fontawesome/brands/github',
     },
-    'repo_url':
-        'https://github.com/kubeflow/pipelines/',
-    'repo_name':
-        'pipelines',
-    'repo_type':
-        'github',
-    'edit_uri':
-        'blob/master/docs',
-    'globaltoc_collapse':
-        False,
+    'repo_url': 'https://github.com/kubeflow/pipelines/',
+    'repo_name': 'pipelines',
+    'repo_type': 'github',
+    'edit_uri': 'blob/master/docs',
+    'globaltoc_collapse': False,
     'features': [
         'navigation.expand',
         # "navigation.tabs",
@@ -125,13 +135,9 @@ html_theme_options = {
             },
         },
     ],
-    'font': {
-        'text': 'Open Sans'
-    },
-    'version_dropdown':
-        True,
-    'version_json':
-        'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
+    'font': {'text': 'Open Sans'},
+    'version_dropdown': True,
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
@@ -177,15 +183,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -195,16 +198,28 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'KubeflowPipelines.tex', 'Kubeflow Pipelines Documentation',
-     'Google', 'manual'),
+    (
+        master_doc,
+        'KubeflowPipelines.tex',
+        'Kubeflow Pipelines Documentation',
+        'Google',
+        'manual',
+    ),
 ]
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'kubeflowpipelines',
-              'Kubeflow Pipelines Documentation', [author], 1)]
+man_pages = [
+    (
+        master_doc,
+        'kubeflowpipelines',
+        'Kubeflow Pipelines Documentation',
+        [author],
+        1,
+    )
+]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -212,10 +227,15 @@ man_pages = [(master_doc, 'kubeflowpipelines',
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'KubeflowPipelines', 'Kubeflow Pipelines Documentation',
-     author, 'KubeflowPipelines',
-     'Kubeflow Pipelines is a platform for building and deploying portable, scalable machine learning workflows based on Docker containers within the Kubeflow project.',
-     ''),
+    (
+        master_doc,
+        'KubeflowPipelines',
+        'Kubeflow Pipelines Documentation',
+        author,
+        'KubeflowPipelines',
+        'Kubeflow Pipelines is a platform for building and deploying portable, scalable machine learning workflows based on Docker containers within the Kubeflow project.',
+        '',
+    ),
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -237,8 +257,13 @@ epub_exclude_files = ['search.html']
 
 # # -- Extension configuration -------------------------------------------------
 readme_path = os.path.join(
-    os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'sdk',
-    'python', 'README.md')
+    os.path.abspath(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    ),
+    'sdk',
+    'python',
+    'README.md',
+)
 
 
 def trim_header_of_readme(path: str) -> List[str]:
@@ -259,11 +284,13 @@ original_readme_contents = trim_header_of_readme(readme_path)
 re_attach_header_of_readme_closure = functools.partial(
     re_attach_header_of_readme,
     path=readme_path,
-    contents=original_readme_contents)
+    contents=original_readme_contents,
+)
 
 
-def re_attach_header_of_readme_hook(app: sphinx.application.Sphinx,
-                                    exception: Optional[Exception]) -> None:
+def re_attach_header_of_readme_hook(
+    app: sphinx.application.Sphinx, exception: Optional[Exception]
+) -> None:
     re_attach_header_of_readme_closure()
 
 

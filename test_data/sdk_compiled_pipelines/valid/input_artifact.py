@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import component
-from kfp.dsl import Dataset
-from kfp.dsl import Input
+from kfp.dsl import Dataset, Input, component
 
 
 @component
@@ -26,6 +24,8 @@ def input_artifact(data: Input[Dataset]):
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=input_artifact,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

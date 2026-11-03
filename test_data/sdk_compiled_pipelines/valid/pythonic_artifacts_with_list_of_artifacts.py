@@ -38,7 +38,8 @@ def join_datasets(datasets: List[Dataset]) -> Dataset:
 
 @dsl.pipeline
 def make_and_join_datasets(
-        texts: List[str] = ['Hello', ',', ' ', 'world!']) -> Dataset:
+    texts: List[str] = ['Hello', ',', ' ', 'world!'],
+) -> Dataset:
     with dsl.ParallelFor(texts) as text:
         t1 = make_dataset(text=text)
 
@@ -47,6 +48,8 @@ def make_and_join_datasets(
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=make_and_join_datasets,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

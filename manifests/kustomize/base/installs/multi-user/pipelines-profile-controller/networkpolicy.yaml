@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubeflow-pipelines-profile-controller
+spec:
+  # Allow the intended sync-webhook caller. Other NetworkPolicy allowances
+  # are additive; this policy does not introduce webhook authentication.
+  # Selectors use matchExpressions so kustomize label transformers do not add
+  # labels that metacontroller pods do not carry.
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - metacontroller
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - kubeflow-pipelines-profile-controller
+  policyTypes:
+  - Ingress

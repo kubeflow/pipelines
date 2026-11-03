@@ -1,8 +1,10 @@
-import { vi, afterAll, beforeAll, beforeEach } from 'vitest';
+import { vi, afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as os from 'os';
 import * as fs from 'fs';
+import { once } from 'events';
+import type { Server } from 'http';
 import express from 'express';
 import requests from 'supertest';
 
@@ -65,6 +67,40 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
 
 export function mkTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-test-'));
+}
+
+/**
+ * Returns a function that serves an app on an ephemeral loopback port and resolves its base URL.
+ * Servers it starts are closed after each test.
+ *
+ * Passing an app to supertest makes it listen on a new wildcard port for every request and then
+ * connect to 127.0.0.1. On macOS, another process already bound to that loopback port can receive
+ * the request instead, so tests that send many requests should listen once on loopback.
+ */
+export function setupLoopbackServers(): (app: express.Application) => Promise<string> {
+  const servers: Server[] = [];
+
+  afterEach(async () => {
+    await Promise.all(
+      servers.splice(0).map(
+        (server) =>
+          new Promise<void>((resolve, reject) => {
+            server.close((error) => (error ? reject(error) : resolve()));
+          }),
+      ),
+    );
+  });
+
+  return async (app) => {
+    const server = app.listen(0, '127.0.0.1');
+    servers.push(server);
+    await once(server, 'listening');
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected the test server to listen on a TCP port.');
+    }
+    return `http://127.0.0.1:${address.port}`;
+  };
 }
 
 export function setupMockBackendTest(options: { showLog?: boolean } = {}): void {

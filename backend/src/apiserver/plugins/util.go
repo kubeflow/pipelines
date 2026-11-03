@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"google.golang.org/protobuf/encoding/protojson"
 )
@@ -105,7 +105,7 @@ func BuildKFPRunURL(runID, namespace, kfpBaseURL, pathTemplate string) string {
 
 // upsertPluginOutput merges a single plugin's output into an existing
 // plugins_output JSON string, returning the updated JSON.
-func upsertPluginOutput(existing *string, pluginName string, output *apiv2beta1.PluginOutput) (string, error) {
+func upsertPluginOutput(existing *string, pluginName string, output *apiv2.PluginOutput) (string, error) {
 	marshaledOutput, err := protojson.Marshal(output)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal plugin output for %q: %w", pluginName, err)
@@ -149,7 +149,7 @@ func ModelToPersistedRun(m *model.Run, namespace string) (*PersistedRun, error) 
 }
 
 // SetPendingRunPluginOutput serializes the given PluginOutput into PendingRun.PluginsOutput.
-func SetPendingRunPluginOutput(run *PendingRun, pluginName string, output *apiv2beta1.PluginOutput) error {
+func SetPendingRunPluginOutput(run *PendingRun, pluginName string, output *apiv2.PluginOutput) error {
 	if run == nil || output == nil || pluginName == "" {
 		return nil
 	}
@@ -161,8 +161,8 @@ func SetPendingRunPluginOutput(run *PendingRun, pluginName string, output *apiv2
 	return nil
 }
 
-func DeserializePluginsOutput(raw *model.LargeText) (map[string]*apiv2beta1.PluginOutput, error) {
-	result := make(map[string]*apiv2beta1.PluginOutput)
+func DeserializePluginsOutput(raw *model.LargeText) (map[string]*apiv2.PluginOutput, error) {
+	result := make(map[string]*apiv2.PluginOutput)
 	if raw == nil || *raw == "" {
 		return result, nil
 	}
@@ -171,7 +171,7 @@ func DeserializePluginsOutput(raw *model.LargeText) (map[string]*apiv2beta1.Plug
 		return nil, fmt.Errorf("failed to unmarshal plugins_output: %w", err)
 	}
 	envelope.forEachEntry(func(name string, payload json.RawMessage) {
-		output := &apiv2beta1.PluginOutput{}
+		output := &apiv2.PluginOutput{}
 		if err := protojson.Unmarshal(payload, output); err == nil {
 			result[name] = output
 		}
@@ -179,7 +179,7 @@ func DeserializePluginsOutput(raw *model.LargeText) (map[string]*apiv2beta1.Plug
 	return result, nil
 }
 
-func SerializePluginsOutput(outputs map[string]*apiv2beta1.PluginOutput) (*model.LargeText, error) {
+func SerializePluginsOutput(outputs map[string]*apiv2.PluginOutput) (*model.LargeText, error) {
 	if len(outputs) == 0 {
 		return nil, nil
 	}
@@ -209,7 +209,7 @@ func PersistPluginsOutput(run *PersistedRun, store RunPluginOutputStore) error {
 	return store.UpdateRunPluginsOutput(run.RunID, lt)
 }
 
-func GetStringEntry(output *apiv2beta1.PluginOutput, key string) string {
+func GetStringEntry(output *apiv2.PluginOutput, key string) string {
 	if output == nil || output.Entries == nil || key == "" {
 		return ""
 	}
@@ -220,6 +220,6 @@ func GetStringEntry(output *apiv2beta1.PluginOutput, key string) string {
 	return entry.Value.GetStringValue()
 }
 
-func GetParentRunID(output *apiv2beta1.PluginOutput) string {
+func GetParentRunID(output *apiv2.PluginOutput) string {
 	return GetStringEntry(output, EntryRootRunID)
 }

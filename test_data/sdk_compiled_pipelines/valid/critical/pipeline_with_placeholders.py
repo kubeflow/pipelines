@@ -12,35 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
 @component
 def print_all_placeholders(
-        job_name: str,
-        job_resource_name: str,
-        job_id: str,
-        task_name: str,
-        task_id: str,
+    job_name: str,
+    job_resource_name: str,
+    job_id: str,
+    task_name: str,
+    task_id: str,
 ):
     allPlaceholders = [job_name, job_resource_name, job_id, task_name, task_id]
 
     for placeholder in allPlaceholders:
-        if "\{\{" in placeholder or placeholder == "":
+        if r'\{\{' in placeholder or placeholder == '':
             raise RuntimeError(
-                "Expected the placeholder to be replaced with a value: " + placeholder
+                'Expected the placeholder to be replaced with a value: '
+                + placeholder
             )
 
-    assert task_name == "print-all-placeholders"
-    assert job_resource_name.startswith("pipeline-with-placeholders-")
+    assert task_name == 'print-all-placeholders'
+    assert job_resource_name.startswith('pipeline-with-placeholders-')
 
-    output = ", ".join(allPlaceholders)
+    output = ', '.join(allPlaceholders)
     print(output)
 
 
-@dsl.pipeline(name="pipeline-with-placeholders")
+@dsl.pipeline(name='pipeline-with-placeholders')
 def pipeline_with_placeholders():
     print_all_placeholders(
         job_name=dsl.PIPELINE_JOB_NAME_PLACEHOLDER,
@@ -51,8 +51,8 @@ def pipeline_with_placeholders():
     ).set_caching_options(False)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_placeholders,
-        package_path=__file__.replace(".py", ".yaml"),
+        package_path=__file__.replace('.py', '.yaml'),
     )

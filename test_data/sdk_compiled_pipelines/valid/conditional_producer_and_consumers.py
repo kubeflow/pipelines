@@ -1,7 +1,6 @@
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
@@ -28,4 +27,5 @@ def math_pipeline(threshold: int = 2) -> List[int]:
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=math_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

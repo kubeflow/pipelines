@@ -13,8 +13,7 @@
 # limitations under the License.
 from typing import Dict, List, Optional
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -23,26 +22,26 @@ def component_op(
     input_str1: Optional[str] = 'string default value',
     input_str2: Optional[str] = None,
     input_str3: Optional[str] = None,
-    input_str4_from_pipeline: Optional[str] = "Some component default",
-    input_str5_from_pipeline: Optional[str] = "Some component default",
+    input_str4_from_pipeline: Optional[str] = 'Some component default',
+    input_str5_from_pipeline: Optional[str] = 'Some component default',
     input_str6_from_pipeline: Optional[str] = None,
     input_bool1: Optional[bool] = True,
     input_bool2: Optional[bool] = None,
-    input_dict: Optional[Dict[str, int]] = {"a": 1},
-    input_list: Optional[List[str]] = ["123"],
+    input_dict: Optional[Dict[str, int]] = {'a': 1},
+    input_list: Optional[List[str]] = ['123'],
     input_int: Optional[int] = 100,
 ):
     # When no values are provided to the pipeline's input
     assert input_str1 == 'Hello'
     assert input_str2 == 'World'
     assert input_str3 is None
-    assert input_str4_from_pipeline == "Some component default"
-    assert input_str5_from_pipeline == "Some pipeline default"
+    assert input_str4_from_pipeline == 'Some component default'
+    assert input_str5_from_pipeline == 'Some pipeline default'
     assert input_str6_from_pipeline is None
     assert input_bool1 is True
     assert input_bool2 is None
-    assert input_dict == {"a": 1}
-    assert input_list == ["123"]
+    assert input_dict == {'a': 1}
+    assert input_list == ['123']
     assert input_int == 100
 
     print(f'input_str1: {input_str1}, type: {type(input_str1)}')
@@ -72,9 +71,11 @@ def component_op(
 # Note that if running from the UI, the form requires
 # inputs, and empty field != null / empty value
 @dsl.pipeline(name='v2-component-optional-input')
-def pipeline(input_str4: Optional[str] = None,
-             input_str5: Optional[str] = "Some pipeline default",
-             input_str6: Optional[str] = None):
+def pipeline(
+    input_str4: Optional[str] = None,
+    input_str5: Optional[str] = 'Some pipeline default',
+    input_str6: Optional[str] = None,
+):
     component_op(
         input_str1='Hello',
         input_str2='World',
@@ -86,4 +87,5 @@ def pipeline(input_str4: Optional[str] = None,
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

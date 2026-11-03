@@ -14,10 +14,10 @@
 """Manager for coordinating pip installations across parallel tasks to prevent
 race conditions."""
 
-from contextlib import contextmanager
 import logging
 import threading
 import time
+from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class PipInstallManager:
                 'total_wait_time': 0.0,
                 'max_wait_time': 0.0,
                 'concurrent_peak': 0,
-                'current_active': 0
+                'current_active': 0,
             }
             self._stats_lock = threading.Lock()
             self._initialized = True
@@ -67,15 +67,19 @@ class PipInstallManager:
         """
         with self._lock:
             self._serialize_installs = serialize_installs
-            self._max_concurrent = max_concurrent if not serialize_installs else 1
+            self._max_concurrent = (
+                max_concurrent if not serialize_installs else 1
+            )
 
             # Create or recreate semaphore based on configuration
             self._pip_install_semaphore = threading.Semaphore(
-                self._max_concurrent)
+                self._max_concurrent
+            )
 
             logger.info(
                 f'PipInstallManager configured: serialize={serialize_installs}, '
-                f'max_concurrent={self._max_concurrent}')
+                f'max_concurrent={self._max_concurrent}'
+            )
 
     def configure_docker(self, max_concurrent: int):
         """Configure the pip install manager for docker runner.
@@ -126,13 +130,13 @@ class PipInstallManager:
                 'total_wait_time': 0.0,
                 'max_wait_time': 0.0,
                 'concurrent_peak': 0,
-                'current_active': 0
+                'current_active': 0,
             }
 
     @contextmanager
-    def managed_install(self,
-                        runner_type: str = 'subprocess',
-                        track_stats: bool = True):
+    def managed_install(
+        self, runner_type: str = 'subprocess', track_stats: bool = True
+    ):
         """Context manager for managed pip installations.
 
         Args:
@@ -142,10 +146,13 @@ class PipInstallManager:
         """
         semaphore = (
             self.get_docker_semaphore()
-            if runner_type == 'docker' else self.get_install_semaphore())
+            if runner_type == 'docker'
+            else self.get_install_semaphore()
+        )
 
-        is_serialized = self.is_serialized(
-        ) if runner_type == 'subprocess' else True
+        is_serialized = (
+            self.is_serialized() if runner_type == 'subprocess' else True
+        )
 
         # Record wait time
         start_wait = time.time()
@@ -162,11 +169,13 @@ class PipInstallManager:
                     self._install_stats['total_installs'] += 1
                     self._install_stats['total_wait_time'] += wait_time
                     self._install_stats['max_wait_time'] = max(
-                        self._install_stats['max_wait_time'], wait_time)
+                        self._install_stats['max_wait_time'], wait_time
+                    )
                     self._install_stats['current_active'] += 1
                     self._install_stats['concurrent_peak'] = max(
                         self._install_stats['concurrent_peak'],
-                        self._install_stats['current_active'])
+                        self._install_stats['current_active'],
+                    )
 
             if wait_time > 0.1 and is_serialized:  # Only log if we had to wait
                 logger.info(

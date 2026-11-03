@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -80,29 +80,29 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 
 	// Create the task, we will continue to update this as needed.
 	parentTaskID := l.opts.ParentTask.GetTaskId()
-	typeAttributes := &apiV2beta1.PipelineTask_TypeAttributes{
+	typeAttributes := &apiV2.PipelineTask_TypeAttributes{
 		DownloadToWorkspace: util.BoolPointer(downloadToWorkspace),
 	}
 	if l.opts.IterationIndex != nil {
 		typeAttributes.IterationIndex = l.opts.IterationIndex
 	}
-	attemptPods := []*apiV2beta1.PipelineTask_TaskPod{
+	attemptPods := []*apiV2.PipelineTask_TaskPod{
 		{
 			Name: l.opts.PodName,
 			Uid:  l.opts.PodUID,
-			Type: apiV2beta1.PipelineTask_EXECUTOR,
+			Type: apiV2.PipelineTask_EXECUTOR,
 		},
 	}
-	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2.CreateTaskRequest{
 		RunId: l.opts.Run.RunId,
-		Task: &apiV2beta1.PipelineTask{
+		Task: &apiV2.PipelineTask{
 			// Name is the canonical DAG task key; DisplayName is the user-facing TaskInfo name.
 			Name:           l.opts.ScopePath.GetLast().GetTaskName(),
 			DisplayName:    l.opts.TaskSpec.GetTaskInfo().GetName(),
 			RunId:          l.opts.Run.RunId,
 			ParentTaskId:   &parentTaskID,
-			Type:           apiV2beta1.PipelineTask_IMPORTER,
-			State:          apiV2beta1.PipelineTask_RUNNING,
+			Type:           apiV2.PipelineTask_IMPORTER,
+			State:          apiV2.PipelineTask_RUNNING,
 			ScopePath:      l.opts.ScopePath.DotNotation(),
 			CreateTime:     timestamppb.Now(),
 			TypeAttributes: typeAttributes,
@@ -124,15 +124,15 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 			return
 		}
 		if executionErr != nil {
-			createdTask.State = apiV2beta1.PipelineTask_FAILED
-			createdTask.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+			createdTask.State = apiV2.PipelineTask_FAILED
+			createdTask.StatusMetadata = &apiV2.PipelineTask_StatusMetadata{
 				Message: executionErr.Error(),
 			}
 		} else {
-			createdTask.State = apiV2beta1.PipelineTask_SUCCEEDED
+			createdTask.State = apiV2.PipelineTask_SUCCEEDED
 		}
 		createdTask.EndTime = timestamppb.Now()
-		_, updateErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+		_, updateErr := kfpAPI.UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 			TaskId: createdTask.TaskId,
 			Task:   createdTask,
 			RunId:  createdTask.GetRunId(),
@@ -145,8 +145,8 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		l.opts.Task = createdTask
 
 		propagateStatuses := func() error {
-			fullView := apiV2beta1.GetRunRequest_FULL
-			refreshedRun, getRunErr := l.clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{
+			fullView := apiV2.GetRunRequest_FULL
+			refreshedRun, getRunErr := l.clientManager.KFPAPIClient().GetRun(ctx, &apiV2.GetRunRequest{
 				RunId: l.opts.Run.GetRunId(),
 				View:  &fullView,
 			})
@@ -182,7 +182,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// CreateTask may return an existing retry row with cleared Pods; re-apply
 	// this attempt's pod identity.
 	createdTask.Pods = attemptPods
-	updatedTask, updatePodsErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+	updatedTask, updatePodsErr := kfpAPI.UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),
 		Task:   createdTask,
 		RunId:  createdTask.GetRunId(),
@@ -195,11 +195,11 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	l.opts.Task = createdTask
 
 	if createdTask.Outputs == nil {
-		createdTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
-			Artifacts: make([]*apiV2beta1.PipelineTask_InputOutputs_IOArtifact, 0),
+		createdTask.Outputs = &apiV2.PipelineTask_InputOutputs{
+			Artifacts: make([]*apiV2.PipelineTask_InputOutputs_IOArtifact, 0),
 		}
 	} else if createdTask.Outputs.Artifacts == nil {
-		createdTask.Outputs.Artifacts = make([]*apiV2beta1.PipelineTask_InputOutputs_IOArtifact, 0)
+		createdTask.Outputs.Artifacts = make([]*apiV2.PipelineTask_InputOutputs_IOArtifact, 0)
 	}
 
 	// Handle artifact creation and links to Importer Task
@@ -217,20 +217,20 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	// CreateArtifactWith reuse_if_exists=true atomically finds-or-creates by stable
 	// identity so concurrent reimport=false importers cannot permanently duplicate rows.
 	// reimport=true leaves reuse_if_exists=false and always inserts a new artifact.
-	outputIO := &apiV2beta1.PipelineTask_InputOutputs_IOArtifact{
+	outputIO := &apiV2.PipelineTask_InputOutputs_IOArtifact{
 		ArtifactKey: artifactOutputKey,
-		Type:        apiV2beta1.IOType_OUTPUT,
-		Producer: &apiV2beta1.IOProducer{
+		Type:        apiV2.IOType_OUTPUT,
+		Producer: &apiV2.IOProducer{
 			// Producer TaskName must be the canonical DAG task key, not DisplayName.
 			TaskName: createdTask.GetName(),
 		},
 	}
 	if l.opts.IterationIndex != nil {
-		outputIO.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
+		outputIO.Type = apiV2.IOType_ITERATOR_OUTPUT
 		outputIO.Producer.Iteration = l.opts.IterationIndex
 	}
 	glog.Infof("Creating artifact for importer task %s (reimport=%v)", l.opts.TaskSpec.GetTaskInfo().GetName(), l.opts.ImporterSpec.GetReimport())
-	createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
+	createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2.CreateArtifactRequest{
 		Artifact:       artifactToImport,
 		RunId:          l.opts.Run.RunId,
 		TaskId:         createdTask.TaskId,
@@ -241,10 +241,10 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	if executionErr != nil {
 		return executionErr
 	}
-	outputIO.Artifacts = []*apiV2beta1.Artifact{createdArtifact}
+	outputIO.Artifacts = []*apiV2.Artifact{createdArtifact}
 
-	createdTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
-		Artifacts: []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{outputIO},
+	createdTask.Outputs = &apiV2.PipelineTask_InputOutputs{
+		Artifacts: []*apiV2.PipelineTask_InputOutputs_IOArtifact{outputIO},
 	}
 	l.opts.Task = createdTask
 	if executionErr = PropagateOutputsUpDAGForTask(ctx, OutputPropagationOptions{
@@ -266,14 +266,14 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 func (l *ImportLauncher) persistFailedImporterAfterFinalizationError(
 	ctx context.Context,
 	kfpAPI kfpapi.API,
-	task *apiV2beta1.PipelineTask,
+	task *apiV2.PipelineTask,
 	finalizationErr error,
 ) error {
-	task.State = apiV2beta1.PipelineTask_FAILED
-	task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+	task.State = apiV2.PipelineTask_FAILED
+	task.StatusMetadata = &apiV2.PipelineTask_StatusMetadata{
 		Message: finalizationErr.Error(),
 	}
-	_, updateTaskErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+	_, updateTaskErr := kfpAPI.UpdateTask(ctx, &apiV2.UpdateTaskRequest{
 		TaskId: task.GetTaskId(),
 		Task:   task,
 		RunId:  task.GetRunId(),
@@ -284,7 +284,7 @@ func (l *ImportLauncher) persistFailedImporterAfterFinalizationError(
 	return finalizationErr
 }
 
-func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, err error) {
+func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2.Artifact, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("failed to create Artifact from ImporterSpec: %w", err)
@@ -316,7 +316,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 			return nil, fmt.Errorf("cannot find parameter %s in task input to fetch artifact uri", paramName)
 		}
 		componentInput := taskInput.GetComponentInputParameter()
-		var ioParam *apiV2beta1.PipelineTask_InputOutputs_IOParameter
+		var ioParam *apiV2.PipelineTask_InputOutputs_IOParameter
 		for _, inputParam := range l.opts.ParentTask.GetInputs().GetParameters() {
 			if inputParam.ParameterKey == componentInput {
 				// Loop parents can carry multiple values for the same logical input
@@ -349,7 +349,7 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract filename from artifact uri: %w", err)
 	}
-	artifact = &apiV2beta1.Artifact{
+	artifact = &apiV2.Artifact{
 		Name:        artifactName,
 		Description: "",
 		Type:        artifactType,
@@ -367,8 +367,8 @@ func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, 
 			return nil, fmt.Errorf("importer workspace download does not support OCI registries")
 		}
 
-		if artifactType != apiV2beta1.Artifact_Model {
-			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", apiV2beta1.Artifact_Model)
+		if artifactType != apiV2.Artifact_Model {
+			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", apiV2.Artifact_Model)
 		}
 		return artifact, nil
 	}
@@ -408,14 +408,14 @@ func (l *ImportLauncher) getArtifactOutputKey() (string, error) {
 const artifactSchemaTitleMetadataKey = "_kfp_schema_title"
 const artifactSchemaVersionMetadataKey = "_kfp_schema_version"
 
-func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2beta1.Artifact_ArtifactType, string, error) {
+func inferArtifactType(typeSchema *pipelinespec.ArtifactTypeSchema) (apiV2.Artifact_ArtifactType, string, error) {
 	schemaType, err := getArtifactSchemaType(typeSchema)
 	if err != nil {
-		return apiV2beta1.Artifact_TYPE_UNSPECIFIED, "", fmt.Errorf("failed to get schemaType from importer spec: %w", err)
+		return apiV2.Artifact_TYPE_UNSPECIFIED, "", fmt.Errorf("failed to get schemaType from importer spec: %w", err)
 	}
 	artifactType, err := artifactTypeSchemaToArtifactType(schemaType)
 	if err != nil {
-		return apiV2beta1.Artifact_Artifact, schemaType, nil
+		return apiV2.Artifact_Artifact, schemaType, nil
 	}
 	return artifactType, "", nil
 }
@@ -440,7 +440,7 @@ func preserveArtifactSchema(metadata map[string]*structpb.Value, schemaTitle, sc
 // RuntimeArtifactSchemaAndMetadata restores the executor schema and removes
 // internal schema markers before exposing metadata downstream.
 func RuntimeArtifactSchemaAndMetadata(
-	artifactType apiV2beta1.Artifact_ArtifactType,
+	artifactType apiV2.Artifact_ArtifactType,
 	metadata map[string]*structpb.Value,
 ) (*pipelinespec.ArtifactTypeSchema, map[string]*structpb.Value) {
 	schemaTitle := artifactType.String()

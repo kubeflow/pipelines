@@ -15,15 +15,19 @@
 | --- | --- |
 | SDK compiler | `sdk/python/kfp/compiler/pipeline_spec_builder.py` |
 | DSL | `sdk/python/kfp/dsl/` |
-| Platform integration | `kubernetes_platform/python/kfp/` |
+| Platform integration | `sdk/python/kfp/kubernetes/` |
 | Pipeline-spec APIs | `api/` |
 | Backend | `backend/` |
 | Frontend | `frontend/` |
 | Deployment manifests | `manifests/` |
 | Pipeline fixtures and workflow goldens | `test_data/` |
 
-- Python packages share the `kfp` namespace: `kfp`, `kfp-pipeline-spec`, and `kfp-kubernetes`.
-- `kfp-kubernetes` rewrites generated pipeline-spec imports through `kubernetes_platform/python/generate_proto.py`.
+- `kfp` is one distribution containing `kfp.pipeline_spec`, `kfp.kubernetes`,
+  and the generated REST client `kfp.server_api`. It no longer extends a shared
+  namespace with separately installed distributions.
+- Kubernetes bindings rewrite generated pipeline-spec imports through
+  `kubernetes_platform/python/generate_proto.py`; proto and Go sources stay in
+  their domain directories.
 
 ## Local execution
 

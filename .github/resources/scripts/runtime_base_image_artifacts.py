@@ -5,8 +5,29 @@ import argparse
 import hashlib
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
+
+# All producers and consumers use the same identity inputs and UTC-day cache key.
+RUNTIME_INPUTS = tuple(
+    map(
+        Path,
+        (
+            '.github/resources/runtime-base-images.txt',
+            '.github/resources/scripts/helper-functions.sh',
+            '.github/resources/scripts/build-runtime-base-images.sh',
+            '.github/workflows/runtime-base-images.yml',
+            'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile',
+        ),
+    )
+)
+
+
+def runtime_identity(day=None):
+    artifact = f'runtime-base-images-{fingerprint_files(RUNTIME_INPUTS)}'
+    day = day or datetime.now(timezone.utc).date().isoformat()
+    return {'artifact-name': artifact, 'cache-key': f'{artifact}-{day}'}
 
 
 def fingerprint_files(paths: Iterable[Path]) -> str:
@@ -22,8 +43,12 @@ def fingerprint_files(paths: Iterable[Path]) -> str:
     return digest.hexdigest()
 
 
-def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
-    """Return the newest current-source or trusted-master producer run ID."""
+def select_producer_run_id(
+    payload: Any, source_sha: str, default_branch: str
+) -> Optional[int]:
+    """Return the newest current-source or trusted-default producer run ID."""
+    if default_branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     if not isinstance(payload, dict):
         raise ValueError('Expected an artifact API response object')
     artifacts = payload.get('artifacts')
@@ -32,7 +57,10 @@ def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
 
     candidates = []
     for artifact in artifacts:
-        if not isinstance(artifact, dict) or artifact.get('expired') is not False:
+        if (
+            not isinstance(artifact, dict)
+            or artifact.get('expired') is not False
+        ):
             continue
         workflow_run = artifact.get('workflow_run')
         if not isinstance(workflow_run, dict):
@@ -40,21 +68,25 @@ def select_producer_run_id(payload: Any, source_sha: str) -> Optional[int]:
 
         is_current_source = workflow_run.get('head_sha') == source_sha
         head_repository_id = workflow_run.get('head_repository_id')
-        is_trusted_master = (
-            workflow_run.get('head_branch') == 'master'
+        is_trusted_default = (
+            workflow_run.get('head_branch') == default_branch
             and isinstance(head_repository_id, int)
             and head_repository_id == workflow_run.get('repository_id')
         )
-        if is_current_source or is_trusted_master:
+        if is_current_source or is_trusted_default:
             candidates.append(artifact)
 
     if not candidates:
         return None
 
-    newest = max(candidates, key=lambda artifact: artifact.get('created_at', ''))
+    newest = max(
+        candidates, key=lambda artifact: artifact.get('created_at', '')
+    )
     run_id = newest['workflow_run'].get('id')
     if not isinstance(run_id, int):
-        raise ValueError('Selected artifact is missing an integer workflow run ID')
+        raise ValueError(
+            'Selected artifact is missing an integer workflow run ID'
+        )
     return run_id
 
 
@@ -62,22 +94,41 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command', required=True)
 
+    subparsers.add_parser('identity')
+
     fingerprint_parser = subparsers.add_parser('fingerprint')
     fingerprint_parser.add_argument('paths', nargs='+', type=Path)
 
     select_parser = subparsers.add_parser('select-producer')
     select_parser.add_argument('--source-sha', required=True)
+    select_parser.add_argument(
+        '--default-branch', required=True, choices=('master', 'main')
+    )
 
     args = parser.parse_args()
     try:
-        if args.command == 'fingerprint':
+        if args.command == 'identity':
+            for key, value in runtime_identity().items():
+                print(f'{key}={value}')
+        elif args.command == 'fingerprint':
             print(fingerprint_files(args.paths))
         else:
-            run_id = select_producer_run_id(json.load(sys.stdin), args.source_sha)
+            run_id = select_producer_run_id(
+                json.load(sys.stdin), args.source_sha, args.default_branch
+            )
             if run_id is not None:
                 print(run_id)
-    except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
-        print(f'Cannot process runtime base-image artifacts: {error}', file=sys.stderr)
+    except (
+        KeyError,
+        OSError,
+        TypeError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as error:
+        print(
+            f'Cannot process runtime base-image artifacts: {error}',
+            file=sys.stderr,
+        )
         return 1
     return 0
 

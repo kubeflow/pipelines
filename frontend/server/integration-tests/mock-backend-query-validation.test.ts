@@ -48,22 +48,6 @@ describe('mock backend decoded query validation', () => {
     request = await createRequest();
   });
 
-  it('rejects pipeline upload requests without a name query param', async () => {
-    await request
-      .post('/apis/v1beta1/pipelines/upload')
-      .send({ uploaded: true })
-      .expect(400)
-      .expect('name argument is required');
-  });
-
-  it('rejects pipeline upload requests with invalid percent-encoding in the name query param', async () => {
-    await request
-      .post('/apis/v1beta1/pipelines/upload?name=%E0%A4%A')
-      .send({ uploaded: true })
-      .expect(400)
-      .expect('name argument is invalid');
-  });
-
   it('rejects artifact requests without a key query param', async () => {
     await request.get('/artifacts/get').expect(400).expect('key argument is required');
   });

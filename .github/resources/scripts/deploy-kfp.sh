@@ -137,9 +137,9 @@ if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == 
 fi
 
 
-# Pin kubeflow/manifests to a specific commit for reproducibility.
+# Pin kubeflow/community-distribution to a specific commit for reproducibility.
 # To upgrade: verify all four paths below exist at the new SHA before updating.
-KUBEFLOW_MANIFESTS_SHA="88716b3f7f62b12f98d82bcfc59635bb07e7845c"
+KUBEFLOW_MANIFESTS_SHA="c5e3896566d52e02090f15b476f4528605a9c35f"
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
 # wait_for_pods_ready waits for pods to reach condition=Ready and, on timeout,
@@ -187,9 +187,9 @@ wait_for_pods_ready() {
 
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
-  kubectl apply -k "https://github.com/kubeflow/manifests/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
-  kubectl apply -k "https://github.com/kubeflow/manifests/common/istio/istio-namespace/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
-  kubectl apply -k "https://github.com/kubeflow/manifests/common/istio/istio-install/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-namespace/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-install/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
   echo "Waiting for all Istio Pods to become ready..."
   wait_for_pods_ready istio-system "" 300s "Istio pods"
 
@@ -198,7 +198,7 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl wait --for condition=established --timeout=30s crd/compositecontrollers.metacontroller.k8s.io
 
   echo "Installing Profile Controller Resources..."
-  kubectl apply -k "https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  kubectl apply -k "https://github.com/kubeflow/community-distribution/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=${KUBEFLOW_MANIFESTS_SHA}"
   echo "Profile controller applied; its readiness will be joined after the KFP rollout."
 fi
 

@@ -18,13 +18,14 @@ Confirms that env vars configured on a task at compile time are
 propagated to the underlying container at runtime (subprocess or
 docker).
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 
 
 @dsl.component
 def read_env_var(var_name: str) -> str:
     import os
+
     return os.environ.get(var_name, 'UNSET')
 
 
@@ -38,4 +39,5 @@ def pipeline_with_env_variable(var_name: str = 'KFP_TEST_ENV_VAR') -> str:
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=pipeline_with_env_variable,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

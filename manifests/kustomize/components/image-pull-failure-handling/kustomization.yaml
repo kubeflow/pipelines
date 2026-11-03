@@ -1,0 +1,25 @@
+# Opt-in: fail pipeline runs whose pods cannot pull their container image.
+#
+# Enables image pull failure handling in the persistence agent and grants it
+# the extra permissions that handling needs (reading pods and patching Argo
+# Workflows) in the KFP namespace. These permissions are deliberately not part
+# of the base persistence agent Role so that installations that do not opt in
+# do not carry them.
+#
+# Use with a standalone (single-namespace) installation. Multi-user
+# installations, whose persistence agent watches every namespace, should use
+# ../image-pull-failure-handling-multi-user instead.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# The base manifests rely on their kustomization's namespace; a component is
+# applied by the including overlay, so set it here. Override it alongside the
+# rest of your installation if KFP is deployed to another namespace.
+namespace: kubeflow
+
+resources:
+- role.yaml
+- role-binding.yaml
+
+patches:
+- path: persistence-agent-env-patch.yaml

@@ -14,12 +14,12 @@
 
 from typing import Callable
 
-from kfp.dsl import component_factory
-from kfp.dsl import container_component_class
+from kfp.dsl import component_factory, container_component_class
 
 
 def container_component(
-        func: Callable) -> container_component_class.ContainerComponent:
+    func: Callable,
+) -> container_component_class.ContainerComponent:
     """Decorator for container-based components in KFP v2.
 
     Args:

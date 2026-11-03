@@ -15,28 +15,36 @@
 """Enhanced DAG orchestrator with support for dsl.Condition and
 dsl.ParallelFor."""
 
+import ast
 import concurrent.futures
 import enum
 import logging
+import operator
 import re
 from typing import Any, Dict, List, Set, Tuple
 
-from kfp.local import config
-from kfp.local import graph_utils
-from kfp.local import io
-from kfp.local import status
+from kfp.local import config, graph_utils, io, status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
-from . import task_executor
-from . import task_spec_utils
+from . import task_executor, task_spec_utils
 from .orchestrator_utils import OrchestratorUtils
 
 Outputs = Dict[str, Any]
+_PROMOTED_CHANNEL = re.compile(
+    r"(?P<quote>['\"])(?P<integer>int\()?inputs\.parameter_values\['(?P<reference>[^']+)'\](?(integer)\))(?P=quote)"
+)
+_CEL_CHANNEL = re.compile(r"inputs\.parameter_values\['([^']+)'\]")
+_DIRECT_CHANNEL = re.compile(r'pipelinechannel--[a-zA-Z0-9_\-]+')
+_CEL_NOT = re.compile(r'!\s*\(')
+# Escapes the compiler emits in CEL string literals. Other backslashes are kept
+# as written so conditions compiled before literals were escaped still match.
+_CEL_STRING_ESCAPES = {'\\': '\\', "'": "'", '"': '"', 'n': '\n', 'r': '\r'}
 
 
 @enum.unique
 class TaskKind(str, enum.Enum):
     """Kinds of local tasks handled by the enhanced DAG orchestrator."""
+
     EXIT = 'exit'
     CONDITION = 'condition'
     PARALLEL_FOR = 'parallel_for'
@@ -47,22 +55,80 @@ class ConditionEvaluator:
     """Evaluates condition expressions for dsl.Condition support."""
 
     @staticmethod
-    def _extract_pipeline_channels(condition: str) -> List[str]:
-        """Extract pipeline channel references from condition string.
+    def _prepare_condition(
+        condition: str, io_store: io.IOStore
+    ) -> Tuple[str, Dict[str, Any]]:
+        """Bind channel values and preserve compiler-emitted string data."""
+        expression = []
+        values = {}
+        index = 0
+        while index < len(condition):
+            promoted = _PROMOTED_CHANNEL.match(condition, index)
+            channel = _CEL_CHANNEL.match(condition, index)
+            direct = _DIRECT_CHANNEL.match(condition, index)
+            if promoted or channel or direct:
+                match = promoted or channel or direct
+                if promoted:
+                    reference = promoted.group('reference')
+                elif channel:
+                    reference = channel.group(1)
+                else:
+                    reference = direct.group(0)
+                value = ConditionEvaluator._resolve_pipeline_channel(
+                    reference, io_store
+                )
+                if value is None:
+                    raise ValueError(f'Could not resolve channel: {reference}')
+                if promoted:
+                    value = str(
+                        int(value) if promoted.group('integer') else value
+                    )
+                key = f'_channel_{len(values)}'
+                values[key] = value
+                expression.append(key)
+                index = match.end()
+                continue
 
-        Args:
-            condition: The condition expression
-
-        Returns:
-            List of pipeline channel references found
-        """
-        # Look for patterns like pipelinechannel--task-name-output-name
-        pattern = r'pipelinechannel--[a-zA-Z0-9_\-]+'
-        return re.findall(pattern, condition)
+            char = condition[index]
+            if char in ("'", '"'):
+                quote = char
+                literal = []
+                index += 1
+                while index < len(condition) and condition[index] != quote:
+                    if condition[index] == '\\' and index + 1 < len(condition):
+                        next_char = condition[index + 1]
+                        if next_char in _CEL_STRING_ESCAPES:
+                            literal.append(_CEL_STRING_ESCAPES[next_char])
+                            index += 2
+                            continue
+                    literal.append(condition[index])
+                    index += 1
+                if index == len(condition):
+                    raise SyntaxError('Unterminated condition string')
+                expression.append(repr(''.join(literal)))
+                index += 1
+                continue
+            elif condition.startswith('&&', index):
+                expression.append(' and ')
+                index += 2
+                continue
+            elif condition.startswith('||', index):
+                expression.append(' or ')
+                index += 2
+                continue
+            elif match := _CEL_NOT.match(condition, index):
+                expression.append('not (')
+                index = match.end()
+                continue
+            else:
+                expression.append(char)
+            index += 1
+        return ''.join(expression), values
 
     @staticmethod
-    def _resolve_pipeline_channel(channel_ref: str,
-                                  io_store: io.IOStore) -> Any:
+    def _resolve_pipeline_channel(
+        channel_ref: str, io_store: io.IOStore
+    ) -> Any:
         """Resolve a pipeline channel reference to its actual value.
 
         Args:
@@ -100,7 +166,9 @@ class ConditionEvaluator:
             # since IOStore keys may use either format depending on how
             # the sub-DAG's inputs are defined
             for key in [
-                    actual_ref, f'pipelinechannel--{actual_ref}', channel_ref
+                actual_ref,
+                f'pipelinechannel--{actual_ref}',
+                channel_ref,
             ]:
                 try:
                     return io_store.get_parent_input(key)
@@ -110,98 +178,103 @@ class ConditionEvaluator:
             return None
 
     @staticmethod
-    def evaluate_condition(
-        condition: str,
-        io_store: io.IOStore,
-    ) -> bool:
-        """Evaluates a condition string using available values from IOStore.
-
-        Handles both simple pipeline channel references and CEL-style
-        expressions like inputs.parameter_values['param_name'].
-
-        Args:
-            condition: The condition expression to evaluate
-            io_store: IOStore containing available values
-
-        Returns:
-            True if condition evaluates to True, False otherwise
-        """
+    def evaluate_condition(condition: str, io_store: io.IOStore) -> bool:
+        """Evaluate a condition without turning task outputs into Python
+        code."""
         if not condition or not condition.strip():
             return True
 
         try:
-            safe_condition = condition
+            expression, values = ConditionEvaluator._prepare_condition(
+                condition, io_store
+            )
+            tree = ast.parse(expression, mode='eval')
+            return bool(ConditionEvaluator._evaluate_node(tree.body, values))
+        except (
+            SyntaxError,
+            TypeError,
+            ValueError,
+            KeyError,
+            ZeroDivisionError,
+            OverflowError,
+        ) as e:
+            logging.warning('Condition evaluation failed: %s', e)
+            return False
 
-            # Handle CEL-style inputs.parameter_values['param_name'] references
-            cel_pattern = r"inputs\.parameter_values\['([^']+)'\]"
-            cel_matches = re.findall(cel_pattern, condition)
-            for param_name in cel_matches:
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    param_name, io_store)
-                if value is not None:
-                    if isinstance(value, str):
-                        replacement = f"'{value}'"
-                    else:
-                        replacement = str(value)
-                    safe_condition = safe_condition.replace(
-                        f"inputs.parameter_values['{param_name}']", replacement)
-                else:
-                    logging.warning(
-                        f'Could not resolve CEL parameter: {param_name}')
+    @staticmethod
+    def _evaluate_node(node: ast.AST, values: Dict[str, Any]) -> Any:
+        """Interpret the small expression subset generated by KFP
+        conditions."""
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name):
+            if node.id in values:
+                return values[node.id]
+            if node.id in ('true', 'True'):
+                return True
+            if node.id in ('false', 'False'):
+                return False
+            if node.id in ('null', 'None'):
+                return None
+            raise ValueError(f'Unsupported condition name: {node.id}')
+        if isinstance(node, ast.BoolOp):
+            if isinstance(node.op, ast.And):
+                return all(
+                    ConditionEvaluator._evaluate_node(v, values)
+                    for v in node.values
+                )
+            if isinstance(node.op, ast.Or):
+                return any(
+                    ConditionEvaluator._evaluate_node(v, values)
+                    for v in node.values
+                )
+        if isinstance(node, ast.UnaryOp):
+            value = ConditionEvaluator._evaluate_node(node.operand, values)
+            if isinstance(node.op, ast.Not):
+                return not value
+            if isinstance(node.op, ast.USub):
+                return -value
+        if isinstance(node, ast.Compare):
+            comparisons = {
+                ast.Eq: operator.eq,
+                ast.NotEq: operator.ne,
+                ast.Lt: operator.lt,
+                ast.LtE: operator.le,
+                ast.Gt: operator.gt,
+                ast.GtE: operator.ge,
+            }
+            left = ConditionEvaluator._evaluate_node(node.left, values)
+            for op, right_node in zip(node.ops, node.comparators):
+                compare = comparisons.get(type(op))
+                if compare is None:
+                    raise ValueError('Unsupported condition comparison')
+                right = ConditionEvaluator._evaluate_node(right_node, values)
+                if not compare(left, right):
                     return False
-
-            # Also handle direct pipeline channel references
-            pipeline_channels = ConditionEvaluator._extract_pipeline_channels(
-                safe_condition)
-            for channel_ref in pipeline_channels:
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    channel_ref, io_store)
-                if value is not None:
-                    if isinstance(value, str):
-                        safe_condition = safe_condition.replace(
-                            channel_ref, f"'{value}'")
-                    else:
-                        safe_condition = safe_condition.replace(
-                            channel_ref, str(value))
-                else:
-                    logging.warning(
-                        f'Could not resolve channel reference: {channel_ref}')
-                    return False
-
-            # Convert CEL syntax to Python syntax
-            safe_condition = safe_condition.replace('&&', ' and ')
-            safe_condition = safe_condition.replace('||', ' or ')
-            # Convert CEL negation !(...) to Python not (...)
-            safe_condition = re.sub(r'!\s*\(', 'not (', safe_condition)
-
-            # Use a restricted evaluation environment for safety.
-            # CEL uses lowercase `true`/`false`; expose them as aliases so
-            # evaluating a raw CEL condition doesn't NameError.
-            allowed_names = {
-                '__builtins__': {},
-                'True': True,
-                'False': False,
-                'true': True,
-                'false': False,
-                'None': None,
-                'null': None,
-                'not': lambda x: not x,
+                left = right
+            return True
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            conversions = {
                 'int': int,
                 'float': float,
+                'double': float,
                 'str': str,
                 'bool': bool,
                 'len': len,
                 'min': min,
                 'max': max,
             }
-
-            result = eval(safe_condition, allowed_names, {})
-            return bool(result)
-
-        except Exception as e:
-            logging.warning(
-                f'Condition evaluation failed for "{condition}": {e}')
-            return False
+            fn = conversions.get(node.func.id)
+            if fn is not None and not node.keywords:
+                return fn(
+                    *(
+                        ConditionEvaluator._evaluate_node(arg, values)
+                        for arg in node.args
+                    )
+                )
+        raise ValueError(
+            f'Unsupported condition expression: {type(node).__name__}'
+        )
 
 
 class ParallelExecutor:
@@ -232,7 +305,8 @@ class ParallelExecutor:
         pipeline_resource_name: str,
         components: Dict[str, pipeline_spec_pb2.ComponentSpec],
         executors: Dict[
-            str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+            str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec
+        ],
         io_store: io.IOStore,
         pipeline_root: str,
         runner: config.LocalRunnerType,
@@ -258,13 +332,16 @@ class ParallelExecutor:
             Tuple of (all_outputs, overall_status)
         """
         # Determine max_workers: use parallelism_limit if specified, otherwise use default
-        requested_workers = parallelism_limit if parallelism_limit > 0 else self.max_workers
+        requested_workers = (
+            parallelism_limit if parallelism_limit > 0 else self.max_workers
+        )
         # Always cap at conservative maximum to prevent thread explosion in nested loops
         max_workers = min(requested_workers, self.conservative_max)
         all_outputs = {}
 
         executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=max_workers)
+            max_workers=max_workers
+        )
         try:
             # Submit all tasks
             future_to_task = {}
@@ -302,7 +379,8 @@ class ParallelExecutor:
 
                 except Exception as e:
                     logging.error(
-                        f'Task {task_name} failed with exception: {e}')
+                        f'Task {task_name} failed with exception: {e}'
+                    )
                     fail_stack.append(task_name)
                     return {}, status.Status.FAILURE
 
@@ -329,8 +407,9 @@ def _has_valid_iterator(task_spec: pipeline_spec_pb2.PipelineTaskSpec) -> bool:
         param_iter = task_spec.parameter_iterator
         items_spec = param_iter.items
         # Check if the iterator has valid items configuration
-        return (items_spec.HasField('input_parameter') or
-                items_spec.HasField('raw'))
+        return items_spec.HasField('input_parameter') or items_spec.HasField(
+            'raw'
+        )
     elif iterator_type == 'artifact_iterator':
         artifact_iter = task_spec.artifact_iterator
         items_spec = artifact_iter.items
@@ -341,7 +420,8 @@ def _has_valid_iterator(task_spec: pipeline_spec_pb2.PipelineTaskSpec) -> bool:
 
 
 def _has_task_final_status_input(
-        task_spec: pipeline_spec_pb2.PipelineTaskSpec) -> bool:
+    task_spec: pipeline_spec_pb2.PipelineTaskSpec,
+) -> bool:
     """True if any parameter input carries a task_final_status reference.
 
     The compiler emits this exclusively for dsl.ExitHandler exit tasks.
@@ -361,8 +441,9 @@ def _run_parallel_for_task(
     task_spec: pipeline_spec_pb2.PipelineTaskSpec,
     pipeline_resource_name: str,
     components: Dict[str, pipeline_spec_pb2.ComponentSpec],
-    executors: Dict[str,
-                    pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+    executors: Dict[
+        str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec
+    ],
     io_store: io.IOStore,
     pipeline_root: str,
     runner: config.LocalRunnerType,
@@ -389,8 +470,9 @@ def _run_parallel_for_task(
         if items_spec.HasField('input_parameter'):
             param_name = items_spec.input_parameter
             if param_name.startswith('pipelinechannel--'):
-                actual_param = param_name.replace('pipelinechannel--',
-                                                  '').replace('-loop-item', '')
+                actual_param = param_name.replace(
+                    'pipelinechannel--', ''
+                ).replace('-loop-item', '')
                 if '-Output' in actual_param:
                     output_task_name = actual_param.split('-Output')[0]
                     items = io_store.get_task_output(output_task_name, 'Output')
@@ -399,11 +481,13 @@ def _run_parallel_for_task(
                         items = io_store.get_parent_input(actual_param)
                     except Exception:
                         items = io_store.get_parent_input(
-                            f'pipelinechannel--{actual_param}')
+                            f'pipelinechannel--{actual_param}'
+                        )
             else:
                 items = io_store.get_parent_input(param_name)
         elif items_spec.HasField('raw'):
             import json
+
             items = json.loads(items_spec.raw)
         else:
             logging.warning(f'Unknown items type for task {task_name}')
@@ -415,44 +499,53 @@ def _run_parallel_for_task(
         try:
             items, artifact_item_input, parallelism_limit = (
                 task_spec_utils.get_artifact_iterator_items(
-                    task_spec, io_store, task_name))
+                    task_spec, io_store, task_name
+                )
+            )
         except ValueError as e:
             logging.warning(f'Failed to get artifact iterator items: {e}')
             return False
     else:
         logging.warning(
-            f'Unknown iterator type for task {task_name}: {iterator}')
+            f'Unknown iterator type for task {task_name}: {iterator}'
+        )
         return False
 
     loop_tasks = []
     for i, item in enumerate(items):
-        iteration_task_name = f"{task_name}-iteration-{i}"
+        iteration_task_name = f'{task_name}-iteration-{i}'
         if iterator == 'artifact_iterator':
             iteration_task_spec = (
                 task_spec_utils.create_artifact_loop_iteration_task_spec(
-                    task_spec, i, task_name, artifact_item_input))
+                    task_spec, i, task_name, artifact_item_input
+                )
+            )
             iteration_key = f'{artifact_item_input}-iteration-{i}'
             io_store.put_parent_input(iteration_key, item)
         else:
             iteration_task_spec = (
                 task_spec_utils.create_parameter_loop_iteration_task_spec(
-                    task_spec, item, task_name))
+                    task_spec, item, task_name
+                )
+            )
         loop_tasks.append((iteration_task_name, iteration_task_spec))
 
     if not loop_tasks:
         return False
 
-    parallel_outputs, parallel_status = parallel_executor.execute_parallel_tasks(
-        tasks=loop_tasks,
-        pipeline_resource_name=pipeline_resource_name,
-        components=components,
-        executors=executors,
-        io_store=io_store,
-        pipeline_root=pipeline_root,
-        runner=runner,
-        unique_pipeline_id=unique_pipeline_id,
-        fail_stack=fail_stack,
-        parallelism_limit=parallelism_limit,
+    parallel_outputs, parallel_status = (
+        parallel_executor.execute_parallel_tasks(
+            tasks=loop_tasks,
+            pipeline_resource_name=pipeline_resource_name,
+            components=components,
+            executors=executors,
+            io_store=io_store,
+            pipeline_root=pipeline_root,
+            runner=runner,
+            unique_pipeline_id=unique_pipeline_id,
+            fail_stack=fail_stack,
+            parallelism_limit=parallelism_limit,
+        )
     )
 
     if parallel_status == status.Status.FAILURE:
@@ -465,8 +558,9 @@ def _run_parallel_for_task(
     for iteration_name, outputs in parallel_outputs.items():
         iteration_index = iteration_name.split('-iteration-')[-1]
         for output_key, output_value in outputs.items():
-            aggregated_outputs.setdefault(output_key,
-                                          {})[iteration_index] = output_value
+            aggregated_outputs.setdefault(output_key, {})[iteration_index] = (
+                output_value
+            )
 
     for output_key, iteration_outputs in aggregated_outputs.items():
         ordered_outputs = [
@@ -481,8 +575,9 @@ def _run_parallel_for_task(
 def run_enhanced_dag(
     pipeline_resource_name: str,
     dag_component_spec: pipeline_spec_pb2.ComponentSpec,
-    executors: Dict[str,
-                    pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+    executors: Dict[
+        str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec
+    ],
     components: Dict[str, pipeline_spec_pb2.ComponentSpec],
     dag_arguments: Dict[str, Any],
     pipeline_root: str,
@@ -496,9 +591,11 @@ def run_enhanced_dag(
     This is an enhanced version of dag_orchestrator.run_dag that
     supports control flow features like conditions and parallel loops.
     """
-    dag_arguments_with_defaults = OrchestratorUtils.join_user_inputs_and_defaults(
-        dag_arguments=dag_arguments,
-        dag_inputs_spec=dag_component_spec.input_definitions,
+    dag_arguments_with_defaults = (
+        OrchestratorUtils.join_user_inputs_and_defaults(
+            dag_arguments=dag_arguments,
+            dag_inputs_spec=dag_component_spec.input_definitions,
+        )
     )
 
     # prepare IOStore for DAG, chained to the enclosing scope (if any) so
@@ -523,23 +620,27 @@ def run_enhanced_dag(
     # into the exit phase — ignore_upstream_failure() tasks stay in the body
     # and are honored by the dependency-failure check below.
     TRIGGER_STRATEGY = (
-        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy)
+        pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
+    )
 
     task_kinds: Dict[str, TaskKind] = {}
     exit_tasks: List[Tuple[str, pipeline_spec_pb2.PipelineTaskSpec]] = []
     body_tasks: Dict[str, pipeline_spec_pb2.PipelineTaskSpec] = {}
 
     for task_name, task_spec in dag_spec.tasks.items():
-        if (task_spec.trigger_policy.strategy
-                == TRIGGER_STRATEGY.ALL_UPSTREAM_TASKS_COMPLETED and
-                _has_task_final_status_input(task_spec)):
+        if (
+            task_spec.trigger_policy.strategy
+            == TRIGGER_STRATEGY.ALL_UPSTREAM_TASKS_COMPLETED
+            and _has_task_final_status_input(task_spec)
+        ):
             task_kinds[task_name] = TaskKind.EXIT
             exit_tasks.append((task_name, task_spec))
         elif task_spec.trigger_policy.condition:
             task_kinds[task_name] = TaskKind.CONDITION
             body_tasks[task_name] = task_spec
-        elif (task_spec.WhichOneof('iterator') and
-              _has_valid_iterator(task_spec)):
+        elif task_spec.WhichOneof('iterator') and _has_valid_iterator(
+            task_spec
+        ):
             task_kinds[task_name] = TaskKind.PARALLEL_FOR
             body_tasks[task_name] = task_spec
         else:
@@ -570,10 +671,13 @@ def run_enhanced_dag(
                 dep for dep in task_spec.dependent_tasks if dep in failed_tasks
             ]
             if failed_deps and (
-                    task_spec.trigger_policy.strategy
-                    != TRIGGER_STRATEGY.ALL_UPSTREAM_TASKS_COMPLETED):
-                logging.info(f'Skipping task {task_name}: upstream task(s) '
-                             f'{sorted(failed_deps)} failed.')
+                task_spec.trigger_policy.strategy
+                != TRIGGER_STRATEGY.ALL_UPSTREAM_TASKS_COMPLETED
+            ):
+                logging.info(
+                    f'Skipping task {task_name}: upstream task(s) '
+                    f'{sorted(failed_deps)} failed.'
+                )
                 failed_tasks.add(task_name)
                 io_store.put_task_status(task_name, 'FAILED')
                 body_failed = True
@@ -593,8 +697,11 @@ def run_enhanced_dag(
                     fail_stack=fail_stack,
                 )
 
-                status_str = ('SUCCEEDED' if task_status
-                              == status.Status.SUCCESS else 'FAILED')
+                status_str = (
+                    'SUCCEEDED'
+                    if task_status == status.Status.SUCCESS
+                    else 'FAILED'
+                )
                 io_store.put_task_status(task_name, status_str)
 
                 if task_status == status.Status.FAILURE:
@@ -609,11 +716,14 @@ def run_enhanced_dag(
             elif kind == TaskKind.CONDITION:
                 condition_expr = task_spec.trigger_policy.condition
                 should_execute = condition_evaluator.evaluate_condition(
-                    condition_expr, io_store)
+                    condition_expr, io_store
+                )
 
                 if not should_execute:
-                    logging.info(f'Skipping conditional task {task_name} '
-                                 '(condition evaluated to False)')
+                    logging.info(
+                        f'Skipping conditional task {task_name} '
+                        '(condition evaluated to False)'
+                    )
                     continue
 
                 outputs, task_status = execute_task(
@@ -629,8 +739,11 @@ def run_enhanced_dag(
                     fail_stack=fail_stack,
                 )
 
-                status_str = ('SUCCEEDED' if task_status
-                              == status.Status.SUCCESS else 'FAILED')
+                status_str = (
+                    'SUCCEEDED'
+                    if task_status == status.Status.SUCCESS
+                    else 'FAILED'
+                )
                 io_store.put_task_status(task_name, status_str)
 
                 if task_status == status.Status.FAILURE:
@@ -685,8 +798,11 @@ def run_enhanced_dag(
                 fail_stack=fail_stack,
             )
 
-            status_str = ('SUCCEEDED'
-                          if task_status == status.Status.SUCCESS else 'FAILED')
+            status_str = (
+                'SUCCEEDED'
+                if task_status == status.Status.SUCCESS
+                else 'FAILED'
+            )
             io_store.put_task_status(task_name, status_str)
 
             if task_status == status.Status.SUCCESS:
@@ -713,8 +829,9 @@ def execute_task(
     task_spec: pipeline_spec_pb2.PipelineTaskSpec,
     pipeline_resource_name: str,
     components: Dict[str, pipeline_spec_pb2.ComponentSpec],
-    executors: Dict[str,
-                    pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec],
+    executors: Dict[
+        str, pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec
+    ],
     io_store: io.IOStore,
     pipeline_root: str,
     runner: config.LocalRunnerType,
@@ -733,9 +850,11 @@ def execute_task(
             component_spec=component_spec,
             io_store=io_store,
         )
-        nested_resource_name = task_spec_utils.get_nested_pipeline_resource_name(
-            task_name=task_name,
-            pipeline_resource_name=pipeline_resource_name,
+        nested_resource_name = (
+            task_spec_utils.get_nested_pipeline_resource_name(
+                task_name=task_name,
+                pipeline_resource_name=pipeline_resource_name,
+            )
         )
 
         return run_enhanced_dag(

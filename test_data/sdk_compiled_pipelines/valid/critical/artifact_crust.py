@@ -1,6 +1,5 @@
 import os
 
-from kfp import Client
 from kfp import dsl
 from kfp.compiler import Compiler
 
@@ -43,6 +42,8 @@ def crust():
 
 
 if __name__ == '__main__':
-    Compiler().compile(pipeline_func=crust, package_path=f"{__file__.removesuffix('.py')}.yaml")
+    Compiler().compile(
+        pipeline_func=crust, package_path=f'{__file__.removesuffix(".py")}.yaml'
+    )
     # client = Client()
     # client.create_run_from_pipeline_func(crust)

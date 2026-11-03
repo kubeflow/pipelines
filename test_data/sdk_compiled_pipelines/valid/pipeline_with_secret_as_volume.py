@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A pipeline that passes a secret as a volume to a container."""
-from kfp import dsl
-from kfp import kubernetes
-from kfp import compiler
+
+from kfp import compiler, dsl, kubernetes
+
 
 # Note: this sample will only work if this secret is pre-created before running this pipeline.
 # Is is pre-created by default only in the Google Cloud distribution listed here:
@@ -24,8 +24,8 @@ from kfp import compiler
 @dsl.component
 def comp():
     import os
-    import sys
-    username_path = os.path.join('/mnt/my_vol', "username")
+
+    username_path = os.path.join('/mnt/my_vol', 'username')
 
     # Check if the secret exists
     if not os.path.exists(username_path):
@@ -39,18 +39,20 @@ def comp():
     username = username.decode('utf-8')
 
     # Print the secret
-    print(f"username: {username}")
-    assert username == "user1"
+    print(f'username: {username}')
+    assert username == 'user1'
 
 
 @dsl.pipeline
-def pipeline_secret_volume(secret_param: str = "test-secret-1"):
+def pipeline_secret_volume(secret_param: str = 'test-secret-1'):
     task = comp()
     kubernetes.use_secret_as_volume(
-        task, secret_name=secret_param, mount_path='/mnt/my_vol')
+        task, secret_name=secret_param, mount_path='/mnt/my_vol'
+    )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline_secret_volume, 
-        package_path='pipeline_secret_volume.yaml')
+        pipeline_func=pipeline_secret_volume,
+        package_path='pipeline_secret_volume.yaml',
+    )

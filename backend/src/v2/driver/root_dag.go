@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/glog"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
@@ -16,6 +15,7 @@ import (
 // RootDAG handles initial root dag task creation
 // and runtime parameter resolution.
 func RootDAG(ctx context.Context, opts common.Options, clientManager client_manager.ClientManagerInterface) (execution *Execution, err error) {
+	log := driverLogger(ctx)
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("driver.RootDAG(%s) failed: %w", opts.Info(), err)
@@ -26,7 +26,7 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Info("RootDAG opts: ", string(b))
+	log.Trace("RootDAG opts: ", string(b))
 	if err = validateRootDAG(opts); err != nil {
 		return nil, err
 	}
@@ -36,41 +36,41 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 
 	// Build minimal PipelineTask for root DAG task under the run.
 	// Inputs: pass runtime parameters into task inputs for record.
-	var inputs *apiV2beta1.PipelineTask_InputOutputs
+	var inputs *apiV2.PipelineTask_InputOutputs
 	if opts.RuntimeConfig != nil && opts.RuntimeConfig.GetParameterValues() != nil {
-		params := make([]*apiV2beta1.PipelineTask_InputOutputs_IOParameter, 0, len(opts.RuntimeConfig.GetParameterValues()))
+		params := make([]*apiV2.PipelineTask_InputOutputs_IOParameter, 0, len(opts.RuntimeConfig.GetParameterValues()))
 		for name, val := range opts.RuntimeConfig.GetParameterValues() {
 			n := name
-			params = append(params, &apiV2beta1.PipelineTask_InputOutputs_IOParameter{
+			params = append(params, &apiV2.PipelineTask_InputOutputs_IOParameter{
 				ParameterKey: n,
 				Value:        val,
-				Type:         apiV2beta1.IOType_RUNTIME_VALUE_INPUT,
-				Producer: &apiV2beta1.IOProducer{
+				Type:         apiV2.IOType_RUNTIME_VALUE_INPUT,
+				Producer: &apiV2.IOProducer{
 					TaskName: "ROOT",
 				},
 			})
 		}
-		inputs = &apiV2beta1.PipelineTask_InputOutputs{Parameters: params}
+		inputs = &apiV2.PipelineTask_InputOutputs{Parameters: params}
 	}
-	pd := &apiV2beta1.PipelineTask{
+	pd := &apiV2.PipelineTask{
 		Name:           "ROOT",
 		DisplayName:    opts.RunDisplayName,
 		RunId:          opts.Run.GetRunId(),
-		Type:           apiV2beta1.PipelineTask_ROOT,
+		Type:           apiV2.PipelineTask_ROOT,
 		Inputs:         inputs,
-		TypeAttributes: &apiV2beta1.PipelineTask_TypeAttributes{},
-		State:          apiV2beta1.PipelineTask_RUNNING,
+		TypeAttributes: &apiV2.PipelineTask_TypeAttributes{},
+		State:          apiV2.PipelineTask_RUNNING,
 		ScopePath:      opts.ScopePath.DotNotation(),
 		CreateTime:     timestamppb.Now(),
-		Pods: []*apiV2beta1.PipelineTask_TaskPod{
+		Pods: []*apiV2.PipelineTask_TaskPod{
 			{
 				Name: opts.PodName,
 				Uid:  opts.PodUID,
-				Type: apiV2beta1.PipelineTask_DRIVER,
+				Type: apiV2.PipelineTask_DRIVER,
 			},
 		},
 	}
-	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2.CreateTaskRequest{
 		Task:  pd,
 		RunId: pd.GetRunId(),
 	})

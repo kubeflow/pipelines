@@ -16,11 +16,11 @@
 import unittest
 
 from absl.testing import parameterized
+
 from kfp.dsl import utils
 
 
 class UtilsTest(parameterized.TestCase):
-
     @parameterized.parameters(
         {
             'original': 'name',
@@ -39,52 +39,57 @@ class UtilsTest(parameterized.TestCase):
         self.assertEqual(utils.maybe_rename_for_k8s(original), expected)
 
     def test_sanitize_component_name(self):
-        self.assertEqual('comp-my-component',
-                         utils.sanitize_component_name('My component'))
+        self.assertEqual(
+            'comp-my-component', utils.sanitize_component_name('My component')
+        )
 
     def test_sanitize_executor_label(self):
-        self.assertEqual('exec-my-component',
-                         utils.sanitize_executor_label('My component'))
+        self.assertEqual(
+            'exec-my-component', utils.sanitize_executor_label('My component')
+        )
 
     def test_sanitize_task_name(self):
-        self.assertEqual('my-component-1',
-                         utils.sanitize_task_name('My component 1'))
+        self.assertEqual(
+            'my-component-1', utils.sanitize_task_name('My component 1')
+        )
 
     @parameterized.parameters(
         {
             'name': 'some-name',
             'collection': [],
             'delimiter': '-',
-            'expected': 'some-name'
+            'expected': 'some-name',
         },
         {
             'name': 'some-name',
             'collection': ['some-name'],
             'delimiter': '+',
-            'expected': 'some-name+2'
+            'expected': 'some-name+2',
         },
         {
             'name': 'some-name',
             'collection': ['some-name', 'some-name-2'],
             'delimiter': '-',
-            'expected': 'some-name-3'
+            'expected': 'some-name-3',
         },
         {
             'name': 'some-name-2',
             'collection': ['some-name', 'some-name-2'],
             'delimiter': '-',
-            'expected': 'some-name-2-2'
+            'expected': 'some-name-2-2',
         },
     )
-    def test_make_name_unique_by_adding_index(self, name, collection, delimiter,
-                                              expected):
+    def test_make_name_unique_by_adding_index(
+        self, name, collection, delimiter, expected
+    ):
         self.assertEqual(
             expected,
             utils.make_name_unique_by_adding_index(
                 name=name,
                 collection=collection,
                 delimiter=delimiter,
-            ))
+            ),
+        )
 
     @parameterized.parameters(
         {
@@ -119,6 +124,77 @@ class UtilsTest(parameterized.TestCase):
         else:
             with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
                 utils.validate_pipeline_name('my_pipeline')
+
+
+class NormalizeResourceQuantityTest(parameterized.TestCase):
+    # Every value here was checked against
+    # k8s.io/apimachinery/pkg/api/resource.ParseQuantity, which is what the KFP
+    # driver runs before it builds the pod spec.
+    @parameterized.parameters(
+        '1',
+        '1000',
+        '0',
+        '1.5',
+        '0.5',
+        '.5',
+        '1.',
+        '+1',
+        '512Mi',
+        '1.5Gi',
+        '1.25Gi',
+        '2.5G',
+        '2.5Ti',
+        '1Ki',
+        '1Ei',
+        '1E',
+        '1P',
+        '1Pi',
+        '1T',
+        '1Ti',
+        '1M',
+        '1G',
+        '100k',
+        '500m',
+        '1n',
+        '1u',
+        '1e3',
+        '1E3',
+        '1e-3',
+        '1.5e3',
+    )
+    def test_accepts_kubernetes_quantity(self, value):
+        self.assertEqual(utils.normalize_resource_quantity(value), value)
+
+    @parameterized.parameters(
+        {'value': '6K', 'expected': '6k'},
+        {'value': '1.5K', 'expected': '1.5k'},
+    )
+    def test_rewrites_legacy_kilo_suffix(self, value, expected):
+        self.assertEqual(utils.normalize_resource_quantity(value), expected)
+
+    @parameterized.parameters(
+        '',
+        'Gi',
+        'abc',
+        '1gi',
+        '1KI',
+        '1GB',
+        '1B',
+        '1Mib',
+        '512 Mi',
+        '1..5Gi',
+        '1,5Gi',
+        '-1',
+        '-10Gi',
+        '1Ki3',
+        '1e',
+        '0x10',
+        '.',
+        None,
+        10,
+    )
+    def test_rejects_non_quantity(self, value):
+        self.assertIsNone(utils.normalize_resource_quantity(value))
 
 
 if __name__ == '__main__':

@@ -13,22 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import re
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class ContributorReportWorkflowTest(unittest.TestCase):
-
     def test_script_checkout_uses_trusted_workflow_revision(self):
-        workflow = (ROOT /
-                    '.github/workflows/contributor-report.yml').read_text(
-                        encoding='utf-8')
+        workflow = (
+            ROOT / '.github/workflows/contributor-report.yml'
+        ).read_text(encoding='utf-8')
         steps = re.split(r'^      - ', workflow, flags=re.MULTILINE)[1:]
         checkouts = [
-            step for step in steps
+            step
+            for step in steps
             if re.search(r'^\s*uses: actions/checkout@', step, re.MULTILINE)
         ]
         self.assertEqual(len(checkouts), 1)

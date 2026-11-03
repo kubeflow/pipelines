@@ -27,6 +27,7 @@ from kfp import dsl
 def get_random_int_op(minimum: int, maximum: int) -> int:
     """Generate a random number between minimum and maximum (inclusive)."""
     import random
+
     result = random.randint(minimum, maximum)
     print(result)
     return result
@@ -36,6 +37,7 @@ def get_random_int_op(minimum: int, maximum: int) -> int:
 def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
+
     result = random.choice(['heads', 'tails'])
     print(result)
     return result
@@ -51,6 +53,7 @@ def print_op(message: str):
 def fail_op(message: str):
     """Fails."""
     import sys
+
     print(message)
     sys.exit(1)
 
@@ -70,19 +73,18 @@ def fail_op(message: str):
 
 @dsl.pipeline(
     name='tutorial-control-flows',
-    description='Shows how to use dsl.Condition(), dsl.ParallelFor, and dsl.ExitHandler().'
+    description='Shows how to use dsl.Condition(), dsl.ParallelFor, and dsl.ExitHandler().',
 )
 def control_flows_pipeline():
     exit_task = print_op(message='Exit handler has worked!')
     with dsl.ExitHandler(exit_task):
         fail_op(
-            message="Failing the run to demonstrate that exit handler still gets executed."
+            message='Failing the run to demonstrate that exit handler still gets executed.'
         )
 
     flip = flip_coin_op()
 
     with dsl.ParallelFor(['heads', 'tails']) as expected_result:
-
         with dsl.Condition(flip.output == expected_result):
             random_num_head = get_random_int_op(minimum=0, maximum=9)
             with dsl.Condition(random_num_head.output > 5):

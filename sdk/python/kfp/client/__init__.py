@@ -17,9 +17,13 @@ __all__ = [
     'Client',
 ]
 
+# The credential classes below are re-exported for backwards compatibility,
+# so they are unused within this module.
+
 from kfp.client.client import Client
-from kfp.client.set_volume_credentials import \
-    ServiceAccountTokenVolumeCredentials
+from kfp.client.set_volume_credentials import (
+    ServiceAccountTokenVolumeCredentials,
+)
 from kfp.client.token_credentials_base import TokenCredentialsBase
 
 KF_PIPELINES_SA_TOKEN_ENV = 'KF_PIPELINES_SA_TOKEN_PATH'

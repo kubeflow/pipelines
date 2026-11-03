@@ -17,17 +17,19 @@ from sdk.python import kfp
 
 
 class ComparisonUtils:
-
     @classmethod
-    def compare_pipeline_spec_dicts(cls, actual: dict, expected: dict,
-                                    **kwargs):
+    def compare_pipeline_spec_dicts(
+        cls, actual: dict, expected: dict, **kwargs
+    ):
         """Compare two pipeline/platform specs :param actual: Pipeline Spec
         that you want to compare :param expected: Pipeline Spec that is the
         source of truth :param kwargs: options are: name (pipeline name),
         display_name (pipeline display name), runtime_params (pipeline runtime
         params)"""
         if expected is None:
-            assert actual is None, "Actual is not None when its expected to be None"
+            assert actual is None, (
+                'Actual is not None when its expected to be None'
+            )
         else:
             for key, value in expected.items():
                 if type(value) == dict:
@@ -40,20 +42,25 @@ class ComparisonUtils:
                         if kwargs['runtime_params'] is not None:
                             if key == 'root':
                                 for param_key, param_value in value[
-                                        'inputDefinitions']['parameters'].items(
-                                        ):
-                                    if param_key in kwargs[
-                                            'runtime_params'].keys():
+                                    'inputDefinitions'
+                                ]['parameters'].items():
+                                    if (
+                                        param_key
+                                        in kwargs['runtime_params'].keys()
+                                    ):
                                         value['inputDefinitions']['parameters'][
-                                            param_key]['defaultValue'] = kwargs[
-                                                'runtime_params'][param_key]
+                                            param_key
+                                        ]['defaultValue'] = kwargs[
+                                            'runtime_params'
+                                        ][param_key]
 
-                    cls.compare_pipeline_spec_dicts(actual[key], value,
-                                                    **kwargs)
+                    cls.compare_pipeline_spec_dicts(
+                        actual[key], value, **kwargs
+                    )
                 else:
                     # Override SDK version to match the requested test version.
                     if key == 'sdkVersion':
-                        value = f"kfp-{kwargs.get('sdk_version') or kfp.__version__}"
+                        value = f'kfp-{kwargs.get("sdk_version") or kfp.__version__}'
                     # Override SDK Version in the args as well to match the current version
                     if key == 'command':
                         # Currently this check is disabled because when doing releases this will fail
@@ -68,10 +75,12 @@ class ComparisonUtils:
                     # In CI we override the images, so we ignore this here.
                     if key == 'image':
                         actual[key] = expected[key]
-                    assert value == actual[
-                        key], f'Value for "{key}" is not the same'
+                    assert value == actual[key], (
+                        f'Value for "{key}" is not the same'
+                    )
 
     @classmethod
     def override_sdk_version(cls, text: str) -> str:
-        return re.sub("kfp==[0-9].[0-9]+.[0-9]+", f"kfp=={kfp.__version__}",
-                      text)
+        return re.sub(
+            'kfp==[0-9].[0-9]+.[0-9]+', f'kfp=={kfp.__version__}', text
+        )

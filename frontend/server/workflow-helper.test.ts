@@ -14,13 +14,13 @@
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
 import { PassThrough } from 'stream';
 import { text as readStreamText } from 'stream/consumers';
-import { Client as MinioClient } from 'minio';
+
 import {
-  createPodLogsMinioRequestConfig,
+  createPodLogsArtifactReadRequest,
   composePodLogsStreamHandler,
   getPodLogsStreamFromK8s,
   createPodLogsStreamFromWorkflow,
-  getPodLogsMinioRequestConfigfromWorkflow,
+  getPodLogsArtifactReadRequestFromWorkflow,
   toGetPodLogsStream,
   getKeyFormatFromArtifactRepositories,
 } from './workflow-helper.js';
@@ -32,10 +32,21 @@ import {
   getServerNamespace,
 } from './k8s-helper.js';
 import { V1ConfigMap, V1ObjectMeta } from '@kubernetes/client-node';
-import * as minioHelper from './minio-helper.js';
+import * as artifactStoreHelper from './artifact-store.js';
 
-vi.mock('minio');
-vi.mock('./k8s-helper');
+import { MockS3Client, expectedS3Options } from './integration-tests/s3-client-test-helper.js';
+vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@aws-sdk/client-s3')>();
+  const { createS3Mock } = await import('./integration-tests/s3-client-test-helper.js');
+  return { ...actual, S3Client: createS3Mock(actual) };
+});
+vi.mock('./k8s-helper.js', () => ({
+  getK8sSecret: vi.fn(),
+  getArgoWorkflow: vi.fn(),
+  getPodLogs: vi.fn(),
+  getConfigMap: vi.fn(),
+  getServerNamespace: vi.fn(),
+}));
 
 describe('workflow-helper', () => {
   const minioConfig = {
@@ -110,23 +121,23 @@ describe('workflow-helper', () => {
   });
 
   describe('toGetPodLogsStream', () => {
-    it('wraps a getMinioRequestConfig function to return the corresponding object stream.', async () => {
+    it('wraps a getArtifactReadRequest function to return the corresponding object stream.', async () => {
       const objStream = new PassThrough();
       objStream.end('some fake logs.');
 
-      const client = new MinioClient(minioConfig);
-      const mockedClientGetObject: Mock = client.getObject as any;
+      const store = { openRead: vi.fn(), list: vi.fn() };
+      const mockedClientGetObject: Mock = store.openRead as any;
       mockedClientGetObject.mockResolvedValueOnce(objStream);
       const configs = {
         bucket: 'bucket',
-        client,
+        store,
         key: 'folder/key',
       };
       const createRequest = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
         Promise.resolve(configs),
       );
       const stream = await toGetPodLogsStream(createRequest)('podName', '2024-08-13', 'namespace');
-      expect(mockedClientGetObject).toBeCalledWith('bucket', 'folder/key');
+      expect(mockedClientGetObject).toBeCalledWith('folder/key', { signal: undefined });
     });
   });
 
@@ -190,10 +201,10 @@ describe('workflow-helper', () => {
     });
   });
 
-  describe('createPodLogsMinioRequestConfig', () => {
-    it('returns a MinioRequestConfig factory with the provided minioClientOptions, bucket, and prefix.', async () => {
-      const mockedClient: Mock = MinioClient as any;
-      const requestFunc = await createPodLogsMinioRequestConfig(
+  describe('createPodLogsArtifactReadRequest', () => {
+    it('returns a ArtifactReadRequest factory with the provided storeOptions, bucket, and prefix.', async () => {
+      const mockedClient: Mock = MockS3Client as any;
+      const requestFunc = await createPodLogsArtifactReadRequest(
         minioConfig,
         'bucket',
         'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
@@ -205,8 +216,8 @@ describe('workflow-helper', () => {
         'namespace',
       );
 
-      expect(mockedClient).toBeCalledWith(minioConfig);
-      expect(request.client).toBeInstanceOf(MinioClient);
+      expect(mockedClient).toBeCalledWith(expectedS3Options(minioConfig));
+      expect(request.store.openRead).toBeTypeOf('function');
       expect(request.bucket).toBe('bucket');
       expect(request.key).toBe(
         'artifacts/workflow-name/2024/08/13/workflow-name-system-container-impl-foo/main.log',
@@ -220,7 +231,7 @@ describe('workflow-helper', () => {
     ]);
 
     beforeEach(() => {
-      vi.spyOn(minioHelper, 'createMinioClient');
+      vi.spyOn(artifactStoreHelper, 'createS3ArtifactStore');
     });
 
     afterEach(() => {
@@ -287,8 +298,8 @@ describe('workflow-helper', () => {
             );
 
             expect(getK8sSecret).not.toHaveBeenCalled();
-            expect(minioHelper.createMinioClient).not.toHaveBeenCalled();
-            expect(MinioClient).not.toHaveBeenCalled();
+            expect(artifactStoreHelper.createS3ArtifactStore).not.toHaveBeenCalled();
+            expect(MockS3Client).not.toHaveBeenCalled();
           },
         );
       },
@@ -301,7 +312,7 @@ describe('workflow-helper', () => {
       vi.mocked(getServerNamespace).mockReturnValue('kubeflow');
 
       await expect(
-        getPodLogsMinioRequestConfigfromWorkflow(
+        getPodLogsArtifactReadRequestFromWorkflow(
           'workflow-name-system-container-impl-abc',
           '2024-07-09',
           'kubeflow',
@@ -309,8 +320,8 @@ describe('workflow-helper', () => {
       ).rejects.toThrow('Artifact store endpoint is not allowed');
 
       expect(getK8sSecret).not.toHaveBeenCalled();
-      expect(minioHelper.createMinioClient).not.toHaveBeenCalled();
-      expect(MinioClient).not.toHaveBeenCalled();
+      expect(artifactStoreHelper.createS3ArtifactStore).not.toHaveBeenCalled();
+      expect(MockS3Client).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -339,8 +350,8 @@ describe('workflow-helper', () => {
         );
 
         expect(getK8sSecret).not.toHaveBeenCalled();
-        expect(minioHelper.createMinioClient).not.toHaveBeenCalled();
-        expect(MinioClient).not.toHaveBeenCalled();
+        expect(artifactStoreHelper.createS3ArtifactStore).not.toHaveBeenCalled();
+        expect(MockS3Client).not.toHaveBeenCalled();
       },
     );
 
@@ -414,7 +425,7 @@ describe('workflow-helper', () => {
         vi.mocked(getServerNamespace).mockReturnValue('kubeflow');
         const objStream = new PassThrough();
         objStream.end('archived logs');
-        MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
+        MockS3Client.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
 
         const stream = await createPodLogsStreamFromWorkflow(trustedEndpoints)(
           'workflow-name-system-container-impl-abc',
@@ -423,7 +434,7 @@ describe('workflow-helper', () => {
         );
 
         expect(getK8sSecret).not.toHaveBeenCalled();
-        expect(minioHelper.createMinioClient).toHaveBeenCalledExactlyOnceWith(
+        expect(artifactStoreHelper.createS3ArtifactStore).toHaveBeenCalledExactlyOnceWith(
           {
             accessKey: 'server-access-key',
             endPoint: expectedHost,
@@ -432,8 +443,9 @@ describe('workflow-helper', () => {
             useSSL: !insecure,
           },
           's3',
+          'bucket',
         );
-        expect(MinioClient.prototype.getObject).toHaveBeenCalledWith('bucket', 'prefix/main.log');
+        expect(MockS3Client.prototype.getObject).toHaveBeenCalledWith('bucket', 'prefix/main.log');
         expect(await readStreamText(stream)).toBe('archived logs');
       },
     );
@@ -485,10 +497,10 @@ describe('workflow-helper', () => {
       mockedGetK8sSecret.mockResolvedValue('someSecret');
 
       const objStream = new PassThrough();
-      const mockedClient: Mock = MinioClient as any;
+      const mockedClient: Mock = MockS3Client as any;
       // In Vitest, auto-mocked class instances get their own mock methods.
       // Set up prototype mock so new instances inherit it.
-      MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
+      MockS3Client.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
       objStream.end('some fake logs.');
 
       const stream = await getPodLogsStreamFromWorkflow(
@@ -504,15 +516,17 @@ describe('workflow-helper', () => {
       expect(mockedGetK8sSecret).toBeCalledWith('secretKeyName', 'secretKey', 'kubeflow');
 
       expect(mockedClient).toBeCalledTimes(1);
-      expect(mockedClient).toBeCalledWith({
-        accessKey: 'someSecret',
-        endPoint: 'seaweedfs.kubeflow',
-        port: 80,
-        secretKey: 'someSecret',
-        useSSL: false,
-      });
+      expect(mockedClient).toBeCalledWith(
+        expectedS3Options({
+          accessKey: 'someSecret',
+          endPoint: 'seaweedfs.kubeflow',
+          port: 80,
+          secretKey: 'someSecret',
+          useSSL: false,
+        }),
+      );
       // Access the instance created by the constructor to check getObject
-      const clientInstance = mockedClient.mock.results[0].value;
+      const clientInstance = MockS3Client.prototype;
       expect(clientInstance.getObject).toBeCalledTimes(1);
       expect(clientInstance.getObject).toBeCalledWith(
         'bucket',
@@ -573,8 +587,8 @@ describe('workflow-helper', () => {
       process.env.MINIO_SECRET_KEY = 'server-secret-key';
 
       const objStream = new PassThrough();
-      const mockedClient: Mock = MinioClient as any;
-      MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
+      const mockedClient: Mock = MockS3Client as any;
+      MockS3Client.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
       objStream.end('some fake logs.');
 
       try {
@@ -592,13 +606,15 @@ describe('workflow-helper', () => {
       // The client is built using the server's own environment credentials
       // rather than the customer-namespace Secret, so the workflow-status log
       // path works against the shared store instead of failing anonymously.
-      expect(mockedClient).toBeCalledWith({
-        accessKey: 'server-access-key',
-        endPoint: 'seaweedfs.kubeflow',
-        port: 80,
-        secretKey: 'server-secret-key',
-        useSSL: false,
-      });
+      expect(mockedClient).toBeCalledWith(
+        expectedS3Options({
+          accessKey: 'server-access-key',
+          endPoint: 'seaweedfs.kubeflow',
+          port: 80,
+          secretKey: 'server-secret-key',
+          useSSL: false,
+        }),
+      );
     });
 
     it('reads the object-store Secret from the server namespace when the run namespace is omitted (standalone)', async () => {
@@ -648,8 +664,8 @@ describe('workflow-helper', () => {
       mockedGetK8sSecret.mockResolvedValue('custom-store-secret');
 
       const objStream = new PassThrough();
-      const mockedClient: Mock = MinioClient as any;
-      MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
+      const mockedClient: Mock = MockS3Client as any;
+      MockS3Client.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
       objStream.end('some fake logs.');
 
       await getPodLogsStreamFromWorkflow(
@@ -665,13 +681,15 @@ describe('workflow-helper', () => {
 
       // The custom object-store credentials from the Secret are honored rather
       // than falling back to default env credentials.
-      expect(mockedClient).toBeCalledWith({
-        accessKey: 'custom-store-secret',
-        endPoint: 'seaweedfs.kubeflow',
-        port: 80,
-        secretKey: 'custom-store-secret',
-        useSSL: false,
-      });
+      expect(mockedClient).toBeCalledWith(
+        expectedS3Options({
+          accessKey: 'custom-store-secret',
+          endPoint: 'seaweedfs.kubeflow',
+          port: 80,
+          secretKey: 'custom-store-secret',
+          useSSL: false,
+        }),
+      );
     });
 
     it('falls back to env credentials for an omitted namespace when the artifact references no Secret', async () => {
@@ -723,8 +741,8 @@ describe('workflow-helper', () => {
       process.env.MINIO_SECRET_KEY = 'server-secret-key';
 
       const objStream = new PassThrough();
-      const mockedClient: Mock = MinioClient as any;
-      MinioClient.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
+      const mockedClient: Mock = MockS3Client as any;
+      MockS3Client.prototype.getObject = vi.fn().mockResolvedValueOnce(objStream) as any;
       objStream.end('some fake logs.');
 
       try {
@@ -741,13 +759,15 @@ describe('workflow-helper', () => {
       // With no Secret referenced, no Secret read is attempted and the frontend's
       // own configured env credentials are used.
       expect(mockedGetK8sSecret).not.toBeCalled();
-      expect(mockedClient).toBeCalledWith({
-        accessKey: 'server-access-key',
-        endPoint: 'seaweedfs.kubeflow',
-        port: 80,
-        secretKey: 'server-secret-key',
-        useSSL: false,
-      });
+      expect(mockedClient).toBeCalledWith(
+        expectedS3Options({
+          accessKey: 'server-access-key',
+          endPoint: 'seaweedfs.kubeflow',
+          port: 80,
+          secretKey: 'server-secret-key',
+          useSSL: false,
+        }),
+      );
     });
   });
 });

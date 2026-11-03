@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
@@ -88,11 +88,11 @@ func testPersistedRun(id string) *apiserverPlugins.PersistedRun {
 	return &apiserverPlugins.PersistedRun{
 		RunID:         id,
 		Namespace:     "ns1",
-		PluginsOutput: make(map[string]*apiv2beta1.PluginOutput),
+		PluginsOutput: make(map[string]*apiv2.PluginOutput),
 	}
 }
 
-func testPersistedRunWithPluginOutput(id string, pluginOutput *apiv2beta1.PluginOutput) *apiserverPlugins.PersistedRun {
+func testPersistedRunWithPluginOutput(id string, pluginOutput *apiv2.PluginOutput) *apiserverPlugins.PersistedRun {
 	r := testPersistedRun(id)
 	if pluginOutput != nil {
 		r.PluginsOutput[PluginName] = pluginOutput
@@ -100,14 +100,14 @@ func testPersistedRunWithPluginOutput(id string, pluginOutput *apiv2beta1.Plugin
 	return r
 }
 
-func addLegacyEndpointEntry(pluginOutput *apiv2beta1.PluginOutput, endpoint string) *apiv2beta1.PluginOutput {
+func addLegacyEndpointEntry(pluginOutput *apiv2.PluginOutput, endpoint string) *apiv2.PluginOutput {
 	if pluginOutput == nil {
 		return nil
 	}
 	if pluginOutput.Entries == nil {
-		pluginOutput.Entries = make(map[string]*apiv2beta1.MetadataValue)
+		pluginOutput.Entries = make(map[string]*apiv2.MetadataValue)
 	}
-	pluginOutput.Entries["endpoint"] = &apiv2beta1.MetadataValue{
+	pluginOutput.Entries["endpoint"] = &apiv2.MetadataValue{
 		Value: structpb.NewStringValue(endpoint),
 	}
 	return pluginOutput
@@ -177,7 +177,7 @@ func TestOnBeforeRunCreation_Success(t *testing.T) {
 	output, env, err := handler.OnBeforeRunCreation(context.Background(), run, cfg, &MLflowPluginInput{Disabled: false})
 	require.NoError(t, err)
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Contains(t, output.Entries, EntryExperimentID)
 	assert.Equal(t, "exp-42", output.Entries[EntryExperimentID].Value.GetStringValue())
 	assert.Contains(t, output.Entries, apiserverPlugins.EntryRootRunID)
@@ -186,7 +186,7 @@ func TestOnBeforeRunCreation_Success(t *testing.T) {
 	require.NotEmpty(t, env)
 	require.NotNil(t, output)
 
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Contains(t, output.Entries, EntryExperimentID)
 	assert.Equal(t, "exp-42", output.Entries[EntryExperimentID].Value.GetStringValue())
 	assert.Contains(t, output.Entries, apiserverPlugins.EntryRootRunID)
@@ -355,7 +355,7 @@ func TestOnBeforeRunCreation_MLflowFailure_ReturnsFailedOutput(t *testing.T) {
 	require.Error(t, err)
 	assert.Empty(t, env)
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, output.State)
 	assert.NotEmpty(t, output.StateMessage)
 }
 
@@ -390,7 +390,7 @@ func TestOnRunEnd_MissingRootRunID_SetsFailedState(t *testing.T) {
 	// Verify the plugin output was updated in place
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, result.State)
 	assert.Contains(t, result.StateMessage, "missing parent root_run_id")
 }
 
@@ -406,7 +406,7 @@ func TestOnRunEnd_NilConfig_SetsFailedState(t *testing.T) {
 
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, result.State)
 	assert.Contains(t, result.StateMessage, "config unavailable")
 }
 
@@ -449,7 +449,7 @@ func TestOnRunEnd_Success(t *testing.T) {
 	// Plugin output should be updated in place
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, result.State)
 }
 
 func TestHandlerOnRunEnd_PermanentConfigFailureDoesNotRequestRetry(t *testing.T) {
@@ -475,7 +475,7 @@ func TestHandlerOnRunEnd_PermanentConfigFailureDoesNotRequestRetry(t *testing.T)
 	// Verify the plugin output was updated with failed state
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, result.State)
 	assert.Contains(t, result.StateMessage, "resolved MLflow settings are missing")
 }
 
@@ -500,7 +500,7 @@ func TestHandleRetry_MissingRootRunID_SetsFailedState(t *testing.T) {
 
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, result.State)
 	assert.Contains(t, result.StateMessage, "missing parent root_run_id")
 }
 
@@ -514,7 +514,7 @@ func TestHandleRetry_NilConfig_SetsFailedState(t *testing.T) {
 
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, result.State)
 	assert.Contains(t, result.StateMessage, "config unavailable")
 }
 
@@ -557,13 +557,13 @@ func TestHandleRetry_Success(t *testing.T) {
 	// Plugin output updated in place
 	result := run.PluginsOutput[PluginName]
 	require.NotNil(t, result)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, result.State)
 }
 
 func TestPostRunSyncUsesResolvedConfigInsteadOfLegacyPluginOutputEndpoint(t *testing.T) {
 	tests := []struct {
 		name             string
-		pluginOutput     *apiv2beta1.PluginOutput
+		pluginOutput     *apiv2.PluginOutput
 		runState         string
 		wantUpdateStatus string
 		invoke           func(*Handler, *apiserverPlugins.PersistedRun, *ResolvedMLflowConfig) (bool, error)
@@ -647,7 +647,7 @@ func TestPostRunSyncUsesResolvedConfigInsteadOfLegacyPluginOutputEndpoint(t *tes
 
 			result := run.PluginsOutput[PluginName]
 			require.NotNil(t, result)
-			assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result.State)
+			assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, result.State)
 		})
 	}
 }
@@ -860,9 +860,9 @@ func TestModelToPersistedRun_BasicFields(t *testing.T) {
 // ---- SerializePluginsOutput / DeserializePluginsOutput tests ----
 
 func TestSerializeDeserializePluginsOutput_RoundTrip(t *testing.T) {
-	original := map[string]*apiv2beta1.PluginOutput{
+	original := map[string]*apiv2.PluginOutput{
 		"mlflow":       SuccessfulPluginOutput("exp-1", "Default", "parent-1", ""),
-		"other_plugin": {State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
+		"other_plugin": {State: apiv2.PluginState_PLUGIN_SUCCEEDED},
 	}
 	lt, err := apiserverPlugins.SerializePluginsOutput(original)
 	require.NoError(t, err)

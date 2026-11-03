@@ -11,90 +11,105 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass
 import functools
 import logging
 import os
-from pathlib import Path
 import shutil
 import tempfile
-from typing import Any, Callable, Optional
 import uuid
 import warnings
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Optional
 
-from kfp import dsl
-from kfp import local
 import pytest
+from kfp import dsl, local
 
 base_image = 'registry.access.redhat.com/ubi9/python-311:latest'
 _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 dsl.component = functools.partial(
-    dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH)
+    dsl.component, base_image=base_image, kfp_package_path=_KFP_PACKAGE_PATH
+)
 dsl.notebook_component = functools.partial(
-    dsl.notebook_component, kfp_package_path=_KFP_PACKAGE_PATH)
+    dsl.notebook_component, kfp_package_path=_KFP_PACKAGE_PATH
+)
 
-from test_data.sdk_compiled_pipelines.valid.arguments_parameters import \
-    echo as arguments_echo
-from test_data.sdk_compiled_pipelines.valid.critical.add_numbers import \
-    add_numbers
-from test_data.sdk_compiled_pipelines.valid.critical.collected_parameters import \
-    collected_param_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.component_with_optional_inputs import \
-    pipeline as optional_inputs_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.flip_coin import flip_coin
-from test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters import \
-    crust as mixed_parameters_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple import \
-    crust as namedtuple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple import \
-    pipeline as notebook_simple_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple import \
-    run_train_notebook as run_train_notebook_component
-from test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace import \
-    pipeline_with_importer_workspace as importer_workspace_pipeline
-from test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param import \
-    producer_consumer_param_pipeline
-from test_data.sdk_compiled_pipelines.valid.essential.component_with_env_variable import \
-    pipeline_with_env_variable
-from test_data.sdk_compiled_pipelines.valid.essential.concat_message import \
-    concat_message
-from test_data.sdk_compiled_pipelines.valid.essential.container_no_input import \
-    container_no_input
-from test_data.sdk_compiled_pipelines.valid.essential.dict_input import \
-    dict_input
-from test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs import \
-    pipeline as lightweight_with_outputs_pipeline
+import test_data.sdk_compiled_pipelines.valid.arguments_parameters as arguments_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.add_numbers as add_numbers_module
+import test_data.sdk_compiled_pipelines.valid.critical.collected_parameters as collected_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.component_with_optional_inputs as optional_inputs
+import test_data.sdk_compiled_pipelines.valid.critical.flip_coin as flip_coin_module
+import test_data.sdk_compiled_pipelines.valid.critical.mixed_parameters as mixed_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.multiple_parameters_namedtuple as namedtuple_parameters
+import test_data.sdk_compiled_pipelines.valid.critical.notebook_component_simple as notebook_component
+import test_data.sdk_compiled_pipelines.valid.critical.pipeline_with_importer_workspace as importer_workspace
+import test_data.sdk_compiled_pipelines.valid.critical.producer_consumer_param as producer_consumer
+import test_data.sdk_compiled_pipelines.valid.essential.component_with_env_variable as env_variable
+import test_data.sdk_compiled_pipelines.valid.essential.concat_message as concat_message_module
+import test_data.sdk_compiled_pipelines.valid.essential.container_no_input as container_no_input_module
+import test_data.sdk_compiled_pipelines.valid.essential.dict_input as dict_input_module
+import test_data.sdk_compiled_pipelines.valid.essential.lightweight_python_functions_with_outputs as lightweight_outputs
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_exit_handler as exit_handler
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_ignore_upstream_failure as ignore_upstream_failure
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_k8s_only_methods as k8s_only_methods
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_oneof as oneof
+import test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_retry as retry
+import test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_caching as caching
+import test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_collected_artifacts as collected_artifacts
+import test_data.sdk_compiled_pipelines.valid.output_metrics as output_metrics_module
+import test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_with_loops as loops
+import test_data.sdk_compiled_pipelines.valid.parameter as parameters
+import test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts as parallelfor_list_artifacts
+import test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism as parallelfor_parallelism
+import test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_pipeline_param as parallelfor_pipeline_param
+from test_data.sdk_compiled_pipelines.valid import sequential_container
 from test_data.sdk_compiled_pipelines.valid.hello_world import echo
 from test_data.sdk_compiled_pipelines.valid.identity import identity
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_exit_handler import \
-    pipeline_with_exit_handler
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_ignore_upstream_failure import \
-    pipeline_with_ignore_upstream_failure
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_k8s_only_methods import \
-    pipeline_with_k8s_only_methods
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_oneof import \
-    pipeline_with_oneof
-from test_data.sdk_compiled_pipelines.valid.local_execution.local_execution_pipeline_with_retry import \
-    pipeline_with_retry
-from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_caching import \
-    pipeline_with_caching
-from test_data.sdk_compiled_pipelines.valid.local_execution.pipeline_with_collected_artifacts import \
-    pipeline_with_collected_artifacts
 from test_data.sdk_compiled_pipelines.valid.nested_return import nested_return
-from test_data.sdk_compiled_pipelines.valid.output_metrics import \
-    output_metrics
-from test_data.sdk_compiled_pipelines.valid.parallel_and_nested.pipeline_with_loops import \
-    my_pipeline as pipeline_with_loops
-from test_data.sdk_compiled_pipelines.valid.parameter import \
-    crust as parameter_pipeline
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_list_artifacts import \
-    my_pipeline as pipeline_with_parallelfor_list_artifacts
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_parallelism import \
-    my_pipeline as pipeline_with_parallelfor_parallelism
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_parallelfor_pipeline_param import \
-    my_pipeline as pipeline_with_parallelfor_pipeline_param
-from test_data.sdk_compiled_pipelines.valid.sequential_v1 import sequential
+
+arguments_echo = arguments_parameters.echo
+add_numbers = add_numbers_module.add_numbers
+collected_param_pipeline = collected_parameters.collected_param_pipeline
+optional_inputs_pipeline = optional_inputs.pipeline
+flip_coin = flip_coin_module.flip_coin
+mixed_parameters_pipeline = mixed_parameters.crust
+namedtuple_pipeline = namedtuple_parameters.crust
+notebook_simple_pipeline = notebook_component.pipeline
+run_train_notebook_component = notebook_component.run_train_notebook
+importer_workspace_pipeline = (
+    importer_workspace.pipeline_with_importer_workspace
+)
+producer_consumer_param_pipeline = (
+    producer_consumer.producer_consumer_param_pipeline
+)
+pipeline_with_env_variable = env_variable.pipeline_with_env_variable
+concat_message = concat_message_module.concat_message
+container_no_input = container_no_input_module.container_no_input
+dict_input = dict_input_module.dict_input
+lightweight_with_outputs_pipeline = lightweight_outputs.pipeline
+pipeline_with_exit_handler = exit_handler.pipeline_with_exit_handler
+pipeline_with_ignore_upstream_failure = (
+    ignore_upstream_failure.pipeline_with_ignore_upstream_failure
+)
+pipeline_with_k8s_only_methods = k8s_only_methods.pipeline_with_k8s_only_methods
+pipeline_with_oneof = oneof.pipeline_with_oneof
+pipeline_with_retry = retry.pipeline_with_retry
+pipeline_with_caching = caching.pipeline_with_caching
+pipeline_with_collected_artifacts = (
+    collected_artifacts.pipeline_with_collected_artifacts
+)
+output_metrics = output_metrics_module.output_metrics
+pipeline_with_loops = loops.my_pipeline
+parameter_pipeline = parameters.crust
+pipeline_with_parallelfor_list_artifacts = (
+    parallelfor_list_artifacts.my_pipeline
+)
+pipeline_with_parallelfor_parallelism = parallelfor_parallelism.my_pipeline
+pipeline_with_parallelfor_pipeline_param = (
+    parallelfor_pipeline_param.my_pipeline
+)
+sequential = sequential_container.sequential
 
 
 @dataclass
@@ -106,10 +121,12 @@ class TestData:
     subprocess_only: bool = False
 
     def __str__(self) -> str:
-        return (f"Test Data: "
-                f"name={self.name} "
-                f"pipeline_func={self.pipeline_func.__name__} "
-                f"args={self.pipeline_func_args}")
+        return (
+            f'Test Data: '
+            f'name={self.name} '
+            f'pipeline_func={self.pipeline_func.__name__} '
+            f'args={self.pipeline_func_args}'
+        )
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -127,10 +144,7 @@ pipeline_func_data = [
     TestData(
         name='Add Numbers',
         pipeline_func=add_numbers,
-        pipeline_func_args={
-            'a': 5,
-            'b': 5
-        },
+        pipeline_func_args={'a': 5, 'b': 5},
         expected_output=10,
     ),
     TestData(
@@ -154,10 +168,7 @@ pipeline_func_data = [
     TestData(
         name='Concat Message',
         pipeline_func=concat_message,
-        pipeline_func_args={
-            'message1': 'Hello ',
-            'message2': 'World!'
-        },
+        pipeline_func_args={'message1': 'Hello ', 'message2': 'World!'},
         expected_output='Hello World!',
     ),
     TestData(
@@ -173,16 +184,14 @@ pipeline_func_data = [
             'first_message': 'Hello',
             'second_message': ' World',
             'first_number': 10,
-            'second_number': 20
+            'second_number': 20,
         },
         expected_output=None,
     ),
     TestData(
         name='Dict Input',
         pipeline_func=dict_input,
-        pipeline_func_args={'struct': {
-            'test_key': 'test_value'
-        }},
+        pipeline_func_args={'struct': {'test_key': 'test_value'}},
         expected_output=None,
     ),
     TestData(
@@ -201,13 +210,7 @@ pipeline_func_data = [
         name='Nested Return',
         pipeline_func=nested_return,
         pipeline_func_args=None,
-        expected_output=[{
-            'A_a': '1',
-            'B_b': '2'
-        }, {
-            'A_a': '10',
-            'B_b': '20'
-        }],
+        expected_output=[{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}],
     ),
     TestData(
         name='NamedTuple Pipeline',
@@ -264,9 +267,9 @@ pipeline_func_data = [
         name='Retry',
         pipeline_func=pipeline_with_retry,
         pipeline_func_args={
-            'counter_path':
-                os.path.join(tempfile.gettempdir(),
-                             f'kfp-retry-{uuid.uuid4().hex}.count'),
+            'counter_path': os.path.join(
+                tempfile.gettempdir(), f'kfp-retry-{uuid.uuid4().hex}.count'
+            ),
         },
         expected_output='attempt=2',
         # Flaky counter file lives on host tmp; Docker containers can't
@@ -295,10 +298,12 @@ pipeline_func_data = [
 
 
 @pytest.mark.skipif(
-    _KFP_PACKAGE_PATH is None, reason='KFP_PACKAGE_PATH is not configured')
+    _KFP_PACKAGE_PATH is None, reason='KFP_PACKAGE_PATH is not configured'
+)
 def test_notebook_component_uses_configured_kfp_package_path():
     install_command = run_train_notebook_component.component_spec.implementation.container.command[
-        2]
+        2
+    ]
 
     assert _KFP_PACKAGE_PATH in install_command
 
@@ -319,10 +324,7 @@ docker_specific_pipeline_funcs = [
     TestData(
         name='Sequential Container Pipeline',
         pipeline_func=sequential,
-        pipeline_func_args={
-            'param1': 'First',
-            'param2': 'Second'
-        },
+        pipeline_func_args={'param1': 'First', 'param2': 'Second'},
         expected_output=None,
     ),
     TestData(
@@ -334,10 +336,7 @@ docker_specific_pipeline_funcs = [
     TestData(
         name='Container with Arguments',
         pipeline_func=arguments_echo,
-        pipeline_func_args={
-            'param1': 'arg1',
-            'param2': 'arg2'
-        },
+        pipeline_func_args={'param1': 'arg1', 'param2': 'arg2'},
         expected_output=None,
     ),
     TestData(
@@ -358,7 +357,6 @@ docker_specific_pipeline_funcs.extend(pipeline_func_data)
 
 @pytest.mark.regression
 class TestDockerRunner:
-
     @pytest.fixture(autouse=True)
     def setup_and_teardown(self, worker_id):
         ws_root = f'{ws_root_base}_docker_{worker_id}'
@@ -370,6 +368,7 @@ class TestDockerRunner:
 
         # Set permissions to be writable by all (needed for Docker)
         import stat
+
         os.chmod(ws_root, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
         os.chmod(pipeline_root, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
 
@@ -378,41 +377,48 @@ class TestDockerRunner:
             runner=local.DockerRunner(),
             raise_on_error=True,
             workspace_root=ws_root,
-            pipeline_root=pipeline_root)
+            pipeline_root=pipeline_root,
+        )
         yield
         try:
             if os.path.isdir(ws_root):
-                print(f"Deleting WS Root {ws_root}")
+                print(f'Deleting WS Root {ws_root}')
                 shutil.rmtree(ws_root, ignore_errors=True)
             if os.path.isdir(pipeline_root):
-                print(f"Deleting Pipeline Root {pipeline_root}")
+                print(f'Deleting Pipeline Root {pipeline_root}')
                 shutil.rmtree(pipeline_root, ignore_errors=True)
         except Exception as e:
-            print(f"Failed to delete directory because of {e}")
+            print(f'Failed to delete directory because of {e}')
 
     @pytest.mark.parametrize(
-        'test_data', docker_specific_pipeline_funcs, ids=idfn)
+        'test_data', docker_specific_pipeline_funcs, ids=idfn
+    )
     def test_execution(self, test_data: TestData):
         if test_data.subprocess_only:
             pytest.skip(
-                f"{test_data.name} is subprocess-only (not supported in Docker)."
+                f'{test_data.name} is subprocess-only (not supported in Docker).'
             )
         if test_data.pipeline_func_args is not None:
             pipeline_task = test_data.pipeline_func(
-                **test_data.pipeline_func_args)
+                **test_data.pipeline_func_args
+            )
         else:
             pipeline_task = test_data.pipeline_func()
         if test_data.expected_output is None:
             print('Skipping output check')
         elif type(test_data.expected_output) == list:
-            assert pipeline_task.output in test_data.expected_output or pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
+            assert (
+                pipeline_task.output in test_data.expected_output
+                or pipeline_task.output == test_data.expected_output
+            ), 'Output of the pipeline is not the same as expected'
         else:
-            assert pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
+            assert pipeline_task.output == test_data.expected_output, (
+                'Output of the pipeline is not the same as expected'
+            )
 
 
 @pytest.mark.regression
 class TestSubProcessRunner:
-
     @pytest.fixture(scope='class', autouse=True)
     def setup_and_teardown(self, worker_id):
         ws_root = f'{ws_root_base}_subprocess_{worker_id}'
@@ -423,7 +429,8 @@ class TestSubProcessRunner:
             runner=local.SubprocessRunner(),
             raise_on_error=True,
             workspace_root=ws_root,
-            pipeline_root=pipeline_root)
+            pipeline_root=pipeline_root,
+        )
         yield
         try:
             if os.path.isdir(ws_root):
@@ -431,21 +438,27 @@ class TestSubProcessRunner:
             if os.path.isdir(pipeline_root):
                 shutil.rmtree(pipeline_root, ignore_errors=True)
         except Exception as e:
-            print(f"Failed to delete directory because of {e}")
+            print(f'Failed to delete directory because of {e}')
 
     @pytest.mark.parametrize('test_data', pipeline_func_data, ids=idfn)
     def test_execution(self, test_data: TestData):
         if test_data.pipeline_func_args is not None:
             pipeline_task = test_data.pipeline_func(
-                **test_data.pipeline_func_args)
+                **test_data.pipeline_func_args
+            )
         else:
             pipeline_task = test_data.pipeline_func()
         if test_data.expected_output is None:
             print('Skipping output check')
         elif type(test_data.expected_output) == list:
-            assert pipeline_task.output in test_data.expected_output or pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
+            assert (
+                pipeline_task.output in test_data.expected_output
+                or pipeline_task.output == test_data.expected_output
+            ), 'Output of the pipeline is not the same as expected'
         else:
-            assert pipeline_task.output == test_data.expected_output, 'Output of the pipeline is not the same as expected'
+            assert pipeline_task.output == test_data.expected_output, (
+                'Output of the pipeline is not the same as expected'
+            )
 
 
 @pytest.mark.regression
@@ -495,8 +508,11 @@ class TestLocalCachingIntegration:
         with caplog.at_level(logging.INFO):
             second = pipeline_with_caching(x=1)
         assert second.output == 2
-        assert any('cache hit' in record.message for record in caplog.records), \
+        assert any(
+            'cache hit' in record.message for record in caplog.records
+        ), (
             f'Expected a cache hit log; got: {[r.message for r in caplog.records]}'
+        )
 
 
 @pytest.mark.regression
@@ -554,7 +570,8 @@ class TestK8sOnlyWarningsIntegration:
         messages = [str(w.message) for w in caught]
         resource_msgs = [m for m in messages if 'current local runner' in m]
         assert resource_msgs, (
-            f'Expected a resource-settings warning; got: {messages}')
+            f'Expected a resource-settings warning; got: {messages}'
+        )
         joined = ' '.join(resource_msgs)
         assert 'cpu_limit' in joined, resource_msgs
         assert 'memory_limit' in joined, resource_msgs
@@ -587,11 +604,13 @@ class TestK8sOnlyWarningsIntegration:
         assert result.output == 'hello'
         messages = [str(w.message) for w in caught]
         display_name_msgs = [
-            m for m in messages
+            m
+            for m in messages
             if 'display_name' in m and 'current local runner' in m
         ]
         assert display_name_msgs, (
-            f'Expected a display-name warning; got: {messages}')
+            f'Expected a display-name warning; got: {messages}'
+        )
 
 
 @pytest.mark.regression
@@ -653,6 +672,7 @@ class TestCacheEnvVarInvalidation:
         @dsl.component
         def read_var() -> str:
             import os
+
             return os.environ.get('MYVAR', '<unset>')
 
         @dsl.pipeline
@@ -673,8 +693,11 @@ class TestCacheEnvVarInvalidation:
         with caplog.at_level(logging.INFO):
             second = p_two()
         assert second.output == 'two', (
-            'Changing env var should invalidate cache; got stale value')
+            'Changing env var should invalidate cache; got stale value'
+        )
         assert not any(
-            'cache hit' in record.message for record in caplog.records), (
-                f'Changing env should be a cache miss; got: '
-                f'{[r.message for r in caplog.records]}')
+            'cache hit' in record.message for record in caplog.records
+        ), (
+            f'Changing env should be a cache miss; got: '
+            f'{[r.message for r in caplog.records]}'
+        )

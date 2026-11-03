@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+data:
+  # The UID-removal patch targets the standard init/main container layout.
+  initlessPod: |
+    enabled: false
+  executor: |
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ALL]
+      seccompProfile:
+        type: RuntimeDefault
+  workflowDefaults: |
+    spec:
+      ttlStrategy:
+        secondsAfterCompletion: 3600
+        secondsAfterSuccess: 3600
+        secondsAfterFailure: 3600
+      templateDefaults:
+        retryStrategy:
+          limit: '2'
+          retryPolicy: OnError
+      podSpecPatch: |
+        securityContext:
+          runAsUser: null
+        initContainers:
+          - name: init
+            securityContext:
+              runAsUser: null
+        containers:
+          - name: main
+            securityContext:
+              runAsUser: null

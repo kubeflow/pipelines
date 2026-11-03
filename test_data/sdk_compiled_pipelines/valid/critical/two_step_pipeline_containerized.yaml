@@ -34,14 +34,14 @@ deploymentSpec:
         - sh
         - -c
         - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
-        image: alpine
+        image: docker.io/alpine:3.23
     exec-component2:
       container:
         args:
         - '{{$.inputs.artifacts[''input_gcs''].path}}'
         command:
         - cat
-        image: alpine
+        image: docker.io/alpine:3.23
 pipelineInfo:
   name: containerized-two-step-pipeline
 root:

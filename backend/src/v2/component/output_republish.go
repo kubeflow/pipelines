@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
@@ -34,8 +34,8 @@ var republishChildTasksPageSize int32 = 200
 // outputs into a DAG/ROOT parent whose attempt-local outputs were cleared on
 // retry.
 type DAGOutputRepublishOptions struct {
-	Run          *apiV2beta1.Run
-	ParentTask   *apiV2beta1.PipelineTask
+	Run          *apiV2.Run
+	ParentTask   *apiV2.PipelineTask
 	ParentScope  util.ScopePath
 	PipelineSpec *structpb.Struct
 }
@@ -45,7 +45,7 @@ type DAGOutputRepublishOptions struct {
 // after a retry reset or a partial prior republish. Callers should pass a
 // hydrated task (GetTask / ListTasks).
 func ParentNeedsOutputRepublish(
-	parent *apiV2beta1.PipelineTask,
+	parent *apiV2.PipelineTask,
 	outputDefs *pipelinespec.ComponentOutputsSpec,
 ) bool {
 	if parent == nil || outputDefs == nil {
@@ -89,7 +89,7 @@ func ancestryNeedsOutputRepublish(
 	ctx context.Context,
 	apiClient kfpapi.API,
 	runID string,
-	parentTask *apiV2beta1.PipelineTask,
+	parentTask *apiV2.PipelineTask,
 	parentScope util.ScopePath,
 	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
 ) (bool, error) {
@@ -100,7 +100,7 @@ func ancestryNeedsOutputRepublish(
 	current := parentTask
 	baseScope := parentScope
 	for current.GetParentTaskId() != "" {
-		ancestor, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+		ancestor, err := apiClient.GetTask(ctx, &apiV2.GetTaskRequest{
 			TaskId: current.GetParentTaskId(),
 			RunId:  runID,
 		})
@@ -122,18 +122,18 @@ func ancestryNeedsOutputRepublish(
 	return false, nil
 }
 
-func isPreservedTaskStateForRetry(state apiV2beta1.PipelineTask_TaskState) bool {
+func isPreservedTaskStateForRetry(state apiV2.PipelineTask_TaskState) bool {
 	switch state {
-	case apiV2beta1.PipelineTask_SUCCEEDED,
-		apiV2beta1.PipelineTask_CACHED,
-		apiV2beta1.PipelineTask_SKIPPED:
+	case apiV2.PipelineTask_SUCCEEDED,
+		apiV2.PipelineTask_CACHED,
+		apiV2.PipelineTask_SKIPPED:
 		return true
 	default:
 		return false
 	}
 }
 
-func childHasPropagatableOutputs(child *apiV2beta1.PipelineTask) bool {
+func childHasPropagatableOutputs(child *apiV2.PipelineTask) bool {
 	if child == nil {
 		return false
 	}
@@ -148,13 +148,13 @@ func listAllChildTasks(
 	ctx context.Context,
 	apiClient kfpapi.API,
 	runID, parentTaskID string,
-) ([]*apiV2beta1.PipelineTask, error) {
-	var children []*apiV2beta1.PipelineTask
+) ([]*apiV2.PipelineTask, error) {
+	var children []*apiV2.PipelineTask
 	pageToken := ""
 	for {
-		resp, err := apiClient.ListTasks(ctx, &apiV2beta1.ListTasksRequest{
+		resp, err := apiClient.ListTasks(ctx, &apiV2.ListTasksRequest{
 			RunId: runID,
-			ParentFilter: &apiV2beta1.ListTasksRequest_ParentId{
+			ParentFilter: &apiV2.ListTasksRequest_ParentId{
 				ParentId: parentTaskID,
 			},
 			PageSize:  republishChildTasksPageSize,
@@ -201,7 +201,7 @@ func RepublishPreservedChildOutputsToDAG(
 	}
 
 	apiClient := clientManager.KFPAPIClient()
-	parentTask, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+	parentTask, err := apiClient.GetTask(ctx, &apiV2.GetTaskRequest{
 		TaskId: opts.ParentTask.GetTaskId(),
 		RunId:  opts.Run.GetRunId(),
 	})

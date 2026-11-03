@@ -17,7 +17,7 @@
 import * as Utils from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import { render } from '@testing-library/react';
-import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import { V2RuntimeState } from 'src/apisv2/run';
 import { vi } from 'vitest';
 
 describe('Status', () => {
@@ -52,68 +52,64 @@ describe('Status', () => {
     });
 
     it('handles FAILED state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.FAILED));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.FAILED));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles PENDING state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.PENDING));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.PENDING));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles RUNNING state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.RUNNING));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.RUNNING));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles CANCELING state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.CANCELING));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.CANCELING));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles SKIPPED state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SKIPPED));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.SKIPPED));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles SUCCEEDED state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SUCCEEDED));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.SUCCEEDED));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles CANCELED state', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.CANCELED));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.CANCELED));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('displays start and end dates if both are provided', () => {
-      const { asFragment } = render(
-        statusToIcon(V2beta1RuntimeState.SUCCEEDED, startDate, endDate),
-      );
+      const { asFragment } = render(statusToIcon(V2RuntimeState.SUCCEEDED, startDate, endDate));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display a end date if none was provided', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SUCCEEDED, startDate));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.SUCCEEDED, startDate));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display a start date if none was provided', () => {
-      const { asFragment } = render(
-        statusToIcon(V2beta1RuntimeState.SUCCEEDED, undefined, endDate),
-      );
+      const { asFragment } = render(statusToIcon(V2RuntimeState.SUCCEEDED, undefined, endDate));
       expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display any dates if neither was provided', () => {
-      const { asFragment } = render(statusToIcon(V2beta1RuntimeState.SUCCEEDED /* No dates */));
+      const { asFragment } = render(statusToIcon(V2RuntimeState.SUCCEEDED /* No dates */));
       expect(asFragment()).toMatchSnapshot();
     });
 
-    Object.keys(V2beta1RuntimeState).forEach((status) =>
+    Object.keys(V2RuntimeState).forEach((status) =>
       it('renders an icon with tooltip for phase: ' + status, () => {
         const { asFragment } = render(
-          statusToIcon(V2beta1RuntimeState[status as keyof typeof V2beta1RuntimeState]),
+          statusToIcon(V2RuntimeState[status as keyof typeof V2RuntimeState]),
         );
         expect(asFragment()).toMatchSnapshot();
       }),

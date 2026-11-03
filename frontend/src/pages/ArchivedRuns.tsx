@@ -18,7 +18,7 @@ import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunList from './RunList';
 import { Page, PageProps } from './Page';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2RunStorageState } from 'src/apisv2/run';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from 'src/Css';
@@ -66,7 +66,7 @@ export class ArchivedRuns extends Page<{ namespace?: string }, ArchivedRunsState
           selectedIds={this.state.selectedIds}
           onSelectionChange={this._selectionChanged.bind(this)}
           ref={this._runlistRef}
-          storageState={V2beta1RunStorageState.ARCHIVED}
+          storageState={V2RunStorageState.ARCHIVED}
           {...this.props}
         />
       </div>

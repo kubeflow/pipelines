@@ -15,14 +15,15 @@
 
 from typing import Any, Dict, Mapping, Optional, Type, Union
 
-from kfp.dsl import importer_component
-from kfp.dsl import pipeline_channel
-from kfp.dsl import pipeline_task
-from kfp.dsl import placeholders
-from kfp.dsl import structures
-from kfp.dsl import utils
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_utils
+from kfp.dsl import (
+    importer_component,
+    pipeline_channel,
+    pipeline_task,
+    placeholders,
+    structures,
+    utils,
+)
+from kfp.dsl.types import artifact_types, type_utils
 
 URI_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
@@ -84,10 +85,12 @@ def importer(
 
             call_inputs[unique_name] = d
             component_inputs[unique_name] = structures.InputSpec(
-                type=d.channel_type)
+                type=d.channel_type
+            )
 
             return placeholders.InputValuePlaceholder(
-                input_name=unique_name)._to_string()
+                input_name=unique_name
+            )._to_string()
 
         elif isinstance(d, dict):
             # use this instead of list comprehension to ensure compiles are identical across Python versions
@@ -103,13 +106,15 @@ def importer(
 
         elif isinstance(d, str):
             # extract pipeline channels from f-strings, if any
-            pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
-                d)
+            pipeline_channels = (
+                pipeline_channel.extract_pipeline_channels_from_any(d)
+            )
 
             # pass the channel back into the recursive function to create the placeholder, component inputs, and call inputs, then replace the channel with the placeholder
             for channel in pipeline_channels:
                 input_placeholder = traverse_dict_and_create_metadata_inputs(
-                    channel)
+                    channel
+                )
                 d = d.replace(channel.pattern, input_placeholder)
             return d
 
@@ -117,32 +122,38 @@ def importer(
             return d
 
     metadata_with_placeholders = traverse_dict_and_create_metadata_inputs(
-        metadata)
+        metadata
+    )
 
     component_spec = structures.ComponentSpec(
         name='importer',
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
-                    URI_KEY)._to_string(),
+                    URI_KEY
+                )._to_string(),
                 schema_title=type_utils.create_bundled_artifact_type(
-                    artifact_class.schema_title, artifact_class.schema_version),
+                    artifact_class.schema_title, artifact_class.schema_version
+                ),
                 schema_version=artifact_class.schema_version,
                 reimport=reimport,
                 metadata=metadata_with_placeholders,
-                download_to_workspace=download_to_workspace)),
+                download_to_workspace=download_to_workspace,
+            )
+        ),
         inputs={
             URI_KEY: structures.InputSpec(type='String'),
-            **component_inputs
+            **component_inputs,
         },
         outputs={
-            OUTPUT_KEY:
-                structures.OutputSpec(
-                    type=type_utils.create_bundled_artifact_type(
-                        artifact_class.schema_title,
-                        artifact_class.schema_version))
+            OUTPUT_KEY: structures.OutputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    artifact_class.schema_title, artifact_class.schema_version
+                )
+            )
         },
     )
     importer = importer_component.ImporterComponent(
-        component_spec=component_spec)
+        component_spec=component_spec
+    )
     return importer(uri=artifact_uri, **call_inputs)

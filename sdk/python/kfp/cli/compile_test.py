@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for `dsl compile` command group in KFP CLI."""
+
 import unittest
 
 from kfp import dsl
@@ -19,7 +20,6 @@ from kfp.cli import compile_
 
 
 class TestIsPipelineOrComponent(unittest.TestCase):
-
     def test_is_pipeline(self):
 
         @dsl.component

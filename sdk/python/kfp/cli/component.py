@@ -19,8 +19,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import List, Optional, Sequence
 import warnings
+from typing import List, Optional, Sequence
 
 import click
 
@@ -31,15 +31,13 @@ except ImportError:
     _DOCKER_IS_PRESENT = False
 
 import kfp as kfp
-from kfp.dsl import component_factory
-from kfp.dsl import kfp_config
-from kfp.dsl import utils
+from kfp.dsl import component_factory, kfp_config, utils
 
 _REQUIREMENTS_TXT = 'runtime-requirements.txt'
 
 _DOCKERFILE = 'Dockerfile'
 
-_DOCKERFILE_TEMPLATE = '''
+_DOCKERFILE_TEMPLATE = """
 FROM {base_image}
 
 WORKDIR {component_root_dir}
@@ -48,16 +46,16 @@ RUN pip install {index_urls}--no-cache-dir -r {requirements_file}
 {maybe_copy_packages}
 RUN pip install {index_urls}--no-cache-dir {package_paths}
 COPY . .
-'''
+"""
 
 _DOCKERIGNORE = '.dockerignore'
 
 # Location in which to write out shareable YAML for components.
 _COMPONENT_METADATA_DIR = 'component_metadata'
 
-_DOCKERIGNORE_TEMPLATE = f'''
+_DOCKERIGNORE_TEMPLATE = f"""
 {_COMPONENT_METADATA_DIR}/
-'''
+"""
 
 # Location at which v2 Python function-based components will stored
 # in containerized components.
@@ -78,7 +76,7 @@ def _registered_modules():
         component_factory.REGISTERED_MODULES = None
 
 
-class ComponentBuilder():
+class ComponentBuilder:
     """Helper class for building containerized v2 KFP components."""
 
     def __init__(
@@ -105,7 +103,8 @@ class ComponentBuilder():
         self._dockerfile = self._context_directory / _DOCKERFILE
         self._component_filepattern = component_filepattern
         self._components: List[
-            component_factory.component_factory.ComponentInfo] = []
+            component_factory.component_factory.ComponentInfo
+        ] = []
 
         # This is only set if we need to install KFP from local copy.
         self._maybe_copy_kfp_package = ''
@@ -116,8 +115,11 @@ class ComponentBuilder():
             self._kfp_package_path = f'kfp=={kfp.__version__}'
         elif kfp_package_path.is_dir():
             self._kfp_package_path = self._build_local_package(kfp_package_path)
-            self._maybe_copy_kfp_package = 'COPY {wheel_name} {wheel_name}'.format(
-                wheel_name=self._kfp_package_path)
+            self._maybe_copy_kfp_package = (
+                'COPY {wheel_name} {wheel_name}'.format(
+                    wheel_name=self._kfp_package_path
+                )
+            )
         else:
             self._kfp_package_path = kfp_package_path
 
@@ -131,7 +133,8 @@ class ComponentBuilder():
                     shutil.copy(package_path, destination)
             self._additional_package_paths.append(wheel_name)
             self._maybe_copy_additional_packages += (
-                f'COPY {wheel_name} {wheel_name}\n')
+                f'COPY {wheel_name} {wheel_name}\n'
+            )
 
         logging.info(
             f'Building component using KFP package path: {str(self._kfp_package_path)}'
@@ -144,8 +147,11 @@ class ComponentBuilder():
         ]
 
         self._component_files = [
-            file for file in self._context_directory.glob(
-                self._component_filepattern) if file.is_file()
+            file
+            for file in self._context_directory.glob(
+                self._component_filepattern
+            )
+            if file.is_file()
         ]
 
         self._base_image = None
@@ -158,21 +164,24 @@ class ComponentBuilder():
         logging.info(f'Building local package from {package_path}')
         temp_dir = pathlib.Path(tempfile.mkdtemp())
         try:
-            subprocess.run([
-                sys.executable,
-                '-m',
-                'pip',
-                'wheel',
-                '--no-deps',
-                '--wheel-dir',
-                str(temp_dir),
-                str(package_path),
-            ],
-                           check=True)
+            subprocess.run(
+                [
+                    sys.executable,
+                    '-m',
+                    'pip',
+                    'wheel',
+                    '--no-deps',
+                    '--wheel-dir',
+                    str(temp_dir),
+                    str(package_path),
+                ],
+                check=True,
+            )
             wheel_files = list(temp_dir.glob('*.whl'))
             if len(wheel_files) != 1:
                 logging.error(
-                    f'Failed to find one built wheel under {temp_dir}')
+                    f'Failed to find one built wheel under {temp_dir}'
+                )
                 raise sys.exit(1)
             wheel_file = wheel_files[0]
             shutil.copy(wheel_file, self._context_directory)
@@ -193,10 +202,11 @@ class ComponentBuilder():
 
         for python_file in self._component_files:
             with _registered_modules() as component_modules:
-                module_name = python_file.name[:-len('.py')]
+                module_name = python_file.name[: -len('.py')]
                 module_directory = python_file.parent
                 utils.load_module(
-                    module_name=module_name, module_directory=module_directory)
+                    module_name=module_name, module_directory=module_directory
+                )
 
                 python_file = str(python_file)
 
@@ -221,7 +231,8 @@ class ComponentBuilder():
             logging.error(
                 'Did not find a base_image specified in any of the'
                 ' components. A base_image must be specified in order to'
-                ' build the component.')
+                ' build the component.'
+            )
             raise sys.exit(1)
         logging.info(f'Using base image: {self._base_image}')
 
@@ -236,7 +247,8 @@ class ComponentBuilder():
             logging.error(
                 'Did not find a target_image specified in any of the'
                 ' components. A target_image must be specified in order'
-                ' to build the component.')
+                ' to build the component.'
+            )
             raise sys.exit(1)
         logging.info(f'Using target image: {self._target_image}')
 
@@ -252,10 +264,9 @@ class ComponentBuilder():
         if pip_trusted_hosts:
             self._pip_trusted_hosts = list(dict.fromkeys(pip_trusted_hosts))
 
-    def _maybe_write_file(self,
-                          filename: str,
-                          contents: str,
-                          overwrite: bool = False):
+    def _maybe_write_file(
+        self, filename: str, contents: str, overwrite: bool = False
+    ):
         if filename in self._context_directory_files:
             logging.info(
                 f'Found existing file {filename} under {self._context_directory}.'
@@ -283,51 +294,67 @@ class ComponentBuilder():
         self._maybe_write_file(
             filename=_REQUIREMENTS_TXT,
             contents='\n'.join(sorted(dependencies)),
-            overwrite=True)
+            overwrite=True,
+        )
 
     def maybe_generate_dockerignore(self):
         self._maybe_write_file(_DOCKERIGNORE, _DOCKERIGNORE_TEMPLATE)
 
     def write_component_files(self):
         for component_info in self._components:
-            filename = component_info.output_component_file or f'{component_info.function_name}.yaml'
+            filename = (
+                component_info.output_component_file
+                or f'{component_info.function_name}.yaml'
+            )
 
             container_filename = (
-                self._context_directory / _COMPONENT_METADATA_DIR / filename)
+                self._context_directory / _COMPONENT_METADATA_DIR / filename
+            )
             container_filename.parent.mkdir(exist_ok=True, parents=True)
             component_info.component_spec.save_to_component_yaml(
-                str(container_filename))
+                str(container_filename)
+            )
 
     def generate_kfp_config(self):
         config = kfp_config.KFPConfig(config_directory=self._context_directory)
         for component_info in self._components:
             relative_path = component_info.module_path.relative_to(
-                self._context_directory)
+                self._context_directory
+            )
             config.add_component(
-                function_name=component_info.function_name, path=relative_path)
+                function_name=component_info.function_name, path=relative_path
+            )
         config.save()
 
     def maybe_generate_dockerfile(self, overwrite_dockerfile: bool = False):
         index_urls_options = component_factory.make_index_url_options(
-            self._pip_index_urls, self._pip_trusted_hosts)
+            self._pip_index_urls, self._pip_trusted_hosts
+        )
         dockerfile_contents = _DOCKERFILE_TEMPLATE.format(
             base_image=self._base_image,
             maybe_copy_packages='\n'.join(
-                filter(None, [
-                    self._maybe_copy_kfp_package,
-                    self._maybe_copy_additional_packages.rstrip(),
-                ])),
+                filter(
+                    None,
+                    [
+                        self._maybe_copy_kfp_package,
+                        self._maybe_copy_additional_packages.rstrip(),
+                    ],
+                )
+            ),
             component_root_dir=_COMPONENT_ROOT_DIR,
-            package_paths=' '.join([
-                *self._additional_package_paths,
-                str(self._kfp_package_path),
-            ]),
+            package_paths=' '.join(
+                [
+                    *self._additional_package_paths,
+                    str(self._kfp_package_path),
+                ]
+            ),
             requirements_file=_REQUIREMENTS_TXT,
             index_urls=index_urls_options,
         )
 
-        self._maybe_write_file(_DOCKERFILE, dockerfile_contents,
-                               overwrite_dockerfile)
+        self._maybe_write_file(
+            _DOCKERFILE, dockerfile_contents, overwrite_dockerfile
+        )
 
     def build_image(self, platform: str, push_image: bool):
         logging.info(f'Building image {self._target_image} using Docker...')
@@ -351,7 +378,8 @@ class ComponentBuilder():
                     logging.info(f'{docker_log_prefix}: {message}')
                 if error:
                     raise ComponentBuildError(
-                        f'{docker_log_prefix} ERROR: {error}')
+                        f'{docker_log_prefix} ERROR: {error}'
+                    )
 
         except docker.errors.BuildError as e:
             for log in e.build_log:
@@ -368,7 +396,8 @@ class ComponentBuilder():
 
         try:
             response = client.images.push(
-                self._target_image, stream=True, decode=True)
+                self._target_image, stream=True, decode=True
+            )
             for log in response:
                 status = log.get('status', '').rstrip('\n')
                 error = log.get('error', '').rstrip('\n')
@@ -377,13 +406,15 @@ class ComponentBuilder():
                     logging.info(f'{docker_log_prefix}: {layer} {status}')
                 if error:
                     raise ComponentBuildError(
-                        f'{docker_log_prefix} ERROR: {error}')
+                        f'{docker_log_prefix} ERROR: {error}'
+                    )
         except docker.errors.BuildError as e:
             logging.error(f'{docker_log_prefix}: {e}')
             raise e
 
         logging.info(
-            f'Built and pushed component container {self._target_image}')
+            f'Built and pushed component container {self._target_image}'
+        )
 
 
 @click.group(invoke_without_command=True)
@@ -397,65 +428,82 @@ def component(ctx: click.Context):
 
 @component.command()
 @click.argument(
-    'components_directory', type=click.Path(exists=True, file_okay=False))
+    'components_directory', type=click.Path(exists=True, file_okay=False)
+)
 @click.option(
     '--component-filepattern',
     type=str,
     default='**/*.py',
     help='Filepattern to use when searching for KFP components. The'
-    ' default searches all Python files in the specified directory.')
+    ' default searches all Python files in the specified directory.',
+)
 @click.option(
     '--engine',
     type=str,
     default='docker',
     help="[Deprecated] Engine to use to build the component's container.",
-    hidden=True)
+    hidden=True,
+)
 @click.option(
     '--kfp-package-path',
     type=click.Path(exists=True),
     default=None,
-    help='A pip-installable path to the KFP package.')
+    help='A pip-installable path to the KFP package.',
+)
 @click.option(
     '--additional-package-path',
     'additional_package_paths',
     type=click.Path(exists=True),
     multiple=True,
-    help='An additional local pip-installable path to include in the image.')
+    help='An additional local pip-installable path to include in the image.',
+)
 @click.option(
     '--overwrite-dockerfile',
     type=bool,
     is_flag=True,
     default=False,
     help='Set this to true to always generate a Dockerfile'
-    ' as part of the build process')
+    ' as part of the build process',
+)
 @click.option(
     '--build-image/--no-build-image',
     type=bool,
     is_flag=True,
     default=True,
-    help='Build the container image.')
+    help='Build the container image.',
+)
 @click.option(
     '--platform',
     type=str,
     default='linux/amd64',
-    help='The platform to build the container image for.')
+    help='The platform to build the container image for.',
+)
 @click.option(
     '--push-image/--no-push-image',
     type=bool,
     is_flag=True,
     default=True,
-    help='Push the built image to its remote repository.')
-def build(components_directory: str, component_filepattern: str, engine: str,
-          kfp_package_path: Optional[str],
-          additional_package_paths: Sequence[str], overwrite_dockerfile: bool,
-          build_image: bool, platform: str, push_image: bool):
+    help='Push the built image to its remote repository.',
+)
+def build(
+    components_directory: str,
+    component_filepattern: str,
+    engine: str,
+    kfp_package_path: Optional[str],
+    additional_package_paths: Sequence[str],
+    overwrite_dockerfile: bool,
+    build_image: bool,
+    platform: str,
+    push_image: bool,
+):
     """Builds containers for KFP v2 Python-based components."""
 
     if build_image and engine != 'docker':
         warnings.warn(
             'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',
             DeprecationWarning,
-            stacklevel=2)
+            stacklevel=2,
+        )
         sys.exit(1)
 
     components_directory = pathlib.Path(components_directory)
@@ -463,7 +511,8 @@ def build(components_directory: str, component_filepattern: str, engine: str,
 
     if not components_directory.is_dir():
         logging.error(
-            f'{components_directory} does not seem to be a valid directory.')
+            f'{components_directory} does not seem to be a valid directory.'
+        )
         raise sys.exit(1)
 
     if build_image and not _DOCKER_IS_PRESENT:
@@ -473,11 +522,13 @@ def build(components_directory: str, component_filepattern: str, engine: str,
             ' Optionally, you can also  install KFP with all of its'
             ' optional dependencies by running `pip install kfp[all]`.'
             ' Alternatively, you can skip the container image build using'
-            ' the --no-build-image flag.')
+            ' the --no-build-image flag.'
+        )
         raise sys.exit(1)
 
-    kfp_package_path = pathlib.Path(
-        kfp_package_path) if kfp_package_path is not None else None
+    kfp_package_path = (
+        pathlib.Path(kfp_package_path) if kfp_package_path is not None else None
+    )
     builder = ComponentBuilder(
         context_directory=components_directory,
         kfp_package_path=kfp_package_path,

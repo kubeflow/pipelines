@@ -25,12 +25,6 @@ spec:
       podSelector:
         matchLabels:
           app: ml-pipeline
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kubeflow
-      podSelector:
-        matchLabels:
-          app: cache-server
     ports:
     - port: 5432
       protocol: TCP

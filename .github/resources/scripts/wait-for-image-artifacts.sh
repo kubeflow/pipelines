@@ -19,6 +19,11 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}"
 : "${GITHUB_RUN_ID:?GITHUB_RUN_ID must be set}"
 
+if ! command -v gh >/dev/null 2>&1; then
+  echo "GitHub CLI is required; run setup-github-cli.sh before waiting for image artifacts." >&2
+  exit 2
+fi
+
 # Many matrix jobs can reach this barrier together. Poll slowly enough to keep
 # their shared GITHUB_TOKEN comfortably below the repository API rate limit.
 # Forty attempts at the default interval form a roughly 20-minute wait window.
@@ -46,6 +51,30 @@ if ! [[ "$PRODUCER_STATE_UNAVAILABLE_EXTENSIONS" =~ ^[0-9]+$ ]]; then
 fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
+source "${BASH_SOURCE%/*}/list-image-artifacts.sh"
+
+# Require an explicit selection so callers cannot accidentally wait on extra producers.
+if (( $# == 0 )); then
+  echo "Specify at least one image artifact to wait for." >&2
+  exit 2
+fi
+required_artifacts=("$@")
+for requested_artifact in "${required_artifacts[@]}"; do
+  known_artifact=false
+  for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+    if [[ "$requested_artifact" == "$artifact" ]]; then
+      known_artifact=true
+      break
+    fi
+  done
+  if [[ "$known_artifact" != "true" ]]; then
+    echo "Unknown image artifact requested: '${requested_artifact}'" >&2
+    exit 2
+  fi
+done
+
+artifact_cache_dir=$(mktemp -d)
+trap 'rm -rf "$artifact_cache_dir"' EXIT
 
 active_missing_producers=()
 failed_missing_producers=()
@@ -100,21 +129,19 @@ while true; do
   attempt=$((attempt + 1))
   window_attempt=$((((attempt - 1) % WAIT_ATTEMPTS) + 1))
   artifact_names=""
-  if ! artifact_names=$(gh api --paginate \
-      "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
-      --jq '.artifacts[].name'); then
+  if ! artifact_names=$(list_image_artifacts "$artifact_cache_dir"); then
     echo "::warning::Could not list image artifacts on attempt ${window_attempt}/${WAIT_ATTEMPTS}."
   fi
 
   missing_artifacts=()
-  for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  for artifact in "${required_artifacts[@]}"; do
     if ! grep -Fqx -- "$artifact" <<< "$artifact_names"; then
       missing_artifacts+=("$artifact")
     fi
   done
 
   if (( ${#missing_artifacts[@]} == 0 )); then
-    echo "All ${#ALL_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
+    echo "All ${#required_artifacts[@]} branch image artifacts are available."
     exit 0
   fi
 

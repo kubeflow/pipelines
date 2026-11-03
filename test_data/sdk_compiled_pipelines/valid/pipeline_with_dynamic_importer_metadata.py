@@ -13,10 +13,8 @@
 # limitations under the License.
 """Pipeline using dsl.importer, with dynamic metadata."""
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import importer
+from kfp import compiler, dsl
+from kfp.dsl import Dataset, importer
 
 DEFAULT_ARTIFACT_URI = 'gs://ml-pipeline-playground/shakespeare1.txt'
 DEFAULT_IMAGE_URI = 'us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest'
@@ -28,10 +26,12 @@ def make_name(name: str) -> str:
 
 
 @dsl.pipeline(name='pipeline-with-importer')
-def my_pipeline(name: str = 'default-name',
-                int_input: int = 1,
-                pipeline_input_artifact_uri: str = DEFAULT_ARTIFACT_URI,
-                pipeline_input_image_uri: str = DEFAULT_IMAGE_URI):
+def my_pipeline(
+    name: str = 'default-name',
+    int_input: int = 1,
+    pipeline_input_artifact_uri: str = DEFAULT_ARTIFACT_URI,
+    pipeline_input_image_uri: str = DEFAULT_IMAGE_URI,
+):
 
     importer1 = importer(
         artifact_uri=pipeline_input_artifact_uri,
@@ -39,10 +39,9 @@ def my_pipeline(name: str = 'default-name',
         reimport=False,
         metadata={
             'name': [name, 'alias-name'],
-            'containerSpec': {
-                'imageUri': pipeline_input_image_uri
-            }
-        })
+            'containerSpec': {'imageUri': pipeline_input_image_uri},
+        },
+    )
 
     make_name_op = make_name(name='a-different-name')
 
@@ -55,13 +54,12 @@ def my_pipeline(name: str = 'default-name',
             'list-of-data': [make_name_op.output, name, int_input],
             make_name_op.output: make_name_op.output,
             name: DEFAULT_IMAGE_URI,
-            'containerSpec': {
-                'imageUri': DEFAULT_IMAGE_URI
-            }
-        })
+            'containerSpec': {'imageUri': DEFAULT_IMAGE_URI},
+        },
+    )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

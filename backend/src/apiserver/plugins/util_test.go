@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,14 +71,14 @@ func TestDeserializePluginsOutput_EmptyString(t *testing.T) {
 }
 
 func TestDeserializePluginsOutput_SinglePlugin(t *testing.T) {
-	pluginOutput := &apiv2beta1.PluginOutput{
-		State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+	pluginOutput := &apiv2.PluginOutput{
+		State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 		StateMessage: "success",
-		Entries: map[string]*apiv2beta1.MetadataValue{
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("value1")},
 		},
 	}
-	serialized, err := SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{
+	serialized, err := SerializePluginsOutput(map[string]*apiv2.PluginOutput{
 		"test-plugin": pluginOutput,
 	})
 	require.NoError(t, err)
@@ -86,22 +86,22 @@ func TestDeserializePluginsOutput_SinglePlugin(t *testing.T) {
 	result, err := DeserializePluginsOutput(serialized)
 	require.NoError(t, err)
 	require.Len(t, result, 1)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result["test-plugin"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, result["test-plugin"].State)
 	assert.Equal(t, "success", result["test-plugin"].StateMessage)
 	assert.Equal(t, "value1", result["test-plugin"].Entries["key1"].Value.GetStringValue())
 }
 
 func TestDeserializePluginsOutput_MultiplePlugins(t *testing.T) {
-	outputs := map[string]*apiv2beta1.PluginOutput{
+	outputs := map[string]*apiv2.PluginOutput{
 		"plugin1": {
-			State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
-			Entries: map[string]*apiv2beta1.MetadataValue{
+			State: apiv2.PluginState_PLUGIN_SUCCEEDED,
+			Entries: map[string]*apiv2.MetadataValue{
 				"key1": {Value: structpb.NewStringValue("value1")},
 			},
 		},
 		"plugin2": {
-			State: apiv2beta1.PluginState_PLUGIN_FAILED,
-			Entries: map[string]*apiv2beta1.MetadataValue{
+			State: apiv2.PluginState_PLUGIN_FAILED,
+			Entries: map[string]*apiv2.MetadataValue{
 				"key2": {Value: structpb.NewStringValue("value2")},
 			},
 		},
@@ -112,8 +112,8 @@ func TestDeserializePluginsOutput_MultiplePlugins(t *testing.T) {
 	result, err := DeserializePluginsOutput(serialized)
 	require.NoError(t, err)
 	require.Len(t, result, 2)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result["plugin1"].State)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, result["plugin2"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, result["plugin1"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, result["plugin2"].State)
 }
 
 func TestDeserializePluginsOutput_MalformedJSON(t *testing.T) {
@@ -139,17 +139,17 @@ func TestSerializePluginsOutput_Empty(t *testing.T) {
 }
 
 func TestSerializePluginsOutput_EmptyMap(t *testing.T) {
-	result, err := SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{})
+	result, err := SerializePluginsOutput(map[string]*apiv2.PluginOutput{})
 	require.NoError(t, err)
 	assert.Nil(t, result)
 }
 
 func TestSerializePluginsOutput_SinglePlugin(t *testing.T) {
-	outputs := map[string]*apiv2beta1.PluginOutput{
+	outputs := map[string]*apiv2.PluginOutput{
 		"test-plugin": {
-			State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+			State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 			StateMessage: "test message",
-			Entries: map[string]*apiv2beta1.MetadataValue{
+			Entries: map[string]*apiv2.MetadataValue{
 				"key1": {Value: structpb.NewStringValue("value1")},
 			},
 		},
@@ -166,10 +166,10 @@ func TestSerializePluginsOutput_SinglePlugin(t *testing.T) {
 }
 
 func TestSerializePluginsOutput_MultiplePlugins(t *testing.T) {
-	outputs := map[string]*apiv2beta1.PluginOutput{
-		"plugin1": {State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
-		"plugin2": {State: apiv2beta1.PluginState_PLUGIN_FAILED},
-		"plugin3": {State: apiv2beta1.PluginState_PLUGIN_RUNNING},
+	outputs := map[string]*apiv2.PluginOutput{
+		"plugin1": {State: apiv2.PluginState_PLUGIN_SUCCEEDED},
+		"plugin2": {State: apiv2.PluginState_PLUGIN_FAILED},
+		"plugin3": {State: apiv2.PluginState_PLUGIN_RUNNING},
 	}
 	result, err := SerializePluginsOutput(outputs)
 	require.NoError(t, err)
@@ -182,10 +182,10 @@ func TestSerializePluginsOutput_MultiplePlugins(t *testing.T) {
 }
 
 func TestUpsertPluginOutput_NewPlugin(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		State:        apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+	output := &apiv2.PluginOutput{
+		State:        apiv2.PluginState_PLUGIN_SUCCEEDED,
 		StateMessage: "success",
-		Entries: map[string]*apiv2beta1.MetadataValue{
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("value1")},
 		},
 	}
@@ -203,10 +203,10 @@ func TestUpsertPluginOutput_NewPlugin(t *testing.T) {
 
 func TestUpsertPluginOutput_UpdateExisting(t *testing.T) {
 	// Create initial output with one plugin
-	initial := map[string]*apiv2beta1.PluginOutput{
+	initial := map[string]*apiv2.PluginOutput{
 		"plugin1": {
-			State: apiv2beta1.PluginState_PLUGIN_RUNNING,
-			Entries: map[string]*apiv2beta1.MetadataValue{
+			State: apiv2.PluginState_PLUGIN_RUNNING,
+			Entries: map[string]*apiv2.MetadataValue{
 				"key1": {Value: structpb.NewStringValue("old-value")},
 			},
 		},
@@ -215,9 +215,9 @@ func TestUpsertPluginOutput_UpdateExisting(t *testing.T) {
 	require.NoError(t, err)
 
 	// Update plugin1
-	updated := &apiv2beta1.PluginOutput{
-		State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	updated := &apiv2.PluginOutput{
+		State: apiv2.PluginState_PLUGIN_SUCCEEDED,
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("new-value")},
 		},
 	}
@@ -230,21 +230,21 @@ func TestUpsertPluginOutput_UpdateExisting(t *testing.T) {
 	resultLT := model.LargeText(result)
 	deserialized, err := DeserializePluginsOutput(&resultLT)
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, deserialized["plugin1"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, deserialized["plugin1"].State)
 	assert.Equal(t, "new-value", deserialized["plugin1"].Entries["key1"].Value.GetStringValue())
 }
 
 func TestUpsertPluginOutput_AddToExisting(t *testing.T) {
 	// Create initial output with one plugin
-	initial := map[string]*apiv2beta1.PluginOutput{
-		"plugin1": {State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
+	initial := map[string]*apiv2.PluginOutput{
+		"plugin1": {State: apiv2.PluginState_PLUGIN_SUCCEEDED},
 	}
 	serialized, err := SerializePluginsOutput(initial)
 	require.NoError(t, err)
 
 	// Add plugin2
-	plugin2 := &apiv2beta1.PluginOutput{
-		State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+	plugin2 := &apiv2.PluginOutput{
+		State: apiv2.PluginState_PLUGIN_RUNNING,
 	}
 
 	serializedStr := string(*serialized)
@@ -256,19 +256,19 @@ func TestUpsertPluginOutput_AddToExisting(t *testing.T) {
 	deserialized, err := DeserializePluginsOutput(&resultLT)
 	require.NoError(t, err)
 	assert.Len(t, deserialized, 2)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, deserialized["plugin1"].State)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_RUNNING, deserialized["plugin2"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, deserialized["plugin1"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_RUNNING, deserialized["plugin2"].State)
 }
 
 func TestUpsertPluginOutput_MalformedExisting(t *testing.T) {
 	malformed := `{"invalid": json`
-	_, err := upsertPluginOutput(&malformed, "test-plugin", &apiv2beta1.PluginOutput{})
+	_, err := upsertPluginOutput(&malformed, "test-plugin", &apiv2.PluginOutput{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to unmarshal existing plugins_output")
 }
 
 func TestSetPendingRunPluginOutput_NilRun(t *testing.T) {
-	err := SetPendingRunPluginOutput(nil, "test", &apiv2beta1.PluginOutput{})
+	err := SetPendingRunPluginOutput(nil, "test", &apiv2.PluginOutput{})
 	require.NoError(t, err)
 }
 
@@ -281,16 +281,16 @@ func TestSetPendingRunPluginOutput_NilOutput(t *testing.T) {
 
 func TestSetPendingRunPluginOutput_EmptyPluginName(t *testing.T) {
 	run := &PendingRun{RunID: "run-1"}
-	err := SetPendingRunPluginOutput(run, "", &apiv2beta1.PluginOutput{})
+	err := SetPendingRunPluginOutput(run, "", &apiv2.PluginOutput{})
 	require.NoError(t, err)
 	assert.Nil(t, run.PluginsOutput)
 }
 
 func TestSetPendingRunPluginOutput_FirstPlugin(t *testing.T) {
 	run := &PendingRun{RunID: "run-1"}
-	output := &apiv2beta1.PluginOutput{
-		State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		State: apiv2.PluginState_PLUGIN_SUCCEEDED,
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("value1")},
 		},
 	}
@@ -303,22 +303,22 @@ func TestSetPendingRunPluginOutput_FirstPlugin(t *testing.T) {
 	deserialized, err := DeserializePluginsOutput((*model.LargeText)(run.PluginsOutput))
 	require.NoError(t, err)
 	assert.Len(t, deserialized, 1)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, deserialized["test-plugin"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, deserialized["test-plugin"].State)
 }
 
 func TestSetPendingRunPluginOutput_UpdateExisting(t *testing.T) {
 	run := &PendingRun{RunID: "run-1"}
 
 	// Add first plugin
-	output1 := &apiv2beta1.PluginOutput{
-		State: apiv2beta1.PluginState_PLUGIN_RUNNING,
+	output1 := &apiv2.PluginOutput{
+		State: apiv2.PluginState_PLUGIN_RUNNING,
 	}
 	err := SetPendingRunPluginOutput(run, "plugin1", output1)
 	require.NoError(t, err)
 
 	// Add second plugin
-	output2 := &apiv2beta1.PluginOutput{
-		State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
+	output2 := &apiv2.PluginOutput{
+		State: apiv2.PluginState_PLUGIN_SUCCEEDED,
 	}
 	err = SetPendingRunPluginOutput(run, "plugin2", output2)
 	require.NoError(t, err)
@@ -327,8 +327,8 @@ func TestSetPendingRunPluginOutput_UpdateExisting(t *testing.T) {
 	deserialized, err := DeserializePluginsOutput((*model.LargeText)(run.PluginsOutput))
 	require.NoError(t, err)
 	assert.Len(t, deserialized, 2)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_RUNNING, deserialized["plugin1"].State)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, deserialized["plugin2"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_RUNNING, deserialized["plugin1"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, deserialized["plugin2"].State)
 }
 
 func TestModelToPersistedRun_NilModel(t *testing.T) {
@@ -372,10 +372,10 @@ func TestModelToPersistedRun_WithFinishedAt(t *testing.T) {
 }
 
 func TestModelToPersistedRun_WithPluginsOutput(t *testing.T) {
-	outputs := map[string]*apiv2beta1.PluginOutput{
+	outputs := map[string]*apiv2.PluginOutput{
 		"test-plugin": {
-			State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
-			Entries: map[string]*apiv2beta1.MetadataValue{
+			State: apiv2.PluginState_PLUGIN_SUCCEEDED,
+			Entries: map[string]*apiv2.MetadataValue{
 				"key1": {Value: structpb.NewStringValue("value1")},
 			},
 		},
@@ -396,7 +396,7 @@ func TestModelToPersistedRun_WithPluginsOutput(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, result.PluginsOutput)
 	assert.Len(t, result.PluginsOutput, 1)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, result.PluginsOutput["test-plugin"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, result.PluginsOutput["test-plugin"].State)
 }
 
 func TestModelToPersistedRun_InvalidPluginsOutput(t *testing.T) {
@@ -420,8 +420,8 @@ func TestGetStringEntry_NilOutput(t *testing.T) {
 }
 
 func TestGetStringEntry_EmptyKey(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("value1")},
 		},
 	}
@@ -430,14 +430,14 @@ func TestGetStringEntry_EmptyKey(t *testing.T) {
 }
 
 func TestGetStringEntry_NilEntries(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{}
+	output := &apiv2.PluginOutput{}
 	result := GetStringEntry(output, "key")
 	assert.Empty(t, result)
 }
 
 func TestGetStringEntry_MissingKey(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("value1")},
 		},
 	}
@@ -446,8 +446,8 @@ func TestGetStringEntry_MissingKey(t *testing.T) {
 }
 
 func TestGetStringEntry_NilValue(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": nil,
 		},
 	}
@@ -456,8 +456,8 @@ func TestGetStringEntry_NilValue(t *testing.T) {
 }
 
 func TestGetStringEntry_Success(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		Entries: map[string]*apiv2.MetadataValue{
 			"key1": {Value: structpb.NewStringValue("expected-value")},
 		},
 	}
@@ -471,8 +471,8 @@ func TestGetParentRunID_NilOutput(t *testing.T) {
 }
 
 func TestGetParentRunID_MissingEntry(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		Entries: map[string]*apiv2.MetadataValue{
 			"other-key": {Value: structpb.NewStringValue("value")},
 		},
 	}
@@ -481,8 +481,8 @@ func TestGetParentRunID_MissingEntry(t *testing.T) {
 }
 
 func TestGetParentRunID_Success(t *testing.T) {
-	output := &apiv2beta1.PluginOutput{
-		Entries: map[string]*apiv2beta1.MetadataValue{
+	output := &apiv2.PluginOutput{
+		Entries: map[string]*apiv2.MetadataValue{
 			EntryRootRunID: {Value: structpb.NewStringValue("parent-run-123")},
 		},
 	}
@@ -508,10 +508,10 @@ func (m *mockRunPluginOutputStore) UpdateRunPluginsOutput(runID string, output *
 func TestPersistPluginsOutput_Success(t *testing.T) {
 	run := &PersistedRun{
 		RunID: "run-123",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
+		PluginsOutput: map[string]*apiv2.PluginOutput{
 			"test-plugin": {
-				State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED,
-				Entries: map[string]*apiv2beta1.MetadataValue{
+				State: apiv2.PluginState_PLUGIN_SUCCEEDED,
+				Entries: map[string]*apiv2.MetadataValue{
 					"key1": {Value: structpb.NewStringValue("value1")},
 				},
 			},
@@ -530,13 +530,13 @@ func TestPersistPluginsOutput_Success(t *testing.T) {
 	deserialized, err := DeserializePluginsOutput(store.pluginsOutput)
 	require.NoError(t, err)
 	assert.Len(t, deserialized, 1)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, deserialized["test-plugin"].State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, deserialized["test-plugin"].State)
 }
 
 func TestPersistPluginsOutput_EmptyPluginsOutput(t *testing.T) {
 	run := &PersistedRun{
 		RunID:         "run-123",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{},
+		PluginsOutput: map[string]*apiv2.PluginOutput{},
 	}
 
 	store := &mockRunPluginOutputStore{}
@@ -550,8 +550,8 @@ func TestPersistPluginsOutput_EmptyPluginsOutput(t *testing.T) {
 func TestPersistPluginsOutput_StoreError(t *testing.T) {
 	run := &PersistedRun{
 		RunID: "run-123",
-		PluginsOutput: map[string]*apiv2beta1.PluginOutput{
-			"test-plugin": {State: apiv2beta1.PluginState_PLUGIN_SUCCEEDED},
+		PluginsOutput: map[string]*apiv2.PluginOutput{
+			"test-plugin": {State: apiv2.PluginState_PLUGIN_SUCCEEDED},
 		},
 	}
 

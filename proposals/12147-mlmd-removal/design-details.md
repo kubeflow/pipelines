@@ -469,9 +469,14 @@ provenance signal. The following rollout constraints are therefore intentional:
   allowlist entry must name the final origin. Custom endpoint base paths remain supported,
   but AWS S3 endpoints must use HTTPS even if an HTTP origin is explicitly allowlisted.
   Endpoint-less settings may upgrade the configured store to TLS, not downgrade it.
-* Direct custom-root reads are denied unless ownership is independently established by the
-  standard namespace prefix. An Artifact API row alone does not authorize the central UI to use
-  privileged credentials for an arbitrary URI.
+* The interim content path accepts a custom root after an exact namespaced native Artifact
+  API match while preserving known foreign-prefix, path-safety and lookup-error denials.
+  HTTP proxy mode uses the namespace receiver and its credentials. These compatibility
+  decisions do not establish complete object authorization: importer-created records and
+  broad proxy credentials can still expose other tenants' objects. The
+  [backend-first content API](https://github.com/kubeflow/pipelines/issues/14031) must supply
+  trusted storage authority without depending on a namespace-shaped path or runtime MLMD.
+  See [artifact ownership](../../frontend/README.md#multi-user-artifact-ownership).
 * In multi-user direct mode, customer-namespace provider authority (including Secret references
   and custom endpoints) returns a controlled `400` and requires the namespace-isolated artifact
   proxy. The shared UI does not substitute its central endpoint or ambient credentials when that

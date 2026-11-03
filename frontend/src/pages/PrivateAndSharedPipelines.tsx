@@ -35,7 +35,7 @@ export interface PrivateAndSharedProps extends PageProps {
 
 const PrivatePipelineList: React.FC<PageProps> = (props) => {
   const namespace = React.useContext(NamespaceContext);
-  return <PipelineList {...props} namespace={namespace} />;
+  return <PipelineList key={namespace} {...props} namespace={namespace} />;
 };
 
 export enum PipelineTabsHeaders {

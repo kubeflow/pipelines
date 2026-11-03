@@ -17,13 +17,29 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import { ReactFlowProvider } from '@xyflow/react';
 
 describe('ExecutionNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {
     return render(<ReactFlowProvider>{component}</ReactFlowProvider>);
   };
+
+  it('keeps the blue ring for selection without requiring focus', () => {
+    const node = (selected: boolean) => (
+      <ReactFlowProvider>
+        <ExecutionNode id='exec-1' data={{ label: 'train-step' }} selected={selected} />
+      </ReactFlowProvider>
+    );
+    const { rerender } = render(node(false));
+    const button = screen.getByRole('button', { name: 'train-step' });
+    expect(button).not.toHaveClass('ring');
+    rerender(node(true));
+    expect(button).not.toHaveFocus();
+    expect(button).toHaveClass('ring', 'focus:ring');
+    rerender(node(false));
+    expect(button).not.toHaveClass('ring');
+  });
 
   it('renders the execution label', () => {
     renderWithProvider(
@@ -63,6 +79,64 @@ describe('ExecutionNode', () => {
     );
     expect(screen.getByText('failed-step')).toBeInTheDocument();
     expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
+  });
+
+  it('shows a warning icon instead of the running icon when a lifecycle message is present', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ImagePullBackOff',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('RefreshIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ErrorIcon')).not.toBeInTheDocument();
+  });
+
+  it('announces the warning in the node name', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'stuck-step',
+          state: PipelineTaskTaskState.RUNNING,
+          lifecycleMessage: 'ImagePullBackOff',
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: 'stuck-step, pod lifecycle warning' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the failed icon, not the warning, once the task has failed', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{
+          label: 'oom-step',
+          state: PipelineTaskTaskState.FAILED,
+          lifecycleMessage: 'OOMKilled',
+        }}
+      />,
+    );
+    expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+  });
+
+  it('shows no warning when the lifecycle message is empty', () => {
+    renderWithProvider(
+      <ExecutionNode
+        id='exec-1'
+        data={{ label: 'healthy-step', state: PipelineTaskTaskState.RUNNING, lifecycleMessage: '' }}
+      />,
+    );
+    expect(screen.getByTestId('RefreshIcon')).toBeInTheDocument();
+    expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
   });
 
   it('sets the title attribute', () => {

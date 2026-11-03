@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/driver/driverapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
@@ -89,10 +90,29 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
-// ConfigureCacheSettings rewrites the always-present --cache_disabled=<bool> arg
-// to match the desired cache setting. Golden files are stored in cache-enabled
-// form (--cache_disabled=false); remove=true yields that form while remove=false
-// yields the cache-disabled form (--cache_disabled=true).
+// ConfigurePluginSettings sets cache_disabled in every driver-plugin template.
+// remove=true yields the cache-enabled golden form.
+func ConfigurePluginSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
+	configuredWorkflow := workflow.DeepCopy()
+	for i, template := range configuredWorkflow.Spec.Templates {
+		if template.Plugin == nil {
+			continue
+		}
+		plugin, owned, err := driverapi.DecodePluginConfig(template.Plugin.Value)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to decode plugin config for template %q", template.Name)
+		if !owned {
+			continue
+		}
+		plugin.Args["cache_disabled"] = !remove
+		value, err := driverapi.EncodePluginValue(plugin.Args)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to encode plugin config for template %q", template.Name)
+		configuredWorkflow.Spec.Templates[i].Plugin.Value = value
+	}
+	return configuredWorkflow
+}
+
+// ConfigureCacheSettings rewrites cache_disabled in both legacy container args
+// and driver-plugin args.
 func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
 	target := "--cache_disabled=true"
 	if remove {
@@ -112,5 +132,5 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 			setCacheArg(template.Container.Args)
 		}
 	}
-	return configuredWorkflow
+	return ConfigurePluginSettings(configuredWorkflow, remove)
 }

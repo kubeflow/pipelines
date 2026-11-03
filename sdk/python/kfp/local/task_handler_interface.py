@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """An abstract base class that specifies the interface of a task handler."""
+
 import abc
 from typing import Dict, List, Optional
 
-from kfp.local import config
-from kfp.local import status
+from kfp.local import config, status
 
 
 class ITaskHandler(abc.ABC):

@@ -12,16 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import pathlib
 
-from kfp import compiler
-from kfp import components
-from kfp import dsl
+from kfp import compiler, components, dsl
+
 from sdk.python.test.test_utils.file_utils import FileUtils
 
 test_data_dir = FileUtils.TEST_DATA
 add_op = components.load_component_from_file(
-    str(os.path.join(test_data_dir, "sdk_compiled_pipelines", "valid", "critical",'add_numbers.yaml')))
+    str(
+        os.path.join(
+            test_data_dir,
+            'sdk_compiled_pipelines',
+            'valid',
+            'critical',
+            'add_numbers.yaml',
+        )
+    )
+)
 
 
 @dsl.pipeline(name='pipeline-with-reused-component')
@@ -36,5 +43,5 @@ def my_pipeline(
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

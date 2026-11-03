@@ -8,8 +8,6 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           env:
-            - name: V2_DRIVER_IMAGE
-              value: kind-registry:5000/driver:ci
             - name: V2_LAUNCHER_IMAGE
               value: kind-registry:5000/launcher:ci
             - name: LOG_LEVEL

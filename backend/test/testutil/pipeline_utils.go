@@ -19,10 +19,10 @@ import (
 	"os"
 	"time"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	test_config "github.com/kubeflow/pipelines/backend/test/config"
@@ -32,7 +32,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipeline_model.V2beta1Pipeline {
+func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipeline_model.V2Pipeline {
 	parameters := &pipeline_params.PipelineServiceListPipelinesParams{}
 	if namespace != nil {
 		parameters.Namespace = namespace
@@ -44,7 +44,7 @@ func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipe
 }
 
 // UploadPipeline - Upload a pipeline
-func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
+func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2Pipeline, error) {
 	uploadParams := upload_params.NewUploadPipelineParams()
 	// Kubernetes uploads use the namespace configured on the client, not a request parameter.
 	if !*test_config.UploadPipelinesWithKubernetes && (*test_config.MultiUserMode || *test_config.KubeflowMode || *test_config.AuthToken != "") {
@@ -116,14 +116,14 @@ func DeletePipelineBestEffort(client *api_server.PipelineClient, pipelineID stri
 }
 
 /* GetPipeline does its job via GET pipeline end point call, so that we retrieve the values from DB */
-func GetPipeline(client *api_server.PipelineClient, pipelineID string) model.V2beta1Pipeline {
+func GetPipeline(client *api_server.PipelineClient, pipelineID string) model.V2Pipeline {
 	ginkgo.GinkgoHelper()
 	params := new(pipeline_params.PipelineServiceGetPipelineParams)
 	params.PipelineID = pipelineID
 	logger.Log("Get pipeline with id=%s", pipelineID)
 	pipeline, err := client.Get(params)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return model.V2beta1Pipeline{
+	return model.V2Pipeline{
 		DisplayName: pipeline.DisplayName,
 		Description: pipeline.Description,
 		PipelineID:  pipeline.PipelineID,

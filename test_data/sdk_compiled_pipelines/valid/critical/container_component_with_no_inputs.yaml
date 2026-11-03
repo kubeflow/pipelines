@@ -10,7 +10,7 @@ deploymentSpec:
         command:
         - echo
         - hello world
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   name: v2-container-component-no-input
 root:

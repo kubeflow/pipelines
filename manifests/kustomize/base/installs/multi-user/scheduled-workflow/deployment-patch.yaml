@@ -8,6 +8,8 @@ spec:
       containers:
       - name: ml-pipeline-scheduledworkflow
         env:
+        - name: MULTIUSER
+          value: "true"
         - name: NAMESPACE
           value: '' # Empty namespace lets viewer controller watch all namespaces
           valueFrom: null # HACK: https://github.com/kubernetes-sigs/kustomize/issues/2606

@@ -13,8 +13,7 @@
 # limitations under the License.
 from typing import Optional
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -39,4 +38,5 @@ def pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

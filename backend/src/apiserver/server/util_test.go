@@ -264,7 +264,7 @@ func TestReadPipelineFile_CompressedFileSizeLimit(t *testing.T) {
 					if testCase.wantError {
 						require.Error(t, err)
 						assert.Nil(t, pipelineFile)
-						assert.Contains(t, err.Error(), "Decompressed file size too large. Maximum supported size: 1024 bytes")
+						assert.Contains(t, err.Error(), "Decompressed file size too large: exceeds maximum 1024 bytes")
 						return
 					}
 
@@ -297,7 +297,7 @@ func TestReadPipelineFile_SizeTooLarge_RecommendationIncluded(t *testing.T) {
 	_, err := ReadPipelineFile("large.yaml", strings.NewReader(big), 10)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "File size too large")
-	assert.Contains(t, err.Error(), "Consider moving large embedded artifacts or notebooks")
+	assert.Contains(t, err.Error(), "Move large embedded artifacts, notebooks")
 }
 
 func TestDecompressPipelineZip_ValidEmptyZip(t *testing.T) {
@@ -392,7 +392,7 @@ func TestReadPipelineFile_TraversalBudgetExhaustion(t *testing.T) {
 
 	_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")
+	assert.Contains(t, err.Error(), "Archive extraction traversal budget size too large")
 }
 
 // TestReadPipelineFile_TraversalBudgetBoundary verifies two distinct boundary
@@ -470,6 +470,6 @@ func TestReadPipelineFile_TraversalBudgetBoundary(t *testing.T) {
 		tgz := createExactSkippedBytesBomb(t, "pipeline.yaml", "a", budget)
 		_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")
+		assert.Contains(t, err.Error(), "Archive extraction traversal budget size too large")
 	})
 }

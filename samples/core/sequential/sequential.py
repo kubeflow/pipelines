@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-from kfp import dsl, compiler
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -31,15 +31,17 @@ def echo_op(text: str):
     return dsl.ContainerSpec(
         image='library/bash:4.4.23',
         command=['sh', '-c'],
-        args=['echo "$0"', text]
+        args=['echo "$0"', text],
     )
 
 
 @dsl.pipeline(
     name='sequential-pipeline',
-    description='A pipeline with two sequential steps.'
+    description='A pipeline with two sequential steps.',
 )
-def sequential_pipeline(url: str = 'gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt'):
+def sequential_pipeline(
+    url: str = 'gs://ml-pipeline/sample-data/shakespeare/shakespeare1.txt',
+):
     """A pipeline with two sequential steps."""
 
     download_task = gcs_download_op(url=url)

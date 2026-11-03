@@ -144,6 +144,13 @@ func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return f.pipelineStore
 }
 
+// SetPipelineStore swaps in an alternate pipeline store so that tests can drive
+// the Kubernetes-backed implementation through the API layer, where namespace
+// authorization happens.
+func (f *FakeClientManager) SetPipelineStore(pipelineStore storage.PipelineStoreInterface) {
+	f.pipelineStore = pipelineStore
+}
+
 func (f *FakeClientManager) ObjectStore() storage.ObjectStore {
 	return f.objectStore
 }

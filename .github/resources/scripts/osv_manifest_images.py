@@ -16,39 +16,85 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
-import re
 import subprocess
+from pathlib import Path
 
-CONTAINER_LIST_PATTERN = re.compile(r'^(?:initContainers|containers):\s*$')
-IMAGE_PATTERN = re.compile(
-    r'''^(?:-\s*)?image:\s*["']?([^\s"'#]+)["']?\s*(?:#.*)?$''')
+import yaml
+from arm64_smoke import CI_IMAGES, IMAGES
+from osv_master_images import merge_published_images, repository_name
+
+# Components removed from master remain first-party on supported release
+# branches. Names match the release-2.18 image-builds-release.yml inventory;
+# legacy aliases are the previously published gcr.io/ml-pipeline names.
+RELEASE_IMAGES = {
+    'kfp-visualization-server': 'visualization-server',
+    'kfp-tensorboard': 'tensorboard',
+    'kfp-cache-deployer': 'cache-deployer',
+    'kfp-cache-server': 'cache-server',
+    'kfp-metadata-envoy': 'metadata-envoy',
+    'kfp-metadata-writer': 'metadata-writer',
+    'kfp-inverse-proxy-agent': 'inverse-proxy-agent',
+}
+
+
+def is_first_party(image: str, owner: str = 'kubeflow') -> bool:
+    """Classify built KFP components, not every image in an owned registry."""
+    repository = repository_name(image)
+    prefix = f'ghcr.io/{owner.lower()}/'
+    if repository.startswith(prefix):
+        name = repository.removeprefix(prefix)
+        if name in IMAGES or name in RELEASE_IMAGES:
+            return True
+        if name.startswith('kfp-'):
+            raise ValueError(f'Unclassified KFP image repository: {repository}')
+    legacy = (
+        set(CI_IMAGES.values())
+        | set(RELEASE_IMAGES.values())
+        | {name.removeprefix('kfp-') for name in IMAGES}
+    )
+    return repository in {f'gcr.io/ml-pipeline/{name}' for name in legacy}
+
+
+def select_images(images: set[str], scope: str, owner: str) -> set[str]:
+    """Partition coverage without changing image or category identities."""
+    if scope == 'all':
+        return images
+    if scope not in ('first-party', 'third-party'):
+        raise ValueError(f'Invalid image scope: {scope}')
+    selected = {
+        image
+        for image in images
+        if is_first_party(image, owner) == (scope == 'first-party')
+    }
+    if not selected:
+        raise ValueError(f'No {scope} images found in rendered manifests')
+    return selected
 
 
 def extract_images(rendered_manifest: str) -> set[str]:
-    """Returns the unique container images in a rendered Kubernetes manifest."""
+    """Returns unique container images from rendered Kubernetes resources."""
     images = set()
-    container_list_indent = None
-    for line in rendered_manifest.splitlines():
-        stripped_line = line.lstrip()
-        line_indent = len(line) - len(stripped_line)
 
-        if CONTAINER_LIST_PATTERN.match(stripped_line):
-            container_list_indent = line_indent
-            continue
+    def visit(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in ('initContainers', 'containers') and isinstance(
+                    value, list
+                ):
+                    for container in value:
+                        if isinstance(container, dict):
+                            image = container.get('image')
+                            if isinstance(image, str) and image:
+                                images.add(image)
+                visit(value)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
 
-        if container_list_indent is None:
-            continue
-
-        if (line_indent < container_list_indent or
-            (line_indent == container_list_indent and
-             not stripped_line.startswith('-'))):
-            container_list_indent = None
-            continue
-
-        image_match = IMAGE_PATTERN.match(stripped_line)
-        if image_match:
-            images.add(image_match.group(1))
+    # ConfigMaps can embed source manifests as strings for hashing. Those are
+    # not deployed containers, even when their text contains a containers list.
+    for document in yaml.safe_load_all(rendered_manifest):
+        visit(document)
 
     return images
 
@@ -70,22 +116,53 @@ def render_overlay(kustomize: Path, overlay: Path) -> str:
     return result.stdout
 
 
+def create_image_map(images: set[str]) -> dict[str, str]:
+    """Maps stable repository categories to the exact images to scan."""
+    image_map = {}
+    for image in sorted(images):
+        repository = repository_name(image)
+        category = hashlib.sha256(repository.encode()).hexdigest()[:16]
+        if category in image_map:
+            raise ValueError(
+                f'Multiple image references share scan identity {repository}: '
+                f'{image_map[category]} and {image}. Align their versions or '
+                'define separate stable scan targets before scanning both.'
+            )
+        image_map[category] = image
+    return image_map
+
+
 def create_matrix(images: set[str]) -> dict[str, list[dict[str, str]]]:
-    """Creates a stable GitHub Actions matrix for the discovered images."""
+    """Keeps versioned references out of GitHub's analysis environment."""
     return {
-        'include': [{
-            'image': image,
-            'category': hashlib.sha256(image.encode()).hexdigest()[:16],
-        } for image in sorted(images)]
+        'include': [
+            {'category': category} for category in create_image_map(images)
+        ]
     }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description='Render KFP Kustomize overlays and emit an image matrix.')
+        description='Render KFP Kustomize overlays and emit an image matrix.'
+    )
     parser.add_argument('--kustomize', required=True, type=Path)
     parser.add_argument('--overlay', action='append', required=True, type=Path)
-    return parser.parse_args()
+    parser.add_argument('--published-records', type=Path)
+    parser.add_argument('--source-sha')
+    parser.add_argument('--image-owner')
+    parser.add_argument(
+        '--image-scope',
+        choices=('all', 'first-party', 'third-party'),
+        default='all',
+    )
+    args = parser.parse_args()
+    if any(
+        (args.published_records, args.source_sha, args.image_owner)
+    ) and not all((args.published_records, args.source_sha, args.image_owner)):
+        parser.error(
+            '--published-records, --source-sha and --image-owner must be supplied together'
+        )
+    return args
 
 
 def main() -> None:
@@ -96,9 +173,23 @@ def main() -> None:
 
     if not images:
         raise RuntimeError(
-            'No container images found in rendered KFP manifests')
+            'No container images found in rendered KFP manifests'
+        )
 
-    print(json.dumps(create_matrix(images), separators=(',', ':')))
+    if args.published_records:
+        images = merge_published_images(
+            images, args.published_records, args.source_sha, args.image_owner
+        )
+
+    images = select_images(
+        images, args.image_scope, args.image_owner or 'kubeflow'
+    )
+
+    inventory = {
+        'matrix': create_matrix(images),
+        'images': create_image_map(images),
+    }
+    print(json.dumps(inventory, separators=(',', ':')))
 
 
 if __name__ == '__main__':

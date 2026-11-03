@@ -1,0 +1,11 @@
+# V2GetHealthzResponse
+
+## Properties
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**multi_user** | **bool** | Returns whether KFP is in multi-user mode. | [optional] 
+**pipeline_store** | **str** |  | [optional] 
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+

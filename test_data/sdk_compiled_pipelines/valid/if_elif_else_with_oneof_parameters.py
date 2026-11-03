@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
 def flip_three_sided_die() -> str:
     import random
+
     val = random.randint(0, 2)
 
     if val == 0:
@@ -62,4 +62,5 @@ def outer_pipeline() -> str:
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=outer_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

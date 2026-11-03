@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import { Description } from 'src/components/Description';
 import { commonCss } from 'src/Css';
 import { formatDateString, sanitizeExternalHref } from 'src/lib/Utils';
@@ -23,9 +23,9 @@ import { formatDateString, sanitizeExternalHref } from 'src/lib/Utils';
 import { Button, FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
 
 interface PipelineVersionCardProps {
-  pipeline: V2beta1Pipeline | null;
-  selectedVersion: V2beta1PipelineVersion | undefined;
-  versions: V2beta1PipelineVersion[];
+  pipeline: V2Pipeline | null;
+  selectedVersion: V2PipelineVersion | undefined;
+  versions: V2PipelineVersion[];
   handleVersionSelected: (versionId: string) => Promise<void>;
 }
 

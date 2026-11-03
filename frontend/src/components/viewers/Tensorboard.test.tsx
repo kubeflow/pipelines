@@ -120,6 +120,31 @@ describe('Tensorboard', () => {
     expect(getTensorboardSpy).toHaveBeenCalledWith(config.url, config.namespace);
   });
 
+  it.each(['lookup', 'start'] as const)(
+    'shows the server namespace error on authenticated %s requests',
+    async (operation) => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (_url, init) => {
+        if (operation === 'start' && init?.method !== 'POST') {
+          return new Response(JSON.stringify(GET_APP_NOT_FOUND));
+        }
+        return new Response('namespace argument is required', { status: 400 });
+      });
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      render(<TensorboardViewer configs={[{ ...DEFAULT_CONFIG, namespace: '' }]} />);
+      await flushPromisesInAct();
+      if (operation === 'start') {
+        fireEvent.click(screen.getByRole('button', { name: 'Start Tensorboard' }));
+      }
+      expect(await screen.findByText('namespace argument is required')).toBeInTheDocument();
+      expect(screen.queryByText('Unknown error')).not.toBeInTheDocument();
+      expect(fetchSpy).toHaveBeenLastCalledWith(
+        expect.stringContaining('apps/tensorboard'),
+        expect.anything(),
+      );
+      consoleSpy.mockRestore();
+    },
+  );
+
   it('starts tensorboard instance when button is clicked', async () => {
     const config = { ...DEFAULT_CONFIG };
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);

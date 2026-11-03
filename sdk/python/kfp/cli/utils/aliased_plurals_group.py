@@ -18,7 +18,6 @@ import click
 
 
 class AliasedPluralsGroup(click.Group):
-
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command:
         regular = click.Group.get_command(self, ctx, cmd_name)
         if regular is not None:
@@ -30,8 +29,8 @@ class AliasedPluralsGroup(click.Group):
         raise click.UsageError(f"Unrecognized command '{cmd_name}'")
 
     def resolve_command(
-            self, ctx: click.Context,
-            args: List[str]) -> Tuple[Optional[str], Optional[None], List[str]]:
+        self, ctx: click.Context, args: List[str]
+    ) -> Tuple[Optional[str], Optional[None], List[str]]:
         # always return the full command name
         _, cmd, args = super().resolve_command(ctx, args)
         return cmd.name, cmd, args  # type: ignore

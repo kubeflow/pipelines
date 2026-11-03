@@ -19,19 +19,17 @@ import functools
 import inspect
 import itertools
 import re
-from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING, Union
 import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Optional, Union
 
-from kfp.dsl import pipeline_channel
-from kfp.dsl import placeholders
-from kfp.dsl import structures
-from kfp.dsl import utils
+from kfp.dsl import pipeline_channel, placeholders, structures, utils
 from kfp.dsl.types import type_utils
 from kfp.local import pipeline_orchestrator
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
-    task.component_spec.name)
+    task.component_spec.name
+)
 
 if TYPE_CHECKING:
     from kfp.dsl import tasks_group
@@ -53,14 +51,15 @@ def block_if_final(custom_message: Optional[str] = None):
         def wrapper(self: 'PipelineTask', *args, **kwargs):
             if self.state == TaskState.FINAL:
                 raise Exception(
-                    custom_message or
-                    f"Task configuration methods are not supported for local execution. Got call to '.{method_name}()'."
+                    custom_message
+                    or f"Task configuration methods are not supported for local execution. Got call to '.{method_name}()'."
                 )
             elif self.state == TaskState.FUTURE:
                 return method(self, *args, **kwargs)
             else:
                 raise ValueError(
-                    f'Got unknown {TaskState.__name__}: {self.state}.')
+                    f'Got unknown {TaskState.__name__}: {self.state}.'
+                )
 
         return wrapper
 
@@ -82,6 +81,7 @@ def warn_if_final():
         def wrapper(self: 'PipelineTask', *args, **kwargs):
             if self.state == TaskState.FINAL:
                 import warnings
+
                 warnings.warn(
                     f"'.{method_name}()' is not used by the current local runner and will be ignored.",
                     stacklevel=2,
@@ -91,7 +91,8 @@ def warn_if_final():
                 return method(self, *args, **kwargs)
             else:
                 raise ValueError(
-                    f'Got unknown {TaskState.__name__}: {self.state}.')
+                    f'Got unknown {TaskState.__name__}: {self.state}.'
+                )
 
         return wrapper
 
@@ -103,7 +104,7 @@ class PipelineTask:
 
     **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component (see example).
 
-    Replaces ``ContainerOp`` from ``kfp`` v1. Holds operations available on a task object, such as
+    Holds operations available on a task object, such as
     ``.after()``, ``.set_memory_limit()``, ``.enable_caching()``, etc.
 
     Args:
@@ -122,9 +123,10 @@ class PipelineTask:
             # task is an instance of PipelineTask
             task = identity(message='my string')
     """
+
     _register_task_handler = _register_task_handler
 
-    # Fallback behavior for compiling a component. This should be overriden by
+    # Fallback behavior for compiling a component. This should be overridden by
     # pipeline `register_task_and_generate_id` if compiling a pipeline (more
     # than one component).
 
@@ -136,19 +138,20 @@ class PipelineTask:
         execution_caching_default: bool = True,
         execution_cache_key: Optional[str] = None,
     ) -> None:
-        """Initilizes a PipelineTask instance."""
+        """Initializes a PipelineTask instance."""
         # import within __init__ to avoid circular import
         from kfp.dsl.tasks_group import TasksGroup
+
         self.state = TaskState.FUTURE
         self.parent_task_group: Union[None, TasksGroup] = None
         args = args or {}
 
         for input_name, argument_value in args.items():
-
             if input_name not in component_spec.inputs:
                 raise ValueError(
                     f'Component {component_spec.name!r} got an unexpected input:'
-                    f' {input_name!r}.')
+                    f' {input_name!r}.'
+                )
 
             input_spec = component_spec.inputs[input_name]
 
@@ -157,7 +160,8 @@ class PipelineTask:
                 expected_spec=input_spec,
                 error_message_prefix=(
                     f'Incompatible argument passed to the input '
-                    f'{input_name!r} of component {component_spec.name!r}: '),
+                    f'{input_name!r} of component {component_spec.name!r}: '
+                ),
             )
 
         self.component_spec = component_spec
@@ -168,7 +172,8 @@ class PipelineTask:
             dependent_tasks=[],
             component_ref=component_spec.name,
             enable_caching=execution_caching_default,
-            cache_key=execution_cache_key)
+            cache_key=execution_cache_key,
+        )
         self._run_after: List[str] = []
 
         self.importer_spec = None
@@ -179,19 +184,25 @@ class PipelineTask:
         self.platform_config = {}
 
         def validate_placeholder_types(
-                component_spec: structures.ComponentSpec) -> None:
+            component_spec: structures.ComponentSpec,
+        ) -> None:
             inputs_dict = component_spec.inputs or {}
             outputs_dict = component_spec.outputs or {}
             for arg in itertools.chain(
                 (component_spec.implementation.container.command or []),
-                (component_spec.implementation.container.args or [])):
+                (component_spec.implementation.container.args or []),
+            ):
                 check_primitive_placeholder_is_used_for_correct_io_type(
-                    inputs_dict, outputs_dict, arg)
+                    inputs_dict, outputs_dict, arg
+                )
 
         if component_spec.implementation.container is not None:
             validate_placeholder_types(component_spec)
-            self.container_spec = self._extract_container_spec_and_convert_placeholders(
-                component_spec=component_spec)
+            self.container_spec = (
+                self._extract_container_spec_and_convert_placeholders(
+                    component_spec=component_spec
+                )
+            )
         elif component_spec.implementation.importer is not None:
             self.importer_spec = component_spec.implementation.importer
             self.importer_spec.artifact_uri = args['uri']
@@ -199,25 +210,30 @@ class PipelineTask:
             self.pipeline_spec = self.component_spec.implementation.graph
 
         self._outputs = {
-            output_name:
-                pipeline_channel.create_pipeline_channel(
-                    name=output_name,
-                    channel_type=output_spec.type,
-                    task_name=self._task_spec.name,
-                    is_artifact_list=output_spec.is_artifact_list,
-                ) for output_name, output_spec in (
-                    component_spec.outputs or {}).items()
+            output_name: pipeline_channel.create_pipeline_channel(
+                name=output_name,
+                channel_type=output_spec.type,
+                task_name=self._task_spec.name,
+                is_artifact_list=output_spec.is_artifact_list,
+            )
+            for output_name, output_spec in (
+                component_spec.outputs or {}
+            ).items()
         }
 
         self._inputs = args
 
         self._channel_inputs = [
-            value for _, value in args.items()
+            value
+            for _, value in args.items()
             if isinstance(value, pipeline_channel.PipelineChannel)
-        ] + pipeline_channel.extract_pipeline_channels_from_any([
-            value for _, value in args.items()
-            if not isinstance(value, pipeline_channel.PipelineChannel)
-        ])
+        ] + pipeline_channel.extract_pipeline_channels_from_any(
+            [
+                value
+                for _, value in args.items()
+                if not isinstance(value, pipeline_channel.PipelineChannel)
+            ]
+        )
 
         if execute_locally:
             self._execute_locally(args=args)
@@ -248,7 +264,8 @@ class PipelineTask:
 
     @property
     @block_if_final(
-        'Platform-specific features are not supported for local execution.')
+        'Platform-specific features are not supported for local execution.'
+    )
     def platform_spec(self) -> pipeline_spec_pb2.PlatformSpec:
         """PlatformSpec for all tasks in the pipeline as task.
 
@@ -263,7 +280,8 @@ class PipelineTask:
         raise ValueError(
             f'Can only access {pipeline_property!r} property on tasks '
             f'created from pipelines. Use {primitive_property!r} for tasks '
-            f'created from primitive components.')
+            f'created from primitive components.'
+        )
 
     @property
     def name(self) -> str:
@@ -275,9 +293,10 @@ class PipelineTask:
 
     @property
     def inputs(
-        self
-    ) -> Dict[str, Union[type_utils.PARAMETER_TYPES,
-                         pipeline_channel.PipelineChannel]]:
+        self,
+    ) -> Dict[
+        str, Union[type_utils.PARAMETER_TYPES, pipeline_channel.PipelineChannel]
+    ]:
         """The inputs passed to the task."""
         return self._inputs
 
@@ -312,7 +331,8 @@ class PipelineTask:
 
     @property
     @block_if_final(
-        'Task has no dependent tasks since it is executed independently.')
+        'Task has no dependent tasks since it is executed independently.'
+    )
     def dependent_tasks(self) -> List[str]:
         """A list of the dependent task names."""
         return self._task_spec.dependent_tasks
@@ -342,8 +362,8 @@ class PipelineTask:
         return container_spec
 
     def register_pipeline_channels(
-            self,
-            pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
+        self, pipeline_channels: List[pipeline_channel.PipelineChannel]
+    ) -> None:
         """Registers additional pipeline channels consumed by the task.
 
         Args:
@@ -362,15 +382,15 @@ class PipelineTask:
                 existing_channel_patterns.add(channel.pattern)
 
     def _register_pipeline_channels(
-            self,
-            pipeline_channels: List[pipeline_channel.PipelineChannel]) -> None:
+        self, pipeline_channels: List[pipeline_channel.PipelineChannel]
+    ) -> None:
         """Backwards-compatible wrapper for ``register_pipeline_channels``."""
         self.register_pipeline_channels(pipeline_channels)
 
     @block_if_final()
-    def set_caching_options(self,
-                            enable_caching: bool,
-                            cache_key: Optional[str] = None) -> 'PipelineTask':
+    def set_caching_options(
+        self, enable_caching: bool, cache_key: Optional[str] = None
+    ) -> 'PipelineTask':
         """Sets caching options for the task.
 
         Args:
@@ -420,14 +440,14 @@ class PipelineTask:
             if re.match(r'([0-9]*[.])?[0-9]+m?$', cpu) is None:
                 raise ValueError(
                     'Invalid cpu string. Should be float or integer, or integer'
-                    ' followed by "m".')
+                    ' followed by "m".'
+                )
         return cpu
 
     @warn_if_final()
     def set_cpu_request(
-            self,
-            cpu: Union[str,
-                       pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+        self, cpu: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets CPU request (minimum) for the task.
 
         Args:
@@ -447,15 +467,15 @@ class PipelineTask:
             self.container_spec.resources.cpu_request = cpu
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                cpu_request=cpu)
+                cpu_request=cpu
+            )
 
         return self
 
     @warn_if_final()
     def set_cpu_limit(
-            self,
-            cpu: Union[str,
-                       pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+        self, cpu: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets CPU limit (maximum) for the task.
 
         Args:
@@ -475,14 +495,15 @@ class PipelineTask:
             self.container_spec.resources.cpu_limit = cpu
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                cpu_limit=cpu)
+                cpu_limit=cpu
+            )
 
         return self
 
     @warn_if_final()
     def set_accelerator_limit(
-        self, limit: Union[int, str,
-                           pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+        self, limit: Union[int, str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets accelerator limit (maximum) for the task. Only applies if
         accelerator type is also set via .set_accelerator_type().
 
@@ -508,7 +529,8 @@ class PipelineTask:
             self.container_spec.resources.accelerator_count = limit
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count=limit)
+                accelerator_count=limit
+            )
 
         return self
 
@@ -518,7 +540,7 @@ class PipelineTask:
         type is also set via .add_accelerator_type().
 
         Args:
-            gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
+            gpu: The maximum GPU requests allowed. This string should be a positive integer number of GPUs.
 
         Returns:
             Self return to allow chained setting calls.
@@ -527,46 +549,45 @@ class PipelineTask:
         """
         warnings.warn(
             f'{self.set_gpu_limit.__name__!r} is deprecated. Please use {self.set_accelerator_limit.__name__!r} instead.',
-            category=DeprecationWarning)
+            category=DeprecationWarning,
+        )
         return self.set_accelerator_limit(gpu)
 
     def _validate_memory_request_limit(self, memory: str) -> str:
-        """Validates memory request/limit string and converts to its numeric
-        string value.
+        """Validates a memory request/limit string.
 
         Args:
-            memory: Memory requests or limits. This string should be a number or
-               a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G",
-               "Gi", "M", "Mi", "K", or "Ki".
+            memory: Memory requests or limits, as a Kubernetes quantity.
 
         Raises:
             ValueError if the memory request/limit string value is invalid.
 
         Returns:
-            The numeric string value of the memory request/limit.
+            The memory request/limit in the form Kubernetes accepts.
         """
         if isinstance(memory, pipeline_channel.PipelineChannel):
-            memory = str(memory)
-        else:
-            if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                        memory) is None:
-                raise ValueError(
-                    'Invalid memory string. Should be a number or a number '
-                    'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
-                    '"Gi", "M", "Mi", "K", "Ki".')
-        return memory
+            return str(memory)
+
+        normalized = utils.normalize_resource_quantity(memory)
+        if normalized is None:
+            raise ValueError(
+                f'Invalid memory string {memory!r}. Should be a non-negative '
+                'Kubernetes quantity, such as "512Mi", "1.5Gi", "2G" or the '
+                'plain byte count "1000".'
+            )
+        return normalized
 
     @warn_if_final()
     def set_memory_request(
-            self,
-            memory: Union[str,
-                          pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+        self, memory: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets memory request (minimum) for the task.
 
         Args:
-            memory: The minimum memory requests required. This string should be
-                a number or a number followed by one of "E", "Ei", "P", "Pi",
-                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: The minimum memory requests required, as a Kubernetes
+                quantity such as ``'512Mi'``, ``'1.5Gi'`` or ``'2G'``. For more
+                information, see `Resource units in Kubernetes
+                <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes>`_.
 
         Returns:
             Self return to allow chained setting calls.
@@ -579,21 +600,22 @@ class PipelineTask:
             self.container_spec.resources.memory_request = memory
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                memory_request=memory)
+                memory_request=memory
+            )
 
         return self
 
     @warn_if_final()
     def set_memory_limit(
-            self,
-            memory: Union[str,
-                          pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+        self, memory: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets memory limit (maximum) for the task.
 
         Args:
-            memory: The maximum memory requests allowed. This string should be
-                a number or a number followed by one of "E", "Ei", "P", "Pi",
-                "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            memory: The maximum memory allowed, as a Kubernetes quantity such
+                as ``'512Mi'``, ``'1.5Gi'`` or ``'2G'``. For more information,
+                see `Resource units in Kubernetes
+                <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes>`_.
 
         Returns:
             Self return to allow chained setting calls.
@@ -606,32 +628,56 @@ class PipelineTask:
             self.container_spec.resources.memory_limit = memory
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                memory_limit=memory)
+                memory_limit=memory
+            )
 
         return self
 
+    _VALID_RETRY_POLICIES = frozenset(structures._RETRY_POLICY_MAP)
+
     @block_if_final()
-    def set_retry(self,
-                  num_retries: int,
-                  backoff_duration: Optional[str] = None,
-                  backoff_factor: Optional[float] = None,
-                  backoff_max_duration: Optional[str] = None) -> 'PipelineTask':
+    def set_retry(
+        self,
+        num_retries: int,
+        backoff_duration: Optional[str] = None,
+        backoff_factor: Optional[float] = None,
+        backoff_max_duration: Optional[str] = None,
+        policy: Optional[str] = None,
+    ) -> 'PipelineTask':
         """Sets task retry parameters.
 
         Args:
             num_retries : Number of times to retry on failure.
             backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
-            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
+            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60s"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
             backoff_max_duration: Maximum duration during which the task will be retried. Defaults to ``'3600s'``.
+            policy: Controls which failure types trigger a retry. Only supported
+                when using Argo Workflows as the pipeline execution engine. One of
+                ``'Always'``, ``'OnFailure'``, ``'OnError'``, or
+                ``'OnTransientError'``. ``'OnFailure'`` retries container exits,
+                including SIGTERM (exit code 143); ``'OnError'`` retries pods that
+                report no exit code, such as deletion or node loss;
+                ``'OnTransientError'`` retries either when the failure message
+                matches the controller's transient-error pattern; ``'Always'``
+                retries both.
+                Defaults to ``None``, which omits the policy so the
+                deployment's Argo configuration applies; KFP's bundled
+                manifests set ``'OnError'``.
 
         Returns:
             Self return to allow chained setting calls.
         """
+        if policy is not None and policy not in self._VALID_RETRY_POLICIES:
+            raise ValueError(
+                f'Invalid retry policy {policy!r}. '
+                f'Must be one of: {sorted(self._VALID_RETRY_POLICIES)}'
+            )
         self._task_spec.retry_policy = structures.RetryPolicy(
             max_retry_count=num_retries,
             backoff_duration=backoff_duration,
             backoff_factor=backoff_factor,
             backoff_max_duration=backoff_max_duration,
+            policy=policy,
         )
         return self
 
@@ -649,7 +695,8 @@ class PipelineTask:
         """
         warnings.warn(
             f'{self.add_node_selector_constraint.__name__!r} is deprecated. Please use {self.set_accelerator_type.__name__!r} instead.',
-            category=DeprecationWarning)
+            category=DeprecationWarning,
+        )
         return self.set_accelerator_type(accelerator)
 
     @warn_if_final()
@@ -674,7 +721,8 @@ class PipelineTask:
                 self.container_spec.resources.accelerator_count = '1'
         else:
             self.container_spec.resources = structures.ResourceSpec(
-                accelerator_count='1', accelerator_type=accelerator)
+                accelerator_count='1', accelerator_type=accelerator
+            )
 
         return self
 
@@ -764,12 +812,14 @@ class PipelineTask:
             raise ValueError(
                 "'on_error' applies to post-execution pause and requires "
                 'after=True. Got after=False, on_error=True - contradictory '
-                'configuration.')
+                'configuration.'
+            )
 
         if not before and not after:
             raise ValueError(
                 "At least one of 'before' or 'after' must be True. "
-                'Got before=False, after=False - nothing to pause on.')
+                'Got before=False, after=False - nothing to pause on.'
+            )
 
         if before:
             self.set_env_variable('ARGO_DEBUG_PAUSE_BEFORE', 'true')
@@ -783,9 +833,8 @@ class PipelineTask:
 
     @block_if_final()
     def set_container_image(
-            self,
-            name: Union[str,
-                        pipeline_channel.PipelineChannel]) -> 'PipelineTask':
+        self, name: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
         """Sets the container image to use when executing this task.
 
         Takes precedence over the `base_image` specified in the `@component` decorator.
@@ -803,7 +852,8 @@ class PipelineTask:
         """
         self._ensure_container_spec_exists()
         pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
-            name)
+            name
+        )
 
         if isinstance(name, pipeline_channel.PipelineChannel):
             name = str(name)
@@ -845,12 +895,14 @@ class PipelineTask:
                     f'".after()" on task group "{task.name}" of type '
                     f'dsl.{task.__class__.__name__} is not supported. Only '
                     'dsl.ExitHandler groups can be used as .after() '
-                    'dependencies.')
+                    'dependencies.'
+                )
             else:
                 raise ValueError(
                     'PipelineTask.after() only supports PipelineTask and '
                     f'dsl.ExitHandler dependencies. Got '
-                    f'{task.__class__.__name__}.')
+                    f'{task.__class__.__name__}.'
+                )
             self._run_after.append(dependency_name)
             self._task_spec.dependent_tasks.append(dependency_name)
         return self
@@ -878,14 +930,17 @@ class PipelineTask:
                     message=task.output).ignore_upstream_failure()
         """
 
-        for input_spec_name, input_spec in (self.component_spec.inputs or
-                                            {}).items():
+        for input_spec_name, input_spec in (
+            self.component_spec.inputs or {}
+        ).items():
             if type_utils.is_task_final_status_type(input_spec.type):
                 continue
             argument_value = self._inputs[input_spec_name]
-            if (isinstance(argument_value, pipeline_channel.PipelineChannel)
-               ) and (not input_spec.optional) and (argument_value.task_name
-                                                    is not None):
+            if (
+                (isinstance(argument_value, pipeline_channel.PipelineChannel))
+                and (not input_spec.optional)
+                and (argument_value.task_name is not None)
+            ):
                 raise ValueError(
                     f'Tasks can only use .ignore_upstream_failure() if all input parameters that accept arguments created by an upstream task have a default value, in case the upstream task fails to produce its output. Input parameter task {self.name!r}`s {input_spec_name!r} argument is an output of an upstream task {argument_value.task_name!r}, but {input_spec_name!r} has no default value.'
                 )
@@ -895,17 +950,14 @@ class PipelineTask:
         return self
 
 
-# TODO: this function should ideally be in the function kfp.dsl.structures.check_placeholder_references_valid_io_name, which does something similar, but this causes the exception to be raised at component definition time, rather than compile time. This would break tests that load v1 component YAML, even though that YAML is invalid.
 def check_primitive_placeholder_is_used_for_correct_io_type(
     inputs_dict: Dict[str, structures.InputSpec],
     outputs_dict: Dict[str, structures.OutputSpec],
     arg: Union[placeholders.CommandLineElement, Any],
 ):
     """Validates input/output placeholders refer to an input/output with an
-    appropriate type for the placeholder. This should only apply to components
-    loaded from v1 component YAML, where the YAML is authored directly. For v2
-    YAML, this is encapsulated in the DSL logic which does not permit writing
-    incorrect placeholders.
+    appropriate type for the placeholder. Validates structured placeholders in
+    container components before their conversion to IR strings.
 
     Args:
         inputs_dict: The existing input names.
@@ -918,17 +970,20 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
             raise TypeError(
                 f'Input "{input_name}" with type '
                 f'"{inputs_dict[input_name].type}" cannot be paired with '
-                'InputValuePlaceholder.')
+                'InputValuePlaceholder.'
+            )
 
     elif isinstance(
-            arg,
-        (placeholders.InputUriPlaceholder, placeholders.InputPathPlaceholder)):
+        arg,
+        (placeholders.InputUriPlaceholder, placeholders.InputPathPlaceholder),
+    ):
         input_name = arg.input_name
         if type_utils.is_parameter_type(inputs_dict[input_name].type):
             raise TypeError(
                 f'Input "{input_name}" with type '
                 f'"{inputs_dict[input_name].type}" cannot be paired with '
-                f'{arg.__class__.__name__}.')
+                f'{arg.__class__.__name__}.'
+            )
 
     elif isinstance(arg, placeholders.OutputUriPlaceholder):
         output_name = arg.output_name
@@ -936,7 +991,8 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
             raise TypeError(
                 f'Output "{output_name}" with type '
                 f'"{outputs_dict[output_name].type}" cannot be paired with '
-                f'{arg.__class__.__name__}.')
+                f'{arg.__class__.__name__}.'
+            )
     elif isinstance(arg, placeholders.IfPresentPlaceholder):
         all_normalized_args: List[placeholders.CommandLineElement] = []
         if arg.then is None:
@@ -955,8 +1011,10 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
 
         for arg in all_normalized_args:
             check_primitive_placeholder_is_used_for_correct_io_type(
-                inputs_dict, outputs_dict, arg)
+                inputs_dict, outputs_dict, arg
+            )
     elif isinstance(arg, placeholders.ConcatPlaceholder):
         for arg in arg.items:
             check_primitive_placeholder_is_used_for_correct_io_type(
-                inputs_dict, outputs_dict, arg)
+                inputs_dict, outputs_dict, arg
+            )

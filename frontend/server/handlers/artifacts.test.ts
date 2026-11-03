@@ -16,7 +16,7 @@ import { getEventListeners } from 'events';
 import { PassThrough, Writable } from 'stream';
 import { describe, it, expect, vi } from 'vitest';
 import type { Request, Response } from 'express';
-import type { Client as MinioClient } from 'minio';
+import type { ArtifactStore } from '../artifact-store.js';
 import type { ArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
   buildArtifactCoordinateUri,
@@ -125,21 +125,19 @@ describe('artifact stream lifecycle', () => {
   });
 
   it('keeps an uncommitted response writable when the first directory object cannot be fetched', async () => {
-    const client = {
-      getObject: vi.fn(async () => {
+    const store = {
+      openRead: vi.fn(async () => {
         throw new Error('first object unavailable');
       }),
-      listObjectsV2Query: vi.fn(async () => ({
-        objects: [{ name: 'directory/file.txt', size: 4 }],
-        isTruncated: false,
-        nextContinuationToken: '',
-      })),
-    } as unknown as MinioClient;
+      list: vi.fn(async function* () {
+        yield { key: 'directory/file.txt', size: 4 };
+      }),
+    } as unknown as ArtifactStore;
     const response = new PassThrough() as unknown as Response;
     response.setHeader = vi.fn();
 
     await expect(
-      streamDirectoryAsTarGz({ bucket: 'ml-pipeline', key: 'directory', client }, response),
+      streamDirectoryAsTarGz({ bucket: 'ml-pipeline', key: 'directory', store }, response),
     ).rejects.toThrow('first object unavailable');
 
     expect(response.destroyed).toBe(false);
@@ -148,22 +146,20 @@ describe('artifact stream lifecycle', () => {
 
   it('settles a directory archive when the client disconnects during an entry', async () => {
     const objectStream = new PassThrough();
-    const client = {
-      getObject: vi.fn(async () => objectStream),
-      listObjectsV2Query: vi.fn(async () => ({
-        objects: [{ name: 'directory/file.txt', size: 4 }],
-        isTruncated: false,
-        nextContinuationToken: '',
-      })),
-    } as unknown as MinioClient;
+    const store = {
+      openRead: vi.fn(async () => objectStream),
+      list: vi.fn(async function* () {
+        yield { key: 'directory/file.txt', size: 4 };
+      }),
+    } as unknown as ArtifactStore;
     const response = new PassThrough() as unknown as Response;
     response.setHeader = vi.fn();
 
     const archive = streamDirectoryAsTarGz(
-      { bucket: 'ml-pipeline', key: 'directory', client },
+      { bucket: 'ml-pipeline', key: 'directory', store },
       response,
     );
-    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(store.openRead).toHaveBeenCalledOnce());
     response.destroy();
 
     await expect(archive).rejects.toThrow();
@@ -172,30 +168,28 @@ describe('artifact stream lifecycle', () => {
 
   it('does not report a directory archive client disconnect as a server error', async () => {
     const objectStream = new PassThrough();
-    const client = {
-      getObject: vi
+    const store = {
+      openRead: vi
         .fn()
         .mockRejectedValueOnce(Object.assign(new Error('not found'), { code: 'NoSuchKey' }))
         .mockResolvedValueOnce(objectStream),
-      listObjectsV2Query: vi.fn(async () => ({
-        objects: [{ name: 'directory/file.txt', size: 4 }],
-        isTruncated: false,
-        nextContinuationToken: '',
-      })),
-    } as unknown as MinioClient;
+      list: vi.fn(async function* () {
+        yield { key: 'directory/file.txt', size: 4 };
+      }),
+    } as unknown as ArtifactStore;
     const response = new PassThrough() as unknown as Response;
     response.setHeader = vi.fn();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     consoleError.mockClear();
-    const handler = TEST_ONLY.getMinioArtifactHandler({
+    const handler = TEST_ONLY.getArtifactStoreHandler({
       bucket: 'ml-pipeline',
       key: 'directory',
-      client,
+      store,
       tryExtract: false,
     });
 
     const handling = handler({} as Request, response);
-    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(store.openRead).toHaveBeenCalledTimes(2));
     response.destroy();
 
     await expect(handling).resolves.toBeUndefined();
@@ -207,17 +201,15 @@ describe('artifact stream lifecycle', () => {
     const objectStream = new PassThrough();
     let finalResponseWrite: (() => void) | undefined;
     let responseWriteCount = 0;
-    const client = {
-      getObject: vi
+    const store = {
+      openRead: vi
         .fn()
         .mockRejectedValueOnce(Object.assign(new Error('not found'), { code: 'NoSuchKey' }))
         .mockResolvedValueOnce(objectStream),
-      listObjectsV2Query: vi.fn(async () => ({
-        objects: [{ name: 'directory/file.txt', size: 4 }],
-        isTruncated: false,
-        nextContinuationToken: '',
-      })),
-    } as unknown as MinioClient;
+      list: vi.fn(async function* () {
+        yield { key: 'directory/file.txt', size: 4 };
+      }),
+    } as unknown as ArtifactStore;
     const response = new Writable({
       write(_chunk, _encoding, callback) {
         responseWriteCount += 1;
@@ -231,15 +223,15 @@ describe('artifact stream lifecycle', () => {
     response.setHeader = vi.fn();
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     consoleError.mockClear();
-    const handler = TEST_ONLY.getMinioArtifactHandler({
+    const handler = TEST_ONLY.getArtifactStoreHandler({
       bucket: 'ml-pipeline',
       key: 'directory',
-      client,
+      store,
       tryExtract: false,
     });
 
     const handling = handler({} as Request, response);
-    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(store.openRead).toHaveBeenCalledTimes(2));
     objectStream.end('data');
     await vi.waitFor(() => expect(finalResponseWrite).toBeDefined());
     response.destroy();
@@ -251,27 +243,25 @@ describe('artifact stream lifecycle', () => {
   it('closes a directory object stream returned after the client disconnects', async () => {
     const objectStream = new PassThrough();
     let resolveObject: ((stream: PassThrough) => void) | undefined;
-    const client = {
-      getObject: vi.fn(
+    const store = {
+      openRead: vi.fn(
         () =>
           new Promise<PassThrough>((resolve) => {
             resolveObject = resolve;
           }),
       ),
-      listObjectsV2Query: vi.fn(async () => ({
-        objects: [{ name: 'directory/file.txt', size: 4 }],
-        isTruncated: false,
-        nextContinuationToken: '',
-      })),
-    } as unknown as MinioClient;
+      list: vi.fn(async function* () {
+        yield { key: 'directory/file.txt', size: 4 };
+      }),
+    } as unknown as ArtifactStore;
     const response = new PassThrough() as unknown as Response;
     response.setHeader = vi.fn();
 
     const archive = streamDirectoryAsTarGz(
-      { bucket: 'ml-pipeline', key: 'directory', client },
+      { bucket: 'ml-pipeline', key: 'directory', store },
       response,
     );
-    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(store.openRead).toHaveBeenCalledOnce());
     response.destroy();
 
     await expect(archive).rejects.toThrow();
@@ -280,21 +270,27 @@ describe('artifact stream lifecycle', () => {
   });
 
   it('settles when the client disconnects while the initial directory listing is pending', async () => {
-    const client = {
-      getObject: vi.fn(),
-      listObjectsV2Query: vi.fn(() => new Promise(() => undefined)),
-    } as unknown as MinioClient;
+    const store = {
+      openRead: vi.fn(),
+      list: vi.fn(async function* (_prefix, options) {
+        await new Promise((_, reject) => {
+          const signal = options?.signal;
+          if (signal?.aborted) reject(signal.reason);
+          else signal?.addEventListener('abort', () => reject(signal.reason), { once: true });
+        });
+      }),
+    } as unknown as ArtifactStore;
     const response = new PassThrough() as unknown as Response;
     response.setHeader = vi.fn();
 
     const archive = streamDirectoryAsTarGz(
-      { bucket: 'ml-pipeline', key: 'directory', client },
+      { bucket: 'ml-pipeline', key: 'directory', store },
       response,
     );
     response.destroy();
 
     await expect(archive).rejects.toThrow('closed before archive streaming started');
-    expect(client.getObject).not.toHaveBeenCalled();
+    expect(store.openRead).not.toHaveBeenCalled();
   });
 });
 

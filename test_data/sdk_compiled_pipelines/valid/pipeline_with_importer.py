@@ -15,22 +15,18 @@
 
 from typing import NamedTuple
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import component
-from kfp.dsl import Dataset
-from kfp.dsl import importer
-from kfp.dsl import Input
-from kfp.dsl import Model
+from kfp import compiler, dsl
+from kfp.dsl import Dataset, Input, Model, component, importer
 
 
 @component
-def train(
-    dataset: Input[Dataset]
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('model', Model),
-]):
+def train(dataset: Input[Dataset]) -> NamedTuple(
+    'Outputs',
+    [
+        ('scalar', str),
+        ('model', Model),
+    ],
+):
     """Dummy Training step."""
     with open(dataset.path) as f:
         data = f.read()
@@ -40,6 +36,7 @@ def train(
     model = f'My model trained using data: {data}'
 
     from collections import namedtuple
+
     output = namedtuple('Outputs', ['scalar', 'model'])
     return output(scalar, model)
 
@@ -56,16 +53,18 @@ def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
         artifact_class=Dataset,
         reimport=False,
-        metadata={'key': 'value'})
+        metadata={'key': 'value'},
+    )
     train1 = train(dataset=importer1.output)
 
     with dsl.Condition(train1.outputs['scalar'] == '123'):
         importer2 = importer(
-            artifact_uri=dataset2, artifact_class=Dataset, reimport=True)
+            artifact_uri=dataset2, artifact_class=Dataset, reimport=True
+        )
         train(dataset=importer2.output)
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

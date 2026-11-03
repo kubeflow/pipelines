@@ -38,7 +38,7 @@ import { Page, PageProps } from './Page';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import PrivateSharedSelector from 'src/components/PrivateSharedSelector';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import PipelinesDialogV2 from 'src/components/PipelinesDialogV2';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 
@@ -56,7 +56,7 @@ interface NewPipelineVersionState {
   pipelineVersionName: string;
   pipelineVersionDisplayName: string;
   pipelineVersionDescription: string;
-  pipeline?: V2beta1Pipeline;
+  pipeline?: V2Pipeline;
 
   codeSourceUrl: string;
 
@@ -72,7 +72,7 @@ interface NewPipelineVersionState {
 
   // Select existing pipeline
   pipelineSelectorOpen: boolean;
-  unconfirmedSelectedPipeline?: V2beta1Pipeline;
+  unconfirmedSelectedPipeline?: V2Pipeline;
 
   isPrivate: boolean;
 }
@@ -331,7 +331,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 {...this.props}
                 open={pipelineSelectorOpen}
                 selectorDialog={css.selectorDialog}
-                onClose={(confirmed, selectedPipeline?: V2beta1Pipeline) => {
+                onClose={(confirmed, selectedPipeline?: V2Pipeline) => {
                   this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline }, () => {
                     this._pipelineSelectorClosed(confirmed);
                   });
@@ -600,7 +600,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         // (1) new pipeline (and a default version) from local file
         // (2) new pipeline (and a default version) from url
         // (3) new pipeline version (under an existing pipeline) from url
-        let pipelineVersionResponse: V2beta1PipelineVersion;
+        let pipelineVersionResponse: V2PipelineVersion;
         if (this.state.newPipeline && this.state.importMethod === ImportMethod.LOCAL) {
           const pipelineResponse = await Apis.uploadPipelineV2(
             this.state.pipelineName!,
@@ -622,7 +622,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
             throw new Error('Pipeline is empty');
           }
         } else if (this.state.newPipeline && this.state.importMethod === ImportMethod.URL) {
-          const newPipeline: V2beta1Pipeline = {
+          const newPipeline: V2Pipeline = {
             description: this.state.pipelineDescription,
             display_name: this.state.pipelineName,
             name: this.state.pipelineName,
@@ -660,7 +660,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     });
   }
 
-  private async _createPipelineVersion(): Promise<V2beta1PipelineVersion> {
+  private async _createPipelineVersion(): Promise<V2PipelineVersion> {
     if (this.state.importMethod === ImportMethod.LOCAL) {
       if (!this.state.file) {
         throw new Error('File should be selected');
@@ -675,7 +675,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       );
     } else {
       // this.state.importMethod === ImportMethod.URL
-      let newPipeline: V2beta1PipelineVersion = {
+      let newPipeline: V2PipelineVersion = {
         pipeline_id: this.state.pipelineId,
         display_name: this.state.pipelineVersionDisplayName,
         name: this.state.pipelineVersionName,

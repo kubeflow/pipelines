@@ -18,15 +18,15 @@ import (
 	"fmt"
 	"path/filepath"
 
-	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/pipeline_upload_model"
+	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_client/recurring_run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/recurring_run_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/constants"
@@ -55,7 +55,7 @@ var _ = Describe("Upgrade Test Preparation >", Label(constants.UpgradePreparatio
 		})
 		It("Create pipeline run and wait it to go to RUNNING state", func() {
 			run := preparePipelineRun(longRunningPipelineFileName, "pipeline-3", "Experiment-3", "Run 3")
-			testutil.WaitForRunToBeInState(runClient, &run.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING}, nil)
+			testutil.WaitForRunToBeInState(runClient, &run.RunID, []run_model.V2RuntimeState{run_model.V2RuntimeStateRUNNING}, nil)
 		})
 		It("Create scheduled pipeline run", func() {
 			prepareScheduledPipelineRun(helloWorldPipelineFileName, "pipeline-4", "Experiment-4", "Scheduled Run 1")
@@ -103,19 +103,19 @@ func getResourceNamespace() string {
 	return *config.Namespace
 }
 
-func getExpectedExperiments() []*experiment_model.V2beta1Experiment {
-	var experiments []*experiment_model.V2beta1Experiment
-	experiment1 := &experiment_model.V2beta1Experiment{
+func getExpectedExperiments() []*experiment_model.V2Experiment {
+	var experiments []*experiment_model.V2Experiment
+	experiment1 := &experiment_model.V2Experiment{
 		DisplayName: "training",
 		Description: "my first experiment",
 		Namespace:   getResourceNamespace(),
 	}
-	experiment2 := &experiment_model.V2beta1Experiment{
+	experiment2 := &experiment_model.V2Experiment{
 		DisplayName: "prediction",
 		Description: "my second experiment",
 		Namespace:   getResourceNamespace(),
 	}
-	experiment3 := &experiment_model.V2beta1Experiment{
+	experiment3 := &experiment_model.V2Experiment{
 		DisplayName: "moonshot",
 		Description: "my third experiment",
 		Namespace:   getResourceNamespace(),
@@ -143,7 +143,7 @@ func verifyExperiments() {
 	)
 	expectedExperiments := getExpectedExperiments()
 	Expect(len(allExperiments)).To(BeNumerically(">", len(expectedExperiments)))
-	existingExperimentsMap := make(map[string]experiment_model.V2beta1Experiment)
+	existingExperimentsMap := make(map[string]experiment_model.V2Experiment)
 	for _, exp := range allExperiments {
 		existingExperimentsMap[exp.DisplayName] = *exp
 	}
@@ -191,7 +191,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	// Check if pipeline already exists or not, if not, then upload a new one
 	namespace := getResourceNamespace()
 	pipelineFilePath := filepath.Join(testutil.GetValidPipelineFilesDir(), pipelineToUpload)
-	var uploadedPipeline *pipeline_upload_model.V2beta1Pipeline
+	var uploadedPipeline *pipeline_upload_model.V2Pipeline
 	var err error
 	pipelineDisplayName := "Pipeline to Run"
 	pipelineDescription := "My Pipeline to Upload"
@@ -203,7 +203,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	for _, pipeline := range existingPipelines {
 		if pipeline.Name == pipelineName {
 			logger.Log("Pipeline with name=%s, already exists", *pipelineUploadParams.Name)
-			uploadedPipeline = &pipeline_upload_model.V2beta1Pipeline{
+			uploadedPipeline = &pipeline_upload_model.V2Pipeline{
 				Name:        pipeline.Name,
 				DisplayName: pipeline.DisplayName,
 				PipelineID:  pipeline.PipelineID,
@@ -227,8 +227,8 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	logger.Log("Fetched %d pipeline versions for pipeline with id= %s", len(uploadedPipelineVersions), uploadedPipeline.PipelineID)
 
 	// Get existing experiments and see if expected exists or not, if not, then create a new one
-	var createdExperiment *experiment_model.V2beta1Experiment
-	experimentParams := &experiment_model.V2beta1Experiment{
+	var createdExperiment *experiment_model.V2Experiment
+	experimentParams := &experiment_model.V2Experiment{
 		DisplayName: experimentName,
 		Description: "my first experiment",
 	}
@@ -253,35 +253,35 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	return uploadedPipeline.PipelineID, uploadedPipelineVersions[0].PipelineVersionID, createdExperiment.ExperimentID
 }
 
-func getExpectedPipelineRun(pipelineToUpload string, pipelineName string, experimentName string, pipelineRunName string) *run_model.V2beta1Run {
+func getExpectedPipelineRun(pipelineToUpload string, pipelineName string, experimentName string, pipelineRunName string) *run_model.V2Run {
 	pipelineID, pipelineVersionID, experimentID := getPipelineAndExperimentForRun(pipelineToUpload, pipelineName, experimentName)
 
-	return &run_model.V2beta1Run{
+	return &run_model.V2Run{
 		DisplayName:    pipelineRunName,
 		Description:    "This is my first pipeline run",
 		ExperimentID:   experimentID,
 		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
-		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
 		},
 	}
 }
 
-func getExpectedRecurringPipelineRun(pipelineToUpload string, pipelineName string, experimentName string, pipelineRunName string) *recurring_run_model.V2beta1RecurringRun {
+func getExpectedRecurringPipelineRun(pipelineToUpload string, pipelineName string, experimentName string, pipelineRunName string) *recurring_run_model.V2RecurringRun {
 	pipelineID, pipelineVersionID, experimentID := getPipelineAndExperimentForRun(pipelineToUpload, pipelineName, experimentName)
 
-	return &recurring_run_model.V2beta1RecurringRun{
+	return &recurring_run_model.V2RecurringRun{
 		DisplayName:    pipelineRunName,
 		Description:    "This is my first recurring pipeline run",
 		ExperimentID:   experimentID,
 		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
-		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+		PipelineVersionReference: &recurring_run_model.V2PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
 		},
-		Trigger: &recurring_run_model.V2beta1Trigger{
-			CronSchedule: &recurring_run_model.V2beta1CronSchedule{
+		Trigger: &recurring_run_model.V2Trigger{
+			CronSchedule: &recurring_run_model.V2CronSchedule{
 				Cron: "*/10 * * * *",
 			},
 		},
@@ -304,7 +304,7 @@ func verifyPipelines() {
 	existingPipelines := testutil.ListPipelines(pipelineClient, &namespace)
 	expectedPipelines := getExpectedPipelines()
 	Expect(len(existingPipelines)).To(BeNumerically(">=", len(expectedPipelines)))
-	existingPipelinesMap := make(map[string]*pipeline_model.V2beta1Pipeline)
+	existingPipelinesMap := make(map[string]*pipeline_model.V2Pipeline)
 	for _, pipeline := range existingPipelines {
 		existingPipelinesMap[pipeline.Name] = pipeline
 	}
@@ -316,7 +316,7 @@ func verifyPipelines() {
 	}
 }
 
-func preparePipelineRun(pipelineToUpload string, pipelineName string, experimentName string, runName string) *run_model.V2beta1Run {
+func preparePipelineRun(pipelineToUpload string, pipelineName string, experimentName string, runName string) *run_model.V2Run {
 	expectedPipelineRun := getExpectedPipelineRun(pipelineToUpload, pipelineName, experimentName, runName)
 	pipelineRun, pipelineRunError := runClient.Create(&runparams.RunServiceCreateRunParams{Run: expectedPipelineRun})
 	Expect(pipelineRunError).To(BeNil(), "Failed to create pipeline run")
@@ -343,7 +343,7 @@ func verifyPipelineRun(uploadedPipeline string, pipelineName string, experimentN
 	Expect(runPassed).To(BeTrue(), "Failed to find the pipeline run")
 }
 
-func prepareScheduledPipelineRun(pipelineToUpload string, pipelineName string, experimentName string, runName string) *recurring_run_model.V2beta1RecurringRun {
+func prepareScheduledPipelineRun(pipelineToUpload string, pipelineName string, experimentName string, runName string) *recurring_run_model.V2RecurringRun {
 	expectedPipelineRun := getExpectedRecurringPipelineRun(pipelineToUpload, pipelineName, experimentName, runName)
 	pipelineRun, pipelineRunError := recurringRunClient.Create(&recurringrunparams.RecurringRunServiceCreateRecurringRunParams{RecurringRun: expectedPipelineRun})
 	Expect(pipelineRunError).To(BeNil(), "Failed to create pipeline run")

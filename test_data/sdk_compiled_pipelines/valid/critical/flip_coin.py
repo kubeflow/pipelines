@@ -29,7 +29,7 @@ def flip_coin() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random  # noqa: PLC0415
 
-    result = "heads" if random.randint(0, 1) == 0 else "tails"
+    result = 'heads' if random.randint(0, 1) == 0 else 'tails'
     print(result)
     return result
 
@@ -41,25 +41,35 @@ def print_msg(msg: str):
 
 
 @dsl.pipeline(
-    name="conditional-execution-pipeline",
-    description="Shows how to use dsl.If().",
+    name='conditional-execution-pipeline',
+    description='Shows how to use dsl.If().',
 )
 def flipcoin_pipeline():
     flip = flip_coin().set_caching_options(False)
-    with dsl.If(flip.output == "heads"):
+    with dsl.If(flip.output == 'heads'):
         random_num_head = random_num(low=0, high=9).set_caching_options(False)
         with dsl.If(random_num_head.output > 5):
-            print_msg(msg="heads and %s > 5!" % random_num_head.output).set_caching_options(False)
+            print_msg(
+                msg='heads and %s > 5!' % random_num_head.output
+            ).set_caching_options(False)
         with dsl.If(random_num_head.output <= 5):
-            print_msg(msg="heads and %s <= 5!" % random_num_head.output).set_caching_options(False)
+            print_msg(
+                msg='heads and %s <= 5!' % random_num_head.output
+            ).set_caching_options(False)
 
-    with dsl.If(flip.output == "tails"):
+    with dsl.If(flip.output == 'tails'):
         random_num_tail = random_num(low=10, high=19).set_caching_options(False)
         with dsl.If(random_num_tail.output > 15):
-            print_msg(msg="tails and %s > 15!" % random_num_tail.output).set_caching_options(False)
+            print_msg(
+                msg='tails and %s > 15!' % random_num_tail.output
+            ).set_caching_options(False)
         with dsl.If(random_num_tail.output <= 15):
-            print_msg(msg="tails and %s <= 15!" % random_num_tail.output).set_caching_options(False)
+            print_msg(
+                msg='tails and %s <= 15!' % random_num_tail.output
+            ).set_caching_options(False)
 
 
-if __name__ == "__main__":
-    compiler.Compiler().compile(flipcoin_pipeline, package_path=__file__.replace(".py", ".yaml"))
+if __name__ == '__main__':
+    compiler.Compiler().compile(
+        flipcoin_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

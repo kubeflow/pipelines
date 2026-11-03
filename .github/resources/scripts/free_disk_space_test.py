@@ -14,19 +14,21 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
 SCRIPT = (
-    Path(__file__).parents[2] / 'actions' / 'github-disk-cleanup' /
-    'free-disk-space.sh')
+    Path(__file__).parents[2]
+    / 'actions'
+    / 'github-disk-cleanup'
+    / 'free-disk-space.sh'
+)
 
 
 class FreeDiskSpaceTest(unittest.TestCase):
-
     def _run(
         self,
         available_gib: int,
@@ -41,7 +43,7 @@ class FreeDiskSpaceTest(unittest.TestCase):
             command_log = root / 'commands.log'
 
             (fake_bin / 'df').write_text(
-                textwrap.dedent(f'''\
+                textwrap.dedent(f"""\
                     #!/usr/bin/env bash
                     if [[ "$*" == "-Pk /" ]]; then
                       echo "Filesystem 1024-blocks Used Available Capacity Mounted on"
@@ -50,7 +52,7 @@ class FreeDiskSpaceTest(unittest.TestCase):
                       echo "Filesystem Size Used Avail Use% Mounted on"
                       echo "/dev/root 145G 1G {available_gib}G 1% /"
                     fi
-                '''),
+                """),
                 encoding='utf-8',
             )
             for command in ('sudo', 'docker'):
@@ -65,12 +67,14 @@ class FreeDiskSpaceTest(unittest.TestCase):
                 executable.chmod(0o755)
 
             environment = os.environ.copy()
-            environment.update({
-                'COMMAND_LOG': str(command_log),
-                'GITHUB_ACTIONS': github_actions,
-                'MIN_FREE_SPACE_GIB': minimum_gib,
-                'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
-            })
+            environment.update(
+                {
+                    'COMMAND_LOG': str(command_log),
+                    'GITHUB_ACTIONS': github_actions,
+                    'MIN_FREE_SPACE_GIB': minimum_gib,
+                    'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
+                }
+            )
             result = subprocess.run(
                 ['bash', str(SCRIPT)],
                 capture_output=True,
@@ -79,8 +83,10 @@ class FreeDiskSpaceTest(unittest.TestCase):
                 env=environment,
             )
             commands = (
-                command_log.read_text(
-                    encoding='utf-8') if command_log.exists() else '')
+                command_log.read_text(encoding='utf-8')
+                if command_log.exists()
+                else ''
+            )
             return result, commands
 
     def test_skips_cleanup_with_sufficient_headroom(self):
@@ -94,8 +100,9 @@ class FreeDiskSpaceTest(unittest.TestCase):
         result, commands = self._run(40)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('Only 40 GiB available; running disk cleanup',
-                      result.stdout)
+        self.assertIn(
+            'Only 40 GiB available; running disk cleanup', result.stdout
+        )
         self.assertIn('sudo rm -rf /usr/share/dotnet', commands)
         self.assertIn('sudo apt-get autoremove -y', commands)
         self.assertIn('docker system prune -af --volumes', commands)

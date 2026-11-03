@@ -16,9 +16,7 @@
 
 from typing import Any, Dict
 
-from kfp import compiler
-from kfp import dsl
-from kfp import kubernetes
+from kfp import compiler, dsl, kubernetes
 
 
 @dsl.container_component
@@ -31,19 +29,23 @@ def verify_dra_json():
 
 
 @dsl.pipeline(
-    name="dra-json-input-check",
-    description=("Verifies a task with a runtime-resolved DRA ResourceClaim "
-                 "(via pipeline parameter) can schedule and complete."),
+    name='dra-json-input-check',
+    description=(
+        'Verifies a task with a runtime-resolved DRA ResourceClaim '
+        '(via pipeline parameter) can schedule and complete.'
+    ),
 )
-def dra_json_input_check(resource_claim: Dict[str, Any] = {
-    "resourceClaimTemplateName": "dra-test-claim"
-},):
+def dra_json_input_check(
+    resource_claim: Dict[str, Any] = {
+        'resourceClaimTemplateName': 'dra-test-claim'
+    },
+):
     task = verify_dra_json().set_caching_options(False)
     kubernetes.add_resource_claim_json(task, resource_claim_json=resource_claim)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     compiler.Compiler().compile(
         dra_json_input_check,
-        package_path=__file__.replace(".py", ".yaml"),
+        package_path=__file__.replace('.py', '.yaml'),
     )

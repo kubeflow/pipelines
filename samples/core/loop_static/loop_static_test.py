@@ -16,42 +16,43 @@ from __future__ import annotations
 
 import unittest
 
-from kfp.samples.test.utils import KfpTask
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
-import kfp_server_api
+import kfp.server_api
+from kfp.samples.test.utils import KfpTask, TestCase, run_pipeline_func
 from loop_static import my_pipeline
 
 
-def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
-           tasks: dict[str, KfpTask], **kwargs):
-    t.assertEqual(run.status, 'Succeeded')
+def verify(
+    t: unittest.TestCase,
+    run: kfp.server_api.V2Run,
+    tasks: dict[str, KfpTask],
+    **kwargs,
+):
+    t.assertEqual(run.state, 'SUCCEEDED')
     # assert DAG structure
     t.assertCountEqual(['print-op', 'for-loop-2'], tasks.keys())
     # assert all iteration parameters
     t.assertCountEqual(
-        [{
-            'a': '1',
-            'b': '2'
-        }, {
-            'a': '10',
-            'b': '20'
-        }],
+        [{'a': '1', 'b': '2'}, {'a': '10', 'b': '20'}],
         [
             x.inputs.parameters['pipelinechannel--loop-item-param-1']
             for x in tasks['for-loop-2'].children.values()
         ],
     )
     # assert all iteration outputs
-    t.assertCountEqual(['12', '1020'], [
-        x.children['print-op-2'].outputs.parameters['Output']
-        for x in tasks['for-loop-2'].children.values()
-    ])
+    t.assertCountEqual(
+        ['12', '1020'],
+        [
+            x.children['print-op-2'].outputs.parameters['Output']
+            for x in tasks['for-loop-2'].children.values()
+        ],
+    )
 
 
-run_pipeline_func([
-    TestCase(
-        pipeline_func=my_pipeline,
-        verify_func=verify,
-    ),
-])
+run_pipeline_func(
+    [
+        TestCase(
+            pipeline_func=my_pipeline,
+            verify_func=verify,
+        ),
+    ]
+)

@@ -16,7 +16,6 @@
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { createRef } from 'react';
-import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import { PlotType } from './Viewer';
 import ROCCurve, { findNearestDisplayPoint, lineColors } from './ROCCurve';
 
@@ -30,18 +29,30 @@ describe('ROCCurve', () => {
   ];
 
   it('does not break on no config', () => {
-    const { asFragment } = render(<ROCCurve configs={[]} />);
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    const { container } = render(<ROCCurve configs={[]} disableAnimation />);
+    expect(container.querySelector('.recharts-surface')).toBeInTheDocument();
+    expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(0);
   });
 
   it('does not break on empty data', () => {
-    const { asFragment } = render(<ROCCurve configs={[{ data: [], type: PlotType.ROC }]} />);
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    const { container } = render(
+      <ROCCurve configs={[{ data: [], type: PlotType.ROC }]} disableAnimation />,
+    );
+    expect(container.querySelector('.recharts-surface')).toBeInTheDocument();
+    expect(container.querySelectorAll('.recharts-line-curve')).toHaveLength(0);
   });
 
   it('renders a simple ROC curve given one config', () => {
-    const { asFragment } = render(<ROCCurve configs={[{ data, type: PlotType.ROC }]} />);
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    const { container } = render(
+      <ROCCurve configs={[{ data, type: PlotType.ROC }]} disableAnimation />,
+    );
+    const curves = container.querySelectorAll('.recharts-line-curve');
+    expect(curves).toHaveLength(1);
+    // Keep the plotted geometry under review, not Recharts' internal SVG wrappers.
+    expect(curves[0].getAttribute('d')).toMatchSnapshot();
+    expect(curves[0]).toHaveAttribute('stroke', lineColors[0]);
+    expect(screen.getByText('fpr')).toBeInTheDocument();
+    expect(screen.getByText('tpr')).toBeInTheDocument();
   });
 
   it('renders a reference base line series', () => {
@@ -52,8 +63,11 @@ describe('ROCCurve', () => {
 
   it('renders an ROC curve using three configs', () => {
     const config = { data, type: PlotType.ROC };
-    const { asFragment } = render(<ROCCurve configs={[config, config, config]} />);
-    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
+    const { container } = render(<ROCCurve configs={[config, config, config]} disableAnimation />);
+    const curves = Array.from(container.querySelectorAll('.recharts-line-curve'));
+    expect(curves).toHaveLength(3);
+    expect(curves.map((curve) => curve.getAttribute('stroke'))).toEqual(lineColors.slice(0, 3));
+    expect(new Set(curves.map((curve) => curve.getAttribute('d'))).size).toBe(1);
   });
 
   it('renders three lines with three different colors', () => {

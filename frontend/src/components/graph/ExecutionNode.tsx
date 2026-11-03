@@ -19,8 +19,9 @@ import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ReactElement } from 'react';
-import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskState } from 'src/apisv2/run';
 import StopCircle from 'src/icons/StopCircle';
 import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
@@ -30,12 +31,15 @@ import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 export interface ExecutionNodeProps {
   id: string;
   data: ExecutionFlowElementData;
-  // selected: boolean;
+  selected?: boolean;
   // status: ExecutionNodeStatus;
 }
 
-function ExecutionNode({ id, data }: ExecutionNodeProps) {
-  let icon = getIcon(data.state);
+function ExecutionNode({ id, data, selected }: ExecutionNodeProps) {
+  // A lifecycle message is a warning, not a failure: the node only turns red once the
+  // task itself is FAILED, so the failed icon takes precedence over the warning.
+  const showWarning = !!data.lifecycleMessage && data.state !== PipelineTaskTaskState.FAILED;
+  let icon = showWarning ? getWarningIcon() : getIcon(data.state);
   let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
@@ -44,9 +48,11 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
     <>
       <div title={data.label} className='container'>
         <button
+          aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
           className={classes(
             'focus:ring flex items-stretch border-0 transform h-12 hover:scale-105 transition relative overflow:hidden bg-white shadow-lg rounded-lg',
             fullWidth,
+            selected && 'ring',
           )}
         >
           <div className='flex justify-between flex-row relative w-full h-full'>
@@ -109,6 +115,19 @@ export function getIcon(state: PipelineTaskTaskState | undefined) {
       console.error('Unknown exeuction state: ' + state);
       return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
   }
+}
+
+// The amber icon is hidden from screen readers, so the warning goes into the name of the
+// focusable node instead.
+export function getLifecycleWarningLabel(label: string) {
+  return `${label}, pod lifecycle warning`;
+}
+
+export function getWarningIcon() {
+  return getStateIconWrapper(
+    <WarningAmberIcon className='text-mui-yellow-800' />,
+    'bg-mui-yellow-100',
+  );
 }
 
 function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {

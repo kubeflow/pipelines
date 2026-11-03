@@ -19,6 +19,12 @@ type HandlerFactory interface {
 	Create() (TaskPluginHandler, error)
 }
 
+// RuntimeArgsHandlerFactory optionally configures a handler from explicit driver runtime arguments.
+type RuntimeArgsHandlerFactory interface {
+	IsEnabledWithRuntimeArgs(runtimeArgs map[string]string) bool
+	CreateWithRuntimeArgs(runtimeArgs map[string]string) (TaskPluginHandler, error)
+}
+
 var (
 	registryMu sync.RWMutex
 	factories  []HandlerFactory
@@ -51,13 +57,30 @@ func ResetRegistry() {
 // GetPluginDispatcher builds a TaskPluginDispatcher from all registered and
 // enabled handler factories. Returns a NoOpDispatcher when no plugins are active.
 func GetPluginDispatcher() (TaskPluginDispatcher, error) {
+	return GetPluginDispatcherWithRuntimeArgs(nil)
+}
+
+// GetPluginDispatcherWithRuntimeArgs builds a TaskPluginDispatcher using
+// explicit driver runtime arguments when a factory supports them.
+func GetPluginDispatcherWithRuntimeArgs(runtimeArgs map[string]string) (TaskPluginDispatcher, error) {
 	var handlers []TaskPluginHandler
 
 	for _, factory := range RegisteredFactories() {
-		if !factory.IsEnabled() {
-			continue
+		var (
+			handler TaskPluginHandler
+			err     error
+		)
+		if runtimeFactory, ok := factory.(RuntimeArgsHandlerFactory); ok {
+			if !runtimeFactory.IsEnabledWithRuntimeArgs(runtimeArgs) {
+				continue
+			}
+			handler, err = runtimeFactory.CreateWithRuntimeArgs(runtimeArgs)
+		} else {
+			if !factory.IsEnabled() {
+				continue
+			}
+			handler, err = factory.Create()
 		}
-		handler, err := factory.Create()
 		if err != nil {
 			return NoOpDispatcher{}, fmt.Errorf("failed to initialize %s task plugin handler: %v", factory.Name(), err)
 		}

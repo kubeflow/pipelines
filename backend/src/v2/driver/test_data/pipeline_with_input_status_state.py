@@ -4,9 +4,9 @@ from kfp import dsl
 @dsl.component
 def echo_state(status: dsl.PipelineTaskFinalStatus):
     print(status)
-    assert (status.state == 'SUCCEEDED')
-    assert ('status-state-pipeline' in status.pipeline_job_resource_name)
-    assert (status.pipeline_task_name == 'exit-handler-1')
+    assert status.state == 'SUCCEEDED'
+    assert 'status-state-pipeline' in status.pipeline_job_resource_name
+    assert status.pipeline_task_name == 'exit-handler-1'
 
 
 @dsl.component
@@ -23,6 +23,8 @@ def status_state_pipeline():
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=status_state_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

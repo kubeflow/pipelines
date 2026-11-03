@@ -19,7 +19,8 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 def topological_sort_tasks(
-        tasks: Dict[str, pipeline_spec_pb2.PipelineTaskSpec]) -> List[str]:
+    tasks: Dict[str, pipeline_spec_pb2.PipelineTaskSpec],
+) -> List[str]:
     """Given a dictionary of task name to PipelineTaskSpec, obtains a
     topologically sorted stack of task names.
 
@@ -34,8 +35,8 @@ def topological_sort_tasks(
 
 
 def build_dependency_map(
-    tasks: Dict[str,
-                pipeline_spec_pb2.PipelineTaskSpec]) -> Dict[str, List[str]]:
+    tasks: Dict[str, pipeline_spec_pb2.PipelineTaskSpec],
+) -> Dict[str, List[str]]:
     """Builds a dictionary of task name to all upstream task names
     (dependencies). This is a data structure simplification step, which allows
     for a general topological_sort sort implementation.

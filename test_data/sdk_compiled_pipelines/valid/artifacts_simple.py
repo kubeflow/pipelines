@@ -1,11 +1,8 @@
 import textwrap
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Dataset, Input, Output
 
 
 @dsl.component
@@ -25,8 +22,9 @@ def add(in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]):
 
 
 @dsl.container_component
-def add_container(in_datasets: Input[List[Dataset]],
-                  out_dataset: Output[Dataset]):
+def add_container(
+    in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]
+):
     return dsl.ContainerSpec(
         image='registry.access.redhat.com/ubi9/python-311:latest',
         command=['python', '-c'],
@@ -74,4 +72,5 @@ def math_pipeline() -> List[Dataset]:
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=math_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

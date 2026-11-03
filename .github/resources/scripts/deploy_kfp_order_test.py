@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('deploy-kfp.sh')
 
 
 class DeployKfpOrderTest(unittest.TestCase):
-
     def test_profile_controller_readiness_overlaps_kfp_rollout(self):
         script = SCRIPT.read_text(encoding='utf-8')
 
@@ -29,7 +28,8 @@ class DeployKfpOrderTest(unittest.TestCase):
         kfp_ready = script.index('wait_for_pods || EXIT_CODE=$?')
         profile_ready = script.index(
             'wait_for_pods_ready kubeflow '
-            '"app.kubernetes.io/name=profile-controller"')
+            '"app.kubernetes.io/name=profile-controller"'
+        )
         iam_ready = script.index('"${C_DIR}/wait-for-seaweedfs-iam.sh"')
 
         self.assertLess(profile_apply, kfp_apply)

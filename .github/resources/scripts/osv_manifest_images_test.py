@@ -13,18 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
+import json
 import unittest
+from pathlib import Path
 from unittest import mock
 
-from osv_manifest_images import create_matrix
-from osv_manifest_images import extract_images
-from osv_manifest_images import render_overlay
+import yaml
+from osv_manifest_images import (
+    create_image_map,
+    create_matrix,
+    extract_images,
+    is_first_party,
+    main,
+    render_overlay,
+    select_images,
+)
 
 
 class OsvManifestImagesTest(unittest.TestCase):
-
     def test_extract_images_deduplicates_rendered_container_images(self):
-        manifest = '''
+        manifest = """
 apiVersion: apps/v1
 kind: Deployment
 spec:
@@ -45,34 +54,246 @@ spec:
     - schema:
         openAPIV3Schema:
           properties:
-            image: properties:
-'''
+            image:
+              type: string
+"""
         self.assertEqual(
-            extract_images(manifest), {
+            extract_images(manifest),
+            {
                 'docker.io/alpine:3.23',
                 'ghcr.io/kubeflow/kfp-api-server:2.17.0',
-            })
+            },
+        )
 
-    def test_create_matrix_is_sorted_and_has_stable_categories(self):
-        matrix = create_matrix({'registry.example/b:2', 'registry.example/a:1'})
+    def test_embedded_job_template_is_not_a_deployed_container(self):
+        template_path = (
+            Path(__file__).resolve().parents[3]
+            / 'manifests/kustomize/base/pipeline/ui-signing-key/job.yaml'
+        )
+        template = template_path.read_text()
+        configmap = {
+            'apiVersion': 'v1',
+            'kind': 'ConfigMap',
+            'data': {'job-template': template},
+        }
+        job = yaml.safe_load(template)
+        image = 'ghcr.io/kubeflow/kfp-frontend:2.17.1'
+        job['spec']['template']['spec']['containers'][0]['image'] = image
+        for style in ('|', '>', '"'):
+            with self.subTest(style=style):
+                manifest = (
+                    yaml.safe_dump(configmap, default_style=style)
+                    + '---\n'
+                    + yaml.safe_dump(job)
+                )
+                self.assertEqual(extract_images(manifest), {image})
 
+    def test_inline_containers_and_nested_image_metadata(self):
+        manifest = """
+apiVersion: batch/v1
+kind: CronJob
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          initContainers: [{name: init, image: 'registry.example/init:1'}]
+          containers:
+          - name: task
+            image: registry.example/task:1
+            env:
+            - name: EXAMPLE
+              value: |
+                containers:
+                - image: registry.example/not-a-container:1
+"""
         self.assertEqual(
-            matrix, {
-                'include': [
-                    {
-                        'image': 'registry.example/a:1',
-                        'category': '2bd75a0be1a9bf75',
-                    },
-                    {
-                        'image': 'registry.example/b:2',
-                        'category': '3080c2e5bf31546b',
-                    },
-                ]
-            })
+            extract_images(manifest),
+            {
+                'registry.example/init:1',
+                'registry.example/task:1',
+            },
+        )
+
+    def test_real_placeholder_images_are_not_silently_filtered(self):
+        manifest = """
+kind: Pod
+spec:
+  containers:
+  - image: ghcr.io/kubeflow/kfp-frontend:dummy
+"""
+        self.assertEqual(
+            extract_images(manifest),
+            {
+                'ghcr.io/kubeflow/kfp-frontend:dummy',
+            },
+        )
+
+    def test_invalid_yaml_fails_discovery(self):
+        with self.assertRaises(yaml.YAMLError):
+            extract_images('spec: [unterminated')
+
+    def test_empty_documents_do_not_hide_later_images(self):
+        manifest = """
+---
+# Empty document
+---
+kind: Pod
+spec:
+  containers:
+  - image: registry.example/task:1
+---
+"""
+        self.assertEqual(extract_images(manifest), {'registry.example/task:1'})
+
+    def test_matrix_identity_survives_image_upgrades(self):
+        old = create_matrix({'registry.example/task:1'})
+        for image in (
+            'registry.example/task',
+            'registry.example/task:2',
+            'registry.example/task@sha256:abc',
+            'registry.example/task:2@sha256:def',
+        ):
+            with self.subTest(image=image):
+                self.assertEqual(old, create_matrix({image}))
+        self.assertEqual(set(old['include'][0]), {'category'})
+
+    def test_matrix_preserves_repository_and_registry_port_identity(self):
+        images = {
+            'registry.example:5000/task:1',
+            'registry.example:5001/task:1',
+            'registry.example:5000/other:1',
+        }
+        matrix = create_matrix(images)
+        self.assertEqual(len(matrix['include']), 3)
+        self.assertEqual(len({row['category'] for row in matrix['include']}), 3)
+        self.assertEqual(
+            create_matrix({'registry.example:5000/task:1'}),
+            create_matrix({'registry.example:5000/task:2'}),
+        )
+
+    def test_multiple_versions_of_one_repository_fail_closed(self):
+        for other_image in (
+            'registry.example/task:2',
+            'registry.example/task@sha256:abc',
+            'registry.example/task:1@sha256:def',
+        ):
+            with self.subTest(other_image=other_image):
+                with self.assertRaisesRegex(
+                    ValueError, 'Multiple image references'
+                ):
+                    create_matrix({'registry.example/task:1', other_image})
+
+    def test_image_map_preserves_exact_references_and_sorted_order(self):
+        images = {
+            'registry.example/b@sha256:abc',
+            'registry.example/a:1@sha256:def',
+        }
+        image_map = create_image_map(images)
+        self.assertEqual(list(image_map.values()), sorted(images))
+        self.assertEqual(
+            create_matrix(images)['include'],
+            [{'category': category} for category in image_map],
+        )
+        self.assertEqual(len(create_matrix({'alpine:1'})['include']), 1)
+        self.assertEqual(
+            create_matrix({'alpine:1'}), create_matrix({'alpine:2'})
+        )
+
+    def test_native_and_external_images_partition_without_losing_coverage(self):
+        native = {
+            'ghcr.io/kubeflow/kfp-api-server:2.18.0',
+            'ghcr.io/kubeflow/kfp-metadata-writer:2.18.0',
+            'ghcr.io/kubeflow/kfp-visualization-server:2.18.0',
+            'ghcr.io/kubeflow/kfp-tensorboard:2.18.0',
+            'ghcr.io/kubeflow/kfp-inverse-proxy-agent:2.18.0',
+            'gcr.io/ml-pipeline/api-server:2.17.1',
+            'gcr.io/ml-pipeline/frontend:2.17.1',
+        }
+        external = {
+            'docker.io/alpine/k8s:1.36.2',
+            'ghcr.io/chrislusf/seaweedfs:4.34',
+            'gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0',
+            'ghcr.io/metacontroller/metacontroller:v4.16.2',
+            'gcr.io/ml-pipeline/application-crd-controller:20231101',
+            'mysql:8.4',
+            'registry.example/unseen:1',
+        }
+        images = native | external
+        self.assertEqual(select_images(images, 'all', 'kubeflow'), images)
+        self.assertEqual(
+            select_images(images, 'first-party', 'kubeflow'), native
+        )
+        self.assertEqual(
+            select_images(images, 'third-party', 'kubeflow'), external
+        )
+
+    def test_unknown_native_component_requires_explicit_classification(self):
+        with self.assertRaisesRegex(ValueError, 'Unclassified KFP'):
+            is_first_party('ghcr.io/kubeflow/kfp-new-component:1')
+        self.assertTrue(
+            is_first_party('ghcr.io/FORK/kfp-api-server:1'.lower(), 'FORK')
+        )
+        self.assertFalse(is_first_party('ghcr.io/other/kfp-api-server:1'))
+
+    def test_empty_filtered_inventory_fails(self):
+        with self.assertRaisesRegex(ValueError, 'No third-party'):
+            select_images(
+                {'ghcr.io/kubeflow/kfp-api-server:1'}, 'third-party', 'kubeflow'
+            )
+
+    @mock.patch('osv_manifest_images.merge_published_images')
+    @mock.patch('osv_manifest_images.render_overlay')
+    @mock.patch('osv_manifest_images.parse_args')
+    def test_scope_filter_follows_publication_merge(
+        self, args_mock, render_mock, merge_mock
+    ):
+        args_mock.return_value = mock.Mock(
+            kustomize='kustomize',
+            overlay=['a'],
+            published_records=Path('records'),
+            source_sha='a' * 40,
+            image_owner='kubeflow',
+            image_scope='first-party',
+        )
+        render_mock.return_value = 'kind: Pod\nspec:\n  containers:\n  - image: docker.io/alpine:3.23\n'
+        digest = 'ghcr.io/kubeflow/kfp-api-server@sha256:' + 'b' * 64
+        merge_mock.return_value = {digest, 'docker.io/alpine:3.23'}
+        with mock.patch('sys.stdout', new_callable=io.StringIO) as output:
+            main()
+        self.assertEqual(
+            set(json.loads(output.getvalue())['images'].values()), {digest}
+        )
+        merge_mock.assert_called_once()
+
+    @mock.patch('osv_manifest_images.render_overlay')
+    @mock.patch('osv_manifest_images.parse_args')
+    def test_main_emits_matrix_and_matching_image_map(
+        self, args_mock, render_mock
+    ):
+        args_mock.return_value = mock.Mock(
+            kustomize='kustomize',
+            overlay=['a', 'b'],
+            published_records=None,
+            image_scope='all',
+            image_owner=None,
+        )
+        render_mock.return_value = 'kind: Pod\nspec:\n  containers:\n  - image: registry.example/task:1\n'
+        with mock.patch('sys.stdout', new_callable=io.StringIO) as output:
+            main()
+        inventory = json.loads(output.getvalue())
+        category = inventory['matrix']['include'][0]['category']
+        self.assertEqual(
+            inventory['images'], {category: 'registry.example/task:1'}
+        )
+        self.assertEqual(
+            inventory['matrix'], {'include': [{'category': category}]}
+        )
 
     @mock.patch('osv_manifest_images.subprocess.run')
     def test_render_overlay_fails_closed_and_returns_rendered_resources(
-            self, run_mock):
+        self, run_mock
+    ):
         run_mock.return_value.stdout = 'kind: Deployment\n'
 
         self.assertEqual(

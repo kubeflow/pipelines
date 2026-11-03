@@ -14,13 +14,18 @@
 from kfp import dsl
 
 
-@dsl.component(base_image='registry.access.redhat.com/ubi9/python-311:latest', target_image='kfp-image')
+@dsl.component(
+    base_image='registry.access.redhat.com/ubi9/python-311:latest',
+    target_image='kfp-image',
+)
 def concat_message(message1: str, message2: str) -> str:
     return message1 + message2
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=concat_message,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

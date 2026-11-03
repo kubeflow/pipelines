@@ -56,7 +56,8 @@ class Compiler:
         pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
         kubernetes_manifest_options: Optional[
-            'KubernetesManifestOptions'] = None,
+            'KubernetesManifestOptions'
+        ] = None,
         kubernetes_manifest_format: bool = False,
     ) -> None:
         """Compiles the pipeline or component function into IR YAML.
@@ -78,13 +79,15 @@ class Compiler:
                     'Unsupported pipeline_func type. Expected '
                     'subclass of `base_component.BaseComponent` or '
                     '`Callable` constructed with @dsl.pipeline '
-                    f'decorator. Got: {type(pipeline_func)}')
+                    f'decorator. Got: {type(pipeline_func)}'
+                )
 
             pipeline_spec = builder.modify_pipeline_spec_with_override(
                 pipeline_spec=pipeline_func.pipeline_spec,
                 pipeline_name=pipeline_name,
                 pipeline_parameters=pipeline_parameters,
-                pipeline_display_name=pipeline_display_name)
+                pipeline_display_name=pipeline_display_name,
+            )
 
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec,

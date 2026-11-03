@@ -233,7 +233,7 @@ message TaskConfigPassthroughType {
 
 ### Python SDK
 
-New module `kubernetes_platform/python/kfp/kubernetes/pod_resource_claim.py` with `add_resource_claim()` and `add_resource_claim_json()` functions, following the `add_toleration()` / `add_toleration_json()` pattern.
+New module `sdk/python/kfp/kubernetes/pod_resource_claim.py` with `add_resource_claim()` and `add_resource_claim_json()` functions, following the `add_toleration()` / `add_toleration_json()` pattern.
 
 A new `ResourceClaimConfig` class in the same module provides typed claim configuration with compile-time validation. It serializes to the proto `PodResourceClaim` message when the pipeline is compiled.
 

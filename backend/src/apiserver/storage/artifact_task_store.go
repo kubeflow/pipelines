@@ -22,7 +22,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -440,10 +440,10 @@ func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string)
 		return nil
 	}
 	outputLinkTypes := []model.IOType{
-		model.IOType(apiv2beta1.IOType_OUTPUT),
-		model.IOType(apiv2beta1.IOType_ITERATOR_OUTPUT),
-		model.IOType(apiv2beta1.IOType_ONE_OF_OUTPUT),
-		model.IOType(apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT),
+		model.IOType(apiv2.IOType_OUTPUT),
+		model.IOType(apiv2.IOType_ITERATOR_OUTPUT),
+		model.IOType(apiv2.IOType_ONE_OF_OUTPUT),
+		model.IOType(apiv2.IOType_TASK_FINAL_STATUS_OUTPUT),
 	}
 	sql, args, err := qb.
 		Delete(q(artifactTaskTableName)).
@@ -466,13 +466,13 @@ func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) 
 		return nil
 	}
 	inputLinkTypes := []model.IOType{
-		model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
-		model.IOType(apiv2beta1.IOType_COLLECTED_INPUTS),
-		model.IOType(apiv2beta1.IOType_TASK_OUTPUT_INPUT),
-		model.IOType(apiv2beta1.IOType_RUNTIME_VALUE_INPUT),
-		model.IOType(apiv2beta1.IOType_ITERATOR_INPUT),
-		model.IOType(apiv2beta1.IOType_ITERATOR_INPUT_RAW),
-		model.IOType(apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT),
+		model.IOType(apiv2.IOType_COMPONENT_INPUT),
+		model.IOType(apiv2.IOType_COLLECTED_INPUTS),
+		model.IOType(apiv2.IOType_TASK_OUTPUT_INPUT),
+		model.IOType(apiv2.IOType_RUNTIME_VALUE_INPUT),
+		model.IOType(apiv2.IOType_ITERATOR_INPUT),
+		model.IOType(apiv2.IOType_ITERATOR_INPUT_RAW),
+		model.IOType(apiv2.IOType_COMPONENT_DEFAULT_INPUT),
 	}
 	sql, args, err := qb.
 		Delete(q(artifactTaskTableName)).

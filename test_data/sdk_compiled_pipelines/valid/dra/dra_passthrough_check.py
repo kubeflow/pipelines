@@ -14,8 +14,7 @@
 """DRA passthrough check: verifies ResourceClaims are forwarded through
 TaskConfig passthrough and applied to the pod via the dra-example-driver."""
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component(
@@ -30,29 +29,34 @@ from kfp import dsl
     ],
 )
 def verify_dra_passthrough(task_config: dsl.TaskConfig):
-    assert task_config.resource_claims == [{
-        'name': 'dra-test-claim',
-        'resourceClaimTemplateName': 'dra-test-claim',
-    }]
-    print(f"resource_claims: {task_config.resource_claims}")
-    print("DRA passthrough check: PASS")
+    assert task_config.resource_claims == [
+        {
+            'name': 'dra-test-claim',
+            'resourceClaimTemplateName': 'dra-test-claim',
+        }
+    ]
+    print(f'resource_claims: {task_config.resource_claims}')
+    print('DRA passthrough check: PASS')
 
 
 @dsl.pipeline(
-    name="dra-passthrough-check",
-    description=("Verifies DRA ResourceClaims are forwarded through TaskConfig "
-                 "passthrough and applied to the task pod."),
+    name='dra-passthrough-check',
+    description=(
+        'Verifies DRA ResourceClaims are forwarded through TaskConfig '
+        'passthrough and applied to the task pod.'
+    ),
 )
 def dra_passthrough_check():
     from kfp import kubernetes
 
     task = verify_dra_passthrough().set_caching_options(False)
     kubernetes.add_resource_claim(
-        task, resource_claim_template_name='dra-test-claim')
+        task, resource_claim_template_name='dra-test-claim'
+    )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     compiler.Compiler().compile(
         dra_passthrough_check,
-        package_path=__file__.replace(".py", ".yaml"),
+        package_path=__file__.replace('.py', '.yaml'),
     )

@@ -1,36 +1,56 @@
-# Copyright 2018 The Kubeflow Authors
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: arguments-parameters-
-spec:
-  entrypoint: whalesay
-  arguments:
-    parameters:
-    - name: param1
-      value: hello
-    - name: param2
-
-  templates:
-  - name: whalesay
-    inputs:
+# this is a comment
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
       parameters:
-      - name: param1
-      - name: param2
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["{{inputs.parameters.param1}}-{{inputs.parameters.param2}}"]
+        text:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--text"
+        - "{{$.inputs.parameters['text']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.11
+pipelineInfo:
+  name: hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: y
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      y:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-1.6.5

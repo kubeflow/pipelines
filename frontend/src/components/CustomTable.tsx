@@ -39,8 +39,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { CustomTableRow } from './CustomTableRow';
-import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
-import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { V2Filter, V2PredicateOperation } from 'src/apisv2/filter';
 
 export enum ExpandState {
   COLLAPSED,
@@ -190,11 +189,11 @@ interface CustomTableProps {
   disableSorting?: boolean;
   emptyMessage?: string;
   filterLabel?: string;
+  filterActions?: React.ReactNode;
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
   initialFilterString?: string;
-  isCalledByV1?: boolean;
   setFilterString?: (filterString: string) => void;
   noFilterBox?: boolean;
   reload: (request: ListRequest) => Promise<string>;
@@ -235,12 +234,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.state = {
       currentPage: 0,
       filterString: this.props.initialFilterString || '',
-      filterStringEncoded:
-        this.props.initialFilterString && this.props.isCalledByV1
-          ? this._createAndEncodeFilterV1(this.props.initialFilterString)
-          : this.props.initialFilterString
-            ? this._createAndEncodeFilterV2(this.props.initialFilterString)
-            : '',
+      filterStringEncoded: this.props.initialFilterString
+        ? this._createAndEncodeFilterV2(this.props.initialFilterString)
+        : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: LocalStorage.getTablePageSize(this._getPageId()),
@@ -310,13 +306,20 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       <div className={commonCss.pageOverflowHidden}>
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
-          <div>
+          <div
+            style={
+              this.props.filterActions
+                ? { display: 'flex', alignItems: 'center', gap: 8 }
+                : undefined
+            }
+          >
             <Input
               id='tableFilterBox'
               label={this.props.filterLabel || 'Filter'}
               height={48}
               maxWidth={'100%'}
               className={css.filterBox}
+              sx={this.props.filterActions ? { flex: 1, minWidth: 0 } : undefined}
               InputLabelProps={{ classes: { root: css.noMargin } }}
               onChange={this.handleFilterChange}
               value={filterString}
@@ -333,6 +336,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 ),
               }}
             />
+            {this.props.filterActions && (
+              <div style={{ flexShrink: 0 }}>{this.props.filterActions}</div>
+            )}
           </div>
         )}
         {/* Header */}
@@ -474,6 +480,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
             <IconButton
               data-testid='prev-page-btn'
+              aria-label='Previous page'
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
               size='large'
@@ -482,6 +489,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             </IconButton>
             <IconButton
               data-testid='next-page-btn'
+              aria-label='Next page'
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
               size='large'
@@ -545,37 +553,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   // Exposed for testing
   protected async _requestFilter(filterString?: string): Promise<void> {
-    const filterStringEncoded =
-      filterString && this.props.isCalledByV1
-        ? this._createAndEncodeFilterV1(filterString)
-        : filterString
-          ? this._createAndEncodeFilterV2(filterString)
-          : '';
+    const filterStringEncoded = filterString ? this._createAndEncodeFilterV2(filterString) : '';
     this.setStateSafe({ filterStringEncoded });
     this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
   }
 
-  private _createAndEncodeFilterV1(filterString: string): string {
-    const filter: ApiFilter = {
-      predicates: [
-        {
-          // TODO: remove this hardcoding once more sophisticated filtering is supported
-          key: 'name',
-          op: PredicateOp.IS_SUBSTRING,
-          string_value: filterString,
-        },
-      ],
-    };
-    return encodeURIComponent(JSON.stringify(filter));
-  }
-
   private _createAndEncodeFilterV2(filterString: string): string {
-    const filter: V2beta1Filter = {
+    const filter: V2Filter = {
       predicates: [
         {
           // TODO: remove this hardcoding once more sophisticated filtering is supported
           key: 'name',
-          operation: V2beta1PredicateOperation.IS_SUBSTRING,
+          operation: V2PredicateOperation.IS_SUBSTRING,
           string_value: filterString,
         },
       ],

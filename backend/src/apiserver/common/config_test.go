@@ -26,6 +26,30 @@ import (
 // NOTE: These tests use viper.Reset() which mutates the global viper singleton.
 // Do not add t.Parallel() to these subtests — the shared viper state would race.
 
+func TestWorkflowIdentityMode(t *testing.T) {
+	for _, value := range []string{"", "enforce", "audit", "true", "false", "legacy", "AUDIT", " audit"} {
+		t.Run("value="+value, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			t.Setenv(WorkflowIdentityMode, value)
+			viper.AutomaticEnv()
+			mode, err := GetWorkflowIdentityMode()
+			if value == "" || value == "enforce" || value == "audit" {
+				require.NoError(t, err)
+				expected := value
+				if expected == "" {
+					expected = "enforce"
+				}
+				assert.Equal(t, expected, mode)
+				require.NoError(t, InitializeWorkflowIdentityMode())
+			} else {
+				require.Error(t, err)
+				require.Error(t, InitializeWorkflowIdentityMode())
+			}
+		})
+	}
+}
+
 func TestGetStringConfigWithDefault(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -304,11 +328,6 @@ func TestConfigWrapperDefaults(t *testing.T) {
 		expected interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault defaults to true",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: true,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines defaults to false",
 			getter:   func() interface{} { return IsNamespaceRequiredForPipelines() },
 			expected: false,
@@ -328,11 +347,7 @@ func TestConfigWrapperDefaults(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: DefaultPodNamespace,
 		},
-		{
-			name:     "IsCacheEnabled defaults to true string",
-			getter:   func() interface{} { return IsCacheEnabled() },
-			expected: "true",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader defaults to GoogleIAPUserIdentityHeader",
 			getter:   func() interface{} { return GetKubeflowUserIDHeader() },
@@ -434,13 +449,6 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 		expected    interface{}
 	}{
 		{
-			name:     "IsPipelineVersionUpdatedByDefault with custom false",
-			envKey:   UpdatePipelineVersionByDefault,
-			envValue: "false",
-			getter:   func() interface{} { return IsPipelineVersionUpdatedByDefault() },
-			expected: false,
-		},
-		{
 			name:     "IsNamespaceRequiredForPipelines with custom true",
 			envKey:   RequireNamespaceForPipelines,
 			envValue: "true",
@@ -468,14 +476,7 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			getter:   func() interface{} { return GetPodNamespace() },
 			expected: "custom-ns",
 		},
-		{
-			name:        "IsCacheEnabled with custom false",
-			envKey:      CacheEnabled,
-			envValue:    "false",
-			useViperSet: true, // CacheEnabled is mixed-case, env var lookup via AutomaticEnv uppercases the key
-			getter:      func() interface{} { return IsCacheEnabled() },
-			expected:    "false",
-		},
+
 		{
 			name:     "GetKubeflowUserIDHeader with custom header",
 			envKey:   KubeflowUserIDHeader,
@@ -977,4 +978,36 @@ func TestValidateServiceAccountAllowList_ConfiguredDefaultAllowed(t *testing.T) 
 	viper.Set(DefaultPipelineRunnerServiceAccountFlag, "my-runner")
 	err := ValidateServiceAccountAllowList("my-runner")
 	assert.Nil(t, err)
+}
+
+func TestGetServiceAccountAuthorizationMode(t *testing.T) {
+	for _, tc := range []struct {
+		name, value, want string
+		invalid           bool
+	}{
+		{name: "unset", want: "enforce"},
+		{name: "empty", want: "enforce"},
+		{name: "enforce", value: "enforce", want: "enforce"},
+		{name: "audit", value: "audit", want: "audit"},
+		{name: "typo", value: "audti", invalid: true},
+		{name: "legacy", value: "legacy", invalid: true},
+		{name: "case", value: "AUDIT", invalid: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			viper.Reset()
+			t.Cleanup(viper.Reset)
+			viper.AutomaticEnv()
+			viper.AllowEmptyEnv(true)
+			if tc.name != "unset" {
+				t.Setenv(ServiceAccountAuthorizationMode, tc.value)
+			}
+			got, err := GetServiceAccountAuthorizationMode()
+			if tc.invalid {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
 }

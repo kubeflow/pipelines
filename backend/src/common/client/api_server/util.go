@@ -92,7 +92,7 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls
 			}
 			httpClient = &http.Client{Transport: tr}
 		}
-		runtimeClient = httptransport.NewWithClient(host, "", scheme, httpClient)
+		runtimeClient = httptransport.NewWithClient(host, "", scheme, withLegacyAPIPrefix(httpClient, ""))
 		if debug {
 			runtimeClient.SetDebug(true)
 		}
@@ -108,8 +108,9 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls
 	// Create API client
 	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
 	masterIPAndPort := util.ExtractMasterIPAndPort(config)
-	runtimeClient := httptransport.NewWithClient(masterIPAndPort, fmt.Sprintf(apiServerBasePath, namespace),
-		nil, httpClient)
+	basePath := fmt.Sprintf(apiServerBasePath, namespace)
+	runtimeClient := httptransport.NewWithClient(masterIPAndPort, basePath,
+		nil, withLegacyAPIPrefix(httpClient, basePath))
 
 	if debug {
 		runtimeClient.SetDebug(true)
@@ -130,7 +131,7 @@ func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsCfg *tls.C
 		httpClient = &http.Client{}
 	}
 	runtimeClient := httptransport.NewWithClient(
-		fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, httpClient)
+		fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, withLegacyAPIPrefix(httpClient, "/"))
 	runtimeClient.SetDebug(debug)
 	return runtimeClient
 }

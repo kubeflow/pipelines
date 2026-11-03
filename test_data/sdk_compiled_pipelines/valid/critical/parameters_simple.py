@@ -1,7 +1,6 @@
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl, kubernetes
 
 
 @dsl.component
@@ -17,7 +16,7 @@ def add(nums: List[int]) -> int:
 @dsl.container_component
 def add_container(nums: List[int], sum: dsl.OutputPath(int)):
     return dsl.ContainerSpec(
-        image='jetbrainsinfra/jq',
+        image='docker.io/jetbrainsinfra/jq:latest',
         command=['sh', '-c'],
         args=[
             f"""
@@ -34,11 +33,13 @@ def math_pipeline() -> List[int]:
     with dsl.ParallelFor([1, 2, 3]) as x:
         t = double(num=x)
     add(nums=dsl.Collected(t.output))
-    add_container(nums=dsl.Collected(t.output))
+    container_task = add_container(nums=dsl.Collected(t.output))
+    kubernetes.set_image_pull_policy(container_task, 'IfNotPresent')
     return dsl.Collected(t.output)
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=math_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

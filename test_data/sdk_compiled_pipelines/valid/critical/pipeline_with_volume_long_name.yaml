@@ -66,7 +66,11 @@ components:
 
             to back the PVC. ``None`` indicates to use the cluster''s default
 
-            storage_class_name. Set to ``''''`` for a statically specified PVC.'
+            storage_class_name, or the server-configured default StorageClass
+
+            when one is set by the administrator. Set to ``''''`` for a
+
+            statically specified PVC.'
           isOptional: true
           parameterType: STRING
         volume_name:
@@ -119,7 +123,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef dummy_task():\n    print('hello')\n\n"
-        image: registry.access.redhat.com/ubi9/python-311:latest
+        image: registry.access.redhat.com/ubi9/python-311:1-1779945715
 pipelineInfo:
   name: here-is-a-pipeline-very-long-name
 root:

@@ -13,15 +13,15 @@
 # limitations under the License.
 import configparser
 import pathlib
-from typing import Dict, Optional
 import warnings
+from typing import Dict, Optional
 
 _KFP_CONFIG_FILE = 'kfp_config.ini'
 
 _COMPONENTS_SECTION = 'Components'
 
 
-class KFPConfig():
+class KFPConfig:
     """Class for managing KFP component configuration.
 
     The configuration is .ini file named `kfp_config.ini` that can be parsed by
@@ -87,8 +87,9 @@ class KFPConfig():
         # Always write out components in alphabetical order for determinism,
         # especially in tests.
         for function_name in sorted(self._components.keys()):
-            self._config_parser[_COMPONENTS_SECTION][
-                function_name] = self._components[function_name]
+            self._config_parser[_COMPONENTS_SECTION][function_name] = (
+                self._components[function_name]
+            )
 
         with open(str(self._config_filepath), 'w') as f:
             self._config_parser.write(f)
@@ -101,6 +102,8 @@ class KFPConfig():
             pointing to the Python file with this component's definition.
         """
         return {
-            function_name: pathlib.Path(module_path) for function_name,
-            module_path in self._config_parser[_COMPONENTS_SECTION].items()
+            function_name: pathlib.Path(module_path)
+            for function_name, module_path in self._config_parser[
+                _COMPONENTS_SECTION
+            ].items()
         }

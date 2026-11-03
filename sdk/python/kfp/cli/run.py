@@ -16,15 +16,17 @@ import time
 from typing import List
 
 import click
+
 from kfp import client
 from kfp.cli import output
-from kfp.cli.utils import deprecated_alias_group
-from kfp.cli.utils import parsing
+from kfp.cli.utils import deprecated_alias_group, parsing
 
 
 @click.group(
     cls=deprecated_alias_group.deprecated_alias_group_factory(
-        {'submit': 'create'}))
+        {'submit': 'create'}
+    )
+)
 def run():
     """Manage run resources."""
 
@@ -33,25 +35,36 @@ def run():
 @click.option(
     '-e',
     '--experiment-id',
-    help=parsing.get_param_descr(client.Client.list_runs, 'experiment_id'))
+    help=parsing.get_param_descr(client.Client.list_runs, 'experiment_id'),
+)
 @click.option(
     '--page-token',
     default='',
-    help=parsing.get_param_descr(client.Client.list_runs, 'page_token'))
+    help=parsing.get_param_descr(client.Client.list_runs, 'page_token'),
+)
 @click.option(
     '-m',
     '--max-size',
     default=100,
-    help=parsing.get_param_descr(client.Client.list_runs, 'page_size'))
+    help=parsing.get_param_descr(client.Client.list_runs, 'page_size'),
+)
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help=parsing.get_param_descr(client.Client.list_runs, 'sort_by'))
+    help=parsing.get_param_descr(client.Client.list_runs, 'sort_by'),
+)
 @click.option(
-    '--filter', help=parsing.get_param_descr(client.Client.list_runs, 'filter'))
+    '--filter', help=parsing.get_param_descr(client.Client.list_runs, 'filter')
+)
 @click.pass_context
-def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
-         sort_by: str, filter: str):
+def list(
+    ctx: click.Context,
+    experiment_id: str,
+    page_token: str,
+    max_size: int,
+    sort_by: str,
+    filter: str,
+):
     """List pipeline runs."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -60,7 +73,8 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
-        filter=filter)
+        filter=filter,
+    )
     output.print_output(
         response.runs or [],
         output.ModelType.RUN,
@@ -70,46 +84,60 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
 
 @run.command()
 @click.option(
-    '-e',
-    '--experiment-name',
-    required=True,
-    help='Experiment name of the run.')
+    '-e', '--experiment-name', required=True, help='Experiment name of the run.'
+)
 @click.option(
     '-r',
     '--run-name',
-    help=parsing.get_param_descr(client.Client.run_pipeline, 'job_name'))
+    help=parsing.get_param_descr(client.Client.run_pipeline, 'job_name'),
+)
 @click.option(
     '-f',
     '--package-file',
     type=click.Path(exists=True, dir_okay=False),
-    help=parsing.get_param_descr(client.Client.run_pipeline,
-                                 'pipeline_package_path'))
+    help=parsing.get_param_descr(
+        client.Client.run_pipeline, 'pipeline_package_path'
+    ),
+)
 @click.option(
     '-p',
     '--pipeline-id',
-    help=parsing.get_param_descr(client.Client.run_pipeline, 'pipeline_id'))
+    help=parsing.get_param_descr(client.Client.run_pipeline, 'pipeline_id'),
+)
 @click.option('-n', '--pipeline-name', help='Name of the pipeline template.')
 @click.option(
     '-w',
     '--watch',
     is_flag=True,
     default=False,
-    help='Watch the run status until it finishes.')
+    help='Watch the run status until it finishes.',
+)
 @click.option(
     '-v',
     '--version',
-    help=parsing.get_param_descr(client.Client.run_pipeline, 'version_id'))
+    help=parsing.get_param_descr(client.Client.run_pipeline, 'version_id'),
+)
 @click.option(
     '-t',
     '--timeout',
     default=0,
     help='Wait for a run to complete until timeout in seconds.',
-    type=int)
+    type=int,
+)
 @click.argument('args', nargs=-1)
 @click.pass_context
-def create(ctx: click.Context, experiment_name: str, run_name: str,
-           package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
-           timeout: int, version: str, args: List[str]):
+def create(
+    ctx: click.Context,
+    experiment_name: str,
+    run_name: str,
+    package_file: str,
+    pipeline_id: str,
+    pipeline_name: str,
+    watch: bool,
+    timeout: int,
+    version: str,
+    args: List[str],
+):
     """Submit a pipeline run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -122,7 +150,8 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
     if not package_file and not pipeline_id and not version:
         click.echo(
             'You must provide one of [package_file, pipeline_id, version].',
-            err=True)
+            err=True,
+        )
         sys.exit(1)
 
     arg_dict = {}
@@ -130,7 +159,8 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
         if '=' not in arg:
             click.echo(
                 f"Invalid argument format: '{arg}'. Expected 'key=value'.",
-                err=True)
+                err=True,
+            )
             sys.exit(1)
         k, v = arg.split('=', maxsplit=1)
         arg_dict[k] = parsing.parse_parameter_value(v)
@@ -142,7 +172,8 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
         pipeline_package_path=package_file,
         params=arg_dict,
         pipeline_id=pipeline_id,
-        version_id=version)
+        version_id=version,
+    )
     if timeout > 0:
         run_detail = client_obj.wait_for_run_completion(run.run_id, timeout)
         output.print_output(
@@ -160,13 +191,15 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
     '--watch',
     is_flag=True,
     default=False,
-    help='Watch the run status until it finishes.')
+    help='Watch the run status until it finishes.',
+)
 @click.option(
     '-d',
     '--detail',
     is_flag=True,
     default=False,
-    help='Get detailed information of the run in json format.')
+    help='Get detailed information of the run in json format.',
+)
 @click.argument('run-id')
 @click.pass_context
 def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
@@ -177,7 +210,8 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
         output_format = 'json'
         click.echo(
             'The --detail/-d flag is deprecated. Please use --output=json instead.',
-            err=True)
+            err=True,
+        )
     display_run(client_obj, run_id, watch, output_format)
 
 
@@ -231,8 +265,9 @@ def delete(ctx: click.Context, run_id: str):
     output.print_deleted_text('run', run_id, output_format)
 
 
-def display_run(client: client.Client, run_id: str, watch: bool,
-                output_format: str):
+def display_run(
+    client: client.Client, run_id: str, watch: bool, output_format: str
+):
     run = client.get_run(run_id)
 
     output.print_output(
@@ -247,7 +282,11 @@ def display_run(client: client.Client, run_id: str, watch: bool,
         run_detail = client.get_run(run_id)
         run = run_detail
         if run_detail.state in [
-                'SUCCEEDED', 'SKIPPED', 'FAILED', 'CANCELED', 'PAUSED'
+            'SUCCEEDED',
+            'SKIPPED',
+            'FAILED',
+            'CANCELED',
+            'PAUSED',
         ]:
             click.echo(f'Run is finished with state {run_detail.state}.')
             return

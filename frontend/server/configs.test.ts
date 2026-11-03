@@ -57,6 +57,17 @@ describe('loadConfigs', () => {
     ).toEqual(['googleapis.com', 'gdc.example']);
   });
 
+  it('keeps the artifact rate limit unless it is explicitly disabled', () => {
+    const tmpdir = os.tmpdir();
+    const rateLimitDisabled = (value?: string) =>
+      loadConfigs(['node', 'dist/server.js', tmpdir], { ARTIFACTS_RATE_LIMIT_DISABLED: value })
+        .artifacts.rateLimitDisabled;
+    expect(rateLimitDisabled()).toBe(false);
+    expect(rateLimitDisabled('yes')).toBe(false);
+    expect(rateLimitDisabled('TRUE')).toBe(true);
+    expect(rateLimitDisabled('1')).toBe(true);
+  });
+
   it('generates a process-local tensorboard proxy signing secret when unset', () => {
     const tmpdir = os.tmpdir();
     const firstConfigs = loadConfigs(['node', 'dist/server.js', tmpdir], {

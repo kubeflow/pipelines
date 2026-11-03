@@ -1,7 +1,6 @@
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
@@ -12,6 +11,7 @@ def double(num: int) -> int:
 @dsl.component
 def add(nums: List[List[int]]) -> int:
     import itertools
+
     return sum(itertools.chain(*nums))
 
 
@@ -34,4 +34,5 @@ def math_pipeline() -> List[int]:
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=math_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

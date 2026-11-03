@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
@@ -30,13 +30,13 @@ import (
 func TestResolveInputParameter_RuntimePipelineJobTimes(t *testing.T) {
 	createTime := "2026-08-10T18:10:00Z"
 	scheduleTime := "2026-08-10T18:40:00Z"
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId: "parent-task",
 		Name:   "parent",
 	}
 	opts := common.Options{
 		ParentTask:                 parentTask,
-		Run:                        &apiv2beta1.Run{RunId: "run-1"},
+		Run:                        &apiv2.Run{RunId: "run-1"},
 		PipelineJobCreateTimeUTC:   createTime,
 		PipelineJobScheduleTimeUTC: scheduleTime,
 	}
@@ -63,7 +63,7 @@ func TestResolveInputParameter_RuntimePipelineJobTimes(t *testing.T) {
 			resolved, ioType, err := ResolveInputParameter(opts, common.InputParamConstant(test.placeholder), nil)
 			require.NoError(t, err)
 			require.NotNil(t, resolved)
-			assert.Equal(t, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, ioType)
+			assert.Equal(t, apiv2.IOType_RUNTIME_VALUE_INPUT, ioType)
 			assert.Equal(t, test.want, resolved.GetValue().GetStringValue())
 			assert.Equal(t, parentTask.GetName(), resolved.GetProducer().GetTaskName())
 		})
@@ -73,42 +73,42 @@ func TestResolveInputParameter_RuntimePipelineJobTimes(t *testing.T) {
 func TestResolveTaskOutputParameter_FindsIterationScopedNonRuntimeProducer(t *testing.T) {
 	tests := []struct {
 		name         string
-		producerType apiv2beta1.PipelineTask_TaskType
+		producerType apiv2.PipelineTask_TaskType
 	}{
 		{
 			name:         "dag producer",
-			producerType: apiv2beta1.PipelineTask_DAG,
+			producerType: apiv2.PipelineTask_DAG,
 		},
 		{
 			name:         "importer producer",
-			producerType: apiv2beta1.PipelineTask_IMPORTER,
+			producerType: apiv2.PipelineTask_IMPORTER,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			parentTaskID := "loop-parent"
-			parentTask := &apiv2beta1.PipelineTask{
+			parentTask := &apiv2.PipelineTask{
 				TaskId: parentTaskID,
 				Name:   "loop-body",
-				Type:   apiv2beta1.PipelineTask_LOOP,
+				Type:   apiv2.PipelineTask_LOOP,
 			}
 
 			outputValue := structpb.NewStringValue("resolved")
-			producerTask := &apiv2beta1.PipelineTask{
+			producerTask := &apiv2.PipelineTask{
 				TaskId:       "producer-task",
 				Name:         "produce",
 				ParentTaskId: util.StringPointer(parentTaskID),
 				Type:         test.producerType,
-				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+				TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 					IterationIndex: util.Int64Pointer(0),
 				},
-				Outputs: &apiv2beta1.PipelineTask_InputOutputs{
-					Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+				Outputs: &apiv2.PipelineTask_InputOutputs{
+					Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 						{
 							ParameterKey: "result",
 							Value:        outputValue,
-							Producer: &apiv2beta1.IOProducer{
+							Producer: &apiv2.IOProducer{
 								TaskName: "produce",
 							},
 						},
@@ -118,7 +118,7 @@ func TestResolveTaskOutputParameter_FindsIterationScopedNonRuntimeProducer(t *te
 
 			opts := common.Options{
 				ParentTask:     parentTask,
-				Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producerTask}},
+				Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{producerTask}},
 				IterationIndex: 0,
 			}
 
@@ -133,33 +133,33 @@ func TestResolveTaskOutputParameter_FindsIterationScopedNonRuntimeProducer(t *te
 }
 
 func TestResolveTaskOutputParameter_CollectionBoundary(t *testing.T) {
-	for _, producerType := range []apiv2beta1.PipelineTask_TaskType{
-		apiv2beta1.PipelineTask_RUNTIME, apiv2beta1.PipelineTask_DAG, apiv2beta1.PipelineTask_LOOP,
+	for _, producerType := range []apiv2.PipelineTask_TaskType{
+		apiv2.PipelineTask_RUNTIME, apiv2.PipelineTask_DAG, apiv2.PipelineTask_LOOP,
 	} {
 		for _, value := range []*structpb.Value{
 			structpb.NewNumberValue(605), ToListValue([]*structpb.Value{structpb.NewNumberValue(605)}),
 		} {
 			t.Run(producerType.String()+"/"+value.String(), func(t *testing.T) {
-				parent := &apiv2beta1.PipelineTask{TaskId: "outer", Name: "outer", Type: apiv2beta1.PipelineTask_LOOP}
+				parent := &apiv2.PipelineTask{TaskId: "outer", Name: "outer", Type: apiv2.PipelineTask_LOOP}
 				output := iteratorParameter("result", 0, "")
 				output.Value = value
-				producer := &apiv2beta1.PipelineTask{
+				producer := &apiv2.PipelineTask{
 					TaskId: "producer", Name: "produce", Type: producerType,
 					ParentTaskId:   util.StringPointer("outer"),
-					TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)},
-					Outputs:        &apiv2beta1.PipelineTask_InputOutputs{Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{output}},
+					TypeAttributes: &apiv2.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(0)},
+					Outputs:        &apiv2.PipelineTask_InputOutputs{Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{output}},
 				}
 				resolved, ioType, err := ResolveInputParameter(common.Options{
 					ParentTask: parent, IterationIndex: 0,
-					Run: &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producer}},
+					Run: &apiv2.Run{Tasks: []*apiv2.PipelineTask{producer}},
 				}, common.InputParamTaskOutput("produce", "result"), nil)
 				require.NoError(t, err)
-				if producerType != apiv2beta1.PipelineTask_RUNTIME {
-					assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, ioType)
+				if producerType != apiv2.PipelineTask_RUNTIME {
+					assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, ioType)
 					require.Len(t, resolved.GetValue().GetListValue().GetValues(), 1)
 					assert.Equal(t, value, resolved.GetValue().GetListValue().GetValues()[0])
 				} else {
-					assert.Equal(t, apiv2beta1.IOType_TASK_OUTPUT_INPUT, ioType)
+					assert.Equal(t, apiv2.IOType_TASK_OUTPUT_INPUT, ioType)
 					assert.Equal(t, value, resolved.GetValue())
 				}
 			})
@@ -169,29 +169,29 @@ func TestResolveTaskOutputParameter_CollectionBoundary(t *testing.T) {
 
 func TestResolveTaskFinalStatus_FindsIterationScopedProducer(t *testing.T) {
 	parentTaskID := "loop-parent"
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId: parentTaskID,
 		Name:   "loop-body",
-		Type:   apiv2beta1.PipelineTask_LOOP,
+		Type:   apiv2.PipelineTask_LOOP,
 	}
 
-	producerTask := &apiv2beta1.PipelineTask{
+	producerTask := &apiv2.PipelineTask{
 		TaskId:       "producer-task",
 		Name:         "produce",
 		ParentTaskId: util.StringPointer(parentTaskID),
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
-		State:        apiv2beta1.PipelineTask_FAILED,
-		TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+		Type:         apiv2.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_FAILED,
+		TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 			IterationIndex: util.Int64Pointer(1),
 		},
-		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+		StatusMetadata: &apiv2.PipelineTask_StatusMetadata{
 			Message: "boom",
 		},
 	}
 
 	opts := common.Options{
 		ParentTask:     parentTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producerTask}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{producerTask}},
 		RunName:        "run-name",
 		IterationIndex: 1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -218,17 +218,17 @@ func TestResolveTaskFinalStatus_FindsIterationScopedProducer(t *testing.T) {
 
 func TestResolveTaskFinalStatus_UsesOKCodeForSuccessfulTasks(t *testing.T) {
 	parentTaskID := "parent"
-	parentTask := &apiv2beta1.PipelineTask{TaskId: parentTaskID, Name: "parent"}
-	producerTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{TaskId: parentTaskID, Name: "parent"}
+	producerTask := &apiv2.PipelineTask{
 		TaskId:       "producer-task",
 		Name:         "produce",
 		ParentTaskId: util.StringPointer(parentTaskID),
-		Type:         apiv2beta1.PipelineTask_RUNTIME,
-		State:        apiv2beta1.PipelineTask_SUCCEEDED,
+		Type:         apiv2.PipelineTask_RUNTIME,
+		State:        apiv2.PipelineTask_SUCCEEDED,
 	}
 	opts := common.Options{
 		ParentTask:     parentTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producerTask}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{producerTask}},
 		RunName:        "run-name",
 		IterationIndex: -1,
 		Task: &pipelinespec.PipelineTaskSpec{
@@ -254,14 +254,14 @@ func TestResolveParameters_AppliesSelectorAndStringCoercion(t *testing.T) {
 	inputValue, err := structpb.NewValue(map[string]interface{}{"name": 42})
 	require.NoError(t, err)
 
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId: "parent-task",
-		Inputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		Inputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 				{
 					ParameterKey: "item",
 					Value:        inputValue,
-					Producer:     &apiv2beta1.IOProducer{TaskName: "upstream"},
+					Producer:     &apiv2.IOProducer{TaskName: "upstream"},
 				},
 			},
 		},
@@ -297,14 +297,14 @@ func TestResolveParameters_AppliesSelectorAndStringCoercion(t *testing.T) {
 }
 
 func TestResolveParameters_ValidatesLiterals(t *testing.T) {
-	parentTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{
 		TaskId: "parent-task",
-		Inputs: &apiv2beta1.PipelineTask_InputOutputs{
-			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		Inputs: &apiv2.PipelineTask_InputOutputs{
+			Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 				{
 					ParameterKey: "mode",
 					Value:        structpb.NewStringValue("invalid"),
-					Producer:     &apiv2beta1.IOProducer{TaskName: "upstream"},
+					Producer:     &apiv2.IOProducer{TaskName: "upstream"},
 				},
 			},
 		},
@@ -341,9 +341,9 @@ func TestResolveParameters_ValidatesLiterals(t *testing.T) {
 
 func TestResolveParameters_RejectsMissingRequiredInput(t *testing.T) {
 	opts := common.Options{
-		ParentTask: &apiv2beta1.PipelineTask{
+		ParentTask: &apiv2.PipelineTask{
 			TaskId: "parent-task",
-			Inputs: &apiv2beta1.PipelineTask_InputOutputs{},
+			Inputs: &apiv2.PipelineTask_InputOutputs{},
 		},
 		Task: &pipelinespec.PipelineTaskSpec{
 			Inputs: &pipelinespec.TaskInputsSpec{},
@@ -364,14 +364,14 @@ func TestResolveParameters_RejectsMissingRequiredInput(t *testing.T) {
 
 func TestResolveParameters_DoesNotTreatOrdinaryLoopNamedInputAsIterator(t *testing.T) {
 	opts := common.Options{
-		ParentTask: &apiv2beta1.PipelineTask{
+		ParentTask: &apiv2.PipelineTask{
 			TaskId: "parent-task",
-			Inputs: &apiv2beta1.PipelineTask_InputOutputs{
-				Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			Inputs: &apiv2.PipelineTask_InputOutputs{
+				Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 					{
 						ParameterKey: "loop-item-user",
 						Value:        structpb.NewStringValue("value"),
-						Producer:     &apiv2beta1.IOProducer{TaskName: "upstream"},
+						Producer:     &apiv2.IOProducer{TaskName: "upstream"},
 					},
 				},
 			},
@@ -401,14 +401,14 @@ func TestResolveParameters_DoesNotTreatOrdinaryLoopNamedInputAsIterator(t *testi
 
 func TestResolveParameters_NestedLoopInputsUseCurrentIteratorOnly(t *testing.T) {
 	opts := common.Options{
-		ParentTask: &apiv2beta1.PipelineTask{
+		ParentTask: &apiv2.PipelineTask{
 			TaskId: "parent-task",
-			Inputs: &apiv2beta1.PipelineTask_InputOutputs{
-				Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			Inputs: &apiv2.PipelineTask_InputOutputs{
+				Parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 					{
 						ParameterKey: "pipelinechannel--loop-item-param-3",
 						Value:        structpb.NewStringValue("outer-0"),
-						Producer: &apiv2beta1.IOProducer{
+						Producer: &apiv2.IOProducer{
 							TaskName:  "outer-loop",
 							Iteration: util.Int64Pointer(0),
 						},
@@ -416,7 +416,7 @@ func TestResolveParameters_NestedLoopInputsUseCurrentIteratorOnly(t *testing.T) 
 					{
 						ParameterKey: "pipelinechannel--loop-item-param-5",
 						Value:        structpb.NewStringValue("inner-0"),
-						Producer: &apiv2beta1.IOProducer{
+						Producer: &apiv2.IOProducer{
 							TaskName:  "inner-loop",
 							Iteration: util.Int64Pointer(0),
 						},
@@ -424,7 +424,7 @@ func TestResolveParameters_NestedLoopInputsUseCurrentIteratorOnly(t *testing.T) 
 					{
 						ParameterKey: "pipelinechannel--loop-item-param-5",
 						Value:        structpb.NewStringValue("inner-1"),
-						Producer: &apiv2beta1.IOProducer{
+						Producer: &apiv2.IOProducer{
 							TaskName:  "inner-loop",
 							Iteration: util.Int64Pointer(1),
 						},
@@ -469,31 +469,31 @@ func TestResolveParameters_NestedLoopInputsUseCurrentIteratorOnly(t *testing.T) 
 
 func TestResolveTaskOutputParameter_EmptyLoopProducesEmptyCollection(t *testing.T) {
 	parentTaskID := "dag-parent"
-	parentTask := &apiv2beta1.PipelineTask{TaskId: parentTaskID, Name: "dag"}
-	producerTask := &apiv2beta1.PipelineTask{
+	parentTask := &apiv2.PipelineTask{TaskId: parentTaskID, Name: "dag"}
+	producerTask := &apiv2.PipelineTask{
 		TaskId:       "loop-task",
 		Name:         "loop",
 		ParentTaskId: util.StringPointer(parentTaskID),
-		Type:         apiv2beta1.PipelineTask_LOOP,
-		TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+		Type:         apiv2.PipelineTask_LOOP,
+		TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 			IterationCount: util.Int64Pointer(0),
 		},
 	}
 	opts := common.Options{
 		ParentTask:     parentTask,
-		Run:            &apiv2beta1.Run{Tasks: []*apiv2beta1.PipelineTask{producerTask}},
+		Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{producerTask}},
 		IterationIndex: -1,
 	}
 
 	resolved, err := resolveTaskOutputParameter(opts, common.InputParamTaskOutput("loop", "result"))
 	require.NoError(t, err)
 	require.NotNil(t, resolved)
-	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
+	assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, resolved.GetType())
 	assert.Empty(t, resolved.GetValue().GetListValue().GetValues())
 }
 
 func TestFindParameterByProducerKeyInList_OrdersIteratorOutputs(t *testing.T) {
-	parameters := []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	parameters := []*apiv2.PipelineTask_InputOutputs_IOParameter{
 		iteratorParameter("result", 2, "two"),
 		iteratorParameter("result", 0, "zero"),
 		iteratorParameter("result", 1, "one"),
@@ -502,7 +502,7 @@ func TestFindParameterByProducerKeyInList_OrdersIteratorOutputs(t *testing.T) {
 	resolved, err := findParameterByProducerKeyInList("result", "producer", parameters, true)
 
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
+	assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, resolved.GetType())
 	require.Len(t, resolved.GetValue().GetListValue().GetValues(), 3)
 	assert.Equal(t, "zero", resolved.GetValue().GetListValue().GetValues()[0].GetStringValue())
 	assert.Equal(t, "one", resolved.GetValue().GetListValue().GetValues()[1].GetStringValue())
@@ -513,14 +513,14 @@ func TestFindParameterByProducerKeyInList_WrapsSingletonIteratorOutput(t *testin
 	resolved, err := findParameterByProducerKeyInList(
 		"result",
 		"producer",
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		[]*apiv2.PipelineTask_InputOutputs_IOParameter{
 			iteratorParameter("result", 0, "only"),
 		},
 		true,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, apiv2beta1.IOType_COLLECTED_INPUTS, resolved.GetType())
+	assert.Equal(t, apiv2.IOType_COLLECTED_INPUTS, resolved.GetType())
 	require.Len(t, resolved.GetValue().GetListValue().GetValues(), 1)
 	assert.Equal(t, "only", resolved.GetValue().GetListValue().GetValues()[0].GetStringValue())
 }
@@ -528,12 +528,12 @@ func TestFindParameterByProducerKeyInList_WrapsSingletonIteratorOutput(t *testin
 func TestFindParameterByProducerKeyInList_RejectsInvalidIteratorMetadata(t *testing.T) {
 	tests := []struct {
 		name       string
-		parameters []*apiv2beta1.PipelineTask_InputOutputs_IOParameter
+		parameters []*apiv2.PipelineTask_InputOutputs_IOParameter
 		errorText  string
 	}{
 		{
 			name: "duplicate iteration",
-			parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			parameters: []*apiv2.PipelineTask_InputOutputs_IOParameter{
 				iteratorParameter("result", 1, "first"),
 				iteratorParameter("result", 1, "second"),
 			},
@@ -551,18 +551,18 @@ func TestFindParameterByProducerKeyInList_RejectsInvalidIteratorMetadata(t *test
 }
 
 func TestFindParameterByProducerKeyInList_PreservesOrderWithoutIterationMetadata(t *testing.T) {
-	parameters := []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	parameters := []*apiv2.PipelineTask_InputOutputs_IOParameter{
 		{
 			ParameterKey: "result",
-			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Type:         apiv2.IOType_ITERATOR_OUTPUT,
 			Value:        structpb.NewStringValue("first"),
-			Producer:     &apiv2beta1.IOProducer{TaskName: "producer"},
+			Producer:     &apiv2.IOProducer{TaskName: "producer"},
 		},
 		{
 			ParameterKey: "result",
-			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Type:         apiv2.IOType_ITERATOR_OUTPUT,
 			Value:        structpb.NewStringValue("second"),
-			Producer:     &apiv2beta1.IOProducer{TaskName: "producer"},
+			Producer:     &apiv2.IOProducer{TaskName: "producer"},
 		},
 	}
 
@@ -578,12 +578,12 @@ func iteratorParameter(
 	key string,
 	iteration int64,
 	value string,
-) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-	return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+) *apiv2.PipelineTask_InputOutputs_IOParameter {
+	return &apiv2.PipelineTask_InputOutputs_IOParameter{
 		ParameterKey: key,
-		Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Type:         apiv2.IOType_ITERATOR_OUTPUT,
 		Value:        structpb.NewStringValue(value),
-		Producer: &apiv2beta1.IOProducer{
+		Producer: &apiv2.IOProducer{
 			TaskName:  "producer",
 			Iteration: util.Int64Pointer(iteration),
 		},

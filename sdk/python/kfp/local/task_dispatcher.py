@@ -23,19 +23,22 @@ from kfp.local import config
 # docker import fix
 try:
     from kfp.local import docker_task_handler
+
     _DOCKER_AVAILABLE = True
 except ImportError:
     docker_task_handler = None
     _DOCKER_AVAILABLE = False
 
-from kfp.local import executor_input_utils
-from kfp.local import executor_output_utils
-from kfp.local import logging_utils
-from kfp.local import placeholder_utils
-from kfp.local import status
-from kfp.local import subprocess_task_handler
-from kfp.local import task_handler_interface
-from kfp.local import utils
+from kfp.local import (
+    executor_input_utils,
+    executor_output_utils,
+    logging_utils,
+    placeholder_utils,
+    status,
+    subprocess_task_handler,
+    task_handler_interface,
+    utils,
+)
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -51,8 +54,11 @@ def run_single_task(
         component_spec.executor_label,
     )
     executor_spec = utils.struct_to_executor_spec(executor_spec)
-    pipeline_resource_name = executor_input_utils.get_local_pipeline_resource_name(
-        pipeline_spec.pipeline_info.name)
+    pipeline_resource_name = (
+        executor_input_utils.get_local_pipeline_resource_name(
+            pipeline_spec.pipeline_info.name
+        )
+    )
 
     outputs, _ = run_single_task_implementation(
         pipeline_resource_name=pipeline_resource_name,
@@ -64,7 +70,8 @@ def run_single_task(
         runner=config.LocalExecutionConfig.instance.runner,
         raise_on_error=config.LocalExecutionConfig.instance.raise_on_error,
         block_input_artifact=True,
-        unique_pipeline_id=placeholder_utils.make_random_id())
+        unique_pipeline_id=placeholder_utils.make_random_id(),
+    )
     return outputs
 
 
@@ -79,7 +86,7 @@ Outputs = Dict[str, Any]
 
 
 def _extract_container_env_vars(
-    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec
+    container: pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec,
 ) -> Dict[str, str]:
     return {env_var.name: env_var.value for env_var in container.env}
 
@@ -107,7 +114,8 @@ def _normalize_environment_config(environment: Any) -> Dict[str, Any]:
         return normalized
     raise ValueError(
         'DockerRunner environment must be a dict or a sequence of KEY=VALUE '
-        'strings / (key, value) pairs for local execution.')
+        'strings / (key, value) pairs for local execution.'
+    )
 
 
 def _prepare_runner_and_env_vars(
@@ -119,7 +127,8 @@ def _prepare_runner_and_env_vars(
         return runner, env_vars
 
     runner_env = _normalize_environment_config(
-        runner.container_run_args.get('environment'))
+        runner.container_run_args.get('environment')
+    )
     merged_env = {**env_vars, **runner_env}
 
     runner_copy = copy.copy(runner)
@@ -142,7 +151,8 @@ def run_single_task_implementation(
 ) -> Tuple[Outputs, status.Status]:
 
     task_resource_name = executor_input_utils.get_local_task_resource_name(
-        component_name)
+        component_name
+    )
     task_root = executor_input_utils.construct_local_task_root(
         pipeline_root=pipeline_root,
         pipeline_resource_name=pipeline_resource_name,
@@ -179,17 +189,20 @@ def run_single_task_implementation(
 
     # Safe TaskHandler map fix
     task_handler_map: Dict[
-        local.LocalRunnerType, task_handler_interface.ITaskHandler] = {
-            local.SubprocessRunner:
-                subprocess_task_handler.SubprocessTaskHandler,
-        }
+        local.LocalRunnerType, task_handler_interface.ITaskHandler
+    ] = {
+        local.SubprocessRunner: subprocess_task_handler.SubprocessTaskHandler,
+    }
 
     if _DOCKER_AVAILABLE:
-        task_handler_map[
-            local.DockerRunner] = docker_task_handler.DockerTaskHandler
+        task_handler_map[local.DockerRunner] = (
+            docker_task_handler.DockerTaskHandler
+        )
     elif runner_type is local.DockerRunner:
-        raise RuntimeError('DockerRunner selected but docker is not installed. '
-                           'Install docker or switch to SubprocessRunner.')
+        raise RuntimeError(
+            'DockerRunner selected but docker is not installed. '
+            'Install docker or switch to SubprocessRunner.'
+        )
 
     TaskHandler = task_handler_map[runner_type]
 

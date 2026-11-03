@@ -14,8 +14,7 @@
 
 from typing import Optional
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -25,24 +24,18 @@ def print_op(msg: str, msg2: Optional[str] = None):
 
 
 @dsl.pipeline(name='pipeline-with-nested-loops')
-def my_pipeline(loop_parameter: list = [
-    {
-        'p_a': [{
-            'q_a': '1'
-        }, {
-            'q_a': '2'
-        }],
-        'p_b': 'hello',
-    },
-    {
-        'p_a': [{
-            'q_a': '11'
-        }, {
-            'q_a': '22'
-        }],
-        'p_b': 'halo',
-    },
-]):
+def my_pipeline(
+    loop_parameter: list = [
+        {
+            'p_a': [{'q_a': '1'}, {'q_a': '2'}],
+            'p_b': 'hello',
+        },
+        {
+            'p_a': [{'q_a': '11'}, {'q_a': '22'}],
+            'p_b': 'halo',
+        },
+    ],
+):
     # Nested loop with withParams loop args
     with dsl.ParallelFor(loop_parameter) as item:
         with dsl.ParallelFor(item.p_a) as item_p_a:
@@ -57,5 +50,5 @@ def my_pipeline(loop_parameter: list = [
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

@@ -16,11 +16,12 @@
 import json
 import os
 import tempfile
-from typing import List, Optional
 import unittest
+from typing import List, Optional
 
 from absl.testing import parameterized
 from google.protobuf import json_format
+
 from kfp.dsl import constants as dsl_constants
 from kfp.local import placeholder_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -31,67 +32,56 @@ json_format.ParseDict(
         'inputs': {
             'parameterValues': {
                 'boolean': False,
-                'dictionary': {
-                    'foo': 'bar'
-                },
+                'dictionary': {'foo': 'bar'},
             },
             'artifacts': {
                 'in_a': {
-                    'artifacts': [{
-                        'name':
-                            'in_a',
-                        'type': {
-                            'schemaTitle': 'system.Dataset',
-                            'schemaVersion': '0.0.1'
-                        },
-                        'uri':
-                            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
-                        'metadata': {
-                            'foo': {
-                                'bar': 'baz'
-                            }
+                    'artifacts': [
+                        {
+                            'name': 'in_a',
+                            'type': {
+                                'schemaTitle': 'system.Dataset',
+                                'schemaVersion': '0.0.1',
+                            },
+                            'uri': '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+                            'metadata': {'foo': {'bar': 'baz'}},
                         }
-                    }]
+                    ]
                 }
             },
         },
         'outputs': {
             'parameters': {
                 'Output': {
-                    'outputFile':
-                        '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output'
+                    'outputFile': '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output'
                 }
             },
             'artifacts': {
                 'out_a': {
-                    'artifacts': [{
-                        'name':
-                            'out_a',
-                        'type': {
-                            'schemaTitle': 'system.Dataset',
-                            'schemaVersion': '0.0.1'
-                        },
-                        'uri':
-                            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
-                        # include metadata on outputs since it allows us to
-                        # test the placeholder
-                        # "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}"
-                        # for comprehensive testing, but in practice metadata
-                        # will never be set on output artifacts since they
-                        # haven't been created yet
-                        'metadata': {
-                            'foo': {
-                                'bar': 'baz'
-                            }
+                    'artifacts': [
+                        {
+                            'name': 'out_a',
+                            'type': {
+                                'schemaTitle': 'system.Dataset',
+                                'schemaVersion': '0.0.1',
+                            },
+                            'uri': '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+                            # include metadata on outputs since it allows us to
+                            # test the placeholder
+                            # "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}"
+                            # for comprehensive testing, but in practice metadata
+                            # will never be set on output artifacts since they
+                            # haven't been created yet
+                            'metadata': {'foo': {'bar': 'baz'}},
                         }
-                    }]
+                    ]
                 }
             },
-            'outputFile':
-                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json'
-        }
+            'outputFile': '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json',
+        },
     },
-    executor_input)
+    executor_input,
+)
 
 EXECUTOR_INPUT_DICT = json_format.MessageToDict(executor_input)
 
@@ -124,43 +114,44 @@ class TestReplacePlaceholders(unittest.TestCase):
 
 
 class TestResolveIndividualPlaceholder(parameterized.TestCase):
-
     # TODO: consider supporting JSON escape
     # TODO: update when output lists of artifacts are supported
-    @parameterized.parameters([
-        (
-            '{{$}}',
-            json.dumps(EXECUTOR_INPUT_DICT),
-        ),
-        (
-            '{{$.outputs.output_file}}',
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json',
-        ),
-        (
-            '{{$.outputMetadataUri}}',
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json',
-        ),
-        (
-            '{{$.pipeline_job_name}}',
-            'my-pipeline-2023-10-10-13-32-59-420710',
-        ),
-        (
-            '{{$.pipeline_job_uuid}}',
-            '123456789',
-        ),
-        (
-            '{{$.pipeline_task_name}}',
-            'comp',
-        ),
-        (
-            '{{$.pipeline_task_uuid}}',
-            '987654321',
-        ),
-        (
-            '{{$.pipeline_root}}',
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
-        ),
-    ])
+    @parameterized.parameters(
+        [
+            (
+                '{{$}}',
+                json.dumps(EXECUTOR_INPUT_DICT),
+            ),
+            (
+                '{{$.outputs.output_file}}',
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json',
+            ),
+            (
+                '{{$.outputMetadataUri}}',
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/executor_output.json',
+            ),
+            (
+                '{{$.pipeline_job_name}}',
+                'my-pipeline-2023-10-10-13-32-59-420710',
+            ),
+            (
+                '{{$.pipeline_job_uuid}}',
+                '123456789',
+            ),
+            (
+                '{{$.pipeline_task_name}}',
+                'comp',
+            ),
+            (
+                '{{$.pipeline_task_uuid}}',
+                '987654321',
+            ),
+            (
+                '{{$.pipeline_root}}',
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710',
+            ),
+        ]
+    )
     def test_constant_placeholders(self, element: str, expected: str):
         actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
@@ -173,22 +164,25 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
         )
         self.assertEqual(actual, expected)
 
-    @parameterized.parameters([
-        (
-            '{{$}}invalidjson',
-            json.dumps(EXECUTOR_INPUT_DICT) + 'invalidjson',
-        ),
-        (
-            '{{$.pipeline_job_name}}/{{$.pipeline_task_name}}',
-            'my-pipeline-2023-10-10-13-32-59-420710/comp',
-        ),
-        (
-            '{{$.pipeline_root}}/foo/bar',
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/foo/bar',
-        ),
-    ])
-    def test_concatenated_placeholders_resolve(self, element: str,
-                                               expected: str):
+    @parameterized.parameters(
+        [
+            (
+                '{{$}}invalidjson',
+                json.dumps(EXECUTOR_INPUT_DICT) + 'invalidjson',
+            ),
+            (
+                '{{$.pipeline_job_name}}/{{$.pipeline_task_name}}',
+                'my-pipeline-2023-10-10-13-32-59-420710/comp',
+            ),
+            (
+                '{{$.pipeline_root}}/foo/bar',
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/foo/bar',
+            ),
+        ]
+    )
+    def test_concatenated_placeholders_resolve(
+        self, element: str, expected: str
+    ):
         actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
@@ -200,56 +194,54 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
         )
         self.assertEqual(actual, expected)
 
-    @parameterized.parameters([
-        (
-            "{{$.inputs.parameters[''boolean'']}}",
-            json.dumps(False),
-        ),
-        (
-            "{{$.inputs.parameters[''not_present'']}}",
-            json.dumps(None),
-        ),
-        (
-            "{{$.outputs.artifacts[''out_a''].metadata}}",
-            json.dumps({'foo': {
-                'bar': 'baz'
-            }}),
-        ),
-        (
-            "{{$.outputs.parameters[''Output''].output_file}}",
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output',
-        ),
-        (
-            "{{$.outputs.artifacts[''out_a''].uri}}",
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
-        ),
-        (
-            "{{$.outputs.artifacts[''out_a''].path}}",
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
-        ),
-        (
-            "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}",
-            json.dumps({'bar': 'baz'}),
-        ),
-        (
-            "{{$.inputs.artifacts[''in_a''].metadata}}",
-            json.dumps({'foo': {
-                'bar': 'baz'
-            }}),
-        ),
-        (
-            "{{$.inputs.artifacts[''in_a''].uri}}",
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
-        ),
-        (
-            "{{$.inputs.artifacts[''in_a''].path}}",
-            '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
-        ),
-        (
-            "{{$.inputs.artifacts[''in_a''].metadata[''foo'']}}",
-            json.dumps({'bar': 'baz'}),
-        ),
-    ])
+    @parameterized.parameters(
+        [
+            (
+                "{{$.inputs.parameters[''boolean'']}}",
+                json.dumps(False),
+            ),
+            (
+                "{{$.inputs.parameters[''not_present'']}}",
+                json.dumps(None),
+            ),
+            (
+                "{{$.outputs.artifacts[''out_a''].metadata}}",
+                json.dumps({'foo': {'bar': 'baz'}}),
+            ),
+            (
+                "{{$.outputs.parameters[''Output''].output_file}}",
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output',
+            ),
+            (
+                "{{$.outputs.artifacts[''out_a''].uri}}",
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+            ),
+            (
+                "{{$.outputs.artifacts[''out_a''].path}}",
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/out_a',
+            ),
+            (
+                "{{$.outputs.artifacts[''out_a''].metadata[''foo'']}}",
+                json.dumps({'bar': 'baz'}),
+            ),
+            (
+                "{{$.inputs.artifacts[''in_a''].metadata}}",
+                json.dumps({'foo': {'bar': 'baz'}}),
+            ),
+            (
+                "{{$.inputs.artifacts[''in_a''].uri}}",
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+            ),
+            (
+                "{{$.inputs.artifacts[''in_a''].path}}",
+                '/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/upstream-comp/in_a',
+            ),
+            (
+                "{{$.inputs.artifacts[''in_a''].metadata[''foo'']}}",
+                json.dumps({'bar': 'baz'}),
+            ),
+        ]
+    )
     def test_io_placeholders(self, element: str, expected: str):
         actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
@@ -262,26 +254,29 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
         )
         self.assertEqual(actual, expected)
 
-    @parameterized.parameters([
-        (
-            "my-prefix-{{$.inputs.parameters[''boolean'']}}-suffix",
-            'my-prefix-false-suffix',
-        ),
-        (
-            "--param={{$.inputs.parameters[''not_present'']}}",
-            '--param=null',
-        ),
-        (
-            "prefix{{$.outputs.parameters[''Output''].output_file}}/suffix",
-            'prefix/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output/suffix',
-        ),
-        (
-            "prefix{{$.inputs.parameters[''dictionary'']}}suffix",
-            'prefix{"foo": "bar"}suffix',
-        ),
-    ])
-    def test_io_placeholder_with_string_concat(self, element: str,
-                                               expected: str):
+    @parameterized.parameters(
+        [
+            (
+                "my-prefix-{{$.inputs.parameters[''boolean'']}}-suffix",
+                'my-prefix-false-suffix',
+            ),
+            (
+                "--param={{$.inputs.parameters[''not_present'']}}",
+                '--param=null',
+            ),
+            (
+                "prefix{{$.outputs.parameters[''Output''].output_file}}/suffix",
+                'prefix/foo/bar/my-pipeline-2023-10-10-13-32-59-420710/comp/Output/suffix',
+            ),
+            (
+                "prefix{{$.inputs.parameters[''dictionary'']}}suffix",
+                'prefix{"foo": "bar"}suffix',
+            ),
+        ]
+    )
+    def test_io_placeholder_with_string_concat(
+        self, element: str, expected: str
+    ):
         actual = placeholder_utils.resolve_individual_placeholder(
             element=element,
             executor_input_dict=EXECUTOR_INPUT_DICT,
@@ -295,14 +290,9 @@ class TestResolveIndividualPlaceholder(parameterized.TestCase):
 
 
 class TestGetValueUsingPath(unittest.TestCase):
-
     def test_valid_path(self):
         actual = placeholder_utils.get_value_using_path(
-            {'a': {
-                'b': {
-                    'c': 10
-                }
-            }},
+            {'a': {'b': {'c': 10}}},
             ['a', 'b', 'c'],
         )
         expected = 10
@@ -310,11 +300,7 @@ class TestGetValueUsingPath(unittest.TestCase):
 
     def test_invalid_path(self):
         actual = placeholder_utils.get_value_using_path(
-            {'a': {
-                'b': {
-                    'c': 10
-                }
-            }},
+            {'a': {'b': {'c': 10}}},
             ['a', 'x'],
         )
         self.assertIsNone(actual)
@@ -325,89 +311,90 @@ class TestGetValueUsingPath(unittest.TestCase):
 
 
 class TestResolveStructPlaceholders(parameterized.TestCase):
-
-    @parameterized.parameters([
-        (
-            """{"Concat": ["a", "b", "c"]}""",
-            [],
-            'abc',
-        ),
-        (
-            """{"Concat": ["prefix", "-", "{{$.outputs.artifacts[''x''].uri}}"]}""",
-            [],
-            "prefix-{{$.outputs.artifacts[''x''].uri}}",
-        ),
-        (
-            """{"Concat": ["a", {"Concat": ["b", "c"]}]}""",
-            [],
-            'abc',
-        ),
-        (
-            """{"IfPresent": {"InputName": "x", "Then": ["foo"], "Else": ["bar"]}}""",
-            [],
-            ['bar'],
-        ),
-        (
-            """{"IfPresent": {"InputName": "x", "Then": ["foo"], "Else": ["bar"]}}""",
-            ['x'],
-            ['foo'],
-        ),
-        (
-            """{"Concat": ["a", {"Concat": ["b", {"Concat": ["c", "{{$.inputs.parameters[''input2'']}}"]}]}]}""",
-            [],
-            "abc{{$.inputs.parameters[''input2'']}}",
-        ),
-        (
-            """{"Concat": ["a", {"Concat": ["b", {"IfPresent": {"InputName": "foo", "Then": "c", "Else": "d"}}]}]}""",
-            [],
-            'abd',
-        ),
-        (
-            """{"Concat": ["--flag", {"Concat": ["=", {"IfPresent": {"InputName": "x", "Then": "thing", "Else": "otherwise"}}]}]}""",
-            ['x'],
-            '--flag=thing',
-        ),
-        (
-            """{"Concat": ["a", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag", "{{$.inputs.artifacts['input2'].path}}"]}, "Else": "b"}}, "c"]}""",
-            [],
-            'abc',
-        ),
-        (
-            """{"Concat": ["--flag", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["=", "{{$.inputs.artifacts['input2'].path}}"]}, "Else": "b"}}, "-suffix"]}""",
-            ['foo'],
-            "--flag={{$.inputs.artifacts['input2'].path}}-suffix",
-        ),
-        (
-            """{"Concat": ["a-", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "-c"]}""",
-            [],
-            "a-{{$.inputs.artifacts['input2'].path}}-c",
-        ),
-        (
-            """{"Concat": ["--", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "=c"]}""",
-            ['foo'],
-            '--flag=c',
-        ),
-        (
-            """{"Concat": ["--", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["flag"]}}}, "=c"]}""",
-            ['foo'],
-            '--flag=c',
-        ),
-        (
-            """{"Concat": ["--flag", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["=", "other", "_val"]}}}, "=foo"]}""",
-            [],
-            '--flag=foo',
-        ),
-        (
-            """{"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}}}""",
-            ['foo'],
-            '--flag',
-        ),
-        (
-            """{"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}}}""",
-            [],
-            None,
-        ),
-    ])
+    @parameterized.parameters(
+        [
+            (
+                """{"Concat": ["a", "b", "c"]}""",
+                [],
+                'abc',
+            ),
+            (
+                """{"Concat": ["prefix", "-", "{{$.outputs.artifacts[''x''].uri}}"]}""",
+                [],
+                "prefix-{{$.outputs.artifacts[''x''].uri}}",
+            ),
+            (
+                """{"Concat": ["a", {"Concat": ["b", "c"]}]}""",
+                [],
+                'abc',
+            ),
+            (
+                """{"IfPresent": {"InputName": "x", "Then": ["foo"], "Else": ["bar"]}}""",
+                [],
+                ['bar'],
+            ),
+            (
+                """{"IfPresent": {"InputName": "x", "Then": ["foo"], "Else": ["bar"]}}""",
+                ['x'],
+                ['foo'],
+            ),
+            (
+                """{"Concat": ["a", {"Concat": ["b", {"Concat": ["c", "{{$.inputs.parameters[''input2'']}}"]}]}]}""",
+                [],
+                "abc{{$.inputs.parameters[''input2'']}}",
+            ),
+            (
+                """{"Concat": ["a", {"Concat": ["b", {"IfPresent": {"InputName": "foo", "Then": "c", "Else": "d"}}]}]}""",
+                [],
+                'abd',
+            ),
+            (
+                """{"Concat": ["--flag", {"Concat": ["=", {"IfPresent": {"InputName": "x", "Then": "thing", "Else": "otherwise"}}]}]}""",
+                ['x'],
+                '--flag=thing',
+            ),
+            (
+                """{"Concat": ["a", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag", "{{$.inputs.artifacts['input2'].path}}"]}, "Else": "b"}}, "c"]}""",
+                [],
+                'abc',
+            ),
+            (
+                """{"Concat": ["--flag", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["=", "{{$.inputs.artifacts['input2'].path}}"]}, "Else": "b"}}, "-suffix"]}""",
+                ['foo'],
+                "--flag={{$.inputs.artifacts['input2'].path}}-suffix",
+            ),
+            (
+                """{"Concat": ["a-", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "-c"]}""",
+                [],
+                "a-{{$.inputs.artifacts['input2'].path}}-c",
+            ),
+            (
+                """{"Concat": ["--", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "=c"]}""",
+                ['foo'],
+                '--flag=c',
+            ),
+            (
+                """{"Concat": ["--", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["flag"]}}}, "=c"]}""",
+                ['foo'],
+                '--flag=c',
+            ),
+            (
+                """{"Concat": ["--flag", {"IfPresent": {"InputName": "foo", "Then": {"Concat": ["=", "other", "_val"]}}}, "=foo"]}""",
+                [],
+                '--flag=foo',
+            ),
+            (
+                """{"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}}}""",
+                ['foo'],
+                '--flag',
+            ),
+            (
+                """{"IfPresent": {"InputName": "foo", "Then": {"Concat": ["--", "flag"]}}}""",
+                [],
+                None,
+            ),
+        ]
+    )
     def test(
         self,
         placeholder: str,
@@ -422,33 +409,28 @@ class TestResolveStructPlaceholders(parameterized.TestCase):
 
 
 class TestResolveSelfReferencesInExecutorInput(unittest.TestCase):
-
     def test_simple(self):
         executor_input_dict = {
             'inputs': {
                 'parameterValues': {
-                    'pipelinechannel--identity-Output':
-                        'foo',
-                    'string':
-                        "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar"
+                    'pipelinechannel--identity-Output': 'foo',
+                    'string': "{{$.inputs.parameters['pipelinechannel--identity-Output']}}-bar",
                 }
             },
             'outputs': {
-                'outputFile':
-                    '/foo/bar/my-pipeline-2024-01-26-12-26-24-162075/echo/executor_output.json'
-            }
+                'outputFile': '/foo/bar/my-pipeline-2024-01-26-12-26-24-162075/echo/executor_output.json'
+            },
         }
         expected = {
             'inputs': {
                 'parameterValues': {
                     'pipelinechannel--identity-Output': 'foo',
-                    'string': 'foo-bar'
+                    'string': 'foo-bar',
                 }
             },
             'outputs': {
-                'outputFile':
-                    '/foo/bar/my-pipeline-2024-01-26-12-26-24-162075/echo/executor_output.json'
-            }
+                'outputFile': '/foo/bar/my-pipeline-2024-01-26-12-26-24-162075/echo/executor_output.json'
+            },
         }
         actual = placeholder_utils.resolve_self_references_in_executor_input(
             executor_input_dict,
@@ -468,22 +450,20 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
         """Set up test environment."""
         # Initialize local config for testing
         from kfp import local
+
         local.init(runner=local.SubprocessRunner())
         # Workspace prefix respects TMPDIR (via tempfile.mkdtemp).
-        self._workspace_prefix = os.path.join(tempfile.gettempdir(),
-                                              'kfp-workspace-')
+        self._workspace_prefix = os.path.join(
+            tempfile.gettempdir(), 'kfp-workspace-'
+        )
 
     def test_workspace_path_placeholder_resolution(self):
         """Test that workspace path placeholder is correctly resolved."""
         executor_input_dict = {
             'inputs': {
-                'parameterValues': {
-                    'workspace_path': '{{$.workspace_path}}'
-                }
+                'parameterValues': {'workspace_path': '{{$.workspace_path}}'}
             },
-            'outputs': {
-                'outputFile': '/tmp/outputs/output.txt'
-            }
+            'outputs': {'outputFile': '/tmp/outputs/output.txt'},
         }
 
         result = placeholder_utils.resolve_individual_placeholder(
@@ -493,7 +473,8 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
             task_resource_name='test-task',
             pipeline_root='/tmp/pipeline',
             pipeline_job_id='test-job-id',
-            pipeline_task_id='test-task-id')
+            pipeline_task_id='test-task-id',
+        )
 
         self.assertIsInstance(result, str)
         self.assertTrue(result.startswith(self._workspace_prefix))
@@ -503,13 +484,12 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
         executor_input_dict = {
             'inputs': {
                 'parameterValues': {
-                    'file_path':
-                        os.path.join('{{$.workspace_path}}', 'data', 'file.txt')
+                    'file_path': os.path.join(
+                        '{{$.workspace_path}}', 'data', 'file.txt'
+                    )
                 }
             },
-            'outputs': {
-                'outputFile': '/tmp/outputs/output.txt'
-            }
+            'outputs': {'outputFile': '/tmp/outputs/output.txt'},
         }
 
         result = placeholder_utils.resolve_individual_placeholder(
@@ -519,7 +499,8 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
             task_resource_name='test-task',
             pipeline_root='/tmp/pipeline',
             pipeline_job_id='test-job-id',
-            pipeline_task_id='test-task-id')
+            pipeline_task_id='test-task-id',
+        )
 
         self.assertIsInstance(result, str)
         self.assertIn('os.path.join', result)
@@ -532,13 +513,9 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
         configured."""
         executor_input_dict = {
             'inputs': {
-                'parameterValues': {
-                    'workspace_path': '{{$.workspace_path}}'
-                }
+                'parameterValues': {'workspace_path': '{{$.workspace_path}}'}
             },
-            'outputs': {
-                'outputFile': '/tmp/outputs/output.txt'
-            }
+            'outputs': {'outputFile': '/tmp/outputs/output.txt'},
         }
 
         result = placeholder_utils.resolve_individual_placeholder(
@@ -548,7 +525,8 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
             task_resource_name='test-task',
             pipeline_root='/tmp/pipeline',
             pipeline_job_id='test-job-id',
-            pipeline_task_id='test-task-id')
+            pipeline_task_id='test-task-id',
+        )
 
         # Should resolve to actual workspace path
         self.assertIsInstance(result, str)
@@ -558,12 +536,8 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
         """'/kfp-workspace' should be replaced with host workspace in
         subprocess mode."""
         executor_input_dict = {
-            'inputs': {
-                'parameterValues': {}
-            },
-            'outputs': {
-                'outputFile': '/tmp/outputs/output.txt'
-            }
+            'inputs': {'parameterValues': {}},
+            'outputs': {'outputFile': '/tmp/outputs/output.txt'},
         }
 
         element = f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt'
@@ -574,7 +548,8 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
             task_resource_name='test-task',
             pipeline_root='/tmp/pipeline',
             pipeline_job_id='test-job-id',
-            pipeline_task_id='test-task-id')
+            pipeline_task_id='test-task-id',
+        )
 
         self.assertIsInstance(result, str)
         self.assertTrue(result.startswith(self._workspace_prefix))
@@ -586,16 +561,13 @@ class TestWorkspacePlaceholderResolutionDocker(unittest.TestCase):
 
     def setUp(self):
         from kfp import local
+
         local.init(runner=local.DockerRunner())
 
     def test_workspace_placeholder_maps_to_mount_path(self):
         executor_input_dict = {
-            'inputs': {
-                'parameterValues': {}
-            },
-            'outputs': {
-                'outputFile': '/tmp/outputs/output.txt'
-            }
+            'inputs': {'parameterValues': {}},
+            'outputs': {'outputFile': '/tmp/outputs/output.txt'},
         }
 
         result = placeholder_utils.resolve_individual_placeholder(
@@ -605,19 +577,17 @@ class TestWorkspacePlaceholderResolutionDocker(unittest.TestCase):
             task_resource_name='test-task',
             pipeline_root='/tmp/pipeline',
             pipeline_job_id='test-job-id',
-            pipeline_task_id='test-task-id')
+            pipeline_task_id='test-task-id',
+        )
 
-        self.assertEqual(result,
-                         f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt')
+        self.assertEqual(
+            result, f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt'
+        )
 
     def test_literal_mount_path_kept_for_docker(self):
         executor_input_dict = {
-            'inputs': {
-                'parameterValues': {}
-            },
-            'outputs': {
-                'outputFile': '/tmp/outputs/output.txt'
-            }
+            'inputs': {'parameterValues': {}},
+            'outputs': {'outputFile': '/tmp/outputs/output.txt'},
         }
 
         element = f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt'
@@ -628,28 +598,28 @@ class TestWorkspacePlaceholderResolutionDocker(unittest.TestCase):
             task_resource_name='test-task',
             pipeline_root='/tmp/pipeline',
             pipeline_job_id='test-job-id',
-            pipeline_task_id='test-task-id')
+            pipeline_task_id='test-task-id',
+        )
 
         self.assertEqual(result, element)
 
 
 class TestWorkspacePlaceholderMissing(unittest.TestCase):
-
     def test_raises_when_workspace_not_configured(self):
         # When placeholder or mount path appears and no workspace configured, raise
         from unittest import mock
+
         with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
             with self.assertRaises(RuntimeError):
                 placeholder_utils.resolve_individual_placeholder(
                     element='{{$.workspace_path}}/foo',
-                    executor_input_dict={'outputs': {
-                        'outputFile': '/tmp/x'
-                    }},
+                    executor_input_dict={'outputs': {'outputFile': '/tmp/x'}},
                     pipeline_resource_name='p',
                     task_resource_name='t',
                     pipeline_root='/tmp/root',
                     pipeline_job_id='j',
-                    pipeline_task_id='k')
+                    pipeline_task_id='k',
+                )
 
 
 if __name__ == '__main__':

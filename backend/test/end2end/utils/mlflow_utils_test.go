@@ -27,7 +27,7 @@ func TestIsRetriableRetryRunError(t *testing.T) {
 	}{
 		{
 			name: "localhost eof",
-			err:  errors.New(`Post "http://localhost:8888/apis/v2beta1/runs/run-1:retry": EOF`),
+			err:  errors.New(`Post "http://localhost:8888/apis/v2/runs/run-1:retry": EOF`),
 			want: true,
 		},
 		{

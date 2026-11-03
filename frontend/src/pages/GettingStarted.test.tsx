@@ -17,7 +17,7 @@
 import { render, screen } from '@testing-library/react';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
 import { Apis } from 'src/lib/Apis';
-import { V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
+import { V2ListPipelinesResponse } from 'src/apisv2/pipeline';
 import { GettingStarted } from './GettingStarted';
 import { PageProps } from './Page';
 
@@ -56,7 +56,7 @@ describe('GettingStarted page', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    const empty: V2beta1ListPipelinesResponse = {
+    const empty: V2ListPipelinesResponse = {
       pipelines: [],
       total_size: 0,
     };
@@ -76,13 +76,13 @@ describe('GettingStarted page', () => {
         return Promise.resolve({
           pipelines: [{ pipeline_id: 'pipeline-id-data' }],
           total_size: 1,
-        } as V2beta1ListPipelinesResponse);
+        } as V2ListPipelinesResponse);
       }
       if (name.includes('Control structures')) {
         return Promise.resolve({
           pipelines: [{ pipeline_id: 'pipeline-id-control' }],
           total_size: 1,
-        } as V2beta1ListPipelinesResponse);
+        } as V2ListPipelinesResponse);
       }
       return Promise.resolve({ pipelines: [], total_size: 0 });
     });
@@ -109,7 +109,7 @@ describe('GettingStarted page', () => {
         return Promise.resolve({
           pipelines: [{ pipeline_id: 'pipeline-id-control' }],
           total_size: 1,
-        } as V2beta1ListPipelinesResponse);
+        } as V2ListPipelinesResponse);
       }
       return Promise.resolve({ pipelines: [], total_size: 0 });
     });

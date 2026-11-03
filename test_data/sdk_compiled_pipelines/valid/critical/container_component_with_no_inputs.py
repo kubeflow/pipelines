@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
 def hello_world_container():
     return dsl.ContainerSpec(
-        image='registry.access.redhat.com/ubi9/python-311:latest',
+        image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=['echo', 'hello world'],
         args=[],
     )
@@ -32,4 +31,5 @@ def pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

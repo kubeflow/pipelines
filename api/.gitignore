@@ -1,3 +1,2 @@
 # Dependencies need to download via Makefile.
 v2alpha1/google
-v2alpha1/python/kfp/pipeline_spec/*pb2.py

@@ -12,15 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Lightweight functions v2 with outputs."""
+
 from typing import NamedTuple
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import component
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Metrics
-from kfp.dsl import Model
+from kfp import compiler, dsl
+from kfp.dsl import Dataset, Input, Metrics, Model, component
 
 
 @component
@@ -40,44 +36,58 @@ def output_artifact(number: int, message: str) -> Dataset:
 
 
 @component
-def output_named_tuple(
-    artifact: Input[Dataset]
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('metrics', Metrics),
-    ('model', Model),
-]):
+def output_named_tuple(artifact: Input[Dataset]) -> NamedTuple(
+    'Outputs',
+    [
+        ('scalar', str),
+        ('metrics', Metrics),
+        ('model', Model),
+    ],
+):
     scalar = '123'
 
     import json
-    metrics = json.dumps({
-        'metrics': [{
-            'name': 'accuracy',
-            'numberValue': 0.9,
-            'format': 'PERCENTAGE',
-        }]
-    })
+
+    metrics = json.dumps(
+        {
+            'metrics': [
+                {
+                    'name': 'accuracy',
+                    'numberValue': 0.9,
+                    'format': 'PERCENTAGE',
+                }
+            ]
+        }
+    )
 
     with open(artifact.path) as f:
         artifact_contents = f.read()
     model = 'Model contents: ' + artifact_contents
 
     from collections import namedtuple
+
     output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])
     return output(scalar, metrics, model)
 
 
 @dsl.pipeline(name='functions-with-outputs')
-def pipeline(first_message: str, second_message: str, first_number: int,
-             second_number: int):
+def pipeline(
+    first_message: str,
+    second_message: str,
+    first_number: int,
+    second_number: int,
+):
     concat_op = concat_message(first=first_message, second=second_message)
     add_numbers_op = add_numbers(first=first_number, second=second_number)
     output_artifact_op = output_artifact(
-        number=add_numbers_op.output, message=concat_op.output)
+        number=add_numbers_op.output, message=concat_op.output
+    )
     output_name_tuple_op = output_named_tuple(
-        artifact=output_artifact_op.output)
+        artifact=output_artifact_op.output
+    )
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

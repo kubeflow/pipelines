@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for graph_utils.py."""
-from typing import Any, Dict
+
 import unittest
+from typing import Any, Dict
 
 from google.protobuf import json_format
+
 from kfp.local import graph_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class TestBuildDependencyMap(unittest.TestCase):
-
     def test_simple(self):
         tasks = {
             k: make_pipeline_task_spec(v)
@@ -42,13 +43,12 @@ class TestBuildDependencyMap(unittest.TestCase):
             'add-2': ['multiply'],
             'divide': ['add-2'],
             'multiply': ['add'],
-            'printer': ['add', 'divide', 'multiply']
+            'printer': ['add', 'divide', 'multiply'],
         }
         self.assertEqual(actual, expected)
 
 
 class TestTopologicalSort(unittest.TestCase):
-
     def test_empty_graph(self):
         self.assertEqual(graph_utils.topological_sort({}), [])
 
@@ -72,7 +72,6 @@ class TestTopologicalSort(unittest.TestCase):
 
 
 class TestTopologicalSortTasks(unittest.TestCase):
-
     def test_simple(self):
         tasks = {
             k: make_pipeline_task_spec(v)
@@ -96,7 +95,7 @@ SIMPLE_TASK_TOPOLOGY = {
     'identity': {},
     'identity-2': {
         'dependentTasks': ['identity'],
-    }
+    },
 }
 
 COMPLEX_TASK_TOPOLOGY = {
@@ -112,12 +111,13 @@ COMPLEX_TASK_TOPOLOGY = {
     },
     'printer': {
         'dependentTasks': ['add', 'divide', 'multiply'],
-    }
+    },
 }
 
 
 def make_pipeline_task_spec(
-        d: Dict[str, Any]) -> pipeline_spec_pb2.PipelineTaskSpec:
+    d: Dict[str, Any],
+) -> pipeline_spec_pb2.PipelineTaskSpec:
     spec = pipeline_spec_pb2.PipelineTaskSpec()
     json_format.ParseDict(d, spec)
     return spec

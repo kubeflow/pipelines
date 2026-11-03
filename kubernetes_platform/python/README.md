@@ -1,6 +1,6 @@
-# Kubeflow Pipelines SDK kfp-kubernetes API Reference
+# Kubeflow Pipelines SDK Kubernetes API Reference
 
-The Kubeflow Pipelines SDK kfp-kubernetes python library (part of the [Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/) project) is an addon to the [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/) that enables authoring Kubeflow pipelines with Kubernetes-specific features and concepts, such as:
+The `kfp.kubernetes` module is included in the [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/) and enables authoring pipelines with Kubernetes-specific features and concepts, such as:
 
 * [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
 * [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
@@ -14,15 +14,13 @@ The Kubeflow Pipelines SDK kfp-kubernetes python library (part of the [Kubeflow 
 Be sure to check out the full [API Reference](https://kfp-kubernetes.readthedocs.io/) for more details.
 
 ## Installation
-The `kfp-kubernetes` package can be installed as a KFP SDK extra dependency.
+Kubernetes support is included in the single `kfp` distribution.
 ```sh
 pip install kfp[kubernetes]
 ```
 
-Or installed independently:
-```sh
-pip install kfp-kubernetes
-```
+The extra remains compatible but is no longer required. For upgrades from the
+split distributions, follow the [one-time migration](../../sdk/python/README.md#migrating-from-the-split-packages).
 
 ## Getting started
 

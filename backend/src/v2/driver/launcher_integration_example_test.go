@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +59,7 @@ func TestExample_SingleTask(t *testing.T) {
 		"Launcher should have executed the component command once")
 
 	// Verify task status was updated to SUCCEEDED
-	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, launcherExec.Task.State,
+	require.Equal(t, apiv2.PipelineTask_SUCCEEDED, launcherExec.Task.State,
 		"Task should be marked as SUCCEEDED")
 
 	// Clean up scope
@@ -294,7 +294,7 @@ func TestExample_LoopIteration(t *testing.T) {
 	// Verify loop collected all iteration outputs
 	loopTask, err := tc.ClientManager.KFPAPIClient().GetTask(
 		context.Background(),
-		&apiv2beta1.GetTaskRequest{TaskId: loopExecution.TaskID},
+		&apiv2.GetTaskRequest{TaskId: loopExecution.TaskID},
 	)
 	require.NoError(t, err)
 	require.Len(t, loopTask.Outputs.Artifacts, 3,

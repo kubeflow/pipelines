@@ -17,14 +17,14 @@ spec:
             - "--tlsCertKeyPath=/etc/pki/tls/certs/tls.key"
           env:
             - name: CABUNDLE_SECRET_NAME
-              value: "kfp-api-tls-cert"
+              value: "argo-workflows-agent-ca-certificates"
             - name: METADATA_TLS_ENABLED
               value: "true"
             - name: ML_PIPELINE_SERVICE_HOST
               value: "ml-pipeline.kubeflow.svc.cluster.local"
           readinessProbe:
             httpGet:
-              path: /apis/v1beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
               scheme: HTTPS
             initialDelaySeconds: 3
@@ -32,7 +32,7 @@ spec:
             timeoutSeconds: 2
           livenessProbe:
             httpGet:
-              path: /apis/v1beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
               scheme: HTTPS
             initialDelaySeconds: 3
@@ -40,7 +40,7 @@ spec:
             timeoutSeconds: 2
           startupProbe:
             httpGet:
-              path: /apis/v1beta1/healthz
+              path: /apis/v2/healthz
               port: 8888
               scheme: HTTPS
             failureThreshold: 12
@@ -53,4 +53,4 @@ spec:
       volumes:
         - name: tls-certs
           secret:
-            secretName: kfp-api-tls-cert
+            secretName: argo-workflows-agent-ca-certificates

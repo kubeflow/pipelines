@@ -212,7 +212,7 @@ func TestBackwardCompat_ListPipelineVersions_MixedCRs(t *testing.T) {
 	assert.Contains(t, names, "new-style-version")
 }
 
-func TestBackwardCompat_GetLatestPipelineVersion_MixedCRs(t *testing.T) {
+func TestBackwardCompat_GetDefaultPipelineVersion_MixedCRs(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
@@ -245,7 +245,7 @@ func TestBackwardCompat_GetLatestPipelineVersion_MixedCRs(t *testing.T) {
 	}
 	require.True(t, stamped, "expected the newly created pipeline version to be present")
 
-	latest, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdTwo)
+	latest, err := store.GetDefaultPipelineVersion(DefaultFakePipelineIdTwo)
 	require.NoError(t, err)
 	assert.Equal(t, "new-latest-version", latest.Name)
 }

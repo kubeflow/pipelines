@@ -77,7 +77,6 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 			NoCatchup:         util.BoolPointer(modelJob.NoCatchup),
 			ExperimentId:      modelJob.ExperimentId,
 			PipelineId:        modelJob.PipelineId,
-			PipelineName:      modelJob.PipelineName,
 			PipelineVersionId: modelJob.PipelineVersionId,
 			ServiceAccount:    modelJob.ServiceAccount,
 			PluginsInput:      pluginsInput,
@@ -142,17 +141,15 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:        t.templateOptions.CacheDisabled,
-			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
-			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
-			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
-			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			// Read the admin configured driver pod metadata here, at the API server layer,
-			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig:     common.GetDriverPodConfig(),
-			TokenReviewAudience: common.GetTokenReviewAudience(),
+			CacheDisabled:          t.templateOptions.CacheDisabled,
+			DefaultWorkspace:       t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled:   t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:      t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    t.templateOptions.DefaultRunAsNonRoot,
+			DefaultHostUsers:       t.templateOptions.DefaultHostUsers,
+			DefaultPVCStorageClass: t.templateOptions.DefaultPVCStorageClass,
+			TokenReviewAudience:    common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -345,7 +342,7 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	}
 	job.RuntimeConfig = jobRuntimeConfig
 
-	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]] (V1 forward compatibility).
+	// Format parameters to expand macros like [[CurrentTime]], [[RunUUID]], [[ScheduledTime]], [[Index]].
 	// Uses NewSWFParameterFormatter to support all macros. For standalone runs, [[ScheduledTime]] and [[Index]] remain unformatted
 
 	if job.RuntimeConfig != nil && len(job.RuntimeConfig.GetParameterValues()) > 0 {
@@ -354,25 +351,18 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 		if modelRun.ScheduledAtInSec > 0 {
 			scheduledEpoch = modelRun.ScheduledAtInSec
 		}
+		index := int64(-1)
+		if options.RecurringRunIndex != nil {
+			index = *options.RecurringRunIndex
+		}
 		formatter := util.NewSWFParameterFormatter(
 			options.RunID,
 			scheduledEpoch,
 			options.RunAt,
-			-1,
+			index,
 		)
-		// Convert structpb.Value to strings, format, convert back
-		paramValues := job.RuntimeConfig.GetParameterValues()
-		stringParams := make(map[string]string)
-		for key, val := range paramValues {
-			if strVal := val.GetStringValue(); strVal != "" {
-				stringParams[key] = strVal
-			}
-		}
-		// Format the string parameters
-		formattedParams := formatter.FormatWorkflowParameters(stringParams)
-		// Convert formatted strings back to structpb.Value
-		for key, formattedVal := range formattedParams {
-			paramValues[key] = structpb.NewStringValue(formattedVal)
+		for _, value := range job.RuntimeConfig.GetParameterValues() {
+			formatParameterMacros(value, formatter)
 		}
 	}
 	if err = t.validatePipelineJobInputs(job); err != nil {
@@ -389,17 +379,15 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:        t.templateOptions.CacheDisabled,
-			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
-			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
-			DefaultRunAsUser:     t.templateOptions.DefaultRunAsUser,
-			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
-			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
-			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
-			// Read the admin configured driver pod metadata here, at the API server layer,
-			// so the compiler itself stays free of any dependency on API server state.
-			DriverPodConfig:     common.GetDriverPodConfig(),
-			TokenReviewAudience: common.GetTokenReviewAudience(),
+			CacheDisabled:          t.templateOptions.CacheDisabled,
+			DefaultWorkspace:       t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled:   t.templateOptions.MLPipelineTLSEnabled,
+			DefaultRunAsUser:       t.templateOptions.DefaultRunAsUser,
+			DefaultRunAsGroup:      t.templateOptions.DefaultRunAsGroup,
+			DefaultRunAsNonRoot:    t.templateOptions.DefaultRunAsNonRoot,
+			DefaultHostUsers:       t.templateOptions.DefaultHostUsers,
+			DefaultPVCStorageClass: t.templateOptions.DefaultPVCStorageClass,
+			TokenReviewAudience:    common.GetTokenReviewAudience(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -556,4 +544,23 @@ func modelPluginsInputToCRD(lt *model.LargeText) (map[string]apiextensionsv1.JSO
 		result[k] = apiextensionsv1.JSON{Raw: v}
 	}
 	return result, nil
+}
+
+// Format nested values as well as strings, matching embedded schedule expansion.
+func formatParameterMacros(value *structpb.Value, formatter *util.ParameterFormatter) {
+	if value == nil {
+		return
+	}
+	switch kind := value.Kind.(type) {
+	case *structpb.Value_StringValue:
+		kind.StringValue = formatter.Format(kind.StringValue)
+	case *structpb.Value_ListValue:
+		for _, item := range kind.ListValue.Values {
+			formatParameterMacros(item, formatter)
+		}
+	case *structpb.Value_StructValue:
+		for _, item := range kind.StructValue.Fields {
+			formatParameterMacros(item, formatter)
+		}
+	}
 }

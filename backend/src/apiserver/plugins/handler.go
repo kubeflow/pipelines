@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"time"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -54,7 +54,7 @@ type PersistedRun struct {
 	// deduplicate on (RunID, RetryGeneration).
 	RetryGeneration int64
 	// PluginsOutput is the deserialized plugins_output map.
-	PluginsOutput map[string]*apiv2beta1.PluginOutput
+	PluginsOutput map[string]*apiv2.PluginOutput
 }
 
 // RunPluginHandler defines the generic run-level plugin lifecycle hooks
@@ -63,12 +63,12 @@ type RunPluginHandler interface {
 	ResolveRunPluginInput(pluginsInputString *string) (input interface{}, isEnabled bool, err error)
 	ResolveRunPluginConfig(ctx context.Context, clientSet kubernetes.Interface, launcherNamespaceCfg string, namespace string) (interface{}, error)
 	GetPluginOperationTimeout(config interface{}) time.Duration
-	OnBeforeRunCreation(ctx context.Context, run *PendingRun, config interface{}, resolvedPluginInput interface{}) (*apiv2beta1.PluginOutput, []corev1.EnvVar, error)
+	OnBeforeRunCreation(ctx context.Context, run *PendingRun, config interface{}, resolvedPluginInput interface{}) (*apiv2.PluginOutput, []corev1.EnvVar, error)
 	HandleRetry(ctx context.Context, run *PersistedRun, config interface{}) error
 	// OnRunEnd is called when a run reaches a terminal state. The returned
 	// bool reports whether a failed sync is transient and worth retrying;
 	// permanent failures (for example missing or invalid plugin config)
 	// must return false so they cannot block run finalization forever.
 	OnRunEnd(ctx context.Context, run *PersistedRun, config interface{}) (bool, error)
-	GetGenericFailedPluginOutput(runID string, message string, pluginInput interface{}) *apiv2beta1.PluginOutput
+	GetGenericFailedPluginOutput(runID string, message string, pluginInput interface{}) *apiv2.PluginOutput
 }

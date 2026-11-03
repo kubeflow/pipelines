@@ -1,14 +1,14 @@
 from kfp import dsl
 
 
-@dsl.component(base_image="public.ecr.aws/docker/library/python:3.12")
+@dsl.component(base_image='docker.io/library/python:3.12')
 def comp(env_var: str) -> str:
     import os
 
-    value = os.getenv(env_var, "")
+    value = os.getenv(env_var, '')
 
-    if value == "":
-        raise Exception("Env var is not set")
+    if value == '':
+        raise Exception('Env var is not set')
 
     return value
 

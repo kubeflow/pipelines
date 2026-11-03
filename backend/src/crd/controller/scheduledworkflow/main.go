@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
@@ -55,6 +55,7 @@ var (
 	recurringRunResyncIntervalSeconds int
 	userIdentityHeader                string
 	userIdentityValue                 string
+	multiUser                         bool
 )
 
 const (
@@ -154,6 +155,7 @@ func main() {
 		tokenSrc,
 		userIdentityHeader,
 		userIdentityValue,
+		multiUser,
 	)
 	if err != nil {
 		log.Fatalf("Failed to instantiate the controller: %v", err)
@@ -211,6 +213,7 @@ func init() {
 	flag.StringVar(&caCertPath, caCertPathFlagName, "", "CA cert to connect to the ML pipeline API server.")
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	flag.IntVar(&recurringRunResyncIntervalSeconds, "recurringRunResyncIntervalSeconds", 30, "The full resync interval in seconds for recurring run reconciliations.")
+	flag.BoolVar(&multiUser, "multiUser", false, "Submit all scheduled runs through the API server using persisted recurring-run inputs.")
 	flag.StringVar(&userIdentityHeader, "userIdentityHeader", "", "User identity metadata key for multi-user mode (e.g. kubeflow-userid). If set, the controller injects this key into the outgoing gRPC metadata when calling the API server. The key is normalized to lowercase and must be a valid gRPC metadata key.")
 	flag.StringVar(&userIdentityValue, "userIdentityValue", "", "Value for the user identity gRPC metadata key (e.g. system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow).")
 	var err error

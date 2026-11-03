@@ -25,7 +25,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -156,17 +155,11 @@ func (s *RunArtifactServer) artifactFileExists(ctx context.Context, runID string
 	return true, nil
 }
 
-// ReadArtifactV1 handles v1 artifact reading (delegates to v2 implementation)
-func (s *RunArtifactServer) ReadArtifactV1(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("Read artifact v1 called")
-	s.ReadArtifact(w, r)
-}
-
 func (s *RunArtifactServer) writeErrorToResponse(response http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to read artifact. Error: %+v", err)
 	response.WriteHeader(code)
 	response.Header().Set("Content-Type", "application/json")
-	errorResponse := &api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
+	errorResponse := &apiError{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
 		if _, writeErr := response.Write([]byte(`{"error_message": "Error streaming artifact"}`)); writeErr != nil {

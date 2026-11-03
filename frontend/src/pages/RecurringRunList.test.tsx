@@ -28,7 +28,7 @@ import RecurringRunList, {
   getScheduleTimes,
   getScheduleStatus,
 } from './RecurringRunList';
-import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
+import { V2RecurringRun, V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 import { color } from 'src/Css';
 
 let lastCustomTableProps: any = null;
@@ -94,7 +94,7 @@ describe('RecurringRunList', () => {
     });
   }
 
-  function mockNRecurringRuns(n: number, recurringRunTemplate: Partial<V2beta1RecurringRun>): void {
+  function mockNRecurringRuns(n: number, recurringRunTemplate: Partial<V2RecurringRun>): void {
     getRecurringRunSpy.mockImplementation((id) =>
       Promise.resolve(
         produce(recurringRunTemplate, (draft) => {
@@ -107,11 +107,11 @@ describe('RecurringRunList', () => {
     listRecurringRunsSpy.mockImplementation(() =>
       Promise.resolve({
         recurringRuns: range(1, n + 1).map((i) =>
-          produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, (draft) => {
+          produce(recurringRunTemplate as Partial<V2RecurringRun>, (draft) => {
             draft.recurring_run_id = 'testrecurringrun' + i;
             draft.display_name = 'recurring run with id: testrecurringrun' + i;
           }),
-        ) as V2beta1RecurringRun[],
+        ) as V2RecurringRun[],
       }),
     );
 
@@ -275,13 +275,13 @@ describe('RecurringRunList', () => {
   });
 
   it('shows recurring run status', async () => {
-    mockNRecurringRuns(1, { status: V2beta1RecurringRunStatus.ENABLED });
+    mockNRecurringRuns(1, { status: V2RecurringRunStatus.ENABLED });
     const props = generateProps();
     renderRecurringRunList(props);
     await loadRecurringRuns({});
 
     expect(props.onError).not.toHaveBeenCalled();
-    expect(lastCustomTableProps.rows[0].otherFields[1]).toBe(V2beta1RecurringRunStatus.ENABLED);
+    expect(lastCustomTableProps.rows[0].otherFields[1]).toBe(V2RecurringRunStatus.ENABLED);
   });
 
   it('shows trigger periodic', async () => {
@@ -522,20 +522,20 @@ describe('RecurringRunList', () => {
   it('getScheduleStatus returns Disabled for disabled runs', () => {
     expect(
       getScheduleStatus({
-        status: V2beta1RecurringRunStatus.DISABLED,
+        status: V2RecurringRunStatus.DISABLED,
         trigger: { periodic_schedule: { start_time: new Date('2020-01-01') } },
       }),
     ).toBe('Disabled');
   });
 
   it('getScheduleStatus returns dash for unknown/missing status', () => {
-    expect(getScheduleStatus({ recurring_run_id: 'err-row' } as V2beta1RecurringRun)).toBe('-');
+    expect(getScheduleStatus({ recurring_run_id: 'err-row' } as V2RecurringRun)).toBe('-');
   });
 
   it('getScheduleStatus returns Active for enabled run with no schedule times', () => {
     expect(
       getScheduleStatus({
-        status: V2beta1RecurringRunStatus.ENABLED,
+        status: V2RecurringRunStatus.ENABLED,
       }),
     ).toBe('Active');
   });
@@ -543,7 +543,7 @@ describe('RecurringRunList', () => {
   it('getScheduleStatus returns Active for enabled run within schedule window', () => {
     expect(
       getScheduleStatus({
-        status: V2beta1RecurringRunStatus.ENABLED,
+        status: V2RecurringRunStatus.ENABLED,
         trigger: {
           periodic_schedule: {
             start_time: new Date('2020-01-01'),
@@ -557,7 +557,7 @@ describe('RecurringRunList', () => {
   it('getScheduleStatus returns Scheduled for enabled run with future start_time', () => {
     expect(
       getScheduleStatus({
-        status: V2beta1RecurringRunStatus.ENABLED,
+        status: V2RecurringRunStatus.ENABLED,
         trigger: {
           cron_schedule: {
             cron: '0 * * * *',
@@ -571,7 +571,7 @@ describe('RecurringRunList', () => {
   it('getScheduleStatus returns Expired for enabled run with past end_time', () => {
     expect(
       getScheduleStatus({
-        status: V2beta1RecurringRunStatus.ENABLED,
+        status: V2RecurringRunStatus.ENABLED,
         trigger: {
           periodic_schedule: {
             start_time: new Date('2020-01-01'),

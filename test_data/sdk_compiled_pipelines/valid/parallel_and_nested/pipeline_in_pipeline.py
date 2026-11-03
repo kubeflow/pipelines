@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
@@ -25,7 +24,7 @@ def print_op1(msg: str) -> str:
 @dsl.container_component
 def print_op2(msg: str):
     return dsl.ContainerSpec(
-        image='alpine',
+        image='docker.io/alpine:3.23',
         command=['echo', msg],
     )
 
@@ -44,5 +43,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

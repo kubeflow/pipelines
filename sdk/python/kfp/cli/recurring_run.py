@@ -15,6 +15,7 @@
 from typing import Any, Dict, List, Optional
 
 import click
+
 from kfp import client
 from kfp.cli import output
 from kfp.cli.utils import parsing
@@ -25,97 +26,125 @@ def recurring_run():
     """Manage recurring run resources."""
 
 
-either_option_required = 'Either --experiment-id or --experiment-name is required.'
+either_option_required = (
+    'Either --experiment-id or --experiment-name is required.'
+)
 
 
 @recurring_run.command()
 @click.option(
     '--catchup/--no-catchup',
     type=bool,
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'no_catchup'),
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'no_catchup'
+    ),
 )
 @click.option(
     '--cron-expression',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'cron_expression'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'cron_expression'
+    ),
+)
 @click.option(
     '--description',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'description'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'description'
+    ),
+)
 @click.option(
     '--enable-caching/--disable-caching',
     type=bool,
     default=None,
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'enable_caching'),
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'enable_caching'
+    ),
 )
 @click.option(
     '--enabled/--disabled',
     type=bool,
-    help=parsing.get_param_descr(client.Client.create_recurring_run, 'enabled'))
+    help=parsing.get_param_descr(client.Client.create_recurring_run, 'enabled'),
+)
 @click.option(
     '--end-time',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'end_time'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'end_time'
+    ),
+)
 @click.option(
     '--experiment-id',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'experiment_id') + ' ' +
-    either_option_required)
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'experiment_id'
+    )
+    + ' '
+    + either_option_required,
+)
 @click.option(
     '--experiment-name',
-    help='The name of the experiment to create the recurring run under.' + ' ' +
-    either_option_required)
+    help='The name of the experiment to create the recurring run under.'
+    + ' '
+    + either_option_required,
+)
 @click.option(
     '--job-name',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'job_name'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'job_name'
+    ),
+)
 @click.option(
     '--interval-second',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'interval_second'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'interval_second'
+    ),
+)
 @click.option(
     '--max-concurrency',
     type=int,
     default=1,
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'max_concurrency'),
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'max_concurrency'
+    ),
 )
 @click.option(
     '--pipeline-id',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'pipeline_id'),
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'pipeline_id'
+    ),
 )
 @click.option(
     '--pipeline-package-path',
     type=click.Path(exists=True, dir_okay=False),
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'pipeline_package_path'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'pipeline_package_path'
+    ),
+)
 @click.option(
     '--start-time',
-    help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'start_time'))
+    help=parsing.get_param_descr(
+        client.Client.create_recurring_run, 'start_time'
+    ),
+)
 @click.option('--version-id', help='The id of a pipeline version.')
 @click.argument('args', nargs=-1)
 @click.pass_context
-def create(ctx: click.Context,
-           job_name: str,
-           experiment_id: Optional[str] = None,
-           experiment_name: Optional[str] = None,
-           catchup: Optional[bool] = None,
-           cron_expression: Optional[str] = None,
-           enabled: Optional[bool] = None,
-           description: Optional[str] = None,
-           enable_caching: Optional[bool] = None,
-           end_time: Optional[str] = None,
-           interval_second: Optional[int] = None,
-           max_concurrency: Optional[int] = None,
-           pipeline_package_path: Optional[str] = None,
-           pipeline_id: Optional[str] = None,
-           start_time: Optional[str] = None,
-           version_id: Optional[str] = None,
-           args: Optional[List[str]] = None):
+def create(
+    ctx: click.Context,
+    job_name: str,
+    experiment_id: Optional[str] = None,
+    experiment_name: Optional[str] = None,
+    catchup: Optional[bool] = None,
+    cron_expression: Optional[str] = None,
+    enabled: Optional[bool] = None,
+    description: Optional[str] = None,
+    enable_caching: Optional[bool] = None,
+    end_time: Optional[str] = None,
+    interval_second: Optional[int] = None,
+    max_concurrency: Optional[int] = None,
+    pipeline_package_path: Optional[str] = None,
+    pipeline_id: Optional[str] = None,
+    start_time: Optional[str] = None,
+    version_id: Optional[str] = None,
+    args: Optional[List[str]] = None,
+):
     """Create a recurring run."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -156,7 +185,8 @@ def create(ctx: click.Context,
         pipeline_package_path=pipeline_package_path,
         pipeline_id=pipeline_id,
         start_time=start_time,
-        version_id=version_id)
+        version_id=version_id,
+    )
     output.print_output(
         recurring_run,
         output.ModelType.RECURRING_RUN,
@@ -168,29 +198,43 @@ def create(ctx: click.Context,
 @click.option(
     '-e',
     '--experiment-id',
-    help=parsing.get_param_descr(client.Client.list_recurring_runs,
-                                 'experiment_id'))
+    help=parsing.get_param_descr(
+        client.Client.list_recurring_runs, 'experiment_id'
+    ),
+)
 @click.option(
     '--page-token',
     default='',
-    help=parsing.get_param_descr(client.Client.list_recurring_runs,
-                                 'page_token'))
+    help=parsing.get_param_descr(
+        client.Client.list_recurring_runs, 'page_token'
+    ),
+)
 @click.option(
     '-m',
     '--max-size',
     default=100,
-    help=parsing.get_param_descr(client.Client.list_recurring_runs,
-                                 'page_size'))
+    help=parsing.get_param_descr(
+        client.Client.list_recurring_runs, 'page_size'
+    ),
+)
 @click.option(
     '--sort-by',
     default='created_at desc',
-    help=parsing.get_param_descr(client.Client.list_recurring_runs, 'sort_by'))
+    help=parsing.get_param_descr(client.Client.list_recurring_runs, 'sort_by'),
+)
 @click.option(
     '--filter',
-    help=parsing.get_param_descr(client.Client.list_recurring_runs, 'filter'))
+    help=parsing.get_param_descr(client.Client.list_recurring_runs, 'filter'),
+)
 @click.pass_context
-def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
-         sort_by: str, filter: str):
+def list(
+    ctx: click.Context,
+    experiment_id: str,
+    page_token: str,
+    max_size: int,
+    sort_by: str,
+    filter: str,
+):
     """List recurring runs."""
     client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -200,7 +244,8 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
-        filter=filter)
+        filter=filter,
+    )
     output.print_output(
         response.recurring_runs or [],
         output.ModelType.RECURRING_RUN,
@@ -249,7 +294,8 @@ def enable(ctx: click.Context, recurring_run_id: str):
     client_obj.enable_recurring_run(recurring_run_id=recurring_run_id)
     # TODO: add wait option, since enable takes time to complete
     recurring_run = client_obj.get_recurring_run(
-        recurring_run_id=recurring_run_id)
+        recurring_run_id=recurring_run_id
+    )
     output.print_output(
         recurring_run,
         output.ModelType.RECURRING_RUN,
@@ -268,7 +314,8 @@ def disable(ctx: click.Context, recurring_run_id: str):
     client_obj.disable_recurring_run(recurring_run_id=recurring_run_id)
     # TODO: add wait option, since disable takes time to complete
     recurring_run = client_obj.get_recurring_run(
-        recurring_run_id=recurring_run_id)
+        recurring_run_id=recurring_run_id
+    )
     output.print_output(
         recurring_run,
         output.ModelType.RECURRING_RUN,

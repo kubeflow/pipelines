@@ -18,8 +18,8 @@ Run twice against the same cache_root with identical inputs: the second
 run should short-circuit via the local cache. The test observes this via
 captured logs.
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 
 
 @dsl.component

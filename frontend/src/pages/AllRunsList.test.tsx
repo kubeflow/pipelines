@@ -19,7 +19,7 @@ import { act, render } from '@testing-library/react';
 import { vi } from 'vitest';
 import { RoutePage } from 'src/components/Router';
 import { ButtonKeys } from 'src/lib/Buttons';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import { V2RunStorageState } from 'src/apisv2/run';
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -149,7 +149,7 @@ describe('AllRunsList', () => {
       await lastRunListProps.onSelectionChange(['run1', 'run2', 'run3']);
     });
     toolbarProps!.actions[ButtonKeys.COMPARE].action();
-    expect(navigateSpy).toHaveBeenLastCalledWith(RoutePage.COMPARE + '?runlist=run1,run2,run3');
+    expect(navigateSpy).toHaveBeenLastCalledWith(RoutePage.COMPARE + '?runlist=run1%2Crun2%2Crun3');
   });
 
   it('shows thrown error in error banner', async () => {
@@ -168,6 +168,6 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     renderAllRunsList();
-    expect(lastRunListProps.storageState).toBe(V2beta1RunStorageState.AVAILABLE.toString());
+    expect(lastRunListProps.storageState).toBe(V2RunStorageState.AVAILABLE.toString());
   });
 });

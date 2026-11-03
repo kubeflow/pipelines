@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -50,7 +50,7 @@ var taskInfoStart = &TaskInfo{
 var taskInfoEnd = &TaskInfo{
 	Name:          "test-task",
 	RunEndTime:    int64(1714400000000),
-	RunStatus:     apiV2beta1.PipelineTask_SUCCEEDED,
+	RunStatus:     apiV2.PipelineTask_SUCCEEDED,
 	ScalarMetrics: map[string]float64{},
 	Parameters:    map[string]interface{}{},
 }

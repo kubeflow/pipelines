@@ -14,7 +14,8 @@
 """Kubernetes backend package."""
 
 from kfp.kubeflow_client.backends.kubernetes.backend import KubernetesBackend
-from kfp.kubeflow_client.backends.kubernetes.types import \
-    KubernetesBackendConfig
+from kfp.kubeflow_client.backends.kubernetes.types import (
+    KubernetesBackendConfig,
+)
 
 __all__ = ['KubernetesBackend', 'KubernetesBackendConfig']

@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Small pipeline that mounts an existing PVC (by name) and exercises caching."""
+"""Small pipeline that mounts an existing PVC (by name) and exercises
+caching."""
 
-from kfp import dsl
-from kfp import kubernetes
+from kfp import dsl, kubernetes
 
 
 @dsl.component
@@ -48,5 +48,3 @@ if __name__ == '__main__':
         pipeline_func=pvc_mount_pipeline,
         package_path=__file__.replace('.py', '.yaml'),
     )
-
-

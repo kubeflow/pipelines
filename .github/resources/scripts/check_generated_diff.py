@@ -33,7 +33,9 @@ import sys
 
 # Emitted as "// \tprotoc-gen-go v1.36.12" by protoc-gen-go and as
 # "// - protoc-gen-go-grpc v1.6.2" by protoc-gen-go-grpc.
-GENERATOR_STAMP = re.compile(r'^//\s*(?:-\s*)?protoc-gen-go(?:-grpc)?\s+v\S+\s*$')
+GENERATOR_STAMP = re.compile(
+    r'^//\s*(?:-\s*)?protoc-gen-go(?:-grpc)?\s+v\S+\s*$'
+)
 
 # Diff bookkeeping lines that are not themselves content changes.
 DIFF_FILE_HEADER = re.compile(r'^(\+\+\+|---)\s')
@@ -108,8 +110,10 @@ def main() -> int:
 
     if substantive:
         print('ERROR: Generated files are out of date')
-        print('Please regenerate using make clean all for api and '
-              'kubernetes_platform')
+        print(
+            'Please regenerate using make clean all for api and '
+            'kubernetes_platform'
+        )
         print('Changes found in the following files:')
         for path in substantive:
             print(f'  {path}')
@@ -119,12 +123,16 @@ def main() -> int:
         sys.stdout.write(run(['git', 'diff', 'HEAD']))
         return 1
 
-    print(f'Ignoring {len(stamp_only)} generated file(s) whose only change is '
-          'the recorded generator version:')
+    print(
+        f'Ignoring {len(stamp_only)} generated file(s) whose only change is '
+        'the recorded generator version:'
+    )
     for path in stamp_only:
         print(f'  {path}')
-    print('The generated code itself is unchanged, so no regeneration commit '
-          'is required.')
+    print(
+        'The generated code itself is unchanged, so no regeneration commit '
+        'is required.'
+    )
     return 0
 
 

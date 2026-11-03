@@ -18,32 +18,35 @@ SHELL = /bin/bash
 # create an .env file to override dev vars locally
 -include .env
 DEV_IMAGE_PREFIX?=$(error Please set DEV_IMAGE_PREFIX flag)
+DEV_KUBE_CONTEXT?=$(error Set DEV_KUBE_CONTEXT to the development cluster used by the KFP client)
+DEV_NAMESPACE?=kubeflow
+DEV_API_DEPLOYMENT?=ml-pipeline
 REPO_ROOT=../../..
+PIPELINE_SOURCES=$(REPO_ROOT)/test_data/sdk_compiled_pipelines/valid
 GOOS_VALUE?=linux
 GOARCH_VALUE?=amd64
 # override this via env to increase verbosity of go-licenses, example:
 GO_FLAGS=GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS_VALUE} GOARCH=${GOARCH_VALUE}
 GO_BUILD_FLAGS=-tags netgo -ldflags '-extldflags "-static"'
 KO_VERSION?=v0.8.3
-MLMD_VERSION=$$(cat ../third_party/ml-metadata/VERSION)
 
 ###### Common targets ######
 
 # make test runs all go unit tests
 .PHONY: test
-test: mlmd # a MLMD server running in background is required by some tests
+test:
 	go test ./...
 
 .PHONY: test-update
-test-update: mlmd
+test-update:
 	# Updating compiled argo YAML golden files...
-	go test ./compiler/argocompiler --args --update
+	go test ../../test/compiler --args -updateCompiledFiles
 
 # make test-watch watches file system changes and rerun go unit tests automatically
 # install inotifywait by:
 # sudo apt-get install inotify-tools
 .PHONY: test-watch
-test-watch: mlmd
+test-watch:
 	while inotifywait --exclude .swp -e modify -r .; do \
 		go test ./...; \
 	done
@@ -53,25 +56,27 @@ test-watch: mlmd
 # make dev runs developing actions from end to end for KFP v2.
 # Build images, push them to dev image registry, build backend compiler, compile pipelines and run them.
 .PHONY: dev
-dev: pipeline/v2/hello_world \
-	pipeline/v2/producer_consumer_param \
-	pipeline/test/lightweight_python_functions_v2_pipeline \
-	pipeline/test/lightweight_python_functions_v2_with_outputs \
-	pipeline/core/exit_handler/exit_handler_v2 \
-	
-# pipeline/core/condition/condition_v2:
-# pipeline/core/loop_output/loop_output_v2:
-# pipeline/core/loop_static/loop_static_v2:
-# pipeline/core/loop_parameter/loop_parameter_v2:
-# pipeline/core/resource_spec/resource_spec_v2:
-# TODO(v2): migrate v1 samples to v2.
-# pipeline/test/two_step \
-# pipeline/test/lightweight_python_functions_v2_pipeline
-# pipeline/v2/producer_consumer_param \
+dev: pipeline/hello_world \
+	pipeline/critical/producer_consumer_param \
+	pipeline/essential/lightweight_python_functions_pipeline \
+	pipeline/essential/lightweight_python_functions_with_outputs \
+	pipeline/local_execution/local_execution_pipeline_with_exit_handler
 
 .PHONY: build image-dev
 build: build/compiler build/driver
 image-dev: image-launcher-v2-dev image-driver-dev
+
+# IR is compiled on the server, so its runtime images must match the local build.
+.PHONY: configure-dev-runtime
+configure-dev-runtime: image-dev
+	@test -n "$(strip $(DEV_KUBE_CONTEXT))" || { echo 'Set DEV_KUBE_CONTEXT to a development cluster' >&2; exit 1; }
+	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" set env deployment/$(DEV_API_DEPLOYMENT) --containers=ml-pipeline-api-server \
+		V2_LAUNCHER_IMAGE="$$(cat build/launcher-v2-image.txt)"
+	@set -e; driver_image="$$(cat build/driver-image.txt)"; \
+	patch="$$(kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" get configmap/ml-pipeline-driver-agent -o json | \
+		DRIVER_IMAGE="$$driver_image" python3 -c 'import json, os, re, sys; config = json.load(sys.stdin); sidecar, count = re.subn(r"(?m)^(\s*image:\s*)\S+\s*$$", lambda match: match.group(1) + os.environ["DRIVER_IMAGE"], config["data"]["sidecar.container"], count=1); assert count == 1, "driver image not found in plugin ConfigMap"; print(json.dumps({"data": {"sidecar.container": sidecar}}))')"; \
+	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" patch configmap/ml-pipeline-driver-agent --type=merge --patch "$$patch"
+	kubectl --context "$(DEV_KUBE_CONTEXT)" -n "$(DEV_NAMESPACE)" rollout status deployment/$(DEV_API_DEPLOYMENT) --timeout=180s
 
 # Install v2 backend compiler to ~/bin.
 # Please add ~/bin to your $PATH first.
@@ -94,28 +99,29 @@ build/driver:
 image-driver-dev:
 
 # tests pipelines
-pipeline/v2/hello_world:
-pipeline/v2/producer_consumer_param:
-pipeline/v2/pipeline_with_importer:
-pipeline/test/two_step:
-pipeline/test/lightweight_python_functions_v2_pipeline:
-pipeline/test/lightweight_python_functions_v2_with_outputs:
-pipeline/core/loop_output/loop_output_v2:
-pipeline/core/loop_static/loop_static_v2:
-pipeline/core/loop_parameter/loop_parameter_v2:
-pipeline/core/resource_spec/resource_spec_v2:
-pipeline/core/condition/condition_v2:
-pipeline/core/condition/condition_v2_simple:
+pipeline/hello_world:
+pipeline/critical/producer_consumer_param:
+pipeline/pipeline_with_importer:
+pipeline/two_step_pipeline:
+pipeline/essential/lightweight_python_functions_pipeline:
+pipeline/essential/lightweight_python_functions_with_outputs:
+pipeline/local_execution/local_execution_pipeline_with_exit_handler:
+pipeline/collected_artifacts:
+pipeline/parallel_and_nested/pipeline_with_loops:
+pipeline/pipeline_with_parallelfor_pipeline_param:
+pipeline/essential/pipeline_with_condition:
+pipeline/essential/pipeline_with_nested_conditions:
 
 # Run a test pipeline using v2 CLI compiler (v2 engine mode).
 .PHONY: pipeline/%
-pipeline/%: build/compiler image-dev
+pipeline/%: build/compiler configure-dev-runtime
 	tmp="$$(mktemp -d)" \
+	&& trap 'rm -rf "$$tmp"' EXIT \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
-	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && kfp dsl compile --py $(REPO_ROOT)/samples/$*.py --output "$${tmp}/$*-spec.yaml" \
-	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
+	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && kfp dsl compile --py $(PIPELINE_SOURCES)/$*.py --output "$${tmp}/$*-spec.yaml" \
+	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --launcher "$$(cat build/launcher-v2-image.txt)" > "$${tmp}/$*.yaml" \
 	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
-	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"
+	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*-spec.yaml" -e default -r "$*_$${RANDOM}"
 
 ###### Common target implementation details ######
 
@@ -124,25 +130,17 @@ pipeline/%: build/compiler image-dev
 build/%: FORCE
 	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/backend/src/v2/cmd/$*
 image-%-dev: FORCE
-	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare
+	@mkdir -p build
+	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)$* ko publish ./cmd/$* --bare > build/$*-image.txt
+	@cat build/$*-image.txt
+build/driver: FORCE
+	$(GO_FLAGS) go build $(GO_BUILD_FLAGS) -o $@ github.com/kubeflow/pipelines/backend/src/driver
+image-driver-dev: FORCE
+	@mkdir -p build
+	@KO_DOCKER_REPO=$(DEV_IMAGE_PREFIX)driver ko publish ../driver --bare > build/driver-image.txt
+	@cat build/driver-image.txt
 install-ko: FORCE
 	go install github.com/google/ko@$(KO_VERSION)
-
-# Run a temporary MLMD server, useful for development / testing.
-# This needs to be run in background when running go unit tests.
-.PHONY: mlmd
-mlmd:
-	@if docker ps | grep mlmd; then echo "MLMD container is already running."; else \
-	docker run --name mlmd \
-		--detach \
-		--rm \
-		-p 8080:8080 \
-		--env MLMD_CONFIG=connection_config{sqlite{filename_uri:\"file:///mlmd.db\"}} \
-		--entrypoint /bin/bash \
-		"gcr.io/tfx-oss-public/ml_metadata_store_server:${MLMD_VERSION}" \
-		-exc 'echo "$${MLMD_CONFIG}" > config && /bin/metadata_store_server -metadata_store_server_config_file config' \
-		&& echo "MLMD container starts to run."; \
-		fi
 
 # Add the FORCE as a dependency if a target should be run each time.
 FORCE: ;

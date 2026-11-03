@@ -4,29 +4,23 @@
   "description": "Visual regression end to end test package for ML Pipelines",
   "dependencies": {
     "@puppeteer/browsers": "3.2.2",
-    "@wdio/cli": "^9.31.6",
-    "@wdio/config": "^9.31.6",
-    "@wdio/junit-reporter": "^9.31.2",
-    "@wdio/local-runner": "^9.31.6",
-    "@wdio/mocha-framework": "^9.31.6",
-    "@wdio/spec-reporter": "^9.31.2",
-    "@wdio/utils": "^9.31.6",
-    "mocha": "^10.8.2",
+    "@wdio/cli": "^10.1.0",
+    "@wdio/config": "^10.1.0",
+    "@wdio/junit-reporter": "^10.1.0",
+    "@wdio/local-runner": "^10.1.0",
+    "@wdio/mocha-framework": "^10.1.0",
+    "@wdio/spec-reporter": "^10.1.0",
+    "@wdio/utils": "^10.1.0",
+    "mocha": "^12.0.3",
     "wait-port": "^1.0.4",
-    "webdriverio": "^9.31.6"
+    "webdriverio": "^10.1.0"
   },
   "scripts": {
     "docker": "docker build -t gcr.io/ml-pipeline/e2e-tests .",
     "test": "wdio wdio.conf.js",
-    "test:dependencies": "node --test dependency-smoke.test.mjs"
+    "test:dependencies": "node --test dependency-smoke.test.mjs test-helpers.test.mjs"
   },
   "engines": {
-    "node": ">=22.12.0"
-  },
-  "overrides": {
-    "mocha": {
-      "serialize-javascript": "7.0.5"
-    },
-    "@puppeteer/browsers": "$@puppeteer/browsers"
+    "node": ">=22.19.0"
   }
 }

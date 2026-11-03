@@ -11,14 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
+from kfp.dsl import ContainerSpec, container_component
 
 
 @container_component
 def container_no_input():
     return ContainerSpec(
-        image='registry.access.redhat.com/ubi9/python-311:latest',
+        image='registry.access.redhat.com/ubi9/python-311:1-1779945715',
         command=['echo', 'hello world'],
         args=[],
     )
@@ -26,6 +25,8 @@ def container_no_input():
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=container_no_input,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

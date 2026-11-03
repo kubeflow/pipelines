@@ -7,6 +7,12 @@ process.env.TZ = 'UTC';
 
 configure({ reactStrictMode: true });
 
+// jsdom has no layout engine or Range geometry API. Match its element geometry
+// (an empty rectangle) so editors such as Ace can measure text without throwing.
+if (typeof Range !== 'undefined' && !Range.prototype.getBoundingClientRect) {
+  Range.prototype.getBoundingClientRect = () => new DOMRect();
+}
+
 // Pin default locale for stable snapshots; when callers pass a locale, honor it.
 const originalToLocaleString = Date.prototype.toLocaleString;
 const originalToLocaleDateString = Date.prototype.toLocaleDateString;

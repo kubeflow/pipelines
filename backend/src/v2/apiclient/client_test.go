@@ -15,11 +15,62 @@
 package apiclient
 
 import (
+	"context"
+	"net"
 	"testing"
 	"time"
 
+	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/metadata"
 )
+
+type credentialEchoRunServer struct {
+	gc.UnimplementedRunServiceServer
+}
+
+func (*credentialEchoRunServer) GetRun(ctx context.Context, _ *gc.GetRunRequest) (*gc.Run, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	values := md.Get("authorization")
+	if len(values) != 1 {
+		return &gc.Run{}, nil
+	}
+	return &gc.Run{Description: values[0]}, nil
+}
+
+func TestNewKeepsTokenSourcesLocalToEachClient(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	server := grpc.NewServer()
+	gc.RegisterRunServiceServer(server, &credentialEchoRunServer{})
+	go func() { _ = server.Serve(listener) }()
+	t.Cleanup(server.Stop)
+
+	newClient := func(token string) *Client {
+		client, err := New(&Config{
+			Endpoint: listener.Addr().String(),
+			TokenSource: tokenSourceFunc(func(context.Context) (string, error) {
+				return token, nil
+			}),
+		}, nil)
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, client.Close()) })
+		return client
+	}
+	first, second := newClient("first-client-token"), newClient("second-client-token")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for range 2 {
+		firstRun, err := first.Run.GetRun(ctx, &gc.GetRunRequest{RunId: "first-run"})
+		require.NoError(t, err)
+		require.Equal(t, "Bearer first-client-token", firstRun.GetDescription())
+		secondRun, err := second.Run.GetRun(ctx, &gc.GetRunRequest{RunId: "second-run"})
+		require.NoError(t, err)
+		require.Equal(t, "Bearer second-client-token", secondRun.GetDescription())
+	}
+}
 
 func TestFromEnv_Defaults(t *testing.T) {
 	cfg := FromEnv()

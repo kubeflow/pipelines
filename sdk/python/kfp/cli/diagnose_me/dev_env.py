@@ -20,6 +20,7 @@ from kfp.cli.diagnose_me import utility
 
 class Commands(enum.Enum):
     """Enum for gcloud and gsutil commands."""
+
     PIP3_LIST = 1
     PYTHON3_PIP_LIST = 2
     PIP3_VERSION = 3
@@ -39,20 +40,20 @@ _command_string = {
 
 
 def get_dev_env_configuration(
-        configuration: Commands,
-        human_readable: bool = False) -> utility.ExecutorResponse:
+    configuration: Commands, human_readable: bool = False
+) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
-    Captures the developement environment configuration including PIP version and
-    Phython version as specifeid by configuration
+    Captures the development environment configuration including PIP version and
+    Python version as specified by configuration
 
     Args:
       configuration: Commands for specific information to be retrieved
         - PIP3LIST: captures pip3 freeze results
-        - PYTHON3PIPLIST: captuers python3 -m pip freeze results
-        - PIP3VERSION: captuers pip3 -V results
-        - PYHYON3PIPVERSION: captuers python3 -m pip -V results
-      human_readable: If true all output will be in human readable form insted of
+        - PYTHON3PIPLIST: captures python3 -m pip freeze results
+        - PIP3VERSION: captures pip3 -V results
+        - PYHYON3PIPVERSION: captures python3 -m pip -V results
+      human_readable: If true all output will be in human readable form instead of
         Json.
 
     Returns:
@@ -61,11 +62,11 @@ def get_dev_env_configuration(
     """
     command_list = _command_string[configuration].split(' ')
     if not human_readable and configuration not in (
-            Commands.PIP3_VERSION,
-            Commands.PYHYON3_PIP_VERSION,
-            Commands.WHICH_PYHYON3,
-            Commands.WHICH_PIP3,
+        Commands.PIP3_VERSION,
+        Commands.PYHYON3_PIP_VERSION,
+        Commands.WHICH_PYHYON3,
+        Commands.WHICH_PIP3,
     ):
         command_list.extend(['--format', 'json'])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)

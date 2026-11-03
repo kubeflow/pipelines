@@ -21,6 +21,7 @@ from kfp.cli.diagnose_me import utility
 
 class Commands(enum.Enum):
     """Enum for gcloud and gsutil commands."""
+
     GET_APIS = 1
     GET_CONTAINER_CLUSTERS = 2
     GET_CONTAINER_IMAGES = 3
@@ -52,9 +53,10 @@ _command_string = {
 
 
 def execute_gcloud_command(
-        gcloud_command_list: List[Text],
-        project_id: Optional[Text] = None,
-        human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    gcloud_command_list: List[Text],
+    project_id: Optional[Text] = None,
+    human_readable: Optional[bool] = False,
+) -> utility.ExecutorResponse:
     """Function for invoking gcloud command.
 
     Args:
@@ -77,12 +79,12 @@ def execute_gcloud_command(
     if project_id is not None:
         command_list.extend(['--project', project_id])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)
 
 
 def execute_gsutil_command(
-        gsutil_command_list: List[Text],
-        project_id: Optional[Text] = None) -> utility.ExecutorResponse:
+    gsutil_command_list: List[Text], project_id: Optional[Text] = None
+) -> utility.ExecutorResponse:
     """Function for invoking gsutil command.
 
     This function takes in a gsutil parameter list and returns the results as a
@@ -92,7 +94,7 @@ def execute_gsutil_command(
         format is ['config', 'list', '--all']
       project_id: specific project to check the QUOTASs for,if no project id is
         provided will use gcloud default project if one is configured otherwise
-        will return an erro massage.
+        will return an error message.
 
     Returns:
       utility.ExecutorResponse with outputs from stdout,stderr and execution code.
@@ -101,13 +103,14 @@ def execute_gsutil_command(
     if project_id is not None:
         command_list.extend(['-p', project_id])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)
 
 
 def get_gcp_configuration(
-        configuration: Commands,
-        project_id: Optional[Text] = None,
-        human_readable: Optional[bool] = False) -> utility.ExecutorResponse:
+    configuration: Commands,
+    project_id: Optional[Text] = None,
+    human_readable: Optional[bool] = False,
+) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
     Captures the environment configuration for the specified setting such as
@@ -133,7 +136,7 @@ def get_gcp_configuration(
       project_id: specific project to check the QUOTASs for,if no project id is
         provided will use gcloud default project if one is configured otherwise
         will return an error message.
-      human_readable: If true all output will be in human readable form insted of
+      human_readable: If true all output will be in human readable form instead of
         Json.
 
     Returns:
@@ -143,8 +146,10 @@ def get_gcp_configuration(
     # storage bucket call requires execute_gsutil_command
     if configuration is Commands.GET_STORAGE_BUCKETS:
         return execute_gsutil_command(
-            [_command_string[Commands.GET_STORAGE_BUCKETS]], project_id)
+            [_command_string[Commands.GET_STORAGE_BUCKETS]], project_id
+        )
 
     # For all other cases can execute the command directly
-    return execute_gcloud_command(_command_string[configuration].split(' '),
-                                  project_id, human_readable)
+    return execute_gcloud_command(
+        _command_string[configuration].split(' '), project_id, human_readable
+    )

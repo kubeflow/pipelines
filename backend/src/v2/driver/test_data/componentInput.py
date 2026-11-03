@@ -1,21 +1,26 @@
 from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp.dsl import Dataset, Input, Output
 
 
 @dsl.component
-def process_inputs(name: str, number: int, threshold: float, active: bool,
-                   a_runtime_string: str, a_runtime_number: int,
-                   a_runtime_bool: bool, output_text: Output[Dataset]) -> None:
+def process_inputs(
+    name: str,
+    number: int,
+    threshold: float,
+    active: bool,
+    a_runtime_string: str,
+    a_runtime_number: int,
+    a_runtime_bool: bool,
+    output_text: Output[Dataset],
+) -> None:
     with open(output_text.path, 'w') as f:
-        f.write(f"[{name}, {number}, {threshold}, {active}]")
+        f.write(f'[{name}, {number}, {threshold}, {active}]')
 
-    assert name == "default_name"
+    assert name == 'default_name'
     assert number == 42
     assert threshold == 0.5
     assert active == True
-    assert a_runtime_string == "foo"
+    assert a_runtime_string == 'foo'
     assert a_runtime_number == 10
     assert a_runtime_bool == True
 
@@ -24,12 +29,12 @@ def process_inputs(name: str, number: int, threshold: float, active: bool,
 def analyze_inputs(input_text: Input[Dataset]):
     with open(input_text.path, 'r') as f:
         data = f.read()
-    assert data == "[default_name, 42, 0.5, True]"
+    assert data == '[default_name, 42, 0.5, True]'
 
 
 @dsl.pipeline
 def primary_pipeline(
-    name_in: str = "default_name",
+    name_in: str = 'default_name',
     number_in: int = 42,
     threshold_in: float = 0.5,
     active_in: bool = True,
@@ -39,7 +44,7 @@ def primary_pipeline(
         number=number_in,
         threshold=threshold_in,
         active=active_in,
-        a_runtime_string="foo",
+        a_runtime_string='foo',
         a_runtime_number=10,
         a_runtime_bool=True,
     )
@@ -51,4 +56,5 @@ if __name__ == '__main__':
 
     compiler.Compiler().compile(
         pipeline_func=primary_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

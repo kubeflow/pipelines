@@ -17,7 +17,7 @@ package common
 import (
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -103,14 +103,14 @@ func Test_extractInputParameterFromChannel(t *testing.T) {
 func TestIsRuntimeIterationTask(t *testing.T) {
 	tests := []struct {
 		name string
-		task *apiv2beta1.PipelineTask
+		task *apiv2.PipelineTask
 		want bool
 	}{
 		{
 			name: "runtime task with iteration index",
-			task: &apiv2beta1.PipelineTask{
-				Type: apiv2beta1.PipelineTask_RUNTIME,
-				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+			task: &apiv2.PipelineTask{
+				Type: apiv2.PipelineTask_RUNTIME,
+				TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 					IterationIndex: int64Pointer(0),
 				},
 			},
@@ -118,9 +118,9 @@ func TestIsRuntimeIterationTask(t *testing.T) {
 		},
 		{
 			name: "dag task with iteration index",
-			task: &apiv2beta1.PipelineTask{
-				Type: apiv2beta1.PipelineTask_DAG,
-				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+			task: &apiv2.PipelineTask{
+				Type: apiv2.PipelineTask_DAG,
+				TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 					IterationIndex: int64Pointer(1),
 				},
 			},
@@ -128,9 +128,9 @@ func TestIsRuntimeIterationTask(t *testing.T) {
 		},
 		{
 			name: "importer task with iteration index",
-			task: &apiv2beta1.PipelineTask{
-				Type: apiv2beta1.PipelineTask_IMPORTER,
-				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{
+			task: &apiv2.PipelineTask{
+				Type: apiv2.PipelineTask_IMPORTER,
+				TypeAttributes: &apiv2.PipelineTask_TypeAttributes{
 					IterationIndex: int64Pointer(2),
 				},
 			},
@@ -138,9 +138,9 @@ func TestIsRuntimeIterationTask(t *testing.T) {
 		},
 		{
 			name: "task without iteration index",
-			task: &apiv2beta1.PipelineTask{
-				Type:           apiv2beta1.PipelineTask_RUNTIME,
-				TypeAttributes: &apiv2beta1.PipelineTask_TypeAttributes{},
+			task: &apiv2.PipelineTask{
+				Type:           apiv2.PipelineTask_RUNTIME,
+				TypeAttributes: &apiv2.PipelineTask_TypeAttributes{},
 			},
 			want: false,
 		},

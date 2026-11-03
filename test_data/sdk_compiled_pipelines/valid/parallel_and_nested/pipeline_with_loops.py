@@ -14,8 +14,7 @@
 
 from typing import Dict, List
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -35,7 +34,7 @@ def print_struct(struct: Dict):
 
 
 @dsl.pipeline(name='pipeline-with-loops')
-def my_pipeline(loop_parameter: List[str] = ["a", "b"]):
+def my_pipeline(loop_parameter: List[str] = ['a', 'b']):
 
     # Loop argument is from a pipeline input
     with dsl.ParallelFor(loop_parameter) as item:
@@ -58,5 +57,5 @@ def my_pipeline(loop_parameter: List[str] = ["a", "b"]):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

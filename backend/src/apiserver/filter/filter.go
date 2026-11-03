@@ -23,8 +23,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/squirrel"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
@@ -148,7 +147,7 @@ func (f *Filter) UnmarshalJSON(b []byte) error {
 }
 
 // New creates a new Filter from parsing the API filter protocol buffer.
-func New(filterProto interface{}) (*Filter, error) {
+func New(filterProto *apiv2.Filter) (*Filter, error) {
 	predicates, err := toPredicates(filterProto)
 	if err != nil {
 		return nil, err
@@ -161,7 +160,7 @@ func New(filterProto interface{}) (*Filter, error) {
 // model. For example, if the API name of a field is "name", the model name is "pipelines", and
 // the equivalent column name is "Name", then filterProto with predicates against key "name"
 // will be parsed as if the key value was "pipelines.Name".
-func NewWithKeyMap(filterProto interface{}, keyMap map[string]string, modelName string) (*Filter, error) {
+func NewWithKeyMap(filterProto *apiv2.Filter, keyMap map[string]string, modelName string) (*Filter, error) {
 	// Fully qualify column name to avoid "ambiguous column name" error.
 	var modelNamePrefix string
 	if modelName != "" {
@@ -226,18 +225,9 @@ func (f *Filter) ValidateKeys(validator func(segment string) error) error {
 // field names (e.g. "name", "display_name") that should use case-insensitive
 // comparison; it may be nil when no fields need this treatment.
 func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string, caseInsensitiveAPIFields map[string]struct{}) error {
+	f.SetCaseInsensitiveFields(keyMap, prefix, caseInsensitiveAPIFields)
 	if prefix != "" {
 		prefix = prefix + "."
-	}
-
-	// Build the case-insensitive key set using qualified column names.
-	if len(caseInsensitiveAPIFields) > 0 {
-		f.caseInsensitiveKeys = make(map[string]struct{})
-		for apiField := range caseInsensitiveAPIFields {
-			if colName, ok := keyMap[apiField]; ok {
-				f.caseInsensitiveKeys[prefix+colName] = struct{}{}
-			}
-		}
 	}
 
 	if err := replaceMapKeys(f.eq, keyMap, prefix); err != nil {
@@ -265,6 +255,26 @@ func (f *Filter) ReplaceKeys(keyMap map[string]string, prefix string, caseInsens
 		return err
 	}
 	return nil
+}
+
+// SetCaseInsensitiveFields rebuilds derived comparison metadata from the server's
+// model definition. Call this when restoring a page-token filter: older tokens
+// omit this metadata, and client-supplied metadata must not choose semantics.
+// Predicate keys are already qualified and are left unchanged.
+func (f *Filter) SetCaseInsensitiveFields(keyMap map[string]string, prefix string, caseInsensitiveAPIFields map[string]struct{}) {
+	if prefix != "" {
+		prefix += "."
+	}
+	f.caseInsensitiveKeys = nil
+	// Build the case-insensitive key set using qualified column names.
+	if len(caseInsensitiveAPIFields) > 0 {
+		f.caseInsensitiveKeys = make(map[string]struct{})
+		for apiField := range caseInsensitiveAPIFields {
+			if colName, ok := keyMap[apiField]; ok {
+				f.caseInsensitiveKeys[prefix+colName] = struct{}{}
+			}
+		}
+	}
 }
 
 // Replaces string keys in a map and adds a prefix.
@@ -516,7 +526,7 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote dialect.QuoteFunct
 
 func checkPredicate(p *Predicate) error {
 	switch p.operation {
-	case apiv1beta1.Predicate_IN.String(), apiv2beta1.Predicate_IN.String():
+	case apiv2.Predicate_IN.String():
 		// An empty list is intentionally allowed. It produces a match-nothing
 		// predicate in AddToSelect (see the IN handling there), preserving the
 		// historical behavior of returning an empty result page rather than an
@@ -525,12 +535,12 @@ func checkPredicate(p *Predicate) error {
 		case int32, int64, string:
 			return util.NewInvalidInputError("cannot use IN operator with scalar type %T", t)
 		}
-	case apiv1beta1.Predicate_EQUALS.String(), apiv1beta1.Predicate_NOT_EQUALS.String(), apiv1beta1.Predicate_GREATER_THAN.String(), apiv1beta1.Predicate_GREATER_THAN_EQUALS.String(), apiv1beta1.Predicate_LESS_THAN.String(), apiv1beta1.Predicate_LESS_THAN_EQUALS.String(), apiv2beta1.Predicate_EQUALS.String(), apiv2beta1.Predicate_NOT_EQUALS.String(), apiv2beta1.Predicate_GREATER_THAN.String(), apiv2beta1.Predicate_GREATER_THAN_EQUALS.String(), apiv2beta1.Predicate_LESS_THAN.String(), apiv2beta1.Predicate_LESS_THAN_EQUALS.String():
+	case apiv2.Predicate_EQUALS.String(), apiv2.Predicate_NOT_EQUALS.String(), apiv2.Predicate_GREATER_THAN.String(), apiv2.Predicate_GREATER_THAN_EQUALS.String(), apiv2.Predicate_LESS_THAN.String(), apiv2.Predicate_LESS_THAN_EQUALS.String():
 		switch t := p.value.(type) {
 		case []int32, []int64, []string:
 			return util.NewInvalidInputError("cannot use scalar operator %v on array type %T", p.operation, t)
 		}
-	case apiv1beta1.Predicate_IS_SUBSTRING.String(), apiv2beta1.Predicate_IS_SUBSTRING.String():
+	case apiv2.Predicate_IS_SUBSTRING.String():
 		switch t := p.value.(type) {
 		case string:
 			return nil
@@ -574,68 +584,34 @@ func (f *Filter) parsePredicates(preds []*Predicate) error {
 	return nil
 }
 
-func toPredicates(filterProto interface{}) ([]*Predicate, error) {
-	if filterProto == nil {
-		return nil, nil
-	}
+func toPredicates(filterProto *apiv2.Filter) ([]*Predicate, error) {
 	predicates := make([]*Predicate, 0)
-	switch filterProto := filterProto.(type) {
-	case *apiv2beta1.Filter:
-		for _, p := range filterProto.GetPredicates() {
-			if pred, err := toPredicate(p); err != nil {
-				return nil, err
-			} else {
-				predicates = append(predicates, pred)
-			}
+	for _, p := range filterProto.GetPredicates() {
+		if pred, err := toPredicate(p); err != nil {
+			return nil, err
+		} else {
+			predicates = append(predicates, pred)
 		}
-	case *apiv1beta1.Filter:
-		for _, p := range filterProto.GetPredicates() {
-			if pred, err := toPredicate(p); err != nil {
-				return nil, err
-			} else {
-				predicates = append(predicates, pred)
-			}
-		}
-	default:
-		return nil, util.NewUnknownApiVersionError("Filter", filterProto)
 	}
 	return predicates, nil
 }
 
-func toPredicate(p interface{}) (*Predicate, error) {
+func toPredicate(p *apiv2.Predicate) (*Predicate, error) {
 	if p == nil {
 		return nil, nil
 	}
 	operation := ""
-	key := ""
+	key := p.GetKey()
 	var value interface{}
-	switch p := p.(type) {
-	case *apiv2beta1.Predicate:
-		key = p.GetKey()
-		if temp, err := toOperation(p.GetOperation()); err != nil {
-			return nil, err
-		} else {
-			operation = temp
-		}
-		if temp, err := toValue(p.GetValue()); err != nil {
-			return nil, err
-		} else {
-			value = temp
-		}
-	case *apiv1beta1.Predicate:
-		key = p.GetKey()
-		if temp, err := toOperation(p.GetOp()); err != nil {
-			return nil, err
-		} else {
-			operation = temp
-		}
-		if temp, err := toValue(p.GetValue()); err != nil {
-			return nil, err
-		} else {
-			value = temp
-		}
-	default:
-		return nil, util.NewUnknownApiVersionError("Filter.Predicate", p)
+	if temp, err := toOperation(p.GetOperation()); err != nil {
+		return nil, err
+	} else {
+		operation = temp
+	}
+	if temp, err := toValue(p.GetValue()); err != nil {
+		return nil, err
+	} else {
+		value = temp
 	}
 	if key == "" {
 		return nil, util.NewInvalidInputError("Predicate key cannot be empty for operation %v and value %v", operation, value)
@@ -649,21 +625,21 @@ func toPredicate(p interface{}) (*Predicate, error) {
 
 func toOperation(o interface{}) (string, error) {
 	switch o {
-	case apiv2beta1.Predicate_EQUALS, apiv1beta1.Predicate_EQUALS:
+	case apiv2.Predicate_EQUALS:
 		return "EQUALS", nil
-	case apiv2beta1.Predicate_NOT_EQUALS, apiv1beta1.Predicate_NOT_EQUALS:
+	case apiv2.Predicate_NOT_EQUALS:
 		return "NOT_EQUALS", nil
-	case apiv2beta1.Predicate_GREATER_THAN, apiv1beta1.Predicate_GREATER_THAN:
+	case apiv2.Predicate_GREATER_THAN:
 		return "GREATER_THAN", nil
-	case apiv2beta1.Predicate_GREATER_THAN_EQUALS, apiv1beta1.Predicate_GREATER_THAN_EQUALS:
+	case apiv2.Predicate_GREATER_THAN_EQUALS:
 		return "GREATER_THAN_EQUALS", nil
-	case apiv2beta1.Predicate_LESS_THAN, apiv1beta1.Predicate_LESS_THAN:
+	case apiv2.Predicate_LESS_THAN:
 		return "LESS_THAN", nil
-	case apiv2beta1.Predicate_LESS_THAN_EQUALS, apiv1beta1.Predicate_LESS_THAN_EQUALS:
+	case apiv2.Predicate_LESS_THAN_EQUALS:
 		return "LESS_THAN_EQUALS", nil
-	case apiv2beta1.Predicate_IN, apiv1beta1.Predicate_IN:
+	case apiv2.Predicate_IN:
 		return "IN", nil
-	case apiv2beta1.Predicate_IS_SUBSTRING, apiv1beta1.Predicate_IS_SUBSTRING:
+	case apiv2.Predicate_IS_SUBSTRING:
 		return "IS_SUBSTRING", nil
 	default:
 		return "", util.NewUnknownApiVersionError("Filter.Predicate.Operation", o)
@@ -672,34 +648,19 @@ func toOperation(o interface{}) (string, error) {
 
 func toValue(v interface{}) (interface{}, error) {
 	switch v := v.(type) {
-	case *apiv2beta1.Predicate_IntValue:
+	case *apiv2.Predicate_IntValue:
 		return v.IntValue, nil
-	case *apiv2beta1.Predicate_LongValue:
+	case *apiv2.Predicate_LongValue:
 		return v.LongValue, nil
-	case *apiv2beta1.Predicate_StringValue:
+	case *apiv2.Predicate_StringValue:
 		return v.StringValue, nil
-	case *apiv2beta1.Predicate_TimestampValue:
+	case *apiv2.Predicate_TimestampValue:
 		return v.TimestampValue.AsTime().Unix(), nil
-	case *apiv2beta1.Predicate_IntValues_:
+	case *apiv2.Predicate_IntValues_:
 		return v.IntValues.GetValues(), nil
-	case *apiv2beta1.Predicate_StringValues_:
+	case *apiv2.Predicate_StringValues_:
 		return v.StringValues.GetValues(), nil
-	case *apiv2beta1.Predicate_LongValues_:
-		return v.LongValues.GetValues(), nil
-
-	case *apiv1beta1.Predicate_IntValue:
-		return v.IntValue, nil
-	case *apiv1beta1.Predicate_LongValue:
-		return v.LongValue, nil
-	case *apiv1beta1.Predicate_StringValue:
-		return v.StringValue, nil
-	case *apiv1beta1.Predicate_TimestampValue:
-		return v.TimestampValue.AsTime().Unix(), nil
-	case *apiv1beta1.Predicate_IntValues:
-		return v.IntValues.GetValues(), nil
-	case *apiv1beta1.Predicate_StringValues:
-		return v.StringValues.GetValues(), nil
-	case *apiv1beta1.Predicate_LongValues:
+	case *apiv2.Predicate_LongValues_:
 		return v.LongValues.GetValues(), nil
 
 	default:

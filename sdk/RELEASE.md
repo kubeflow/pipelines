@@ -2,17 +2,84 @@
 
 ## Features
 
+* The backend's canonical API is now `/apis/v2`, with `V2…` models. The Python
+  SDK keeps calling `/apis/v2beta1` so a routine SDK update does not require a
+  server prefix upgrade. Python `V2beta1…` model imports remain aliases of the
+  new models. New features may still require a matching backend version.
+  Operators must finish the API-server rollout before updating the UI,
+  persistence agent, scheduled-workflow controller, or driver/launcher images,
+  which use v2. See [rollout order](../docs/reference/version-compatibility.md#rollout-order).
+* The accompanying backend enables live pod-log following for direct API callers
+  through `GET /apis/v2/runs/{run_id}/nodes/{node_id}/log?follow=true`.
+  Omitting `follow` still returns a snapshot. Clients should set a deadline or
+  cancel the stream; there is no dedicated server-side timeout. The UI's API-log
+  proxy does not forward `follow`.
+
 * Add Kubernetes Dynamic Resource Allocation support. This feature requires
   Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
   enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
 
+* `Client.run_pipeline`, `create_run_from_pipeline_func`,
+  `create_run_from_pipeline_package` and `create_recurring_run` accept a
+  `plugins_input` argument, keyed by plugin name, that is sent as the run's
+  `plugins_input`. Recurring runs pass it to every triggered run.
+
+* `Client.get_kfp_healthz` accepts `max_attempts` (default 5), and `Client`
+  accepts `healthz_max_attempts` for the health check it runs at startup when
+  no namespace is cached. Pass 1 to fail fast when the backend is unreachable,
+  or a larger value for slow clusters. The health check no longer sleeps after
+  its final failed attempt.
+
 ## Breaking changes
+
+* Component loaders now accept only PipelineSpec IR YAML, optionally followed by
+  a PlatformSpec document. Old `implementation: container:` component YAML is
+  rejected, including when loaded by a v2 pipeline. Define components with the
+  current DSL and compile them with `kfp.compiler.Compiler().compile()` before
+  using `load_component_from_text`, `load_component_from_file`, or
+  `load_component_from_url`. Alternatively, convert legacy container files to IR
+  with an older compatible KFP v2 SDK before upgrading, then update consumers to
+  load the IR files. See the [migration guide](../docs/user-guides/migration.md).
+
+* The accompanying backend/UI release removes v1 APIs, execution, and historical
+  v1 run-details, graph, output, and comparison views. Database records are
+  retained, but their old UI views are not. Export required history before
+  upgrading.
+* Existing recurring runs with malformed embedded templates or templates without
+  the IR compiler's `v2_component` pod-metadata marker stop firing, regardless of
+  the former `BLOCK_V1_PIPELINES` setting. A workflow-level `v2_pipeline` marker
+  alone no longer suffices. Disable these schedules before upgrading and recreate
+  them from pipeline IR; otherwise the controller reports repeated submission
+  errors. Retrying a stored workflow also requires the pod-metadata marker.
+* New runs and recurring runs no longer write legacy `resource_references` rows.
+  Ownership and pipeline references are stored in native columns. Historical
+  reference reads and deletion cleanup remain supported. See the
+  [migration guide](../docs/user-guides/migration.md#existing-runs-and-recurring-runs).
+
+* Consolidate `kfp-pipeline-spec`, `kfp-server-api`, and `kfp-kubernetes` into
+  the `kfp` distribution. Before upgrading an existing environment, uninstall
+  those three distributions, then force-reinstall the new `kfp` release.
+  See the [migration instructions](python/README.md#migrating-from-the-split-packages).
+* The generated v2 REST client is now imported as `kfp.server_api` instead of
+  `kfp_server_api`. The `kfp.pipeline_spec` and `kfp.kubernetes` imports remain
+  unchanged, and `kfp[kubernetes]` remains a supported compatibility extra.
 
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* Local execution passes whole numbers inside `List` and `Dict` parameters
+  and outputs as ints, as the remote backend does, instead of floats.
+
+* `dsl.ParallelFor` raises a `ValueError` naming the key when a dict item uses a key the loop
+  item reserves (`name`, `task_name`, `channel_type`, `full_name`, `pattern`, `task`,
+  `items_or_pipeline_channel`), instead of crashing or hanging during compilation.
+
+* Fields of `dsl.ParallelFor` dict items (for example `item.greeting`) can be used inside
+  `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
+  into an enclosing `dsl.ExitHandler`, which failed at runtime.
 
 # 2.15.2
 

@@ -29,12 +29,6 @@ export function PipelineSpecTabContent(props: PipelineSpecTabContentProps) {
   return (
     <Editor
       value={dump(loadYaml(props.templateString || ''))}
-      // Render the yaml-formatted string in <PipelineSpecTabContent>
-      // V1(JSON-formatted):
-      //    load() converts templateString to an object first,
-      //    dump() changes the object to a yaml-formatted string
-      // V2(YAML-formatted):
-      //    Still yaml format after load() and dump().
       height={editorHeightWidth}
       width={editorHeightWidth}
       mode='yaml'

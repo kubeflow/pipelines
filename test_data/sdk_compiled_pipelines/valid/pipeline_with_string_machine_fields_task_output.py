@@ -37,5 +37,7 @@ def pipeline():
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

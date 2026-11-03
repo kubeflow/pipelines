@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Select superseded runtime base-image cache IDs for deletion.
 
-The caller supplies paginated output from GitHub's repository cache API. The
-current cache must be visible on the trusted ref before this script emits any
-IDs, preventing a delayed or failed cache save from deleting the last usable
-generation.
+The caller supplies paginated output from GitHub's repository cache API.
+The current cache must be visible on the trusted ref before this script
+emits any IDs, preventing a delayed or failed cache save from deleting
+the last usable generation.
 """
 
 import argparse
 import json
 import sys
 from typing import Any, Iterable
-
 
 CACHE_KEY_PREFIX = 'runtime-base-images-'
 
@@ -20,7 +19,9 @@ def _cache_entries(pages: Any) -> Iterable[dict[str, Any]]:
     if isinstance(pages, dict):
         pages = [pages]
     if not isinstance(pages, list):
-        raise ValueError('Expected a cache API response object or list of pages')
+        raise ValueError(
+            'Expected a cache API response object or list of pages'
+        )
 
     for page in pages:
         if not isinstance(page, dict):

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// import './CSSReset';
 import 'src/build/tailwind.output.css';
 import '@xyflow/react/dist/style.css';
 import React, { StrictMode } from 'react';

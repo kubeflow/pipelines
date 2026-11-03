@@ -14,12 +14,10 @@
 import unittest
 
 from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import importer_node
+from kfp.dsl import Dataset, importer_node
 
 
 class TestImporterSupportsDynamicMetadata(unittest.TestCase):
-
     def test_dynamic_dict_element_from_pipeline_param(self):
 
         @dsl.pipeline()
@@ -29,23 +27,30 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                 'gs://my_bucket',
                 Dataset,
                 reimport=True,
-                metadata={
-                    'string': meta_inp,
-                    'string-2': meta_inp
-                })
+                metadata={'string': meta_inp, 'string-2': meta_inp},
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
-        input_keys = list(pipeline_spec.components['comp-importer']
-                          .input_definitions.parameters.keys())
+        input_keys = list(
+            pipeline_spec.components[
+                'comp-importer'
+            ].input_definitions.parameters.keys()
+        )
         self.assertIn('metadata', input_keys)
         deployment_spec = pipeline_spec.deployment_spec.fields[
-            'executors'].struct_value.fields['exec-importer']
+            'executors'
+        ].struct_value.fields['exec-importer']
         metadata = deployment_spec.struct_value.fields[
-            'importer'].struct_value.fields['metadata']
-        self.assertEqual(metadata.struct_value.fields['string'].string_value,
-                         "{{$.inputs.parameters['metadata']}}")
-        self.assertEqual(metadata.struct_value.fields['string-2'].string_value,
-                         "{{$.inputs.parameters['metadata']}}")
+            'importer'
+        ].struct_value.fields['metadata']
+        self.assertEqual(
+            metadata.struct_value.fields['string'].string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
+        self.assertEqual(
+            metadata.struct_value.fields['string-2'].string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
 
     def test_dynamic_list_element_from_pipeline_param(self):
 
@@ -58,26 +63,41 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                 reimport=True,
                 metadata={
                     'outer_key': [meta_inp1, meta_inp2],
-                    meta_inp1: meta_inp1
-                })
+                    meta_inp1: meta_inp1,
+                },
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
-        input_keys = list(pipeline_spec.components['comp-importer']
-                          .input_definitions.parameters.keys())
+        input_keys = list(
+            pipeline_spec.components[
+                'comp-importer'
+            ].input_definitions.parameters.keys()
+        )
         self.assertIn('metadata', input_keys)
         deployment_spec = pipeline_spec.deployment_spec.fields[
-            'executors'].struct_value.fields['exec-importer']
+            'executors'
+        ].struct_value.fields['exec-importer']
         metadata = deployment_spec.struct_value.fields[
-            'importer'].struct_value.fields['metadata']
+            'importer'
+        ].struct_value.fields['metadata']
         self.assertEqual(
-            metadata.struct_value.fields['outer_key'].list_value.values[0]
-            .string_value, "{{$.inputs.parameters['metadata']}}")
+            metadata.struct_value.fields['outer_key']
+            .list_value.values[0]
+            .string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
         self.assertEqual(
-            metadata.struct_value.fields['outer_key'].list_value.values[1]
-            .string_value, "{{$.inputs.parameters['metadata-2']}}")
+            metadata.struct_value.fields['outer_key']
+            .list_value.values[1]
+            .string_value,
+            "{{$.inputs.parameters['metadata-2']}}",
+        )
         self.assertEqual(
-            metadata.struct_value.fields["{{$.inputs.parameters['metadata']}}"]
-            .string_value, "{{$.inputs.parameters['metadata']}}")
+            metadata.struct_value.fields[
+                "{{$.inputs.parameters['metadata']}}"
+            ].string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
 
     def test_dynamic_dict_element_from_task_output(self):
 
@@ -93,25 +113,32 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                 'gs://my_bucket',
                 Dataset,
                 reimport=True,
-                metadata={
-                    'string-1': task1.output,
-                    'string-2': task2.output
-                })
+                metadata={'string-1': task1.output, 'string-2': task2.output},
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
-        input_keys = list(pipeline_spec.components['comp-importer']
-                          .input_definitions.parameters.keys())
+        input_keys = list(
+            pipeline_spec.components[
+                'comp-importer'
+            ].input_definitions.parameters.keys()
+        )
         self.assertIn('metadata', input_keys)
         self.assertIn('metadata-2', input_keys)
 
         deployment_spec = pipeline_spec.deployment_spec.fields[
-            'executors'].struct_value.fields['exec-importer']
+            'executors'
+        ].struct_value.fields['exec-importer']
         metadata = deployment_spec.struct_value.fields[
-            'importer'].struct_value.fields['metadata']
-        self.assertEqual(metadata.struct_value.fields['string-1'].string_value,
-                         "{{$.inputs.parameters['metadata']}}")
-        self.assertEqual(metadata.struct_value.fields['string-2'].string_value,
-                         "{{$.inputs.parameters['metadata-2']}}")
+            'importer'
+        ].struct_value.fields['metadata']
+        self.assertEqual(
+            metadata.struct_value.fields['string-1'].string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
+        self.assertEqual(
+            metadata.struct_value.fields['string-2'].string_value,
+            "{{$.inputs.parameters['metadata-2']}}",
+        )
 
     def test_dynamic_list_element_from_task_output(self):
 
@@ -128,27 +155,42 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                 reimport=True,
                 metadata={
                     'outer_key': [task.output, task.output],
-                    task.output: task.output
-                })
+                    task.output: task.output,
+                },
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
-        input_keys = list(pipeline_spec.components['comp-importer']
-                          .input_definitions.parameters.keys())
+        input_keys = list(
+            pipeline_spec.components[
+                'comp-importer'
+            ].input_definitions.parameters.keys()
+        )
         self.assertIn('metadata', input_keys)
         self.assertNotIn('metadata-2', input_keys)
         deployment_spec = pipeline_spec.deployment_spec.fields[
-            'executors'].struct_value.fields['exec-importer']
+            'executors'
+        ].struct_value.fields['exec-importer']
         metadata = deployment_spec.struct_value.fields[
-            'importer'].struct_value.fields['metadata']
+            'importer'
+        ].struct_value.fields['metadata']
         self.assertEqual(
-            metadata.struct_value.fields['outer_key'].list_value.values[0]
-            .string_value, "{{$.inputs.parameters['metadata']}}")
+            metadata.struct_value.fields['outer_key']
+            .list_value.values[0]
+            .string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
         self.assertEqual(
-            metadata.struct_value.fields['outer_key'].list_value.values[1]
-            .string_value, "{{$.inputs.parameters['metadata']}}")
+            metadata.struct_value.fields['outer_key']
+            .list_value.values[1]
+            .string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
         self.assertEqual(
-            metadata.struct_value.fields["{{$.inputs.parameters['metadata']}}"]
-            .string_value, "{{$.inputs.parameters['metadata']}}")
+            metadata.struct_value.fields[
+                "{{$.inputs.parameters['metadata']}}"
+            ].string_value,
+            "{{$.inputs.parameters['metadata']}}",
+        )
 
     def test_dynamic_fstring_in_metadata(self):
 
@@ -165,25 +207,34 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                 reimport=True,
                 metadata={
                     f'prefix1-{integer}': f'prefix2-{task.output}',
-                    'key': 'value'
-                })
+                    'key': 'value',
+                },
+            )
 
         pipeline_spec = my_pipeline.pipeline_spec
-        input_keys = list(pipeline_spec.components['comp-importer']
-                          .input_definitions.parameters.keys())
+        input_keys = list(
+            pipeline_spec.components[
+                'comp-importer'
+            ].input_definitions.parameters.keys()
+        )
         self.assertIn('metadata', input_keys)
         self.assertIn('metadata-2', input_keys)
         self.assertNotIn('metadata-3', input_keys)
         deployment_spec = pipeline_spec.deployment_spec.fields[
-            'executors'].struct_value.fields['exec-importer']
+            'executors'
+        ].struct_value.fields['exec-importer']
         metadata = deployment_spec.struct_value.fields[
-            'importer'].struct_value.fields['metadata']
+            'importer'
+        ].struct_value.fields['metadata']
         self.assertEqual(
             metadata.struct_value.fields[
-                "prefix1-{{$.inputs.parameters[\'metadata\']}}"].string_value,
-            "prefix2-{{$.inputs.parameters[\'metadata-2\']}}")
-        self.assertEqual(metadata.struct_value.fields['key'].string_value,
-                         'value')
+                "prefix1-{{$.inputs.parameters['metadata']}}"
+            ].string_value,
+            "prefix2-{{$.inputs.parameters['metadata-2']}}",
+        )
+        self.assertEqual(
+            metadata.struct_value.fields['key'].string_value, 'value'
+        )
 
     def test_uri_from_loop(self):
 
@@ -197,24 +248,32 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                 dsl.importer(
                     artifact_uri=data.uri,
                     artifact_class=Dataset,
-                    metadata={'metadata_key': data.key})
+                    metadata={'metadata_key': data.key},
+                )
 
         self.assertEqual(
-            my_pipeline.pipeline_spec.deployment_spec['executors']
-            ['exec-importer']['importer']['artifactUri']['runtimeParameter'],
-            'uri')
+            my_pipeline.pipeline_spec.deployment_spec['executors'][
+                'exec-importer'
+            ]['importer']['artifactUri']['runtimeParameter'],
+            'uri',
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.deployment_spec['executors']
-            ['exec-importer']['importer']['metadata']['metadata_key'],
-            "{{$.inputs.parameters[\'metadata\']}}")
+            my_pipeline.pipeline_spec.deployment_spec['executors'][
+                'exec-importer'
+            ]['importer']['metadata']['metadata_key'],
+            "{{$.inputs.parameters['metadata']}}",
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.components['comp-for-loop-1'].dag
-            .tasks['importer'].inputs.parameters['metadata']
+            my_pipeline.pipeline_spec.components['comp-for-loop-1']
+            .dag.tasks['importer']
+            .inputs.parameters['metadata']
             .component_input_parameter,
-            'pipelinechannel--make-args-Output-loop-item')
+            'pipelinechannel--make-args-Output-loop-item',
+        )
         self.assertEqual(
-            my_pipeline.pipeline_spec.components['comp-for-loop-1'].dag
-            .tasks['importer'].inputs.parameters['metadata']
+            my_pipeline.pipeline_spec.components['comp-for-loop-1']
+            .dag.tasks['importer']
+            .inputs.parameters['metadata']
             .parameter_expression_selector,
             'parseJson(string_value)["key"]',
         )

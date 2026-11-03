@@ -12,23 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Code for running a dsl.importer locally."""
+
 import logging
 import os
 import shutil
-from typing import Any, Dict, Tuple
-from urllib.parse import urlparse
 import uuid
 import warnings
+from typing import Any, Dict, Tuple
+from urllib.parse import urlparse
 
 from google.protobuf import json_format
+
 from kfp import dsl
 from kfp.dsl import constants as dsl_constants
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import type_utils
-from kfp.local import config
-from kfp.local import logging_utils
-from kfp.local import placeholder_utils
-from kfp.local import status
+from kfp.dsl.types import artifact_types, type_utils
+from kfp.local import config, logging_utils, placeholder_utils, status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 Outputs = Dict[str, Any]
@@ -47,25 +45,29 @@ def _get_workspace_root() -> str:
     return workspace_root
 
 
-def _copy_local_artifact_to_workspace(source_path: str, base_dir: str,
-                                      component_name: str) -> str:
+def _copy_local_artifact_to_workspace(
+    source_path: str, base_dir: str, component_name: str
+) -> str:
     source_path = os.path.abspath(source_path)
     if not os.path.exists(source_path):
         raise FileNotFoundError(source_path)
 
-    destination_dir = os.path.join(base_dir, 'importer', component_name,
-                                   uuid.uuid4().hex)
+    destination_dir = os.path.join(
+        base_dir, 'importer', component_name, uuid.uuid4().hex
+    )
     os.makedirs(destination_dir, exist_ok=True)
 
     if os.path.isdir(source_path):
         destination_path = os.path.join(
-            destination_dir, os.path.basename(source_path.rstrip(os.sep)))
+            destination_dir, os.path.basename(source_path.rstrip(os.sep))
+        )
         if os.path.exists(destination_path):
             shutil.rmtree(destination_path)
         shutil.copytree(source_path, destination_path)
     else:
-        destination_path = os.path.join(destination_dir,
-                                        os.path.basename(source_path))
+        destination_path = os.path.join(
+            destination_dir, os.path.basename(source_path)
+        )
         shutil.copy2(source_path, destination_path)
 
     return destination_path
@@ -97,7 +99,8 @@ def run_importer(
     from kfp.local import executor_input_utils
 
     task_resource_name = executor_input_utils.get_local_task_resource_name(
-        component_name)
+        component_name
+    )
     task_name_for_logs = logging_utils.format_task_name(task_resource_name)
     with logging_utils.local_logger_context():
         logging.info(f'Executing task {task_name_for_logs}')
@@ -132,7 +135,8 @@ def run_importer(
         pipeline_task_id=placeholder_utils.make_random_id(),
     )
     ArtifactCls = get_artifact_class_from_schema_title(
-        executor_spec.importer.type_schema.schema_title)
+        executor_spec.importer.type_schema.schema_title
+    )
     artifact = ArtifactCls(
         name='artifact',
         uri=uri,
@@ -145,22 +149,26 @@ def run_importer(
         if scheme not in ('', 'file'):
             warnings.warn(
                 "download_to_workspace only supports local file paths when running locally. Skipping workspace copy for '%s'."
-                % uri)
+                % uri
+            )
         else:
             source_path = parsed_uri.path if scheme == 'file' else uri
             try:
                 workspace_root = _get_workspace_root()
-                workspace_artifacts_root = os.path.join(workspace_root,
-                                                        '.artifacts')
+                workspace_artifacts_root = os.path.join(
+                    workspace_root, '.artifacts'
+                )
                 os.makedirs(workspace_artifacts_root, exist_ok=True)
                 cfg = config.LocalExecutionConfig.instance
                 host_path = _copy_local_artifact_to_workspace(
-                    source_path, workspace_artifacts_root, component_name)
+                    source_path, workspace_artifacts_root, component_name
+                )
 
                 if isinstance(cfg.runner, config.DockerRunner):
                     rel_path = os.path.relpath(host_path, workspace_root)
                     container_path = os.path.join(
-                        dsl_constants.WORKSPACE_MOUNT_PATH, rel_path)
+                        dsl_constants.WORKSPACE_MOUNT_PATH, rel_path
+                    )
                     artifact.custom_path = container_path
                 else:
                     artifact.custom_path = host_path
@@ -195,11 +203,13 @@ def get_importer_uri(
         uri = executor_input.inputs.parameter_values['uri'].string_value
     else:
         raise ValueError(
-            f'Got unknown value of artifact_uri: {value_or_runtime_param}')
+            f'Got unknown value of artifact_uri: {value_or_runtime_param}'
+        )
 
     if any(
-            uri.startswith(prefix)
-            for prefix in [p.value for p in artifact_types.RemotePrefix]):
+        uri.startswith(prefix)
+        for prefix in [p.value for p in artifact_types.RemotePrefix]
+    ):
         warnings.warn(
             f"It looks like you're using the remote file '{uri}' in a 'dsl.importer'. Note that you will only be able to read and write to/from local files using 'artifact.path' in local executed pipelines."
         )
@@ -210,6 +220,7 @@ def get_importer_uri(
 def get_artifact_class_from_schema_title(schema_title: str) -> dsl.Artifact:
     system_prefix = 'system.'
     if schema_title.startswith(system_prefix):
-        return type_utils.ARTIFACT_CLASSES_MAPPING[schema_title.lstrip(
-            system_prefix).lower()]
+        return type_utils.ARTIFACT_CLASSES_MAPPING[
+            schema_title.lstrip(system_prefix).lower()
+        ]
     return dsl.Artifact

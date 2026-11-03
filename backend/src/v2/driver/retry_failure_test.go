@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
@@ -55,16 +55,16 @@ func TestDAG_RetryPreResolutionFailureFinalizesExistingTask(t *testing.T) {
 	tc.RunLauncher(createDataSetExecution, map[string][]byte{"/tmp/kfp_outputs/output_metadata.json": []byte("{}")}, true)
 
 	_, loopTask := tc.RunDagDriver("for-loop-2", secondaryPipelineTask)
-	require.Equal(t, apiv2beta1.PipelineTask_LOOP, loopTask.Type)
+	require.Equal(t, apiv2.PipelineTask_LOOP, loopTask.Type)
 	loopTaskID := loopTask.GetTaskId()
 
 	// RunDagDriver leaves the loop scope pushed; pop before retrying the same task.
 	tc.ExitDag()
 
-	loopTask.State = apiv2beta1.PipelineTask_RUNNING
+	loopTask.State = apiv2.PipelineTask_RUNNING
 	loopTask.EndTime = nil
 	loopTask.StatusMetadata = nil
-	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: loopTaskID,
 		Task:   loopTask,
 		RunId:  tc.Run.GetRunId(),
@@ -84,14 +84,14 @@ func TestDAG_RetryPreResolutionFailureFinalizesExistingTask(t *testing.T) {
 	require.Error(t, err)
 
 	tc.RefreshRun()
-	fullView := apiv2beta1.GetRunRequest_FULL
-	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{
+	fullView := apiv2.GetRunRequest_FULL
+	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{
 		RunId: tc.Run.GetRunId(),
 		View:  &fullView,
 	})
 	require.NoError(t, err)
 
-	var matchingTasks []*apiv2beta1.PipelineTask
+	var matchingTasks []*apiv2.PipelineTask
 	for _, task := range run.GetTasks() {
 		if task.GetName() == "for-loop-2" && task.GetParentTaskId() == secondaryPipelineTask.GetTaskId() {
 			matchingTasks = append(matchingTasks, task)
@@ -101,12 +101,12 @@ func TestDAG_RetryPreResolutionFailureFinalizesExistingTask(t *testing.T) {
 
 	finalizedTask := matchingTasks[0]
 	assert.Equal(t, loopTaskID, finalizedTask.GetTaskId())
-	assert.Equal(t, apiv2beta1.PipelineTask_LOOP, finalizedTask.GetType())
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, finalizedTask.GetState())
+	assert.Equal(t, apiv2.PipelineTask_LOOP, finalizedTask.GetType())
+	assert.Equal(t, apiv2.PipelineTask_FAILED, finalizedTask.GetState())
 	assert.NotNil(t, finalizedTask.GetEndTime())
 	assert.NotEmpty(t, finalizedTask.GetStatusMetadata().GetMessage())
 
-	var secondaryTask *apiv2beta1.PipelineTask
+	var secondaryTask *apiv2.PipelineTask
 	for _, task := range run.GetTasks() {
 		if task.GetName() == "secondary-pipeline" {
 			secondaryTask = task
@@ -114,7 +114,7 @@ func TestDAG_RetryPreResolutionFailureFinalizesExistingTask(t *testing.T) {
 		}
 	}
 	require.NotNil(t, secondaryTask)
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, secondaryTask.GetState(),
+	assert.Equal(t, apiv2.PipelineTask_FAILED, secondaryTask.GetState(),
 		"parent task should be FAILED after child failure propagation")
 }
 
@@ -127,13 +127,13 @@ func TestContainer_RetryPreResolutionFailureFinalizesExistingTask(t *testing.T) 
 
 	execution, containerTask := tc.RunContainerDriver("create-dataset", tc.RootTask, nil, true)
 	require.NotNil(t, execution)
-	require.Equal(t, apiv2beta1.PipelineTask_RUNTIME, containerTask.Type)
+	require.Equal(t, apiv2.PipelineTask_RUNTIME, containerTask.Type)
 	containerTaskID := containerTask.GetTaskId()
 
-	containerTask.State = apiv2beta1.PipelineTask_RUNNING
+	containerTask.State = apiv2.PipelineTask_RUNNING
 	containerTask.EndTime = nil
 	containerTask.StatusMetadata = nil
-	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: containerTaskID,
 		Task:   containerTask,
 		RunId:  tc.Run.GetRunId(),
@@ -158,14 +158,14 @@ func TestContainer_RetryPreResolutionFailureFinalizesExistingTask(t *testing.T) 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error unmarshall raw string")
 
-	finalizedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	finalizedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: containerTaskID,
 		RunId:  tc.Run.GetRunId(),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, containerTaskID, finalizedTask.GetTaskId())
-	assert.Equal(t, apiv2beta1.PipelineTask_RUNTIME, finalizedTask.GetType())
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, finalizedTask.GetState())
+	assert.Equal(t, apiv2.PipelineTask_RUNTIME, finalizedTask.GetType())
+	assert.Equal(t, apiv2.PipelineTask_FAILED, finalizedTask.GetState())
 	assert.NotNil(t, finalizedTask.GetEndTime())
 	assert.NotEmpty(t, finalizedTask.GetStatusMetadata().GetMessage())
 }
@@ -182,17 +182,17 @@ func TestContainer_RetryPreResolutionFailureWithIterationIndex(t *testing.T) {
 	tc.RunLauncher(createDataSetExecution, map[string][]byte{"/tmp/kfp_outputs/output_metadata.json": []byte("{}")}, true)
 
 	_, loopTask := tc.RunDagDriver("for-loop-2", secondaryPipelineTask)
-	require.Equal(t, apiv2beta1.PipelineTask_LOOP, loopTask.Type)
+	require.Equal(t, apiv2.PipelineTask_LOOP, loopTask.Type)
 
 	iterIdx := int64(0)
 	processExecution, processTask := tc.RunContainerDriver("process-dataset", loopTask, &iterIdx, true)
 	require.NotNil(t, processExecution)
 	processTaskID := processTask.GetTaskId()
 
-	processTask.State = apiv2beta1.PipelineTask_RUNNING
+	processTask.State = apiv2.PipelineTask_RUNNING
 	processTask.EndTime = nil
 	processTask.StatusMetadata = nil
-	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	_, err := tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: processTaskID,
 		Task:   processTask,
 		RunId:  tc.Run.GetRunId(),
@@ -218,14 +218,14 @@ func TestContainer_RetryPreResolutionFailureWithIterationIndex(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error unmarshall raw string")
 
-	finalizedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+	finalizedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{
 		TaskId: processTaskID,
 		RunId:  tc.Run.GetRunId(),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, processTaskID, finalizedTask.GetTaskId())
-	assert.Equal(t, apiv2beta1.PipelineTask_RUNTIME, finalizedTask.GetType())
-	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, finalizedTask.GetState())
+	assert.Equal(t, apiv2.PipelineTask_RUNTIME, finalizedTask.GetType())
+	assert.Equal(t, apiv2.PipelineTask_FAILED, finalizedTask.GetState())
 	assert.NotNil(t, finalizedTask.GetEndTime())
 	assert.NotEmpty(t, finalizedTask.GetStatusMetadata().GetMessage())
 	require.NotNil(t, finalizedTask.GetTypeAttributes())
@@ -236,7 +236,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 	tests := []struct {
 		name         string
 		opts         common.Options
-		expectedType apiv2beta1.PipelineTask_TaskType
+		expectedType apiv2.PipelineTask_TaskType
 	}{
 		{
 			name: "LOOP - has ParameterIterator and IterationIndex < 0",
@@ -253,7 +253,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				},
 				IterationIndex: -1,
 			},
-			expectedType: apiv2beta1.PipelineTask_LOOP,
+			expectedType: apiv2.PipelineTask_LOOP,
 		},
 		{
 			name: "LOOP - nested coordinator inherits outer iteration index",
@@ -270,7 +270,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				},
 				IterationIndex: 0,
 			},
-			expectedType: apiv2beta1.PipelineTask_LOOP,
+			expectedType: apiv2.PipelineTask_LOOP,
 		},
 		{
 			name: "CONDITION_BRANCH - has trigger condition",
@@ -282,7 +282,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				},
 				IterationIndex: -1,
 			},
-			expectedType: apiv2beta1.PipelineTask_CONDITION_BRANCH,
+			expectedType: apiv2.PipelineTask_CONDITION_BRANCH,
 		},
 		{
 			name: "CONDITION - name prefix condition",
@@ -291,7 +291,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				TaskName:       "condition-1",
 				IterationIndex: -1,
 			},
-			expectedType: apiv2beta1.PipelineTask_CONDITION,
+			expectedType: apiv2.PipelineTask_CONDITION,
 		},
 		{
 			name: "DAG default - name prefix condition-branch does not match CONDITION",
@@ -300,7 +300,7 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				TaskName:       "condition-branch-1",
 				IterationIndex: -1,
 			},
-			expectedType: apiv2beta1.PipelineTask_DAG,
+			expectedType: apiv2.PipelineTask_DAG,
 		},
 		{
 			name: "DAG default - no special conditions",
@@ -309,13 +309,13 @@ func TestApplyInferredDAGTaskType(t *testing.T) {
 				TaskName:       "my-subdag",
 				IterationIndex: -1,
 			},
-			expectedType: apiv2beta1.PipelineTask_DAG,
+			expectedType: apiv2.PipelineTask_DAG,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			task := &apiv2beta1.PipelineTask{Type: apiv2beta1.PipelineTask_DAG}
+			task := &apiv2.PipelineTask{Type: apiv2.PipelineTask_DAG}
 			applyInferredDAGTaskType(test.opts, task)
 			assert.Equal(t, test.expectedType, task.GetType())
 		})

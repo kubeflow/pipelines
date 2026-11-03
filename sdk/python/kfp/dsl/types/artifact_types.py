@@ -15,8 +15,8 @@
 
 import enum
 import os
-from typing import Dict, List, Optional, Type
 import warnings
+from typing import Dict, List, Optional, Type
 
 from kfp.dsl.constants import WORKSPACE_MOUNT_PATH
 
@@ -73,13 +73,16 @@ class Artifact:
 
     Note: Other artifacts are used similarly to the usage of ``Artifact`` in the example above (within ``Input[]`` and ``Output[]``).
     """
+
     schema_title = 'system.Artifact'
     schema_version = '0.0.1'
 
-    def __init__(self,
-                 name: Optional[str] = None,
-                 uri: Optional[str] = None,
-                 metadata: Optional[Dict] = None) -> None:
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        uri: Optional[str] = None,
+        metadata: Optional[Dict] = None,
+    ) -> None:
         """Initializes the Artifact with the given name, URI, metadata, and
         blank custom path."""
         self.uri = uri or ''
@@ -101,24 +104,31 @@ class Artifact:
         if self.custom_path:
             local_path = self._get_custom_path()
         elif self.uri.startswith(RemotePrefix.GCS.value):
-            local_path = _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS
-                                                                .value):]
+            local_path = (
+                _GCS_LOCAL_MOUNT_PREFIX
+                + self.uri[len(RemotePrefix.GCS.value) :]
+            )
         elif self.uri.startswith(RemotePrefix.MINIO.value):
-            local_path = _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.
-                                                                  MINIO.value):]
+            local_path = (
+                _MINIO_LOCAL_MOUNT_PREFIX
+                + self.uri[len(RemotePrefix.MINIO.value) :]
+            )
         elif self.uri.startswith(RemotePrefix.S3.value):
-            local_path = _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3
-                                                               .value):]
+            local_path = (
+                _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3.value) :]
+            )
         elif self.uri.startswith(RemotePrefix.OCI.value):
-            escaped_uri = self.uri[len(RemotePrefix.OCI.value):].replace(
-                '/', '_')
+            escaped_uri = self.uri[len(RemotePrefix.OCI.value) :].replace(
+                '/', '_'
+            )
             local_path = _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
 
         # If the artifact is already present in the pipeline workspace, map to the workspace path.
         # This is indicated by backend setting metadata['_kfp_workspace'] = True.
         if self.metadata.get('_kfp_workspace') is True:
-            local_path = os.path.join(WORKSPACE_MOUNT_PATH, '.artifacts',
-                                      local_path.lstrip('/'))
+            local_path = os.path.join(
+                WORKSPACE_MOUNT_PATH, '.artifacts', local_path.lstrip('/')
+            )
 
         return local_path
 
@@ -146,15 +156,15 @@ class Artifact:
 
 def convert_local_path_to_remote_path(path: str) -> str:
     if path.startswith(_GCS_LOCAL_MOUNT_PREFIX):
-        return RemotePrefix.GCS.value + path[len(_GCS_LOCAL_MOUNT_PREFIX):]
+        return RemotePrefix.GCS.value + path[len(_GCS_LOCAL_MOUNT_PREFIX) :]
     elif path.startswith(_MINIO_LOCAL_MOUNT_PREFIX):
-        return RemotePrefix.MINIO.value + path[len(_MINIO_LOCAL_MOUNT_PREFIX):]
+        return RemotePrefix.MINIO.value + path[len(_MINIO_LOCAL_MOUNT_PREFIX) :]
     elif path.startswith(_S3_LOCAL_MOUNT_PREFIX):
-        return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX):]
+        return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX) :]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
-        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
+        remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX) :].replace('_', '/')
         if remote_path.endswith('/models'):
-            remote_path = remote_path[:-len('/models')]
+            remote_path = remote_path[: -len('/models')]
 
         return RemotePrefix.OCI.value + remote_path
 
@@ -169,6 +179,7 @@ class Model(Artifact):
         uri: The model's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the model.
     """
+
     schema_title = 'system.Model'
 
     @property
@@ -207,6 +218,7 @@ class Dataset(Artifact):
         uri: The dataset's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the dataset.
     """
+
     schema_title = 'system.Dataset'
 
 
@@ -218,6 +230,7 @@ class Metrics(Artifact):
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: Key-value scalar metrics.
     """
+
     schema_title = 'system.Metrics'
 
     def log_metric(self, metric: str, value: float) -> None:
@@ -238,10 +251,12 @@ class ClassificationMetrics(Artifact):
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: The key-value scalar metrics.
     """
+
     schema_title = 'system.ClassificationMetrics'
 
-    def log_roc_data_point(self, fpr: float, tpr: float,
-                           threshold: float) -> None:
+    def log_roc_data_point(
+        self, fpr: float, tpr: float, threshold: float
+    ) -> None:
         """Logs a single data point in the ROC curve to metadata.
 
         Args:
@@ -253,15 +268,16 @@ class ClassificationMetrics(Artifact):
         roc_reading = {
             'confidenceThreshold': threshold,
             'recall': tpr,
-            'falsePositiveRate': fpr
+            'falsePositiveRate': fpr,
         }
         if 'confidenceMetrics' not in self.metadata.keys():
             self.metadata['confidenceMetrics'] = []
 
         self.metadata['confidenceMetrics'].append(roc_reading)
 
-    def log_roc_curve(self, fpr: List[float], tpr: List[float],
-                      threshold: List[float]) -> None:
+    def log_roc_curve(
+        self, fpr: List[float], tpr: List[float], threshold: List[float]
+    ) -> None:
         """Logs an ROC curve to metadata.
 
         Args:
@@ -272,15 +288,19 @@ class ClassificationMetrics(Artifact):
         Raises:
           ValueError: If the lists ``fpr``, ``tpr`` and ``threshold`` are not the same length.
         """
-        if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(
-                tpr) != len(threshold):
+        if (
+            len(fpr) != len(tpr)
+            or len(fpr) != len(threshold)
+            or len(tpr) != len(threshold)
+        ):
             raise ValueError(
                 f'Length of fpr, tpr and threshold must be the same. Got lengths {len(fpr)}, {len(tpr)} and {len(threshold)} respectively.'
             )
 
         for i in range(len(fpr)):
             self.log_roc_data_point(
-                fpr=fpr[i], tpr=tpr[i], threshold=threshold[i])
+                fpr=fpr[i], tpr=tpr[i], threshold=threshold[i]
+            )
 
     def set_confusion_matrix_categories(self, categories: List[str]) -> None:
         """Stores confusion matrix categories to metadata.
@@ -302,13 +322,14 @@ class ClassificationMetrics(Artifact):
 
         self._confusion_matrix = {
             'annotationSpecs': annotation_specs,
-            'rows': self._matrix
+            'rows': self._matrix,
         }
 
         self.metadata['confusionMatrix'] = self._confusion_matrix
 
-    def log_confusion_matrix_row(self, row_category: str,
-                                 row: List[float]) -> None:
+    def log_confusion_matrix_row(
+        self, row_category: str, row: List[float]
+    ) -> None:
         """Logs a confusion matrix row to metadata.
 
         Args:
@@ -332,8 +353,9 @@ class ClassificationMetrics(Artifact):
         self._matrix[self._categories.index(row_category)] = {'row': row}
         self.metadata['confusionMatrix'] = self._confusion_matrix
 
-    def log_confusion_matrix_cell(self, row_category: str, col_category: str,
-                                  value: int) -> None:
+    def log_confusion_matrix_cell(
+        self, row_category: str, col_category: str, value: int
+    ) -> None:
         """Logs a cell in the confusion matrix to metadata.
 
         Args:
@@ -356,11 +378,13 @@ class ClassificationMetrics(Artifact):
             )
 
         self._matrix[self._categories.index(row_category)]['row'][
-            self._categories.index(col_category)] = value
+            self._categories.index(col_category)
+        ] = value
         self.metadata['confusionMatrix'] = self._confusion_matrix
 
-    def log_confusion_matrix(self, categories: List[str],
-                             matrix: List[List[int]]) -> None:
+    def log_confusion_matrix(
+        self, categories: List[str], matrix: List[List[int]]
+    ) -> None:
         """Logs a confusion matrix to metadata.
 
         Args:
@@ -374,7 +398,8 @@ class ClassificationMetrics(Artifact):
 
         if len(matrix) != len(categories):
             raise ValueError(
-                f'Invalid matrix: {matrix} passed for categories: {categories}')
+                f'Invalid matrix: {matrix} passed for categories: {categories}'
+            )
 
         for index in range(len(categories)):
             if len(matrix[index]) != len(categories):
@@ -413,20 +438,21 @@ class SlicedClassificationMetrics(Artifact):
         self.metadata = {'evaluationSlices': []}
         for slice in self._sliced_metrics.keys():
             slice_metrics = {
-                'slice':
-                    slice,
-                'sliceClassificationMetrics':
-                    self._sliced_metrics[slice].metadata
+                'slice': slice,
+                'sliceClassificationMetrics': self._sliced_metrics[
+                    slice
+                ].metadata,
             }
             self.metadata['evaluationSlices'].append(slice_metrics)
 
-    def log_roc_reading(self, slice: str, threshold: float, tpr: float,
-                        fpr: float) -> None:
+    def log_roc_reading(
+        self, slice: str, threshold: float, tpr: float, fpr: float
+    ) -> None:
         """Logs a single data point in the ROC curve of a slice to metadata.
 
         Args:
           slice: String representing slice label.
-          threshold: Thresold value for the data point.
+          threshold: Threshold value for the data point.
           tpr: True positive rate value of the data point.
           fpr: False positive rate value of the data point.
         """
@@ -435,8 +461,9 @@ class SlicedClassificationMetrics(Artifact):
         self._sliced_metrics[slice].log_roc_reading(threshold, tpr, fpr)
         self._update_metadata(slice)
 
-    def load_roc_readings(self, slice: str,
-                          readings: List[List[float]]) -> None:
+    def load_roc_readings(
+        self, slice: str, readings: List[List[float]]
+    ) -> None:
         """Bulk loads ROC curve readings for a slice.
 
         Args:
@@ -447,8 +474,9 @@ class SlicedClassificationMetrics(Artifact):
         self._sliced_metrics[slice].load_roc_readings(readings)
         self._update_metadata(slice)
 
-    def set_confusion_matrix_categories(self, slice: str,
-                                        categories: List[str]) -> None:
+    def set_confusion_matrix_categories(
+        self, slice: str, categories: List[str]
+    ) -> None:
         """Logs confusion matrix categories for a slice to metadata.
 
         Categories are stored in the internal ``metrics_utils.ConfusionMatrix``
@@ -462,8 +490,9 @@ class SlicedClassificationMetrics(Artifact):
         self._sliced_metrics[slice].set_confusion_matrix_categories(categories)
         self._update_metadata(slice)
 
-    def log_confusion_matrix_row(self, slice: str, row_category: str,
-                                 row: List[int]) -> None:
+    def log_confusion_matrix_row(
+        self, slice: str, row_category: str, row: List[int]
+    ) -> None:
         """Logs a confusion matrix row for a slice to metadata.
 
         Row is updated on the internal ``metrics_utils.ConfusionMatrix``
@@ -478,8 +507,9 @@ class SlicedClassificationMetrics(Artifact):
         self._sliced_metrics[slice].log_confusion_matrix_row(row_category, row)
         self._update_metadata(slice)
 
-    def log_confusion_matrix_cell(self, slice: str, row_category: str,
-                                  col_category: str, value: int) -> None:
+    def log_confusion_matrix_cell(
+        self, slice: str, row_category: str, col_category: str, value: int
+    ) -> None:
         """Logs a confusion matrix cell for a slice to metadata.
 
         Cell is updated on the internal ``metrics_utils.ConfusionMatrix``
@@ -493,11 +523,13 @@ class SlicedClassificationMetrics(Artifact):
         """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_cell(
-            row_category, col_category, value)
+            row_category, col_category, value
+        )
         self._update_metadata(slice)
 
-    def load_confusion_matrix(self, slice: str, categories: List[str],
-                              matrix: List[List[int]]) -> None:
+    def load_confusion_matrix(
+        self, slice: str, categories: List[str], matrix: List[List[int]]
+    ) -> None:
         """Bulk loads the whole confusion matrix for a slice.
 
         Args:
@@ -507,7 +539,8 @@ class SlicedClassificationMetrics(Artifact):
         """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_cell(
-            categories, matrix)
+            categories, matrix
+        )
         self._update_metadata(slice)
 
 
@@ -519,6 +552,7 @@ class HTML(Artifact):
         uri: The HTML file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the HTML file.
     """
+
     schema_title = 'system.HTML'
 
 
@@ -530,11 +564,13 @@ class Markdown(Artifact):
         uri: The markdown file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the markdown file.
     """
+
     schema_title = 'system.Markdown'
 
 
 _SCHEMA_TITLE_TO_TYPE: Dict[str, Type[Artifact]] = {
-    x.schema_title: x for x in [
+    x.schema_title: x
+    for x in [
         Artifact,
         Model,
         Dataset,

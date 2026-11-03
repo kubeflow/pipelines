@@ -13,9 +13,7 @@
 # limitations under the License.
 
 from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Output
+from kfp.dsl import Artifact, ContainerSpec, Output
 
 
 @dsl.container_component
@@ -29,11 +27,14 @@ def container_with_placeholder_in_fstring(
             'my_program',
             f'prefix-{text1}',
             f'{output_artifact.uri}/0',
-        ])
+        ],
+    )
 
 
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
         pipeline_func=container_with_placeholder_in_fstring,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

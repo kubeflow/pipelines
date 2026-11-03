@@ -1,0 +1,38 @@
+name: Install checksum-pinned OSV Scanner
+description: Install OSV Scanner for a native Linux architecture
+inputs:
+  arch:
+    description: Native architecture (amd64 or arm64)
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ARCH: ${{ inputs.arch }}
+      run: |
+        set -euo pipefail
+        case "$ARCH" in
+          amd64)
+            checksum=edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c
+            ;;
+          arm64)
+            checksum=fe152e1a546af223e6c557cc3111a8bb3e5dc02fcbf7dbe95d26567c0f0041f2
+            ;;
+          *) echo "Unsupported OSV Scanner architecture: $ARCH" >&2; exit 2 ;;
+        esac
+        install_dir=$(mktemp -d "$RUNNER_TEMP/osv-scanner.XXXXXX")
+        curl --fail --silent --show-error --location \
+          --retry 3 --retry-delay 5 --retry-all-errors \
+          --connect-timeout 30 --max-time 300 \
+          "https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-scanner_linux_$ARCH" \
+          --output "$install_dir/osv-scanner"
+        echo "$checksum  $install_dir/osv-scanner" | sha256sum --check --strict
+        chmod +x "$install_dir/osv-scanner"
+        version_output=$("$install_dir/osv-scanner" --version 2>&1)
+        printf '%s\n' "$version_output"
+        if ! grep --fixed-strings --line-regexp --quiet 'osv-scanner version: 2.5.0' <<< "$version_output"; then
+          echo "Unexpected OSV Scanner version" >&2
+          exit 1
+        fi
+        echo "$install_dir" >> "$GITHUB_PATH"

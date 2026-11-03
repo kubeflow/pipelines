@@ -16,7 +16,7 @@
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
+import { V2Pipeline, V2PipelineVersion } from 'src/apisv2/pipeline';
 import { testBestPractices } from 'src/TestUtils';
 import { PipelineVersionCard } from './PipelineVersionCard';
 
@@ -25,7 +25,7 @@ const NEW_VERSION_NAME = 'new version';
 const TEST_PIPELINE_ID = 'pipeline-id';
 
 const OLD_TEST_PIPELINE_VERSION_ID = 'old-version-id';
-const OLD_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
+const OLD_TEST_PIPELINE_VERSION: V2PipelineVersion = {
   code_source_url: 'https://github.com/kubeflow/pipelines',
   created_at: new Date('2021-11-24T20:58:23.000Z'),
   description: 'This is old version description.',
@@ -35,7 +35,7 @@ const OLD_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
 };
 
 const NEW_TEST_PIPELINE_VERSION_ID = 'new-version-id';
-const NEW_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
+const NEW_TEST_PIPELINE_VERSION: V2PipelineVersion = {
   created_at: new Date('2021-12-24T20:58:23.000Z'),
   description: 'This is new version description.',
   display_name: NEW_VERSION_NAME,
@@ -43,12 +43,12 @@ const NEW_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
   pipeline_version_id: NEW_TEST_PIPELINE_VERSION_ID,
 };
 
-const TEST_PIPELINE_VERSIONS_LIST: V2beta1PipelineVersion[] = [
+const TEST_PIPELINE_VERSIONS_LIST: V2PipelineVersion[] = [
   OLD_TEST_PIPELINE_VERSION,
   NEW_TEST_PIPELINE_VERSION,
 ];
 
-const TEST_PIPELINE: V2beta1Pipeline = {
+const TEST_PIPELINE: V2Pipeline = {
   created_at: new Date('2021-11-24T20:58:23.000Z'),
   description: 'This is pipeline level description.',
   display_name: 'v2_lightweight_python_functions_pipeline',

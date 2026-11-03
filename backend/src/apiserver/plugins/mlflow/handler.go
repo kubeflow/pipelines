@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
@@ -82,7 +82,7 @@ func (h *Handler) GetPluginOperationTimeout(runCfg interface{}) time.Duration {
 
 // OnBeforeRunCreation creates the MLflow experiment and parent run, tags it
 // with KFP metadata, and returns runtime env vars.
-func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins.PendingRun, runCfg interface{}, resolvedPluginInput interface{}) (*apiv2beta1.PluginOutput, []corev1.EnvVar, error) {
+func (h *Handler) OnBeforeRunCreation(ctx context.Context, run *apiserverPlugins.PendingRun, runCfg interface{}, resolvedPluginInput interface{}) (*apiv2.PluginOutput, []corev1.EnvVar, error) {
 	if h == nil || run == nil || runCfg == nil {
 		return nil, nil, nil
 	}
@@ -220,7 +220,7 @@ func (h *Handler) HandleRetry(ctx context.Context, run *apiserverPlugins.Persist
 
 // GetGenericFailedPluginOutput generates a failure plugin output for a given runID and message if pluginInput is valid.
 // Returns nil if pluginInput cannot be resolved to MLflowPluginInput.
-func (h *Handler) GetGenericFailedPluginOutput(runID string, message string, pluginInput interface{}) *apiv2beta1.PluginOutput {
+func (h *Handler) GetGenericFailedPluginOutput(runID string, message string, pluginInput interface{}) *apiv2.PluginOutput {
 	resolvedPluginInput, ok := pluginInput.(*MLflowPluginInput)
 	if !ok || resolvedPluginInput == nil {
 		return nil
@@ -244,7 +244,7 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 	if parentRunID == "" {
 		msg := fmt.Sprintf("MLflow %s sync skipped: missing parent root_run_id in plugins_output.mlflow", label)
 		glog.Warning(msg)
-		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2.PluginState_PLUGIN_FAILED, msg)
 		return false
 	}
 
@@ -252,13 +252,13 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 	if localConfig == nil || localConfig.Config == nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: config unavailable", label)
 		glog.Warning(msg)
-		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2.PluginState_PLUGIN_FAILED, msg)
 		return false
 	}
 	if localConfig.Config.Settings == nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: resolved MLflow settings are missing", label)
 		glog.Warning(msg)
-		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2.PluginState_PLUGIN_FAILED, msg)
 		return false
 	}
 
@@ -266,7 +266,7 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 	if err != nil {
 		msg := fmt.Sprintf("MLflow %s sync failed: %v", label, err)
 		glog.Warning(msg)
-		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2.PluginState_PLUGIN_FAILED, msg)
 		return false
 	}
 
@@ -274,12 +274,12 @@ func (h *Handler) syncMLflowRuns(ctx context.Context, run *apiserverPlugins.Pers
 	if len(syncErrors) > 0 {
 		msg := strings.Join(syncErrors, "; ")
 		glog.Warningf("MLflow %s sync encountered errors for run %s: %s", label, run.RunID, msg)
-		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_FAILED, msg)
+		apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2.PluginState_PLUGIN_FAILED, msg)
 		// The MLflow calls themselves failed (network, availability, or
 		// server-side errors); a later retry can succeed.
 		return true
 	}
-	apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, "")
+	apiserverPlugins.SetPluginOutputState(pluginOutput, apiv2.PluginState_PLUGIN_SUCCEEDED, "")
 	return false
 }
 

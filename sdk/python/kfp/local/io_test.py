@@ -20,12 +20,11 @@ from kfp.local import io
 
 
 class IOStoreTest(unittest.TestCase):
-
     def test_task_not_found(self):
         store = io.IOStore()
         with self.assertRaisesRegex(
-                ValueError,
-                r"Tried to get output 'foo' from task 'my-task', but task 'my-task' not found\."
+            ValueError,
+            r"Tried to get output 'foo' from task 'my-task', but task 'my-task' not found\.",
         ):
             store.get_task_output('my-task', 'foo')
 
@@ -33,15 +32,16 @@ class IOStoreTest(unittest.TestCase):
         store = io.IOStore()
         store.put_task_output('my-task', 'bar', 'baz')
         with self.assertRaisesRegex(
-                ValueError,
-                r"Tried to get output 'foo' from task 'my-task', but task 'my-task' has no output named 'foo'\."
+            ValueError,
+            r"Tried to get output 'foo' from task 'my-task', but task 'my-task' has no output named 'foo'\.",
         ):
             store.get_task_output('my-task', 'foo')
 
     def test_parent_input_not_found(self):
         store = io.IOStore()
         with self.assertRaisesRegex(
-                ValueError, r"Parent pipeline input argument 'foo' not found."):
+            ValueError, r"Parent pipeline input argument 'foo' not found."
+        ):
             store.get_parent_input('foo')
 
     def test_put_and_get_task_output(self):
@@ -82,7 +82,8 @@ class IOStoreTest(unittest.TestCase):
 
     def test_put_and_get_task_output_with_artifact(self):
         artifact = dsl.Artifact(
-            name='foo', uri='/my/uri', metadata={'foo': 'bar'})
+            name='foo', uri='/my/uri', metadata={'foo': 'bar'}
+        )
         store = io.IOStore()
         store.put_task_output('my-task', 'foo', artifact)
         self.assertEqual(

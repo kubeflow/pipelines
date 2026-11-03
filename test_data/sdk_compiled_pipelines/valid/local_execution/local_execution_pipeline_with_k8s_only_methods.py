@@ -18,8 +18,8 @@ set_accelerator_type, ...) are called on the task during local execution.
 Locally they should emit a warning but still let the task run; the test
 asserts both the warning and the expected output.
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 
 
 @dsl.component

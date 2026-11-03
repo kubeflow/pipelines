@@ -14,26 +14,24 @@
 
 # %%
 
-from pprint import pprint
 import unittest
+from pprint import pprint
 
-from kfp.samples.test.utils import KfpMlmdClient
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
-import kfp_server_api
+import kfp.server_api
+from kfp.samples.test.utils import KfpMlmdClient, TestCase, run_pipeline_func
 
 from .exit_handler import pipeline_exit_handler as pipeline_exit_handler
 
 
-def verify(mlmd_connection_config, run: kfp_server_api.ApiRun, **kwargs):
+def verify(mlmd_connection_config, run: kfp.server_api.V2Run, **kwargs):
     t = unittest.TestCase()
     t.maxDiff = None  # we always want to see full diff
 
-    t.assertEqual(run.status, 'Succeeded')
+    t.assertEqual(run.state, 'SUCCEEDED')
 
     # Verify MLMD state
     client = KfpMlmdClient(mlmd_connection_config=mlmd_connection_config)
-    tasks = client.get_tasks(run_id=run.id)
+    tasks = client.get_tasks(run_id=run.run_id)
     task_names = [*tasks.keys()]
     t.assertEqual(task_names, ['echo-msg', 'print-file', 'download-from-gcs'])
 
@@ -50,6 +48,10 @@ def verify(mlmd_connection_config, run: kfp_server_api.ApiRun, **kwargs):
 # %%
 
 if __name__ == '__main__':
-    run_pipeline_func([
-        TestCase(pipeline_func=pipeline_exit_handler,),
-    ])
+    run_pipeline_func(
+        [
+            TestCase(
+                pipeline_func=pipeline_exit_handler,
+            ),
+        ]
+    )

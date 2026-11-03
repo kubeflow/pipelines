@@ -22,7 +22,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
@@ -41,11 +41,11 @@ const TestPipelineName = "test-pipeline"
 const TestNamespace = "test-namespace"
 
 type TestContext struct {
-	Run *apiv2beta1.Run
+	Run *apiv2.Run
 	util.ScopePath
 	T             *testing.T
 	PipelineSpec  *pipelinespec.PipelineSpec
-	RootTask      *apiv2beta1.PipelineTask
+	RootTask      *apiv2.PipelineTask
 	PlatformSpec  *pipelinespec.PlatformSpec
 	ClientManager clientmanager.ClientManagerInterface
 	MockAPI       *kfpapi.MockAPI
@@ -110,7 +110,7 @@ func NewTestContextWithRootExecuted(t *testing.T, runtimeConfig *pipelinespec.Pi
 }
 
 // CreateTestRun creates a test run with basic configuration
-func (tc *TestContext) CreateTestRun(t *testing.T, pipelineName string) *apiv2beta1.Run {
+func (tc *TestContext) CreateTestRun(t *testing.T, pipelineName string) *apiv2.Run {
 	t.Helper()
 
 	// Convert the loaded pipeline spec to structpb.Struct for the run
@@ -122,12 +122,12 @@ func (tc *TestContext) CreateTestRun(t *testing.T, pipelineName string) *apiv2be
 	require.NoError(t, err)
 
 	uuid, _ := uuid.NewRandom()
-	run := &apiv2beta1.Run{
+	run := &apiv2.Run{
 		RunId:          uuid.String(),
 		DisplayName:    fmt.Sprintf("test-run-%s-%d", pipelineName, time.Now().Unix()),
-		PipelineSource: &apiv2beta1.Run_PipelineSpec{PipelineSpec: pipelineSpecStruct},
-		RuntimeConfig:  &apiv2beta1.RuntimeConfig{},
-		State:          apiv2beta1.RuntimeState_RUNNING,
+		PipelineSource: &apiv2.Run_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig:  &apiv2.RuntimeConfig{},
+		State:          apiv2.RuntimeState_RUNNING,
 	}
 
 	tc.MockAPI.AddRun(run)
@@ -139,34 +139,34 @@ func (tc *TestContext) CreateTestTask(
 	t *testing.T,
 	runID,
 	taskName string,
-	taskType apiv2beta1.PipelineTask_TaskType,
-	inputParams, outputParams []*apiv2beta1.PipelineTask_InputOutputs_IOParameter,
-) *apiv2beta1.PipelineTask {
+	taskType apiv2.PipelineTask_TaskType,
+	inputParams, outputParams []*apiv2.PipelineTask_InputOutputs_IOParameter,
+) *apiv2.PipelineTask {
 	t.Helper()
 
 	podUUID, _ := uuid.NewRandom()
-	task := &apiv2beta1.PipelineTask{
+	task := &apiv2.PipelineTask{
 		Name:        taskName,
 		DisplayName: taskName,
 		RunId:       runID,
 		Type:        taskType,
-		State:       apiv2beta1.PipelineTask_RUNNING,
-		Pods: []*apiv2beta1.PipelineTask_TaskPod{
+		State:       apiv2.PipelineTask_RUNNING,
+		Pods: []*apiv2.PipelineTask_TaskPod{
 			{
 				Name: fmt.Sprintf("%s-pod", taskName),
 				Uid:  podUUID.String(),
-				Type: apiv2beta1.PipelineTask_DRIVER,
+				Type: apiv2.PipelineTask_DRIVER,
 			},
 		},
-		Inputs: &apiv2beta1.PipelineTask_InputOutputs{
+		Inputs: &apiv2.PipelineTask_InputOutputs{
 			Parameters: inputParams,
 		},
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
+		Outputs: &apiv2.PipelineTask_InputOutputs{
 			Parameters: outputParams,
 		},
 	}
 
-	createdTask, err := tc.ClientManager.KFPAPIClient().CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+	createdTask, err := tc.ClientManager.KFPAPIClient().CreateTask(context.Background(), &apiv2.CreateTaskRequest{
 		Task: task,
 	})
 	require.NoError(t, err)
@@ -174,23 +174,23 @@ func (tc *TestContext) CreateTestTask(
 }
 
 // CreateTestArtifact creates a test artifact with the given configuration
-func (tc *TestContext) CreateTestArtifact(t *testing.T, name, artifactType string) *apiv2beta1.Artifact {
+func (tc *TestContext) CreateTestArtifact(t *testing.T, name, artifactType string) *apiv2.Artifact {
 	t.Helper()
 
-	artifact := &apiv2beta1.Artifact{
+	artifact := &apiv2.Artifact{
 		Name: name,
-		Type: apiv2beta1.Artifact_Dataset, // Default type
+		Type: apiv2.Artifact_Dataset, // Default type
 	}
 
 	// Set specific type if provided
 	switch artifactType {
 	case "model":
-		artifact.Type = apiv2beta1.Artifact_Model
+		artifact.Type = apiv2.Artifact_Model
 	case "metric":
-		artifact.Type = apiv2beta1.Artifact_Metric
+		artifact.Type = apiv2.Artifact_Metric
 	}
 
-	createdArtifact, err := tc.ClientManager.KFPAPIClient().CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+	createdArtifact, err := tc.ClientManager.KFPAPIClient().CreateArtifact(context.Background(), &apiv2.CreateArtifactRequest{
 		Artifact: artifact,
 	})
 	require.NoError(t, err)
@@ -199,10 +199,10 @@ func (tc *TestContext) CreateTestArtifact(t *testing.T, name, artifactType strin
 
 // CreateTestArtifactTask creates an artifact-task relationship
 func (tc *TestContext) CreateTestArtifactTask(t *testing.T, artifactID, taskID, runID, key string,
-	producer *apiv2beta1.IOProducer, artifactType apiv2beta1.IOType) *apiv2beta1.ArtifactTask {
+	producer *apiv2.IOProducer, artifactType apiv2.IOType) *apiv2.ArtifactTask {
 	t.Helper()
 
-	artifactTask := &apiv2beta1.ArtifactTask{
+	artifactTask := &apiv2.ArtifactTask{
 		ArtifactId: artifactID,
 		TaskId:     taskID,
 		RunId:      runID,
@@ -211,7 +211,7 @@ func (tc *TestContext) CreateTestArtifactTask(t *testing.T, artifactID, taskID, 
 		Key:        key,
 	}
 
-	createdArtifactTask, err := tc.ClientManager.KFPAPIClient().CreateArtifactTask(context.Background(), &apiv2beta1.CreateArtifactTaskRequest{
+	createdArtifactTask, err := tc.ClientManager.KFPAPIClient().CreateArtifactTask(context.Background(), &apiv2.CreateArtifactTaskRequest{
 		ArtifactTask: artifactTask,
 	})
 	require.NoError(t, err)
@@ -220,9 +220,9 @@ func (tc *TestContext) CreateTestArtifactTask(t *testing.T, artifactID, taskID, 
 
 // CreateParameter creates a test parameter with the given name and value
 func CreateParameter(value, key string,
-	producer *apiv2beta1.IOProducer) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+	producer *apiv2.IOProducer) *apiv2.PipelineTask_InputOutputs_IOParameter {
 	val, _ := structpb.NewValue(value)
-	param := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	param := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        val,
 		ParameterKey: key,
 		Producer:     producer,
@@ -247,15 +247,15 @@ func TestTestContext(t *testing.T) {
 	task1 := testSetup.CreateTestTask(t,
 		run.RunId,
 		"producer-task",
-		apiv2beta1.PipelineTask_RUNTIME,
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		apiv2.PipelineTask_RUNTIME,
+		[]*apiv2.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"input1",
 				"pipelinechannel--args-generator-op-Output",
-				&apiv2beta1.IOProducer{TaskName: "some-task"},
+				&apiv2.IOProducer{TaskName: "some-task"},
 			),
 		},
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		[]*apiv2.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"output1",
 				"msg",
@@ -267,15 +267,15 @@ func TestTestContext(t *testing.T) {
 				nil,
 			),
 		})
-	task2 := testSetup.CreateTestTask(t, run.RunId, "consumer-task", apiv2beta1.PipelineTask_RUNTIME,
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	task2 := testSetup.CreateTestTask(t, run.RunId, "consumer-task", apiv2.PipelineTask_RUNTIME,
+		[]*apiv2.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"input4",
 				"input4key",
 				nil,
 			),
 		},
-		[]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		[]*apiv2.PipelineTask_InputOutputs_IOParameter{
 			CreateParameter(
 				"output3",
 				"pipelinechannel--split-ids-Output",
@@ -291,38 +291,38 @@ func TestTestContext(t *testing.T) {
 	// task1 produces artifact1 (output)
 	testSetup.CreateTestArtifactTask(t,
 		artifact1.ArtifactId, task1.TaskId, run.RunId, "pipelinechannel--loop_parameter-loop-item-1",
-		&apiv2beta1.IOProducer{
+		&apiv2.IOProducer{
 			TaskName: task1.Name,
 		},
-		apiv2beta1.IOType_OUTPUT,
+		apiv2.IOType_OUTPUT,
 	)
 
 	// task2 consumes artifact1 (input)
 	testSetup.CreateTestArtifactTask(t,
 		artifact1.ArtifactId, task2.TaskId, run.RunId, "pipelinechannel--loop_parameter-loop-item-2",
-		&apiv2beta1.IOProducer{
+		&apiv2.IOProducer{
 			TaskName: task1.Name,
 		},
-		apiv2beta1.IOType_COMPONENT_INPUT,
+		apiv2.IOType_COMPONENT_INPUT,
 	)
 	// task2 produces artifact2 (output)
 	testSetup.CreateTestArtifactTask(t,
 		artifact2.ArtifactId, task2.TaskId, run.RunId, "pipelinechannel--loop_parameter-loop-item",
-		&apiv2beta1.IOProducer{
+		&apiv2.IOProducer{
 			TaskName: task2.Name,
 		},
-		apiv2beta1.IOType_OUTPUT,
+		apiv2.IOType_OUTPUT,
 	)
 
 	// Test getting run with populated tasks and artifacts
-	fullView := apiv2beta1.GetRunRequest_FULL
-	populatedRun, err := testSetup.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: run.RunId, View: &fullView})
+	fullView := apiv2.GetRunRequest_FULL
+	populatedRun, err := testSetup.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{RunId: run.RunId, View: &fullView})
 	require.NoError(t, err)
 	assert.NotNil(t, populatedRun)
 	assert.Len(t, populatedRun.Tasks, 2)
 
 	// Verify task1 has correct artifacts (1 output)
-	var producerTask *apiv2beta1.PipelineTask
+	var producerTask *apiv2.PipelineTask
 	for _, task := range populatedRun.Tasks {
 		if task.Name == "producer-task" {
 			producerTask = task
@@ -334,7 +334,7 @@ func TestTestContext(t *testing.T) {
 	assert.Len(t, producerTask.Outputs.Artifacts, 1) // 1 output artifact
 
 	// Verify task2 has correct artifacts (1 input, 1 output)
-	var consumerTask *apiv2beta1.PipelineTask
+	var consumerTask *apiv2.PipelineTask
 	for _, task := range populatedRun.Tasks {
 		if task.Name == "consumer-task" {
 			consumerTask = task
@@ -351,7 +351,7 @@ func TestTestContext(t *testing.T) {
 	assert.Equal(t, "pipelinechannel--loop_parameter-loop-item-2", inputArtifact.GetArtifactKey())
 }
 
-func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*Execution, *apiv2beta1.PipelineTask) {
+func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2.Run, runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig) (*Execution, *apiv2.PipelineTask) {
 	tc.RefreshRun()
 	defer tc.RefreshRun()
 	err := tc.Push("root")
@@ -382,7 +382,7 @@ func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, r
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, execution)
 
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, task)
 	require.Equal(tc.T, execution.TaskID, task.TaskId)
@@ -392,7 +392,7 @@ func (tc *TestContext) RunRootDag(testSetup *TestContext, run *apiv2beta1.Run, r
 
 func (tc *TestContext) RunDagDriver(
 	taskName string,
-	parentTask *apiv2beta1.PipelineTask, iterationIndex ...int64) (*Execution, *apiv2beta1.PipelineTask) {
+	parentTask *apiv2.PipelineTask, iterationIndex ...int64) (*Execution, *apiv2.PipelineTask) {
 	t := tc.T
 	tc.RefreshRun()
 	defer tc.RefreshRun()
@@ -410,7 +410,7 @@ func (tc *TestContext) RunDagDriver(
 	require.NoError(t, err)
 	require.NotNil(t, execution)
 
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(t, err)
 	require.NotNil(t, task)
 	require.Equal(t, execution.TaskID, task.TaskId)
@@ -426,11 +426,11 @@ func (tc *TestContext) RunDagDriver(
 // for driver-terminal Kubernetes ops such as createpvc/deletepvc.
 func (tc *TestContext) RunContainerDriver(
 	taskName string,
-	parentTask *apiv2beta1.PipelineTask,
+	parentTask *apiv2.PipelineTask,
 	iterationIndex *int64,
 	autoUpdateScope bool,
-	expectedNonCachedState ...apiv2beta1.PipelineTask_TaskState,
-) (*Execution, *apiv2beta1.PipelineTask) {
+	expectedNonCachedState ...apiv2.PipelineTask_TaskState,
+) (*Execution, *apiv2.PipelineTask) {
 	tc.RefreshRun()
 	defer tc.RefreshRun()
 
@@ -459,13 +459,13 @@ func (tc *TestContext) RunContainerDriver(
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, execution)
 
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, task)
 	require.Equal(tc.T, execution.TaskID, task.TaskId)
 	require.Equal(tc.T, taskName, task.GetName())
-	if task.State != apiv2beta1.PipelineTask_CACHED {
-		expectedState := apiv2beta1.PipelineTask_RUNNING
+	if task.State != apiv2.PipelineTask_CACHED {
+		expectedState := apiv2.PipelineTask_RUNNING
 		if len(expectedNonCachedState) > 0 {
 			expectedState = expectedNonCachedState[0]
 		}
@@ -484,8 +484,8 @@ func (tc *TestContext) RunContainerDriver(
 
 func (tc *TestContext) RefreshRun() {
 	t := tc.T
-	fullView := apiv2beta1.GetRunRequest_FULL
-	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: tc.Run.RunId, View: &fullView})
+	fullView := apiv2.GetRunRequest_FULL
+	run, err := tc.ClientManager.KFPAPIClient().GetRun(context.Background(), &apiv2.GetRunRequest{RunId: tc.Run.RunId, View: &fullView})
 	require.NoError(t, err)
 	tc.Run = run
 }
@@ -499,20 +499,20 @@ func (tc *TestContext) MockLauncherOutputParameterCreate(
 	taskID string,
 	parameterKey string,
 	value *structpb.Value,
-	outputType apiv2beta1.IOType,
+	outputType apiv2.IOType,
 	producerTask string,
 	producerIteration *int64,
 ) {
 	// Get Task
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: taskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: taskID})
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, task)
 
-	newParameter := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+	newParameter := &apiv2.PipelineTask_InputOutputs_IOParameter{
 		Value:        value,
 		Type:         outputType,
 		ParameterKey: parameterKey,
-		Producer: &apiv2beta1.IOProducer{
+		Producer: &apiv2.IOProducer{
 			TaskName: producerTask,
 		},
 	}
@@ -523,7 +523,7 @@ func (tc *TestContext) MockLauncherOutputParameterCreate(
 	parameters = append(parameters, newParameter)
 	task.Outputs.Parameters = parameters
 	// Update Task via kfpAPI UpdateTask
-	task, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	task, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: taskID,
 		Task:   task,
 	})
@@ -535,11 +535,11 @@ func (tc *TestContext) MockLauncherOutputParameterCreate(
 
 // This helper will update a Runtime Tasks inputs with optional values if
 // no upstream input was provided.
-func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, componentSpec *pipelinespec.ComponentSpec) *apiv2beta1.PipelineTask {
+func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, componentSpec *pipelinespec.ComponentSpec) *apiv2.PipelineTask {
 	defer func() { tc.RefreshRun() }()
 
 	// Get Task
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: taskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2.GetTaskRequest{TaskId: taskID})
 	require.NoError(tc.T, err)
 	require.NotNil(tc.T, task)
 
@@ -556,16 +556,16 @@ func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, c
 				continue
 			}
 			require.NotNil(tc.T, value)
-			parameterIO := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			parameterIO := &apiv2.PipelineTask_InputOutputs_IOParameter{
 				Value:        value,
-				Type:         apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
+				Type:         apiv2.IOType_COMPONENT_DEFAULT_INPUT,
 				ParameterKey: key,
 			}
 			taskInputParameters = append(taskInputParameters, parameterIO)
 		}
 	}
 	task.Inputs.Parameters = taskInputParameters
-	task, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+	task, err = tc.ClientManager.KFPAPIClient().UpdateTask(context.Background(), &apiv2.UpdateTaskRequest{
 		TaskId: taskID,
 		Task:   task,
 	})
@@ -574,7 +574,7 @@ func (tc *TestContext) MockLauncherDefaultInputParametersUpdate(taskID string, c
 	return task
 }
 
-func parameterExistsWithKey(parameters []*apiv2beta1.PipelineTask_InputOutputs_IOParameter, key string) bool {
+func parameterExistsWithKey(parameters []*apiv2.PipelineTask_InputOutputs_IOParameter, key string) bool {
 	for _, parameter := range parameters {
 		if parameter.ParameterKey == key {
 			return true
@@ -586,14 +586,14 @@ func parameterExistsWithKey(parameters []*apiv2beta1.PipelineTask_InputOutputs_I
 func (tc *TestContext) MockLauncherOutputArtifactCreate(
 	taskID string,
 	artifactKey string,
-	artifactType apiv2beta1.Artifact_ArtifactType,
-	outputType apiv2beta1.IOType,
+	artifactType apiv2.Artifact_ArtifactType,
+	outputType apiv2.IOType,
 	producerTask string,
 	producerIteration *int64,
 ) string {
 	t := tc.T
 	artifactID, _ := uuid.NewRandom()
-	outputArtifact := &apiv2beta1.Artifact{
+	outputArtifact := &apiv2.Artifact{
 		ArtifactId: artifactID.String(),
 		Name:       artifactKey,
 		Type:       artifactType,
@@ -607,18 +607,18 @@ func (tc *TestContext) MockLauncherOutputArtifactCreate(
 	}
 	createArtifact, err := tc.ClientManager.KFPAPIClient().CreateArtifact(
 		context.Background(),
-		&apiv2beta1.CreateArtifactRequest{
+		&apiv2.CreateArtifactRequest{
 			Artifact: outputArtifact,
 		})
 	require.NoError(t, err)
 	require.NotNil(t, createArtifact)
 
-	artifactTask := &apiv2beta1.ArtifactTask{
+	artifactTask := &apiv2.ArtifactTask{
 		ArtifactId: artifactID.String(),
 		TaskId:     taskID,
 		RunId:      tc.Run.GetRunId(),
 		Key:        artifactKey,
-		Producer:   &apiv2beta1.IOProducer{TaskName: producerTask},
+		Producer:   &apiv2.IOProducer{TaskName: producerTask},
 		Type:       outputType,
 	}
 	if producerIteration != nil {
@@ -626,7 +626,7 @@ func (tc *TestContext) MockLauncherOutputArtifactCreate(
 	}
 	at, err := tc.ClientManager.KFPAPIClient().CreateArtifactTask(
 		context.Background(),
-		&apiv2beta1.CreateArtifactTaskRequest{
+		&apiv2.CreateArtifactTaskRequest{
 			ArtifactTask: artifactTask,
 		})
 	require.NoError(t, err)
@@ -638,22 +638,22 @@ func (tc *TestContext) MockLauncherOutputArtifactCreate(
 func (tc *TestContext) MockLauncherArtifactTaskCreate(
 	producerTaskName, taskID, key string,
 	artifactID string, producerIteration *int64,
-	outputType apiv2beta1.IOType) {
+	outputType apiv2.IOType) {
 	t := tc.T
-	at := &apiv2beta1.ArtifactTask{
+	at := &apiv2.ArtifactTask{
 		ArtifactId: artifactID,
 		TaskId:     taskID,
 		RunId:      tc.Run.GetRunId(),
 		Key:        key,
 		Type:       outputType,
-		Producer:   &apiv2beta1.IOProducer{TaskName: producerTaskName},
+		Producer:   &apiv2.IOProducer{TaskName: producerTaskName},
 	}
 	if producerIteration != nil {
 		at.Producer.Iteration = producerIteration
 	}
 	result, err := tc.ClientManager.KFPAPIClient().CreateArtifactTask(
 		context.Background(),
-		&apiv2beta1.CreateArtifactTaskRequest{ArtifactTask: at})
+		&apiv2.CreateArtifactTaskRequest{ArtifactTask: at})
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	tc.RefreshRun()
@@ -668,7 +668,7 @@ type LauncherExecution struct {
 	MockCmd      *component.MockCommandExecutor
 	MockObjStore *component.MockObjectStoreClient
 	// The task that was executed
-	Task *apiv2beta1.PipelineTask
+	Task *apiv2.PipelineTask
 }
 
 // RunLauncher executes a launcher for the given execution with mocked dependencies.
@@ -693,7 +693,7 @@ func (tc *TestContext) RunLauncher(execution *Execution, outputFiles map[string]
 	ctx := context.Background()
 
 	// Get the task that was created by the driver
-	task, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(t, err)
 	require.NotNil(t, task)
 
@@ -714,10 +714,10 @@ func (tc *TestContext) RunLauncher(execution *Execution, outputFiles map[string]
 
 	// Create launcher options
 	var iterPtr *int64
-	var parentTaskForLauncher *apiv2beta1.PipelineTask
+	var parentTaskForLauncher *apiv2.PipelineTask
 	if task.ParentTaskId != nil && *task.ParentTaskId != "" {
 		// Get the parent task
-		parentTask, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2beta1.GetTaskRequest{TaskId: *task.ParentTaskId})
+		parentTask, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2.GetTaskRequest{TaskId: *task.ParentTaskId})
 		if err == nil {
 			parentTaskForLauncher = parentTask
 			// Extract iteration index from the task's type attributes if this is an iteration
@@ -808,7 +808,7 @@ func (tc *TestContext) RunLauncher(execution *Execution, outputFiles map[string]
 	tc.RefreshRun()
 
 	// Get updated task
-	updatedTask, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2beta1.GetTaskRequest{TaskId: execution.TaskID})
+	updatedTask, err := tc.ClientManager.KFPAPIClient().GetTask(ctx, &apiv2.GetTaskRequest{TaskId: execution.TaskID})
 	require.NoError(t, err)
 
 	// Pop scope if autoUpdateScope is true
@@ -827,7 +827,7 @@ func (tc *TestContext) RunLauncher(execution *Execution, outputFiles map[string]
 }
 
 func (tc *TestContext) setupDagOptions(
-	parentTask *apiv2beta1.PipelineTask,
+	parentTask *apiv2.PipelineTask,
 	taskSpec *pipelinespec.PipelineTaskSpec,
 	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
 ) common.Options {
@@ -876,7 +876,7 @@ func (tc *TestContext) setupDagOptions(
 }
 
 func (tc *TestContext) setupContainerOptions(
-	parentTask *apiv2beta1.PipelineTask,
+	parentTask *apiv2.PipelineTask,
 	taskSpec *pipelinespec.PipelineTaskSpec,
 	kubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig,
 ) common.Options {
@@ -922,7 +922,7 @@ func (tc *TestContext) setupContainerOptions(
 	}
 }
 
-func (tc *TestContext) fetchParameter(key string, params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter) *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+func (tc *TestContext) fetchParameter(key string, params []*apiv2.PipelineTask_InputOutputs_IOParameter) *apiv2.PipelineTask_InputOutputs_IOParameter {
 	for _, p := range params {
 		if key == p.ParameterKey {
 			return p

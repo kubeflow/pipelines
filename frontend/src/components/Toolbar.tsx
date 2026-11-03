@@ -155,6 +155,7 @@ class Toolbar extends React.Component<ToolbarProps> {
                   {/* Div needed because we sometimes disable a button within a tooltip */}
                   <IconButton
                     className={css.backLink}
+                    aria-label='Back'
                     disabled={!this.props.navigate || window.history.length < 2}
                     onClick={() => this.props.navigate?.(-1)}
                     size='large'

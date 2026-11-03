@@ -13,13 +13,13 @@
 # limitations under the License.
 from typing import List
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.component
 def int_0_to_9999() -> int:
     import random
+
     return random.randint(0, 9999)
 
 
@@ -45,9 +45,11 @@ def print_ints(ints: List[int]):
 
 
 @dsl.pipeline
-def lucky_number_pipeline(add_drumroll: bool = True,
-                          repeat_if_lucky_number: bool = True,
-                          trials: List[int] = [1, 2, 3]):
+def lucky_number_pipeline(
+    add_drumroll: bool = True,
+    repeat_if_lucky_number: bool = True,
+    trials: List[int] = [1, 2, 3],
+):
     with dsl.ParallelFor(trials) as trial:
         int_task = int_0_to_9999().set_caching_options(False)
         with dsl.If(add_drumroll == True):
@@ -55,7 +57,6 @@ def lucky_number_pipeline(add_drumroll: bool = True,
                 print_and_return(text='Adding drumroll on last trial!')
 
         with dsl.If(int_task.output < 5000):
-
             even_or_odd_task = is_even_or_odd(num=int_task.output)
 
             with dsl.If(even_or_odd_task.output == 'even'):
@@ -64,10 +65,10 @@ def lucky_number_pipeline(add_drumroll: bool = True,
                 t2 = print_and_return(text='Got a low odd number!')
 
             repeater_task = print_and_return(
-                text=dsl.OneOf(t1.output, t2.output))
+                text=dsl.OneOf(t1.output, t2.output)
+            )
 
         with dsl.Elif(int_task.output > 5000):
-
             even_or_odd_task = is_even_or_odd(num=int_task.output)
 
             with dsl.If(even_or_odd_task.output == 'even'):
@@ -76,7 +77,8 @@ def lucky_number_pipeline(add_drumroll: bool = True,
                 t4 = print_and_return(text='Got a high odd number!')
 
             repeater_task = print_and_return(
-                text=dsl.OneOf(t3.output, t4.output))
+                text=dsl.OneOf(t3.output, t4.output)
+            )
 
         with dsl.Else():
             print_and_return(
@@ -94,4 +96,5 @@ def lucky_number_pipeline(add_drumroll: bool = True,
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=lucky_number_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

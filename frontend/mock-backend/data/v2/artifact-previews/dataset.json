@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "kind": "dataset",
+  "format": "parquet",
+  "columns": [
+    { "name": "feature_a", "dtype": "float64" },
+    { "name": "feature_b", "dtype": "int64" },
+    { "name": "label", "dtype": "int64" }
+  ],
+  "rows": [
+    [0.1, 1, 0],
+    [0.8, 8, 1],
+    [0.3, 3, 0],
+    [0.9, 9, 1],
+    [0.2, 2, 0],
+    [0.7, 7, 1],
+    [0.4, 4, 0],
+    [0.6, 6, 1],
+    [0.5, 5, 1],
+    [null, 0, 0]
+  ],
+  "total_rows": 1000,
+  "total_columns": 3,
+  "sample": {
+    "method": "head",
+    "rows_truncated": true,
+    "columns_truncated": false,
+    "values_truncated": false,
+    "redacted": false,
+    "rows_omitted": false
+  }
+}

@@ -21,10 +21,53 @@ import {
   listPodEvents,
   getArgoWorkflow,
   getK8sSecret,
+  getTensorboardInstance,
   waitForTensorboardInstance,
 } from './k8s-helper.js';
 
 describe('k8s-helper', () => {
+  describe('TensorBoard resource name compatibility', () => {
+    let getViewerSpy: SpyInstance;
+
+    beforeEach(() => {
+      getViewerSpy = vi.spyOn(K8S_TEST_EXPORT.k8sV1CustomObjectClient, 'getNamespacedCustomObject');
+    });
+
+    afterEach(() => {
+      getViewerSpy.mockRestore();
+    });
+
+    // Fixed names from the previous crypto-js implementation must survive upgrades.
+    it.each([
+      ['', 'viewer-da39a3ee5e6b4b0d3255bfef95601890afd80709'],
+      ['gs://testbucket/test/key/path', 'viewer-9b8bc49dc38b306ace25ae9635e854146cb8dc0d'],
+      ['gs://testbucket/模型/🚀', 'viewer-6b1afb5ee9d5dbfda3aa16f092d09a4804b446ab'],
+      [
+        'Series1:gs://bucket/run-1,Series2:s3://bucket/run-2',
+        'viewer-7c9683d3dbf2366fa6adae22f0797a16c17846f7',
+      ],
+    ])('finds the existing viewer for logdir %j', async (logdir, viewerName) => {
+      getViewerSpy.mockResolvedValue({
+        metadata: { name: viewerName },
+        spec: {
+          type: 'tensorboard',
+          tensorboardSpec: { tensorflowImage: 'tensorflow/tensorflow:2.16.1' },
+        },
+      });
+
+      const viewer = await getTensorboardInstance(logdir, 'test-namespace');
+
+      expect(getViewerSpy).toHaveBeenCalledWith({
+        group: 'kubeflow.org',
+        version: 'v1beta1',
+        namespace: 'test-namespace',
+        plural: 'viewers',
+        name: viewerName,
+      });
+      expect(viewer.viewerName).toBe(viewerName);
+    });
+  });
+
   describe('parseTensorboardLogDir', () => {
     const podTemplateSpec = {
       spec: {

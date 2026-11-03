@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/stretchr/testify/assert"
@@ -265,7 +265,7 @@ func TestBuildRunURL_URLEscaping(t *testing.T) {
 func TestSuccessfulPluginOutput(t *testing.T) {
 	output := SuccessfulPluginOutput("exp-1", "my-exp", "run-1", "https://mlflow.example.com/runs/run-1")
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Empty(t, output.StateMessage)
 	require.Contains(t, output.Entries, "experiment_id")
 	require.Contains(t, output.Entries, "experiment_name")
@@ -275,13 +275,13 @@ func TestSuccessfulPluginOutput(t *testing.T) {
 	assert.Equal(t, "my-exp", output.Entries["experiment_name"].Value.GetStringValue())
 	assert.Equal(t, "run-1", output.Entries["root_run_id"].Value.GetStringValue())
 	assert.Equal(t, "https://mlflow.example.com/runs/run-1", output.Entries["run_url"].Value.GetStringValue())
-	assert.Equal(t, apiv2beta1.MetadataValue_URL, output.Entries["run_url"].GetRenderType())
+	assert.Equal(t, apiv2.MetadataValue_URL, output.Entries["run_url"].GetRenderType())
 }
 
 func TestSuccessfulPluginOutput_EmptyValues(t *testing.T) {
 	output := SuccessfulPluginOutput("", "", "", "")
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	assert.Empty(t, output.StateMessage)
 	// Empty values should not create entries
 	assert.Empty(t, output.Entries)
@@ -290,7 +290,7 @@ func TestSuccessfulPluginOutput_EmptyValues(t *testing.T) {
 func TestFailedPluginOutput(t *testing.T) {
 	output := FailedPluginOutput("exp-1", "my-exp", "run-1", "https://mlflow.example.com/runs/run-1", "connection timeout")
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, output.State)
 	assert.Equal(t, "connection timeout", output.StateMessage)
 	require.Contains(t, output.Entries, "experiment_id")
 	require.Contains(t, output.Entries, "experiment_name")
@@ -300,13 +300,13 @@ func TestFailedPluginOutput(t *testing.T) {
 	assert.Equal(t, "my-exp", output.Entries["experiment_name"].Value.GetStringValue())
 	assert.Equal(t, "run-1", output.Entries["root_run_id"].Value.GetStringValue())
 	assert.Equal(t, "https://mlflow.example.com/runs/run-1", output.Entries["run_url"].Value.GetStringValue())
-	assert.Equal(t, apiv2beta1.MetadataValue_URL, output.Entries["run_url"].GetRenderType())
+	assert.Equal(t, apiv2.MetadataValue_URL, output.Entries["run_url"].GetRenderType())
 }
 
 func TestFailedPluginOutput_EmptyValues(t *testing.T) {
 	output := FailedPluginOutput("", "", "", "", "error message")
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_FAILED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_FAILED, output.State)
 	assert.Equal(t, "error message", output.StateMessage)
 	// Empty values should not create entries
 	assert.Empty(t, output.Entries)
@@ -724,10 +724,10 @@ func TestEnsureExperimentExists(t *testing.T) {
 func TestBuildPluginOutput(t *testing.T) {
 	output := SuccessfulPluginOutput("exp-1", "my-exp", "run-1", "https://mlflow.example/runs/run-1")
 	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, output.State)
 	require.Contains(t, output.Entries, "run_url")
 	require.NotNil(t, output.Entries["run_url"].RenderType)
-	assert.Equal(t, apiv2beta1.MetadataValue_URL, *output.Entries["run_url"].RenderType)
+	assert.Equal(t, apiv2.MetadataValue_URL, *output.Entries["run_url"].RenderType)
 }
 
 func TestSetPendingRunPluginOutput(t *testing.T) {
@@ -746,8 +746,8 @@ func TestSetPendingRunPluginOutput(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(*run.PluginsOutput), &envelope))
 	assert.NotNil(t, envelope.Plugins["mlflow"], "mlflow entry should be set")
 	assert.NotNil(t, envelope.Plugins["other"], "pre-existing 'other' entry should be preserved")
-	var parsed apiv2beta1.PluginOutput
+	var parsed apiv2.PluginOutput
 	require.NoError(t, protojson.Unmarshal(envelope.Plugins["mlflow"], &parsed))
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, parsed.State)
+	assert.Equal(t, apiv2.PluginState_PLUGIN_SUCCEEDED, parsed.State)
 	assert.Contains(t, parsed.Entries, "experiment_id")
 }

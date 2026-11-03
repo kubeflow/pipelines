@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test for utils.py."""
+
 import unittest
 
-from google.protobuf import json_format
-from google.protobuf import struct_pb2
+from google.protobuf import json_format, struct_pb2
+
 from kfp.local import utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class TestDictToExecutorSpec(unittest.TestCase):
-
     def test_simple(self):
         input_struct = struct_pb2.Struct()
         input_dict = {
@@ -33,9 +33,10 @@ class TestDictToExecutorSpec(unittest.TestCase):
         }
         json_format.ParseDict(input_dict, input_struct)
         expected = pipeline_spec_pb2.PipelineDeploymentConfig.ExecutorSpec(
-            container=pipeline_spec_pb2.PipelineDeploymentConfig
-            .PipelineContainerSpec(
-                image='alpine', command=['echo'], args=['foo']))
+            container=pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec(
+                image='alpine', command=['echo'], args=['foo']
+            )
+        )
 
         actual = utils.struct_to_executor_spec(input_struct)
         self.assertEqual(actual, expected)

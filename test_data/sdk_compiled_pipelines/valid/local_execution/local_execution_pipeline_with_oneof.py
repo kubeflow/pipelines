@@ -17,8 +17,8 @@
 executed. The pipeline returns that value so the test can assert which
 branch ran.
 """
-from kfp import compiler
-from kfp import dsl
+
+from kfp import compiler, dsl
 
 
 @dsl.component

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, compiler
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -26,4 +26,5 @@ def echo():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        echo, package_path=__file__.replace('.py', '.yaml'))
+        echo, package_path=__file__.replace('.py', '.yaml')
+    )

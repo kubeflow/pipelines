@@ -13,45 +13,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source_root=$(pwd)
+set -e
+
 SETUP_ENV="${SETUP_ENV:-true}"
 PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-2}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
-  # Create a virtual environment and activate it
-  python3 -m venv venv
-  source venv/bin/activate
+  # Generate proto files (requires Docker)
+  make -C sdk generate-python
 
-  python3 -m pip install --upgrade pip
-  python3 -m pip install -r sdk/python/requirements.txt 
-  python3 -m pip install -r sdk/python/requirements-dev.txt
-  python3 -m pip install setuptools
-  python3 -m pip install wheel==0.42.0
-  python3 -m pip install pytest-cov
-  python3 -m pip install pytest-xdist
-  python3 -m pip install pytest
-  python3 -m pip install google_cloud_pipeline_components
-  python3 -m pip install docker
-  python3 -m pip install --upgrade protobuf
-  python3 -m pip install sdk/python
+  # Sync all dependencies using uv (includes google_cloud_pipeline_components, docker)
+  uv sync --extra ci
 
-  # regenerate the kfp-pipeline-spec
-  cd api/
-  make clean python
-  cd ..
-  # install the local kfp-pipeline-spec
-  python3 -m pip install -I api/v2alpha1/python
+  # Install workspace packages in editable mode
+  uv pip install -e sdk/python
 fi
 
+runtime_dist_dir=$(mktemp -d)
+trap 'rm -rf "$runtime_dist_dir"' EXIT
+uv build --package kfp --wheel --out-dir "$runtime_dist_dir"
+runtime_wheels=("$runtime_dist_dir"/kfp-*.whl)
+if [[ ${#runtime_wheels[@]} -ne 1 || ! -f "${runtime_wheels[0]}" ]]; then
+  echo "Expected exactly one freshly built kfp wheel in $runtime_dist_dir" >&2
+  exit 1
+fi
+
+# Docker-backed cases need a source URL accessible inside their containers.
 if [[ -z "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
 else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 fi
 
-python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
+# Keep pytest capture enabled: xdist cannot forward worker stdout/stderr with -s.
+uv run python -m pytest sdk/python/test --ignore=sdk/python/test/runtime \
+  -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
 
-if [ "${SETUP_ENV}" = "true" ]; then
-  # Deactivate the virtual environment
-  deactivate
-fi
+KFP_PACKAGE_PATH="${runtime_wheels[0]}" \
+  uv run python -m pytest sdk/python/test/runtime -v -m regression \
+    --cov=kfp --cov-append -n "${PYTEST_PARALLEL_WORKERS}"

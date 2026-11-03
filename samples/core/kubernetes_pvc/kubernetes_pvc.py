@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, compiler
-from kfp import kubernetes
+from kfp import compiler, dsl, kubernetes
+
 
 @dsl.component
 def make_data():
     with open('/data/file.txt', 'w') as f:
         f.write('my data')
 
+
 @dsl.component
 def read_data():
     with open('/reused_data/file.txt') as f:
         print(f.read())
 
+
 @dsl.pipeline(
-    name="kubernetes-pvc-basic",
-    description="A Basic Example on Kubernetes PVC Usage."
+    name='kubernetes-pvc-basic',
+    description='A Basic Example on Kubernetes PVC Usage.',
 )
 def my_pipeline():
     pvc1 = kubernetes.CreatePVC(
@@ -55,8 +57,10 @@ def my_pipeline():
     )
 
     # wait to delete the PVC until after task2 completes
-    delete_pvc1 = kubernetes.DeletePVC(
-        pvc_name=pvc1.outputs['name']).after(task2)
+    delete_pvc1 = kubernetes.DeletePVC(pvc_name=pvc1.outputs['name']).after(
+        task2
+    )
+
 
 if __name__ == '__main__':
     compiler.Compiler().compile(my_pipeline, __file__ + '.yaml')

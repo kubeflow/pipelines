@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import { PassThrough, Stream } from 'stream';
-import { ClientOptions as MinioClientOptions } from 'minio';
 import {
   getK8sSecret,
   getArgoWorkflow,
@@ -21,11 +20,12 @@ import {
   getServerNamespace,
 } from './k8s-helper.js';
 import {
-  createMinioClient,
-  MinioRequestConfig,
+  createS3ArtifactStore,
+  ArtifactReadRequest,
+  ArtifactStoreOptions,
   getObjectStream,
   parseArtifactStoreEndpoint,
-} from './minio-helper.js';
+} from './artifact-store.js';
 import { isTrustedArtifactEndpoint } from './handlers/domain-checker.js';
 import { CORE_SCHEMA, load as jsYamlLoad, mergeTag } from 'js-yaml';
 
@@ -131,26 +131,26 @@ export async function getPodLogsStreamFromK8s(
 export function createPodLogsStreamFromWorkflow(trustedEndpoints: string[]) {
   const configuredEndpoints = [...trustedEndpoints];
   return toGetPodLogsStream((podName, createdAt, namespace) =>
-    getPodLogsMinioRequestConfigfromWorkflow(podName, createdAt, namespace, configuredEndpoints),
+    getPodLogsArtifactReadRequestFromWorkflow(podName, createdAt, namespace, configuredEndpoints),
   );
 }
 
 /**
  * Returns a function that retrieves the pod log streams using the provided
- * getMinioRequestConfig function (a MinioRequestConfig object specifies the
- * artifact bucket and key, with the corresponding minio client).
- * @param getMinioRequestConfig function that returns a MinioRequestConfig based
+ * getArtifactReadRequest function (an ArtifactReadRequest object specifies the
+ * artifact bucket and key, with the corresponding artifact store).
+ * @param getArtifactReadRequest function that returns an ArtifactReadRequest based
  * on the provided pod name and namespace (optional).
  */
 export function toGetPodLogsStream(
-  getMinioRequestConfig: (
+  getArtifactReadRequest: (
     podName: string,
     createdAt: string,
     namespace?: string,
-  ) => Promise<MinioRequestConfig>,
+  ) => Promise<ArtifactReadRequest & { bucket: string }>,
 ) {
   return async (podName: string, createdAt: string, namespace?: string) => {
-    const request = await getMinioRequestConfig(podName, createdAt, namespace);
+    const request = await getArtifactReadRequest(podName, createdAt, namespace);
     console.log(`Getting logs for pod, ${podName}, from ${request.bucket}/${request.key}.`);
     return await getObjectStream(request);
   };
@@ -220,17 +220,17 @@ export async function getKeyFormatFromArtifactRepositories(
 }
 
 /**
- * Returns a MinioRequestConfig with the provided minio options (a
- * MinioRequestConfig object contains the artifact bucket and keys, with the
- * corresponding minio client).
- * @param minioOptions Minio options to create a minio client.
+ * Returns an ArtifactReadRequest with the provided storage options (an
+ * ArtifactReadRequest object contains the artifact bucket and keys, with the
+ * corresponding artifact store).
+ * @param storeOptions Storage options to create an S3-compatible store.
  * @param bucket bucket containing the pod logs artifacts.
  * @param keyFormatDefault the default keyFormat for pod logs artifacts stored
  * in the bucket. This is overriden if there's an "artifact-repositories"
  * configmap in the target namespace with a keyFormat field.
  */
-export function createPodLogsMinioRequestConfig(
-  minioOptions: MinioClientOptions,
+export function createPodLogsArtifactReadRequest(
+  storeOptions: ArtifactStoreOptions,
   bucket: string,
   keyFormatDefault: string,
   artifactRepositoriesLookup: boolean,
@@ -239,9 +239,9 @@ export function createPodLogsMinioRequestConfig(
     podName: string,
     createdAt: string,
     namespace: string = '',
-  ): Promise<MinioRequestConfig> => {
-    // create a new client each time to ensure session token has not expired
-    const client = await createMinioClient(minioOptions, 's3');
+  ): Promise<ArtifactReadRequest & { bucket: string }> => {
+    // Resolve a fresh store for each archive request.
+    const store = await createS3ArtifactStore(storeOptions, 's3', bucket);
     const createdAtArray = createdAt.split('-');
 
     // If artifactRepositoriesLookup is enabled, try to extract they keyformat
@@ -289,23 +289,23 @@ export function createPodLogsMinioRequestConfig(
       );
     }
 
-    return { bucket, client, key };
+    return { bucket, store, key };
   };
 }
 
 /**
  * Retrieves the bucket and pod log artifact key (as well as the
- * minio client need to retrieve them) from the corresponding argo workflow status.
+ * artifact store needed to retrieve them) from the corresponding argo workflow status.
  *
  * @param podName name of the pod to retrieve the logs.
  * @param trustedEndpoints object-store origins configured by the server operator.
  */
-export async function getPodLogsMinioRequestConfigfromWorkflow(
+export async function getPodLogsArtifactReadRequestFromWorkflow(
   podName: string,
   _createdAt?: string,
   namespace?: string,
   trustedEndpoints: string[] = [],
-): Promise<MinioRequestConfig> {
+): Promise<ArtifactReadRequest & { bucket: string }> {
   let workflow: PartialArgoWorkflow;
   // We should probably parameterize this replace statement. It's brittle to
   // changes in implementation. But brittle is better than completely broken.
@@ -387,14 +387,14 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     // Explicit server-namespace run (including multi-user runs whose namespace is
     // the server namespace): read the Secret and use whatever it yields, exactly
     // as before.
-    ({ accessKey, secretKey } = await getMinioClientSecrets(s3Artifact, namespace));
+    ({ accessKey, secretKey } = await getArtifactStoreSecrets(s3Artifact, namespace));
   } else if (!namespace && serverNamespace) {
     // Standalone run with an omitted namespace: read the workflow-referenced
     // Secret from the server namespace, falling back to the frontend's configured
     // env credentials only when the artifact repository does not reference a
-    // Secret (getMinioClientSecrets returns no credentials).
+    // Secret (getArtifactStoreSecrets returns no credentials).
     const { accessKey: readAccessKey = undefined, secretKey: readSecretKey = undefined } =
-      await getMinioClientSecrets(s3Artifact, serverNamespace);
+      await getArtifactStoreSecrets(s3Artifact, serverNamespace);
     accessKey = readAccessKey || process.env.MINIO_ACCESS_KEY || 'minio';
     secretKey = readSecretKey || process.env.MINIO_SECRET_KEY || 'minio123';
   } else {
@@ -404,7 +404,7 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     secretKey = process.env.MINIO_SECRET_KEY || 'minio123';
   }
 
-  const client = await createMinioClient(
+  const store = await createS3ArtifactStore(
     {
       accessKey,
       endPoint: endpoint.endPoint,
@@ -413,10 +413,11 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
       useSSL: endpoint.useSSL,
     },
     's3',
+    s3Artifact.bucket,
   );
   return {
     bucket: s3Artifact.bucket,
-    client,
+    store,
     key: logKey,
   };
 }
@@ -425,7 +426,7 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
  * Returns the k8s access key and secret used to connect to the s3 artifactory.
  * @param s3artifact s3artifact object describing the s3 artifactory config for argo workflow.
  */
-async function getMinioClientSecrets(
+async function getArtifactStoreSecrets(
   { accessKeySecret, secretKeySecret }: S3Artifact,
   namespace?: string,
 ) {

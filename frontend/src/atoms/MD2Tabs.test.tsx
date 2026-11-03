@@ -55,6 +55,35 @@ describe('MD2Tabs', () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
+  it('centers the indicator under each selected label when switching tabs', () => {
+    vi.useFakeTimers();
+    const tabs = ['Graph', 'Detail', 'Pipeline Spec'];
+    const { container, rerender } = render(<MD2Tabs tabs={tabs} selectedTab={0} />);
+    const root = container.firstElementChild as HTMLElement;
+    const indicator = root.firstElementChild as HTMLElement;
+    vi.spyOn(root, 'getBoundingClientRect').mockReturnValue({ left: 220 } as DOMRect);
+    const labelBounds = [
+      { left: 255, width: 40.96875 },
+      { left: 338.96875, width: 38.609375 },
+      { left: 419.578125, width: 90.71875 },
+    ];
+    tabs.forEach((tab, index) => {
+      vi.spyOn(screen.getByText(tab), 'getBoundingClientRect').mockReturnValue(
+        labelBounds[index] as DOMRect,
+      );
+    });
+
+    tabs.forEach((_, selectedTab) => {
+      rerender(<MD2Tabs tabs={tabs} selectedTab={selectedTab} />);
+      vi.runOnlyPendingTimers();
+      const { left, width } = labelBounds[selectedTab];
+      const indicatorLeft = parseFloat(indicator.style.left);
+      const indicatorWidth = parseFloat(indicator.style.width);
+      expect(indicatorWidth).toBe(width + 5);
+      expect(indicatorLeft + indicatorWidth / 2).toBe(left - 220 + width / 2);
+    });
+  });
+
   it('recalculates indicator styles when props are updated', () => {
     vi.useFakeTimers();
     const updateSpy = vi.spyOn(MD2Tabs.prototype as any, '_updateIndicator');

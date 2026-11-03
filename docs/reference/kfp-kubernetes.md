@@ -1,4 +1,5 @@
 # Kubernetes Platform-specific Features
 
-The `kfp-kubernetes` Python library enables authoring Kubeflow pipelines with Kubernetes-specific features. 
-See the [reference documentation](https://kfp-kubernetes.readthedocs.io).
+The `kfp.kubernetes` module is included in `kfp` and enables authoring pipelines
+with Kubernetes-specific features. See the
+[SDK API reference](https://kubeflow-pipelines.readthedocs.io/en/latest/source/kubernetes.html).

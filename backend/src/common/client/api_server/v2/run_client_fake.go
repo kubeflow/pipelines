@@ -16,12 +16,12 @@ package api_server_v2
 
 import (
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	params "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_client/run_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2/go_http_client/run_model"
 )
 
-func getDefaultRun(id string, name string) *model.V2beta1Run {
-	return &model.V2beta1Run{
+func getDefaultRun(id string, name string) *model.V2Run {
+	return &model.V2Run{
 		CreatedAt:   strfmt.NewDateTime(),
 		RunID:       id,
 		DisplayName: name,
@@ -34,24 +34,24 @@ func NewRunClientFake() *RunClientFake {
 	return &RunClientFake{}
 }
 
-func (c *RunClientFake) Create(params *params.RunServiceCreateRunParams) (*model.V2beta1Run, error) {
+func (c *RunClientFake) Create(params *params.RunServiceCreateRunParams) (*model.V2Run, error) {
 	return getDefaultRun("100", "RUN_NAME"), nil
 }
 
-func (c *RunClientFake) Get(params *params.RunServiceGetRunParams) (*model.V2beta1Run, error) {
+func (c *RunClientFake) Get(params *params.RunServiceGetRunParams) (*model.V2Run, error) {
 	return getDefaultRun(params.RunID, "RUN_NAME"), nil
 }
 
 func (c *RunClientFake) List(params *params.RunServiceListRunsParams) (
-	[]*model.V2beta1Run, int, string, error) {
-	return []*model.V2beta1Run{
+	[]*model.V2Run, int, string, error) {
+	return []*model.V2Run{
 		getDefaultRun("100", "MY_FIRST_RUN"),
 		getDefaultRun("101", "MY_SECOND_RUN"),
 	}, 2, "", nil
 }
 
 func (c *RunClientFake) ListAll(params *params.RunServiceListRunsParams, maxResultSize int) (
-	[]*model.V2beta1Run, error) {
+	[]*model.V2Run, error) {
 	return listAllForRun(c, params, maxResultSize)
 }
 

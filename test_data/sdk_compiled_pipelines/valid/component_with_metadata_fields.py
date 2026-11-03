@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Dataset, Input, Output
 
 
 @dsl.component
@@ -53,4 +50,5 @@ def dataset_joiner(
 if __name__ == '__main__':
     compiler.Compiler().compile(
         pipeline_func=dataset_joiner,
-        package_path=__file__.replace('.py', '.yaml'))
+        package_path=__file__.replace('.py', '.yaml'),
+    )

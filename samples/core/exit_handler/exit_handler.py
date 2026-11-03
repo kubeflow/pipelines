@@ -14,10 +14,7 @@
 # limitations under the License.
 """Pipeline using ExitHandler."""
 
-import os
-
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -31,6 +28,7 @@ def print_op(message: str):
 def fail_op(message: str):
     """Fails."""
     import sys
+
     print(message)
     sys.exit(1)
 
@@ -47,4 +45,5 @@ def pipeline_exit_handler(message: str = 'Hello World!'):
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline_exit_handler, package_path=__file__ + '.yaml')
+        pipeline_func=pipeline_exit_handler, package_path=__file__ + '.yaml'
+    )

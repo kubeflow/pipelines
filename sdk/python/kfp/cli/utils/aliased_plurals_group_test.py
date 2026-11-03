@@ -16,6 +16,7 @@ import unittest
 
 import click
 from click import testing
+
 from kfp.cli.utils import aliased_plurals_group
 
 
@@ -30,7 +31,6 @@ def command():
 
 
 class TestAliasedPluralsGroup(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.runner = testing.CliRunner()
@@ -48,8 +48,9 @@ class TestAliasedPluralsGroup(unittest.TestCase):
     def test_aliases_failure(self):
         result = self.runner.invoke(cli, ['commandss'])
         self.assertEqual(result.exit_code, 2)
-        self.assertEqual("Error: Unrecognized command 'commandss'\n",
-                         result.output)
+        self.assertEqual(
+            "Error: Unrecognized command 'commandss'\n", result.output
+        )
 
 
 if __name__ == '__main__':

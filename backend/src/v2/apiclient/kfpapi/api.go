@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"google.golang.org/protobuf/encoding/protojson"

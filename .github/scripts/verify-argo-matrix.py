@@ -71,12 +71,19 @@ def main() -> int:
         try:
             workflow_content = workflow_path.read_text(encoding='utf-8')
         except Exception as exc:
-            print(f'ERROR: Failed to read {workflow_path}: {exc}', file=sys.stderr)
+            print(
+                f'ERROR: Failed to read {workflow_path}: {exc}', file=sys.stderr
+            )
             return 1
 
-        workflow_versions = _extract_argo_versions_from_workflow(workflow_content)
+        workflow_versions = _extract_argo_versions_from_workflow(
+            workflow_content
+        )
         if not workflow_versions:
-            print(f'ERROR: No argo_version found in {workflow_path}', file=sys.stderr)
+            print(
+                f'ERROR: No argo_version found in {workflow_path}',
+                file=sys.stderr,
+            )
             return 1
 
         argo_versions.extend(workflow_versions)
@@ -90,7 +97,9 @@ def main() -> int:
 
     m = re.search(r'v\d+\.\d+', version_content)
     if not m:
-        print('ERROR: Could not parse third_party/argo/VERSION', file=sys.stderr)
+        print(
+            'ERROR: Could not parse third_party/argo/VERSION', file=sys.stderr
+        )
         return 1
     argo_versions.append(m.group(0))
 
@@ -100,7 +109,7 @@ def main() -> int:
         key=lambda s: tuple(int(x) for x in s[1:].split('.')),
     )
 
-    expected = ", ".join(argo_minors)
+    expected = ', '.join(argo_minors)
 
     # Read README and extract Argo Workflows row
     try:
@@ -109,14 +118,22 @@ def main() -> int:
         print(f'ERROR: Failed to read {readme_path}: {exc}', file=sys.stderr)
         return 1
 
-    row_match = re.search(r'^\|\s*Argo Workflows\s*\|\s*([^|]+)\|', readme, re.MULTILINE)
+    row_match = re.search(
+        r'^\|\s*Argo Workflows\s*\|\s*([^|]+)\|', readme, re.MULTILINE
+    )
     if not row_match:
-        print('ERROR: Could not find "Argo Workflows" row in README.md', file=sys.stderr)
+        print(
+            'ERROR: Could not find "Argo Workflows" row in README.md',
+            file=sys.stderr,
+        )
         return 1
     cell = row_match.group(1).strip()
 
     if cell != expected:
-        print('ERROR: README.md "Dependencies Compatibility Matrix" for Argo Workflows is out of date.', file=sys.stderr)
+        print(
+            'ERROR: README.md "Dependencies Compatibility Matrix" for Argo Workflows is out of date.',
+            file=sys.stderr,
+        )
         print(f'  Found:    "{cell}"', file=sys.stderr)
         print(f'  Expected: "{expected}"', file=sys.stderr)
         return 1

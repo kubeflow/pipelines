@@ -18,8 +18,9 @@ from kfp import dsl
 
 @dsl.component
 def fail():
-    '''Fails'''
+    """Fails."""
     import sys
+
     sys.exit(1)
 
 
@@ -27,7 +28,11 @@ def fail():
 def fail_pipeline():
     fail_task = fail()
 
+
 if __name__ == '__main__':
     from kfp import compiler
+
     compiler.Compiler().compile(
-        pipeline_func=fail_pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=fail_pipeline,
+        package_path=__file__.replace('.py', '.yaml'),
+    )

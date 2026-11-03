@@ -1,11 +1,8 @@
 # This pipeline tests the ability to consume outputs from upstream components in
 # a loop context as well as having the inputs resolve when set_display_name is
 # used within the pipeline.
-from kfp import Client, compiler
-from kfp import dsl
-from kfp.dsl import Artifact
-from kfp.dsl import Input
-from kfp.dsl import Output
+from kfp import compiler, dsl
+from kfp.dsl import Artifact, Input, Output
 
 
 @dsl.component
@@ -32,7 +29,7 @@ def print_input(input: list):
         print(f'Input item: {item}')
 
 
-@dsl.pipeline(display_name="Loop Consume Upstream")
+@dsl.pipeline(display_name='Loop Consume Upstream')
 def loop_consume_upstream():
     model_ids_split_op = split_input(input='component1,component2,component3')
     model_ids_split_op.set_caching_options(False)
@@ -53,6 +50,8 @@ def loop_consume_upstream():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=loop_consume_upstream, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=loop_consume_upstream,
+        package_path=__file__.replace('.py', '.yaml'),
+    )
     # client = Client()
     # run = client.create_run_from_pipeline_func(loop_consume_upstream)

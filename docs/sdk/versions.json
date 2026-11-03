@@ -1,26 +1,26 @@
 [
     {
-      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.2/",
-      "title": "2.15.2",
-      "aliases": [
-        "stable",
-        "latest"
-      ]
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.2/",
+        "title": "2.15.2",
+        "aliases": [
+            "stable",
+            "latest"
+        ]
     },
     {
-      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.1/",
-      "title": "2.15.1",
-      "aliases": []
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.1/",
+        "title": "2.15.1",
+        "aliases": []
     },
     {
-      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.0/",
-      "title": "2.15.0",
-      "aliases": []
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.15.0/",
+        "title": "2.15.0",
+        "aliases": []
     },
     {
-      "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.6/",
-      "title": "2.14.6",
-      "aliases": []
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.6/",
+        "title": "2.14.6",
+        "aliases": []
     },
     {
         "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.5/",
@@ -200,56 +200,6 @@
     {
         "version": "https://kubeflow-pipelines.readthedocs.io/en/2.0.0b4/",
         "title": "v2.0.0b4",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.22/",
-        "title": "v1.8.22",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.21/",
-        "title": "v1.8.21",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.20/",
-        "title": "v1.8.20",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.19/",
-        "title": "v1.8.19",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.18/",
-        "title": "v1.8.18",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.17/",
-        "title": "v1.8.17",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.16/",
-        "title": "v1.8.16",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.15/",
-        "title": "v1.8.15",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.14/",
-        "title": "v1.8.14",
-        "aliases": []
-    },
-    {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/1.8.13/",
-        "title": "v1.8.13",
         "aliases": []
     }
 ]

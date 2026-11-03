@@ -21,6 +21,7 @@ from kfp.cli.diagnose_me import utility
 
 class Commands(enum.Enum):
     """Enum for kubernetes commands."""
+
     GET_CONFIGURED_CONTEXT = 1
     GET_PODS = 2
     GET_PVCS = 3
@@ -44,8 +45,8 @@ _command_string = {
 
 
 def execute_kubectl_command(
-        kubectl_command_list: List[Text],
-        human_readable: bool = False) -> utility.ExecutorResponse:
+    kubectl_command_list: List[Text], human_readable: bool = False
+) -> utility.ExecutorResponse:
     """Invokes  the kubectl command.
 
     Args:
@@ -61,14 +62,15 @@ def execute_kubectl_command(
     if not human_readable:
         command_list.extend(['-o', 'json'])
 
-    return utility.ExecutorResponse().execute_command(command_list)
+    return utility.execute_command(command_list)
 
 
 def get_kubectl_configuration(
-        configuration: Commands,
-        kubernetes_context: Text = None,
-        namespace: Text = None,
-        human_readable: bool = False) -> utility.ExecutorResponse:
+    configuration: Commands,
+    kubernetes_context: Text = None,
+    namespace: Text = None,
+    human_readable: bool = False,
+) -> utility.ExecutorResponse:
     """Captures the specified environment configuration.
 
     Captures the environment state for the specified setting such as current
@@ -82,14 +84,14 @@ def get_kubectl_configuration(
           current env including current_context.
         - PODS: returns all pods and their status details.
         - PVCS: returns all PersistentVolumeClaim and their status details.
-        - SECRETS: returns all accessible k8 secrests.
+        - SECRETS: returns all accessible k8 secrets.
         - PVS: returns all PersistentVolume and their status details.
         - SERVICES: returns all services and their status details.
       kubernetes_context: Context to use to retrieve cluster specific commands, if
         set to None calls will rely on current_context configured.
-      namespace: default name space to be used for the commaand, if not specifeid
+      namespace: default name space to be used for the command, if not specified
         --all-namespaces will be used.
-      human_readable: If true all output will be in human readable form insted of
+      human_readable: If true all output will be in human readable form instead of
         Json.
 
     Returns:
@@ -97,10 +99,13 @@ def get_kubectl_configuration(
       configuration,or an error message if any occurs during execution.
     """
 
-    if configuration in (Commands.GET_CONFIGURED_CONTEXT,
-                         Commands.GET_KUBECTL_VERSION):
+    if configuration in (
+        Commands.GET_CONFIGURED_CONTEXT,
+        Commands.GET_KUBECTL_VERSION,
+    ):
         return execute_kubectl_command(
-            (_command_string[configuration]).split(' '), human_readable)
+            (_command_string[configuration]).split(' '), human_readable
+        )
 
     execution_command = _command_string[configuration].split(' ')
     if kubernetes_context:
@@ -114,7 +119,7 @@ def get_kubectl_configuration(
 
 
 def _get_kfp_runtime() -> Text:
-    """Captures the current version of kpf in k8 cluster.
+    """Captures the current version of kfp in k8 cluster.
 
     Returns:
       Returns the run-time version of kfp in as a string.

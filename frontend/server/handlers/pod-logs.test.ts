@@ -1,3 +1,10 @@
+vi.mock('../k8s-helper.js', () => ({
+  getK8sSecret: vi.fn(),
+  getArgoWorkflow: vi.fn(),
+  getPodLogs: vi.fn(),
+  getConfigMap: vi.fn(),
+  getServerNamespace: vi.fn(),
+}));
 // Copyright 2026 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +28,7 @@ const getPodLogsStream = vi.fn();
 
 vi.mock('../workflow-helper.js', () => ({
   composePodLogsStreamHandler: vi.fn(() => getPodLogsStream),
-  createPodLogsMinioRequestConfig: vi.fn(),
+  createPodLogsArtifactReadRequest: vi.fn(),
   getPodLogsStreamFromK8s: vi.fn(),
   createPodLogsStreamFromWorkflow: vi.fn(),
   toGetPodLogsStream: vi.fn(),

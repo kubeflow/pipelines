@@ -94,6 +94,7 @@ kubeconfig_dev-pipelines-api
 
 # Release automation checkpoint
 release-state.json
+release-state-notes/
 
 # Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
 backend/Dockerfile.driver-debug

@@ -170,8 +170,19 @@ func TestFakeSwfClient_Patch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Patch() unexpected error: %v", err)
 	}
-	if result != nil {
-		t.Error("Patch() expected nil result from stub implementation")
+	if result == nil || result.Name != "patch-me" {
+		t.Errorf("Patch() = %v, want the scheduled workflow %q", result, "patch-me")
+	}
+}
+
+func TestFakeSwfClient_PatchNotFound(t *testing.T) {
+	client := NewFakeSwfClient()
+	ctx := context.Background()
+	swfClient := client.ScheduledWorkflow("default")
+
+	_, err := swfClient.Patch(ctx, "nonexistent", "application/merge-patch+json", []byte(`{}`))
+	if err == nil {
+		t.Error("Patch() expected error for nonexistent scheduled workflow, got nil")
 	}
 }
 

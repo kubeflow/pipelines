@@ -1,0 +1,348 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    workflows.argoproj.io/pod-name-format: v1
+  generateName: test-pipeline-
+spec:
+  arguments: {}
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+      sidecar.istio.io/inject: "false"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: pipeline-runner
+  templates:
+  - inputs:
+      parameters:
+      - name: task-name
+      - name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          jsonPath: $.pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          jsonPath: $.cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          jsonPath: $.condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kfp_token_audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+          kubernetes_config: '{{inputs.parameters.kubernetes-config}}'
+          log_level: "1"
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          namespace: '{{workflow.namespace}}'
+          no_proxy: ""
+          parent_task_id: '{{inputs.parameters.parent-dag-task-id}}'
+          pipeline_name: test-pipeline
+          publish_logs: "true"
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: CONTAINER
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: retry-max-count
+            value: '{{inputs.parameters.retry-max-count}}'
+          - name: retry-backoff-duration
+            value: '{{inputs.parameters.retry-backoff-duration}}'
+          - name: retry-backoff-factor
+            value: '{{inputs.parameters.retry-backoff-factor}}'
+          - name: retry-backoff-max-duration
+            value: '{{inputs.parameters.retry-backoff-max-duration}}'
+        name: executor
+        template: retry-system-container-impl-onerror
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+      - default: "-1"
+        name: iteration-index
+      - default: "0"
+        name: retry-max-count
+      - default: "0"
+        name: retry-backoff-duration
+      - default: "0"
+        name: retry-backoff-factor
+      - default: "0"
+        name: retry-backoff-max-duration
+    metadata: {}
+    name: retry-system-container-executor-onerror
+    outputs: {}
+    retryStrategy:
+      limit: 0
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: KFP_RETRY_INDEX
+        value: '{{retries}}'
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationMessagePolicy: FallbackToLogsOnError
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - name: retry-max-count
+      - name: retry-backoff-duration
+      - name: retry-backoff-factor
+      - name: retry-backoff-max-duration
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: launcher
+        pipelines.kubeflow.org/template-name: retry-system-container-impl-onerror
+      labels:
+        pipelines.kubeflow.org/pod-role: container-executor
+    name: retry-system-container-impl-onerror
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    retryStrategy:
+      backoff:
+        duration: '{{inputs.parameters.retry-backoff-duration}}'
+        factor: '{{inputs.parameters.retry-backoff-factor}}'
+        maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
+      limit: '{{inputs.parameters.retry-max-count}}'
+      retryPolicy: OnError
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+            expirationSeconds: 7200
+            path: token
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: task-name
+            value: add
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+        name: add-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.add-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.add-driver.outputs.parameters.cached-decision}}'
+          - name: retry-max-count
+            value: "3"
+          - name: retry-backoff-duration
+            value: "0"
+          - name: retry-backoff-factor
+            value: "2"
+          - name: retry-backoff-max-duration
+            value: "3600"
+        depends: add-driver.Succeeded
+        name: add
+        template: retry-system-container-executor-onerror
+    inputs:
+      parameters:
+      - name: parent-dag-task-id
+    metadata: {}
+    name: root
+    outputs: {}
+    retryStrategy:
+      limit: 0
+  - inputs:
+      parameters:
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task-name
+      - default: ""
+        name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: task-id
+        valueFrom:
+          jsonPath: $.task-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          jsonPath: $.iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          jsonPath: $.condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kfp_token_audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+          log_level: "1"
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          namespace: '{{workflow.namespace}}'
+          no_proxy: ""
+          parent_task_id: '{{inputs.parameters.parent-dag-task-id}}'
+          pipeline_name: test-pipeline
+          publish_logs: "true"
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          runtime_config: '{{inputs.parameters.runtime-config}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: '{{inputs.parameters.driver-type}}'
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: runtime-config
+            value: '{"parameterValues":{"a":1,"b":7}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.task-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+    retryStrategy:
+      limit: 0
+status:
+  finishedAt: null
+  startedAt: null

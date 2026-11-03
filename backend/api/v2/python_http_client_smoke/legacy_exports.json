@@ -1,0 +1,202 @@
+[
+  {
+    "module": "kfp.server_api.models.v2beta1_artifact",
+    "name": "V2beta1Artifact"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_artifact_task",
+    "name": "V2beta1ArtifactTask"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_artifact_request",
+    "name": "V2beta1CreateArtifactRequest"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_artifact_task_request",
+    "name": "V2beta1CreateArtifactTaskRequest"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_artifact_tasks_bulk_request",
+    "name": "V2beta1CreateArtifactTasksBulkRequest"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_artifact_tasks_bulk_response",
+    "name": "V2beta1CreateArtifactTasksBulkResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_artifacts_bulk_request",
+    "name": "V2beta1CreateArtifactsBulkRequest"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_artifacts_bulk_response",
+    "name": "V2beta1CreateArtifactsBulkResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_create_pipeline_and_version_request",
+    "name": "V2beta1CreatePipelineAndVersionRequest"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_cron_schedule",
+    "name": "V2beta1CronSchedule"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_delete_propagation_policy",
+    "name": "V2beta1DeletePropagationPolicy"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_experiment",
+    "name": "V2beta1Experiment"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_experiment_storage_state",
+    "name": "V2beta1ExperimentStorageState"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_filter",
+    "name": "V2beta1Filter"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_find_cached_task_request",
+    "name": "V2beta1FindCachedTaskRequest"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_find_cached_task_response",
+    "name": "V2beta1FindCachedTaskResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_get_healthz_response",
+    "name": "V2beta1GetHealthzResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_get_run_request_view_mode",
+    "name": "V2beta1GetRunRequestViewMode"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_io_producer",
+    "name": "V2beta1IOProducer"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_io_type",
+    "name": "V2beta1IOType"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_artifact_response",
+    "name": "V2beta1ListArtifactResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_artifact_tasks_response",
+    "name": "V2beta1ListArtifactTasksResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_experiments_response",
+    "name": "V2beta1ListExperimentsResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_pipeline_versions_response",
+    "name": "V2beta1ListPipelineVersionsResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_pipelines_response",
+    "name": "V2beta1ListPipelinesResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_recurring_runs_response",
+    "name": "V2beta1ListRecurringRunsResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_runs_request_view_mode",
+    "name": "V2beta1ListRunsRequestViewMode"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_runs_response",
+    "name": "V2beta1ListRunsResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_list_tasks_response",
+    "name": "V2beta1ListTasksResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_metadata_value",
+    "name": "V2beta1MetadataValue"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_periodic_schedule",
+    "name": "V2beta1PeriodicSchedule"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_pipeline",
+    "name": "V2beta1Pipeline"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_pipeline_task",
+    "name": "V2beta1PipelineTask"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_pipeline_version",
+    "name": "V2beta1PipelineVersion"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_pipeline_version_reference",
+    "name": "V2beta1PipelineVersionReference"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_plugin_output",
+    "name": "V2beta1PluginOutput"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_plugin_state",
+    "name": "V2beta1PluginState"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_predicate",
+    "name": "V2beta1Predicate"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_predicate_operation",
+    "name": "V2beta1PredicateOperation"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_recurring_run",
+    "name": "V2beta1RecurringRun"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_recurring_run_status",
+    "name": "V2beta1RecurringRunStatus"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_run",
+    "name": "V2beta1Run"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_run_details",
+    "name": "V2beta1RunDetails"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_run_storage_state",
+    "name": "V2beta1RunStorageState"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_runtime_config",
+    "name": "V2beta1RuntimeConfig"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_runtime_state",
+    "name": "V2beta1RuntimeState"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_runtime_status",
+    "name": "V2beta1RuntimeStatus"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_trigger",
+    "name": "V2beta1Trigger"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_update_tasks_bulk_response",
+    "name": "V2beta1UpdateTasksBulkResponse"
+  },
+  {
+    "module": "kfp.server_api.models.v2beta1_url",
+    "name": "V2beta1Url"
+  }
+]

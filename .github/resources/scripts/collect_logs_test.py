@@ -6,27 +6,30 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Exercise agent container selection through collect-logs.sh, without a
+cluster."""
 
+import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import textwrap
 import unittest
+from pathlib import Path
 
+import yaml
 
 SCRIPT = Path(__file__).with_name('collect-logs.sh')
 
 
 class CollectLogsTest(unittest.TestCase):
-
     def test_kubectl_failures_are_bounded_and_best_effort(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -68,14 +71,101 @@ class CollectLogsTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
             output = output_file.read_text(encoding='utf-8')
-            self.assertIn('No events found for pod seaweedfs-0.', output)
+            self.assertIn('No description found for pod seaweedfs-0.', output)
             self.assertIn('No logs found for pod seaweedfs-0.', output)
+            self.assertIn('No previous logs found for pod seaweedfs-0.', output)
             calls = call_log.read_text(encoding='utf-8').splitlines()
             self.assertGreaterEqual(len(calls), 5)
             self.assertTrue(
-                all(call.startswith('--request-timeout=20s ') for call in calls),
+                all(
+                    call.startswith('--request-timeout=20s ') for call in calls
+                ),
                 calls,
             )
+
+    def test_component_label_not_agent_name_substring_selects_driver(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            calls = root / 'calls.jsonl'
+            stub = root / 'kubectl'
+            stub.write_text("""#!/usr/bin/env python3
+import json
+import os
+import sys
+args = sys.argv[1:]
+with open(os.environ['KUBECTL_CALLS'], 'a') as output:
+    output.write(json.dumps(args) + '\\n')
+assert args.pop(0).startswith('--request-timeout=')
+if args[:2] == ['get', 'namespace']:
+    pass
+elif args[:2] == ['get', 'pods']:
+    print('my-agent-pipeline-task\\nopaque-agent-pod')
+elif args[:2] == ['get', 'pod']:
+    assert args[-1] == r'jsonpath={.metadata.labels.workflows\\.argoproj\\.io/component}'
+    print('agent' if args[2] == 'opaque-agent-pod' else 'pod')
+elif args[:2] == ['describe', 'pod']:
+    print('Last State: Terminated, Exit Code: 1\\nEvents: none')
+elif args[0] == 'logs':
+    if '--previous' in args:
+        print('previous-crash-log')
+    if args[1] == 'my-agent-pipeline-task':
+        assert '-c' not in args
+        print('workload-log')
+    else:
+        assert args[-2:] == ['-c', 'driver-plugin']
+        print('driver-log')
+else:
+    raise AssertionError(args)
+""")
+            stub.chmod(0o755)
+            output = root / 'logs.txt'
+            subprocess.run(
+                ['bash', str(SCRIPT), '--ns', 'test', '--output', str(output)],
+                env={
+                    **os.environ,
+                    'PATH': str(root) + os.pathsep + os.environ['PATH'],
+                    'KUBECTL_CALLS': str(calls),
+                },
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            logs = output.read_text()
+            self.assertIn('workload-log', logs)
+            self.assertIn('driver-log', logs)
+            self.assertIn('Last State: Terminated, Exit Code: 1', logs)
+            self.assertEqual(logs.count('previous-crash-log'), 2)
+            self.assertNotIn('No logs found', logs)
+            requests = [
+                json.loads(line) for line in calls.read_text().splitlines()
+            ]
+            labels = [args for args in requests if args[1:3] == ['get', 'pod']]
+            self.assertEqual(len(labels), 2)
+
+    def test_sdk_client_setup_failure_collects_uploadable_logs(self):
+        root = SCRIPT.parents[3]
+        workflow = yaml.safe_load(
+            (root / '.github/workflows/kfp-sdk-client-tests.yml').read_text()
+        )
+        steps = next(
+            job['steps'] for job in workflow['jobs'].values() if 'steps' in job
+        )
+        collect = next(
+            step for step in steps if step['name'] == 'Collect failed logs'
+        )
+        self.assertIn('failure()', collect['if'])
+        self.assertIn('!cancelled()', collect['if'])
+        self.assertIn(
+            "steps.create-kfp-cluster.outcome != 'success'", collect['if']
+        )
+        self.assertIn('exit 1', collect['run'])
+        self.assertIn('--output /tmp/tmp.log/tmp_pod_log.txt', collect['run'])
+        upload = next(
+            step for step in steps if step['name'] == 'Collect test results'
+        )
+        self.assertTrue(
+            Path('/tmp/tmp.log/tmp_pod_log.txt').match(upload['with']['path'])
+        )
 
 
 if __name__ == '__main__':

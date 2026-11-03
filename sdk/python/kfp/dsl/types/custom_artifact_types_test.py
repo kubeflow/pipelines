@@ -20,21 +20,17 @@ import sys
 import tempfile
 import textwrap
 import typing
-from typing import Any
 import unittest
+from typing import Any
 
 from absl.testing import parameterized
+
 import kfp
 from kfp import dsl
-from kfp.dsl import component_factory
-from kfp.dsl import Input
-from kfp.dsl import Output
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import custom_artifact_types
-from kfp.dsl.types.artifact_types import Artifact
-from kfp.dsl.types.artifact_types import Dataset
-from kfp.dsl.types.type_annotations import InputPath
-from kfp.dsl.types.type_annotations import OutputPath
+from kfp.dsl import Input, Output, component_factory
+from kfp.dsl.types import artifact_types, custom_artifact_types
+from kfp.dsl.types.artifact_types import Artifact, Dataset
+from kfp.dsl.types.type_annotations import InputPath, OutputPath
 
 Alias = Artifact
 artifact_types_alias = artifact_types
@@ -46,7 +42,6 @@ except ImportError:
 
 
 class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
-
     @classmethod
     def setUpClass(cls):
 
@@ -61,15 +56,17 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
             f.write(class_source)
 
         if pydantic is not None:
-            with open(os.path.join(tmp_dir.name, 'my_pydantic_models.py'),
-                      'w') as f:
+            with open(
+                os.path.join(tmp_dir.name, 'my_pydantic_models.py'), 'w'
+            ) as f:
                 f.write(
                     textwrap.dedent("""\
                     import pydantic
 
                     class MyModel(pydantic.BaseModel):
                         foo: str
-                    """))
+                    """)
+                )
 
         sys.path.append(tmp_dir.name)
         cls.tmp_dir = tmp_dir
@@ -81,7 +78,6 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
 
 
 class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
-
     def test_no_ann(self):
 
         def func():
@@ -148,10 +144,13 @@ class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
 
     def test_named_tuple_primitives(self):
 
-        def func() -> typing.NamedTuple('Outputs', [
-            ('a', str),
-            ('b', int),
-        ]):
+        def func() -> typing.NamedTuple(
+            'Outputs',
+            [
+                ('a', str),
+                ('b', int),
+            ],
+        ):
             pass
 
         actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
@@ -171,12 +170,14 @@ class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
 
         actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
         self.assertEqual(
-            actual, {
+            actual,
+            {
                 'a': aiplatform.VertexDataset,
                 'b': aiplatform.VertexDataset,
                 'c': aiplatform.VertexDataset,
                 'd': aiplatform.VertexDataset,
-            })
+            },
+        )
 
     def test_output_google_artifact(self):
         import aiplatform
@@ -192,12 +193,14 @@ class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
 
         actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
         self.assertEqual(
-            actual, {
+            actual,
+            {
                 'a': aiplatform.VertexDataset,
                 'b': aiplatform.VertexDataset,
                 'c': aiplatform.VertexDataset,
                 'd': aiplatform.VertexDataset,
-            })
+            },
+        )
 
     def test_return_google_artifact1(self):
         import aiplatform
@@ -222,73 +225,88 @@ class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
         import aiplatform
         from aiplatform import VertexDataset
 
-        def func() -> typing.NamedTuple('Outputs', [
-            ('a', aiplatform.VertexDataset),
-            ('b', VertexDataset),
-        ]):
+        def func() -> typing.NamedTuple(
+            'Outputs',
+            [
+                ('a', aiplatform.VertexDataset),
+                ('b', VertexDataset),
+            ],
+        ):
             pass
 
         actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
         self.assertEqual(
-            actual, {
+            actual,
+            {
                 'return-a': aiplatform.VertexDataset,
                 'return-b': aiplatform.VertexDataset,
-            })
+            },
+        )
 
 
 class TestGetFullQualnameForArtifact(_TestCaseWithThirdPartyPackage):
     # only gets called on artifacts, so don't need to test on all types
-    @parameterized.parameters([
-        (Alias, 'kfp.dsl.types.artifact_types.Artifact'),
-        (Artifact, 'kfp.dsl.types.artifact_types.Artifact'),
-        (Dataset, 'kfp.dsl.types.artifact_types.Dataset'),
-    ])
+    @parameterized.parameters(
+        [
+            (Alias, 'kfp.dsl.types.artifact_types.Artifact'),
+            (Artifact, 'kfp.dsl.types.artifact_types.Artifact'),
+            (Dataset, 'kfp.dsl.types.artifact_types.Dataset'),
+        ]
+    )
     def test(self, obj: Any, expected_qualname: str):
         self.assertEqual(
             custom_artifact_types.get_full_qualname_for_artifact(obj),
-            expected_qualname)
+            expected_qualname,
+        )
 
     def test_aiplatform_artifact(self):
         import aiplatform
+
         self.assertEqual(
             custom_artifact_types.get_full_qualname_for_artifact(
-                aiplatform.VertexDataset), 'aiplatform.VertexDataset')
+                aiplatform.VertexDataset
+            ),
+            'aiplatform.VertexDataset',
+        )
 
 
 class TestGetSymbolImportPath(parameterized.TestCase):
-
-    @parameterized.parameters([
-        {
-            'artifact_class_base_symbol': 'aiplatform',
-            'qualname': 'aiplatform.VertexDataset',
-            'expected': 'aiplatform'
-        },
-        {
-            'artifact_class_base_symbol': 'VertexDataset',
-            'qualname': 'aiplatform.VertexDataset',
-            'expected': 'aiplatform.VertexDataset'
-        },
-        {
-            'artifact_class_base_symbol': 'e',
-            'qualname': 'a.b.c.d.e',
-            'expected': 'a.b.c.d.e'
-        },
-        {
-            'artifact_class_base_symbol': 'c',
-            'qualname': 'a.b.c.d.e',
-            'expected': 'a.b.c'
-        },
-    ])
-    def test(self, artifact_class_base_symbol: str, qualname: str,
-             expected: str):
+    @parameterized.parameters(
+        [
+            {
+                'artifact_class_base_symbol': 'aiplatform',
+                'qualname': 'aiplatform.VertexDataset',
+                'expected': 'aiplatform',
+            },
+            {
+                'artifact_class_base_symbol': 'VertexDataset',
+                'qualname': 'aiplatform.VertexDataset',
+                'expected': 'aiplatform.VertexDataset',
+            },
+            {
+                'artifact_class_base_symbol': 'e',
+                'qualname': 'a.b.c.d.e',
+                'expected': 'a.b.c.d.e',
+            },
+            {
+                'artifact_class_base_symbol': 'c',
+                'qualname': 'a.b.c.d.e',
+                'expected': 'a.b.c',
+            },
+        ]
+    )
+    def test(
+        self, artifact_class_base_symbol: str, qualname: str, expected: str
+    ):
         actual = custom_artifact_types.get_symbol_import_path(
-            artifact_class_base_symbol, qualname)
+            artifact_class_base_symbol, qualname
+        )
         self.assertEqual(actual, expected)
 
 
-class TestGetCustomArtifactBaseSymbolForParameter(_TestCaseWithThirdPartyPackage
-                                                 ):
-
+class TestGetCustomArtifactBaseSymbolForParameter(
+    _TestCaseWithThirdPartyPackage
+):
     def test_input_google_artifact(self):
         import aiplatform
         from aiplatform import VertexDataset
@@ -301,20 +319,32 @@ class TestGetCustomArtifactBaseSymbolForParameter(_TestCaseWithThirdPartyPackage
         ):
             pass
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'a')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'a'
+            )
+        )
         self.assertEqual(actual, 'aiplatform')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'b')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'b'
+            )
+        )
         self.assertEqual(actual, 'VertexDataset')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'c')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'c'
+            )
+        )
         self.assertEqual(actual, 'aiplatform')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'd')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'd'
+            )
+        )
         self.assertEqual(actual, 'VertexDataset')
 
     def test_output_google_artifact(self):
@@ -329,33 +359,47 @@ class TestGetCustomArtifactBaseSymbolForParameter(_TestCaseWithThirdPartyPackage
         ):
             pass
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'a')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'a'
+            )
+        )
         self.assertEqual(actual, 'aiplatform')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'b')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'b'
+            )
+        )
         self.assertEqual(actual, 'VertexDataset')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'c')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'c'
+            )
+        )
         self.assertEqual(actual, 'aiplatform')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
-            func, 'd')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+                func, 'd'
+            )
+        )
         self.assertEqual(actual, 'VertexDataset')
 
 
 class TestGetCustomArtifactBaseSymbolForReturn(_TestCaseWithThirdPartyPackage):
-
     def test_return_google_artifact1(self):
         from aiplatform import VertexDataset
 
         def func() -> VertexDataset:
             pass
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
-            func, 'return-')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+                func, 'return-'
+            )
+        )
         self.assertEqual(actual, 'VertexDataset')
 
     def test_return_google_artifact2(self):
@@ -364,39 +408,52 @@ class TestGetCustomArtifactBaseSymbolForReturn(_TestCaseWithThirdPartyPackage):
         def func() -> aiplatform.VertexDataset:
             pass
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
-            func, 'return-')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+                func, 'return-'
+            )
+        )
         self.assertEqual(actual, 'aiplatform')
 
     def test_named_tuple_google_artifact(self):
         import aiplatform
         from aiplatform import VertexDataset
 
-        def func() -> typing.NamedTuple('Outputs', [
-            ('a', aiplatform.VertexDataset),
-            ('b', VertexDataset),
-        ]):
+        def func() -> typing.NamedTuple(
+            'Outputs',
+            [
+                ('a', aiplatform.VertexDataset),
+                ('b', VertexDataset),
+            ],
+        ):
             pass
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
-            func, 'return-a')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+                func, 'return-a'
+            )
+        )
         self.assertEqual(actual, 'aiplatform')
 
-        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
-            func, 'return-b')
+        actual = (
+            custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+                func, 'return-b'
+            )
+        )
         self.assertEqual(actual, 'VertexDataset')
 
 
 class TestGetCustomArtifactImportItemsFromFunction(
-        _TestCaseWithThirdPartyPackage):
-
+    _TestCaseWithThirdPartyPackage
+):
     def test_no_ann(self):
 
         def func():
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_primitives(self):
@@ -405,7 +462,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_input_path(self):
@@ -414,7 +472,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_output_path(self):
@@ -423,7 +482,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_input_kfp_artifact(self):
@@ -432,7 +492,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_output_kfp_artifact(self):
@@ -441,7 +502,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_return_kfp_artifact1(self):
@@ -450,7 +512,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_return_kfp_artifact2(self):
@@ -459,19 +522,24 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_named_tuple_primitives(self):
 
-        def func() -> typing.NamedTuple('Outputs', [
-            ('a', str),
-            ('b', int),
-        ]):
+        def func() -> typing.NamedTuple(
+            'Outputs',
+            [
+                ('a', str),
+                ('b', int),
+            ],
+        ):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_input_google_artifact(self):
@@ -487,7 +555,8 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
 
     def test_output_google_artifact(self):
@@ -503,19 +572,20 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
 
         self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
 
     def test_return_google_artifact1(self):
-        import aiplatform
         from aiplatform import VertexDataset
 
         def func() -> VertexDataset:
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['aiplatform.VertexDataset'])
 
     def test_return_google_artifact2(self):
@@ -525,34 +595,39 @@ class TestGetCustomArtifactImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['aiplatform'])
 
     def test_named_tuple_google_artifact(self):
         import aiplatform
         from aiplatform import VertexDataset
 
-        def func() -> typing.NamedTuple('Outputs', [
-            ('a', aiplatform.VertexDataset),
-            ('b', VertexDataset),
-        ]):
+        def func() -> typing.NamedTuple(
+            'Outputs',
+            [
+                ('a', aiplatform.VertexDataset),
+                ('b', VertexDataset),
+            ],
+        ):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
 
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
-
     def test_no_ann(self):
 
         def func():
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {})
 
     def test_primitives(self):
@@ -561,7 +636,8 @@ class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {})
 
     def test_input_basemodel(self):
@@ -571,7 +647,8 @@ class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {'a': MyModel})
 
     def test_return_basemodel(self):
@@ -581,20 +658,25 @@ class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {'return-': MyModel})
 
     def test_named_tuple_basemodel(self):
         from my_pydantic_models import MyModel
 
-        def func() -> typing.NamedTuple('Outputs', [
-            ('a', MyModel),
-            ('b', str),
-        ]):
+        def func() -> typing.NamedTuple(
+            'Outputs',
+            [
+                ('a', MyModel),
+                ('b', str),
+            ],
+        ):
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {'return-a': MyModel})
 
     def test_optional_input_basemodel(self):
@@ -604,7 +686,8 @@ class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {'a': MyModel})
 
     def test_optional_return_basemodel(self):
@@ -614,21 +697,23 @@ class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
             pass
 
         actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
-            func)
+            func
+        )
         self.assertEqual(actual, {'return-': MyModel})
 
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestGetPydanticBasemodelImportItemsFromFunction(
-        _TestCaseWithThirdPartyPackage):
-
+    _TestCaseWithThirdPartyPackage
+):
     def test_no_ann(self):
 
         def func():
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, [])
 
     def test_input_basemodel(self):
@@ -638,7 +723,8 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['my_pydantic_models.MyModel'])
 
     def test_import_statement_format(self):
@@ -647,8 +733,11 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
         def func(a: MyModel) -> MyModel:
             pass
 
-        actual = custom_artifact_types.get_pydantic_basemodel_type_import_statements(
-            func)
+        actual = (
+            custom_artifact_types.get_pydantic_basemodel_type_import_statements(
+                func
+            )
+        )
         self.assertEqual(actual, ['from my_pydantic_models import MyModel'])
 
     def test_optional_input_basemodel(self):
@@ -658,7 +747,8 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['my_pydantic_models.MyModel'])
 
     def test_raises_for_simple_alias(self):
@@ -669,7 +759,8 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
 
         with self.assertRaisesRegex(TypeError, 'aliases are not supported'):
             custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-                func)
+                func
+            )
 
     def test_raises_for_aliased_module_dotted_access(self):
         import my_pydantic_models as aliased_module
@@ -679,7 +770,8 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
 
         with self.assertRaisesRegex(TypeError, 'aliases are not supported'):
             custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-                func)
+                func
+            )
 
     def test_passes_for_unaliased_module_dotted_access(self):
         import my_pydantic_models
@@ -688,7 +780,8 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-            func)
+            func
+        )
         self.assertEqual(actual, ['my_pydantic_models'])
 
     def test_raises_for_return_alias(self):
@@ -699,13 +792,14 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
 
         with self.assertRaisesRegex(TypeError, 'aliases are not supported'):
             custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-                func)
+                func
+            )
 
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestGetPydanticBasemodelBaseSymbolForParameter(
-        _TestCaseWithThirdPartyPackage):
-
+    _TestCaseWithThirdPartyPackage
+):
     def test_simple_name(self):
         from my_pydantic_models import MyModel
 
@@ -713,7 +807,8 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-            func, 'a')
+            func, 'a'
+        )
         self.assertEqual(actual, 'MyModel')
 
     def test_optional_simple_name(self):
@@ -723,7 +818,8 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-            func, 'a')
+            func, 'a'
+        )
         self.assertEqual(actual, 'MyModel')
 
     def test_dotted_access(self):
@@ -733,7 +829,8 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-            func, 'a')
+            func, 'a'
+        )
         self.assertEqual(actual, 'my_pydantic_models')
 
     def test_alias(self):
@@ -743,7 +840,8 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-            func, 'a')
+            func, 'a'
+        )
         self.assertEqual(actual, 'MyModelAlias')
 
     def test_keyword_only_param(self):
@@ -753,7 +851,8 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-            func, 'a')
+            func, 'a'
+        )
         self.assertEqual(actual, 'MyModel')
 
     def test_positional_only_param(self):
@@ -763,7 +862,8 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             pass
 
         actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-            func, 'a')
+            func, 'a'
+        )
         self.assertEqual(actual, 'MyModel')
 
     def test_pep604_optional_simple_name(self):
@@ -780,26 +880,31 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
 
         pep604_source = 'def func(a: MyModel | None = None):\n    pass\n'
         with unittest.mock.patch.object(
-                custom_artifact_types.component_factory,
-                '_get_function_source_definition',
-                return_value=pep604_source):
+            custom_artifact_types.component_factory,
+            '_get_function_source_definition',
+            return_value=pep604_source,
+        ):
             actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
-                func, 'a')
+                func, 'a'
+            )
         self.assertEqual(actual, 'MyModel')
 
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
-class TestGetPydanticBasemodelBaseSymbolForReturn(_TestCaseWithThirdPartyPackage
-                                                 ):
-
+class TestGetPydanticBasemodelBaseSymbolForReturn(
+    _TestCaseWithThirdPartyPackage
+):
     def test_simple_name(self):
         from my_pydantic_models import MyModel
 
         def func() -> MyModel:
             pass
 
-        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_return(
-            func, custom_artifact_types.RETURN_PREFIX)
+        actual = (
+            custom_artifact_types.get_pydantic_basemodel_base_symbol_for_return(
+                func, custom_artifact_types.RETURN_PREFIX
+            )
+        )
         self.assertEqual(actual, 'MyModel')
 
     def test_named_tuple_field(self):
@@ -808,14 +913,16 @@ class TestGetPydanticBasemodelBaseSymbolForReturn(_TestCaseWithThirdPartyPackage
         def func() -> typing.NamedTuple('Outputs', [('output_model', MyModel)]):
             pass
 
-        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_return(
-            func, f'{custom_artifact_types.RETURN_PREFIX}output_model')
+        actual = (
+            custom_artifact_types.get_pydantic_basemodel_base_symbol_for_return(
+                func, f'{custom_artifact_types.RETURN_PREFIX}output_model'
+            )
+        )
         self.assertEqual(actual, 'MyModel')
 
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestValidatePydanticBasemodelIsImportable(_TestCaseWithThirdPartyPackage):
-
     def test_passes_for_module_level_class(self):
         from my_pydantic_models import MyModel
 
@@ -830,7 +937,8 @@ class TestValidatePydanticBasemodelIsImportable(_TestCaseWithThirdPartyPackage):
         MyModel.__module__ = '__main__'
         with self.assertRaisesRegex(TypeError, "defined in the '__main__'"):
             custom_artifact_types.validate_pydantic_basemodel_is_importable(
-                MyModel)
+                MyModel
+            )
 
     def test_raises_for_function_local_class(self):
 
@@ -841,10 +949,12 @@ class TestValidatePydanticBasemodelIsImportable(_TestCaseWithThirdPartyPackage):
 
             return MyModel
 
-        with self.assertRaisesRegex(TypeError,
-                                    'defined inside a function or method'):
+        with self.assertRaisesRegex(
+            TypeError, 'defined inside a function or method'
+        ):
             custom_artifact_types.validate_pydantic_basemodel_is_importable(
-                make_model())
+                make_model()
+            )
 
     def test_import_collection_raises_for_class_defined_in_main(self):
 
@@ -858,7 +968,8 @@ class TestValidatePydanticBasemodelIsImportable(_TestCaseWithThirdPartyPackage):
 
         with self.assertRaisesRegex(TypeError, "defined in the '__main__'"):
             custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
-                func)
+                func
+            )
 
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
@@ -878,8 +989,11 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
     """
 
     def _write_ephemeral_component(self, func, run_dir: str) -> str:
-        command, _ = component_factory._get_command_and_args_for_lightweight_component(
-            func)
+        command, _ = (
+            component_factory._get_command_and_args_for_lightweight_component(
+                func
+            )
+        )
         ephemeral_component_source = command[-1]
         component_path = os.path.join(run_dir, 'ephemeral_component.py')
         with open(component_path, 'w') as f:
@@ -887,8 +1001,8 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
         return component_path
 
     def _run_isolated(
-            self, func, executor_input: dict,
-            extra_pythonpath_entries: list) -> subprocess.CompletedProcess:
+        self, func, executor_input: dict, extra_pythonpath_entries: list
+    ) -> subprocess.CompletedProcess:
         run_dir = tempfile.TemporaryDirectory()
         self.addCleanup(run_dir.cleanup)
         component_path = self._write_ephemeral_component(func, run_dir.name)
@@ -938,28 +1052,23 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             result = self._run_isolated(
                 func,
                 executor_input={
-                    'inputs': {
-                        'parameterValues': {
-                            'my_data': {
-                                'foo': 'bar'
-                            }
-                        }
-                    },
-                    'outputs': {
-                        'outputFile': output_file
-                    },
+                    'inputs': {'parameterValues': {'my_data': {'foo': 'bar'}}},
+                    'outputs': {'outputFile': output_file},
                 },
                 # simulates installing the model's package into the
                 # runtime environment, e.g. via `packages_to_install`
                 extra_pythonpath_entries=[self.tmp_dir.name],
             )
             self.assertEqual(
-                0, result.returncode,
-                f'stdout:\n{result.stdout}\nstderr:\n{result.stderr}')
+                0,
+                result.returncode,
+                f'stdout:\n{result.stdout}\nstderr:\n{result.stderr}',
+            )
             with open(output_file) as f:
                 output_metadata = json.load(f)
-            self.assertEqual('bar',
-                             output_metadata['parameterValues']['Output'])
+            self.assertEqual(
+                'bar', output_metadata['parameterValues']['Output']
+            )
 
     def test_model_missing_from_runtime_path_fails_in_isolation(self):
         from my_pydantic_models import MyModel
@@ -972,16 +1081,8 @@ class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
             result = self._run_isolated(
                 func,
                 executor_input={
-                    'inputs': {
-                        'parameterValues': {
-                            'my_data': {
-                                'foo': 'bar'
-                            }
-                        }
-                    },
-                    'outputs': {
-                        'outputFile': output_file
-                    },
+                    'inputs': {'parameterValues': {'my_data': {'foo': 'bar'}}},
+                    'outputs': {'outputFile': output_file},
                 },
                 # the model's package was never installed into the runtime
                 extra_pythonpath_entries=[],

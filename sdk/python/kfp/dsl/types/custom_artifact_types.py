@@ -17,8 +17,7 @@ import inspect
 from typing import Callable, Dict, List, Union
 
 from kfp.dsl import component_factory
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import type_annotations, type_utils
 
 RETURN_PREFIX = 'return-'
 
@@ -64,13 +63,16 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
 
     elif type_utils.is_typed_named_tuple_annotation(return_annotation):
         for name, annotation in return_annotation.__annotations__.items():
-            if type_annotations.is_artifact_class(
-                    annotation) and annotation not in kfp_artifact_classes:
+            if (
+                type_annotations.is_artifact_class(annotation)
+                and annotation not in kfp_artifact_classes
+            ):
                 param_to_artifact_cls[f'{RETURN_PREFIX}{name}'] = annotation
 
-    elif type_annotations.is_artifact_class(
-            return_annotation
-    ) and return_annotation not in kfp_artifact_classes:
+    elif (
+        type_annotations.is_artifact_class(return_annotation)
+        and return_annotation not in kfp_artifact_classes
+    ):
         param_to_artifact_cls[RETURN_PREFIX] = return_annotation
 
     return param_to_artifact_cls
@@ -87,7 +89,8 @@ def get_param_to_pydantic_basemodel_class(func: Callable) -> Dict[str, type]:
     signature = inspect.signature(func)
     for name, param in signature.parameters.items():
         annotation = type_annotations.maybe_strip_optional_from_annotation(
-            param.annotation)
+            param.annotation
+        )
         if type_utils.is_pydantic_basemodel_subclass(annotation):
             param_to_basemodel_cls[name] = annotation
 
@@ -99,13 +102,17 @@ def get_param_to_pydantic_basemodel_class(func: Callable) -> Dict[str, type]:
     elif type_utils.is_typed_named_tuple_annotation(return_annotation):
         for name, annotation in return_annotation.__annotations__.items():
             annotation = type_annotations.maybe_strip_optional_from_annotation(
-                annotation)
+                annotation
+            )
             if type_utils.is_pydantic_basemodel_subclass(annotation):
                 param_to_basemodel_cls[f'{RETURN_PREFIX}{name}'] = annotation
 
     else:
-        return_annotation = type_annotations.maybe_strip_optional_from_annotation(
-            return_annotation)
+        return_annotation = (
+            type_annotations.maybe_strip_optional_from_annotation(
+                return_annotation
+            )
+        )
         if type_utils.is_pydantic_basemodel_subclass(return_annotation):
             param_to_basemodel_cls[RETURN_PREFIX] = return_annotation
 
@@ -136,7 +143,8 @@ def validate_pydantic_basemodel_is_importable(basemodel_cls: type) -> None:
             'since components do not bundle source from the entrypoint '
             'script. Move the model to an importable module that is '
             'installed in the runtime environment, e.g. via '
-            '`packages_to_install` or a custom `base_image`.')
+            '`packages_to_install` or a custom `base_image`.'
+        )
     if '<locals>' in basemodel_cls.__qualname__:
         raise TypeError(
             f"pydantic.BaseModel '{basemodel_cls.__qualname__}' used for "
@@ -145,11 +153,13 @@ def validate_pydantic_basemodel_is_importable(basemodel_cls: type) -> None:
             'environment. Define the model at module level in an '
             'importable module that is installed in the runtime '
             'environment, e.g. via `packages_to_install` or a custom '
-            '`base_image`.')
+            '`base_image`.'
+        )
 
 
 def _maybe_unwrap_optional_subscript(
-        annotation: Union[ast.expr, None]) -> Union[ast.expr, None]:
+    annotation: Union[ast.expr, None],
+) -> Union[ast.expr, None]:
     """Unwraps an `Optional[X]`/`X | None`-shaped AST node to the inner `X`
     node, mirroring the Optional-stripping already applied to the resolved type
     in get_param_to_pydantic_basemodel_class.
@@ -161,39 +171,50 @@ def _maybe_unwrap_optional_subscript(
     """
     if isinstance(annotation, ast.Subscript):
         return annotation.slice
-    if isinstance(annotation, ast.BinOp) and isinstance(annotation.op,
-                                                        ast.BitOr):
-        if isinstance(annotation.left,
-                      ast.Constant) and annotation.left.value is None:
+    if isinstance(annotation, ast.BinOp) and isinstance(
+        annotation.op, ast.BitOr
+    ):
+        if (
+            isinstance(annotation.left, ast.Constant)
+            and annotation.left.value is None
+        ):
             return annotation.right
-        if isinstance(annotation.right,
-                      ast.Constant) and annotation.right.value is None:
+        if (
+            isinstance(annotation.right, ast.Constant)
+            and annotation.right.value is None
+        ):
             return annotation.left
     return annotation
 
 
-def get_pydantic_basemodel_base_symbol_for_parameter(func: Callable,
-                                                     arg_name: str) -> str:
+def get_pydantic_basemodel_base_symbol_for_parameter(
+    func: Callable, arg_name: str
+) -> str:
     """Gets the symbol required for a pydantic.BaseModel parameter type
     annotation to be referenced correctly in the generated component file."""
     module_node = ast.parse(
-        component_factory._get_function_source_definition(func))
+        component_factory._get_function_source_definition(func)
+    )
     function_args = module_node.body[0].args
     args = (
-        function_args.posonlyargs + function_args.args +
-        function_args.kwonlyargs)
+        function_args.posonlyargs
+        + function_args.args
+        + function_args.kwonlyargs
+    )
     args = {arg.arg: arg for arg in args}
     annotation = _maybe_unwrap_optional_subscript(args[arg_name].annotation)
     return traverse_ast_node_values_to_get_id(annotation)
 
 
-def get_pydantic_basemodel_base_symbol_for_return(func: Callable,
-                                                  return_name: str) -> str:
+def get_pydantic_basemodel_base_symbol_for_return(
+    func: Callable, return_name: str
+) -> str:
     """Gets the symbol required for a pydantic.BaseModel return type annotation
     (including a typing.NamedTuple field) to be referenced correctly in the
     generated component file."""
     module_node = ast.parse(
-        component_factory._get_function_source_definition(func))
+        component_factory._get_function_source_definition(func)
+    )
     return_ann = module_node.body[0].returns
 
     if return_name == RETURN_PREFIX:
@@ -203,10 +224,11 @@ def get_pydantic_basemodel_base_symbol_for_return(func: Callable,
     elif isinstance(return_ann, ast.Call):
         func_node = return_ann.func
         # handles NamedTuple and typing.NamedTuple
-        if (isinstance(func_node, ast.Attribute) and
-                func_node.value.id == 'typing' and
-                func_node.attr == 'NamedTuple') or (isinstance(
-                    func_node, ast.Name) and func_node.id == 'NamedTuple'):
+        if (
+            isinstance(func_node, ast.Attribute)
+            and func_node.value.id == 'typing'
+            and func_node.attr == 'NamedTuple'
+        ) or (isinstance(func_node, ast.Name) and func_node.id == 'NamedTuple'):
             nt_field_list = return_ann.args[1].elts
             for el in nt_field_list:
                 if f'{RETURN_PREFIX}{el.elts[0].s}' == return_name:
@@ -215,11 +237,13 @@ def get_pydantic_basemodel_base_symbol_for_return(func: Callable,
 
     raise TypeError(
         f"Unexpected pydantic.BaseModel return type annotation '{ast.dump(return_ann)}' "
-        f'for function {func.__name__}.')
+        f'for function {func.__name__}.'
+    )
 
 
 def get_pydantic_basemodel_import_items_from_function(
-        func: Callable) -> List[str]:
+    func: Callable,
+) -> List[str]:
     """Gets the fully qualified name of the symbol that must be imported for
     the pydantic.BaseModel type annotation to be referenced successfully from a
     component function."""
@@ -227,11 +251,13 @@ def get_pydantic_basemodel_import_items_from_function(
     import_items = []
     for param_name, basemodel_cls in param_to_cls.items():
         validate_pydantic_basemodel_is_importable(basemodel_cls)
-        base_symbol = get_pydantic_basemodel_base_symbol_for_return(
-            func, param_name) if param_name.startswith(
-                RETURN_PREFIX
-            ) else get_pydantic_basemodel_base_symbol_for_parameter(
-                func, param_name)
+        base_symbol = (
+            get_pydantic_basemodel_base_symbol_for_return(func, param_name)
+            if param_name.startswith(RETURN_PREFIX)
+            else get_pydantic_basemodel_base_symbol_for_parameter(
+                func, param_name
+            )
+        )
         # get_full_qualname_for_artifact only reads __module__/__qualname__,
         # so it works for any class, not just artifacts.
         qualname = get_full_qualname_for_artifact(basemodel_cls)
@@ -282,8 +308,9 @@ def get_full_qualname_for_artifact(obj: type) -> str:
     return name
 
 
-def get_symbol_import_path(artifact_class_base_symbol: str,
-                           qualname: str) -> str:
+def get_symbol_import_path(
+    artifact_class_base_symbol: str, qualname: str
+) -> str:
     """Gets the fully qualified name of the symbol that must be imported for
     the custom artifact type annotation to be referenced successfully.
 
@@ -297,8 +324,10 @@ def get_symbol_import_path(artifact_class_base_symbol: str,
     split_qualname = qualname.split('.')
     if artifact_class_base_symbol in split_qualname:
         name_to_import = '.'.join(
-            split_qualname[:split_qualname.index(artifact_class_base_symbol) +
-                           1])
+            split_qualname[
+                : split_qualname.index(artifact_class_base_symbol) + 1
+            ]
+        )
     else:
         raise TypeError(
             f"Module or type name aliases are not supported. You appear to be using an alias in your type annotation: '{qualname}'. This may be due to use of an 'as' statement in an import statement or a reassignment of a module or type to a new name. Reference the module and/or type using the name as defined in the source from which the module or type is imported."
@@ -312,24 +341,28 @@ def traverse_ast_node_values_to_get_id(obj: Union[ast.Slice, None]) -> str:
     return obj.id
 
 
-def get_custom_artifact_base_symbol_for_parameter(func: Callable,
-                                                  arg_name: str) -> str:
+def get_custom_artifact_base_symbol_for_parameter(
+    func: Callable, arg_name: str
+) -> str:
     """Gets the symbol required for the custom artifact type annotation to be
     referenced correctly."""
     module_node = ast.parse(
-        component_factory._get_function_source_definition(func))
+        component_factory._get_function_source_definition(func)
+    )
     args = module_node.body[0].args.args
     args = {arg.arg: arg for arg in args}
     annotation = args[arg_name].annotation
     return traverse_ast_node_values_to_get_id(annotation.slice)
 
 
-def get_custom_artifact_base_symbol_for_return(func: Callable,
-                                               return_name: str) -> str:
+def get_custom_artifact_base_symbol_for_return(
+    func: Callable, return_name: str
+) -> str:
     """Gets the symbol required for the custom artifact type return annotation
     to be referenced correctly."""
     module_node = ast.parse(
-        component_factory._get_function_source_definition(func))
+        component_factory._get_function_source_definition(func)
+    )
     return_ann = module_node.body[0].returns
 
     if return_name == RETURN_PREFIX:
@@ -338,9 +371,11 @@ def get_custom_artifact_base_symbol_for_return(func: Callable,
     elif isinstance(return_ann, ast.Call):
         func = return_ann.func
         # handles NamedTuple and typing.NamedTuple
-        if (isinstance(func, ast.Attribute) and func.value.id == 'typing' and
-                func.attr == 'NamedTuple') or (isinstance(func, ast.Name) and
-                                               func.id == 'NamedTuple'):
+        if (
+            isinstance(func, ast.Attribute)
+            and func.value.id == 'typing'
+            and func.attr == 'NamedTuple'
+        ) or (isinstance(func, ast.Name) and func.id == 'NamedTuple'):
             nt_field_list = return_ann.args[1].elts
             for el in nt_field_list:
                 if f'{RETURN_PREFIX}{el.elts[0].s}' == return_name:
@@ -357,15 +392,15 @@ def get_custom_artifact_import_items_from_function(func: Callable) -> List[str]:
     param_to_ann_obj = get_param_to_custom_artifact_class(func)
     import_items = []
     for param_name, artifact_class in param_to_ann_obj.items():
-
-        base_symbol = get_custom_artifact_base_symbol_for_return(
-            func, param_name
-        ) if param_name.startswith(
-            RETURN_PREFIX) else get_custom_artifact_base_symbol_for_parameter(
-                func, param_name)
+        base_symbol = (
+            get_custom_artifact_base_symbol_for_return(func, param_name)
+            if param_name.startswith(RETURN_PREFIX)
+            else get_custom_artifact_base_symbol_for_parameter(func, param_name)
+        )
         artifact_qualname = get_full_qualname_for_artifact(artifact_class)
-        symbol_import_path = get_symbol_import_path(base_symbol,
-                                                    artifact_qualname)
+        symbol_import_path = get_symbol_import_path(
+            base_symbol, artifact_qualname
+        )
 
         # could use set here, but want to be have deterministic import ordering
         # in compilation

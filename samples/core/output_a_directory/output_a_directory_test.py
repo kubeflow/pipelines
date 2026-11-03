@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.samples.test.utils import run_pipeline_func
-from kfp.samples.test.utils import TestCase
+from kfp.samples.test.utils import TestCase, run_pipeline_func
 
 from .output_a_directory import dir_pipeline
 
-run_pipeline_func([
-    TestCase(pipeline_func=dir_pipeline),
-])
+run_pipeline_func(
+    [
+        TestCase(pipeline_func=dir_pipeline),
+    ]
+)

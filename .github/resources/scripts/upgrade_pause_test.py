@@ -1,17 +1,17 @@
-"""Keep migration-dependent upgrade jobs opt-in until #14029 is delivered."""
+"""Keep migration-dependent upgrade jobs paused until #14029 is delivered."""
 
-from pathlib import Path
 import unittest
+from pathlib import Path
+
+import yaml
 
 
 class UpgradePauseTest(unittest.TestCase):
-
-    def test_both_upgrade_jobs_require_explicit_opt_in(self):
+    def test_all_upgrade_jobs_have_a_checked_in_pause(self):
         root = Path(__file__).resolve().parents[3]
         workflow = (root / '.github/workflows/upgrade-test.yml').read_text()
-        gate = "    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}"
-        for name in ('build', 'upgrade-test'):
-            job = workflow.split(f'  {name}:\n', 1)[1]
-            self.assertEqual(job.splitlines()[1], gate)
-        self.assertEqual(workflow.count(gate), 2)
+        jobs = yaml.safe_load(workflow)['jobs']
+        self.assertEqual(set(jobs), {'upgrade-test'})
+        for job in jobs.values():
+            self.assertEqual(job['if'], '${{ false }}')
         self.assertIn('TODO(#14029)', workflow)

@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, compiler
 from typing import NamedTuple
+
+from kfp import compiler, dsl
 
 
 @dsl.component(base_image='pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime')
 def training_job():
     import torch
+
     use_cuda = torch.cuda.is_available()
     print(f'The gpus status is: {use_cuda}')
     if not use_cuda:
@@ -26,8 +28,10 @@ def training_job():
 
 
 @dsl.component
-def generate_resource_constraints_request() -> NamedTuple('output', nbr_gpus=str, accelerator=str):
-    """Returns the gpu resource and constraints settings"""
+def generate_resource_constraints_request() -> NamedTuple(
+    'output', nbr_gpus=str, accelerator=str
+):
+    """Returns the gpu resource and constraints settings."""
     output = NamedTuple('output', nbr_gpus=str, accelerator=str)
 
     return output('1', 'NVIDIA_TESLA_K80')
@@ -35,7 +39,7 @@ def generate_resource_constraints_request() -> NamedTuple('output', nbr_gpus=str
 
 @dsl.pipeline(
     name='Runtime resource request pipeline',
-    description='An example on how to make resource requests at runtime.'
+    description='An example on how to make resource requests at runtime.',
 )
 def resource_constraint_request_pipeline():
     resource_constraints_task = generate_resource_constraints_request()
@@ -45,9 +49,14 @@ def resource_constraint_request_pipeline():
     # traning_task = training_job()\
     #     .set_accelerator_limit(resource_constraints_task.outputs['nbr_gpus'])\
     #     .set_accelerator_type(resource_constraints_task.outputs['accelerator'])\
-    traning_task = training_job()\
-        .set_accelerator_limit(resource_constraints_task.outputs['nbr_gpus'])\
+    traning_task = (
+        training_job()
+        .set_accelerator_limit(resource_constraints_task.outputs['nbr_gpus'])
         .set_accelerator_type('NVIDIA_TESLA_K80')
+    )
+
 
 if __name__ == '__main__':
-    compiler.Compiler().compile(resource_constraint_request_pipeline, __file__ + '.yaml')
+    compiler.Compiler().compile(
+        resource_constraint_request_pipeline, __file__ + '.yaml'
+    )

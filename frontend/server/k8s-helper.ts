@@ -19,7 +19,7 @@ import {
   V1Pod,
   V1ConfigMap,
 } from '@kubernetes/client-node';
-import crypto from 'crypto-js';
+import { createHash } from 'node:crypto';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper.js';
 import { findFileOnPodVolume, isAllowedResourceName } from './utils.js';
@@ -79,8 +79,7 @@ function resolveNamespace(providedNamespace?: string): string | undefined {
 }
 
 function getNameOfViewerResource(logdir: string): string {
-  // TODO: find some hash function with shorter resulting message.
-  return 'viewer-' + crypto.SHA1(logdir);
+  return 'viewer-' + createHash('sha1').update(logdir, 'utf8').digest('hex');
 }
 
 function unwrapCustomObject<T>(resource: T | { body?: T } | undefined | null): T | undefined {

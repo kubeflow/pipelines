@@ -20,7 +20,7 @@ import { vi } from 'vitest';
 import { ArchivedExperiments } from './ArchivedExperiments';
 import TestUtils from 'src/TestUtils';
 import { PageProps } from './Page';
-import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
+import { V2ExperimentStorageState } from 'src/apisv2/experiment';
 import { ButtonKeys } from 'src/lib/Buttons';
 
 const refreshSpy = vi.fn();
@@ -103,8 +103,6 @@ describe('ArchivedExperiments', () => {
 
   it('shows a list of archived experiments', () => {
     renderArchivedExperiments();
-    expect(lastExperimentListProps.storageState).toBe(
-      V2beta1ExperimentStorageState.ARCHIVED.toString(),
-    );
+    expect(lastExperimentListProps.storageState).toBe(V2ExperimentStorageState.ARCHIVED.toString());
   });
 });

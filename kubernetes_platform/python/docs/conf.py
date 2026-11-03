@@ -86,16 +86,11 @@ html_theme_options = {
     'icon': {
         'repo': 'fontawesome/brands/github',
     },
-    'repo_url':
-        'https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform',
-    'repo_name':
-        'pipelines',
-    'repo_type':
-        'github',
-    'edit_uri':
-        'blob/master/docs',
-    'globaltoc_collapse':
-        False,
+    'repo_url': 'https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform',
+    'repo_name': 'pipelines',
+    'repo_type': 'github',
+    'edit_uri': 'blob/master/docs',
+    'globaltoc_collapse': False,
     'features': [
         'navigation.expand',
         # "navigation.tabs",
@@ -132,108 +127,77 @@ html_theme_options = {
             },
         },
     ],
-    'font': {
-        'text': 'Open Sans'
-    },
-    'version_dropdown':
-        True,
+    'font': {'text': 'Open Sans'},
+    'version_dropdown': True,
     'version_info': [
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.2/',
-            'title':
-                '2.15.2',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.2/',
+            'title': '2.15.2',
             'aliases': ['stable'],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.1/',
-            'title':
-                '2.15.1',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.1/',
+            'title': '2.15.1',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.0/',
-            'title':
-                '2.15.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.0/',
+            'title': '2.15.0',
             'aliases': ['stable'],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.6/',
-            'title':
-                '2.14.6',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.6/',
+            'title': '2.14.6',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.5/',
-            'title':
-                '2.14.5',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.5/',
+            'title': '2.14.5',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.4/',
-            'title':
-                '2.14.4',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.4/',
+            'title': '2.14.4',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.0/',
-            'title':
-                '2.14.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.14.0/',
+            'title': '2.14.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.5.0/',
-            'title':
-                '1.5.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.5.0/',
+            'title': '1.5.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.4.0/',
-            'title':
-                '1.4.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.4.0/',
+            'title': '1.4.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.3.0/',
-            'title':
-                '1.3.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.3.0/',
+            'title': '1.3.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.2.0/',
-            'title':
-                '1.2.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.2.0/',
+            'title': '1.2.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.1.0/',
-            'title':
-                '1.1.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.1.0/',
+            'title': '1.1.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.0.0/',
-            'title':
-                '1.0.0',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-1.0.0/',
+            'title': '1.0.0',
             'aliases': [],
         },
         {
-            'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-0.0.1/',
-            'title':
-                '0.0.1',
+            'version': 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-0.0.1/',
+            'title': '0.0.1',
             'aliases': [],
         },
     ],
@@ -278,12 +242,15 @@ htmlhelp_basename = 'KfpKubernetesdoc'
 
 
 # TODO: align with GCPC representation of components (in particular, OutputPath and Output[])
-def strip_outputs_from_signature(app, what, name, obj, options, signature,
-                                 return_annotation):
+def strip_outputs_from_signature(
+    app, what, name, obj, options, signature, return_annotation
+):
     if signature is not None:
         signature = re.sub(
             r'[0-9a-zA-Z]+: <kfp\.components\.types\.type_annotations\.OutputPath object at 0x[0-9a-fA-F]+>?,?\s',
-            '', signature)
+            '',
+            signature,
+        )
     return signature, return_annotation
 
 

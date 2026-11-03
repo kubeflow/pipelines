@@ -14,8 +14,7 @@
 
 from typing import Optional
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -47,6 +46,7 @@ def print_struct(struct: dict):
 def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
+
     result = 'heads' if random.randint(0, 1) == 0 else 'tails'
     return result
 
@@ -70,11 +70,9 @@ def my_pipeline(
     outter_args_generator = args_generator_op()
 
     with dsl.Condition(flip.output != 'no-such-result'):  # always true
-
         inner_arg_generator = args_generator_op()
 
         with dsl.ParallelFor(outter_args_generator.output) as item:
-
             print_text(msg=msg)
 
             with dsl.Condition(item.A_a == 'heads'):
@@ -111,5 +109,5 @@ def my_pipeline(
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

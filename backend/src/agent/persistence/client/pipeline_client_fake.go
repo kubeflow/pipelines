@@ -15,29 +15,21 @@
 package client
 
 import (
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 type PipelineClientFake struct {
-	workflows                 map[string]util.ExecutionSpec
-	scheduledWorkflows        map[string]*util.ScheduledWorkflow
-	err                       error
-	artifactClient            *artifactclient.ClientFake
-	reportedMetricsRequest    *api.ReportRunMetricsRequest
-	reportMetricsResponseStub *api.ReportRunMetricsResponse
-	reportMetricsErrorStub    error
+	workflows          map[string]util.ExecutionSpec
+	scheduledWorkflows map[string]*util.ScheduledWorkflow
+	err                error
 }
 
 func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{
-		workflows:                 make(map[string]util.ExecutionSpec),
-		scheduledWorkflows:        make(map[string]*util.ScheduledWorkflow),
-		err:                       nil,
-		artifactClient:            artifactclient.NewClientFake(),
-		reportMetricsResponseStub: &api.ReportRunMetricsResponse{},
+		workflows:          make(map[string]util.ExecutionSpec),
+		scheduledWorkflows: make(map[string]*util.ScheduledWorkflow),
+		err:                nil,
 	}
 }
 
@@ -57,11 +49,6 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
-func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
-	p.reportedMetricsRequest = request
-	return p.reportMetricsResponseStub, p.reportMetricsErrorStub
-}
-
 func (p *PipelineClientFake) SetError(err error) {
 	p.err = err
 }
@@ -72,25 +59,4 @@ func (p *PipelineClientFake) GetWorkflow(namespace string, name string) util.Exe
 
 func (p *PipelineClientFake) GetScheduledWorkflow(namespace string, name string) *util.ScheduledWorkflow {
 	return p.scheduledWorkflows[getKey(namespace, name)]
-}
-
-func (p *PipelineClientFake) StubArtifact(request *artifactclient.ReadArtifactRequest, response *artifactclient.ReadArtifactResponse) {
-	p.artifactClient.StubArtifact(request, response)
-}
-
-func (p *PipelineClientFake) GetReadArtifactRequest() *artifactclient.ReadArtifactRequest {
-	return p.artifactClient.GetReadArtifactRequest()
-}
-
-func (p *PipelineClientFake) StubReportRunMetrics(response *api.ReportRunMetricsResponse, err error) {
-	p.reportMetricsResponseStub = response
-	p.reportMetricsErrorStub = err
-}
-
-func (p *PipelineClientFake) GetReportedMetricsRequest() *api.ReportRunMetricsRequest {
-	return p.reportedMetricsRequest
-}
-
-func (p *PipelineClientFake) ArtifactClient() artifactclient.Client {
-	return p.artifactClient
 }

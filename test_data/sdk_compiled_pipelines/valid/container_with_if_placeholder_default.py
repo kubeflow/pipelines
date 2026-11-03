@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -28,8 +27,10 @@ def container_with_if_placeholder_default(
             dsl.IfPresentPlaceholder(
                 input_name='optional_input',
                 then=dsl.ConcatPlaceholder(['--dataset=', dataset.uri]),
-                else_='--no-dataset'),
-        ])
+                else_='--no-dataset',
+            ),
+        ],
+    )
 
 
 @dsl.pipeline(name='container-with-if-placeholder-default')
@@ -39,4 +40,5 @@ def pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

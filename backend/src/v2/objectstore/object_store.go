@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,14 +26,17 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -59,12 +63,12 @@ func OpenBucket(
 					return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 				}
 				if s3Client != nil {
-					// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic.
-					openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+					// Use the configured S3 client to leverage retry logic.
+					openedBucket, err2 := openS3Bucket(ctx, s3Client, config.BucketName)
 					if err2 != nil {
 						return nil, err2
 					}
-					// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
+					// Opening the bucket from a client does not allow overriding prefix via bucketConfig.BucketURL().
 					// Therefore, we need to explicitly configure the prefixed bucket.
 					return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 				}
@@ -95,15 +99,35 @@ func OpenBucket(
 		if err1 != nil {
 			return nil, err1
 		}
-		openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
+		openedBucket, err2 := openS3Bucket(ctx, s3Client, config.BucketName)
 		if err2 != nil {
 			return nil, err2
 		}
 		return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 	}
 
-	// Use gocloud's URL opener for the remaining cases, including query-string based S3 URLs.
-	return blob.OpenBucket(ctx, bucketURL)
+	return openBucketURL(ctx, bucketURL)
+}
+
+// openS3Bucket opens a bucket whose uploads use the client's checksum setting.
+// s3blob uploads through the S3 transfer manager, which ignores the client's
+// RequestChecksumCalculation and defaults to when_supported. Over HTTPS that
+// sends aws-chunked trailers, which some S3-compatible stores reject with 501.
+func openS3Bucket(ctx context.Context, s3Client *s3.Client, bucketName string) (*blob.Bucket, error) {
+	return s3blob.OpenBucketV2(ctx, s3Client, bucketName, &s3blob.Options{
+		RequestChecksumCalculation: s3Client.Options().RequestChecksumCalculation,
+	})
+}
+
+// invocationTransport clones rather than changes the process-wide HTTP transport.
+func invocationTransport(ctx context.Context) *http.Transport {
+	resolver, overridden := util.HTTPProxyFrom(ctx)
+	if !overridden {
+		return nil
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = resolver
+	return transport
 }
 
 func normalizeBucketURLForBlobOpen(bucketURL string) string {
@@ -284,6 +308,11 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if params.FromEnv {
 		return nil, nil
 	}
+	// Route token refreshes and data requests through the invocation proxy when one is set.
+	transport := invocationTransport(ctx)
+	if transport != nil {
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Transport: transport})
+	}
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(ctx, params.SecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -296,7 +325,11 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if err != nil {
 		return nil, err
 	}
-	client, err = gcp.NewHTTPClient(gcp.DefaultTransport(), gcp.CredentialsTokenSource(creds))
+	base := gcp.DefaultTransport()
+	if transport != nil {
+		base = transport
+	}
+	client, err = gcp.NewHTTPClient(base, gcp.CredentialsTokenSource(creds))
 	if err != nil {
 		return nil, err
 	}
@@ -328,6 +361,10 @@ func newS3Client(ctx context.Context, params *S3Params, creds *credentials.Stati
 	loadOptions := []func(*awsconfig.LoadOptions) error{
 		awsconfig.WithRequestChecksumCalculation(aws.RequestChecksumCalculationWhenRequired),
 		awsconfig.WithResponseChecksumValidation(aws.ResponseChecksumValidationWhenRequired),
+	}
+	if resolver, overridden := util.HTTPProxyFrom(ctx); overridden {
+		client := awshttp.NewBuildableClient().WithTransportOptions(func(transport *http.Transport) { transport.Proxy = resolver })
+		loadOptions = append(loadOptions, awsconfig.WithHTTPClient(client))
 	}
 	if params != nil {
 		if params.MaxRetries > 0 {

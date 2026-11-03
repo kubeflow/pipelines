@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 from kfp.dsl import component
 
 
@@ -21,6 +20,7 @@ from kfp.dsl import component
 def flip_coin_op() -> str:
     """Flip a coin and output heads or tails randomly."""
     import random
+
     result = 'heads' if random.randint(0, 1) == 0 else 'tails'
     return result
 
@@ -49,5 +49,5 @@ def my_pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline, package_path=__file__.replace('.py', '.yaml')
+    )

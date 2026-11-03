@@ -1,0 +1,8 @@
+# Bind the API server to an IAM role allowing rds-db:connect as its own database
+# user. Replace the account id and role name.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::CHANGE_ME:role/kfp-apiserver-rds

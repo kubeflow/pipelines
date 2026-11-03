@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 
-from kfp import compiler
-from kfp import dsl
+from kfp import compiler, dsl
 
 
 @dsl.container_component
@@ -35,4 +33,5 @@ if __name__ == '__main__':
     # execute only if run as a script
     compiler.Compiler().compile(
         pipeline_func=pipeline_container_no_input,
-        package_path='pipeline_container_no_input.yaml')
+        package_path='pipeline_container_no_input.yaml',
+    )

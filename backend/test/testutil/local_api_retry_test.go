@@ -27,7 +27,7 @@ func TestIsRetriableAPITestError(t *testing.T) {
 	}{
 		{
 			name: "localhost timeout",
-			err:  errors.New(`Get "http://localhost:8888/apis/v2beta1/runs/run-1": context deadline exceeded`),
+			err:  errors.New(`Get "http://localhost:8888/apis/v2/runs/run-1": context deadline exceeded`),
 			want: true,
 		},
 		{

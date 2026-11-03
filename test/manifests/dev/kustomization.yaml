@@ -5,8 +5,6 @@ kind: Kustomization
 namespace: kubeflow
 resources:
   - ../../../manifests/kustomize/env/dev
-patches:
-  - path: proxy-agent-patch.yaml
 
 # Used by Kustomize.
 configMapGenerator:

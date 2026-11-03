@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-pipeline-driver-agent
+  labels:
+    workflows.argoproj.io/configmap-type: ExecutorPlugin
+data:
+  sidecar.automountServiceAccountToken: "true"
+  sidecar.container: |
+    name: driver-plugin
+    image: ghcr.io/kubeflow/kfp-driver:2.17.1
+    terminationMessagePolicy: FallbackToLogsOnError
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+    ports:
+      - containerPort: 8080
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: "64Mi"
+      limits:
+        cpu: "0.5"
+        memory: "0.5Gi"
+    securityContext:
+      # SCC assigns the same namespace UID to agent init/main and this sidecar.
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    volumeMounts:
+    - name: var-run-argo
+      mountPath: /kfp/log
+      subPath: driver-plugin
+      readOnly: false

@@ -97,6 +97,9 @@ type ExecutionSpec interface {
 	// Get ServiceAccountName
 	ServiceAccount() string
 
+	// ServiceAccounts returns every service account the execution can use.
+	ServiceAccounts(allowCompilerPodSpecPatch bool) ([]string, error)
+
 	// Get ExecutionStatus which can be used to
 	// access status related information
 	ExecutionStatus() ExecutionStatus
@@ -179,6 +182,10 @@ type ExecutionSpec interface {
 
 	// Set OwnerReferences from a ScheduledWorkflow
 	SetOwnerReferences(schedule *swfapi.ScheduledWorkflow)
+
+	// UpsertRuntimeConfig adds or replaces runtime config for the given
+	// runtime roles using the transport supported by this execution engine.
+	UpsertRuntimeConfig(runtimeConfig map[string]string, roles ...ExecutionRuntimeRole) error
 
 	// UpsertRuntimeEnvVars adds or replaces env vars on containers that
 	// implement the given runtime roles for this execution engine.

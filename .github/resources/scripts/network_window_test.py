@@ -15,28 +15,28 @@
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import threading
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import network_window
-
 
 SCRIPT = Path(__file__).with_name('network_window.py')
 
 
 class NetworkWindowTest(unittest.TestCase):
-
     def test_parses_softnet_conntrack_tcp_and_socket_counters(self):
         softnet = network_window.parse_softnet(
             '0000000a 00000002 00000003 0 0 0 0 0 0 0 0\n'
             '00000010 00000004 00000005 0 0 0 0 0 0 0 0\n'
         )
         node_output = _node_output(7, 9)
-        network_namespace, metrics = network_window.parse_node_output(node_output)
+        network_namespace, metrics = network_window.parse_node_output(
+            node_output
+        )
 
         self.assertEqual(softnet['softnet.processed'], 26)
         self.assertEqual(softnet['softnet.dropped'], 6)
@@ -86,7 +86,9 @@ class NetworkWindowTest(unittest.TestCase):
 
         self.assertIn('| conntrack.insert_failed | 3 | 11 | 9 |', report)
         self.assertIn('| conntrack.drop | 3 | 13 | 10 |', report)
-        self.assertIn('| kindnet.cgroup.cpu.nr_throttled | 3 | 10 | 9 |', report)
+        self.assertIn(
+            '| kindnet.cgroup.cpu.nr_throttled | 3 | 10 | 9 |', report
+        )
         self.assertIn('| nfqueue.queue_dropped | 3 | 8 | 7 |', report)
         self.assertIn('| kindnet.nft.counter.packets | 3 | 11 | 9 |', report)
         self.assertIn('Largest counter increases between samples', report)
@@ -95,7 +97,11 @@ class NetworkWindowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             path = Path(temporary_directory) / 'events.jsonl'
             events = [
-                {'type': 'meta', 'nodes': ['kind-control-plane'], 'interval_seconds': 5},
+                {
+                    'type': 'meta',
+                    'nodes': ['kind-control-plane'],
+                    'interval_seconds': 5,
+                },
                 self._metric(0, 'container-a|net:[1]', 8),
                 self._metric(1, 'container-a|net:[1]', 3),
                 self._metric(2, 'container-b|net:[2]', 4),
@@ -108,7 +114,9 @@ class NetworkWindowTest(unittest.TestCase):
             report = network_window.build_report(path)
 
         self.assertIn('counter reset', report)
-        self.assertIn('replacement detected for: node:kind-control-plane', report)
+        self.assertIn(
+            'replacement detected for: node:kind-control-plane', report
+        )
         self.assertNotIn('| -5 |', report)
 
     def test_report_mirrors_stdout_and_correlates_probe_failure(self):
@@ -118,22 +126,32 @@ class NetworkWindowTest(unittest.TestCase):
             probe_path = temporary_path / 'probe.jsonl'
             summary_path = temporary_path / 'summary.md'
             input_path.write_text(
-                ''.join(json.dumps(event) + '\n' for event in [
-                    {'type': 'meta', 'nodes': ['kind-control-plane'], 'interval_seconds': 5},
-                    self._metric(0, 'container-a|net:[1]', 2),
-                    self._metric(1, 'container-a|net:[1]', 7),
-                ]),
+                ''.join(
+                    json.dumps(event) + '\n'
+                    for event in [
+                        {
+                            'type': 'meta',
+                            'nodes': ['kind-control-plane'],
+                            'interval_seconds': 5,
+                        },
+                        self._metric(0, 'container-a|net:[1]', 2),
+                        self._metric(1, 'container-a|net:[1]', 7),
+                    ]
+                ),
                 encoding='utf-8',
             )
             probe_path.write_text(
-                json.dumps({
-                    'type': 'probe',
-                    'timestamp_ms': 1_700_000_005_000,
-                    'cycle': 1,
-                    'pair': 'kubernetes-api',
-                    'path': 'vip',
-                    'result': 'timeout',
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'probe',
+                        'timestamp_ms': 1_700_000_005_000,
+                        'cycle': 1,
+                        'pair': 'kubernetes-api',
+                        'path': 'vip',
+                        'result': 'timeout',
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
             environment = os.environ.copy()
@@ -275,15 +293,16 @@ class NetworkWindowTest(unittest.TestCase):
                 'without-a-timestamp "failed to set verdict with label"\n',
                 encoding='utf-8',
             )
-            start_path.write_text(
-                '2026-07-17T16:19:00Z\n', encoding='utf-8'
-            )
+            start_path.write_text('2026-07-17T16:19:00Z\n', encoding='utf-8')
             probe_path.write_text(
-                json.dumps({
-                    'type': 'probe',
-                    'timestamp_ms': 1784305141000,
-                    'result': 'timeout',
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'probe',
+                        'timestamp_ms': 1784305141000,
+                        'result': 'timeout',
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
 
@@ -321,8 +340,10 @@ class NetworkWindowTest(unittest.TestCase):
 
     def test_kindnet_scheduler_command_aggregates_all_threads(self):
         self.assertIn('/task/*/schedstat', network_window.KINDNET_COMMAND)
-        self.assertIn('runtime_ns=$((runtime_ns + thread_runtime))',
-                      network_window.KINDNET_COMMAND)
+        self.assertIn(
+            'runtime_ns=$((runtime_ns + thread_runtime))',
+            network_window.KINDNET_COMMAND,
+        )
 
     def test_kindnet_identity_segments_restart_and_reports_missing_cgroup(self):
         first, first_status = network_window.parse_kindnet_identity(
@@ -414,29 +435,41 @@ class NetworkWindowTest(unittest.TestCase):
 
     def test_aggregates_bounded_kindnet_nft_counters_and_tracks_handles(self):
         identity, metrics, status = network_window.parse_nft_counters(
-            json.dumps({
-                'nftables': [
-                    {'table': {
-                        'family': 'inet',
-                        'name': 'kindnet-network-policies',
-                        'handle': 9,
-                    }},
-                    {'rule': {
-                        'family': 'inet',
-                        'table': 'kindnet-network-policies',
-                        'chain': 'forward',
-                        'handle': 11,
-                        'expr': [{'counter': {'packets': 7, 'bytes': 700}}],
-                    }},
-                    {'rule': {
-                        'family': 'inet',
-                        'table': 'unrelated',
-                        'chain': 'forward',
-                        'handle': 99,
-                        'expr': [{'counter': {'packets': 999, 'bytes': 9999}}],
-                    }},
-                ],
-            })
+            json.dumps(
+                {
+                    'nftables': [
+                        {
+                            'table': {
+                                'family': 'inet',
+                                'name': 'kindnet-network-policies',
+                                'handle': 9,
+                            }
+                        },
+                        {
+                            'rule': {
+                                'family': 'inet',
+                                'table': 'kindnet-network-policies',
+                                'chain': 'forward',
+                                'handle': 11,
+                                'expr': [
+                                    {'counter': {'packets': 7, 'bytes': 700}}
+                                ],
+                            }
+                        },
+                        {
+                            'rule': {
+                                'family': 'inet',
+                                'table': 'unrelated',
+                                'chain': 'forward',
+                                'handle': 99,
+                                'expr': [
+                                    {'counter': {'packets': 999, 'bytes': 9999}}
+                                ],
+                            }
+                        },
+                    ],
+                }
+            )
         )
 
         self.assertEqual(identity, 'table=9|rules=11')
@@ -481,17 +514,23 @@ class NetworkWindowTest(unittest.TestCase):
             probe_path = temporary_path / 'probe.jsonl'
             network_path = temporary_path / 'network.jsonl'
             probe_path.write_text(
-                json.dumps({
-                    'type': 'probe',
-                    'timestamp_ms': 1_700_000_000_000,
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'probe',
+                        'timestamp_ms': 1_700_000_000_000,
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
             network_path.write_text(
-                json.dumps({
-                    'type': 'metric',
-                    'timestamp_ms': 1_700_000_000_001,
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'metric',
+                        'timestamp_ms': 1_700_000_000_001,
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
 
@@ -508,17 +547,23 @@ class NetworkWindowTest(unittest.TestCase):
             probe_path = temporary_path / 'probe.jsonl'
             network_path = temporary_path / 'network.jsonl'
             probe_path.write_text(
-                json.dumps({
-                    'type': 'probe',
-                    'timestamp_ms': 1_700_000_000_001,
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'probe',
+                        'timestamp_ms': 1_700_000_000_001,
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
             network_path.write_text(
-                json.dumps({
-                    'type': 'metric',
-                    'timestamp_ms': 1_700_000_000_000,
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'metric',
+                        'timestamp_ms': 1_700_000_000_000,
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
 
@@ -529,7 +574,9 @@ class NetworkWindowTest(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn('unavailable', message)
 
-    def test_correlation_uses_sample_after_failure_not_closer_prior_sample(self):
+    def test_correlation_uses_sample_after_failure_not_closer_prior_sample(
+        self,
+    ):
         failure_timestamp = 1_700_000_000_200
         metric_events = [
             self._metric(0, 'container-a|net:[1]', 2),
@@ -538,14 +585,17 @@ class NetworkWindowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             probe_path = Path(temporary_directory) / 'probe.jsonl'
             probe_path.write_text(
-                json.dumps({
-                    'type': 'probe',
-                    'timestamp_ms': failure_timestamp,
-                    'cycle': 0,
-                    'pair': 'seaweedfs-s3',
-                    'path': 'vip',
-                    'result': 'timeout',
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'probe',
+                        'timestamp_ms': failure_timestamp,
+                        'cycle': 0,
+                        'pair': 'seaweedfs-s3',
+                        'path': 'vip',
+                        'result': 'timeout',
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
 
@@ -564,23 +614,27 @@ class NetworkWindowTest(unittest.TestCase):
                 value += 100
             else:
                 value += 1
-            metric_events.append({
-                **self._metric(sample, 'container-a|net:[1]', value),
-                'timestamp_ms': base_timestamp + sample * 5000,
-            })
+            metric_events.append(
+                {
+                    **self._metric(sample, 'container-a|net:[1]', value),
+                    'timestamp_ms': base_timestamp + sample * 5000,
+                }
+            )
         with tempfile.TemporaryDirectory() as temporary_directory:
             probe_path = Path(temporary_directory) / 'probe.jsonl'
             events = []
             for cycle in range(25):
                 for path in ('vip', 'endpoint'):
-                    events.append({
-                        'type': 'probe',
-                        'timestamp_ms': base_timestamp + cycle * 5000 + 200,
-                        'cycle': cycle,
-                        'pair': 'seaweedfs-s3',
-                        'path': path,
-                        'result': 'timeout',
-                    })
+                    events.append(
+                        {
+                            'type': 'probe',
+                            'timestamp_ms': base_timestamp + cycle * 5000 + 200,
+                            'cycle': cycle,
+                            'pair': 'seaweedfs-s3',
+                            'path': path,
+                            'result': 'timeout',
+                        }
+                    )
             probe_path.write_text(
                 ''.join(json.dumps(event) + '\n' for event in events),
                 encoding='utf-8',
@@ -612,25 +666,30 @@ class NetworkWindowTest(unittest.TestCase):
             ),
         ):
             for sample, value in enumerate((before, after)):
-                metric_events.append({
-                    'type': 'metric',
-                    'timestamp_ms': base_timestamp + sample * 5000,
-                    'sample': sample,
-                    'source': source,
-                    'identity': 'stable',
-                    'metric': metric,
-                    'value': value,
-                })
+                metric_events.append(
+                    {
+                        'type': 'metric',
+                        'timestamp_ms': base_timestamp + sample * 5000,
+                        'sample': sample,
+                        'source': source,
+                        'identity': 'stable',
+                        'metric': metric,
+                        'value': value,
+                    }
+                )
         with tempfile.TemporaryDirectory() as temporary_directory:
             probe_path = Path(temporary_directory) / 'probe.jsonl'
             probe_path.write_text(
-                json.dumps({
-                    'type': 'probe',
-                    'timestamp_ms': base_timestamp + 200,
-                    'pair': 'seaweedfs-s3',
-                    'path': 'endpoint',
-                    'result': 'timeout',
-                }) + '\n',
+                json.dumps(
+                    {
+                        'type': 'probe',
+                        'timestamp_ms': base_timestamp + 200,
+                        'pair': 'seaweedfs-s3',
+                        'path': 'endpoint',
+                        'result': 'timeout',
+                    }
+                )
+                + '\n',
                 encoding='utf-8',
             )
 
@@ -686,7 +745,7 @@ class NetworkWindowTest(unittest.TestCase):
 
 
 def _node_output(insert_failed, drop):
-    return f'''__NETNS__
+    return f"""__NETNS__
 net:[7]
 __CONNTRACK__
 cpu=0 insert_failed={insert_failed} drop={drop} early_drop=0 error=0 search_restart=1
@@ -703,11 +762,11 @@ Ip: InDiscards OutDiscards
 Ip: 0 0
 Tcp: RetransSegs
 Tcp: 6
-'''
+"""
 
 
 def _target_output(listen_drops, listen_overflows, receive_queue):
-    return f'''__POD__
+    return f"""__POD__
 seaweedfs-abc
 __NETNS__
 net:[42]
@@ -727,15 +786,15 @@ __TCP__
    0: 00000000:208D 00000000:0000 0A 00000000:{receive_queue:08X} 00:00000000 00000000
 __TCP6__
   sl  local_address rem_address   st tx_queue:rx_queue tr tm->when retrnsmt
-'''
+"""
 
 
-_FAKE_KUBECTL = r'''#!/usr/bin/env bash
+_FAKE_KUBECTL = r"""#!/usr/bin/env bash
 echo "kind-control-plane"
-'''
+"""
 
 
-_FAKE_DOCKER = r'''#!/usr/bin/env bash
+_FAKE_DOCKER = r"""#!/usr/bin/env bash
 case "$1" in
   inspect)
     echo "container-a"
@@ -802,7 +861,7 @@ EOF
     fi
     ;;
 esac
-'''
+"""
 
 
 if __name__ == '__main__':

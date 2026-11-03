@@ -24,6 +24,22 @@ describe('ArtifactNode', () => {
     return render(<ReactFlowProvider>{component}</ReactFlowProvider>);
   };
 
+  it('keeps the blue ring for selection without requiring focus', () => {
+    const node = (selected: boolean) => (
+      <ReactFlowProvider>
+        <ArtifactNode id='artifact-1' data={{ label: 'model' }} selected={selected} />
+      </ReactFlowProvider>
+    );
+    const { rerender } = render(node(false));
+    const button = screen.getByRole('button', { name: 'model' });
+    expect(button).not.toHaveClass('ring');
+    rerender(node(true));
+    expect(button).not.toHaveFocus();
+    expect(button).toHaveClass('ring', 'focus:ring');
+    rerender(node(false));
+    expect(button).not.toHaveClass('ring');
+  });
+
   it('renders the artifact label', () => {
     renderWithProvider(
       <ArtifactNode id='artifact-1' data={{ label: 'my-artifact', hasArtifact: false }} />,

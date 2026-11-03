@@ -338,6 +338,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               </div>
             </div>
             <button
+              aria-label="Previous page"
               class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
               data-testid="prev-page-btn"
               disabled=""
@@ -357,6 +358,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               </svg>
             </button>
             <button
+              aria-label="Next page"
               class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
               data-testid="next-page-btn"
               tabindex="0"
@@ -723,6 +725,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               </div>
             </div>
             <button
+              aria-label="Previous page"
               class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
               data-testid="prev-page-btn"
               disabled=""
@@ -742,6 +745,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               </svg>
             </button>
             <button
+              aria-label="Next page"
               class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
               data-testid="next-page-btn"
               tabindex="0"

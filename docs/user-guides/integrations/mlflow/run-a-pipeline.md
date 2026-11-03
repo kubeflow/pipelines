@@ -17,7 +17,7 @@ Note that run-level MLflow config overrides are not supported in the KFP UI, and
 See the following example for correct formatting. Execute the request and skip ahead to step 2 below.
 
 ```shell
-curl -X POST "http://localhost:3000/apis/v2beta1/runs" \
+curl -X POST "http://localhost:3000/apis/v2/runs" \
   -H "Authorization: <auth val>" \
   -H "Content-Type: application/json" \
   -d '{

@@ -12,22 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
 import unittest
+from typing import Optional
 from unittest import mock
 
 import docker
-from kfp import dsl
-from kfp import local
-from kfp.dsl import Artifact
+
+from kfp import dsl, local
+from kfp.dsl import Artifact, Output
 from kfp.dsl import constants as dsl_constants
-from kfp.dsl import Output
-from kfp.local import docker_task_handler
-from kfp.local import testing_utilities
+from kfp.local import docker_task_handler, testing_utilities
 
 
 class DockerMockTestCase(unittest.TestCase):
-
     def setUp(self):
         super().setUp()
         self.docker_mock = mock.Mock()
@@ -50,7 +47,6 @@ class DockerMockTestCase(unittest.TestCase):
 
 
 class TestRunDockerContainer(DockerMockTestCase):
-
     def test_no_volumes(self):
         docker_task_handler.run_docker_container(
             docker.from_env(),
@@ -75,10 +71,7 @@ class TestRunDockerContainer(DockerMockTestCase):
             client=docker.from_env(),
             image='alpine',
             command=['cat', '/localdir/docker_task_handler_test.py'],
-            volumes={current_test_dir: {
-                'bind': '/localdir',
-                'mode': 'ro'
-            }},
+            volumes={current_test_dir: {'bind': '/localdir', 'mode': 'ro'}},
         )
         self.mocked_docker_client.containers.run.assert_called_once_with(
             image='alpine:latest',
@@ -86,16 +79,12 @@ class TestRunDockerContainer(DockerMockTestCase):
             detach=True,
             stdout=True,
             stderr=True,
-            volumes={current_test_dir: {
-                'bind': '/localdir',
-                'mode': 'ro'
-            }},
+            volumes={current_test_dir: {'bind': '/localdir', 'mode': 'ro'}},
             auto_remove=True,
         )
 
 
 class TestDockerTaskHandler(DockerMockTestCase):
-
     def test_get_volumes_to_mount(self):
         # Mock LocalExecutionConfig.instance to be None (no workspace configured)
         with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
@@ -107,17 +96,20 @@ class TestDockerTaskHandler(DockerMockTestCase):
             )
             volumes = handler.get_volumes_to_mount()
             self.assertEqual(
-                volumes, {
+                volumes,
+                {
                     os.path.abspath('my_root'): {
                         'bind': os.path.abspath('my_root'),
-                        'mode': 'rw'
+                        'mode': 'rw',
                     }
-                })
+                },
+            )
 
     def test_get_volumes_to_mount_with_workspace(self):
         # Mock the LocalExecutionConfig to have a workspace_root
-        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
-                       ) as mock_instance:
+        with mock.patch(
+            'kfp.local.config.LocalExecutionConfig.instance'
+        ) as mock_instance:
             mock_instance.workspace_root = '/tmp/test-workspace'
 
             handler = docker_task_handler.DockerTaskHandler(
@@ -131,19 +123,20 @@ class TestDockerTaskHandler(DockerMockTestCase):
             expected_volumes = {
                 os.path.abspath('my_root'): {
                     'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
+                    'mode': 'rw',
                 },
                 '/tmp/test-workspace': {
                     'bind': dsl_constants.WORKSPACE_MOUNT_PATH,
-                    'mode': 'rw'
-                }
+                    'mode': 'rw',
+                },
             }
             self.assertEqual(volumes, expected_volumes)
 
     def test_get_volumes_to_mount_with_relative_workspace(self):
         # Mock the LocalExecutionConfig to have a relative workspace_root
-        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
-                       ) as mock_instance:
+        with mock.patch(
+            'kfp.local.config.LocalExecutionConfig.instance'
+        ) as mock_instance:
             mock_instance.workspace_root = 'test-workspace'
 
             handler = docker_task_handler.DockerTaskHandler(
@@ -159,19 +152,20 @@ class TestDockerTaskHandler(DockerMockTestCase):
             expected_volumes = {
                 os.path.abspath('my_root'): {
                     'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
+                    'mode': 'rw',
                 },
                 abs_workspace_path: {
                     'bind': dsl_constants.WORKSPACE_MOUNT_PATH,
-                    'mode': 'rw'
-                }
+                    'mode': 'rw',
+                },
             }
             self.assertEqual(volumes, expected_volumes)
 
     def test_get_volumes_to_mount_with_selinux(self):
         # Mock LocalExecutionConfig.instance to have a workspace_root
-        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
-                       ) as mock_instance:
+        with mock.patch(
+            'kfp.local.config.LocalExecutionConfig.instance'
+        ) as mock_instance:
             mock_instance.workspace_root = '/tmp/test-workspace'
 
             # Create handler
@@ -188,16 +182,20 @@ class TestDockerTaskHandler(DockerMockTestCase):
             volumes = handler.get_volumes_to_mount(client)
 
             # Expect ",z" added to mode
-            self.assertEqual(volumes[os.path.abspath('my_root')]['mode'],
-                             'rw,z')
-            self.assertEqual(volumes['/tmp/test-workspace']['bind'],
-                             dsl_constants.WORKSPACE_MOUNT_PATH)
+            self.assertEqual(
+                volumes[os.path.abspath('my_root')]['mode'], 'rw,z'
+            )
+            self.assertEqual(
+                volumes['/tmp/test-workspace']['bind'],
+                dsl_constants.WORKSPACE_MOUNT_PATH,
+            )
             self.assertEqual(volumes['/tmp/test-workspace']['mode'], 'rw,z')
 
     def test_get_volumes_to_mount_without_workspace(self):
         # Mock the LocalExecutionConfig to have no workspace_root
-        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
-                       ) as mock_instance:
+        with mock.patch(
+            'kfp.local.config.LocalExecutionConfig.instance'
+        ) as mock_instance:
             mock_instance.workspace_root = None
 
             handler = docker_task_handler.DockerTaskHandler(
@@ -211,7 +209,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
             expected_volumes = {
                 os.path.abspath('my_root'): {
                     'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
+                    'mode': 'rw',
                 }
             }
             self.assertEqual(volumes, expected_volumes)
@@ -236,7 +234,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
                 volumes={
                     os.path.abspath('my_root'): {
                         'bind': os.path.abspath('my_root'),
-                        'mode': 'rw'
+                        'mode': 'rw',
                     }
                 },
                 auto_remove=True,
@@ -251,18 +249,17 @@ class TestDockerTaskHandler(DockerMockTestCase):
                 full_command=['echo', 'foo'],
                 pipeline_root=os.path.abspath('my_root'),
                 runner=local.DockerRunner(),
-                env_vars={
-                    'FOO': 'bar',
-                    'BAZ': 'qux'
-                },
+                env_vars={'FOO': 'bar', 'BAZ': 'qux'},
             )
             handler.run()
             kwargs = self.mocked_docker_client.containers.run.call_args[1]
             self.assertEqual(
-                kwargs.get('environment'), {
+                kwargs.get('environment'),
+                {
                     'FOO': 'bar',
                     'BAZ': 'qux',
-                })
+                },
+            )
 
     def test_run_no_env_vars_omits_environment(self):
         """With no env vars and no user-supplied `environment` in
@@ -294,16 +291,18 @@ class TestDockerTaskHandler(DockerMockTestCase):
             handler.run()
             kwargs = self.mocked_docker_client.containers.run.call_args[1]
             self.assertEqual(
-                kwargs.get('environment'), {
+                kwargs.get('environment'),
+                {
                     'FOO': 'user-override',
-                })
+                },
+            )
 
     def test_pipeline_root_relpath(self):
         # Mock LocalExecutionConfig.instance to be None (no workspace configured)
         with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
             with self.assertRaisesRegex(
-                    ValueError,
-                    r"'pipeline_root' should be an absolute path to correctly construct the volume mount specification\."
+                ValueError,
+                r"'pipeline_root' should be an absolute path to correctly construct the volume mount specification\.",
             ):
                 docker_task_handler.DockerTaskHandler(
                     image='alpine',
@@ -314,29 +313,31 @@ class TestDockerTaskHandler(DockerMockTestCase):
 
 
 class TestAddLatestTagIfNotPresent(unittest.TestCase):
-
     def test_no_tag(self):
         actual = docker_task_handler.add_latest_tag_if_not_present(
-            image='alpine')
+            image='alpine'
+        )
         expected = 'alpine:latest'
         self.assertEqual(actual, expected)
 
     def test_latest_tag(self):
         actual = docker_task_handler.add_latest_tag_if_not_present(
-            image='alpine:latest')
+            image='alpine:latest'
+        )
         expected = 'alpine:latest'
         self.assertEqual(actual, expected)
 
     def test_no_tag(self):
         actual = docker_task_handler.add_latest_tag_if_not_present(
-            image='alpine:3.19.0')
+            image='alpine:3.19.0'
+        )
         expected = 'alpine:3.19.0'
         self.assertEqual(actual, expected)
 
 
-class TestE2E(DockerMockTestCase,
-              testing_utilities.LocalRunnerEnvironmentTestCase):
-
+class TestE2E(
+    DockerMockTestCase, testing_utilities.LocalRunnerEnvironmentTestCase
+):
     def setUp(self):
         super().setUp()
         local.init(runner=local.DockerRunner())
@@ -362,7 +363,8 @@ class TestE2E(DockerMockTestCase,
             'python:3.11',
         )
         self.assertTrue(
-            any('def artifact_maker' in c for c in kwargs['command']))
+            any('def artifact_maker' in c for c in kwargs['command'])
+        )
         self.assertTrue(kwargs['detach'])
         self.assertTrue(kwargs['stdout'])
         self.assertTrue(kwargs['stderr'])
@@ -396,7 +398,9 @@ class TestE2E(DockerMockTestCase,
     def test_container_component(self):
 
         @dsl.container_component
-        def artifact_maker(x: str,):
+        def artifact_maker(
+            x: str,
+        ):
             return dsl.ContainerSpec(
                 image='alpine',
                 command=['sh', '-c', f'echo prefix-{x}'],
@@ -415,11 +419,14 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:latest',
         )
-        self.assertEqual(kwargs['command'], [
-            'sh',
-            '-c',
-            'echo prefix-foo',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'sh',
+                '-c',
+                'echo prefix-foo',
+            ],
+        )
         self.assertTrue(kwargs['detach'])
         self.assertTrue(kwargs['stdout'])
         self.assertTrue(kwargs['stderr'])
@@ -439,8 +446,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=['echo', x],
-                        else_=['echo', 'No input provided!'])
-                ])
+                        else_=['echo', 'No input provided!'],
+                    )
+                ],
+            )
 
         comp()
 
@@ -451,10 +460,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'No input provided!',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'No input provided!',
+            ],
+        )
 
     def test_if_present_with_string_provided(self):
 
@@ -466,8 +478,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=['echo', x],
-                        else_=['echo', 'No artifact provided!'])
-                ])
+                        else_=['echo', 'No artifact provided!'],
+                    )
+                ],
+            )
 
         comp(x='foo')
 
@@ -478,10 +492,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'foo',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'foo',
+            ],
+        )
 
     def test_if_present_single_element_with_string_omitted(self):
 
@@ -495,8 +512,9 @@ class TestE2E(DockerMockTestCase,
                         input_name='x',
                         then=x,
                         else_='No artifact provided!',
-                    )
-                ])
+                    ),
+                ],
+            )
 
         comp()
 
@@ -507,10 +525,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'No artifact provided!',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'No artifact provided!',
+            ],
+        )
 
     def test_if_present_single_element_with_string_provided(self):
 
@@ -524,8 +545,9 @@ class TestE2E(DockerMockTestCase,
                         input_name='x',
                         then=x,
                         else_='No artifact provided!',
-                    )
-                ])
+                    ),
+                ],
+            )
 
         comp(x='foo')
 
@@ -536,10 +558,13 @@ class TestE2E(DockerMockTestCase,
             kwargs['image'],
             'alpine:3.19.0',
         )
-        self.assertEqual(kwargs['command'], [
-            'echo',
-            'foo',
-        ])
+        self.assertEqual(
+            kwargs['command'],
+            [
+                'echo',
+                'foo',
+            ],
+        )
 
     def test_concat_placeholder(self):
 
@@ -547,7 +572,8 @@ class TestE2E(DockerMockTestCase,
         def comp(x: Optional[str] = None):
             return dsl.ContainerSpec(
                 image='alpine',
-                command=[dsl.ConcatPlaceholder(['prefix-', x, '-suffix'])])
+                command=[dsl.ConcatPlaceholder(['prefix-', x, '-suffix'])],
+            )
 
         comp()
 
@@ -569,8 +595,10 @@ class TestE2E(DockerMockTestCase,
                 command=[
                     'echo',
                     dsl.ConcatPlaceholder(
-                        ['a', dsl.ConcatPlaceholder(['b', x, 'd'])])
-                ])
+                        ['a', dsl.ConcatPlaceholder(['b', x, 'd'])]
+                    ),
+                ],
+            )
 
         comp(x='c')
 
@@ -591,17 +619,23 @@ class TestE2E(DockerMockTestCase,
                 image='alpine',
                 command=[
                     'echo',
-                    dsl.ConcatPlaceholder([
-                        'there ',
-                        dsl.ConcatPlaceholder([
-                            'is ',
-                            dsl.IfPresentPlaceholder(
-                                input_name='x',
-                                then='one thing',
-                                else_='another thing')
-                        ])
-                    ])
-                ])
+                    dsl.ConcatPlaceholder(
+                        [
+                            'there ',
+                            dsl.ConcatPlaceholder(
+                                [
+                                    'is ',
+                                    dsl.IfPresentPlaceholder(
+                                        input_name='x',
+                                        then='one thing',
+                                        else_='another thing',
+                                    ),
+                                ]
+                            ),
+                        ]
+                    ),
+                ],
+            )
 
         comp(x='c')
 
@@ -622,17 +656,23 @@ class TestE2E(DockerMockTestCase,
                 image='alpine',
                 command=[
                     'echo',
-                    dsl.ConcatPlaceholder([
-                        'there ',
-                        dsl.ConcatPlaceholder([
-                            'is ',
-                            dsl.IfPresentPlaceholder(
-                                input_name='x',
-                                then='one thing',
-                                else_='another thing')
-                        ])
-                    ])
-                ])
+                    dsl.ConcatPlaceholder(
+                        [
+                            'there ',
+                            dsl.ConcatPlaceholder(
+                                [
+                                    'is ',
+                                    dsl.IfPresentPlaceholder(
+                                        input_name='x',
+                                        then='one thing',
+                                        else_='another thing',
+                                    ),
+                                ]
+                            ),
+                        ]
+                    ),
+                ],
+            )
 
         comp()
 
@@ -656,8 +696,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=dsl.ConcatPlaceholder([x]),
-                        else_=dsl.ConcatPlaceholder(['something', ' ', 'else']))
-                ])
+                        else_=dsl.ConcatPlaceholder(['something', ' ', 'else']),
+                    ),
+                ],
+            )
 
         comp(x='something')
 
@@ -681,8 +723,10 @@ class TestE2E(DockerMockTestCase,
                     dsl.IfPresentPlaceholder(
                         input_name='x',
                         then=dsl.ConcatPlaceholder([x]),
-                        else_=dsl.ConcatPlaceholder(['another', ' ', 'thing']))
-                ])
+                        else_=dsl.ConcatPlaceholder(['another', ' ', 'thing']),
+                    ),
+                ],
+            )
 
         comp()
 
