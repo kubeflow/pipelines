@@ -279,16 +279,29 @@ describe('artifact ownership compatibility over real HTTP and protobuf transport
     ]);
   });
 
-  it('documents deferred exposure when matching metadata references an object readable with shared credentials', async () => {
-    // Importers can associate another namespace's URI with their own context.
-    // Compatibility deliberately does not claim that this proves storage ownership.
+  it.each([false, true])('denies a tracked foreign storage namespace (proxy=%s)', async (proxy) => {
     const key = 'private-artifacts/team-b/model.txt';
     add(key, [{ id: 1, namespace }]);
-    const response = await read(key, { proxy: false });
-    expect(response.status).toBe(200);
-    expect(storageCalls).toEqual([
-      { path: `/${key}`, authorization: storageToken, user: undefined },
-    ]);
+    const response = await read(key, { proxy });
+    expect(response.status).toBe(403);
+    expect(metadataUris).toEqual([]);
+    expect(storageCalls).toEqual([]);
+  });
+
+  it('denies a foreign namespace root before metadata or storage access', async () => {
+    const key = 'private-artifacts/team-b/';
+    add(key, [{ id: 1, namespace }]);
+    expect((await read(key)).status).toBe(403);
+    expect(metadataUris).toEqual([]);
+    expect(storageCalls).toEqual([]);
+  });
+
+  it('serves a tracked object with a matching storage namespace', async () => {
+    const key = 'private-artifacts/team-a/model.txt';
+    add(key, [{ id: 1, namespace }]);
+    expect((await read(key)).status).toBe(200);
+    expect(contextIds).toEqual([1]);
+    expect(storageCalls).toHaveLength(1);
   });
 
   it.each([false, true])(
@@ -316,21 +329,27 @@ describe('artifact ownership compatibility over real HTTP and protobuf transport
     expect(storageCalls).toHaveLength(status === 200 ? 1 : 0);
   });
 
-  it.each(['lookup', 'context', 'missing-context'] as const)(
-    'preserves legacy reads with %s unavailable',
+  it.each(['lookup', 'context'] as const)(
+    'blocks artifact reads with %s unavailable',
     async (scenario) => {
       add('legacy/model.txt', [
         {
           id: 1,
-          namespace: scenario === 'missing-context' ? undefined : namespace,
+          namespace,
           unavailable: scenario === 'context',
         },
       ]);
       lookupUnavailable = scenario === 'lookup';
-      expect((await read('legacy/model.txt')).status).toBe(200);
-      expect(storageCalls).toHaveLength(1);
+      expect((await read('legacy/model.txt')).status).toBe(503);
+      expect(storageCalls).toHaveLength(0);
     },
   );
+
+  it('preserves the separate no-evidence compatibility policy', async () => {
+    add('legacy/model.txt', [{ id: 1 }]);
+    expect((await read('legacy/model.txt')).status).toBe(200);
+    expect(storageCalls).toHaveLength(1);
+  });
 
   it.each([
     ['', namespace, 401],

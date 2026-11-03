@@ -51,7 +51,7 @@ jobs:
         uses: ./.github/actions/protobuf
 
       - name: Install documentation dependencies
-        run: pip install ./backend/api/v2beta1/python_http_client -r docs/requirements.txt
+        run: pip install ./sdk/python ./backend/api/v2beta1/python_http_client -r docs/requirements.txt
 
       - name: Build documentation (warnings treated as errors)
         run: python -m sphinx -W --keep-going -b html docs docs/_build/html
@@ -81,7 +81,7 @@ jobs:
         uses: ./.github/actions/protobuf
 
       - name: Install documentation dependencies
-        run: pip install ./backend/api/v2beta1/python_http_client -r docs/requirements.txt
+        run: pip install ./sdk/python ./backend/api/v2beta1/python_http_client -r docs/requirements.txt
 
       - name: Check links
         run: python -m sphinx -b linkcheck docs docs/_build/linkcheck || true

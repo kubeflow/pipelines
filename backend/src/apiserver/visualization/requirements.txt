@@ -28,7 +28,7 @@ beautifulsoup4==4.13.5
     # via nbconvert
 bleach[css]==6.4.0
     # via nbconvert
-bokeh==3.8.2
+bokeh==3.9.2
     # via -r requirements.in
 cachetools==5.5.2
     # via google-auth
@@ -60,18 +60,19 @@ frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2026.6.0
+fsspec==2026.9.0
     # via gcsfs
 gast==0.6.0
     # via tensorflow
-gcsfs==2026.7.0
+gcsfs==2026.10.1
     # via -r requirements.in
 google-api-core[grpc]==2.32.0
     # via
+    #   google-api-python-client
     #   google-cloud-core
     #   google-cloud-storage
     #   google-cloud-storage-control
-google-api-python-client==1.7.12
+google-api-python-client==2.201.0
     # via -r requirements.in
 google-auth==2.40.3
     # via
@@ -89,7 +90,7 @@ google-auth-oauthlib==1.2.2
     # via gcsfs
 google-cloud-core==2.6.0
     # via google-cloud-storage
-google-cloud-storage==3.13.0
+google-cloud-storage==3.17.1
     # via gcsfs
 google-cloud-storage-control==1.12.0
     # via gcsfs
@@ -132,7 +133,7 @@ idna==3.15
     # via
     #   requests
     #   yarl
-ipykernel==6.29.5
+ipykernel==7.1.0
     # via -r requirements.in
 ipython==8.10.0
     # via
@@ -239,9 +240,7 @@ packaging==25.0
     #   tensorflow
     #   wheel
 pandas==2.3.2
-    # via
-    #   bokeh
-    #   itables
+    # via itables
 pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.5
@@ -336,14 +335,9 @@ scikit-learn==1.5.0
     # via -r requirements.in
 scipy==1.16.1
     # via scikit-learn
-setuptools==84.2.1
-    # via
-    #   -r requirements.in
-    #   tensorflow
 six==1.17.0
     # via
     #   astunparse
-    #   google-api-python-client
     #   google-pasta
     #   python-dateutil
     #   tensorflow
