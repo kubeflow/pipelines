@@ -262,11 +262,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	// the deployment-wide retryStrategy, so the generated DAG templates would
 	// re-run whole subgraphs on top of the task's own retries, multiplying the
 	// attempt count and overriding the selected policy. Zero them so the pod
-	// owns retry. Scoped to pipelines that actually configure retry, so
-	// everything else compiles exactly as before.
-	if pipelineConfiguresRetry(spec) {
-		neutralizeDAGRetries(c.wf)
-	}
+	// owns retry. Applied to every pipeline: what a DAG template would
+	// otherwise inherit comes from controller configuration, which is not a
+	// compiler input, so there is no compile-time signal to gate this on.
+	neutralizeDAGRetries(c.wf)
 
 	// Apply any workflow spec patches from environment variable
 	patchJSON := common.GetCompiledPipelineSpecPatch()
@@ -719,26 +718,6 @@ func GetWorkspacePVC(
 		},
 		Spec: pvcSpec,
 	}, nil
-}
-
-// pipelineConfiguresRetry reports whether any task in the pipeline sets a retry
-// policy, including tasks inside nested pipelines.
-func pipelineConfiguresRetry(spec *pipelinespec.PipelineSpec) bool {
-	if spec.GetRoot().GetDag() != nil {
-		for _, task := range spec.GetRoot().GetDag().GetTasks() {
-			if task.GetRetryPolicy() != nil {
-				return true
-			}
-		}
-	}
-	for _, component := range spec.GetComponents() {
-		for _, task := range component.GetDag().GetTasks() {
-			if task.GetRetryPolicy() != nil {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 // neutralizeDAGRetries gives every DAG template an explicit zero-retry strategy
