@@ -519,7 +519,7 @@ func TestCreateVisualization_Disabled(t *testing.T) {
 			result, err := server.CreateVisualizationV1(context.Background(), nil)
 			assert.Nil(t, result)
 			require.Error(t, err)
-			assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+			assert.Equal(t, codes.FailedPrecondition, status.Code(util.ToGRPCError(err)))
 			assert.Contains(t, err.Error(), "Python visualizations are disabled")
 		})
 	}
