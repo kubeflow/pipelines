@@ -31,10 +31,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -64,7 +64,7 @@ func OpenBucket(
 				}
 				if s3Client != nil {
 					// Use the configured S3 client to leverage retry logic.
-					openedBucket, err2 := openS3Bucket(ctx, s3Client, config.BucketName)
+					openedBucket, err2 := s3bucket.Open(ctx, s3Client, config.BucketName, nil)
 					if err2 != nil {
 						return nil, err2
 					}
@@ -99,7 +99,7 @@ func OpenBucket(
 		if err1 != nil {
 			return nil, err1
 		}
-		openedBucket, err2 := openS3Bucket(ctx, s3Client, config.BucketName)
+		openedBucket, err2 := s3bucket.Open(ctx, s3Client, config.BucketName, nil)
 		if err2 != nil {
 			return nil, err2
 		}
@@ -107,16 +107,6 @@ func OpenBucket(
 	}
 
 	return openBucketURL(ctx, bucketURL)
-}
-
-// openS3Bucket opens a bucket whose uploads use the client's checksum setting.
-// s3blob uploads through the S3 transfer manager, which ignores the client's
-// RequestChecksumCalculation and defaults to when_supported. Over HTTPS that
-// sends aws-chunked trailers, which some S3-compatible stores reject with 501.
-func openS3Bucket(ctx context.Context, s3Client *s3.Client, bucketName string) (*blob.Bucket, error) {
-	return s3blob.OpenBucketV2(ctx, s3Client, bucketName, &s3blob.Options{
-		RequestChecksumCalculation: s3Client.Options().RequestChecksumCalculation,
-	})
 }
 
 // invocationTransport clones rather than changes the process-wide HTTP transport.

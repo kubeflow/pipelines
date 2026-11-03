@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	gcaws "gocloud.dev/aws"
 	"gocloud.dev/blob"
@@ -152,13 +153,12 @@ func (invocationS3URLOpener) OpenBucketURL(ctx context.Context, u *url.URL) (*bl
 		}
 		config.Credentials = stscreds.NewAssumeRoleProvider(sts.NewFromConfig(stsConfig), role)
 	}
-	bucketOptions.RequestChecksumCalculation = config.RequestChecksumCalculation
 	clientS3 := s3.NewFromConfig(config, func(options *s3.Options) {
 		options.UseAccelerate = clientOptions.UseAccelerate
 		options.UsePathStyle = clientOptions.UsePathStyle
 		options.EndpointOptions.DisableHTTPS = clientOptions.EndpointOptions.DisableHTTPS
 	})
-	return s3blob.OpenBucketV2(ctx, clientS3, u.Host, &bucketOptions)
+	return s3bucket.Open(ctx, clientS3, u.Host, &bucketOptions)
 }
 
 type invocationGCSURLOpener struct{}
