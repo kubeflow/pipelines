@@ -99,6 +99,10 @@ func kfpTokenExpirationSecondsPtr() *int64 {
 
 var commonEnvs = []k8score.EnvVar{
 	{
+		Name:  util.DriverRetryGenerationEnv,
+		Value: "{{workflow.annotations." + util.AnnotationKeyRetryGeneration + "}}",
+	},
+	{
 		Name: "KFP_POD_NAME",
 		ValueFrom: &k8score.EnvVarSource{
 			FieldRef: &k8score.ObjectFieldSelector{
@@ -221,6 +225,9 @@ func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {
 			Template: exitTemplate,
 			Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
 				{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(parentDagID)},
+				{Name: paramExitTaskName, Value: wfapi.AnyStringPtr(task.Name)},
+				{Name: paramExitTaskStatus, Value: wfapi.AnyStringPtr("{{tasks." + task.Name + ".status}}")},
+				{Name: paramIterationIndex, Value: wfapi.AnyStringPtr("-1")},
 			}},
 		},
 	}

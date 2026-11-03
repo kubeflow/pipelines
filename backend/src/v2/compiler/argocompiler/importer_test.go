@@ -20,6 +20,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -47,6 +48,14 @@ func TestAddImporterTemplate_PropagatesIterationIndex(t *testing.T) {
 	require.NotNil(t, tmpl)
 	require.NotNil(t, tmpl.Container)
 
+	foundGeneration := false
+	for _, env := range tmpl.Container.Env {
+		if env.Name == util.DriverRetryGenerationEnv {
+			foundGeneration = true
+			assert.Equal(t, "{{workflow.annotations."+util.AnnotationKeyRetryGeneration+"}}", env.Value)
+		}
+	}
+	assert.True(t, foundGeneration, "importers must retain their original workflow generation")
 	assert.Contains(t, tmpl.Container.Args, "--iteration_index")
 	assert.Contains(t, tmpl.Container.Args, inputValue(paramIterationIndex))
 	assertAdjacentArgPair(t, tmpl.Container.Args, "--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address)

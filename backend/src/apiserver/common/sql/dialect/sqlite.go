@@ -86,6 +86,9 @@ func (sqliteDialect) IsDuplicateKeyError(err error) bool {
 func (d sqliteDialect) Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
 	q := d.QuoteIdentifier
 	ib := d.QueryBuilder().Insert(q(table))
+	if !overwrite {
+		return ib.Suffix("ON CONFLICT (" + joinQuoted(q, keyCols) + ") DO NOTHING")
+	}
 	sets := make([]string, 0, len(updateCols))
 	for _, c := range updateCols {
 		if overwrite {
@@ -105,4 +108,12 @@ func (sqliteDialect) FinalizeSelect(builder sq.SelectBuilder) (string, []interfa
 // SelectForUpdate is a no-op: SQLite has no concurrent-writer story (tests only).
 func (sqliteDialect) SelectForUpdate(query string) string {
 	return query
+}
+
+func (sqliteDialect) SelectForShare(query string) string {
+	return query
+}
+
+func (sqliteDialect) JSONExtractText(column string, path ...string) string {
+	return "json_extract(" + column + ", '" + strings.ReplaceAll(jsonObjectPath(path), "'", "''") + "')"
 }

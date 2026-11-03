@@ -363,3 +363,30 @@ func Test_escapeSQLString(t *testing.T) {
 		})
 	}
 }
+
+func TestSharedRowLocks(t *testing.T) {
+	for _, test := range []struct {
+		name, suffix string
+	}{
+		{"pgx", " FOR SHARE"},
+		{"mysql", " LOCK IN SHARE MODE"},
+		{"sqlite", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			d := NewDBDialect(test.name)
+			assert.Equal(t, "SELECT id FROM runs"+test.suffix, d.SelectForShare("SELECT id FROM runs"))
+		})
+	}
+}
+
+func TestKeepExistingUpsertDoesNotAbortPostgresTransaction(t *testing.T) {
+	for _, name := range []string{"pgx", "sqlite"} {
+		t.Run(name, func(t *testing.T) {
+			d := NewDBDialect(name)
+			query, _, err := d.Upsert("tasks", []string{"LogicalKey"}, false, []string{"UUID"}).
+				Columns(d.QuoteIdentifier("UUID"), d.QuoteIdentifier("LogicalKey")).Values("task", "logical").ToSql()
+			assert.NoError(t, err)
+			assert.Contains(t, query, `ON CONFLICT ("LogicalKey") DO NOTHING`)
+		})
+	}
+}

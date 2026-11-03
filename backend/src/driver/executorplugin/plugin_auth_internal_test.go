@@ -282,6 +282,38 @@ func TestNewDriverClientManagerConfiguration(t *testing.T) {
 	assert.Equal(t, 1, metadataCalls)
 }
 
+func TestDriverClientManagerUsesInvocationGeneration(t *testing.T) {
+	t.Setenv(util.DriverRetryGenerationEnv, "99")
+	pod := agentPodForAuth()
+	kube := fake.NewSimpleClientset(pod)
+	factory := inClusterClientFactory(func(ctx context.Context) (*agentClients, error) {
+		return loadAgent(ctx, kube, nil, pod.Namespace, pod.Name)
+	})
+	var generations []*int64
+	factory.manager = func(options *client_manager.Options) (driverClientManager, error) {
+		require.NotNil(t, options.DriverRetryGeneration)
+		generations = append(generations, options.DriverRetryGeneration)
+		return &invocationManager{k8s: kube}, nil
+	}
+	for _, generation := range []string{"", "1", "0"} {
+		args := driverArgsForAuth()
+		args.DriverRetryGeneration = generation
+		_, err := factory.newDriverClientManager(context.Background(), args, "")
+		require.NoError(t, err)
+	}
+	for i, want := range []int64{0, 1, 0} {
+		assert.Equal(t, want, *generations[i], "later invocations must not change earlier clients")
+	}
+	assert.Equal(t, "99", os.Getenv(util.DriverRetryGenerationEnv))
+	for _, generation := range []string{"-1", "invalid", "9223372036854775808"} {
+		args := driverArgsForAuth()
+		args.DriverRetryGeneration = generation
+		_, err := factory.newDriverClientManager(context.Background(), args, "")
+		require.ErrorContains(t, err, "driver_retry_generation must be a nonnegative integer")
+	}
+	assert.Len(t, generations, 3, "invalid generations must not create a client")
+}
+
 func TestNewDriverClientManagerFailures(t *testing.T) {
 	for _, tc := range []struct {
 		name, message string

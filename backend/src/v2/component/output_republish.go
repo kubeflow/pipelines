@@ -259,11 +259,12 @@ func RepublishPreservedChildOutputsToDAG(
 			return fmt.Errorf("failed to build scope path for preserved child %s: %w", child.GetName(), err)
 		}
 		if err := propagateOutputsUpDAG(ctx, OutputPropagationOptions{
-			Run:          opts.Run,
-			Task:         child,
-			ParentTask:   parentTask,
-			ScopePath:    childScope,
-			PipelineSpec: opts.PipelineSpec,
+			Run:              opts.Run,
+			Task:             child,
+			ParentTask:       parentTask,
+			ScopePath:        childScope,
+			PipelineSpec:     opts.PipelineSpec,
+			GenerationSource: opts.ParentTask,
 		}, apiClient, batchUpdater); err != nil {
 			return fmt.Errorf("failed to republish outputs from preserved child %s: %w", child.GetName(), err)
 		}

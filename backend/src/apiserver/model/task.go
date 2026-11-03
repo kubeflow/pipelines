@@ -162,9 +162,27 @@ type Task struct {
 	// nil means "leave this field unchanged" in UpdateTask; a pointer to "" clears it.
 	LifecycleCategory *string `gorm:"column:LifecycleCategory; type:varchar(32); default:null;"`
 
+	// Recovery state is internal and is never populated from public task metadata.
+	DriverRetryGeneration   *int64               `gorm:"column:DriverRetryGeneration; default:null;"`
+	DriverRetryAttempt      *int64               `gorm:"column:DriverRetryAttempt; default:null;"`
+	DriverStoppedGeneration *int64               `gorm:"column:DriverStoppedGeneration; default:null;"`
+	DriverCheckpoint        *string              `gorm:"column:DriverCheckpoint; type:json; default:null;"`
+	DriverCachedOutputs     *string              `gorm:"column:DriverCachedOutputs; type:json; default:null;"`
+	DriverWriteAuthority    *DriverTaskAuthority `gorm:"-"`
+	DriverClaim             bool                 `gorm:"-"`
+	DriverRecoveryUpdate    bool                 `gorm:"-"`
+
 	// Transient fields populated during hydration (not stored in DB)
 	InputArtifactsHydrated  []TaskArtifactHydrated `gorm:"-"`
 	OutputArtifactsHydrated []TaskArtifactHydrated `gorm:"-"`
+}
+
+// DriverTaskAuthority identifies the immutable runtime caller, independently of
+// the target task's owner. Only authenticated runtime RPCs populate this field.
+type DriverTaskAuthority struct {
+	Generation    int64
+	SourceTaskID  string
+	SourceAttempt *int64
 }
 
 func (t Task) ToString() string {

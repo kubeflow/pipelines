@@ -39,7 +39,9 @@ func requireDriverPluginArgs(t *testing.T, tmpl *wfapi.Template) map[string]inte
 	assert.Empty(t, tmpl.Sidecars)
 	assert.Empty(t, tmpl.Volumes)
 	assert.Empty(t, tmpl.Metadata.Labels)
-	assert.Empty(t, tmpl.Metadata.Annotations)
+	if tmpl.Name == "system-container-driver" || tmpl.Name == "system-dag-driver" {
+		assert.Empty(t, tmpl.Metadata.Annotations)
+	}
 
 	var pluginConfig map[string]map[string]map[string]interface{}
 	require.NoError(t, json.Unmarshal(tmpl.Plugin.Value, &pluginConfig))

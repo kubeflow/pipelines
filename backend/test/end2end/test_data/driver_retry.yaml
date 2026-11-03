@@ -1,0 +1,61 @@
+# Deliberately has no SDK installation or external Python dependencies.
+pipelineInfo:
+  name: driver-retry-runtime
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3
+components:
+  comp-body:
+    dag:
+      tasks:
+        TARGET_TASK:
+          componentRef: {name: comp-work}
+          taskInfo: {name: TARGET_TASK}
+          cachingOptions: {}
+          inputs:
+            parameters:
+              marker: {runtimeValue: {constant: preserved-input}}
+          retryPolicy:
+            maxRetryCount: 2
+            backoffDuration: 1s
+            backoffFactor: 1
+            backoffMaxDuration: 60s
+  comp-work:
+    executorLabel: exec-work
+    inputDefinitions:
+      parameters:
+        marker: {parameterType: STRING}
+  comp-cleanup:
+    executorLabel: exec-cleanup
+    inputDefinitions:
+      parameters:
+        status: {parameterType: TASK_FINAL_STATUS, isOptional: true}
+deploymentSpec:
+  executors:
+    exec-work:
+      container:
+        image: python:3.11
+        command: [python, -c]
+        args:
+          - 'import sys, time; assert sys.argv[1] == "preserved-input"; time.sleep(10)'
+          - "{{$.inputs.parameters['marker']}}"
+    exec-cleanup:
+      container:
+        image: python:3.11
+        command: [python, -c]
+        args:
+          - 'import json, sys, time; status = json.loads(sys.argv[1]); assert status["state"] in ("SUCCEEDED", "FAILED"), status; time.sleep(20)'
+          - "{{$.inputs.parameters['status']}}"
+root:
+  dag:
+    tasks:
+      body:
+        componentRef: {name: comp-body}
+        taskInfo: {name: body}
+      cleanup:
+        componentRef: {name: comp-cleanup}
+        taskInfo: {name: cleanup}
+        dependentTasks: [body]
+        inputs:
+          parameters:
+            status: {taskFinalStatus: {producerTask: body}}
+        triggerPolicy: {strategy: ALL_UPSTREAM_TASKS_COMPLETED}

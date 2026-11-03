@@ -866,7 +866,7 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		return nil
 	}
 	if runId != "" {
-		run, err := s.resourceManager.GetRun(runId)
+		run, err := s.resourceManager.GetRunWithHydration(runId, false)
 		if err != nil {
 			return util.Wrapf(err, "Failed to authorize with the run ID %v", runId)
 		}

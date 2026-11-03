@@ -286,6 +286,9 @@ type RunDetails struct {
 	// workflow reporters. UpdateRun checks this value to reject terminal
 	// state writes from reporters that passed version checks before the claim.
 	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
+	// Presence is monotonic; finalization is recorded atomically with task writes.
+	DriverRetryTasksPresent        bool   `gorm:"column:DriverRetryTasksPresent; not null; default:false;"`
+	DriverRetryFinalizedGeneration *int64 `gorm:"column:DriverRetryFinalizedGeneration; default:null;"`
 	// RetryClaimedAtInSec records the epoch second when ClaimRunForRetry last
 	// claimed this row. It is a liveness signal only, never a correctness
 	// fence: ReportWorkflowResource uses it to detect a claim orphaned by a

@@ -327,6 +327,15 @@ class RuntimeFixtureImagesTest(unittest.TestCase):
                     source_coverage_errors(path, images, inventory), []
                 )
 
+    def test_legacy_scheduled_run_fixture_image_is_preloaded(self):
+        inventory = (
+            (ROOT / '.github/resources/runtime-base-images.txt')
+            .read_text()
+            .splitlines()
+        )
+        fixture = ROOT / 'backend/test/v2/resources/hello-world.yaml'
+        self.assertEqual(coverage_errors(yaml_images(fixture), inventory), [])
+
     def test_legacy_cache_fixture_images_are_preloaded(self):
         inventory = (
             (ROOT / '.github/resources/runtime-base-images.txt')

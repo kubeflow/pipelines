@@ -27,7 +27,9 @@ import (
 	"testing"
 	"time"
 
+	runtimeapi "github.com/kubeflow/pipelines/backend/api/runtime/go_client"
 	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/stretchr/testify/require"
@@ -94,4 +96,130 @@ func TestClientManagerRejectsInvalidSuppliedCA(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, []byte("invalid certificate"), 0600))
 	_, err := client_manager.NewClientManager(&client_manager.Options{MLPipelineTLSEnabled: true, CaCertPath: path, K8sClient: fake.NewSimpleClientset()})
 	require.Error(t, err)
+}
+
+// generationTaskServer captures the authority sent over the private driver API.
+type generationTaskServer struct {
+	runtimeapi.UnimplementedDriverTaskServiceServer
+	requests chan *runtimeapi.WriteTaskRequest
+}
+
+func (s *generationTaskServer) CreateTask(ctx context.Context, req *runtimeapi.WriteTaskRequest) (*runtimeapi.TaskResponse, error) {
+	select {
+	case s.requests <- req:
+		return &runtimeapi.TaskResponse{Task: req.Task}, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+func newGenerationTaskServer(t *testing.T) (string, <-chan *runtimeapi.WriteTaskRequest) {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	server := grpc.NewServer()
+	api := &generationTaskServer{requests: make(chan *runtimeapi.WriteTaskRequest, 1)}
+	runtimeapi.RegisterDriverTaskServiceServer(server, api)
+	go server.Serve(listener)
+	t.Cleanup(server.Stop)
+	return listener.Addr().String(), api.requests
+}
+
+func newGenerationClientManager(t *testing.T, endpoint string, generation *int64) *client_manager.ClientManager {
+	t.Helper()
+	manager, err := client_manager.NewClientManager(&client_manager.Options{
+		APIClientConfig:       &apiclient.Config{Endpoint: endpoint},
+		DriverRetryGeneration: generation,
+		K8sClient:             fake.NewSimpleClientset(),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	return manager
+}
+
+func requireCreateTaskGeneration(t *testing.T, manager *client_manager.ClientManager, requests <-chan *runtimeapi.WriteTaskRequest, generation int64) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	task, err := manager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{
+		RunId: "run",
+		Task:  &gc.PipelineTask{TaskId: "task", Name: "task"},
+	})
+	require.NoError(t, err)
+	require.Equal(t, "task", task.GetTaskId())
+	select {
+	case request := <-requests:
+		require.Equal(t, "run", request.GetRunId())
+		require.NotNil(t, request.Authority)
+		require.NotNil(t, request.Authority.Generation, "generation zero must be explicit on the private API")
+		require.Equal(t, generation, request.Authority.GetGeneration())
+	case <-ctx.Done():
+		t.Fatal("private driver API did not receive CreateTask")
+	}
+}
+
+func TestClientManagerDriverRetryGenerationOverridesEnvironmentAndRemainsIsolated(t *testing.T) {
+	endpoint, requests := newGenerationTaskServer(t)
+	t.Setenv(util.DriverRetryGenerationEnv, "9")
+	zero, one := int64(0), int64(1)
+	original := newGenerationClientManager(t, endpoint, &zero)
+	retried := newGenerationClientManager(t, endpoint, &one)
+
+	// Neither later environment changes nor changes to the caller's option may
+	// change the generation already bound to a request's client manager.
+	t.Setenv(util.DriverRetryGenerationEnv, "17")
+	zero, one = 23, 24
+	for range 2 {
+		requireCreateTaskGeneration(t, original, requests, 0)
+		requireCreateTaskGeneration(t, retried, requests, 1)
+	}
+}
+
+func TestClientManagerDriverRetryGenerationEnvironmentFallback(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		value      string
+		generation int64
+	}{
+		{name: "empty defaults to zero", value: "", generation: 0},
+		{name: "explicit zero", value: "0", generation: 0},
+		{name: "retry generation", value: "7", generation: 7},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			endpoint, requests := newGenerationTaskServer(t)
+			t.Setenv(util.DriverRetryGenerationEnv, tc.value)
+			manager := newGenerationClientManager(t, endpoint, nil)
+			t.Setenv(util.DriverRetryGenerationEnv, "18")
+			requireCreateTaskGeneration(t, manager, requests, tc.generation)
+		})
+	}
+}
+
+func TestClientManagerDriverRetryGenerationOverrideIgnoresInvalidEnvironment(t *testing.T) {
+	endpoint, requests := newGenerationTaskServer(t)
+	t.Setenv(util.DriverRetryGenerationEnv, "invalid")
+	zero := int64(0)
+	manager := newGenerationClientManager(t, endpoint, &zero)
+	requireCreateTaskGeneration(t, manager, requests, 0)
+}
+
+func TestClientManagerRejectsInvalidDriverRetryGeneration(t *testing.T) {
+	negative := int64(-1)
+	for _, tc := range []struct {
+		name       string
+		value      string
+		generation *int64
+	}{
+		{name: "malformed environment", value: "invalid"},
+		{name: "negative environment", value: "-1"},
+		{name: "overflowing environment", value: "9223372036854775808"},
+		{name: "negative override", value: "0", generation: &negative},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv(util.DriverRetryGenerationEnv, tc.value)
+			manager, err := client_manager.NewClientManager(&client_manager.Options{DriverRetryGeneration: tc.generation})
+			require.ErrorContains(t, err, "invalid immutable driver retry generation")
+			require.Nil(t, manager)
+		})
+	}
 }

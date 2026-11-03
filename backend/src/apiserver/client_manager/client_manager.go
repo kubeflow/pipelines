@@ -370,9 +370,10 @@ func (c *ClientManager) init(options *Options) error {
 	// Log archive
 	c.logArchive = initLogArchive()
 
+	// Recovery RPCs authenticate projected run tokens in every deployment mode.
+	c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 	if common.IsMultiUserMode() {
 		c.subjectAccessReviewClient = client.CreateSubjectAccessReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
-		c.tokenReviewClient = client.CreateTokenReviewClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 		c.authenticators = auth.GetAuthenticators(c.tokenReviewClient)
 	}
 	glog.Infof("Client manager initialized successfully")
@@ -910,11 +911,16 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 func autoMigrate(db *gorm.DB) error {
 	glog.Infof("Running AutoMigrate.")
 
+	// Upgrade populated tables before GORM can add recovery columns or indexes.
+	if err := migrateDriverRetrySchema(db); err != nil {
+		return err
+	}
 	if err := db.AutoMigrate(model.AllModels()...); err != nil {
 		return fmt.Errorf("AutoMigrate failed: %w", err)
 	}
 
-	return nil
+	// Fresh installations now have the tables needed by the recovery index.
+	return migrateDriverRetrySchema(db)
 }
 
 // getColumnLength returns the declared length for a column using GORM ColumnTypes.

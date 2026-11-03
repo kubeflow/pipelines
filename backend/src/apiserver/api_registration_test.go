@@ -24,13 +24,17 @@ import (
 	"testing"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	runtimeapi "github.com/kubeflow/pipelines/backend/api/runtime/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func TestAPIRegistration_V2WithLegacyAliases(t *testing.T) {
@@ -43,7 +47,9 @@ func TestAPIRegistration_V2WithLegacyAliases(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{})
 	rpc := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor))
 	registerRPCServices(rpc, manager)
-	require.Len(t, rpc.GetServiceInfo(), 14)
+	require.Len(t, rpc.GetServiceInfo(), 15)
+	const runtimeService = "kubeflow.pipelines.backend.runtime.DriverTaskService"
+	require.Contains(t, rpc.GetServiceInfo(), runtimeService)
 	for _, prefix := range []string{canonicalRPCPackage, legacyRPCPackage} {
 		require.NotContains(t, rpc.GetServiceInfo(), prefix+"VisualizationService")
 		for _, service := range []string{"AuthService", "ExperimentService", "PipelineService", "RecurringRunService", "RunService", "ReportService", "ArtifactService"} {
@@ -56,6 +62,13 @@ func TestAPIRegistration_V2WithLegacyAliases(t *testing.T) {
 	t.Cleanup(rpc.Stop)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
+	connection, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, connection.Close()) })
+	// Even single-user deployments cannot opt into recovery with a header.
+	privateContext := metadata.NewOutgoingContext(ctx, metadata.Pairs("x-kfp-driver-recovery-view", "full"))
+	_, err = runtimeapi.NewDriverTaskServiceClient(connection).GetTask(privateContext, &runtimeapi.GetTaskRequest{RunId: "run", TaskId: "task", IncludeRecovery: true})
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
 	gateway := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher), runtime.WithMarshalerOption(runtime.MIMEWildcard, common.CustomMarshaler()))
 	registerGatewayServices(func(register RegisterHttpHandlerFromEndpoint, _ string) {
 		require.NoError(t, register(ctx, gateway, listener.Addr().String(), []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}))
@@ -70,6 +83,7 @@ func TestAPIRegistration_V2WithLegacyAliases(t *testing.T) {
 		require.Equal(t, want, recorder.Code, "%s: %s", path, recorder.Body.String())
 		return recorder
 	}
+	request(http.MethodPost, "/apis/runtime/tasks", `{}`, http.StatusNotFound)
 	// A write through the legacy gateway is immediately visible through v2,
 	// and mutations through v2 are visible to legacy readers of the same row.
 	created := request(http.MethodPost, legacyAPIPath+"/experiments", `{"display_name":"legacy caller","namespace":"ns1"}`, http.StatusOK)

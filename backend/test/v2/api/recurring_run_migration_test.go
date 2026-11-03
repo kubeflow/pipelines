@@ -188,6 +188,17 @@ var _ = Describe("Migrated recurring run behavior", Label(constants.APIServerTes
 		job := create(req)
 		runs := waitRuns(job, 1)
 		Expect(runs[0].PipelineVersionReference.PipelineVersionID).To(Equal(versionID))
+		DeferCleanup(func() {
+			if CurrentSpecReport().Failed() {
+				AddReportEntry("Recurring execution diagnostics", collectArgoCompatibilityDiagnostics(runs[0].RunID))
+			}
+		})
+		// Resolving metadata is insufficient: the root driver must execute the selected version.
+		Eventually(func(g Gomega) {
+			executed, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: runs[0].RunID})
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(executed.State).To(Equal(run_model.V2beta1RuntimeStateSUCCEEDED.Pointer()))
+		}, 5*time.Minute, 5*time.Second).Should(Succeed())
 	})
 	for _, periodic := range []bool{true, false} {
 		for _, noCatchup := range []bool{true, false} {

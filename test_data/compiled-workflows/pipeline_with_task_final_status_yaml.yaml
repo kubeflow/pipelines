@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
+    pipelines.kubeflow.org/retry-generation: "0"
     workflows.argoproj.io/pod-name-format: v1
   generateName: pipeline-with-task-final-status-yaml-
 spec:
@@ -48,6 +49,7 @@ spec:
       driver-plugin:
         args:
           cache_disabled: false
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
           http_proxy: ""
           https_proxy: ""
           iteration_index: '{{inputs.parameters.iteration-index}}'
@@ -90,6 +92,8 @@ spec:
       command:
       - should-be-overridden-during-runtime
       env:
+      - name: KFP_DRIVER_RETRY_GENERATION
+        value: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
       - name: KFP_POD_NAME
         valueFrom:
           fieldRef:
@@ -227,6 +231,61 @@ spec:
     metadata: {}
     name: comp-exit-handler-1
     outputs: {}
+  - inputs:
+      parameters:
+      - name: task-name
+      - name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+      - name: exit-task-name
+      - name: exit-task-status
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/template-name: exit-system-container-driver
+    name: exit-system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          jsonPath: $.pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          jsonPath: $.cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          jsonPath: $.condition
+    plugin:
+      driver-plugin:
+        args:
+          cache_disabled: false
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
+          exit_task_name: '{{inputs.parameters.exit-task-name}}'
+          exit_task_status: '{{inputs.parameters.exit-task-status}}'
+          http_proxy: ""
+          https_proxy: ""
+          iteration_index: '{{inputs.parameters.iteration-index}}'
+          kfp_token_audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+          kubernetes_config: '{{inputs.parameters.kubernetes-config}}'
+          log_level: "1"
+          ml_pipeline_server_address: ml-pipeline.kubeflow.svc.cluster.local
+          ml_pipeline_server_port: "8887"
+          ml_pipeline_tls_enabled: false
+          namespace: '{{workflow.namespace}}'
+          no_proxy: ""
+          parent_task_id: '{{inputs.parameters.parent-dag-task-id}}'
+          pipeline_name: pipeline-with-task-final-status-yaml
+          publish_logs: "true"
+          run_display_name: ""
+          run_id: '{{workflow.uid}}'
+          run_name: '{{workflow.name}}'
+          task_name: '{{inputs.parameters.task-name}}'
+          type: CONTAINER
   - dag:
       tasks:
       - arguments:
@@ -235,8 +294,14 @@ spec:
             value: exit-op
           - name: parent-dag-task-id
             value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: exit-task-name
+            value: '{{inputs.parameters.exit-task-name}}'
+          - name: exit-task-status
+            value: '{{inputs.parameters.exit-task-status}}'
         name: exit-op-driver
-        template: system-container-driver
+        template: exit-system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
@@ -250,6 +315,10 @@ spec:
     inputs:
       parameters:
       - name: parent-dag-task-id
+      - name: exit-task-name
+      - name: exit-task-status
+      - default: "-1"
+        name: iteration-index
     metadata: {}
     name: exit-hook-root-exit-op
     outputs: {}
@@ -284,6 +353,7 @@ spec:
       driver-plugin:
         args:
           cache_disabled: false
+          driver_retry_generation: '{{workflow.annotations.pipelines.kubeflow.org/retry-generation}}'
           http_proxy: ""
           https_proxy: ""
           iteration_index: '{{inputs.parameters.iteration-index}}'
@@ -326,6 +396,12 @@ spec:
               parameters:
               - name: parent-dag-task-id
                 value: '{{inputs.parameters.parent-dag-task-id}}'
+              - name: exit-task-name
+                value: exit-handler-1
+              - name: exit-task-status
+                value: '{{tasks.exit-handler-1.status}}'
+              - name: iteration-index
+                value: "-1"
             template: exit-hook-root-exit-op
         name: exit-handler-1
         template: comp-exit-handler-1

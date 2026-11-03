@@ -50,6 +50,14 @@ func (r *RuntimeArgs) UnmarshalJSON(value []byte) error {
 
 // DriverPluginArgs contains the arguments for one driver invocation.
 type DriverPluginArgs struct {
+	ExitTaskName                    string      `json:"exit_task_name,omitempty"`
+	ExitTaskStatus                  string      `json:"exit_task_status,omitempty"`
+	DriverRetryEnabled              string      `json:"driver_retry_enabled,omitempty"`
+	DriverRetryAttempt              string      `json:"driver_retry_attempt,omitempty"`
+	DriverRetryMaxCount             string      `json:"driver_retry_max_count,omitempty"`
+	DriverRetryGeneration           string      `json:"driver_retry_generation,omitempty"`
+	DriverRetryFinalize             bool        `json:"driver_retry_finalize,omitempty"`
+	DriverRetryStatus               string      `json:"driver_retry_status,omitempty"`
 	ParentTaskID                    string      `json:"parent_task_id"`
 	Namespace                       string      `json:"namespace"`
 	MlPipelineGRPCBackoffBaseDelay  string      `json:"ml_pipeline_grpc_backoff_base_delay,omitempty"`

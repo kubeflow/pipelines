@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/golang/glog"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -53,6 +54,9 @@ type PluginConfig struct {
 func InjectPluginRuntimeEnv(executionSpec util.ExecutionSpec, envVars []corev1.EnvVar) error {
 	if len(envVars) == 0 || executionSpec == nil {
 		return nil
+	}
+	if count := executionSpec.DisableTaskDriverRetries(); count > 0 {
+		glog.Warningf("Removed task-derived retry overrides from %d driver templates because task plugins do not support replay; deployment driver retry defaults and executor retries are preserved", count)
 	}
 	runtimeConfig := make(map[string]string)
 	for _, envVar := range envVars {
