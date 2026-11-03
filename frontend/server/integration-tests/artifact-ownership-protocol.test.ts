@@ -279,16 +279,29 @@ describe('artifact ownership compatibility over real HTTP and protobuf transport
     ]);
   });
 
-  it('documents deferred exposure when matching metadata references an object readable with shared credentials', async () => {
-    // Importers can associate another namespace's URI with their own context.
-    // Compatibility deliberately does not claim that this proves storage ownership.
+  it.each([false, true])('denies a tracked foreign storage namespace (proxy=%s)', async (proxy) => {
     const key = 'private-artifacts/team-b/model.txt';
     add(key, [{ id: 1, namespace }]);
-    const response = await read(key, { proxy: false });
-    expect(response.status).toBe(200);
-    expect(storageCalls).toEqual([
-      { path: `/${key}`, authorization: storageToken, user: undefined },
-    ]);
+    const response = await read(key, { proxy });
+    expect(response.status).toBe(403);
+    expect(metadataUris).toEqual([]);
+    expect(storageCalls).toEqual([]);
+  });
+
+  it('denies a foreign namespace root before metadata or storage access', async () => {
+    const key = 'private-artifacts/team-b/';
+    add(key, [{ id: 1, namespace }]);
+    expect((await read(key)).status).toBe(403);
+    expect(metadataUris).toEqual([]);
+    expect(storageCalls).toEqual([]);
+  });
+
+  it('serves a tracked object with a matching storage namespace', async () => {
+    const key = 'private-artifacts/team-a/model.txt';
+    add(key, [{ id: 1, namespace }]);
+    expect((await read(key)).status).toBe(200);
+    expect(contextIds).toEqual([1]);
+    expect(storageCalls).toHaveLength(1);
   });
 
   it.each([false, true])(

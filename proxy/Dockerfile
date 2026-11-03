@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the upstream agent from immutable source with patched, locked dependencies.
-FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS builder
+FROM golang:1.27.3-bookworm@sha256:d9b6a1beb9474adc2a1ce842573639b44b2a0dd49b6669f51d3821baf9ec37c9 AS builder
 ARG AGENT_COMMIT=6264998ae706281fd068e8f3eeb3cbd42046c5b6
 WORKDIR /src
 RUN git clone https://github.com/google/inverting-proxy.git . \
@@ -64,7 +64,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -p 1 -mod=mod -buildv
        END { exit !(version == expected && revision) }' /out/kubectl.buildinfo
 
 # Keep only the runtime tools needed by registration and the Cloud SDK.
-FROM debian:trixie-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad
+FROM debian:trixie-slim@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends bash ca-certificates curl jq python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*

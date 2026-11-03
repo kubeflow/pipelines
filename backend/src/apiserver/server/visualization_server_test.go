@@ -33,8 +33,33 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
+
+func TestCreateVisualization_MissingVisualizationReturnsInvalidInput(t *testing.T) {
+	wire, err := proto.Marshal(&apiv1beta1.CreateVisualizationRequest{Namespace: "ns1"})
+	require.NoError(t, err)
+	var callErr error
+	if assert.NotPanics(t, func() {
+		_, callErr = apiv1beta1.VisualizationService_ServiceDesc.Methods[0].Handler(
+			&VisualizationServer{}, context.Background(),
+			func(dst interface{}) error { return proto.Unmarshal(wire, dst.(proto.Message)) }, nil,
+		)
+	}) {
+		assert.Equal(t, codes.InvalidArgument, status.Code(callErr))
+	}
+}
+
+func TestCreateVisualization_NilRequestReturnsInvalidInput(t *testing.T) {
+	var err error
+	if assert.NotPanics(t, func() {
+		_, err = (&VisualizationServer{}).CreateVisualizationV1(context.Background(), nil)
+	}) {
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	}
+}
 
 func TestValidateCreateVisualizationRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
@@ -359,6 +384,7 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 		namespace     string
 		authenticated bool
 		allowed       bool
+		canCreateRuns bool
 		wantCode      codes.Code
 		wantReview    bool
 		wantHost      string
@@ -380,8 +406,12 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 			allowed: true, wantCode: codes.Unauthenticated,
 		},
 		{
+			name: "multi-user visualization viewer cannot execute", multiUser: true, namespace: "ns1",
+			authenticated: true, allowed: true, wantCode: codes.PermissionDenied, wantReview: true,
+		},
+		{
 			name: "multi-user authorized namespace", multiUser: true, namespace: "ns1",
-			authenticated: true, allowed: true, wantReview: true,
+			authenticated: true, allowed: true, canCreateRuns: true, wantReview: true,
 			wantHost: "ml-pipeline-visualizationserver.ns1:8888",
 		},
 		{
@@ -420,7 +450,12 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 
 				clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 				t.Cleanup(func() { clientManager.Close() })
-				reviews := &recordingSubjectAccessReviewClient{allowed: test.allowed}
+				reviews := &recordingSubjectAccessReviewClient{authorize: func(attributes authorizationv1.ResourceAttributes) bool {
+					if attributes.Resource == common.RbacResourceTypeRuns {
+						return test.canCreateRuns
+					}
+					return test.allowed
+				}}
 				clientManager.SubjectAccessReviewClientFake = reviews
 				server := &VisualizationServer{
 					resourceManager: resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}),
@@ -450,13 +485,19 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 					assert.Equal(t, []string{http.MethodGet, http.MethodPost}, methods)
 				}
 				if test.wantReview {
-					assert.Equal(t, []authorizationv1.ResourceAttributes{{
+					wantReviews := []authorizationv1.ResourceAttributes{{
 						Namespace: test.namespace,
 						Verb:      common.RbacResourceVerbCreate,
 						Group:     common.RbacPipelinesGroup,
 						Version:   common.RbacPipelinesVersion,
 						Resource:  common.RbacResourceTypeVisualizations,
-					}}, reviews.requests)
+					}}
+					if test.allowed {
+						runReview := wantReviews[0]
+						runReview.Resource = common.RbacResourceTypeRuns
+						wantReviews = append(wantReviews, runReview)
+					}
+					assert.Equal(t, wantReviews, reviews.requests)
 				} else {
 					assert.Empty(t, reviews.requests)
 				}
