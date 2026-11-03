@@ -109,8 +109,14 @@ check. This removes the empty-namespace route to the central service that
 bypassed namespace authorization. Updating only the Python visualization server
 does not apply this fix.
 
-A nonempty namespace still requires permission to create
-`pipelines.kubeflow.org/visualizations` in that namespace and routes to
+A nonempty namespace requires permission to create both
+`pipelines.kubeflow.org/visualizations` and `pipelines.kubeflow.org/runs`
+in that namespace before the API server contacts the Python service. The stock
+Pipelines view role no longer grants visualization creation; the edit role does.
+Custom roles must grant both permissions to retain generation. This applies to
+all Python visualization types because built-in renderers can read sources
+available to the service identity, while CUSTOM executes supplied Python.
+Authorized requests route to
 `http://<VisualizationService.Name>.<namespace>:<VisualizationService.Port>`.
 **Adding a namespace alone is insufficient for a central-only deployment:** the
 shipped Pipelines profile controller does not provision tenant-local Python

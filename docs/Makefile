@@ -16,7 +16,7 @@
 #
 # Install the build dependencies first, from the repository root:
 #
-#     pip install -r docs/requirements.txt
+#     pip install ./sdk/python -r docs/requirements.txt
 
 SPHINXBUILD   ?= python -m sphinx
 SOURCEDIR     := .
