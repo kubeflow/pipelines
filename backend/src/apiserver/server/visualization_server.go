@@ -32,8 +32,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -50,7 +48,7 @@ type VisualizationServer struct {
 
 func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
 	if os.Getenv("ENABLE_PYTHON_VISUALIZATIONS") != "true" {
-		return nil, status.Error(codes.FailedPrecondition, "Python visualizations are disabled. An administrator must set ENABLE_PYTHON_VISUALIZATIONS=true on the API server and visualization service to enable them.")
+		return nil, util.NewFailedPreconditionError(errors.New("Python visualization generation is disabled"), "Python visualizations are disabled. An administrator must set ENABLE_PYTHON_VISUALIZATIONS=true on the API server and visualization service to enable them.")
 	}
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
