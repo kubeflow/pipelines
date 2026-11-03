@@ -359,6 +359,7 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 		namespace     string
 		authenticated bool
 		allowed       bool
+		canCreateRuns bool
 		wantCode      codes.Code
 		wantReview    bool
 		wantHost      string
@@ -380,8 +381,12 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 			allowed: true, wantCode: codes.Unauthenticated,
 		},
 		{
+			name: "multi-user visualization viewer cannot execute", multiUser: true, namespace: "ns1",
+			authenticated: true, allowed: true, wantCode: codes.PermissionDenied, wantReview: true,
+		},
+		{
 			name: "multi-user authorized namespace", multiUser: true, namespace: "ns1",
-			authenticated: true, allowed: true, wantReview: true,
+			authenticated: true, allowed: true, canCreateRuns: true, wantReview: true,
 			wantHost: "ml-pipeline-visualizationserver.ns1:8888",
 		},
 		{
@@ -420,7 +425,12 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 
 				clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 				t.Cleanup(func() { clientManager.Close() })
-				reviews := &recordingSubjectAccessReviewClient{allowed: test.allowed}
+				reviews := &recordingSubjectAccessReviewClient{authorize: func(attributes authorizationv1.ResourceAttributes) bool {
+					if attributes.Resource == common.RbacResourceTypeRuns {
+						return test.canCreateRuns
+					}
+					return test.allowed
+				}}
 				clientManager.SubjectAccessReviewClientFake = reviews
 				server := &VisualizationServer{
 					resourceManager: resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false}),
@@ -450,13 +460,19 @@ func TestCreateVisualization_NamespaceAuthorization(t *testing.T) {
 					assert.Equal(t, []string{http.MethodGet, http.MethodPost}, methods)
 				}
 				if test.wantReview {
-					assert.Equal(t, []authorizationv1.ResourceAttributes{{
+					wantReviews := []authorizationv1.ResourceAttributes{{
 						Namespace: test.namespace,
 						Verb:      common.RbacResourceVerbCreate,
 						Group:     common.RbacPipelinesGroup,
 						Version:   common.RbacPipelinesVersion,
 						Resource:  common.RbacResourceTypeVisualizations,
-					}}, reviews.requests)
+					}}
+					if test.allowed {
+						runReview := wantReviews[0]
+						runReview.Resource = common.RbacResourceTypeRuns
+						wantReviews = append(wantReviews, runReview)
+					}
+					assert.Equal(t, wantReviews, reviews.requests)
 				} else {
 					assert.Empty(t, reviews.requests)
 				}
