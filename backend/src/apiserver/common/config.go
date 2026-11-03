@@ -55,6 +55,7 @@ const (
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
 	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"
+	PipelineURLCredentialEnvPrefix          string = "PIPELINE_URL_CREDENTIAL_"
 	PluginMaxKeys                           string = "PLUGIN_MAX_KEYS"
 	PluginMaxPayloadBytes                   string = "PLUGIN_MAX_PAYLOAD_BYTES"
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"

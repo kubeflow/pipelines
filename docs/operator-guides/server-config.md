@@ -636,6 +636,109 @@ reports `ownership_unknown`; it weakens isolation and is planned for removal in
 for configuration, rollout, and return-to-enforcement instructions. Native V2
 caching is unaffected.
 
+### Pipeline URL credentials
+
+When a pipeline or pipeline version is created from a URL (`package_url`), the API
+server downloads the file itself. By default, it sends no credentials, so a protected
+source can often times return `401 Unauthorized`. To authenticate these downloads,
+create one Secret per domain and expose it to the `ml-pipeline` deployment with
+`envFrom` and a prefix. The setting is optional and is not part of the default manifests.
+
+Each Secret uses these keys:
+
+| Key | Used with | Description |
+| --- | --- | --- |
+| `domain` | all | Exact hostname, such as `host.example.com`. No scheme, port, path, or wildcard. Must be allowed by `PIPELINE_URL_ALLOWED_DOMAINS`. Matching ignores case and a trailing dot. |
+| `type` | all | `bearer`, `basic`, or `header`. |
+| `token` | `bearer` | Sent as `Authorization: Bearer <token>`. |
+| `username`, `password` | `basic` | Sent as HTTP basic authentication. The password can be an access token. |
+| `headerName`, `headerValue` | `header` | Sent as a custom header, such as `X-Custom-Api-Auth`. |
+
+Key names ignore case. A trailing newline in a value, which is common when a Secret is
+created from a file, is removed. For example, a bearer token for one domain and basic
+authentication for another:
+
+```sh
+kubectl create secret generic artifactory-pipeline-credentials -n kubeflow \
+  --from-literal=domain=artifactory.example.com \
+  --from-literal=type=bearer \
+  --from-literal=token='<access-token>'
+
+kubectl create secret generic github-pipeline-credentials -n kubeflow \
+  --from-literal=domain=github.example.com \
+  --from-literal=type=basic \
+  --from-literal=username=svc-kfp \
+  --from-literal=password='<password>'
+```
+
+Add the allowed domains to your `pipeline-install-config` ConfigMap:
+
+```yaml
+data:
+  pipelineUrlAllowedDomains: artifactory.example.com,github.example.com
+```
+
+Then patch the API server container, for example with Kustomize:
+
+```yaml
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-pipeline-api-server
+        env:
+        - name: PIPELINE_URL_ALLOWED_DOMAINS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: pipelineUrlAllowedDomains
+              optional: true
+        envFrom:
+        - prefix: PIPELINE_URL_CREDENTIAL_ARTIFACTORY_
+          secretRef:
+            name: artifactory-pipeline-credentials
+            optional: true
+        - prefix: PIPELINE_URL_CREDENTIAL_GITHUB_
+          secretRef:
+            name: github-pipeline-credentials
+            optional: true
+```
+
+Each prefix must start with `PIPELINE_URL_CREDENTIAL_`, end with `_`, and be unique. The
+part in between, such as `ARTIFACTORY`, is a label that identifies the credential in
+logs. The API server then sees variables such as `PIPELINE_URL_CREDENTIAL_ARTIFACTORY_token`.
+`optional: true` lets the pod start when a Secret or ConfigMap key does not exist;
+without it, Kubernetes holds the pod in `CreateContainerConfigError`.
+
+`PIPELINE_URL_ALLOWED_DOMAINS` is a comma-separated list that is added to the built-in
+allowlist (`storage.googleapis.com`, `s3.amazonaws.com`, `github.com`, and
+`raw.githubusercontent.com`). It accepts wildcards such as `*.example.com`, but
+credential domains do not. An allowed domain without a credential is downloaded
+without credentials. If your deployment already sets `PIPELINE_URL_ALLOWED_DOMAINS`,
+keep its existing hosts in the new value. A domain that resolves to a private address
+must also be covered by `PIPELINE_URL_ALLOWED_CIDRS`.
+
+Credentials are sent only over HTTPS and only to their exact domain. Every redirect is
+checked again, so a credential never follows a redirect to another host, such as a
+presigned object-store URL. Downloads allowed over HTTP by `PIPELINE_URL_ALLOW_HTTP`
+never carry credentials.
+
+A misconfigured credential never stops the API server. At startup, the API server logs
+the domains that receive credentials and logs a warning for each problem, without
+credential values:
+
+| Situation | Result |
+| --- | --- |
+| The credential's `domain` is not allowed | Warning; the credential is ignored. |
+| A required key is missing, `type` is unsupported, or `domain` is not a bare hostname | Warning; the credential is ignored. |
+| Two credentials use the same `domain` | Warning; both are ignored. |
+| An unknown key, such as `description` | Warning; the key is ignored and the credential is used. |
+
+Downloads from a domain whose credential is ignored are sent without credentials. Roll
+out the deployment after changing a Secret. Anyone who can create pipelines can make
+the API server download any file the credential can read on that domain, so use a
+read-only token limited to the repositories that hold pipeline files.
+
 ## Recurring runs and custom service accounts
 
 See [Service accounts for recurring runs](scheduled-service-accounts.md) for

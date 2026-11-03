@@ -32,9 +32,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -980,6 +982,47 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPipelineServer_CreatePipelineAndVersion_SendsConfiguredURLCredentials(t *testing.T) {
+	httpServer := httptest.NewTLSServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.Header.Get("Authorization") != "Bearer test-token" {
+			rw.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		pipelineFile, err := os.ReadFile("test" + req.URL.Path)
+		assert.Nil(t, err)
+		rw.WriteHeader(http.StatusOK)
+		rw.Write(pipelineFile)
+	}))
+	defer httpServer.Close()
+
+	request := &apiv2.CreatePipelineAndVersionRequest{
+		Pipeline: &apiv2.Pipeline{DisplayName: "Protected pipeline"},
+		PipelineVersion: &apiv2.PipelineVersion{
+			PackageUrl: &apiv2.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+		},
+	}
+	newPipelineServer := func() *PipelineServer {
+		clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+		resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+		return createPipelineServer(resourceManager, validation.NewPipelineHTTPClient(httpServer.Client().Transport.(*http.Transport)))
+	}
+
+	t.Run("without credentials", func(t *testing.T) {
+		_, err := newPipelineServer().CreatePipelineAndVersion(context.Background(), request)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "401 Unauthorized")
+	})
+
+	t.Run("with credentials", func(t *testing.T) {
+		t.Setenv("PIPELINE_URL_CREDENTIAL_TEST_domain", "127.0.0.1")
+		t.Setenv("PIPELINE_URL_CREDENTIAL_TEST_type", "bearer")
+		t.Setenv("PIPELINE_URL_CREDENTIAL_TEST_token", "test-token")
+		got, err := newPipelineServer().CreatePipelineAndVersion(context.Background(), request)
+		require.NoError(t, err)
+		assert.Equal(t, "Protected pipeline", got.GetDisplayName())
+	})
 }
 
 func TestRecoverClearTagsIntent(t *testing.T) {

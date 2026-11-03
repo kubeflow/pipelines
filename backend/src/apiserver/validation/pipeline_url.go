@@ -157,7 +157,7 @@ func ValidatePipelineURL(urlStr string) error {
 	}
 
 	// Validate domain against allowlist
-	host := strings.ToLower(strings.TrimSuffix(parsed.Hostname(), "."))
+	host := normalizeHost(parsed.Hostname())
 	if !isDomainAllowed(host) {
 		return util.NewInvalidInputError("URL domain %q not in allowlist", host)
 	}
@@ -168,6 +168,11 @@ func ValidatePipelineURL(urlStr string) error {
 	}
 
 	return nil
+}
+
+// normalizeHost lowercases a hostname and strips a trailing FQDN dot.
+func normalizeHost(host string) string {
+	return strings.ToLower(strings.TrimSuffix(host, "."))
 }
 
 func isDomainAllowed(host string) bool {
@@ -213,19 +218,28 @@ func isBlockedIP(ip net.IP) bool {
 	return false
 }
 
-// SafePipelineHTTPClient creates an HTTP client with timeout and redirect validation.
-// When URL validation is enabled, its custom dialer also enforces IP validation at
-// connection time to prevent DNS rebinding (TOCTOU) attacks.
 const minimumHTTPTimeout = 1
 
+// SafePipelineHTTPClient creates the client used to download pipeline specs,
+// built on a clone of http.DefaultTransport. See NewPipelineHTTPClient.
 func SafePipelineHTTPClient() *http.Client {
+	return NewPipelineHTTPClient(http.DefaultTransport.(*http.Transport))
+}
+
+// NewPipelineHTTPClient creates an HTTP client with timeout and redirect
+// validation on a clone of base. When URL validation is enabled, its custom
+// dialer also enforces IP validation at connection time to prevent DNS
+// rebinding (TOCTOU) attacks. Credentials configured through
+// PIPELINE_URL_CREDENTIAL_<NAME>_<field> environment variables are sent only
+// to their domains.
+func NewPipelineHTTPClient(base *http.Transport) *http.Client {
 	timeoutSeconds := common.GetIntConfigWithDefault(common.PipelineURLTimeout, 30)
 	if timeoutSeconds < minimumHTTPTimeout {
 		timeoutSeconds = 30
 	}
 	timeout := time.Duration(timeoutSeconds) * time.Second
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport := base.Clone()
 	transport.Proxy = nil
 	// The validation switch is test-only and must bypass both the URL checks and
 	// the connection-time private IP guard. Production keeps the secure default.
@@ -235,7 +249,7 @@ func SafePipelineHTTPClient() *http.Client {
 
 	return &http.Client{
 		Timeout:   timeout,
-		Transport: transport,
+		Transport: withPipelineURLCredentials(transport),
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return util.NewInvalidInputError("too many redirects")
