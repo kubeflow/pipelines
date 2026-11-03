@@ -89,6 +89,11 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          # Only the replica holding the kfp-scheduledworkflow Lease, in the
+          # POD_NAMESPACE namespace, starts scheduled runs. Multi-user mode sets
+          # NAMESPACE to ''.
+          - name: LEADER_ELECT
+            value: "true"
           - name: CRON_SCHEDULE_TIMEZONE
             valueFrom:
               configMapKeyRef:

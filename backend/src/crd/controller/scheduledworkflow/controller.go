@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
@@ -144,6 +145,15 @@ func normalizeAndValidateMetadataKey(key string) (string, error) {
 	return normalized, nil
 }
 
+var registerSchemeOnce sync.Once
+
+// registerScheme adds the controller types to the default Kubernetes scheme so
+// that Events can be logged for them. A scheme is only thread-safe after
+// registration, so main calls this before starting anything that uses it.
+func registerScheme() {
+	registerSchemeOnce.Do(func() { swfScheme.AddToScheme(scheme.Scheme) })
+}
+
 // NewController returns a new sample controller
 func NewController(
 	kubeClientSet kubernetes.Interface,
@@ -173,9 +183,7 @@ func NewController(
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
-	// Add controller types to the default Kubernetes Scheme so Events can be
-	// logged for controller types.
-	swfScheme.AddToScheme(scheme.Scheme)
+	registerScheme()
 
 	// Create event broadcaster
 	log.Info("Creating event broadcaster")
