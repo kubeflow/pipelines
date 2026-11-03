@@ -48,9 +48,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
-	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -1606,7 +1606,7 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 			return err
 		}
 
-		bucket, err = objectstore.OpenS3Bucket(ctx, s3Client, config.bucketName, nil)
+		bucket, err = s3bucket.Open(ctx, s3Client, config.bucketName, nil)
 		return err
 	}
 

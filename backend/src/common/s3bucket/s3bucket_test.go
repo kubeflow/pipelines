@@ -12,10 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package objectstore
+package s3bucket
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -31,7 +35,27 @@ func s3ClientWithChecksumPolicy(policy aws.RequestChecksumCalculation) *s3.Clien
 	return s3.New(s3.Options{Region: "us-east-1", RequestChecksumCalculation: policy})
 }
 
-func TestS3BucketOptions_PropagatesClientChecksumPolicy(t *testing.T) {
+// newNoChunkedEncodingS3Server starts an HTTPS server that behaves like an
+// S3-compatible store without aws-chunked support, such as OCI Object Storage.
+func newNoChunkedEncodingS3Server(t *testing.T) *httptest.Server {
+	t.Helper()
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.Copy(io.Discard, r.Body)
+		if strings.Contains(r.Header.Get("Content-Encoding"), "aws-chunked") ||
+			strings.HasPrefix(r.Header.Get("X-Amz-Content-Sha256"), "STREAMING-") {
+			w.Header().Set("Content-Type", "application/xml")
+			w.WriteHeader(http.StatusNotImplemented)
+			_, _ = io.WriteString(w, `<?xml version="1.0" encoding="UTF-8"?><Error><Code>NotImplemented</Code><Message>AWS chunked encoding not supported.</Message></Error>`)
+			return
+		}
+		w.Header().Set("ETag", `"etag"`)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	return server
+}
+
+func TestBucketOptions_PropagatesClientChecksumPolicy(t *testing.T) {
 	for _, test := range []struct {
 		name   string
 		policy aws.RequestChecksumCalculation
@@ -40,14 +64,14 @@ func TestS3BucketOptions_PropagatesClientChecksumPolicy(t *testing.T) {
 		{name: "when_supported", policy: aws.RequestChecksumCalculationWhenSupported},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			options := s3BucketOptions(s3ClientWithChecksumPolicy(test.policy), nil)
+			options := bucketOptions(s3ClientWithChecksumPolicy(test.policy), nil)
 
 			assert.Equal(t, test.policy, options.RequestChecksumCalculation)
 		})
 	}
 }
 
-func TestS3BucketOptions_PreservesCallerOptions(t *testing.T) {
+func TestBucketOptions_PreservesCallerOptions(t *testing.T) {
 	callerOptions := &s3blob.Options{
 		UseLegacyList:              true,
 		EncryptionType:             types.ServerSideEncryptionAwsKms,
@@ -56,7 +80,7 @@ func TestS3BucketOptions_PreservesCallerOptions(t *testing.T) {
 	}
 	original := *callerOptions
 
-	options := s3BucketOptions(s3ClientWithChecksumPolicy(aws.RequestChecksumCalculationWhenRequired), callerOptions)
+	options := bucketOptions(s3ClientWithChecksumPolicy(aws.RequestChecksumCalculationWhenRequired), callerOptions)
 
 	assert.Equal(t, &s3blob.Options{
 		UseLegacyList:              true,
@@ -67,10 +91,10 @@ func TestS3BucketOptions_PreservesCallerOptions(t *testing.T) {
 	assert.Equal(t, original, *callerOptions, "the caller's options must not be modified")
 }
 
-// OpenS3Bucket must apply the client's checksum policy to uploads even when the
+// Open must apply the client's checksum policy to uploads even when the
 // caller's options say otherwise, because s3blob's transfer manager does not
 // read the client's setting.
-func TestOpenS3Bucket_UploadsUseClientChecksumPolicy(t *testing.T) {
+func TestOpen_UploadsUseClientChecksumPolicy(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		policy    aws.RequestChecksumCalculation
@@ -94,7 +118,7 @@ func TestOpenS3Bucket_UploadsUseClientChecksumPolicy(t *testing.T) {
 				callerOptions.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 			}
 
-			bucket, err := OpenS3Bucket(context.Background(), client, "test-bucket", callerOptions)
+			bucket, err := Open(context.Background(), client, "test-bucket", callerOptions)
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, bucket.Close()) })
 

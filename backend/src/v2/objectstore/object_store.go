@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
@@ -63,7 +64,7 @@ func OpenBucket(
 				}
 				if s3Client != nil {
 					// Use the configured S3 client to leverage retry logic.
-					openedBucket, err2 := OpenS3Bucket(ctx, s3Client, config.BucketName, nil)
+					openedBucket, err2 := s3bucket.Open(ctx, s3Client, config.BucketName, nil)
 					if err2 != nil {
 						return nil, err2
 					}
@@ -98,7 +99,7 @@ func OpenBucket(
 		if err1 != nil {
 			return nil, err1
 		}
-		openedBucket, err2 := OpenS3Bucket(ctx, s3Client, config.BucketName, nil)
+		openedBucket, err2 := s3bucket.Open(ctx, s3Client, config.BucketName, nil)
 		if err2 != nil {
 			return nil, err2
 		}

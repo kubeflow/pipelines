@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package objectstore
+// Package s3bucket opens Go CDK blob buckets from already-configured S3
+// clients. It is shared by the API server and the runtime object store, so it
+// must not depend on either.
+package s3bucket
 
 import (
 	"context"
@@ -22,25 +25,25 @@ import (
 	"gocloud.dev/blob/s3blob"
 )
 
-// OpenS3Bucket opens bucketName through an already-configured S3 client.
-// Callers keep credentials, endpoints and HTTP settings on the client, and may
-// pass bucket options such as encryption settings, which are preserved.
+// Open opens bucketName through an already-configured S3 client. Callers keep
+// credentials, endpoints and HTTP settings on the client, and may pass bucket
+// options such as encryption settings, which are preserved.
 //
 // The client's RequestChecksumCalculation always overrides the option of the
 // same name. s3blob uploads through the S3 transfer manager, which ignores the
 // client's setting and defaults to when_supported. Over HTTPS that sends
 // aws-chunked trailers, which some S3-compatible stores reject with 501.
-func OpenS3Bucket(ctx context.Context, client *s3.Client, bucketName string, options *s3blob.Options) (*blob.Bucket, error) {
-	return s3blob.OpenBucketV2(ctx, client, bucketName, s3BucketOptions(client, options))
+func Open(ctx context.Context, client *s3.Client, bucketName string, options *s3blob.Options) (*blob.Bucket, error) {
+	return s3blob.OpenBucketV2(ctx, client, bucketName, bucketOptions(client, options))
 }
 
-// s3BucketOptions returns a copy of options, so the caller's struct is never
+// bucketOptions returns a copy of options, so the caller's struct is never
 // modified, with the client's checksum policy applied.
-func s3BucketOptions(client *s3.Client, options *s3blob.Options) *s3blob.Options {
-	var bucketOptions s3blob.Options
+func bucketOptions(client *s3.Client, options *s3blob.Options) *s3blob.Options {
+	var opts s3blob.Options
 	if options != nil {
-		bucketOptions = *options
+		opts = *options
 	}
-	bucketOptions.RequestChecksumCalculation = client.Options().RequestChecksumCalculation
-	return &bucketOptions
+	opts.RequestChecksumCalculation = client.Options().RequestChecksumCalculation
+	return &opts
 }
