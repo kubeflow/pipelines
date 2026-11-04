@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"gorm.io/driver/mysql"
@@ -60,7 +61,6 @@ import (
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -1606,11 +1606,7 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 			return err
 		}
 
-		// s3blob uploads through the S3 transfer manager, which ignores the
-		// client's RequestChecksumCalculation unless it is passed here.
-		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, &s3blob.Options{
-			RequestChecksumCalculation: s3Client.Options().RequestChecksumCalculation,
-		})
+		bucket, err = s3bucket.Open(ctx, s3Client, config.bucketName, nil)
 		return err
 	}
 

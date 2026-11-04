@@ -141,10 +141,18 @@ jobs:
       check_suite: {id: 900}}]}};
   }},
   issues: {listEventsForTimeline: methods.timeline,
-    addLabels: async request => {calls.push(['add-label', request.labels]);},
+    addLabels: async request => {
+      calls.push(['add-label', request.labels]);
+      if (options.addLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
+      pr.labels = [...pr.labels.filter(label => !request.labels.includes(label.name)),
+        ...request.labels.map(name => ({name}))];
+      if (options.addLabelResponseFailure) throw Error('Label response lost');
+    },
     removeLabel: async request => {
       calls.push(['remove-label', request.name]);
       if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
+      pr.labels = pr.labels.filter(label => label.name !== request.name);
+      if (options.removeLabelNotFound) throw Object.assign(Error('Label absent'), {status: 404});
     }},
   repos: {getCommit: async request => {
     commitReads += 1;
@@ -214,8 +222,10 @@ github.paginate.iterator = async function* () {
   context.runId = 99 + cycle;
   try {await (options.mergedRecovery ? (gate.prepareMergedRecovery || gate.prepare) : gate.prepare)({number: 7, head: options.wrongRecoveryHead ? 'f'.repeat(40) : HEAD, github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
+  if (options.labelBeforeFinal) pr.labels.push({name: 'ci-passed'});
   if (options.recoverBeforeFinal) options.conclusion = 'success';
   if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
+  if (options.unreadableBeforeFinal) options.pullFailure = true;
   try {
     await (options.mergedRecovery ? (gate.finalizeMergedRecovery || gate.finalize) : gate.finalize)({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
@@ -224,7 +234,7 @@ github.paginate.iterator = async function* () {
   } catch (e) {error = e.message;}
   }
   const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter}));
+  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run(
@@ -530,6 +540,111 @@ class CIPassedTest(unittest.TestCase):
                 self.assertEqual(result['outputs']['ready'], 'true')
                 self.assert_last_status(result, 'success')
 
+    def test_unchanged_failure_has_no_label_or_status_writes(self):
+        for event in [{'schedule': True}, {'workflowRun': True}, {}]:
+            with self.subTest(event=event):
+                result = exercise(
+                    {
+                        **event,
+                        'cycles': 6,
+                        'conclusion': 'skipped',
+                        'initialStatus': 'failure',
+                        'initialDescription': '.github/workflows/frontend.yml: latest run is completed/skipped',
+                        'removeLabelFailure': True,
+                    }
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(
+                    [
+                        call
+                        for call in result['calls']
+                        if call[0] in ('status', 'add-label', 'remove-label')
+                    ],
+                    [],
+                )
+
+    def test_existing_label_removed_once_before_invalid_ci(self):
+        result = exercise(
+            {
+                'pr': {'labels': [{'name': 'ci-passed'}]},
+                'initialStatus': 'success',
+                'conclusion': 'skipped',
+            }
+        )
+        self.assertEqual(
+            [call for call in result['calls'] if call[0] == 'remove-label'],
+            [['remove-label', 'ci-passed']],
+        )
+        self.assert_last_status(result, 'failure')
+
+    def test_label_added_before_final_is_not_added_again(self):
+        result = exercise({'labelBeforeFinal': True})
+        self.assert_last_status(result, 'success')
+        self.assertFalse(
+            [
+                call
+                for call in result['calls']
+                if call[0] in ('add-label', 'remove-label')
+            ]
+        )
+
+    def test_new_success_label_is_removed_on_publication_drift(self):
+        for drift in [
+            'hold',
+            'base',
+            'head',
+            'external-failure',
+            'external-rerun',
+        ]:
+            with self.subTest(drift=drift):
+                result = exercise({'drift': drift})
+                self.assertEqual(
+                    [
+                        call[0]
+                        for call in result['calls']
+                        if call[0] in ('add-label', 'remove-label')
+                    ],
+                    ['add-label', 'remove-label'],
+                )
+                self.assertNotEqual(result['status'], 'success')
+
+    def test_lost_add_response_still_removes_label_during_rollback(self):
+        result = exercise({'addLabelResponseFailure': True})
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(
+            [
+                call[0]
+                for call in result['calls']
+                if call[0] in ('add-label', 'remove-label')
+            ],
+            ['add-label', 'remove-label'],
+        )
+        self.assertEqual(result['labels'], [])
+        self.assertIn('Label response lost', result['error'])
+
+    def test_unknown_labels_after_pr_read_error_still_remove(self):
+        result = exercise({'unreadableBeforeFinal': True})
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(
+            [call for call in result['calls'] if call[0] == 'remove-label'],
+            [['remove-label', 'ci-passed']],
+        )
+
+    def test_removal_404_confirms_absence_without_removing_other_labels(self):
+        result = exercise(
+            {
+                'removeLabelNotFound': True,
+                'conclusion': 'skipped',
+                'pr': {'labels': [{'name': 'ci-passed'}, {'name': 'approved'}]},
+            }
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['labels'], [{'name': 'approved'}])
+        self.assertEqual(
+            [call for call in result['calls'] if call[0] == 'remove-label'],
+            [['remove-label', 'ci-passed']],
+        )
+
     def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
@@ -757,6 +872,7 @@ async function run(liveTip) {
                         'baseTip': B2,
                         'baseArrivedAt': '2026-09-07T12:00:00Z',
                         'pr': {
+                            'labels': [{'name': 'ci-passed'}],
                             'base': {
                                 'sha': B1,
                                 'ref': branch,
@@ -936,6 +1052,7 @@ async function run(liveTip) {
                 'initialDescription': 'Legacy failure',
                 'conclusion': 'skipped',
                 'removeLabelFailure': True,
+                'pr': {'labels': [{'name': 'ci-passed'}]},
                 'cycles': 6,
             }
         )
@@ -1023,7 +1140,12 @@ async function run(liveTip) {
                         {
                             'schedule': True,
                             'pollPassed': passed,
-                            'pr': {'labels': [{'name': hold}]},
+                            'pr': {
+                                'labels': [
+                                    {'name': hold},
+                                    {'name': 'ci-passed'},
+                                ]
+                            },
                         }
                     )
                     labels = [
@@ -1032,6 +1154,7 @@ async function run(liveTip) {
                         if call[0] in ('add-label', 'remove-label')
                     ]
                     self.assertTrue(labels)
+                    self.assertIn({'name': hold}, result['labels'])
                     for call in labels:
                         self.assertIn(
                             call,
@@ -1183,7 +1306,11 @@ async function run(liveTip) {
             {
                 'action': 'closed',
                 'initialStatus': 'success',
-                'pr': {'state': 'closed', 'merged': False},
+                'pr': {
+                    'labels': [{'name': 'ci-passed'}],
+                    'state': 'closed',
+                    'merged': False,
+                },
             }
         )
         self.assertNotIn('error', result)
