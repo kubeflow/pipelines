@@ -359,7 +359,7 @@ func TestLegacyTaskMergeContract(t *testing.T) {
 	require.Len(t, consumer.Pods, 1)
 	require.Equal(t, fixture.Expected.PodName, consumer.Pods[0].(map[string]interface{})["name"])
 	require.Equal(t, source.Cache.Fingerprint, fixture.Expected.LegacyCacheFingerprint)
-	require.Equal(t, source.Cache.Fingerprint, fixture.Expected.Fingerprint)
+	require.Equal(t, source.Cache.Fingerprint, consumer.StatusMetadata["customProperties"].(map[string]any)["legacy_cache_fingerprint"])
 	require.Equal(t, fixture.Expected.Fingerprint, consumer.Fingerprint)
 }
 
@@ -399,7 +399,10 @@ func TestExpectedNativeGraph(t *testing.T) {
 			}
 			break
 		}
-		require.Equal(t, sourceFingerprint, task.Fingerprint, "copy cache fingerprints only for COMPLETE/CACHED executions")
+		require.Empty(t, task.Fingerprint, "source fingerprints are not native lookup keys")
+		if sourceFingerprint != "" {
+			require.Equal(t, sourceFingerprint, task.StatusMetadata["customProperties"].(map[string]any)["legacy_cache_fingerprint"])
+		}
 		tasks[task.UUID] = task
 		tasksByName[task.Name] = task
 	}

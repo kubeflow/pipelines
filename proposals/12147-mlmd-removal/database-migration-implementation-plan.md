@@ -131,10 +131,9 @@ the original design:
    KFP run or Argo Workflow remains active and final reports are stored. Do not
    use MLMD execution state alone: the 2.18 fixture has `RUNNING` DAG executions after
    their runs succeed.
-4. **Cache:** the design copies `COMPLETE`/`CACHED` source fingerprints.
-   Current native key inputs and lookup scope differ. Before the PR 2 backfill,
-   amend the design to specify separate storage and lookup for legacy and native
-   keys; never treat a legacy hash as a native key or invent missing inputs.
+4. **Cache:** the design now separates legacy fingerprints from native lookup
+   keys. Prove every reconstructed input for each backfilled producer; report
+   missing inputs as skipped keys without blocking completion.
 5. **Metrics and skipped records:** verify primary-only event links and
    warning-and-skip behavior preserve the API history promised by the design.
    Record any accepted loss and its recovery path before removing MLMD.

@@ -57,9 +57,9 @@ names and `RUNTIME_STATE_UNSPECIFIED`. The projection takes the MLMD execution
 state and pod when the KFP fields are empty or unspecified. It takes the KFP
 row's run identity and lifecycle timestamps, including creation time. The
 iteration-produced artifact's link retains the source parent DAG's iteration
-index, including a present zero. The projection copies cache fingerprints for
-`COMPLETE` and `CACHED` executions, as the design requires. Native key
-compatibility remains an implementation feasibility check.
+index, including a present zero. The projection preserves eligible source
+fingerprints in status metadata. The PR 2 engine separately verifies and
+backfills native producer keys within its fixed 90-day window.
 `TestReleasedWriterRoutesAndDrainTimestamps` runs in backend PR CI and checks
 that the submitted Workflows route legacy driver work to MLMD and the KFP API,
 and that recorded MLMD/KFP writes precede each Workflow's terminal timestamp.

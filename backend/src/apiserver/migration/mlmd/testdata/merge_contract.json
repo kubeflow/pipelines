@@ -10,7 +10,7 @@
     "started_in_sec": 1700000001,
     "finished_in_sec": 1700000002,
     "state": "SUCCEEDED",
-    "fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+    "fingerprint": "",
     "legacy_cache_fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb"
   }
 }

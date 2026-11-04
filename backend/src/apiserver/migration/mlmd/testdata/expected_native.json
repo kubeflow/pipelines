@@ -152,7 +152,8 @@
         }
       ],
       "TypeAttrs": {},
-      "Fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+      "StatusMetadata": {"customProperties": {"legacy_cache_fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb"}},
+      "Fingerprint": "",
       "CreatedAtInSec": 1700000000,
       "StartedInSec": 1700000001,
       "FinishedInSec": 1700000002,
