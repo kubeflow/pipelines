@@ -204,15 +204,30 @@ async function publish(github, context, pr, state, description, provisional = fa
     })).data;
   }
   if (!updateLabels) return written;
-  if (state === 'success') {
-    await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
-  } else {
-    try {
-      await github.rest.issues.removeLabel({...context.repo, issue_number: pr.number, name: 'ci-passed'});
-    } catch (error) {
-      if (error.status !== 404) throw error;
+  const labels = Array.isArray(pr.labels) ? pr.labels : null;
+  const present = labels === null ? null : labels.some(label => label.name === 'ci-passed');
+  const desired = state === 'success';
+  if (present === desired) return written;
+  try {
+    if (desired) {
+      await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
+    } else {
+      try {
+        await github.rest.issues.removeLabel({...context.repo, issue_number: pr.number, name: 'ci-passed'});
+      } catch (error) {
+        if (error.status !== 404) throw error;
+      }
     }
+  } catch (error) {
+    // A write may reach GitHub even when the response fails. Rollback must
+    // treat label state as unknown instead of trusting the pre-write snapshot.
+    delete pr.labels;
+    throw error;
   }
+  // Track our own writes so post-publication rollback removes a label added
+  // after this snapshot. Each reconciliation still begins with a fresh PR read.
+  pr.labels = (labels || []).filter(label => label.name !== 'ci-passed');
+  if (desired) pr.labels.push({name: 'ci-passed'});
   return written;
 }
 
