@@ -2299,7 +2299,7 @@
       "source": "kfp.tasks[00d148b6-3118-41b0-8d94-b24bc347ff78].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d1c04c1d-5442-5dbb-808b-f1530382ef0b].fields.Fingerprint"
+        "expected.tasks[UUID=d1c04c1d-5442-5dbb-808b-f1530382ef0b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -4475,7 +4475,7 @@
       "source": "kfp.tasks[1b456acd-0255-42f9-9584-041881b9ef10].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=e94aacfe-4c2a-5207-b7e7-fd4567142728].fields.Fingerprint"
+        "expected.tasks[UUID=e94aacfe-4c2a-5207-b7e7-fd4567142728].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -4815,7 +4815,7 @@
       "source": "kfp.tasks[1d000774-6515-4c07-a27e-8d300318294c].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=570c46bb-59dc-5877-898e-a2beae1622cf].fields.Fingerprint"
+        "expected.tasks[UUID=570c46bb-59dc-5877-898e-a2beae1622cf].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -5047,7 +5047,7 @@
       "source": "kfp.tasks[219d3952-729d-4cfd-9198-2ff4b0636b40].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d7ea1d3f-78be-5e29-abee-d2b72a0e0b92].fields.Fingerprint"
+        "expected.tasks[UUID=d7ea1d3f-78be-5e29-abee-d2b72a0e0b92].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -5927,7 +5927,7 @@
       "source": "kfp.tasks[30bd7f08-7728-4d9b-9bb2-91dd790bda45].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=b1c445dd-1acc-5c30-908d-2ff56e63812b].fields.Fingerprint"
+        "expected.tasks[UUID=b1c445dd-1acc-5c30-908d-2ff56e63812b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -6807,7 +6807,7 @@
       "source": "kfp.tasks[3aa6b8ad-45dc-40e9-8fe9-080f40dac3d0].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=c383cf34-c39d-521b-a425-da55ed1b46a2].fields.Fingerprint"
+        "expected.tasks[UUID=c383cf34-c39d-521b-a425-da55ed1b46a2].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -8227,7 +8227,7 @@
       "source": "kfp.tasks[4f401893-4cc0-4138-b298-be0007b97a09].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d7ae219d-9d1f-5862-acd4-d4e53a3dff33].fields.Fingerprint"
+        "expected.tasks[UUID=d7ae219d-9d1f-5862-acd4-d4e53a3dff33].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -9971,7 +9971,7 @@
       "source": "kfp.tasks[635aa675-0cdf-41d2-8d80-274dfa28757f].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=da2d5baf-b047-519b-b208-f4dcae55ab1b].fields.Fingerprint"
+        "expected.tasks[UUID=da2d5baf-b047-519b-b208-f4dcae55ab1b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -14739,7 +14739,7 @@
       "source": "kfp.tasks[9874f4ff-3616-40e5-a9aa-91361ac886c7].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=c498105d-7cf2-5ef9-bcc3-ae040a83c6a5].fields.Fingerprint"
+        "expected.tasks[UUID=c498105d-7cf2-5ef9-bcc3-ae040a83c6a5].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -16807,7 +16807,7 @@
       "source": "kfp.tasks[b51e6c5f-3a32-417f-8372-5b52f712419d].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d12bcf5b-0e3a-5d9b-8928-5fdb5d307126].fields.Fingerprint"
+        "expected.tasks[UUID=d12bcf5b-0e3a-5d9b-8928-5fdb5d307126].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -20171,7 +20171,7 @@
       "source": "kfp.tasks[da34a4f6-5c76-4ee5-b7e2-89c671afcbaa].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=e819bc1e-0274-5dc4-8fd9-a2f499798817].fields.Fingerprint"
+        "expected.tasks[UUID=e819bc1e-0274-5dc4-8fd9-a2f499798817].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -21159,7 +21159,7 @@
       "source": "kfp.tasks[e57d4fcf-830c-4511-b5bf-3a97a1d82174].Fingerprint",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=07d71166-b77e-50a0-880e-2ee731a8f6cf].fields.Fingerprint"
+        "expected.tasks[UUID=07d71166-b77e-50a0-880e-2ee731a8f6cf].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -28327,7 +28327,7 @@
       "source": "mlmd.execution_properties[17].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=e819bc1e-0274-5dc4-8fd9-a2f499798817].fields.Fingerprint"
+        "expected.tasks[UUID=e819bc1e-0274-5dc4-8fd9-a2f499798817].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -28353,7 +28353,7 @@
       "source": "mlmd.execution_properties[17].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=e819bc1e-0274-5dc4-8fd9-a2f499798817].fields.Fingerprint"
+        "expected.tasks[UUID=e819bc1e-0274-5dc4-8fd9-a2f499798817].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -28923,7 +28923,7 @@
       "source": "mlmd.execution_properties[27].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=c498105d-7cf2-5ef9-bcc3-ae040a83c6a5].fields.Fingerprint"
+        "expected.tasks[UUID=c498105d-7cf2-5ef9-bcc3-ae040a83c6a5].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -28949,7 +28949,7 @@
       "source": "mlmd.execution_properties[27].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=c498105d-7cf2-5ef9-bcc3-ae040a83c6a5].fields.Fingerprint"
+        "expected.tasks[UUID=c498105d-7cf2-5ef9-bcc3-ae040a83c6a5].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -29519,7 +29519,7 @@
       "source": "mlmd.execution_properties[37].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d1c04c1d-5442-5dbb-808b-f1530382ef0b].fields.Fingerprint"
+        "expected.tasks[UUID=d1c04c1d-5442-5dbb-808b-f1530382ef0b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -29545,7 +29545,7 @@
       "source": "mlmd.execution_properties[37].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d1c04c1d-5442-5dbb-808b-f1530382ef0b].fields.Fingerprint"
+        "expected.tasks[UUID=d1c04c1d-5442-5dbb-808b-f1530382ef0b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -30115,7 +30115,7 @@
       "source": "mlmd.execution_properties[47].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=da2d5baf-b047-519b-b208-f4dcae55ab1b].fields.Fingerprint"
+        "expected.tasks[UUID=da2d5baf-b047-519b-b208-f4dcae55ab1b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -30141,7 +30141,7 @@
       "source": "mlmd.execution_properties[47].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=da2d5baf-b047-519b-b208-f4dcae55ab1b].fields.Fingerprint"
+        "expected.tasks[UUID=da2d5baf-b047-519b-b208-f4dcae55ab1b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -31187,7 +31187,7 @@
       "source": "mlmd.execution_properties[65].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=07d71166-b77e-50a0-880e-2ee731a8f6cf].fields.Fingerprint"
+        "expected.tasks[UUID=07d71166-b77e-50a0-880e-2ee731a8f6cf].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -31213,7 +31213,7 @@
       "source": "mlmd.execution_properties[65].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=07d71166-b77e-50a0-880e-2ee731a8f6cf].fields.Fingerprint"
+        "expected.tasks[UUID=07d71166-b77e-50a0-880e-2ee731a8f6cf].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -31783,7 +31783,7 @@
       "source": "mlmd.execution_properties[75].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=570c46bb-59dc-5877-898e-a2beae1622cf].fields.Fingerprint"
+        "expected.tasks[UUID=570c46bb-59dc-5877-898e-a2beae1622cf].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -31809,7 +31809,7 @@
       "source": "mlmd.execution_properties[75].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=570c46bb-59dc-5877-898e-a2beae1622cf].fields.Fingerprint"
+        "expected.tasks[UUID=570c46bb-59dc-5877-898e-a2beae1622cf].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -32379,7 +32379,7 @@
       "source": "mlmd.execution_properties[85].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=e94aacfe-4c2a-5207-b7e7-fd4567142728].fields.Fingerprint"
+        "expected.tasks[UUID=e94aacfe-4c2a-5207-b7e7-fd4567142728].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -32405,7 +32405,7 @@
       "source": "mlmd.execution_properties[85].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=e94aacfe-4c2a-5207-b7e7-fd4567142728].fields.Fingerprint"
+        "expected.tasks[UUID=e94aacfe-4c2a-5207-b7e7-fd4567142728].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -33625,7 +33625,7 @@
       "source": "mlmd.execution_properties[106].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=c383cf34-c39d-521b-a425-da55ed1b46a2].fields.Fingerprint"
+        "expected.tasks[UUID=c383cf34-c39d-521b-a425-da55ed1b46a2].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -33651,7 +33651,7 @@
       "source": "mlmd.execution_properties[106].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=c383cf34-c39d-521b-a425-da55ed1b46a2].fields.Fingerprint"
+        "expected.tasks[UUID=c383cf34-c39d-521b-a425-da55ed1b46a2].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -36477,7 +36477,7 @@
       "source": "mlmd.execution_properties[154].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d7ea1d3f-78be-5e29-abee-d2b72a0e0b92].fields.Fingerprint"
+        "expected.tasks[UUID=d7ea1d3f-78be-5e29-abee-d2b72a0e0b92].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -36503,7 +36503,7 @@
       "source": "mlmd.execution_properties[154].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d7ea1d3f-78be-5e29-abee-d2b72a0e0b92].fields.Fingerprint"
+        "expected.tasks[UUID=d7ea1d3f-78be-5e29-abee-d2b72a0e0b92].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -37073,7 +37073,7 @@
       "source": "mlmd.execution_properties[164].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=b1c445dd-1acc-5c30-908d-2ff56e63812b].fields.Fingerprint"
+        "expected.tasks[UUID=b1c445dd-1acc-5c30-908d-2ff56e63812b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -37099,7 +37099,7 @@
       "source": "mlmd.execution_properties[164].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=b1c445dd-1acc-5c30-908d-2ff56e63812b].fields.Fingerprint"
+        "expected.tasks[UUID=b1c445dd-1acc-5c30-908d-2ff56e63812b].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -37965,7 +37965,7 @@
       "source": "mlmd.execution_properties[179].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d12bcf5b-0e3a-5d9b-8928-5fdb5d307126].fields.Fingerprint"
+        "expected.tasks[UUID=d12bcf5b-0e3a-5d9b-8928-5fdb5d307126].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -37991,7 +37991,7 @@
       "source": "mlmd.execution_properties[179].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d12bcf5b-0e3a-5d9b-8928-5fdb5d307126].fields.Fingerprint"
+        "expected.tasks[UUID=d12bcf5b-0e3a-5d9b-8928-5fdb5d307126].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -38561,7 +38561,7 @@
       "source": "mlmd.execution_properties[189].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d7ae219d-9d1f-5862-acd4-d4e53a3dff33].fields.Fingerprint"
+        "expected.tasks[UUID=d7ae219d-9d1f-5862-acd4-d4e53a3dff33].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -38587,7 +38587,7 @@
       "source": "mlmd.execution_properties[189].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=d7ae219d-9d1f-5862-acd4-d4e53a3dff33].fields.Fingerprint"
+        "expected.tasks[UUID=d7ae219d-9d1f-5862-acd4-d4e53a3dff33].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -39633,7 +39633,7 @@
       "source": "mlmd.execution_properties[207].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.Fingerprint"
+        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -39659,7 +39659,7 @@
       "source": "mlmd.execution_properties[207].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.Fingerprint"
+        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -39693,7 +39693,7 @@
       "source": "mlmd.execution_properties[208].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.StatusMetadata.customProperties.cached_task_id"
+        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.CachedTaskUUID"
       ]
     },
     {
@@ -39719,7 +39719,7 @@
       "source": "mlmd.execution_properties[208].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.StatusMetadata.customProperties.cached_task_id"
+        "expected.tasks[UUID=ddbc9b11-76ef-587d-b748-b489fd09fe90].fields.CachedTaskUUID"
       ]
     },
     {
@@ -40281,7 +40281,7 @@
       "source": "mlmd.execution_properties[218].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.Fingerprint"
+        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -40307,7 +40307,7 @@
       "source": "mlmd.execution_properties[218].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.Fingerprint"
+        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.StatusMetadata.customProperties.legacy_cache_fingerprint"
       ]
     },
     {
@@ -40341,7 +40341,7 @@
       "source": "mlmd.execution_properties[219].name",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.StatusMetadata.customProperties.cached_task_id"
+        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.CachedTaskUUID"
       ]
     },
     {
@@ -40367,7 +40367,7 @@
       "source": "mlmd.execution_properties[219].string_value",
       "status": "mapped",
       "targets": [
-        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.StatusMetadata.customProperties.cached_task_id"
+        "expected.tasks[UUID=1866b144-f3cf-5c73-a38f-97d002629cca].fields.CachedTaskUUID"
       ]
     },
     {
@@ -47461,19 +47461,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[1].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=bf7da61f-a7e2-56d6-8a6f-c12ea7f18415].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[1].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=bf7da61f-a7e2-56d6-8a6f-c12ea7f18415].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=842f6a71-5251-5ce1-8d7e-7f1dd50cad48].fields.ArtifactID"
       ]
     },
     {
@@ -47481,7 +47479,7 @@
       "source": "mlmd.events[1].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=bf7da61f-a7e2-56d6-8a6f-c12ea7f18415].fields.TaskID"
+        "expected.artifact_tasks[UUID=842f6a71-5251-5ce1-8d7e-7f1dd50cad48].fields.TaskID"
       ]
     },
     {
@@ -47489,7 +47487,7 @@
       "source": "mlmd.events[1].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=bf7da61f-a7e2-56d6-8a6f-c12ea7f18415].fields.Type"
+        "expected.artifact_tasks[UUID=842f6a71-5251-5ce1-8d7e-7f1dd50cad48].fields.Type"
       ]
     },
     {
@@ -47499,19 +47497,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[10].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=f6f0acbf-490f-5786-8198-c18ac27a0698].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[10].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=f6f0acbf-490f-5786-8198-c18ac27a0698].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=9910138c-b087-55c5-9fd9-755bc46dcd20].fields.ArtifactID"
       ]
     },
     {
@@ -47519,7 +47515,7 @@
       "source": "mlmd.events[10].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=f6f0acbf-490f-5786-8198-c18ac27a0698].fields.TaskID"
+        "expected.artifact_tasks[UUID=9910138c-b087-55c5-9fd9-755bc46dcd20].fields.TaskID"
       ]
     },
     {
@@ -47527,7 +47523,7 @@
       "source": "mlmd.events[10].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=f6f0acbf-490f-5786-8198-c18ac27a0698].fields.Type"
+        "expected.artifact_tasks[UUID=9910138c-b087-55c5-9fd9-755bc46dcd20].fields.Type"
       ]
     },
     {
@@ -47537,19 +47533,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[1000].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=22655fc8-99ca-5e13-a055-d6ebc9d345bd].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[1000].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=22655fc8-99ca-5e13-a055-d6ebc9d345bd].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=867959f7-b5e2-584b-8d67-8da8739fb9e1].fields.ArtifactID"
       ]
     },
     {
@@ -47557,7 +47551,7 @@
       "source": "mlmd.events[1000].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=22655fc8-99ca-5e13-a055-d6ebc9d345bd].fields.TaskID"
+        "expected.artifact_tasks[UUID=867959f7-b5e2-584b-8d67-8da8739fb9e1].fields.TaskID"
       ]
     },
     {
@@ -47565,7 +47559,7 @@
       "source": "mlmd.events[1000].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=22655fc8-99ca-5e13-a055-d6ebc9d345bd].fields.Type"
+        "expected.artifact_tasks[UUID=867959f7-b5e2-584b-8d67-8da8739fb9e1].fields.Type"
       ]
     },
     {
@@ -47575,19 +47569,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[1001].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=8066100a-e1b5-5e62-86c8-1ab4305dcf0b].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[1001].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=8066100a-e1b5-5e62-86c8-1ab4305dcf0b].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=2177abf2-5026-5afb-9b8d-99d7c75ab463].fields.ArtifactID"
       ]
     },
     {
@@ -47595,7 +47587,7 @@
       "source": "mlmd.events[1001].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=8066100a-e1b5-5e62-86c8-1ab4305dcf0b].fields.TaskID"
+        "expected.artifact_tasks[UUID=2177abf2-5026-5afb-9b8d-99d7c75ab463].fields.TaskID"
       ]
     },
     {
@@ -47603,7 +47595,7 @@
       "source": "mlmd.events[1001].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=8066100a-e1b5-5e62-86c8-1ab4305dcf0b].fields.Type"
+        "expected.artifact_tasks[UUID=2177abf2-5026-5afb-9b8d-99d7c75ab463].fields.Type"
       ]
     },
     {
@@ -47613,19 +47605,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[1002].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=441a7ece-28f7-5cbc-b5a1-77befdedae6a].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[1002].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=441a7ece-28f7-5cbc-b5a1-77befdedae6a].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=1a47a70b-4048-507e-b9ac-93fcd490de13].fields.ArtifactID"
       ]
     },
     {
@@ -47633,7 +47623,7 @@
       "source": "mlmd.events[1002].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=441a7ece-28f7-5cbc-b5a1-77befdedae6a].fields.TaskID"
+        "expected.artifact_tasks[UUID=1a47a70b-4048-507e-b9ac-93fcd490de13].fields.TaskID"
       ]
     },
     {
@@ -47641,7 +47631,7 @@
       "source": "mlmd.events[1002].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=441a7ece-28f7-5cbc-b5a1-77befdedae6a].fields.Type"
+        "expected.artifact_tasks[UUID=1a47a70b-4048-507e-b9ac-93fcd490de13].fields.Type"
       ]
     },
     {
@@ -47651,19 +47641,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[1003].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=162627f2-6f7e-5397-9254-6b8fa55f8bb1].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[1003].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=162627f2-6f7e-5397-9254-6b8fa55f8bb1].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=311fa699-7ac1-5310-92f7-baf17b4e22c3].fields.ArtifactID"
       ]
     },
     {
@@ -47671,7 +47659,7 @@
       "source": "mlmd.events[1003].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=162627f2-6f7e-5397-9254-6b8fa55f8bb1].fields.TaskID"
+        "expected.artifact_tasks[UUID=311fa699-7ac1-5310-92f7-baf17b4e22c3].fields.TaskID"
       ]
     },
     {
@@ -47679,7 +47667,7 @@
       "source": "mlmd.events[1003].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=162627f2-6f7e-5397-9254-6b8fa55f8bb1].fields.Type"
+        "expected.artifact_tasks[UUID=311fa699-7ac1-5310-92f7-baf17b4e22c3].fields.Type"
       ]
     },
     {
@@ -47689,19 +47677,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[11].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=84860267-f0a2-5d8e-9e45-f26d3604dbe1].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[11].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=84860267-f0a2-5d8e-9e45-f26d3604dbe1].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=d4cf7985-85b1-55a0-b877-f9569acb382e].fields.ArtifactID"
       ]
     },
     {
@@ -47709,7 +47695,7 @@
       "source": "mlmd.events[11].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=84860267-f0a2-5d8e-9e45-f26d3604dbe1].fields.TaskID"
+        "expected.artifact_tasks[UUID=d4cf7985-85b1-55a0-b877-f9569acb382e].fields.TaskID"
       ]
     },
     {
@@ -47717,7 +47703,7 @@
       "source": "mlmd.events[11].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=84860267-f0a2-5d8e-9e45-f26d3604dbe1].fields.Type"
+        "expected.artifact_tasks[UUID=d4cf7985-85b1-55a0-b877-f9569acb382e].fields.Type"
       ]
     },
     {
@@ -47727,19 +47713,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[12].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=fa7487d3-e398-57dc-a455-a0857ed4350b].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[12].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=fa7487d3-e398-57dc-a455-a0857ed4350b].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=dbf2cc48-b125-58df-85c7-ebe7647ebc3c].fields.ArtifactID"
       ]
     },
     {
@@ -47747,7 +47731,7 @@
       "source": "mlmd.events[12].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=fa7487d3-e398-57dc-a455-a0857ed4350b].fields.TaskID"
+        "expected.artifact_tasks[UUID=dbf2cc48-b125-58df-85c7-ebe7647ebc3c].fields.TaskID"
       ]
     },
     {
@@ -47755,7 +47739,7 @@
       "source": "mlmd.events[12].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=fa7487d3-e398-57dc-a455-a0857ed4350b].fields.Type"
+        "expected.artifact_tasks[UUID=dbf2cc48-b125-58df-85c7-ebe7647ebc3c].fields.Type"
       ]
     },
     {
@@ -47765,19 +47749,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[13].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=be57b703-3b55-555d-9685-dceb45522d66].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[13].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=be57b703-3b55-555d-9685-dceb45522d66].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=1cb6dfb6-5ad3-5970-ab62-747372b84ea8].fields.ArtifactID"
       ]
     },
     {
@@ -47785,7 +47767,7 @@
       "source": "mlmd.events[13].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=be57b703-3b55-555d-9685-dceb45522d66].fields.TaskID"
+        "expected.artifact_tasks[UUID=1cb6dfb6-5ad3-5970-ab62-747372b84ea8].fields.TaskID"
       ]
     },
     {
@@ -47793,7 +47775,7 @@
       "source": "mlmd.events[13].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=be57b703-3b55-555d-9685-dceb45522d66].fields.Type"
+        "expected.artifact_tasks[UUID=1cb6dfb6-5ad3-5970-ab62-747372b84ea8].fields.Type"
       ]
     },
     {
@@ -47803,19 +47785,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[14].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=86f88d7b-84cc-588d-b225-e078c5318786].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[14].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=86f88d7b-84cc-588d-b225-e078c5318786].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=a71d69b1-460b-55b8-b7a6-e2197f562668].fields.ArtifactID"
       ]
     },
     {
@@ -47823,7 +47803,7 @@
       "source": "mlmd.events[14].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=86f88d7b-84cc-588d-b225-e078c5318786].fields.TaskID"
+        "expected.artifact_tasks[UUID=a71d69b1-460b-55b8-b7a6-e2197f562668].fields.TaskID"
       ]
     },
     {
@@ -47831,7 +47811,7 @@
       "source": "mlmd.events[14].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=86f88d7b-84cc-588d-b225-e078c5318786].fields.Type"
+        "expected.artifact_tasks[UUID=a71d69b1-460b-55b8-b7a6-e2197f562668].fields.Type"
       ]
     },
     {
@@ -47841,19 +47821,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[15].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=a486c834-526e-5ec9-843e-cfa8d0aca9d9].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[15].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a486c834-526e-5ec9-843e-cfa8d0aca9d9].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=6e35b883-42a8-520c-b22d-2f0eef767ee8].fields.ArtifactID"
       ]
     },
     {
@@ -47861,7 +47839,7 @@
       "source": "mlmd.events[15].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a486c834-526e-5ec9-843e-cfa8d0aca9d9].fields.TaskID"
+        "expected.artifact_tasks[UUID=6e35b883-42a8-520c-b22d-2f0eef767ee8].fields.TaskID"
       ]
     },
     {
@@ -47869,7 +47847,7 @@
       "source": "mlmd.events[15].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a486c834-526e-5ec9-843e-cfa8d0aca9d9].fields.Type"
+        "expected.artifact_tasks[UUID=6e35b883-42a8-520c-b22d-2f0eef767ee8].fields.Type"
       ]
     },
     {
@@ -47879,19 +47857,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[16].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=222de121-43bc-55e8-9e49-07625bb14b75].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[16].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=222de121-43bc-55e8-9e49-07625bb14b75].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=27faf2bd-f15d-5ed2-acdb-9f06b008c762].fields.ArtifactID"
       ]
     },
     {
@@ -47899,7 +47875,7 @@
       "source": "mlmd.events[16].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=222de121-43bc-55e8-9e49-07625bb14b75].fields.TaskID"
+        "expected.artifact_tasks[UUID=27faf2bd-f15d-5ed2-acdb-9f06b008c762].fields.TaskID"
       ]
     },
     {
@@ -47907,7 +47883,7 @@
       "source": "mlmd.events[16].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=222de121-43bc-55e8-9e49-07625bb14b75].fields.Type"
+        "expected.artifact_tasks[UUID=27faf2bd-f15d-5ed2-acdb-9f06b008c762].fields.Type"
       ]
     },
     {
@@ -47917,19 +47893,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[17].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=93bb7106-6f91-57c9-a827-814f157b4e63].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[17].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=93bb7106-6f91-57c9-a827-814f157b4e63].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=3352bb11-7deb-5384-8855-9bb1de4233ab].fields.ArtifactID"
       ]
     },
     {
@@ -47937,7 +47911,7 @@
       "source": "mlmd.events[17].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=93bb7106-6f91-57c9-a827-814f157b4e63].fields.TaskID"
+        "expected.artifact_tasks[UUID=3352bb11-7deb-5384-8855-9bb1de4233ab].fields.TaskID"
       ]
     },
     {
@@ -47945,7 +47919,7 @@
       "source": "mlmd.events[17].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=93bb7106-6f91-57c9-a827-814f157b4e63].fields.Type"
+        "expected.artifact_tasks[UUID=3352bb11-7deb-5384-8855-9bb1de4233ab].fields.Type"
       ]
     },
     {
@@ -47955,19 +47929,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[18].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=2a894ad8-5d46-50e7-b133-319fae35fc15].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[18].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2a894ad8-5d46-50e7-b133-319fae35fc15].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=e8986f45-6da5-547d-8b50-8d54dec51773].fields.ArtifactID"
       ]
     },
     {
@@ -47975,7 +47947,7 @@
       "source": "mlmd.events[18].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2a894ad8-5d46-50e7-b133-319fae35fc15].fields.TaskID"
+        "expected.artifact_tasks[UUID=e8986f45-6da5-547d-8b50-8d54dec51773].fields.TaskID"
       ]
     },
     {
@@ -47983,7 +47955,7 @@
       "source": "mlmd.events[18].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2a894ad8-5d46-50e7-b133-319fae35fc15].fields.Type"
+        "expected.artifact_tasks[UUID=e8986f45-6da5-547d-8b50-8d54dec51773].fields.Type"
       ]
     },
     {
@@ -47993,19 +47965,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[19].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=1f94579b-a019-525b-b9fd-fa7892ce8b0f].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[19].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1f94579b-a019-525b-b9fd-fa7892ce8b0f].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=f8ca7268-c817-522d-86e2-b33830e4fd81].fields.ArtifactID"
       ]
     },
     {
@@ -48013,7 +47983,7 @@
       "source": "mlmd.events[19].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1f94579b-a019-525b-b9fd-fa7892ce8b0f].fields.TaskID"
+        "expected.artifact_tasks[UUID=f8ca7268-c817-522d-86e2-b33830e4fd81].fields.TaskID"
       ]
     },
     {
@@ -48021,7 +47991,7 @@
       "source": "mlmd.events[19].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1f94579b-a019-525b-b9fd-fa7892ce8b0f].fields.Type"
+        "expected.artifact_tasks[UUID=f8ca7268-c817-522d-86e2-b33830e4fd81].fields.Type"
       ]
     },
     {
@@ -48031,19 +48001,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[2].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=ce755f09-4bb3-5e20-8cd1-52cbc479635e].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[2].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=ce755f09-4bb3-5e20-8cd1-52cbc479635e].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=057bceb5-702d-5d90-b677-642cf8d123dc].fields.ArtifactID"
       ]
     },
     {
@@ -48051,7 +48019,7 @@
       "source": "mlmd.events[2].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=ce755f09-4bb3-5e20-8cd1-52cbc479635e].fields.TaskID"
+        "expected.artifact_tasks[UUID=057bceb5-702d-5d90-b677-642cf8d123dc].fields.TaskID"
       ]
     },
     {
@@ -48059,7 +48027,7 @@
       "source": "mlmd.events[2].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=ce755f09-4bb3-5e20-8cd1-52cbc479635e].fields.Type"
+        "expected.artifact_tasks[UUID=057bceb5-702d-5d90-b677-642cf8d123dc].fields.Type"
       ]
     },
     {
@@ -48069,19 +48037,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[20].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=0ccbe912-ece2-500b-b6a2-1e57f36abfd7].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[20].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=0ccbe912-ece2-500b-b6a2-1e57f36abfd7].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=a1576e0b-fd84-59f9-bd5b-6d1a68b71e14].fields.ArtifactID"
       ]
     },
     {
@@ -48089,7 +48055,7 @@
       "source": "mlmd.events[20].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=0ccbe912-ece2-500b-b6a2-1e57f36abfd7].fields.TaskID"
+        "expected.artifact_tasks[UUID=a1576e0b-fd84-59f9-bd5b-6d1a68b71e14].fields.TaskID"
       ]
     },
     {
@@ -48097,7 +48063,7 @@
       "source": "mlmd.events[20].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=0ccbe912-ece2-500b-b6a2-1e57f36abfd7].fields.Type"
+        "expected.artifact_tasks[UUID=a1576e0b-fd84-59f9-bd5b-6d1a68b71e14].fields.Type"
       ]
     },
     {
@@ -48107,19 +48073,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[21].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=baad97bd-4d59-507b-a77c-1a7272966e3e].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[21].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=baad97bd-4d59-507b-a77c-1a7272966e3e].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1].fields.ArtifactID"
       ]
     },
     {
@@ -48127,7 +48091,7 @@
       "source": "mlmd.events[21].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=baad97bd-4d59-507b-a77c-1a7272966e3e].fields.TaskID"
+        "expected.artifact_tasks[UUID=fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1].fields.TaskID"
       ]
     },
     {
@@ -48135,7 +48099,7 @@
       "source": "mlmd.events[21].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=baad97bd-4d59-507b-a77c-1a7272966e3e].fields.Type"
+        "expected.artifact_tasks[UUID=fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1].fields.Type"
       ]
     },
     {
@@ -48145,19 +48109,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[22].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=1941dc15-6f01-5f22-bb13-aed75c18c267].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[22].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1941dc15-6f01-5f22-bb13-aed75c18c267].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3].fields.ArtifactID"
       ]
     },
     {
@@ -48165,7 +48127,7 @@
       "source": "mlmd.events[22].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1941dc15-6f01-5f22-bb13-aed75c18c267].fields.TaskID"
+        "expected.artifact_tasks[UUID=f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3].fields.TaskID"
       ]
     },
     {
@@ -48173,7 +48135,7 @@
       "source": "mlmd.events[22].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1941dc15-6f01-5f22-bb13-aed75c18c267].fields.Type"
+        "expected.artifact_tasks[UUID=f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3].fields.Type"
       ]
     },
     {
@@ -48183,19 +48145,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[3].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=6aa00e25-0846-525b-ad0e-16efdff7fc73].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[3].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=6aa00e25-0846-525b-ad0e-16efdff7fc73].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=d85dcbb2-4300-55e3-b50b-514be479144d].fields.ArtifactID"
       ]
     },
     {
@@ -48203,7 +48163,7 @@
       "source": "mlmd.events[3].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=6aa00e25-0846-525b-ad0e-16efdff7fc73].fields.TaskID"
+        "expected.artifact_tasks[UUID=d85dcbb2-4300-55e3-b50b-514be479144d].fields.TaskID"
       ]
     },
     {
@@ -48211,7 +48171,7 @@
       "source": "mlmd.events[3].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=6aa00e25-0846-525b-ad0e-16efdff7fc73].fields.Type"
+        "expected.artifact_tasks[UUID=d85dcbb2-4300-55e3-b50b-514be479144d].fields.Type"
       ]
     },
     {
@@ -48221,19 +48181,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[4].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=b5175d7e-d889-5608-904e-89c6acc43163].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[4].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b5175d7e-d889-5608-904e-89c6acc43163].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=780f08ab-31b9-5024-b153-a51fe28289f0].fields.ArtifactID"
       ]
     },
     {
@@ -48241,7 +48199,7 @@
       "source": "mlmd.events[4].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b5175d7e-d889-5608-904e-89c6acc43163].fields.TaskID"
+        "expected.artifact_tasks[UUID=780f08ab-31b9-5024-b153-a51fe28289f0].fields.TaskID"
       ]
     },
     {
@@ -48249,7 +48207,7 @@
       "source": "mlmd.events[4].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b5175d7e-d889-5608-904e-89c6acc43163].fields.Type"
+        "expected.artifact_tasks[UUID=780f08ab-31b9-5024-b153-a51fe28289f0].fields.Type"
       ]
     },
     {
@@ -48259,19 +48217,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[5].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[5].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=64ae7492-8d3c-5037-8728-cb53ad9c7f3d].fields.ArtifactID"
       ]
     },
     {
@@ -48279,7 +48235,7 @@
       "source": "mlmd.events[5].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce].fields.TaskID"
+        "expected.artifact_tasks[UUID=64ae7492-8d3c-5037-8728-cb53ad9c7f3d].fields.TaskID"
       ]
     },
     {
@@ -48287,7 +48243,7 @@
       "source": "mlmd.events[5].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce].fields.Type"
+        "expected.artifact_tasks[UUID=64ae7492-8d3c-5037-8728-cb53ad9c7f3d].fields.Type"
       ]
     },
     {
@@ -48297,19 +48253,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[6].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=1d00518a-7a34-5d83-acc4-e73bce902fb6].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[6].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1d00518a-7a34-5d83-acc4-e73bce902fb6].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=41feae29-718f-5096-b348-12ddef8dd75e].fields.ArtifactID"
       ]
     },
     {
@@ -48317,7 +48271,7 @@
       "source": "mlmd.events[6].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1d00518a-7a34-5d83-acc4-e73bce902fb6].fields.TaskID"
+        "expected.artifact_tasks[UUID=41feae29-718f-5096-b348-12ddef8dd75e].fields.TaskID"
       ]
     },
     {
@@ -48325,7 +48279,7 @@
       "source": "mlmd.events[6].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1d00518a-7a34-5d83-acc4-e73bce902fb6].fields.Type"
+        "expected.artifact_tasks[UUID=41feae29-718f-5096-b348-12ddef8dd75e].fields.Type"
       ]
     },
     {
@@ -48335,19 +48289,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[7].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[7].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=7eaa068b-bf21-5d5c-9864-bf372fed9439].fields.ArtifactID"
       ]
     },
     {
@@ -48355,7 +48307,7 @@
       "source": "mlmd.events[7].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8].fields.TaskID"
+        "expected.artifact_tasks[UUID=7eaa068b-bf21-5d5c-9864-bf372fed9439].fields.TaskID"
       ]
     },
     {
@@ -48363,7 +48315,7 @@
       "source": "mlmd.events[7].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8].fields.Type"
+        "expected.artifact_tasks[UUID=7eaa068b-bf21-5d5c-9864-bf372fed9439].fields.Type"
       ]
     },
     {
@@ -48373,19 +48325,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[8].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=2f35713a-5f4a-54cc-8862-9336dc22864c].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[8].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2f35713a-5f4a-54cc-8862-9336dc22864c].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=cf16fdf7-c593-5f84-9109-a929ad7a6af5].fields.ArtifactID"
       ]
     },
     {
@@ -48393,7 +48343,7 @@
       "source": "mlmd.events[8].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2f35713a-5f4a-54cc-8862-9336dc22864c].fields.TaskID"
+        "expected.artifact_tasks[UUID=cf16fdf7-c593-5f84-9109-a929ad7a6af5].fields.TaskID"
       ]
     },
     {
@@ -48401,7 +48351,7 @@
       "source": "mlmd.events[8].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2f35713a-5f4a-54cc-8862-9336dc22864c].fields.Type"
+        "expected.artifact_tasks[UUID=cf16fdf7-c593-5f84-9109-a929ad7a6af5].fields.Type"
       ]
     },
     {
@@ -48411,19 +48361,17 @@
       "targets": []
     },
     {
-      "reason": "",
+      "reason": "SQL event ID is available in the source backup",
       "source": "mlmd.events[9].id",
-      "status": "mapped",
-      "targets": [
-        "expected.artifact_tasks[UUID=972ad92a-fddc-5dcc-87f8-2e338612f73a].fields.UUID"
-      ]
+      "status": "lookup_only",
+      "targets": []
     },
     {
       "reason": "",
       "source": "mlmd.events[9].artifact_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=972ad92a-fddc-5dcc-87f8-2e338612f73a].fields.ArtifactID"
+        "expected.artifact_tasks[UUID=ff7320fe-acd2-5754-a7a8-433565ef003f].fields.ArtifactID"
       ]
     },
     {
@@ -48431,7 +48379,7 @@
       "source": "mlmd.events[9].execution_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=972ad92a-fddc-5dcc-87f8-2e338612f73a].fields.TaskID"
+        "expected.artifact_tasks[UUID=ff7320fe-acd2-5754-a7a8-433565ef003f].fields.TaskID"
       ]
     },
     {
@@ -48439,7 +48387,7 @@
       "source": "mlmd.events[9].type",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=972ad92a-fddc-5dcc-87f8-2e338612f73a].fields.Type"
+        "expected.artifact_tasks[UUID=ff7320fe-acd2-5754-a7a8-433565ef003f].fields.Type"
       ]
     },
     {
@@ -48453,7 +48401,7 @@
       "source": "mlmd.event_paths[0].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=bf7da61f-a7e2-56d6-8a6f-c12ea7f18415].source"
+        "expected.artifact_tasks[UUID=842f6a71-5251-5ce1-8d7e-7f1dd50cad48].source"
       ]
     },
     {
@@ -48473,7 +48421,7 @@
       "source": "mlmd.event_paths[0].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=bf7da61f-a7e2-56d6-8a6f-c12ea7f18415].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=842f6a71-5251-5ce1-8d7e-7f1dd50cad48].fields.ArtifactKey"
       ]
     },
     {
@@ -48481,7 +48429,7 @@
       "source": "mlmd.event_paths[1].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=f6f0acbf-490f-5786-8198-c18ac27a0698].source"
+        "expected.artifact_tasks[UUID=9910138c-b087-55c5-9fd9-755bc46dcd20].source"
       ]
     },
     {
@@ -48501,7 +48449,7 @@
       "source": "mlmd.event_paths[1].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=f6f0acbf-490f-5786-8198-c18ac27a0698].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=9910138c-b087-55c5-9fd9-755bc46dcd20].fields.ArtifactKey"
       ]
     },
     {
@@ -48509,7 +48457,7 @@
       "source": "mlmd.event_paths[2].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=22655fc8-99ca-5e13-a055-d6ebc9d345bd].source"
+        "expected.artifact_tasks[UUID=867959f7-b5e2-584b-8d67-8da8739fb9e1].source"
       ]
     },
     {
@@ -48529,7 +48477,7 @@
       "source": "mlmd.event_paths[2].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=22655fc8-99ca-5e13-a055-d6ebc9d345bd].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=867959f7-b5e2-584b-8d67-8da8739fb9e1].fields.ArtifactKey"
       ]
     },
     {
@@ -48537,7 +48485,7 @@
       "source": "mlmd.event_paths[3].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=8066100a-e1b5-5e62-86c8-1ab4305dcf0b].source"
+        "expected.artifact_tasks[UUID=2177abf2-5026-5afb-9b8d-99d7c75ab463].source"
       ]
     },
     {
@@ -48557,7 +48505,7 @@
       "source": "mlmd.event_paths[3].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=8066100a-e1b5-5e62-86c8-1ab4305dcf0b].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=2177abf2-5026-5afb-9b8d-99d7c75ab463].fields.ArtifactKey"
       ]
     },
     {
@@ -48565,7 +48513,7 @@
       "source": "mlmd.event_paths[4].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=441a7ece-28f7-5cbc-b5a1-77befdedae6a].source"
+        "expected.artifact_tasks[UUID=1a47a70b-4048-507e-b9ac-93fcd490de13].source"
       ]
     },
     {
@@ -48585,7 +48533,7 @@
       "source": "mlmd.event_paths[4].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=441a7ece-28f7-5cbc-b5a1-77befdedae6a].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=1a47a70b-4048-507e-b9ac-93fcd490de13].fields.ArtifactKey"
       ]
     },
     {
@@ -48593,7 +48541,7 @@
       "source": "mlmd.event_paths[5].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=162627f2-6f7e-5397-9254-6b8fa55f8bb1].source"
+        "expected.artifact_tasks[UUID=311fa699-7ac1-5310-92f7-baf17b4e22c3].source"
       ]
     },
     {
@@ -48613,7 +48561,7 @@
       "source": "mlmd.event_paths[5].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=162627f2-6f7e-5397-9254-6b8fa55f8bb1].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=311fa699-7ac1-5310-92f7-baf17b4e22c3].fields.ArtifactKey"
       ]
     },
     {
@@ -48621,7 +48569,7 @@
       "source": "mlmd.event_paths[6].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=84860267-f0a2-5d8e-9e45-f26d3604dbe1].source"
+        "expected.artifact_tasks[UUID=d4cf7985-85b1-55a0-b877-f9569acb382e].source"
       ]
     },
     {
@@ -48641,7 +48589,7 @@
       "source": "mlmd.event_paths[6].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=84860267-f0a2-5d8e-9e45-f26d3604dbe1].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=d4cf7985-85b1-55a0-b877-f9569acb382e].fields.ArtifactKey"
       ]
     },
     {
@@ -48649,7 +48597,7 @@
       "source": "mlmd.event_paths[7].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=fa7487d3-e398-57dc-a455-a0857ed4350b].source"
+        "expected.artifact_tasks[UUID=dbf2cc48-b125-58df-85c7-ebe7647ebc3c].source"
       ]
     },
     {
@@ -48669,7 +48617,7 @@
       "source": "mlmd.event_paths[7].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=fa7487d3-e398-57dc-a455-a0857ed4350b].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=dbf2cc48-b125-58df-85c7-ebe7647ebc3c].fields.ArtifactKey"
       ]
     },
     {
@@ -48677,7 +48625,7 @@
       "source": "mlmd.event_paths[8].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=be57b703-3b55-555d-9685-dceb45522d66].source"
+        "expected.artifact_tasks[UUID=1cb6dfb6-5ad3-5970-ab62-747372b84ea8].source"
       ]
     },
     {
@@ -48697,7 +48645,7 @@
       "source": "mlmd.event_paths[8].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=be57b703-3b55-555d-9685-dceb45522d66].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=1cb6dfb6-5ad3-5970-ab62-747372b84ea8].fields.ArtifactKey"
       ]
     },
     {
@@ -48705,7 +48653,7 @@
       "source": "mlmd.event_paths[9].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=86f88d7b-84cc-588d-b225-e078c5318786].source"
+        "expected.artifact_tasks[UUID=a71d69b1-460b-55b8-b7a6-e2197f562668].source"
       ]
     },
     {
@@ -48725,7 +48673,7 @@
       "source": "mlmd.event_paths[9].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=86f88d7b-84cc-588d-b225-e078c5318786].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=a71d69b1-460b-55b8-b7a6-e2197f562668].fields.ArtifactKey"
       ]
     },
     {
@@ -48733,7 +48681,7 @@
       "source": "mlmd.event_paths[10].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a486c834-526e-5ec9-843e-cfa8d0aca9d9].source"
+        "expected.artifact_tasks[UUID=6e35b883-42a8-520c-b22d-2f0eef767ee8].source"
       ]
     },
     {
@@ -48753,7 +48701,7 @@
       "source": "mlmd.event_paths[10].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a486c834-526e-5ec9-843e-cfa8d0aca9d9].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=6e35b883-42a8-520c-b22d-2f0eef767ee8].fields.ArtifactKey"
       ]
     },
     {
@@ -48761,7 +48709,7 @@
       "source": "mlmd.event_paths[11].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=222de121-43bc-55e8-9e49-07625bb14b75].source"
+        "expected.artifact_tasks[UUID=27faf2bd-f15d-5ed2-acdb-9f06b008c762].source"
       ]
     },
     {
@@ -48781,7 +48729,7 @@
       "source": "mlmd.event_paths[11].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=222de121-43bc-55e8-9e49-07625bb14b75].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=27faf2bd-f15d-5ed2-acdb-9f06b008c762].fields.ArtifactKey"
       ]
     },
     {
@@ -48789,7 +48737,7 @@
       "source": "mlmd.event_paths[12].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=93bb7106-6f91-57c9-a827-814f157b4e63].source"
+        "expected.artifact_tasks[UUID=3352bb11-7deb-5384-8855-9bb1de4233ab].source"
       ]
     },
     {
@@ -48809,7 +48757,7 @@
       "source": "mlmd.event_paths[12].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=93bb7106-6f91-57c9-a827-814f157b4e63].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=3352bb11-7deb-5384-8855-9bb1de4233ab].fields.ArtifactKey"
       ]
     },
     {
@@ -48817,7 +48765,7 @@
       "source": "mlmd.event_paths[13].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2a894ad8-5d46-50e7-b133-319fae35fc15].source"
+        "expected.artifact_tasks[UUID=e8986f45-6da5-547d-8b50-8d54dec51773].source"
       ]
     },
     {
@@ -48837,7 +48785,7 @@
       "source": "mlmd.event_paths[13].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2a894ad8-5d46-50e7-b133-319fae35fc15].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=e8986f45-6da5-547d-8b50-8d54dec51773].fields.ArtifactKey"
       ]
     },
     {
@@ -48845,7 +48793,7 @@
       "source": "mlmd.event_paths[14].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1f94579b-a019-525b-b9fd-fa7892ce8b0f].source"
+        "expected.artifact_tasks[UUID=f8ca7268-c817-522d-86e2-b33830e4fd81].source"
       ]
     },
     {
@@ -48865,7 +48813,7 @@
       "source": "mlmd.event_paths[14].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1f94579b-a019-525b-b9fd-fa7892ce8b0f].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=f8ca7268-c817-522d-86e2-b33830e4fd81].fields.ArtifactKey"
       ]
     },
     {
@@ -48873,7 +48821,7 @@
       "source": "mlmd.event_paths[15].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=ce755f09-4bb3-5e20-8cd1-52cbc479635e].source"
+        "expected.artifact_tasks[UUID=057bceb5-702d-5d90-b677-642cf8d123dc].source"
       ]
     },
     {
@@ -48893,7 +48841,7 @@
       "source": "mlmd.event_paths[15].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=ce755f09-4bb3-5e20-8cd1-52cbc479635e].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=057bceb5-702d-5d90-b677-642cf8d123dc].fields.ArtifactKey"
       ]
     },
     {
@@ -48901,7 +48849,7 @@
       "source": "mlmd.event_paths[16].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=0ccbe912-ece2-500b-b6a2-1e57f36abfd7].source"
+        "expected.artifact_tasks[UUID=a1576e0b-fd84-59f9-bd5b-6d1a68b71e14].source"
       ]
     },
     {
@@ -48921,7 +48869,7 @@
       "source": "mlmd.event_paths[16].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=0ccbe912-ece2-500b-b6a2-1e57f36abfd7].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=a1576e0b-fd84-59f9-bd5b-6d1a68b71e14].fields.ArtifactKey"
       ]
     },
     {
@@ -48929,7 +48877,7 @@
       "source": "mlmd.event_paths[17].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=baad97bd-4d59-507b-a77c-1a7272966e3e].source"
+        "expected.artifact_tasks[UUID=fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1].source"
       ]
     },
     {
@@ -48949,7 +48897,7 @@
       "source": "mlmd.event_paths[17].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=baad97bd-4d59-507b-a77c-1a7272966e3e].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1].fields.ArtifactKey"
       ]
     },
     {
@@ -48957,7 +48905,7 @@
       "source": "mlmd.event_paths[18].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1941dc15-6f01-5f22-bb13-aed75c18c267].source"
+        "expected.artifact_tasks[UUID=f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3].source"
       ]
     },
     {
@@ -48977,7 +48925,7 @@
       "source": "mlmd.event_paths[18].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1941dc15-6f01-5f22-bb13-aed75c18c267].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3].fields.ArtifactKey"
       ]
     },
     {
@@ -48985,7 +48933,7 @@
       "source": "mlmd.event_paths[19].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=6aa00e25-0846-525b-ad0e-16efdff7fc73].source"
+        "expected.artifact_tasks[UUID=d85dcbb2-4300-55e3-b50b-514be479144d].source"
       ]
     },
     {
@@ -49005,7 +48953,7 @@
       "source": "mlmd.event_paths[19].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=6aa00e25-0846-525b-ad0e-16efdff7fc73].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=d85dcbb2-4300-55e3-b50b-514be479144d].fields.ArtifactKey"
       ]
     },
     {
@@ -49013,7 +48961,7 @@
       "source": "mlmd.event_paths[20].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b5175d7e-d889-5608-904e-89c6acc43163].source"
+        "expected.artifact_tasks[UUID=780f08ab-31b9-5024-b153-a51fe28289f0].source"
       ]
     },
     {
@@ -49033,7 +48981,7 @@
       "source": "mlmd.event_paths[20].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b5175d7e-d889-5608-904e-89c6acc43163].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=780f08ab-31b9-5024-b153-a51fe28289f0].fields.ArtifactKey"
       ]
     },
     {
@@ -49041,7 +48989,7 @@
       "source": "mlmd.event_paths[21].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce].source"
+        "expected.artifact_tasks[UUID=64ae7492-8d3c-5037-8728-cb53ad9c7f3d].source"
       ]
     },
     {
@@ -49061,7 +49009,7 @@
       "source": "mlmd.event_paths[21].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=64ae7492-8d3c-5037-8728-cb53ad9c7f3d].fields.ArtifactKey"
       ]
     },
     {
@@ -49069,7 +49017,7 @@
       "source": "mlmd.event_paths[22].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1d00518a-7a34-5d83-acc4-e73bce902fb6].source"
+        "expected.artifact_tasks[UUID=41feae29-718f-5096-b348-12ddef8dd75e].source"
       ]
     },
     {
@@ -49089,7 +49037,7 @@
       "source": "mlmd.event_paths[22].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=1d00518a-7a34-5d83-acc4-e73bce902fb6].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=41feae29-718f-5096-b348-12ddef8dd75e].fields.ArtifactKey"
       ]
     },
     {
@@ -49097,7 +49045,7 @@
       "source": "mlmd.event_paths[23].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8].source"
+        "expected.artifact_tasks[UUID=7eaa068b-bf21-5d5c-9864-bf372fed9439].source"
       ]
     },
     {
@@ -49117,7 +49065,7 @@
       "source": "mlmd.event_paths[23].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=7eaa068b-bf21-5d5c-9864-bf372fed9439].fields.ArtifactKey"
       ]
     },
     {
@@ -49125,7 +49073,7 @@
       "source": "mlmd.event_paths[24].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2f35713a-5f4a-54cc-8862-9336dc22864c].source"
+        "expected.artifact_tasks[UUID=cf16fdf7-c593-5f84-9109-a929ad7a6af5].source"
       ]
     },
     {
@@ -49145,7 +49093,7 @@
       "source": "mlmd.event_paths[24].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=2f35713a-5f4a-54cc-8862-9336dc22864c].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=cf16fdf7-c593-5f84-9109-a929ad7a6af5].fields.ArtifactKey"
       ]
     },
     {
@@ -49153,7 +49101,7 @@
       "source": "mlmd.event_paths[25].event_id",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=972ad92a-fddc-5dcc-87f8-2e338612f73a].source"
+        "expected.artifact_tasks[UUID=ff7320fe-acd2-5754-a7a8-433565ef003f].source"
       ]
     },
     {
@@ -49173,7 +49121,7 @@
       "source": "mlmd.event_paths[25].step_key",
       "status": "mapped",
       "targets": [
-        "expected.artifact_tasks[UUID=972ad92a-fddc-5dcc-87f8-2e338612f73a].fields.ArtifactKey"
+        "expected.artifact_tasks[UUID=ff7320fe-acd2-5754-a7a8-433565ef003f].fields.ArtifactKey"
       ]
     },
     {
@@ -49350,315 +49298,341 @@
     "artifact_tasks": [
       {
         "fields": {
-          "ArtifactID": "bf5e8afc-f1fc-5ccd-9216-8e66b18f9fa0",
+          "ArtifactID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
           "ArtifactKey": "executor-logs",
-          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
-          "TaskID": "d7ea1d3f-78be-5e29-abee-d2b72a0e0b92",
+          "Iteration": -1,
+          "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
+          "TaskID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
           "Type": 9,
-          "UUID": "0ccbe912-ece2-500b-b6a2-1e57f36abfd7"
+          "UUID": "057bceb5-702d-5d90-b677-642cf8d123dc"
         },
-        "source": "mlmd.events[id=20]",
-        "target_uuid": "0ccbe912-ece2-500b-b6a2-1e57f36abfd7"
-      },
-      {
-        "fields": {
-          "ArtifactID": "99f53189-5a4a-58fc-aa61-8864c57a894f",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
-          "TaskID": "c498105d-7cf2-5ef9-bcc3-ae040a83c6a5",
-          "Type": 9,
-          "UUID": "162627f2-6f7e-5397-9254-6b8fa55f8bb1"
-        },
-        "source": "mlmd.events[id=1003]",
-        "target_uuid": "162627f2-6f7e-5397-9254-6b8fa55f8bb1"
-      },
-      {
-        "fields": {
-          "ArtifactID": "d22e345d-8635-50ec-9489-7190b73ae180",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
-          "TaskID": "d12bcf5b-0e3a-5d9b-8928-5fdb5d307126",
-          "Type": 9,
-          "UUID": "1941dc15-6f01-5f22-bb13-aed75c18c267"
-        },
-        "source": "mlmd.events[id=22]",
-        "target_uuid": "1941dc15-6f01-5f22-bb13-aed75c18c267"
-      },
-      {
-        "fields": {
-          "ArtifactID": "293403dd-0da1-58d9-920b-a3539bef4018",
-          "ArtifactKey": "metrics",
-          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
-          "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
-          "Type": 9,
-          "UUID": "1d00518a-7a34-5d83-acc4-e73bce902fb6"
-        },
-        "source": "mlmd.events[id=6]",
-        "target_uuid": "1d00518a-7a34-5d83-acc4-e73bce902fb6"
-      },
-      {
-        "fields": {
-          "ArtifactID": "a512bae6-07b6-5f2e-b960-d492bd102102",
-          "ArtifactKey": "artifact",
-          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
-          "TaskID": "e3becb00-c043-515e-a6b2-2f4ca3712aeb",
-          "Type": 9,
-          "UUID": "1f94579b-a019-525b-b9fd-fa7892ce8b0f"
-        },
-        "source": "mlmd.events[id=19]",
-        "target_uuid": "1f94579b-a019-525b-b9fd-fa7892ce8b0f"
-      },
-      {
-        "fields": {
-          "ArtifactID": "950547c9-d359-5d05-8c76-017935cd415f",
-          "ArtifactKey": "dataset",
-          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
-          "TaskID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
-          "Type": 9,
-          "UUID": "222de121-43bc-55e8-9e49-07625bb14b75"
-        },
-        "source": "mlmd.events[id=16]",
-        "target_uuid": "222de121-43bc-55e8-9e49-07625bb14b75"
-      },
-      {
-        "fields": {
-          "ArtifactID": "d3bd8282-4cd3-5db2-81ff-6e1959517143",
-          "ArtifactKey": "metrics",
-          "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
-          "TaskID": "e819bc1e-0274-5dc4-8fd9-a2f499798817",
-          "Type": 9,
-          "UUID": "22655fc8-99ca-5e13-a055-d6ebc9d345bd"
-        },
-        "source": "mlmd.events[id=1000]",
-        "target_uuid": "22655fc8-99ca-5e13-a055-d6ebc9d345bd"
-      },
-      {
-        "fields": {
-          "ArtifactID": "ef3c3791-4ac9-5241-b84d-dae9b98a34c8",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "21d4060a-ea3b-4871-9927-1a3da694fbc8",
-          "TaskID": "50c36f8f-7c03-50f1-bce1-c114870d2a8d",
-          "Type": 9,
-          "UUID": "2a894ad8-5d46-50e7-b133-319fae35fc15"
-        },
-        "source": "mlmd.events[id=18]",
-        "target_uuid": "2a894ad8-5d46-50e7-b133-319fae35fc15"
-      },
-      {
-        "fields": {
-          "ArtifactID": "aa95be70-c1dd-5ac2-b814-0d719478c7b2",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
-          "TaskID": "1866b144-f3cf-5c73-a38f-97d002629cca",
-          "Type": 9,
-          "UUID": "2f35713a-5f4a-54cc-8862-9336dc22864c"
-        },
-        "source": "mlmd.events[id=8]",
-        "target_uuid": "2f35713a-5f4a-54cc-8862-9336dc22864c"
+        "source": "mlmd.events[id=2]",
+        "target_uuid": "057bceb5-702d-5d90-b677-642cf8d123dc"
       },
       {
         "fields": {
           "ArtifactID": "fb5480e4-498f-5a08-a850-572296614222",
           "ArtifactKey": "executor-logs",
+          "Iteration": -1,
           "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
           "TaskID": "e819bc1e-0274-5dc4-8fd9-a2f499798817",
           "Type": 9,
-          "UUID": "441a7ece-28f7-5cbc-b5a1-77befdedae6a"
+          "UUID": "1a47a70b-4048-507e-b9ac-93fcd490de13"
         },
         "source": "mlmd.events[id=1002]",
-        "target_uuid": "441a7ece-28f7-5cbc-b5a1-77befdedae6a"
-      },
-      {
-        "fields": {
-          "ArtifactID": "293403dd-0da1-58d9-920b-a3539bef4018",
-          "ArtifactKey": "metrics",
-          "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
-          "TaskID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
-          "Type": 9,
-          "UUID": "6aa00e25-0846-525b-ad0e-16efdff7fc73"
-        },
-        "source": "mlmd.events[id=3]",
-        "target_uuid": "6aa00e25-0846-525b-ad0e-16efdff7fc73"
-      },
-      {
-        "fields": {
-          "ArtifactID": "f8157217-356e-596f-9585-9251787714d7",
-          "ArtifactKey": "dataset",
-          "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
-          "TaskID": "e819bc1e-0274-5dc4-8fd9-a2f499798817",
-          "Type": 9,
-          "UUID": "8066100a-e1b5-5e62-86c8-1ab4305dcf0b"
-        },
-        "source": "mlmd.events[id=1001]",
-        "target_uuid": "8066100a-e1b5-5e62-86c8-1ab4305dcf0b"
-      },
-      {
-        "fields": {
-          "ArtifactID": "77447452-30fa-5967-b0a6-fa0269f1c28f",
-          "ArtifactKey": "metrics",
-          "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
-          "TaskID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
-          "Type": 9,
-          "UUID": "84860267-f0a2-5d8e-9e45-f26d3604dbe1"
-        },
-        "source": "mlmd.events[id=11]",
-        "target_uuid": "84860267-f0a2-5d8e-9e45-f26d3604dbe1"
-      },
-      {
-        "fields": {
-          "ArtifactID": "212567bd-031c-5749-8e9b-6e52af127e1e",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
-          "TaskID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
-          "Type": 9,
-          "UUID": "86f88d7b-84cc-588d-b225-e078c5318786"
-        },
-        "source": "mlmd.events[id=14]",
-        "target_uuid": "86f88d7b-84cc-588d-b225-e078c5318786"
-      },
-      {
-        "fields": {
-          "ArtifactID": "9aafec59-c4ae-5c18-ad88-a72a9a73f434",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
-          "TaskID": "e94aacfe-4c2a-5207-b7e7-fd4567142728",
-          "Type": 9,
-          "UUID": "93bb7106-6f91-57c9-a827-814f157b4e63"
-        },
-        "source": "mlmd.events[id=17]",
-        "target_uuid": "93bb7106-6f91-57c9-a827-814f157b4e63"
-      },
-      {
-        "fields": {
-          "ArtifactID": "057a7c8e-ab63-53f2-9ba4-3342ab18da80",
-          "ArtifactKey": "dataset",
-          "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
-          "TaskID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
-          "Type": 9,
-          "UUID": "972ad92a-fddc-5dcc-87f8-2e338612f73a"
-        },
-        "source": "mlmd.events[id=9]",
-        "target_uuid": "972ad92a-fddc-5dcc-87f8-2e338612f73a"
-      },
-      {
-        "fields": {
-          "ArtifactID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
-          "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
-          "Type": 9,
-          "UUID": "a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8"
-        },
-        "source": "mlmd.events[id=7]",
-        "target_uuid": "a2ad2f6c-4b7a-5bbd-87e1-79a2ca51d7e8"
-      },
-      {
-        "fields": {
-          "ArtifactID": "80c3b5a7-a897-5f51-bce5-d96151df0ed3",
-          "ArtifactKey": "metrics",
-          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
-          "TaskID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
-          "Type": 9,
-          "UUID": "a486c834-526e-5ec9-843e-cfa8d0aca9d9"
-        },
-        "source": "mlmd.events[id=15]",
-        "target_uuid": "a486c834-526e-5ec9-843e-cfa8d0aca9d9"
-      },
-      {
-        "fields": {
-          "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
-          "ArtifactKey": "dataset",
-          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
-          "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
-          "Type": 9,
-          "UUID": "b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce"
-        },
-        "source": "mlmd.events[id=5]",
-        "target_uuid": "b1dd64bc-a572-5c5a-9f4d-3f9e5650b9ce"
-      },
-      {
-        "fields": {
-          "ArtifactID": "aa95be70-c1dd-5ac2-b814-0d719478c7b2",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
-          "TaskID": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33",
-          "Type": 9,
-          "UUID": "b5175d7e-d889-5608-904e-89c6acc43163"
-        },
-        "source": "mlmd.events[id=4]",
-        "target_uuid": "b5175d7e-d889-5608-904e-89c6acc43163"
-      },
-      {
-        "fields": {
-          "ArtifactID": "f6d50e83-baf5-58c7-97c4-a0eaf17169f5",
-          "ArtifactKey": "executor-logs",
-          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
-          "TaskID": "b1c445dd-1acc-5c30-908d-2ff56e63812b",
-          "Type": 9,
-          "UUID": "baad97bd-4d59-507b-a77c-1a7272966e3e"
-        },
-        "source": "mlmd.events[id=21]",
-        "target_uuid": "baad97bd-4d59-507b-a77c-1a7272966e3e"
+        "target_uuid": "1a47a70b-4048-507e-b9ac-93fcd490de13"
       },
       {
         "fields": {
           "ArtifactID": "02eb7193-b031-5e4a-bd09-a55639ff21f0",
           "ArtifactKey": "executor-logs",
+          "Iteration": -1,
           "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
           "TaskID": "570c46bb-59dc-5877-898e-a2beae1622cf",
           "Type": 9,
-          "UUID": "be57b703-3b55-555d-9685-dceb45522d66"
+          "UUID": "1cb6dfb6-5ad3-5970-ab62-747372b84ea8"
         },
         "source": "mlmd.events[id=13]",
-        "target_uuid": "be57b703-3b55-555d-9685-dceb45522d66"
+        "target_uuid": "1cb6dfb6-5ad3-5970-ab62-747372b84ea8"
+      },
+      {
+        "fields": {
+          "ArtifactID": "f8157217-356e-596f-9585-9251787714d7",
+          "ArtifactKey": "dataset",
+          "Iteration": -1,
+          "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
+          "TaskID": "e819bc1e-0274-5dc4-8fd9-a2f499798817",
+          "Type": 9,
+          "UUID": "2177abf2-5026-5afb-9b8d-99d7c75ab463"
+        },
+        "source": "mlmd.events[id=1001]",
+        "target_uuid": "2177abf2-5026-5afb-9b8d-99d7c75ab463"
+      },
+      {
+        "fields": {
+          "ArtifactID": "950547c9-d359-5d05-8c76-017935cd415f",
+          "ArtifactKey": "dataset",
+          "Iteration": -1,
+          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
+          "TaskID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
+          "Type": 9,
+          "UUID": "27faf2bd-f15d-5ed2-acdb-9f06b008c762"
+        },
+        "source": "mlmd.events[id=16]",
+        "target_uuid": "27faf2bd-f15d-5ed2-acdb-9f06b008c762"
+      },
+      {
+        "fields": {
+          "ArtifactID": "99f53189-5a4a-58fc-aa61-8864c57a894f",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
+          "TaskID": "c498105d-7cf2-5ef9-bcc3-ae040a83c6a5",
+          "Type": 9,
+          "UUID": "311fa699-7ac1-5310-92f7-baf17b4e22c3"
+        },
+        "source": "mlmd.events[id=1003]",
+        "target_uuid": "311fa699-7ac1-5310-92f7-baf17b4e22c3"
+      },
+      {
+        "fields": {
+          "ArtifactID": "9aafec59-c4ae-5c18-ad88-a72a9a73f434",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
+          "TaskID": "e94aacfe-4c2a-5207-b7e7-fd4567142728",
+          "Type": 9,
+          "UUID": "3352bb11-7deb-5384-8855-9bb1de4233ab"
+        },
+        "source": "mlmd.events[id=17]",
+        "target_uuid": "3352bb11-7deb-5384-8855-9bb1de4233ab"
+      },
+      {
+        "fields": {
+          "ArtifactID": "293403dd-0da1-58d9-920b-a3539bef4018",
+          "ArtifactKey": "metrics",
+          "Iteration": -1,
+          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
+          "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+          "Type": 9,
+          "UUID": "41feae29-718f-5096-b348-12ddef8dd75e"
+        },
+        "source": "mlmd.events[id=6]",
+        "target_uuid": "41feae29-718f-5096-b348-12ddef8dd75e"
       },
       {
         "fields": {
           "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
           "ArtifactKey": "dataset",
-          "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
-          "TaskID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
+          "Iteration": -1,
+          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
+          "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
           "Type": 9,
-          "UUID": "bf7da61f-a7e2-56d6-8a6f-c12ea7f18415"
+          "UUID": "64ae7492-8d3c-5037-8728-cb53ad9c7f3d"
         },
-        "source": "mlmd.events[id=1]",
-        "target_uuid": "bf7da61f-a7e2-56d6-8a6f-c12ea7f18415"
+        "source": "mlmd.events[id=5]",
+        "target_uuid": "64ae7492-8d3c-5037-8728-cb53ad9c7f3d"
+      },
+      {
+        "fields": {
+          "ArtifactID": "80c3b5a7-a897-5f51-bce5-d96151df0ed3",
+          "ArtifactKey": "metrics",
+          "Iteration": -1,
+          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
+          "TaskID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
+          "Type": 9,
+          "UUID": "6e35b883-42a8-520c-b22d-2f0eef767ee8"
+        },
+        "source": "mlmd.events[id=15]",
+        "target_uuid": "6e35b883-42a8-520c-b22d-2f0eef767ee8"
+      },
+      {
+        "fields": {
+          "ArtifactID": "aa95be70-c1dd-5ac2-b814-0d719478c7b2",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
+          "TaskID": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33",
+          "Type": 9,
+          "UUID": "780f08ab-31b9-5024-b153-a51fe28289f0"
+        },
+        "source": "mlmd.events[id=4]",
+        "target_uuid": "780f08ab-31b9-5024-b153-a51fe28289f0"
       },
       {
         "fields": {
           "ArtifactID": "ebcbbc82-99f9-56af-ab54-6df0cd3b0608",
           "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
+          "TaskID": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+          "Type": 9,
+          "UUID": "7eaa068b-bf21-5d5c-9864-bf372fed9439"
+        },
+        "source": "mlmd.events[id=7]",
+        "target_uuid": "7eaa068b-bf21-5d5c-9864-bf372fed9439"
+      },
+      {
+        "fields": {
+          "ArtifactID": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd",
+          "ArtifactKey": "dataset",
+          "Iteration": -1,
           "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
           "TaskID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
           "Type": 9,
-          "UUID": "ce755f09-4bb3-5e20-8cd1-52cbc479635e"
+          "UUID": "842f6a71-5251-5ce1-8d7e-7f1dd50cad48"
         },
-        "source": "mlmd.events[id=2]",
-        "target_uuid": "ce755f09-4bb3-5e20-8cd1-52cbc479635e"
+        "source": "mlmd.events[id=1]",
+        "target_uuid": "842f6a71-5251-5ce1-8d7e-7f1dd50cad48"
+      },
+      {
+        "fields": {
+          "ArtifactID": "d3bd8282-4cd3-5db2-81ff-6e1959517143",
+          "ArtifactKey": "metrics",
+          "Iteration": -1,
+          "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
+          "TaskID": "e819bc1e-0274-5dc4-8fd9-a2f499798817",
+          "Type": 9,
+          "UUID": "867959f7-b5e2-584b-8d67-8da8739fb9e1"
+        },
+        "source": "mlmd.events[id=1000]",
+        "target_uuid": "867959f7-b5e2-584b-8d67-8da8739fb9e1"
       },
       {
         "fields": {
           "ArtifactID": "5c95098f-946b-5f11-83d1-ea1fc346ecd9",
           "ArtifactKey": "executor-logs",
+          "Iteration": -1,
           "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
           "TaskID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
           "Type": 9,
-          "UUID": "f6f0acbf-490f-5786-8198-c18ac27a0698"
+          "UUID": "9910138c-b087-55c5-9fd9-755bc46dcd20"
         },
         "source": "mlmd.events[id=10]",
-        "target_uuid": "f6f0acbf-490f-5786-8198-c18ac27a0698"
+        "target_uuid": "9910138c-b087-55c5-9fd9-755bc46dcd20"
+      },
+      {
+        "fields": {
+          "ArtifactID": "bf5e8afc-f1fc-5ccd-9216-8e66b18f9fa0",
+          "ArtifactKey": "executor-logs",
+          "Iteration": 0,
+          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
+          "TaskID": "d7ea1d3f-78be-5e29-abee-d2b72a0e0b92",
+          "Type": 9,
+          "UUID": "a1576e0b-fd84-59f9-bd5b-6d1a68b71e14"
+        },
+        "source": "mlmd.events[id=20]",
+        "target_uuid": "a1576e0b-fd84-59f9-bd5b-6d1a68b71e14"
+      },
+      {
+        "fields": {
+          "ArtifactID": "212567bd-031c-5749-8e9b-6e52af127e1e",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
+          "TaskID": "07d71166-b77e-50a0-880e-2ee731a8f6cf",
+          "Type": 9,
+          "UUID": "a71d69b1-460b-55b8-b7a6-e2197f562668"
+        },
+        "source": "mlmd.events[id=14]",
+        "target_uuid": "a71d69b1-460b-55b8-b7a6-e2197f562668"
+      },
+      {
+        "fields": {
+          "ArtifactID": "aa95be70-c1dd-5ac2-b814-0d719478c7b2",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "ee5ca2c7-c11c-4487-af54-ec8c61a75237",
+          "TaskID": "1866b144-f3cf-5c73-a38f-97d002629cca",
+          "Type": 9,
+          "UUID": "cf16fdf7-c593-5f84-9109-a929ad7a6af5"
+        },
+        "source": "mlmd.events[id=8]",
+        "target_uuid": "cf16fdf7-c593-5f84-9109-a929ad7a6af5"
+      },
+      {
+        "fields": {
+          "ArtifactID": "77447452-30fa-5967-b0a6-fa0269f1c28f",
+          "ArtifactKey": "metrics",
+          "Iteration": -1,
+          "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
+          "TaskID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
+          "Type": 9,
+          "UUID": "d4cf7985-85b1-55a0-b877-f9569acb382e"
+        },
+        "source": "mlmd.events[id=11]",
+        "target_uuid": "d4cf7985-85b1-55a0-b877-f9569acb382e"
+      },
+      {
+        "fields": {
+          "ArtifactID": "293403dd-0da1-58d9-920b-a3539bef4018",
+          "ArtifactKey": "metrics",
+          "Iteration": -1,
+          "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
+          "TaskID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
+          "Type": 9,
+          "UUID": "d85dcbb2-4300-55e3-b50b-514be479144d"
+        },
+        "source": "mlmd.events[id=3]",
+        "target_uuid": "d85dcbb2-4300-55e3-b50b-514be479144d"
       },
       {
         "fields": {
           "ArtifactID": "2a43c672-15bd-5e38-9c59-19fb594e8c98",
           "ArtifactKey": "executor-logs",
+          "Iteration": -1,
           "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
           "TaskID": "da2d5baf-b047-519b-b208-f4dcae55ab1b",
           "Type": 9,
-          "UUID": "fa7487d3-e398-57dc-a455-a0857ed4350b"
+          "UUID": "dbf2cc48-b125-58df-85c7-ebe7647ebc3c"
         },
         "source": "mlmd.events[id=12]",
-        "target_uuid": "fa7487d3-e398-57dc-a455-a0857ed4350b"
+        "target_uuid": "dbf2cc48-b125-58df-85c7-ebe7647ebc3c"
+      },
+      {
+        "fields": {
+          "ArtifactID": "ef3c3791-4ac9-5241-b84d-dae9b98a34c8",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "21d4060a-ea3b-4871-9927-1a3da694fbc8",
+          "TaskID": "50c36f8f-7c03-50f1-bce1-c114870d2a8d",
+          "Type": 9,
+          "UUID": "e8986f45-6da5-547d-8b50-8d54dec51773"
+        },
+        "source": "mlmd.events[id=18]",
+        "target_uuid": "e8986f45-6da5-547d-8b50-8d54dec51773"
+      },
+      {
+        "fields": {
+          "ArtifactID": "d22e345d-8635-50ec-9489-7190b73ae180",
+          "ArtifactKey": "executor-logs",
+          "Iteration": -1,
+          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
+          "TaskID": "d12bcf5b-0e3a-5d9b-8928-5fdb5d307126",
+          "Type": 9,
+          "UUID": "f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3"
+        },
+        "source": "mlmd.events[id=22]",
+        "target_uuid": "f5d9b18d-9d77-52b9-93ec-f1a402b4e4d3"
+      },
+      {
+        "fields": {
+          "ArtifactID": "a512bae6-07b6-5f2e-b960-d492bd102102",
+          "ArtifactKey": "artifact",
+          "Iteration": -1,
+          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
+          "TaskID": "e3becb00-c043-515e-a6b2-2f4ca3712aeb",
+          "Type": 9,
+          "UUID": "f8ca7268-c817-522d-86e2-b33830e4fd81"
+        },
+        "source": "mlmd.events[id=19]",
+        "target_uuid": "f8ca7268-c817-522d-86e2-b33830e4fd81"
+      },
+      {
+        "fields": {
+          "ArtifactID": "f6d50e83-baf5-58c7-97c4-a0eaf17169f5",
+          "ArtifactKey": "executor-logs",
+          "Iteration": 1,
+          "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
+          "TaskID": "b1c445dd-1acc-5c30-908d-2ff56e63812b",
+          "Type": 9,
+          "UUID": "fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1"
+        },
+        "source": "mlmd.events[id=21]",
+        "target_uuid": "fcd8099c-863e-54fb-bbe2-46c7bc1f9ff1"
+      },
+      {
+        "fields": {
+          "ArtifactID": "057a7c8e-ab63-53f2-9ba4-3342ab18da80",
+          "ArtifactKey": "dataset",
+          "Iteration": -1,
+          "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
+          "TaskID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b",
+          "Type": 9,
+          "UUID": "ff7320fe-acd2-5754-a7a8-433565ef003f"
+        },
+        "source": "mlmd.events[id=9]",
+        "target_uuid": "ff7320fe-acd2-5754-a7a8-433565ef003f"
       }
     ],
     "artifacts": [
@@ -51549,6 +51523,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058932,
           "DisplayName": "release-218-source-inner",
           "Fingerprint": "",
@@ -51577,9 +51552,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058770,
           "DisplayName": "produce",
-          "Fingerprint": "69a99e853de1e8115ef25238e464cf751b2a6bbaad67068791b0e935e6ce2a61",
+          "Fingerprint": "",
           "FinishedInSec": 1795058783,
           "InputParameters": [
             {
@@ -51610,6 +51586,11 @@
           "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
           "StartedInSec": 1795058770,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "69a99e853de1e8115ef25238e464cf751b2a6bbaad67068791b0e935e6ce2a61"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "07d71166-b77e-50a0-880e-2ee731a8f6cf"
@@ -51620,9 +51601,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33",
           "CreatedAtInSec": 1795058646,
           "DisplayName": "consume",
-          "Fingerprint": "0fa991f3b1c584ab5cf392912c69fc5d7f7b6b33d660766aad794a95a451a85b",
+          "Fingerprint": "",
           "FinishedInSec": 0,
           "InputParameters": [
             {
@@ -51635,7 +51617,7 @@
             }
           ],
           "Name": "consume",
-          "Namespace": "",
+          "Namespace": "kubeflow",
           "OutputParameters": [
             {
               "parameterKey": "Output",
@@ -51653,7 +51635,7 @@
           "State": 5,
           "StatusMetadata": {
             "customProperties": {
-              "cached_task_id": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33"
+              "legacy_cache_fingerprint": "0fa991f3b1c584ab5cf392912c69fc5d7f7b6b33d660766aad794a95a451a85b"
             }
           },
           "Type": 2,
@@ -51666,6 +51648,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058636,
           "DisplayName": "condition-1",
           "Fingerprint": "",
@@ -51694,6 +51677,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058932,
           "DisplayName": "release-218-source-inner",
           "Fingerprint": "",
@@ -51722,6 +51706,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058747,
           "DisplayName": "",
           "Fingerprint": "",
@@ -51750,6 +51735,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058842,
           "DisplayName": "fail",
           "Fingerprint": "",
@@ -51777,6 +51763,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058901,
           "DisplayName": "exit-handler-1",
           "Fingerprint": "",
@@ -51799,9 +51786,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058777,
           "DisplayName": "consume-2",
-          "Fingerprint": "c8d17fcff256b01ea71e1106ef7a8ffbff7e0ed7a0441a83df088bfb16a4db85",
+          "Fingerprint": "",
           "FinishedInSec": 1795058782,
           "InputParameters": [
             {
@@ -51832,6 +51820,11 @@
           "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
           "StartedInSec": 1795058777,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "c8d17fcff256b01ea71e1106ef7a8ffbff7e0ed7a0441a83df088bfb16a4db85"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "570c46bb-59dc-5877-898e-a2beae1622cf"
@@ -51842,6 +51835,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058460,
           "DisplayName": "condition-1",
           "Fingerprint": "",
@@ -51870,6 +51864,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795059141,
           "DisplayName": "condition-1",
           "Fingerprint": "",
@@ -51898,6 +51893,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058447,
           "DisplayName": "",
           "Fingerprint": "",
@@ -51926,6 +51922,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058924,
           "DisplayName": "for-loop-3",
           "Fingerprint": "",
@@ -51960,9 +51957,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058954,
           "DisplayName": "consume",
-          "Fingerprint": "ac87e4dde8737df45b27ad0f80548799fc919aca2db56b2d3073f2a3856dddde",
+          "Fingerprint": "",
           "FinishedInSec": 1795058962,
           "InputParameters": [
             {
@@ -51993,6 +51991,11 @@
           "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
           "StartedInSec": 1795058954,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "ac87e4dde8737df45b27ad0f80548799fc919aca2db56b2d3073f2a3856dddde"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "b1c445dd-1acc-5c30-908d-2ff56e63812b"
@@ -52003,6 +52006,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058626,
           "DisplayName": "",
           "Fingerprint": "",
@@ -52031,6 +52035,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058661,
           "DisplayName": "",
           "Fingerprint": "",
@@ -52059,6 +52064,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058892,
           "DisplayName": "",
           "Fingerprint": "",
@@ -52080,9 +52086,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058522,
           "DisplayName": "produce",
-          "Fingerprint": "b15c15733246219f7863fd931320b493d35235f30c71f70b77d0263219bdc99d",
+          "Fingerprint": "",
           "FinishedInSec": 1795058527,
           "InputParameters": [
             {
@@ -52113,6 +52120,11 @@
           "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
           "StartedInSec": 1795058522,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "b15c15733246219f7863fd931320b493d35235f30c71f70b77d0263219bdc99d"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "c383cf34-c39d-521b-a425-da55ed1b46a2"
@@ -52123,9 +52135,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795059194,
           "DisplayName": "consume",
-          "Fingerprint": "8cb073721b546a4b6912150cfbed06801a462a0a19491678f11f5975bfe711b7",
+          "Fingerprint": "",
           "FinishedInSec": 1795059202,
           "InputParameters": [
             {
@@ -52159,6 +52172,11 @@
           "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
           "StartedInSec": 1795059194,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "8cb073721b546a4b6912150cfbed06801a462a0a19491678f11f5975bfe711b7"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "c498105d-7cf2-5ef9-bcc3-ae040a83c6a5"
@@ -52169,6 +52187,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795059130,
           "DisplayName": "",
           "Fingerprint": "",
@@ -52197,9 +52216,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058982,
           "DisplayName": "consume",
-          "Fingerprint": "b48ac82738bd88128588c7b1e8c621672c8e63cfb9f22be0087a96ebd798e2d5",
+          "Fingerprint": "",
           "FinishedInSec": 1795058990,
           "InputParameters": [
             {
@@ -52230,6 +52250,11 @@
           "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
           "StartedInSec": 1795058982,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "b48ac82738bd88128588c7b1e8c621672c8e63cfb9f22be0087a96ebd798e2d5"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "d12bcf5b-0e3a-5d9b-8928-5fdb5d307126"
@@ -52240,9 +52265,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058683,
           "DisplayName": "produce",
-          "Fingerprint": "e12846d2448c11d13f4d7792f286f47454b0ff1627b6ecde3eef7a88fa31a8c9",
+          "Fingerprint": "",
           "FinishedInSec": 1795058698,
           "InputParameters": [
             {
@@ -52273,6 +52299,11 @@
           "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
           "StartedInSec": 1795058683,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "e12846d2448c11d13f4d7792f286f47454b0ff1627b6ecde3eef7a88fa31a8c9"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "d1c04c1d-5442-5dbb-808b-f1530382ef0b"
@@ -52283,6 +52314,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058924,
           "DisplayName": "for-loop-3",
           "Fingerprint": "",
@@ -52317,9 +52349,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058546,
           "DisplayName": "consume",
-          "Fingerprint": "0fa991f3b1c584ab5cf392912c69fc5d7f7b6b33d660766aad794a95a451a85b",
+          "Fingerprint": "",
           "FinishedInSec": 1795058551,
           "InputParameters": [
             {
@@ -52353,6 +52386,11 @@
           "RunUUID": "277c4ec0-b50f-4775-a181-d68908d04346",
           "StartedInSec": 1795058546,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "0fa991f3b1c584ab5cf392912c69fc5d7f7b6b33d660766aad794a95a451a85b"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "d7ae219d-9d1f-5862-acd4-d4e53a3dff33"
@@ -52363,9 +52401,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058954,
           "DisplayName": "consume",
-          "Fingerprint": "ac87e4dde8737df45b27ad0f80548799fc919aca2db56b2d3073f2a3856dddde",
+          "Fingerprint": "",
           "FinishedInSec": 1795058960,
           "InputParameters": [
             {
@@ -52396,6 +52435,11 @@
           "RunUUID": "7a04653b-5e3b-488d-9db2-45bf51d3e101",
           "StartedInSec": 1795058954,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "ac87e4dde8737df45b27ad0f80548799fc919aca2db56b2d3073f2a3856dddde"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "d7ea1d3f-78be-5e29-abee-d2b72a0e0b92"
@@ -52406,9 +52450,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058723,
           "DisplayName": "consume",
-          "Fingerprint": "334e1ab7c467614ec6bee9d122bbb832da04f2c5a2a306b5f4e7f352ea7193a6",
+          "Fingerprint": "",
           "FinishedInSec": 1795058728,
           "InputParameters": [
             {
@@ -52442,6 +52487,11 @@
           "RunUUID": "a32dac54-2bd0-4c3b-8ac2-d398d5575507",
           "StartedInSec": 1795058723,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "334e1ab7c467614ec6bee9d122bbb832da04f2c5a2a306b5f4e7f352ea7193a6"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "da2d5baf-b047-519b-b208-f4dcae55ab1b"
@@ -52452,6 +52502,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058672,
           "DisplayName": "condition-1",
           "Fingerprint": "",
@@ -52480,9 +52531,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": "c383cf34-c39d-521b-a425-da55ed1b46a2",
           "CreatedAtInSec": 1795058636,
           "DisplayName": "produce",
-          "Fingerprint": "b15c15733246219f7863fd931320b493d35235f30c71f70b77d0263219bdc99d",
+          "Fingerprint": "",
           "FinishedInSec": 0,
           "InputParameters": [
             {
@@ -52492,7 +52544,7 @@
             }
           ],
           "Name": "produce",
-          "Namespace": "",
+          "Namespace": "kubeflow",
           "OutputParameters": [
             {
               "parameterKey": "Output",
@@ -52510,7 +52562,7 @@
           "State": 5,
           "StatusMetadata": {
             "customProperties": {
-              "cached_task_id": "c383cf34-c39d-521b-a425-da55ed1b46a2"
+              "legacy_cache_fingerprint": "b15c15733246219f7863fd931320b493d35235f30c71f70b77d0263219bdc99d"
             }
           },
           "Type": 2,
@@ -52523,6 +52575,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058912,
           "DisplayName": "",
           "Fingerprint": "",
@@ -52544,9 +52597,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795059152,
           "DisplayName": "produce",
-          "Fingerprint": "05420207df0f2c6a49b26a7ce77743d0333e2f9836a9a09e7afea3dc66f3ff08",
+          "Fingerprint": "",
           "FinishedInSec": 1795059165,
           "InputParameters": [
             {
@@ -52577,6 +52631,11 @@
           "RunUUID": "57f5b485-f295-4e2b-8508-fb7605e1064f",
           "StartedInSec": 1795059152,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "05420207df0f2c6a49b26a7ce77743d0333e2f9836a9a09e7afea3dc66f3ff08"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "e819bc1e-0274-5dc4-8fd9-a2f499798817"
@@ -52587,9 +52646,10 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058807,
           "DisplayName": "consume",
-          "Fingerprint": "2f9ff466e1e25e796456a58a3f5f8c49f11e44eaf80a1d6b37d4b9252fa10152",
+          "Fingerprint": "",
           "FinishedInSec": 1795058815,
           "InputParameters": [
             {
@@ -52623,6 +52683,11 @@
           "RunUUID": "38e39900-ea22-4622-820e-a586a55a15eb",
           "StartedInSec": 1795058807,
           "State": 2,
+          "StatusMetadata": {
+            "customProperties": {
+              "legacy_cache_fingerprint": "2f9ff466e1e25e796456a58a3f5f8c49f11e44eaf80a1d6b37d4b9252fa10152"
+            }
+          },
           "Type": 2,
           "TypeAttrs": {},
           "UUID": "e94aacfe-4c2a-5207-b7e7-fd4567142728"
@@ -52633,6 +52698,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058757,
           "DisplayName": "condition-1",
           "Fingerprint": "",
@@ -52661,6 +52727,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058912,
           "DisplayName": "for-loop-3",
           "Fingerprint": "",
@@ -52693,6 +52760,7 @@
       {
         "disposition": "mlmd_execution",
         "fields": {
+          "CachedTaskUUID": null,
           "CreatedAtInSec": 1795058832,
           "DisplayName": "",
           "Fingerprint": "",

@@ -414,11 +414,6 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
                 )
                 if parent_result:
                     result = (f'parent execution:{parent} was skipped', 'error')
-                elif exec_runs[parent] != owned_runs:
-                    result = (
-                        f'parent execution:{parent} belongs to a different run',
-                        'error',
-                    )
                 else:
                     result = None
             else:
@@ -453,6 +448,15 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
             )
         kind = types[row['type_id']]
         parent = property_value(props, 'parent_dag_id')
+        if parent and exec_runs[parent] != owned_runs:
+            expected['diagnostics'].append(
+                {
+                    'source': source_ref,
+                    'reason': f'parent execution:{parent} belongs to a different run',
+                    'severity': 'warning',
+                }
+            )
+            parent = None
         name = property_value(props, 'task_name', '')
         if kind == 'system.ContainerExecution':
             task_type = 2
@@ -498,6 +502,10 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
             and not execution_skip(cached_execution_id)
             else None
         )
+        custom_properties = {}
+        legacy_fingerprint = property_value(props, 'cache_fingerprint')
+        if legacy_fingerprint and row['last_known_state'] in (3, 5):
+            custom_properties['legacy_cache_fingerprint'] = legacy_fingerprint
         expected['tasks'].append(
             {
                 'source': source_ref,
@@ -506,9 +514,7 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
                 'fields': {
                     'UUID': target_id,
                     'RunUUID': run_id,
-                    'Namespace': property_value(
-                        props, 'namespace', runs[run_id]['Namespace']
-                    ),
+                    'Namespace': runs[run_id]['Namespace'],
                     'Name': name,
                     'DisplayName': property_value(props, 'display_name', ''),
                     'CreatedAtInSec': cache_row.get('CreatedTimestamp')
@@ -520,12 +526,10 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
                     **(
                         {
                             'StatusMetadata': {
-                                'customProperties': {
-                                    'cached_task_id': cached_task_id
-                                }
+                                'customProperties': custom_properties
                             }
                         }
-                        if cached_task_id
+                        if custom_properties
                         else {}
                     ),
                     'Type': task_type,
@@ -535,11 +539,8 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
                     'ParentTaskUUID': identity('execution', parent)
                     if parent
                     else None,
-                    'Fingerprint': property_value(
-                        props, 'cache_fingerprint', ''
-                    )
-                    if row['last_known_state'] in (3, 5)
-                    else '',
+                    'Fingerprint': '',
+                    'CachedTaskUUID': cached_task_id,
                 },
             }
         )
@@ -729,6 +730,21 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
         for item in expected['skips']
         if item['source'].startswith('mlmd.artifacts[id=')
     }
+    migrated_tasks = {
+        row['target_uuid']: row['fields'] for row in expected['tasks']
+    }
+
+    def event_iteration(task_id: str) -> int:
+        seen = set()
+        while task_id and task_id not in seen:
+            seen.add(task_id)
+            task = migrated_tasks[task_id]
+            iteration = task['TypeAttrs'].get('iterationIndex')
+            if iteration is not None:
+                return int(iteration)
+            task_id = task['ParentTaskUUID']
+        return -1
+
     for row in mlmd['events']:
         source_ref = f'mlmd.events[id={row["id"]}]'
         if (
@@ -747,11 +763,34 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
             )
             continue
         (run_id,) = exec_runs[row['execution_id']]
-        target_id = identity('event', row['id'])
         steps = paths[row['id']]
-        key = None
-        if len(steps) == 1 and not steps[0]['is_index_step']:
-            key = steps[0]['step_key'] or None
+        if (
+            row['type'] not in (3, 4)
+            or len(steps) != 1
+            or steps[0]['is_index_step']
+            or not steps[0]['step_key']
+        ):
+            expected['skips'].append(
+                {
+                    'source': source_ref,
+                    'reason': 'unsupported event type or path',
+                    'severity': 'warning',
+                }
+            )
+            continue
+        key = steps[0]['step_key']
+        task_id = identity('execution', row['execution_id'])
+        artifact_id = identity('artifact', row['artifact_id'])
+        io_type = 9 if row['type'] == 4 else 2
+        iteration = event_iteration(task_id) if row['type'] == 4 else -1
+        signature = json.dumps(
+            ['artifact-task', artifact_id, task_id, io_type, iteration, key],
+            ensure_ascii=False,
+            separators=(',', ':'),
+        )
+        for special in '<>&\u2028\u2029':
+            signature = signature.replace(special, f'\\u{ord(special):04x}')
+        target_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, signature))
         expected['artifact_tasks'].append(
             {
                 'source': source_ref,
@@ -761,7 +800,8 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
                     'TaskID': identity('execution', row['execution_id']),
                     'ArtifactID': identity('artifact', row['artifact_id']),
                     'RunUUID': run_id,
-                    'Type': 9 if row['type'] == 4 else None,
+                    'Type': io_type,
+                    'Iteration': iteration,
                     'ArtifactKey': key,
                 },
             }
@@ -826,7 +866,8 @@ def dispositions(source: dict, expected: dict) -> list[dict]:
         row['target_uuid']: row['fields'] for row in expected['tasks']
     }
     event_fields = {
-        row['target_uuid']: row['fields'] for row in expected['artifact_tasks']
+        int(row['source'].split('id=')[1][:-1]): row['fields']
+        for row in expected['artifact_tasks']
     }
     for section, tables in source.items():
         for table, rows in tables.items():
@@ -848,7 +889,6 @@ def dispositions(source: dict, expected: dict) -> list[dict]:
                         target_field = {
                             'RunUUID': 'RunUUID',
                             'Namespace': 'Namespace',
-                            'Fingerprint': 'Fingerprint',
                             'CreatedTimestamp': 'CreatedAtInSec',
                             'StartedTimestamp': 'StartedInSec',
                             'FinishedTimestamp': 'FinishedInSec',
@@ -858,6 +898,21 @@ def dispositions(source: dict, expected: dict) -> list[dict]:
                         elif task_id and field in ('UUID', 'MLMDExecutionID'):
                             targets = [
                                 f'expected.old_task_aliases[source={task_source}].target_uuid'
+                            ]
+                        elif (
+                            task_id
+                            and field == 'Fingerprint'
+                            and row[field]
+                            and (
+                                task_fields[task_id]
+                                .get('StatusMetadata', {})
+                                .get('customProperties', {})
+                                .get('legacy_cache_fingerprint')
+                                == row[field]
+                            )
+                        ):
+                            targets = [
+                                f'expected.tasks[UUID={task_id}].fields.StatusMetadata.customProperties.legacy_cache_fingerprint'
                             ]
                         elif (
                             task_id
@@ -908,15 +963,18 @@ def dispositions(source: dict, expected: dict) -> list[dict]:
                             'display_name': 'DisplayName',
                             'namespace': 'Namespace',
                             'parent_dag_id': 'ParentTaskUUID',
-                            'cache_fingerprint': 'Fingerprint',
+                            'cache_fingerprint': 'StatusMetadata.customProperties.legacy_cache_fingerprint',
                             'pod_name': 'Pods[0].name',
                             'pod_uid': 'Pods[0].uid',
-                            'cached_execution_id': 'StatusMetadata.customProperties.cached_task_id',
+                            'cached_execution_id': 'CachedTaskUUID',
                             'iteration_index': 'TypeAttrs.iterationIndex',
                             'iteration_count': 'TypeAttrs.iterationCount',
                             **PARAMETER_COLUMNS,
                         }
                         native = task_fields.get(target_id, {})
+                        custom = native.get('StatusMetadata', {}).get(
+                            'customProperties', {}
+                        )
                         present = {
                             **{
                                 name: column in native
@@ -930,8 +988,10 @@ def dispositions(source: dict, expected: dict) -> list[dict]:
                                 and native['Pods'][0].get('uid')
                             ),
                             'cached_execution_id': bool(
-                                native.get('StatusMetadata')
+                                native.get('CachedTaskUUID')
                             ),
+                            'cache_fingerprint': 'legacy_cache_fingerprint'
+                            in custom,
                             'iteration_index': 'iterationIndex'
                             in native.get('TypeAttrs', {}),
                             'iteration_count': 'iterationCount'
@@ -1052,30 +1112,29 @@ def dispositions(source: dict, expected: dict) -> list[dict]:
                         else:
                             reason = 'Typed artifact property needs an exact native/API representation'
                     elif table == 'events':
-                        event_id = identity('event', key)
+                        event = event_fields.get(key, {})
+                        event_id = event.get('UUID')
                         mapped = {
-                            'id': 'UUID',
                             'execution_id': 'TaskID',
                             'artifact_id': 'ArtifactID',
                             'type': 'Type',
                         }
-                        if (
-                            field == 'type'
-                            and event_fields.get(event_id, {}).get('Type')
-                            is None
-                        ):
+                        if field == 'type' and event.get('Type') is None:
                             reason = 'Event type needs a native representation'
                         elif field in mapped:
                             targets = [
                                 f'expected.artifact_tasks[UUID={event_id}].fields.{mapped[field]}'
                             ]
+                        elif field == 'id':
+                            reason = (
+                                'SQL event ID is available in the source backup'
+                            )
                         else:
                             reason = 'Event time needs a native representation'
                     elif table == 'event_paths':
-                        event_id = identity('event', row['event_id'])
-                        artifact_key = event_fields.get(event_id, {}).get(
-                            'ArtifactKey'
-                        )
+                        event = event_fields.get(row['event_id'], {})
+                        event_id = event.get('UUID')
+                        artifact_key = event.get('ArtifactKey')
                         if field == 'event_id':
                             targets = [
                                 f'expected.artifact_tasks[UUID={event_id}].source'

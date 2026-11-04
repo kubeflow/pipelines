@@ -366,7 +366,8 @@
             "source_execution_id": 3,
             "uuid": "7b6503f5-a0f8-5321-9856-04b93302de08",
             "state": 2,
-            "fingerprint": "complete-fingerprint"
+            "fingerprint": "",
+            "legacy_cache_fingerprint": "complete-fingerprint"
           },
           {
             "source_execution_id": 4,
@@ -378,7 +379,8 @@
             "source_execution_id": 5,
             "uuid": "b4092e13-d26c-5114-999e-6a164725dea4",
             "state": 5,
-            "fingerprint": "cached-fingerprint"
+            "fingerprint": "",
+            "legacy_cache_fingerprint": "cached-fingerprint"
           },
           {
             "source_execution_id": 6,
@@ -397,7 +399,7 @@
         {
           "source": "cache_fingerprint on NEW, RUNNING, FAILED, CANCELED executions",
           "status": "skip",
-          "reason": "fingerprint is ineligible for reuse"
+          "reason": "execution state is ineligible for fingerprint preservation"
         }
       ]
     },

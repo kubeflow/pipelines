@@ -378,6 +378,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				return execution, driverErr
 			}
 			taskToCreate.State = apiV2.PipelineTask_CACHED
+			taskToCreate.CachedTaskId = util.StringPointer(cachedTask.GetTaskId())
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
 			*execution.Cached = true
@@ -390,6 +391,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			}
 			taskToCreate = createdTask
 			taskToCreate.State = apiV2.PipelineTask_CACHED
+			taskToCreate.CachedTaskId = util.StringPointer(cachedTask.GetTaskId())
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
 			if taskToCreate.StatusMetadata == nil {

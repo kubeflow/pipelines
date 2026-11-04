@@ -152,13 +152,7 @@ class MigrationFixtureDesignTest(unittest.TestCase):
             )
         )
         self.assertTrue(
-            any(
-                t.get('StatusMetadata', {})
-                .get('customProperties', {})
-                .get('cached_task_id')
-                in tasks
-                for t in tasks.values()
-            )
+            any(t.get('CachedTaskUUID') in tasks for t in tasks.values())
         )
         source_artifact = self.source['mlmd']['artifacts'][0]
         target = next(
@@ -185,7 +179,7 @@ class MigrationFixtureDesignTest(unittest.TestCase):
         mapped_fields = {
             'RunUUID': 'RunUUID',
             'Namespace': 'Namespace',
-            'Fingerprint': 'Fingerprint',
+            'Fingerprint': 'StatusMetadata.customProperties.legacy_cache_fingerprint',
             'CreatedTimestamp': 'CreatedAtInSec',
             'StartedTimestamp': 'StartedInSec',
             'FinishedTimestamp': 'FinishedInSec',
@@ -350,16 +344,18 @@ class MigrationFixtureDesignTest(unittest.TestCase):
         )
         parent_link['int_value'] = 5  # Root execution of a different run.
         expected, _ = build_expected(self.source)
+        child = next(
+            row
+            for row in expected['tasks']
+            if row['source'] == 'mlmd.executions[id=2]'
+        )
+        self.assertIsNone(child['fields']['ParentTaskUUID'])
         self.assertTrue(
             any(
-                row['source'] == 'mlmd.executions[id=2]'
+                row['source'] == child['source']
                 and 'different run' in row['reason']
-                for row in expected['skips']
+                for row in expected['diagnostics']
             )
-        )
-        self.assertIn(
-            identity('execution', 5),
-            {row['target_uuid'] for row in expected['tasks']},
         )
 
     def test_unresolved_event_type_and_paths_have_pending_dispositions(
@@ -378,34 +374,22 @@ class MigrationFixtureDesignTest(unittest.TestCase):
         paths.append({**composite, **index_step})
         indexed.update(index_step)
 
-        expected, unresolved = build_expected(self.source)
-        projected = {
-            row['target_uuid']: row['fields']
-            for row in expected['artifact_tasks']
-        }
-        self.assertIsNone(projected[identity('event', composite_id)]['Type'])
-        pending = {
+        expected, _ = build_expected(self.source)
+        skipped = {row['source'] for row in expected['skips']}
+        for event_id in (composite_id, indexed_id):
+            self.assertIn(f'mlmd.events[id={event_id}]', skipped)
+        fields = {
             row['source']: row for row in dispositions(self.source, expected)
         }
-        for field in (
-            f'mlmd.events[{composite_id}].type',
-            f'mlmd.event_paths[{paths.index(composite)}].step_key',
-            f'mlmd.event_paths[{paths.index(indexed)}].step_index',
-        ):
-            with self.subTest(field=field):
-                self.assertEqual('pending_design', pending[field]['status'])
-                self.assertEqual([], pending[field]['targets'])
-        for event_id in (composite_id, indexed_id):
-            self.assertIsNone(
-                projected[identity('event', event_id)]['ArtifactKey']
-            )
-            self.assertTrue(
-                any(
-                    row['source'] == f'mlmd.events[id={event_id}]'
-                    and 'event_paths indexed or composite path' in row['fields']
-                    for row in unresolved
-                )
-            )
+        self.assertEqual(
+            'skip', fields[f'mlmd.events[{composite_id}].type']['status']
+        )
+        self.assertEqual(
+            'skip',
+            fields[f'mlmd.event_paths[{paths.index(indexed)}].step_index'][
+                'status'
+            ],
+        )
 
     def test_integer_metric_and_metadata_scalar_are_preserved(self) -> None:
         types = {row['id']: row['name'] for row in self.source['mlmd']['types']}

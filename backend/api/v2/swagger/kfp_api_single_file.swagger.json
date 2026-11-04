@@ -3649,6 +3649,10 @@
         "lifecycle_category": {
           "type": "string",
           "description": "Classified category of lifecycle_message.\nOne of image-pull, scheduling, runtime, admission, or unknown.\nEmpty when lifecycle_message is empty."
+        },
+        "cached_task_id": {
+          "type": "string",
+          "description": "ID of the source task whose result this task reused."
         }
       },
       "description": "Runtime information of a task execution used by task APIs and Run.tasks."

@@ -76,7 +76,7 @@ func seedNativeMigrationProjection(t *testing.T, fixture migrationProjection) (*
 			"UUID": task.UUID, "RunUUID": task.RunUUID, "Namespace": task.Namespace,
 			"Name": task.Name, "DisplayName": task.DisplayName, "Type": task.Type,
 			"State":       task.State,
-			"Fingerprint": task.Fingerprint, "CreatedAtInSec": task.CreatedAtInSec,
+			"Fingerprint": task.Fingerprint, "CachedTaskUUID": task.CachedTaskUUID, "CreatedAtInSec": task.CreatedAtInSec,
 			"StartedInSec": task.StartedInSec, "FinishedInSec": task.FinishedInSec,
 			"pods": jsonValue(task.Pods), "TypeAttrs": jsonValue(task.TypeAttrs),
 			"StatusMetadata":   jsonValue(task.StatusMetadata),
@@ -141,7 +141,6 @@ func TestReleasedMigrationProjectionAPI(t *testing.T) {
 		projection.Artifacts = append(projection.Artifacts, artifact.Fields)
 	}
 	for _, link := range released.Expected.ArtifactTasks {
-		link.Fields.Iteration = model.ArtifactTaskNoIteration
 		projection.Links = append(projection.Links, link.Fields)
 	}
 	require.Len(t, projection.Tasks, 34)
@@ -176,10 +175,17 @@ func TestReleasedMigrationProjectionAPI(t *testing.T) {
 	require.Equal(t, "produce", outputs[0].GetProducer().GetTaskName())
 
 	// The captured cache hit reuses the original execution and its primary metric.
+	producer := findTask("2")
 	cached := findTask("7")
 	require.Equal(t, apiv2.PipelineTask_CACHED, cached.GetState())
-	require.Equal(t, findTask("2").GetTaskId(), cached.GetStatusMetadata().GetCustomProperties()["cached_task_id"].GetStringValue())
-	for _, task := range []*apiv2.PipelineTask{findTask("2"), cached} {
+	require.Equal(t, producer.GetTaskId(), cached.GetCachedTaskId())
+	for _, task := range []*apiv2.PipelineTask{producer, cached} {
+		legacyKey := task.GetStatusMetadata().GetCustomProperties()["legacy_cache_fingerprint"].GetStringValue()
+		require.NotEmpty(t, legacyKey)
+		require.Empty(t, task.GetCacheFingerprint())
+		hit, err := store.FindLatestCachedTask(projection.Tasks[0].Namespace, legacyKey)
+		require.NoError(t, err)
+		require.Nil(t, hit)
 		var metrics []*apiv2.Artifact
 		for _, group := range task.GetOutputs().GetArtifacts() {
 			if group.GetArtifactKey() == "metrics" {

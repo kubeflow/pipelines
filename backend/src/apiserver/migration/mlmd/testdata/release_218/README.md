@@ -24,6 +24,7 @@ when changing a supplemental scenario.
 | --- | --- |
 | `source.sql` | One transaction's `mysqldump` of the released `mlpipeline` and `metadb` databases, including **every** `run_details` and old `tasks` row and all MLMD contexts, executions, artifacts, properties, and events. |
 | `migration_fixture.json` | Generated contract with normalized source rows, expected native rows, field dispositions, and unresolved mappings. |
+| `produce_native_fingerprint.txt` | Expected native cache key for MLMD execution 2. The migration and native driver tests independently check this key using the captured producer and log-publishing configuration. |
 | `provenance.json` | Released source revision, source databases, file checksums, and record counts. |
 | `cases.json` | Named synthetic source and expected cases for states and cache gating, all eight task types, orphaned contexts and missing parents, missing optional properties, unknown execution types, and metric splitting. |
 | `workflows.json` | Submitted Argo Workflow objects and their terminal states. |

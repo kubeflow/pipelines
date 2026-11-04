@@ -256,15 +256,20 @@ func assertTaskMappings(t *testing.T, fixture migrationFixture) {
 		if state == 3 || state == 5 {
 			fingerprint, _ = props["cache_fingerprint"].(string)
 		}
-		require.Equal(t, fingerprint, row.Fields["Fingerprint"], ref)
+		require.Empty(t, row.Fields["Fingerprint"], ref)
 		status, _ := row.Fields["StatusMetadata"].(map[string]any)
 		custom, _ := status["customProperties"].(map[string]any)
+		if fingerprint == "" {
+			require.NotContains(t, custom, "legacy_cache_fingerprint", ref)
+		} else {
+			require.Equal(t, fingerprint, custom["legacy_cache_fingerprint"], ref)
+		}
 		if cached, ok := props["cached_execution_id"].(string); ok && cached != "" {
 			producerID := migrationUUID("execution:" + cached)
 			require.Contains(t, taskIDs, producerID)
-			require.Equal(t, producerID, custom["cached_task_id"], ref)
+			require.Equal(t, producerID, row.Fields["CachedTaskUUID"], ref)
 		} else {
-			require.NotContains(t, custom, "cached_task_id", ref)
+			require.Nil(t, row.Fields["CachedTaskUUID"], ref)
 		}
 		assertTaskType(t, types[source["type_id"]], name, props, row)
 	}
@@ -310,7 +315,9 @@ func assertTaskMappings(t *testing.T, fixture migrationFixture) {
 		require.Equal(t, float64(2), target.Fields["Type"], ref)
 		require.Contains(t, []float64{2, 5}, target.Fields["State"], ref)
 		require.NotEmpty(t, row["Fingerprint"], ref)
-		require.Equal(t, row["Fingerprint"], target.Fields["Fingerprint"], ref)
+		status := target.Fields["StatusMetadata"].(map[string]any)
+		custom := status["customProperties"].(map[string]any)
+		require.Equal(t, row["Fingerprint"], custom["legacy_cache_fingerprint"], ref)
 		delete(aliases, ref)
 	}
 	require.Empty(t, aliases)
@@ -432,7 +439,9 @@ func assertArtifactMappings(t *testing.T, fixture migrationFixture) {
 		ref := fmt.Sprintf("mlmd.events[id=%v]", id)
 		row, ok := links[ref]
 		require.True(t, ok, ref)
-		require.Equal(t, migrationUUID(fmt.Sprintf("event:%v", id)), row.TargetUUID)
+		encoded, err := json.Marshal([]any{"artifact-task", row.Fields["ArtifactID"], row.Fields["TaskID"], 9, row.Fields["Iteration"], row.Fields["ArtifactKey"]})
+		require.NoError(t, err)
+		require.Equal(t, migrationUUID(string(encoded)), row.TargetUUID)
 		require.Equal(t, row.TargetUUID, row.Fields["UUID"])
 		require.Equal(t, float64(4), source["type"], ref)
 		require.Equal(t, float64(9), row.Fields["Type"], ref)
@@ -490,10 +499,11 @@ func TestMigrationTextCases(t *testing.T) {
 			require.Contains(t, nativeStates, legacyState)
 			require.Equal(t, nativeStates[legacyState], target["state"], legacyState)
 			eligible := legacyState == "COMPLETE" || legacyState == "CACHED"
+			require.Empty(t, target["fingerprint"])
 			if eligible {
-				require.Equal(t, source["cache_fingerprint"], target["fingerprint"])
+				require.Equal(t, source["cache_fingerprint"], target["legacy_cache_fingerprint"])
 			} else {
-				require.Empty(t, target["fingerprint"])
+				require.NotContains(t, target, "legacy_cache_fingerprint")
 			}
 		}
 	})

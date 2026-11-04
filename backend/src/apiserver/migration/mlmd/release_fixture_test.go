@@ -45,7 +45,7 @@ func TestReleasedSourceFixtureInventory(t *testing.T) {
 	require.ElementsMatch(t, []string{
 		"README.md", "api_runs.json", "cases.json", "coverage.tsv",
 		"deployment-images.json", "install-config.json", "migration_fixture.json",
-		"provenance.json", "runs.json", "source.sql", "table-counts.tsv",
+		"produce_native_fingerprint.txt", "provenance.json", "runs.json", "source.sql", "table-counts.tsv",
 		"workflows.json",
 	}, actualFiles)
 
