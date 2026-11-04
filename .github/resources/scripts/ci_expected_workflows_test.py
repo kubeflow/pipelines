@@ -799,6 +799,55 @@ console.log(JSON.stringify(['root.py', 'a/b.py', 'sdk/no.py', 'sdk/keep.py']
         self.assertEqual(len(result['recordCalls']), 1)
         self.assertEqual(result['fallbackCalls'], [])
 
+    def test_rename_requires_controlled_bootstrap_then_fresh_main_ci(self):
+        old_base = 'c' * 40
+        bootstrap_base = 'd' * 40
+        old_record = {
+            'number': 8,
+            'merged_at': '2026-09-07T11:00:00Z',
+            'base': {'ref': 'master', 'repo': {'full_name': 'owner/repo'}},
+        }
+        fresh_run = good_run(created_at='2026-09-07T12:00:00Z')
+        trigger = {'branches': ['master', 'main'], 'paths': ['frontend/**']}
+        before = verify(
+            base_sha=old_base,
+            associated_prs=[old_record],
+            runs=[fresh_run],
+            trigger=trigger,
+        )
+        renamed = verify(
+            base_sha=old_base,
+            base_ref='main',
+            associated_prs=[old_record],
+            runs=[fresh_run],
+            trigger=trigger,
+        )
+        self.assertEqual(before['state'], 'success')
+        self.assertEqual(renamed['state'], 'pending')
+        self.assertIn('no merged PR for base', renamed['reasons'][0])
+
+        # Only a separately authorized PR merge on main creates its own arrival
+        # provenance. Renaming the branch or rerunning old CI cannot supply it.
+        bootstrap_record = {
+            'number': 9,
+            'merged_at': '2026-09-07T13:00:00Z',
+            'base': {'ref': 'main', 'repo': {'full_name': 'owner/repo'}},
+        }
+        for created_at, expected in (
+            ('2026-09-07T12:00:00Z', 'pending'),
+            ('2026-09-07T13:00:00Z', 'pending'),
+            ('2026-09-07T13:00:01Z', 'success'),
+        ):
+            with self.subTest(created_at=created_at):
+                result = verify(
+                    base_sha=bootstrap_base,
+                    base_ref='main',
+                    associated_prs=[bootstrap_record],
+                    trigger=trigger,
+                    runs=[good_run(created_at=created_at)],
+                )
+                self.assertEqual(result['state'], expected)
+
     def test_missing_base_merge_record_requires_maintainer(self):
         # A direct push leaves no merged PR for the base revision, so its
         # arrival time cannot be established. Fresh CI cannot fix that; the
@@ -1115,6 +1164,41 @@ gate.verifyExpectedWorkflows({{github, owner: 'owner', repo: 'repo', ...inventor
                 )
                 self.assertEqual(result['state'], 'failure')
                 self.assertIn('replacement', ' '.join(result['reasons']))
+
+    def test_main_retirement_requires_fresh_successful_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        replacement = '.github/workflows/api-server-tests.yml'
+        for conclusion, fresh_after, passed in [
+            ('success', None, True),
+            ('failure', None, False),
+            ('success', '2026-09-07T13:00:00Z', False),
+        ]:
+            with self.subTest(conclusion=conclusion, fresh_after=fresh_after):
+                result = verify(
+                    base_ref='main',
+                    workflow_paths=[legacy, replacement],
+                    trigger={'paths': ['backend/**']},
+                    files=[
+                        {'filename': 'backend/test/v2/api/cache_api_test.go'}
+                    ],
+                    runs=[good_run(path=replacement, conclusion=conclusion)],
+                    fresh_after=fresh_after,
+                )
+                self.assertEqual(result['expected'], [replacement])
+                self.assertEqual(result['passed'], passed)
+                self.assertEqual(result['disabled'][0]['path'], legacy)
+
+    def test_main_retirement_rejects_missing_replacement(self):
+        legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'
+        result = verify(
+            base_ref='main',
+            workflow_paths=[legacy],
+            trigger={'paths': ['backend/**']},
+            files=[{'filename': 'backend/test/v2/api/cache_api_test.go'}],
+            runs=[good_run(path=legacy)],
+        )
+        self.assertEqual(result['state'], 'failure')
+        self.assertIn('replacement', ' '.join(result['reasons']))
 
     def test_release_branches_still_require_legacy(self):
         legacy = '.github/workflows/legacy-v2-api-integration-tests.yml'

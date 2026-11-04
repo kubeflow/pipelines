@@ -15,7 +15,7 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -23,6 +23,8 @@ on:
       - 'uv.lock'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/setup-python/**'
       - '.github/actions/protobuf/**'
@@ -78,12 +80,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/image-builds.yml
-
   end-to-end-scenario-tests:
     runs-on: ubuntu-latest
     permissions:
@@ -123,7 +119,8 @@ jobs:
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
           # DRA (Dynamic Resource Allocation) lane (Kind + dra-example-driver).
-          - k8s_version: "v1.34.3"
+          # 1.34.13 fixes multi-claim status flapping (kubernetes/kubernetes#142025).
+          - k8s_version: "v1.34.13"
             cache_enabled: "true"
             argo_version: "v4.0.13"
             proxy: "false"
@@ -153,6 +150,8 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
+          # No upstream Kind node image is published for this patch yet.
+          build_node_image: ${{ matrix.test_label == 'dra-check' }}
 
       - name: Set up DRA SDK workspace
         uses: ./.github/actions/setup-python
@@ -511,7 +510,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8ca494fb673d6c974a4ba7c567e7e4ef3c3572f3
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8cce38d303a578fb17e0a00ca82c227a06eb74f5
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'

@@ -58,6 +58,38 @@ def junit_zip(*xml_bodies):
     return buffer.getvalue()
 
 
+class DevelopmentBranchTest(unittest.TestCase):
+    def test_entrypoint_resolves_repository_default_branch(self):
+        with (
+            mock.patch.dict(
+                chr_mod.os.environ,
+                {'GITHUB_TOKEN': 'token', 'GITHUB_REPOSITORY': 'o/r'},
+                clear=True,
+            ),
+            mock.patch.object(
+                chr_mod, 'api_request', return_value={'default_branch': 'main'}
+            ) as api,
+            mock.patch.object(
+                chr_mod, 'collect_lane_stats', return_value=({}, [], 0, [])
+            ) as collect,
+            mock.patch.object(
+                chr_mod, 'collect_failed_tests', return_value=({}, 0, 0, 0)
+            ),
+            mock.patch.object(chr_mod, 'render_report', return_value='report'),
+            mock.patch('builtins.print'),
+        ):
+            self.assertEqual(chr_mod.main(), 0)
+        api.assert_called_once_with('token', f'{chr_mod.API_ROOT}/repos/o/r')
+        self.assertEqual(collect.call_args.kwargs['branch'], 'main')
+
+    @mock.patch.object(chr_mod, 'paginate', return_value=([], False))
+    def test_main_report_queries_main(self, paginate):
+        chr_mod.collect_lane_stats('t', 'o/r', '2026-07-01', 40, branch='main')
+        self.assertTrue(paginate.called)
+        for call in paginate.call_args_list:
+            self.assertIn('?branch=main&', call.args[1])
+
+
 class ConclusionHandlingTest(unittest.TestCase):
     """Cancelled/skipped are non-results; other non-success are failures."""
 

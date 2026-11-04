@@ -586,6 +586,61 @@ func Test_resolveContainerArgs(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name: "top-level Concat is resolved like a nested one",
+			args: []string{
+				`{"Concat": ["{{$.inputs.parameters['first']}}", "+", "{{$.inputs.parameters['second']}}"]}`,
+				`{"IfPresent": {"InputName": "second", "Then": [{"Concat": ["nested:", "{{$.inputs.parameters['second']}}"]}]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"first":  structpb.NewStringValue("one"),
+						"second": structpb.NewStringValue("two"),
+					},
+				},
+			},
+			expected: []string{"one+two", "nested:two"},
+			wantErr:  false,
+		},
+		{
+			name: "top-level Concat keeps output placeholders for the launcher",
+			args: []string{
+				`{"Concat": ["--out=", "{{$.outputs.artifacts['result'].path}}", "/", "{{$.inputs.parameters['name']}}"]}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"name": structpb.NewStringValue("model.bin"),
+					},
+				},
+			},
+			expected: []string{"--out={{$.outputs.artifacts['result'].path}}/model.bin"},
+			wantErr:  false,
+		},
+		{
+			name: "top-level Concat with a parameter value containing quotes",
+			args: []string{
+				`{"Concat": ["--msg=", "{{$.inputs.parameters['msg']}}"]}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"msg": structpb.NewStringValue(`say "hi"`),
+					},
+				},
+			},
+			expected: []string{`--msg=say "hi"`},
+			wantErr:  false,
+		},
+		{
+			name: "malformed top-level Concat",
+			args: []string{
+				`{"Concat": ["unterminated"`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{},
+			wantErr:       true,
+		},
+		{
 			name: "embedded placeholder in fstring should be template-substituted",
 			args: []string{
 				"my_program",

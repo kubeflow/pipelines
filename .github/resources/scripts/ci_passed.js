@@ -13,6 +13,11 @@
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {verifyCheckRuns} = require('./ci_check_runs');
+const {readRecoveryStatuses} = require('./ci_recovery_statuses');
+
+function isDevelopmentBranch(ref) {
+  return ref === 'master' || ref === 'main';
+}
 
 function blocked(pr) {
   // Tide's human-PR queries still rely on this explicit merge hold.
@@ -47,7 +52,7 @@ async function baseRevision(github, context, pr) {
   // instead, so an advance revokes the green and forces fresh CI against the
   // new base. Release branches keep their frozen base.sha behavior.
   let sha = pr.base.sha;
-  if (pr.base.ref === 'master') {
+  if (isDevelopmentBranch(pr.base.ref)) {
     const {data} = await github.rest.git.getRef({
       ...context.repo, ref: `heads/${pr.base.ref}`,
     });
@@ -76,12 +81,14 @@ async function recoveryCandidates({github, context}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
   });
+  const unblockedPRs = prs.filter(pr => !blocked(pr));
+  const statuses = await readRecoveryStatuses({github, ...context.repo,
+    heads: unblockedPRs.map(pr => pr.head.sha)});
   const candidates = [];
-  for (const pr of prs) {
-    if (blocked(pr)) continue;
+  for (const pr of unblockedPRs) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
-    const status = await currentStatus(github, context, pr.head.sha);
+    const status = statuses.get(pr.head.sha);
     if (status?.state === 'success' &&
         status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
@@ -92,8 +99,8 @@ async function recoveryCandidates({github, context}) {
 
 async function revokeStaleGreens({github, context, tip}) {
   // Push-triggered revocation narrows the stale-green merge window (#14762): the
-  // moment master advances, a ci-passed success stamped against any prior base
-  // revision is revoked instead of waiting for the next scheduled sweep.
+  // moment a development branch advances, a ci-passed success stamped against
+  // any prior base revision is revoked instead of waiting for the next scheduled sweep.
   // Freshness reuses the same determination as recovery: a green is fresh only
   // when its description still carries the stamp for the live base tip. This
   // writes only the commit status; the sweep reconciles the informational label
@@ -101,33 +108,38 @@ async function revokeStaleGreens({github, context, tip}) {
   if (!/^[0-9a-f]{40}$/.test(tip || '')) {
     throw new Error('Stale revocation requires a full base commit SHA');
   }
+  const branch = context.ref?.replace(/^refs\/heads\//, '');
+  if (context.eventName !== 'push' || context.ref !== `refs/heads/${branch}` ||
+      !isDevelopmentBranch(branch)) {
+    throw new Error('Stale revocation requires a push to master or main');
+  }
   // Only the most recent push may revoke. Push jobs can execute out of order:
-  // master may advance B then C, CI Check publish a success stamped for C, and
+  // the branch may advance B then C, CI Check publish a success stamped for C, and
   // a delayed B job would otherwise treat that valid C green as stale and
-  // overwrite it with failure. Resolve the LIVE master tip and bail out when it
+  // overwrite it with failure. Resolve the LIVE branch tip and bail out when it
   // has already moved past this push's tip; the newer job (or the sweep) owns
   // revocation for the advanced base.
   const {data: ref} = await github.rest.git.getRef({
-    ...context.repo, ref: 'heads/master',
+    ...context.repo, ref: `heads/${branch}`,
   });
   if (ref.object.sha !== tip) return 0;
   const prs = await github.paginate(github.rest.pulls.list, {
-    ...context.repo, state: 'open', base: 'master', per_page: 100,
+    ...context.repo, state: 'open', base: branch, per_page: 100,
   });
   let revoked = 0;
   for (const pr of prs) {
     if (blocked(pr)) continue;
     const status = await currentStatus(github, context, pr.head.sha);
     // Revalidate AFTER reading the status: the combined-status lookup can
-    // paginate, and master may advance mid-read publishing a fresher success.
-    const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: 'heads/master'});
+    // paginate, and the branch may advance mid-read publishing a fresher success.
+    const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
     if (liveRef.object.sha !== tip) return revoked;
     // Never revoke a head without a ci-passed success.
     if (status?.state !== 'success') continue;
     if (status.description === successDescription(pr, tip)) continue;
     await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
-      description: 'Base advanced; re-test against new master.',
+      description: `Base advanced; re-test against new ${branch}.`,
       target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     });
     revoked++;
@@ -192,15 +204,30 @@ async function publish(github, context, pr, state, description, provisional = fa
     })).data;
   }
   if (!updateLabels) return written;
-  if (state === 'success') {
-    await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
-  } else {
-    try {
-      await github.rest.issues.removeLabel({...context.repo, issue_number: pr.number, name: 'ci-passed'});
-    } catch (error) {
-      if (error.status !== 404) throw error;
+  const labels = Array.isArray(pr.labels) ? pr.labels : null;
+  const present = labels === null ? null : labels.some(label => label.name === 'ci-passed');
+  const desired = state === 'success';
+  if (present === desired) return written;
+  try {
+    if (desired) {
+      await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
+    } else {
+      try {
+        await github.rest.issues.removeLabel({...context.repo, issue_number: pr.number, name: 'ci-passed'});
+      } catch (error) {
+        if (error.status !== 404) throw error;
+      }
     }
+  } catch (error) {
+    // A write may reach GitHub even when the response fails. Rollback must
+    // treat label state as unknown instead of trusting the pre-write snapshot.
+    delete pr.labels;
+    throw error;
   }
+  // Track our own writes so post-publication rollback removes a label added
+  // after this snapshot. Each reconciliation still begins with a fresh PR read.
+  pr.labels = (labels || []).filter(label => label.name !== 'ci-passed');
+  if (desired) pr.labels.push({name: 'ci-passed'});
   return written;
 }
 
@@ -222,13 +249,13 @@ async function freshAfter(github, context, pr) {
 
 async function evidence(github, context, pr, root) {
   const baseSha = await baseRevision(github, context, pr);
-  // Only the live master tip advances behind the publisher's back; release
+  // Development branch tips advance behind the publisher's back; release
   // branches keep their frozen base.sha behavior (see baseRevision). The
   // freshness check is scoped to the live base so release branches are
   // unchanged.
-  const liveBase = pr.base.ref === 'master';
+  const liveBase = isDevelopmentBranch(pr.base.ref);
   const [inventory, cutoff] = await Promise.all([
-    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root}),
+    loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),
     freshAfter(github, context, pr),
   ]);
   const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};

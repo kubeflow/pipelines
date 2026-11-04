@@ -33,7 +33,7 @@ def exercise(options=None):
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
-const HEAD = options.mergedRecovery ? 'a'.repeat(40) : 'head';
+const HEAD = options.mergedRecovery || options.verifyRecovery ? 'a'.repeat(40) : 'head';
 const calls = [], outputs = {}, descriptions = [], targetUrls = [];
 const workflowName = options.workflowName || 'frontend.yml';
 let cycle = 0;
@@ -78,6 +78,15 @@ const statusHistory = options.statusHistory || [];
 if (options.initialStatus) statusHistory.push({context: 'ci-passed',
   created_at: options.registrationStartedAt || new Date().toISOString()});
 const github = {graphql: async (query, variables) => {
+  if (query.includes('query RecoveryStatuses')) {
+    const repository = {nameWithOwner: 'kubeflow/pipelines'};
+    for (const [name, oid] of Object.entries(variables)) {
+      if (name.startsWith('sha')) repository[`head${name.slice(3)}`] = {
+        __typename: 'Commit', oid, status: {context: status ? {
+          context: 'ci-passed', state: status.toUpperCase(), description: description ?? null} : null}};
+    }
+    return {repository};
+  }
   calls.push(['base-workflows', variables]);
   if (options.inventoryFailure) throw Error('Workflow tree unavailable');
   const content = `name: Frontend
@@ -104,7 +113,7 @@ jobs:
       if (request.pull_number === 100) return {data: {
         number: 100, merged: true, merge_commit_sha: baseTip,
         merged_at: options.baseArrivedAt || '2026-09-07T10:00:00Z',
-        base: {ref: 'master', repo: {full_name: 'kubeflow/pipelines'}},
+        base: {ref: pr.base.ref, repo: {full_name: 'kubeflow/pipelines'}},
       }};
       if (options.recoveryDrift && pullReads >= 3) {
         if (options.recoveryDrift === 'head') pr.head.sha = 'd'.repeat(40);
@@ -132,10 +141,18 @@ jobs:
       check_suite: {id: 900}}]}};
   }},
   issues: {listEventsForTimeline: methods.timeline,
-    addLabels: async request => {calls.push(['add-label', request.labels]);},
+    addLabels: async request => {
+      calls.push(['add-label', request.labels]);
+      if (options.addLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
+      pr.labels = [...pr.labels.filter(label => !request.labels.includes(label.name)),
+        ...request.labels.map(name => ({name}))];
+      if (options.addLabelResponseFailure) throw Error('Label response lost');
+    },
     removeLabel: async request => {
       calls.push(['remove-label', request.name]);
       if (options.removeLabelFailure) throw Object.assign(Error('Label write unavailable'), {status: 403});
+      pr.labels = pr.labels.filter(label => label.name !== request.name);
+      if (options.removeLabelNotFound) throw Object.assign(Error('Label absent'), {status: 404});
     }},
   repos: {getCommit: async request => {
     commitReads += 1;
@@ -205,8 +222,10 @@ github.paginate.iterator = async function* () {
   context.runId = 99 + cycle;
   try {await (options.mergedRecovery ? (gate.prepareMergedRecovery || gate.prepare) : gate.prepare)({number: 7, head: options.wrongRecoveryHead ? 'f'.repeat(40) : HEAD, github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
+  if (options.labelBeforeFinal) pr.labels.push({name: 'ci-passed'});
   if (options.recoverBeforeFinal) options.conclusion = 'success';
   if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
+  if (options.unreadableBeforeFinal) options.pullFailure = true;
   try {
     await (options.mergedRecovery ? (gate.finalizeMergedRecovery || gate.finalize) : gate.finalize)({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
@@ -215,7 +234,7 @@ github.paginate.iterator = async function* () {
   } catch (e) {error = e.message;}
   }
   const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter}));
+  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run(
@@ -521,6 +540,111 @@ class CIPassedTest(unittest.TestCase):
                 self.assertEqual(result['outputs']['ready'], 'true')
                 self.assert_last_status(result, 'success')
 
+    def test_unchanged_failure_has_no_label_or_status_writes(self):
+        for event in [{'schedule': True}, {'workflowRun': True}, {}]:
+            with self.subTest(event=event):
+                result = exercise(
+                    {
+                        **event,
+                        'cycles': 6,
+                        'conclusion': 'skipped',
+                        'initialStatus': 'failure',
+                        'initialDescription': '.github/workflows/frontend.yml: latest run is completed/skipped',
+                        'removeLabelFailure': True,
+                    }
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(
+                    [
+                        call
+                        for call in result['calls']
+                        if call[0] in ('status', 'add-label', 'remove-label')
+                    ],
+                    [],
+                )
+
+    def test_existing_label_removed_once_before_invalid_ci(self):
+        result = exercise(
+            {
+                'pr': {'labels': [{'name': 'ci-passed'}]},
+                'initialStatus': 'success',
+                'conclusion': 'skipped',
+            }
+        )
+        self.assertEqual(
+            [call for call in result['calls'] if call[0] == 'remove-label'],
+            [['remove-label', 'ci-passed']],
+        )
+        self.assert_last_status(result, 'failure')
+
+    def test_label_added_before_final_is_not_added_again(self):
+        result = exercise({'labelBeforeFinal': True})
+        self.assert_last_status(result, 'success')
+        self.assertFalse(
+            [
+                call
+                for call in result['calls']
+                if call[0] in ('add-label', 'remove-label')
+            ]
+        )
+
+    def test_new_success_label_is_removed_on_publication_drift(self):
+        for drift in [
+            'hold',
+            'base',
+            'head',
+            'external-failure',
+            'external-rerun',
+        ]:
+            with self.subTest(drift=drift):
+                result = exercise({'drift': drift})
+                self.assertEqual(
+                    [
+                        call[0]
+                        for call in result['calls']
+                        if call[0] in ('add-label', 'remove-label')
+                    ],
+                    ['add-label', 'remove-label'],
+                )
+                self.assertNotEqual(result['status'], 'success')
+
+    def test_lost_add_response_still_removes_label_during_rollback(self):
+        result = exercise({'addLabelResponseFailure': True})
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(
+            [
+                call[0]
+                for call in result['calls']
+                if call[0] in ('add-label', 'remove-label')
+            ],
+            ['add-label', 'remove-label'],
+        )
+        self.assertEqual(result['labels'], [])
+        self.assertIn('Label response lost', result['error'])
+
+    def test_unknown_labels_after_pr_read_error_still_remove(self):
+        result = exercise({'unreadableBeforeFinal': True})
+        self.assert_last_status(result, 'failure')
+        self.assertEqual(
+            [call for call in result['calls'] if call[0] == 'remove-label'],
+            [['remove-label', 'ci-passed']],
+        )
+
+    def test_removal_404_confirms_absence_without_removing_other_labels(self):
+        result = exercise(
+            {
+                'removeLabelNotFound': True,
+                'conclusion': 'skipped',
+                'pr': {'labels': [{'name': 'ci-passed'}, {'name': 'approved'}]},
+            }
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['labels'], [{'name': 'approved'}])
+        self.assertEqual(
+            [call for call in result['calls'] if call[0] == 'remove-label'],
+            [['remove-label', 'ci-passed']],
+        )
+
     def test_complete_ci_publishes_pending_then_success(self):
         result = exercise()
         self.assertEqual(result['calls'][0], ['status', 'pending', 'head'])
@@ -588,7 +712,7 @@ class CIPassedTest(unittest.TestCase):
 const {recoveryCandidates} = require(process.argv[1]);
 const requests = [];
 const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked', 'stale-success', 'legacy-success', 'retarget-success'].map((state, i) => ({
-  number: i + 1, head: {sha: state}, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
+  number: i + 1, head: {sha: (i + 1).toString(16).padStart(40, '0')}, fixtureState: state, base: {ref: 'master', sha: 'b'.repeat(40)}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
   labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
 }));
 const github = {paginate: async () => prs, rest: {pulls: {list: {}}, git: {
@@ -596,18 +720,31 @@ const github = {paginate: async () => prs, rest: {pulls: {list: {}}, git: {
 }, repos: {
   getCombinedStatusForRef: async ({ref}) => {
     requests.push(ref);
-    const state = ref.endsWith('success') ? 'success' : ref;
+    const state = ref.endsWith('success') ? 'success' : ref === 'untrusted' ? 'failure' : ref;
     const description = ref === 'legacy-success' ? 'Expected CI and all checks passed for this head.' :
       ref === 'stale-success' ? 'Expected CI and all checks passed; base policy f5b15f0f51bf0e3cbf5297bbe7629a426d5320f3955fbeb78d2de0c60e0e19a8.' : ref === 'retarget-success' ? 'Expected CI and all checks passed; base policy 3088c340a17fbd230c03d711b568e0962de9b3aa3565c6ab227bd0638dae905e.' : 'Expected CI and all checks passed; base policy bf60a45a7f48d31d1cf806d3517d6cc8d24985621eaf55baea8599faee6e508c.';
     return {data: {statuses: ref === 'missing' ? [] : [{context: 'ci-passed', state, description}]}};
   },
 }}};
+github.graphql = async (query, variables) => {
+  const repository = {nameWithOwner: 'o/r'};
+  for (const [name, oid] of Object.entries(variables)) {
+    if (!name.startsWith('sha')) continue;
+    const pr = prs.find(pr => pr.head.sha === oid);
+    const {data} = await github.rest.repos.getCombinedStatusForRef({ref: pr.fixtureState});
+    const status = data.statuses[0];
+    repository[`head${name.slice(3)}`] = {__typename: 'Commit', oid,
+      status: {context: status ? {...status, state: status.state.toUpperCase()} : null}};
+  }
+  return {repository};
+};
 github.paginate.iterator = async function* (method, params) {
   yield {data: {statuses: [{context: 'other', state: 'success'}]}};
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(result => {
-  console.log(JSON.stringify({result, requests}));
+  console.log(JSON.stringify({result: result.map(pr => ({...pr,
+    head: prs.find(item => item.number === pr.number).fixtureState})), requests}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
         result = subprocess.run(
@@ -652,7 +789,7 @@ const B2 = 'c'.repeat(40);
 const publishedStamp = crypto.createHash('sha256')
   .update(JSON.stringify(['master', B1])).digest('hex');
 async function run(liveTip) {
-  const pr = {number: 42, head: {sha: 'H'}, base: {ref: 'master', sha: B1},
+  const pr = {number: 42, head: {sha: 'd'.repeat(40)}, base: {ref: 'master', sha: B1},
     labels: [], author_association: 'NONE'};
   const github = {rest: {pulls: {list: {}},
     git: {getRef: async () => ({data: {object: {sha: liveTip}}})},
@@ -660,6 +797,11 @@ async function run(liveTip) {
       data: {statuses: [{context: 'ci-passed', state: 'success',
         description: 'Expected CI and all checks passed; base policy ' + publishedStamp + '.'}]}
     })}}};
+  github.graphql = async (query, variables) => {
+    const {data} = await github.rest.repos.getCombinedStatusForRef({ref: variables.sha0});
+    return {repository: {nameWithOwner: 'o/r', head0: {__typename: 'Commit', oid: variables.sha0,
+      status: {context: {...data.statuses[0], state: 'SUCCESS'}}}}};
+  };
   github.paginate = async () => [pr];
   github.paginate.iterator = async function* (method, params) {
     yield {data: {statuses: [{context: 'other', state: 'success'}]}};
@@ -684,13 +826,19 @@ async function run(liveTip) {
         actual = json.loads(result.stdout)
         self.assertNotEqual(actual['publishedStamp'], actual['advancedStamp'])
         self.assertEqual(actual['noAdvance'], [])
-        self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'H'}])
+        self.assertEqual(actual['advanced'], [{'number': 42, 'head': 'd' * 40}])
 
     def test_base_advance_revokes_stale_green_across_full_reconciliation(self):
+        self.assert_base_advance_revokes_stale_green('master')
+
+    def test_main_base_advance_revokes_stale_green(self):
+        self.assert_base_advance_revokes_stale_green('main')
+
+    def assert_base_advance_revokes_stale_green(self, branch):
         B1 = 'a' * 40
         B2 = 'c' * 40
         published_stamp = hashlib.sha256(
-            json.dumps(['master', B1], separators=(',', ':')).encode()
+            json.dumps([branch, B1], separators=(',', ':')).encode()
         ).hexdigest()
         initial = (
             'Expected CI and all checks passed; base policy '
@@ -710,7 +858,7 @@ async function run(liveTip) {
                 {
                     'number': 7,
                     'base': {
-                        'ref': 'master',
+                        'ref': branch,
                         'sha': B2,
                     },
                 }
@@ -724,9 +872,10 @@ async function run(liveTip) {
                         'baseTip': B2,
                         'baseArrivedAt': '2026-09-07T12:00:00Z',
                         'pr': {
+                            'labels': [{'name': 'ci-passed'}],
                             'base': {
                                 'sha': B1,
-                                'ref': 'master',
+                                'ref': branch,
                                 'repo': {
                                     'full_name': 'kubeflow/pipelines',
                                 },
@@ -743,18 +892,25 @@ async function run(liveTip) {
                 # the live tip B2 no longer matches the stored stamp.
                 self.assertEqual(
                     result['recoveryBefore'],
-                    [{'number': 7, 'head': 'head'}],
+                    [{'number': 7, 'head': 'a' * 40}],
                     result,
                 )
                 # Reconciliation revokes the green instead of re-stamping it.
-                self.assertNotIn(['status', 'success', 'head'], result['calls'])
-                self.assert_last_status(result, 'pending')
+                self.assertNotIn(
+                    ['status', 'success', 'a' * 40], result['calls']
+                )
+                self.assertEqual(
+                    [call for call in result['calls'] if call[0] == 'status'][
+                        -1
+                    ],
+                    ['status', 'pending', 'a' * 40],
+                )
                 self.assertNotIn(['add-label', ['ci-passed']], result['calls'])
                 self.assertIn(['remove-label', 'ci-passed'], result['calls'])
                 # Next sweep still selects the PR: it is not green.
                 self.assertEqual(
                     result['recoveryAfter'],
-                    [{'number': 7, 'head': 'head'}],
+                    [{'number': 7, 'head': 'a' * 40}],
                     result,
                 )
 
@@ -896,6 +1052,7 @@ async function run(liveTip) {
                 'initialDescription': 'Legacy failure',
                 'conclusion': 'skipped',
                 'removeLabelFailure': True,
+                'pr': {'labels': [{'name': 'ci-passed'}]},
                 'cycles': 6,
             }
         )
@@ -983,7 +1140,12 @@ async function run(liveTip) {
                         {
                             'schedule': True,
                             'pollPassed': passed,
-                            'pr': {'labels': [{'name': hold}]},
+                            'pr': {
+                                'labels': [
+                                    {'name': hold},
+                                    {'name': 'ci-passed'},
+                                ]
+                            },
                         }
                     )
                     labels = [
@@ -992,6 +1154,7 @@ async function run(liveTip) {
                         if call[0] in ('add-label', 'remove-label')
                     ]
                     self.assertTrue(labels)
+                    self.assertIn({'name': hold}, result['labels'])
                     for call in labels:
                         self.assertIn(
                             call,
@@ -1143,7 +1306,11 @@ async function run(liveTip) {
             {
                 'action': 'closed',
                 'initialStatus': 'success',
-                'pr': {'state': 'closed', 'merged': False},
+                'pr': {
+                    'labels': [{'name': 'ci-passed'}],
+                    'state': 'closed',
+                    'merged': False,
+                },
             }
         )
         self.assertNotIn('error', result)
@@ -1299,6 +1466,9 @@ const LIVE = process.argv[2];
 const TIP = process.argv[3];
 const ADVANCE_AFTER = process.argv[4] || undefined;
 const FLIP = process.argv[5] || undefined;
+const BRANCH = process.argv[6] || 'master';
+const EVENT = process.argv[7] || 'push';
+const refCalls = [];
 let statusPaginationFlip = false;
 let getRefCalls = 0;
 const nextLiveTip = () => {
@@ -1307,7 +1477,7 @@ const nextLiveTip = () => {
   return (ADVANCE_AFTER !== undefined && n >= Number(ADVANCE_AFTER)) ? B2 : LIVE;
 };
 const stamp = base => crypto.createHash('sha256')
-  .update(JSON.stringify(['master', base])).digest('hex');
+  .update(JSON.stringify([BRANCH, base])).digest('hex');
 const successDesc = base =>
   'Expected CI and all checks passed; base policy ' + stamp(base) + '.';
 const statuses = {
@@ -1319,21 +1489,21 @@ const statuses = {
   blocked: {state: 'success', description: successDesc(B1)},
 };
 const prs = FLIP === 'status-pagination'
-  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []}]
+  ? [{number: 1, head: {sha: 'fresh'}, base: {ref: BRANCH, sha: B1}, labels: []}]
   : [
-  {number: 1, head: {sha: 'stale'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 2, head: {sha: 'fresh'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 3, head: {sha: 'legacy'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 4, head: {sha: 'failure'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 5, head: {sha: 'pending'}, base: {ref: 'master', sha: B1}, labels: []},
-  {number: 6, head: {sha: 'blocked'}, base: {ref: 'master', sha: B1},
+  {number: 1, head: {sha: 'stale'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 2, head: {sha: 'fresh'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 3, head: {sha: 'legacy'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 4, head: {sha: 'failure'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 5, head: {sha: 'pending'}, base: {ref: BRANCH, sha: B1}, labels: []},
+  {number: 6, head: {sha: 'blocked'}, base: {ref: BRANCH, sha: B1},
     labels: [{name: 'needs-ok-to-test'}]},
 ];
 const listCalls = [];
 const writes = [];
 const github = {
   rest: {pulls: {list: {}},
-    git: {getRef: async () => ({data: {object: {sha: nextLiveTip()}}})},
+    git: {getRef: async request => {refCalls.push(request.ref); return {data: {object: {sha: nextLiveTip()}}};}},
     repos: {
     getCombinedStatusForRef: async ({ref}) => ({
       data: {statuses: statuses[ref] ?
@@ -1347,13 +1517,21 @@ github.paginate.iterator = async function* (method, params) {
   if (FLIP === 'status-pagination') statusPaginationFlip = true;
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
-const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7};
+const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7, eventName: EVENT, ref: `refs/heads/${BRANCH}`};
 revokeStaleGreens({github, context, tip: TIP}).then(count => {
-  console.log(JSON.stringify({count, writes, listCalls}));
+  console.log(JSON.stringify({count, writes, listCalls, refCalls}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
 
-    def _run_revoke(self, live_tip, tip, advance_after=None, flip=None):
+    def _run_revoke(
+        self,
+        live_tip,
+        tip,
+        advance_after=None,
+        flip=None,
+        branch='master',
+        event='push',
+    ):
         argv = [
             'node',
             '-e',
@@ -1363,6 +1541,8 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
             tip,
             str(advance_after or ''),
             flip or '',
+            branch,
+            event,
         ]
         result = subprocess.run(
             argv, check=True, capture_output=True, text=True
@@ -1413,6 +1593,84 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
         actual = self._run_revoke('a' * 40, 'a' * 40, flip='status-pagination')
         self.assertEqual(actual['count'], 0)
         self.assertEqual(actual['writes'], [])
+
+    def test_main_push_revokes_only_main_stale_greens(self):
+        actual = self._run_revoke('c' * 40, 'c' * 40, branch='main')
+        self.assertEqual(
+            [w['sha'] for w in actual['writes']], ['stale', 'legacy']
+        )
+        self.assertEqual(actual['listCalls'][0]['base'], 'main')
+        self.assertEqual(set(actual['refCalls']), {'heads/main'})
+
+    def test_main_queued_push_preserves_newer_success(self):
+        for options in ({}, {'flip': 'status-pagination'}):
+            with self.subTest(options=options):
+                actual = self._run_revoke(
+                    'a' * 40 if options else 'c' * 40,
+                    'a' * 40,
+                    branch='main',
+                    **options,
+                )
+                self.assertEqual(actual['writes'], [])
+
+    def test_main_retarget_requires_fresh_execution(self):
+        for fresh, expected in [(False, 'failure'), (True, 'success')]:
+            with self.subTest(fresh=fresh):
+                result = exercise(
+                    {
+                        'retarget': True,
+                        'fresh': fresh,
+                        'pr': {
+                            'base': {
+                                'ref': 'main',
+                                'sha': 'b' * 40,
+                                'repo': {'full_name': 'kubeflow/pipelines'},
+                            }
+                        },
+                    }
+                )
+                self.assert_last_status(result, expected)
+
+    def test_release_base_remains_frozen(self):
+        result = exercise(
+            {
+                'baseTip': 'c' * 40,
+                'baseArrivedAt': '2026-09-07T12:00:00Z',
+                'pr': {
+                    'base': {
+                        'ref': 'release-2.18',
+                        'sha': 'b' * 40,
+                        'repo': {'full_name': 'kubeflow/pipelines'},
+                    }
+                },
+            }
+        )
+        self.assert_last_status(result, 'success')
+        reads = [
+            call[1]['expression']
+            for call in result['calls']
+            if call[0] == 'base-workflows'
+        ]
+        self.assertTrue(reads)
+        self.assertEqual(set(reads), {'b' * 40 + ':.github/workflows'})
+
+    def test_push_revocation_rejects_other_branches(self):
+        for branch in ['release-2.18', 'feature', '../main', 'refs/heads/main']:
+            with self.subTest(branch=branch):
+                with self.assertRaises(subprocess.CalledProcessError) as raised:
+                    self._run_revoke('c' * 40, 'c' * 40, branch=branch)
+                self.assertIn(
+                    'requires a push to master or main', raised.exception.stderr
+                )
+
+    def test_push_revocation_rejects_non_push_events(self):
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            self._run_revoke(
+                'c' * 40, 'c' * 40, branch='main', event='workflow_dispatch'
+            )
+        self.assertIn(
+            'requires a push to master or main', raised.exception.stderr
+        )
 
     def test_push_revocation_rejects_non_sha_tip(self):
         script = r"""

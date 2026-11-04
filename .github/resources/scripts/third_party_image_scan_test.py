@@ -27,6 +27,67 @@ sys.path.insert(0, str(ROOT / 'release'))
 
 
 class ThirdPartyInventoryTest(unittest.TestCase):
+    def test_main_discovery_and_report_keep_release_candidate_provenance(self):
+        from third_party_image_report import validate_inventory
+
+        def api_response(endpoint):
+            if endpoint == 'repos/kubeflow/pipelines':
+                return {'default_branch': 'main'}
+            return {'sha': 'a' * 40 if endpoint.endswith('/main') else 'b' * 40}
+
+        def capture(source, kustomize, output):
+            return {
+                'targets': [
+                    {
+                        'image': 'mysql:8.4'
+                        if source.name == 'main'
+                        else 'mysql:8.0',
+                        'target': 'mysql',
+                        'scope': 'standard',
+                        'profiles': [],
+                    }
+                ]
+            }
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {
+                        'GITHUB_WORKFLOW_SHA': 'c' * 40,
+                        'GITHUB_RUN_ID': '123',
+                        'GITHUB_RUN_ATTEMPT': '1',
+                        'GITHUB_OUTPUT': str(output / 'outputs'),
+                    },
+                ),
+                mock.patch.object(
+                    scanner, 'github_api', side_effect=api_response
+                ) as api,
+                mock.patch.object(scanner, 'download_manifests'),
+                mock.patch.object(scanner, 'capture', side_effect=capture),
+            ):
+                scanner.discover(
+                    'kubeflow/pipelines', Path('/tools/kustomize'), output
+                )
+            inventory = json.loads((output / 'inventory.json').read_text())
+        self.assertEqual(
+            inventory['sources'], {'main': 'a' * 40, 'release-2.18': 'b' * 40}
+        )
+        self.assertNotIn(
+            mock.call('repos/kubeflow/pipelines/commits/master'),
+            api.call_args_list,
+        )
+        rows = {row['image']: row for row in inventory['images']}
+        self.assertEqual(
+            rows['mysql:8.0']['candidate_key'], rows['mysql:8.4']['key']
+        )
+        self.assertEqual(
+            {row['branch'] for row in inventory['uploads']},
+            {'main', 'release-2.18'},
+        )
+        validate_inventory(inventory)
+
     def setUp(self):
         self.sources = {'master': 'a' * 40, 'release-2.18': 'b' * 40}
 
@@ -58,7 +119,7 @@ class ThirdPartyInventoryTest(unittest.TestCase):
     def test_uploads_keep_branch_commits_and_share_exact_ref_evidence(self):
         image = 'mysql:8.4@sha256:' + 'c' * 64
         result = scanner.create_inventory(
-            self.sources, {branch: {image} for branch in scanner.BRANCHES}
+            self.sources, {branch: {image} for branch in self.sources}
         )
         self.assertEqual(len(result['scans']), 1)
         self.assertEqual(len(result['uploads']), 2)
@@ -74,7 +135,7 @@ class ThirdPartyInventoryTest(unittest.TestCase):
             )
             self.assertEqual(row['category'], expected)
         self.assertEqual(
-            {row['branch'] for row in result['uploads']}, set(scanner.BRANCHES)
+            {row['branch'] for row in result['uploads']}, set(self.sources)
         )
 
     def test_upload_categories_survive_tag_digest_and_commit_changes(self):
@@ -83,8 +144,8 @@ class ThirdPartyInventoryTest(unittest.TestCase):
         for version in ('4', '5', '5@sha256:' + 'd' * 64):
             image = 'registry.example:5000/object:' + version
             result = scanner.create_inventory(
-                {branch: version for branch in scanner.BRANCHES},
-                {branch: {image} for branch in scanner.BRANCHES},
+                {branch: version for branch in self.sources},
+                {branch: {image} for branch in self.sources},
             )
             categories = {
                 row['branch']: row['category'] for row in result['uploads']
@@ -129,7 +190,7 @@ class ThirdPartyInventoryTest(unittest.TestCase):
             },
         ]
         result = scanner.create_inventory(
-            self.sources, {branch: targets for branch in scanner.BRANCHES}
+            self.sources, {branch: targets for branch in self.sources}
         )
         self.assertEqual(len(result['scans']), 2)
         self.assertEqual(len(result['uploads']), 6)
@@ -138,7 +199,7 @@ class ThirdPartyInventoryTest(unittest.TestCase):
         for target in targets:
             target['image'] += '-patched'
         changed = scanner.create_inventory(
-            self.sources, {branch: targets for branch in scanner.BRANCHES}
+            self.sources, {branch: targets for branch in self.sources}
         )
         self.assertEqual(prior, {row['category'] for row in changed['uploads']})
 
@@ -149,7 +210,7 @@ class ThirdPartyInventoryTest(unittest.TestCase):
         ]
         with self.assertRaisesRegex(ValueError, 'Duplicate stable scan target'):
             scanner.create_inventory(
-                self.sources, {branch: targets for branch in scanner.BRANCHES}
+                self.sources, {branch: targets for branch in self.sources}
             )
 
     def test_empty_or_ambiguous_branch_coverage_fails(self):
@@ -184,7 +245,8 @@ class ThirdPartyInventoryTest(unittest.TestCase):
                 mock.patch.object(
                     scanner,
                     'github_api',
-                    side_effect=[{'sha': sha} for sha in self.sources.values()],
+                    side_effect=[{'default_branch': 'master'}]
+                    + [{'sha': sha} for sha in self.sources.values()],
                 ) as api,
                 mock.patch.object(scanner, 'download_manifests') as download,
                 mock.patch.object(
@@ -207,7 +269,8 @@ class ThirdPartyInventoryTest(unittest.TestCase):
                 )
             self.assertEqual(
                 api.call_args_list,
-                [
+                [mock.call('repos/kubeflow/pipelines')]
+                + [
                     mock.call('repos/kubeflow/pipelines/commits/' + branch)
                     for branch in self.sources
                 ],
@@ -438,7 +501,10 @@ class ThirdPartyWorkflowTest(unittest.TestCase):
                             step['with']['ref'], '${{ github.workflow_sha }}'
                         )
         upload = self.workflow['jobs']['upload']
-        self.assertEqual(upload['if'], "github.ref == 'refs/heads/master'")
+        self.assertEqual(
+            upload['if'],
+            "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
+        )
         self.assertEqual(set(upload['needs']), {'inventory', 'scan', 'report'})
         self.assertEqual(
             upload['strategy']['matrix'],

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .ci_images_client import REPO, WORKFLOW, _api, verify_run
 from .ci_security_runner import verify_security
+from .core import default_branch
 from .osv_image_scan import SCANNER, validate_report
 from .osv_reports import findings
 from .security import evaluate_policy
@@ -156,7 +157,8 @@ def qualify_ci(context, expected_images, expected_minors, output_dir):
         policy=policy,
         exceptions=exceptions,
     )
-    workflow_sha = _api(context, 'commits/master')['sha']
+    workflow_ref = default_branch(lambda endpoint: _api(context, endpoint))
+    workflow_sha = _api(context, f'commits/{workflow_ref}')['sha']
     if not re.fullmatch(r'[0-9a-f]{40}', workflow_sha):
         raise ValueError('Invalid upstream workflow commit')
     workflow = _api(context, f'contents/{WORKFLOW}?ref={workflow_sha}')
@@ -167,6 +169,7 @@ def qualify_ci(context, expected_images, expected_minors, output_dir):
         'repository': REPO,
         'workflow': WORKFLOW,
         'workflow_sha': workflow_sha,
+        'workflow_ref': workflow_ref,
         'source_sha': source_sha,
         'version': context.metadata.tag,
         'request_id': request_id,

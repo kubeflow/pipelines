@@ -2,7 +2,7 @@ name: KFP Docs Freshness
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main ]
   pull_request:
     paths:
       - '**/pyproject.toml'
