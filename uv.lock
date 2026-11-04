@@ -1884,7 +1884,7 @@ requires-dist = [
     { name = "kubernetes", specifier = ">=37.0.1" },
     { name = "nbclient", marker = "extra == 'all'", specifier = ">=0.11.0,<1" },
     { name = "nbclient", marker = "extra == 'notebooks'", specifier = ">=0.11.0,<1" },
-    { name = "protobuf", specifier = ">=6.33.5,<7" },
+    { name = "protobuf", specifier = ">=6.33.5,<8" },
     { name = "python-dateutil" },
     { name = "pyyaml", specifier = ">=5.3,<7" },
     { name = "requests", specifier = ">=2.33.0,<3" },
