@@ -715,21 +715,25 @@ func (s *BasePipelineServer) validatePipelineVersionBeforeCreating(p *model.Pipe
 	return util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", p.PipelineSpec, p.PipelineSpecURI, p.CodeSourceUrl)
 }
 
-func NewPipelineServer(resourceManager *resource.ResourceManager, options *PipelineServerOptions) *PipelineServer {
+// NewPipelineServer creates the v2beta1 pipeline server. httpClient downloads
+// pipeline URLs; use validation.SafePipelineHTTPClient.
+func NewPipelineServer(resourceManager *resource.ResourceManager, httpClient *http.Client, options *PipelineServerOptions) *PipelineServer {
 	return &PipelineServer{
 		BasePipelineServer: &BasePipelineServer{
 			resourceManager: resourceManager,
-			httpClient:      validation.SafePipelineHTTPClient(),
+			httpClient:      httpClient,
 			options:         options,
 		},
 	}
 }
 
-func NewPipelineServerV1(resourceManager *resource.ResourceManager, options *PipelineServerOptions) *PipelineServerV1 {
+// NewPipelineServerV1 creates the v1beta1 pipeline server. httpClient downloads
+// pipeline URLs; use validation.SafePipelineHTTPClient.
+func NewPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client, options *PipelineServerOptions) *PipelineServerV1 {
 	return &PipelineServerV1{
 		BasePipelineServer: &BasePipelineServer{
 			resourceManager: resourceManager,
-			httpClient:      validation.SafePipelineHTTPClient(),
+			httpClient:      httpClient,
 			options:         options,
 		},
 	}

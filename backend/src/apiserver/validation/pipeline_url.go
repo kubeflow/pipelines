@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -157,7 +158,10 @@ func ValidatePipelineURL(urlStr string) error {
 	}
 
 	// Validate domain against allowlist
-	host := normalizeHost(parsed.Hostname())
+	host, err := normalizeHost(parsed.Hostname())
+	if err != nil {
+		return util.NewInvalidInputError("URL domain %v", err)
+	}
 	if !isDomainAllowed(host) {
 		return util.NewInvalidInputError("URL domain %q not in allowlist", host)
 	}
@@ -170,9 +174,16 @@ func ValidatePipelineURL(urlStr string) error {
 	return nil
 }
 
-// normalizeHost lowercases a hostname and strips a trailing FQDN dot.
-func normalizeHost(host string) string {
-	return strings.ToLower(strings.TrimSuffix(host, "."))
+// normalizeHost lowercases a hostname and strips a trailing FQDN dot. It
+// rejects non-ASCII hostnames because Unicode lowercasing and the IDNA
+// conversion in net/http can map one name to different hosts: "gİthub.com"
+// lowercases to "github.com" but is dialed as "xn--github-qyd.com". ASCII
+// hostnames are dialed as written, so the checked host is the dialed host.
+func normalizeHost(host string) (string, error) {
+	if strings.ContainsFunc(host, func(r rune) bool { return r >= utf8.RuneSelf }) {
+		return "", fmt.Errorf("%q must use ASCII characters; write an internationalized domain name in its punycode (xn--) form", host)
+	}
+	return strings.ToLower(strings.TrimSuffix(host, ".")), nil
 }
 
 func isDomainAllowed(host string) bool {

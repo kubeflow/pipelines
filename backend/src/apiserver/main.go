@@ -49,6 +49,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/webhook"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -510,8 +511,11 @@ func startRPCServer(resourceManager *resource.ResourceManager, tlsCfg *tls.Confi
 	ExperimentServerV1 := server.NewExperimentServerV1(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
 	ExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
 
-	PipelineServerV1 := server.NewPipelineServerV1(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
-	PipelineServer := server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
+	// One client serves both pipeline servers, so its credential configuration
+	// is parsed and logged once.
+	pipelineHTTPClient := validation.SafePipelineHTTPClient()
+	PipelineServerV1 := server.NewPipelineServerV1(resourceManager, pipelineHTTPClient, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
+	PipelineServer := server.NewPipelineServer(resourceManager, pipelineHTTPClient, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
 
 	RunServerV1 := server.NewRunServerV1(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
 	RunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
