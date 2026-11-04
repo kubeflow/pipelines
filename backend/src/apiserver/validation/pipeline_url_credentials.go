@@ -137,7 +137,11 @@ func (c *pipelineURLCredentials) forURL(target *url.URL) (pipelineURLCredential,
 	if target.Scheme != "https" {
 		return pipelineURLCredential{}, false
 	}
-	credential, found := c.byDomain[normalizeHost(target.Hostname())]
+	host, err := normalizeHost(target.Hostname())
+	if err != nil {
+		return pipelineURLCredential{}, false
+	}
+	credential, found := c.byDomain[host]
 	return credential, found
 }
 
@@ -184,7 +188,12 @@ func parsePipelineURLCredentials(environ []string, domainAllowed func(string) bo
 				problems = append(problems, fmt.Errorf("credential %s: ignoring unknown field %q; supported fields are %s", name, field, supportedCredentialFields))
 			}
 		}
-		credential.domain = normalizeHost(credential.domain)
+		domain, err := normalizeHost(credential.domain)
+		if err != nil {
+			problems = append(problems, fmt.Errorf("ignoring credential %s: domain %w", name, err))
+			continue
+		}
+		credential.domain = domain
 		credential.authType = strings.ToLower(credential.authType)
 		if err := credential.validate(); err != nil {
 			problems = append(problems, fmt.Errorf("ignoring credential %s: %w", name, err))

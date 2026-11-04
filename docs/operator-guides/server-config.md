@@ -648,7 +648,7 @@ Each Secret uses these keys:
 
 | Key | Used with | Description |
 | --- | --- | --- |
-| `domain` | all | Exact hostname, such as `host.example.com`. No scheme, port, path, or wildcard. Must be allowed by `PIPELINE_URL_ALLOWED_DOMAINS`. Matching ignores case and a trailing dot. |
+| `domain` | all | Exact hostname, such as `host.example.com`. No scheme, port, path, or wildcard. Must be allowed by `PIPELINE_URL_ALLOWED_DOMAINS`. Matching ignores case and a trailing dot. Use ASCII only; write an internationalized domain name in its punycode (`xn--`) form. |
 | `type` | all | `bearer`, `basic`, or `header`. |
 | `token` | `bearer` | Sent as `Authorization: Bearer <token>`. |
 | `username`, `password` | `basic` | Sent as HTTP basic authentication. The password can be an access token. |
@@ -716,7 +716,9 @@ allowlist (`storage.googleapis.com`, `s3.amazonaws.com`, `github.com`, and
 credential domains do not. An allowed domain without a credential is downloaded
 without credentials. If your deployment already sets `PIPELINE_URL_ALLOWED_DOMAINS`,
 keep its existing hosts in the new value. A domain that resolves to a private address
-must also be covered by `PIPELINE_URL_ALLOWED_CIDRS`.
+must also be covered by `PIPELINE_URL_ALLOWED_CIDRS`. Pipeline URLs must use an ASCII
+hostname; write an internationalized domain name in its punycode (`xn--`) form in both
+the URL and the allowlist.
 
 Credentials are sent only over HTTPS and only to their exact domain. Every redirect is
 checked again, so a credential never follows a redirect to another host, such as a
@@ -730,9 +732,11 @@ credential values:
 | Situation | Result |
 | --- | --- |
 | The credential's `domain` is not allowed | Warning; the credential is ignored. |
-| A required key is missing, `type` is unsupported, or `domain` is not a bare hostname | Warning; the credential is ignored. |
+| A required key is missing, `type` is unsupported, or `domain` is not a bare ASCII hostname | Warning; the credential is ignored. |
+| A key is set twice with different case, such as `token` and `TOKEN` | Warning; the credential is ignored. |
 | Two credentials use the same `domain` | Warning; both are ignored. |
 | An unknown key, such as `description` | Warning; the key is ignored and the credential is used. |
+| A variable name has no `_` between the label and the key, such as `PIPELINE_URL_CREDENTIAL_GITHUBtoken` | Warning; the variable is ignored. |
 
 Downloads from a domain whose credential is ignored are sent without credentials. Roll
 out the deployment after changing a Secret. Anyone who can create pipelines can make

@@ -207,6 +207,22 @@ func TestValidatePipelineURL_HostnameNormalization(t *testing.T) {
 	assert.NoError(t, ValidatePipelineURL("https://Storage.GoogleAPIs.COM/bucket/file.yaml"))
 }
 
+func TestValidatePipelineURL_RejectsNonASCIIHostname(t *testing.T) {
+	viper.Reset()
+	resetURLConfig()
+
+	// Both lowercase to the allowed "github.com" but are dialed as "xn--github-qyd.com".
+	for _, target := range []string{
+		"https://gİthub.com/pipeline.yaml",
+		"https://g%C4%B0thub.com/pipeline.yaml",
+	} {
+		err := ValidatePipelineURL(target)
+		if assert.Error(t, err, target) {
+			assert.Contains(t, err.Error(), "must use ASCII characters")
+		}
+	}
+}
+
 func TestSafePipelineHTTPClient_RedirectValidation(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()

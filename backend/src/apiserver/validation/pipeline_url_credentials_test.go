@@ -15,9 +15,14 @@
 package validation
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"testing"
 
@@ -109,6 +114,7 @@ func TestParsePipelineURLCredentials_SkipsInvalidCredentials(t *testing.T) {
 		{"domain with port", map[string]string{"domain": "broken.example.com:8443", "type": "bearer", "token": "secret-value"}, "bare hostname"},
 		{"domain with path", map[string]string{"domain": "broken.example.com/artifactory", "type": "bearer", "token": "secret-value"}, "bare hostname"},
 		{"wildcard domain", map[string]string{"domain": "*.example.com", "type": "bearer", "token": "secret-value"}, "bare hostname"},
+		{"non-ASCII domain", map[string]string{"domain": "gİthub.com", "type": "bearer", "token": "secret-value"}, "must use ASCII characters"},
 		{"missing type", map[string]string{"domain": "broken.example.com", "token": "secret-value"}, "type is required"},
 		{"unsupported type", map[string]string{"domain": "broken.example.com", "type": "digest", "token": "secret-value"}, `type "digest" is not supported`},
 		{"bearer without token", map[string]string{"domain": "broken.example.com", "type": "bearer", "password": "secret-value"}, "requires a token"},
@@ -292,6 +298,44 @@ func TestCredentialTransport_DropsCredentialOnCrossHostRedirect(t *testing.T) {
 	assert.Empty(t, base.requests[1].Header.Get("Authorization"), "the credential must not follow a redirect to another host")
 }
 
+func TestCredentialTransport_SendsNoCredentialToUnicodeLookalikeHost(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, r.Header.Get("Authorization"))
+	}))
+	defer server.Close()
+
+	// Every host reaches the test server, as it would for someone who owns the
+	// lookalike host and holds a trusted certificate for it.
+	dialed := make(chan string, 2)
+	base := &http.Transport{
+		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			dialed <- address
+			return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+		},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: &credentialTransport{base: base, credentials: mustParseCredentials(t, []string{
+		"PIPELINE_URL_CREDENTIAL_GITHUB_domain=github.com",
+		"PIPELINE_URL_CREDENTIAL_GITHUB_type=bearer",
+		"PIPELINE_URL_CREDENTIAL_GITHUB_token=test-token",
+	})}}
+
+	for _, tt := range []struct{ target, wantDialed, wantAuthorization string }{
+		{"https://github.com/pipeline.yaml", "github.com:443", "Bearer test-token"},
+		// U+0130 lowercases to "github.com" but net/http dials its IDNA form.
+		{"https://gİthub.com/pipeline.yaml", "xn--github-qyd.com:443", ""},
+	} {
+		response, err := client.Get(tt.target)
+		require.NoError(t, err)
+		received, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		require.NoError(t, err)
+
+		assert.Equal(t, tt.wantDialed, <-dialed)
+		assert.Equal(t, tt.wantAuthorization, string(received), "credential received by %s", tt.wantDialed)
+	}
+}
+
 func TestNewPipelineHTTPClient_SendsConfiguredCredential(t *testing.T) {
 	viper.Reset()
 	viper.Set(common.PipelineURLValidationEnabled, "false")
@@ -323,6 +367,34 @@ func TestSafePipelineHTTPClient_CredentialDomainMustBeAllowed(t *testing.T) {
 	resetURLConfig()
 	_, wrapped := SafePipelineHTTPClient().Transport.(*credentialTransport)
 	assert.True(t, wrapped, "the credential is used once its domain is allowed")
+}
+
+func TestNewPipelineHTTPClient_CredentialKeepsProxyAndIPGuards(t *testing.T) {
+	viper.Reset()
+	viper.Set(common.PipelineURLAllowedDomains, "127.0.0.1")
+	resetURLConfig()
+	setTestCredentialEnv(t, "127.0.0.1")
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("a request with a credential reached a blocked address")
+	}))
+	defer server.Close()
+
+	base := http.DefaultTransport.(*http.Transport).Clone()
+	proxyUsed := false
+	base.Proxy = func(*http.Request) (*url.URL, error) {
+		proxyUsed = true
+		return url.Parse("http://proxy.invalid:3128")
+	}
+	client := NewPipelineHTTPClient(base)
+	_, wrapped := client.Transport.(*credentialTransport)
+	require.True(t, wrapped, "the allowed credential is configured")
+
+	_, err := client.Get(server.URL + "/pipeline.yaml")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "connection to blocked IP range denied")
+	assert.False(t, proxyUsed, "the base transport's proxy must not be used")
 }
 
 func TestSafePipelineHTTPClient_InvalidCredentialSendsNone(t *testing.T) {
