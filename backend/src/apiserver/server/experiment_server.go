@@ -64,7 +64,11 @@ var (
 		Help: "The total number of UnarchiveExperiment requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
+	// Tracks operation outcomes (success or error) per API method.
+	experimentOperations = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "experiment_server_operations_total",
+		Help: "The total number of experiment operations partitioned by method and status (success or error)",
+	}, []string{"method", "status"})
 
 	experimentCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "experiment_server_run_count",
@@ -86,6 +90,17 @@ type ExperimentServer struct {
 	apiv2.UnimplementedExperimentServiceServer
 }
 
+func (s *BaseExperimentServer) recordOperationMetric(method string, err error) {
+	if s == nil || s.options == nil || !s.options.CollectMetrics {
+		return
+	}
+	status := "success"
+	if err != nil {
+		status = "error"
+	}
+	experimentOperations.WithLabelValues(method, status).Inc()
+}
+
 func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
 	experiment.Namespace = s.resourceManager.ReplaceNamespace(experiment.Namespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -102,10 +117,13 @@ func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment 
 }
 
 func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2.CreateExperimentRequest) (
-	*apiv2.Experiment, error,
+	response *apiv2.Experiment, err error,
 ) {
 	if s.options.CollectMetrics {
 		createExperimentRequests.Inc()
+		defer func() {
+			s.recordOperationMetric("create", err)
+		}()
 	}
 
 	modelExperiment, err := toModelExperiment(request.GetExperiment())
@@ -124,7 +142,8 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2.
 
 	apiExperiment := toAPIExperiment(newExperiment)
 	if apiExperiment == nil {
-		return nil, util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to create experiment")
+		err = util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to create experiment")
+		return nil, err
 	}
 	return apiExperiment, nil
 }
@@ -138,10 +157,13 @@ func (s *BaseExperimentServer) getExperiment(ctx context.Context, experimentId s
 }
 
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2.GetExperimentRequest) (
-	*apiv2.Experiment, error,
+	response *apiv2.Experiment, err error,
 ) {
 	if s.options.CollectMetrics {
 		getExperimentRequests.Inc()
+		defer func() {
+			s.recordOperationMetric("get", err)
+		}()
 	}
 
 	experiment, err := s.getExperiment(ctx, request.GetExperimentId())
@@ -151,7 +173,8 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2.Get
 
 	apiExperiment := toAPIExperiment(experiment)
 	if apiExperiment == nil {
-		return nil, util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to fetch experiment")
+		err = util.NewInternalServerError(errors.New("Failed to convert internal experiment representation to its API counterpart"), "Failed to fetch experiment")
+		return nil, err
 	}
 	return apiExperiment, nil
 }
@@ -178,10 +201,13 @@ func (s *BaseExperimentServer) listExperiments(ctx context.Context, pageToken st
 }
 
 func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2.ListExperimentsRequest) (
-	*apiv2.ListExperimentsResponse, error,
+	response *apiv2.ListExperimentsResponse, err error,
 ) {
 	if s.options.CollectMetrics {
 		listExperimentsRequests.Inc()
+		defer func() {
+			s.recordOperationMetric("list", err)
+		}()
 	}
 
 	opts, err := validatedListOptions(&model.Experiment{}, request.GetPageToken(), int(request.GetPageSize()), request.GetSortBy(), request.GetFilter())
@@ -208,12 +234,17 @@ func (s *BaseExperimentServer) deleteExperiment(ctx context.Context, experimentI
 	return s.resourceManager.DeleteExperiment(experimentId)
 }
 
-func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2.DeleteExperimentRequest) (*emptypb.Empty, error) {
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2.DeleteExperimentRequest) (
+	response *emptypb.Empty, err error,
+) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
+		defer func() {
+			s.recordOperationMetric("delete", err)
+		}()
 	}
 
-	if err := s.deleteExperiment(ctx, request.GetExperimentId()); err != nil {
+	if err = s.deleteExperiment(ctx, request.GetExperimentId()); err != nil {
 		return nil, util.Wrap(err, "Failed to delete experiment")
 	}
 
@@ -261,12 +292,17 @@ func (s *BaseExperimentServer) archiveExperiment(ctx context.Context, experiment
 	return s.resourceManager.ArchiveExperiment(ctx, experimentId)
 }
 
-func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2.ArchiveExperimentRequest) (*emptypb.Empty, error) {
+func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2.ArchiveExperimentRequest) (
+	response *emptypb.Empty, err error,
+) {
 	if s.options.CollectMetrics {
 		archiveExperimentRequests.Inc()
+		defer func() {
+			s.recordOperationMetric("archive", err)
+		}()
 	}
 
-	if err := s.archiveExperiment(ctx, request.GetExperimentId()); err != nil {
+	if err = s.archiveExperiment(ctx, request.GetExperimentId()); err != nil {
 		return nil, util.Wrap(err, "Failed to archive experiment")
 	}
 	return &emptypb.Empty{}, nil
@@ -280,12 +316,17 @@ func (s *BaseExperimentServer) unarchiveExperiment(ctx context.Context, experime
 	return s.resourceManager.UnarchiveExperiment(experimentId)
 }
 
-func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2.UnarchiveExperimentRequest) (*emptypb.Empty, error) {
+func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2.UnarchiveExperimentRequest) (
+	response *emptypb.Empty, err error,
+) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
+		defer func() {
+			s.recordOperationMetric("unarchive", err)
+		}()
 	}
 
-	if err := s.unarchiveExperiment(ctx, request.GetExperimentId()); err != nil {
+	if err = s.unarchiveExperiment(ctx, request.GetExperimentId()); err != nil {
 		return nil, util.Wrap(err, "Failed to unarchive experiment")
 	}
 	return &emptypb.Empty{}, nil

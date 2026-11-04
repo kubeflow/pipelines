@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -615,4 +616,73 @@ func TestGetExperiment_JsonOmitEmpty(t *testing.T) {
 	assert.Contains(t, jsonString, "display_name")
 	assert.Contains(t, jsonString, "experiment_id") // created by server
 	assert.NotContains(t, jsonString, "namespace")  // if we don't specify this it should be omitted
+}
+
+
+func TestExperimentServer_Metrics(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: true})
+	server := &ExperimentServer{
+		BaseExperimentServer: &BaseExperimentServer{
+			resourceManager: resourceManager,
+			options: &ExperimentServerOptions{
+				CollectMetrics: true,
+			},
+		},
+	}
+
+	initialCreateSuccess := testutil.ToFloat64(experimentOperations.WithLabelValues("create", "success"))
+	initialCreateError := testutil.ToFloat64(experimentOperations.WithLabelValues("create", "error"))
+
+	// 1. Successful CreateExperiment
+	exp := &apiV2.Experiment{DisplayName: "metrics-exp"}
+	created, err := server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: exp})
+	assert.Nil(t, err)
+	assert.Equal(t, initialCreateSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("create", "success")))
+	assert.Equal(t, initialCreateError, testutil.ToFloat64(experimentOperations.WithLabelValues("create", "error")))
+
+	// 2. Failing CreateExperiment (empty display name)
+	_, err = server.CreateExperiment(context.Background(), &apiV2.CreateExperimentRequest{Experiment: &apiV2.Experiment{DisplayName: ""}})
+	assert.NotNil(t, err)
+	assert.Equal(t, initialCreateSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("create", "success")))
+	assert.Equal(t, initialCreateError+1, testutil.ToFloat64(experimentOperations.WithLabelValues("create", "error")))
+
+	// 3. Successful GetExperiment
+	initialGetSuccess := testutil.ToFloat64(experimentOperations.WithLabelValues("get", "success"))
+	initialGetError := testutil.ToFloat64(experimentOperations.WithLabelValues("get", "error"))
+
+	_, err = server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: created.ExperimentId})
+	assert.Nil(t, err)
+	assert.Equal(t, initialGetSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("get", "success")))
+	assert.Equal(t, initialGetError, testutil.ToFloat64(experimentOperations.WithLabelValues("get", "error")))
+
+	// 4. Failing GetExperiment (non-existent id)
+	_, err = server.GetExperiment(context.Background(), &apiV2.GetExperimentRequest{ExperimentId: "non-existent-uuid"})
+	assert.NotNil(t, err)
+	assert.Equal(t, initialGetSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("get", "success")))
+	assert.Equal(t, initialGetError+1, testutil.ToFloat64(experimentOperations.WithLabelValues("get", "error")))
+
+	// 5. Successful ListExperiments
+	initialListSuccess := testutil.ToFloat64(experimentOperations.WithLabelValues("list", "success"))
+	initialListError := testutil.ToFloat64(experimentOperations.WithLabelValues("list", "error"))
+
+	_, err = server.ListExperiments(context.Background(), &apiV2.ListExperimentsRequest{PageSize: 10})
+	assert.Nil(t, err)
+	assert.Equal(t, initialListSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("list", "success")))
+	assert.Equal(t, initialListError, testutil.ToFloat64(experimentOperations.WithLabelValues("list", "error")))
+
+	// 6. DeleteExperiment success and error
+	initialDeleteSuccess := testutil.ToFloat64(experimentOperations.WithLabelValues("delete", "success"))
+	initialDeleteError := testutil.ToFloat64(experimentOperations.WithLabelValues("delete", "error"))
+
+	_, err = server.DeleteExperiment(context.Background(), &apiV2.DeleteExperimentRequest{ExperimentId: created.ExperimentId})
+	assert.Nil(t, err)
+	assert.Equal(t, initialDeleteSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("delete", "success")))
+	assert.Equal(t, initialDeleteError, testutil.ToFloat64(experimentOperations.WithLabelValues("delete", "error")))
+
+	// Deleting again should fail (not found)
+	_, err = server.DeleteExperiment(context.Background(), &apiV2.DeleteExperimentRequest{ExperimentId: created.ExperimentId})
+	assert.NotNil(t, err)
+	assert.Equal(t, initialDeleteSuccess+1, testutil.ToFloat64(experimentOperations.WithLabelValues("delete", "success")))
+	assert.Equal(t, initialDeleteError+1, testutil.ToFloat64(experimentOperations.WithLabelValues("delete", "error")))
 }
