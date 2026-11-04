@@ -2230,73 +2230,45 @@ def _merge_deployment_spec(
             deployment configs need to be merged into the main config.
     """
 
-    def _rename_executor_labels(
-        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-        old_executor_label: str,
-        new_executor_label: str,
-    ) -> None:
-        """Renames the old executor_label to the new one in component spec."""
-        for _, component_spec in pipeline_spec.components.items():
-            if component_spec.executor_label == old_executor_label:
-                component_spec.executor_label = new_executor_label
-
-    def _rename_platform_config_executor_labels(
-        sub_platform_spec: pipeline_spec_pb2.PlatformSpec,
-        old_executor_label: str,
-        new_executor_label: str,
-    ) -> None:
-        # make a copy so that map size doesn't change during iteration
-        sub_platform_spec_copy = copy.deepcopy(sub_platform_spec)
-        for (
-            platform_key,
-            platform_config,
-        ) in sub_platform_spec_copy.platforms.items():
-            for (
-                cur_exec_label,
-                task_config,
-            ) in platform_config.deployment_spec.executors.items():
-                if cur_exec_label == old_executor_label:
-                    del sub_platform_spec.platforms[
-                        platform_key
-                    ].deployment_spec.executors[old_executor_label]
-                    sub_platform_spec.platforms[
-                        platform_key
-                    ].deployment_spec.executors[new_executor_label].CopyFrom(
-                        task_config
-                    )
-
     sub_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     json_format.ParseDict(
         json_format.MessageToDict(sub_pipeline_spec.deployment_spec),
         sub_deployment_config,
     )
 
-    for (
-        executor_label,
-        executor_spec,
-    ) in sub_deployment_config.executors.items():
-        old_executor_label = executor_label
-        executor_label = utils.make_name_unique_by_adding_index(
-            name=executor_label,
-            collection=list(main_deployment_config.executors.keys()),
+    # Choose every new label before renaming anything: renaming in place one
+    # at a time lets `exec-comp` -> `exec-comp-2` collide with the inner
+    # pipeline's own `exec-comp-2`. Sorted because map order is not stable.
+    new_labels = {}
+    for old_label in sorted(sub_deployment_config.executors):
+        new_labels[old_label] = utils.make_name_unique_by_adding_index(
+            name=old_label,
+            collection=list(main_deployment_config.executors)
+            + list(new_labels.values()),
             delimiter='-',
         )
-        if executor_label != old_executor_label:
-            _rename_executor_labels(
-                pipeline_spec=sub_pipeline_spec,
-                old_executor_label=old_executor_label,
-                new_executor_label=executor_label,
-            )
-            _rename_platform_config_executor_labels(
-                sub_platform_spec,
-                old_executor_label=old_executor_label,
-                new_executor_label=executor_label,
-            )
 
-        main_deployment_config.executors[executor_label].CopyFrom(executor_spec)
-        merge_platform_specs(
-            main_msg=main_platform_spec, sub_msg=sub_platform_spec
+    for component_spec in sub_pipeline_spec.components.values():
+        if component_spec.executor_label in new_labels:
+            component_spec.executor_label = new_labels[
+                component_spec.executor_label
+            ]
+
+    for platform in sub_platform_spec.platforms.values():
+        executors = platform.deployment_spec.executors
+        renamed = {
+            new_labels.get(label, label): copy.deepcopy(body)
+            for label, body in executors.items()
+        }
+        executors.clear()
+        for label, body in renamed.items():
+            executors[label].CopyFrom(body)
+
+    for old_label, executor_spec in sub_deployment_config.executors.items():
+        main_deployment_config.executors[new_labels[old_label]].CopyFrom(
+            executor_spec
         )
+    merge_platform_specs(main_msg=main_platform_spec, sub_msg=sub_platform_spec)
 
 
 def _merge_component_spec(
