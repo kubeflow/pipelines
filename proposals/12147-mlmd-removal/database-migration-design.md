@@ -258,7 +258,18 @@ The same fixup applies to nested trees. Pass 1 may use `parent_dag_id` for TaskT
 | `CACHED` | CACHED (5) | |
 | `CANCELED` | FAILED (4) | No CANCELED in KFP TaskState; maps to FAILED |
 
-Cache fingerprints are copied only for `COMPLETE` or `CACHED` executions to prevent incomplete executions from poisoning the cache.
+For `COMPLETE` or `CACHED` executions, preserve the MLMD cache fingerprint in
+`StatusMetadata.customProperties.legacy_cache_fingerprint`; never use it for
+native cache lookup. `tasks.Fingerprint` holds only a key computed with the
+native driver algorithm. Backfill that key only on the original successful
+producer when its cache entry was created within 90 days before a cutoff
+persisted in `mlmd_migration_state` at migration start and every native key
+input can be reconstructed. Verify reconstructed inputs against the source
+fingerprint before accepting a native key. A later `CACHED` reuse does not
+refresh the producer's age or become a lookup target.
+Log and report missing inputs as skipped backfills; these skips do not block
+migration completion. Skip custom cache keys until their legacy pipeline scope
+can be retained by native lookup.
 
 **Artifacts → Artifacts (metrics splitting)**
 

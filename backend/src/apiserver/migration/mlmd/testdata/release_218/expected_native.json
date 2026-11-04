@@ -41,7 +41,8 @@
     {
       "source_execution_id": 19,
       "UUID": "50c36f8f-7c03-50f1-bce1-c114870d2a8d",
-      "Fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0",
+      "Fingerprint": "",
+      "StatusMetadata": {"customProperties": {"legacy_cache_fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0"}},
       "Namespace": "kubeflow",
       "RunUUID": "2ec7ad3b-d821-4b1d-8355-190393a06ddc",
       "Name": "double",
@@ -95,7 +96,7 @@
     {
       "source_execution_id": 28,
       "UUID": "d7ea1d3f-78be-5e29-abee-d2b72a0e0b92",
-      "Fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0",
+      "Fingerprint": "",
       "Namespace": "kubeflow",
       "RunUUID": "5dedb489-f0c5-496e-b2e3-eaf46a5fcc74",
       "Name": "double",
@@ -103,7 +104,7 @@
       "State": 5,
       "ParentTaskUUID": "b01f75be-d40e-5336-bf24-dd19f58d8392",
       "CreatedAtInSec": 1793737852,
-      "StatusMetadata": {"customProperties": {"cached_task_id": "50c36f8f-7c03-50f1-bce1-c114870d2a8d"}},
+      "StatusMetadata": {"customProperties": {"cached_task_id": "50c36f8f-7c03-50f1-bce1-c114870d2a8d", "legacy_cache_fingerprint": "78f8bc3791ff083f52854e558b59d1a64efd7f8a1d810be25e7f335cfeda2fa0"}},
       "Pods": [],
       "TypeAttrs": {}
     },
@@ -122,7 +123,8 @@
     {
       "source_execution_id": 14,
       "UUID": "f2c4a81b-0659-57db-a256-38f83003d939",
-      "Fingerprint": "2751cfa0408eb6bd4e2e30ddbc56fbe11a07694de7cb64a3744e34e7d8682481",
+      "Fingerprint": "",
+      "StatusMetadata": {"customProperties": {"legacy_cache_fingerprint": "2751cfa0408eb6bd4e2e30ddbc56fbe11a07694de7cb64a3744e34e7d8682481"}},
       "Namespace": "kubeflow",
       "RunUUID": "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
       "Name": "output-metrics",

@@ -398,8 +398,10 @@ func TestReleasedNativeProjectionMatchesSource(t *testing.T) {
 		if source.State == 3 || source.State == 5 {
 			fingerprint = properties[source.ID]["cache_fingerprint"].StringValue
 		}
-		require.Equal(t, fingerprint, task.Fingerprint,
-			"copy source fingerprints only for COMPLETE/CACHED executions")
+		require.Empty(t, task.Fingerprint, "source fingerprints are not native lookup keys")
+		if fingerprint != "" {
+			require.Equal(t, fingerprint, task.StatusMetadata["customProperties"].(map[string]any)["legacy_cache_fingerprint"])
+		}
 		require.Equal(t, map[int]model.TaskStatus{2: model.TaskStatus(apiv2.PipelineTask_RUNNING), 3: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), 5: model.TaskStatus(apiv2.PipelineTask_CACHED)}[source.State], task.State)
 		if parent := properties[source.ID]["parent_dag_id"].IntValue; parent != nil {
 			parentID := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("execution:"+strconv.FormatInt(*parent, 10))).String()

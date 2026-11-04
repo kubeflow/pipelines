@@ -2,7 +2,7 @@
   "release": "2.18.0",
   "sha256": {
     "capture_graph.py": "21df92d3253ee1ea24b40d3c9f22517137e47a39f756087683c45c95125678b3",
-    "expected_native.json": "ecabaa6720505c4bf70bdf795efd6fe471f507e0ae777b82b8b19aa4b74c04c7",
+    "expected_native.json": "2c0a0b740127e92a547ce1e4ab8f6020bace05f47406844a339e7c3630273afd",
     "image_provenance.json": "ddeadcf1d91fcdcc734b7473b7414f56aa0cff1bce93f0f6cc1fd7429451769c",
     "metrics_workflow.json": "21386e6ad6531fb7a0bf29ff1b154fe2beb5929585711f643b941d3b6538f6f8",
     "output_metrics.py": "3d869d9155b791986b1c676dfa4f4e9386c166192d46a3960bf851eec7d1e50b",
