@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import json
+from pathlib import Path
 import subprocess
 import unittest
-from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEPLOYMENT = 'ml-pipeline-scheduledworkflow'
@@ -32,9 +32,9 @@ INSTALLS = [
 
 def render(path):
     yaml = subprocess.check_output(['kustomize', 'build', str(path)], text=True)
-    encoded = subprocess.check_output(
-        ['yq', 'eval', '-o=json', '.', '-'], input=yaml, text=True
-    )
+    encoded = subprocess.check_output(['yq', 'eval', '-o=json', '.', '-'],
+                                      input=yaml,
+                                      text=True)
     decoder = json.JSONDecoder()
     resources = []
     while encoded.strip():
@@ -45,20 +45,17 @@ def render(path):
 
 
 def controller_container(resources):
-    deployment = next(
-        item
-        for item in resources
-        if item['kind'] == 'Deployment'
-        and item['metadata']['name'] == DEPLOYMENT
-    )
+    deployment = next(item for item in resources
+                      if item['kind'] == 'Deployment' and
+                      item['metadata']['name'] == DEPLOYMENT)
     return next(
         container
         for container in deployment['spec']['template']['spec']['containers']
-        if container['name'] == DEPLOYMENT
-    )
+        if container['name'] == DEPLOYMENT)
 
 
 class ScheduledWorkflowLeaderElectionTest(unittest.TestCase):
+
     def test_every_install_enables_leader_election(self):
         for install in INSTALLS:
             with self.subTest(install=install):
@@ -66,12 +63,10 @@ class ScheduledWorkflowLeaderElectionTest(unittest.TestCase):
                 environment = {
                     variable['name']: variable
                     for variable in controller_container(resources).get(
-                        'env', []
-                    )
+                        'env', [])
                 }
-                self.assertEqual(
-                    environment['LEADER_ELECT'].get('value'), 'true'
-                )
+                self.assertEqual(environment['LEADER_ELECT'].get('value'),
+                                 'true')
                 self.assertEqual(
                     environment['POD_NAMESPACE']['valueFrom']['fieldRef'],
                     {'fieldPath': 'metadata.namespace'},
@@ -80,11 +75,8 @@ class ScheduledWorkflowLeaderElectionTest(unittest.TestCase):
     def test_role_grants_only_the_controller_lease(self):
         resources = render(REPO_ROOT / 'manifests/kustomize/base/pipeline')
         role = next(
-            item
-            for item in resources
-            if item['kind'] == 'Role'
-            and item['metadata']['name'] == 'ml-pipeline-scheduledworkflow-role'
-        )
+            item for item in resources if item['kind'] == 'Role' and
+            item['metadata']['name'] == 'ml-pipeline-scheduledworkflow-role')
         lease_rules = [
             rule for rule in role['rules'] if 'leases' in rule['resources']
         ]
