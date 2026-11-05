@@ -108,7 +108,7 @@ func TestMySQL218ReleasedSourceMigration(t *testing.T) {
 				require.NotEqual(t, legacyKey, actual.Fingerprint, "execution %d", task.SourceExecutionID)
 			}
 		}
-		if task.SourceExecutionID == 19 {
+		if task.SourceExecutionID == 19 { //nolint:gocritic // These fixture cases have distinct assertions and failure messages.
 			require.Len(t, actual.Fingerprint, 64, "verified producer must have a native key")
 		} else if task.State == model.TaskStatus(apiv2.PipelineTask_CACHED) {
 			require.Empty(t, actual.Fingerprint, "execution %d reuse must not be a native cache target", task.SourceExecutionID)
