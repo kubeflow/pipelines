@@ -296,7 +296,9 @@ class DispatchPolicyTest(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
 
     def fake_api(self, context, endpoint):
-        if endpoint == 'commits/master':
+        if endpoint == '':
+            return {'default_branch': getattr(self, 'branch', 'master')}
+        if endpoint == 'commits/' + getattr(self, 'branch', 'master'):
             return {'sha': 'b' * 40}
         return {'type': 'file', 'path': client.WORKFLOW}
 
@@ -305,6 +307,12 @@ class DispatchPolicyTest(unittest.TestCase):
         identity.update(run_id='123', run_attempt=2)
         self.identity = identity
         return self.final
+
+    def test_dispatch_uses_main_after_default_branch_rename(self):
+        self.branch = 'main'
+        self.qualify()
+        self.assertEqual(self.identity['workflow_ref'], 'main')
+        self.assertEqual(self.identity['workflow_sha'], 'b' * 40)
 
     def qualify(self):
         return client.qualify_ci(

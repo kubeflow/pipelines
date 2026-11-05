@@ -23,6 +23,8 @@ import tempfile
 import threading
 import unittest
 
+import yaml
+
 SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = SCRIPTS_DIR.parents[2]
 SETUP_BUILDX_SCRIPT = SCRIPTS_DIR / 'setup-buildx-with-retry.sh'
@@ -201,12 +203,20 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         self.assertEqual(result.stdout, 'ok')
         self.assertEqual(_RetryHandler.request_count, 3)
 
-    def test_kind_action_scopes_curl_retry_config_to_both_attempts(self):
-        action = CREATE_CLUSTER_ACTION.read_text()
-        curl_home = (
-            'CURL_HOME: ${{ github.workspace }}/.github/resources/curl-retry'
-        )
-        self.assertEqual(action.count(curl_home), 2)
+    def test_all_kind_action_downloads_use_curl_retries(self):
+        action = yaml.safe_load(CREATE_CLUSTER_ACTION.read_text())
+        installers = [
+            step
+            for step in action['runs']['steps']
+            if step.get('uses', '').startswith('helm/kind-action@')
+        ]
+        self.assertTrue(installers)
+        for step in installers:
+            with self.subTest(step=step['name']):
+                self.assertEqual(
+                    step.get('env', {}).get('CURL_HOME'),
+                    '${{ github.workspace }}/.github/resources/curl-retry',
+                )
 
     def test_manifest_creation_uses_daemon_backed_buildx_driver(self):
         workflow = CREATE_MANIFEST_WORKFLOW.read_text()

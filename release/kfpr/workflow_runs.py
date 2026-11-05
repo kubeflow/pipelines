@@ -15,6 +15,8 @@ def validate_run(data, identity, completed=True):
         'display_title': identity['title'],
         'run_attempt': identity['run_attempt'],
     }
+    if 'workflow_ref' in identity:
+        expected['head_branch'] = identity['workflow_ref']
     if (data.get('repository') or {}).get('full_name') != REPO or any(
         data.get(key) != value for key, value in expected.items()
     ):
@@ -33,6 +35,8 @@ def dispatch_and_watch(
     api, run_command, identity, inputs, *, attempts=24, interval=5
 ):
     """Find one request, watch it, and recheck provenance before artifacts."""
+    if identity.get('workflow_ref') not in ('master', 'main'):
+        raise ValueError('Invalid upstream workflow branch')
     workflow = identity['workflow'].rsplit('/', 1)[-1]
     command = [
         'gh',
@@ -42,7 +46,7 @@ def dispatch_and_watch(
         '--repo',
         REPO,
         '--ref',
-        'master',
+        identity['workflow_ref'],
     ]
     for name, value in inputs.items():
         command.extend(['-f', f'{name}={value}'])

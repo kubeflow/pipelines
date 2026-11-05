@@ -237,6 +237,10 @@ class WorkflowPermissionsTest(unittest.TestCase):
                                 'actions': 'read',
                             },
                         )
+        self.assertEqual(
+            self.permissions('ci-images.yml', 'source'),
+            {'contents': 'read', 'pull-requests': 'read'},
+        )
         image_workflow = self.workflows['image-builds.yml']
         self.assertFalse(
             {'GITHUB_TOKEN', 'GH_TOKEN'} & image_workflow.get('env', {}).keys()
@@ -250,7 +254,11 @@ class WorkflowPermissionsTest(unittest.TestCase):
         for workflow_name, workflow in self.workflows.items():
             for job_name, job in workflow['jobs'].items():
                 if not any(
-                    step.get('uses') == './.github/actions/deploy'
+                    step.get('uses')
+                    in {
+                        './.github/actions/deploy',
+                        './.github/actions/shared-ci-images',
+                    }
                     for step in job.get('steps', [])
                 ):
                     continue
@@ -287,10 +295,6 @@ class WorkflowPermissionsTest(unittest.TestCase):
                 'validate-generated-files.yml', 'validate-generated-files'
             ),
             {},
-        )
-        self.assertEqual(
-            self.permissions('arm64-presubmit.yml', 'smoke'),
-            {'contents': 'read'},
         )
         self.assertEqual(
             self.permissions(

@@ -14,6 +14,42 @@
 
 'use strict';
 
+// Only these trusted publisher jobs use this runner-local cache. Never restore it
+// from Actions artifacts/caches or populate it with PR-executed code. Mutable PR,
+// timeline, PR file lists and workflow-run evidence must be fetched at every boundary.
+async function immutableEvidence(kind, identity, root, runId, fetch, validate) {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const crypto = require('node:crypto');
+  const digest = value => crypto.createHash('sha256').update(value).digest('hex');
+  const {RUNNER_TEMP, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT} = process.env;
+  let filename;
+  if (RUNNER_TEMP && GITHUB_RUN_ID && GITHUB_RUN_ATTEMPT && root &&
+      String(runId) === GITHUB_RUN_ID) {
+    const revision = digest(Buffer.concat([fs.readFileSync(__filename),
+      fs.readFileSync(path.join(root, '.github/resources/scripts/generate_ci_workflow_inventory.py'))]));
+    const key = digest(JSON.stringify([kind, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, revision, identity]));
+    filename = path.join(RUNNER_TEMP, 'kfp-ci-evidence', `${key}.json`);
+    try {
+      const envelope = JSON.parse(fs.readFileSync(filename, 'utf8'));
+      if (envelope.digest !== digest(JSON.stringify(envelope.value))) throw Error('Corrupt evidence cache');
+      validate(envelope.value);
+      return envelope.value;
+    } catch (error) {
+      // Missing, interrupted or corrupt cache entries are misses, never evidence.
+    }
+  }
+  const value = await fetch();
+  validate(value);
+  if (filename) {
+    fs.mkdirSync(path.dirname(filename), {recursive: true, mode: 0o700});
+    const temporary = `${filename}.${process.pid}.tmp`;
+    fs.writeFileSync(temporary, JSON.stringify({value, digest: digest(JSON.stringify(value))}), {mode: 0o600});
+    fs.renameSync(temporary, filename);
+  }
+  return value;
+}
+
 // Support only the glob subset used in this repository. Reject unsupported
 // syntax instead of silently omitting an expected workflow.
 function globRegex(pattern) {
@@ -215,7 +251,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
   // must apply in the trusted base, and uses the same run/freshness checks below.
   const legacyPath = '.github/workflows/legacy-v2-api-integration-tests.yml';
   const replacementPath = '.github/workflows/api-server-tests.yml';
-  if (pullRequest.base.ref === 'master' && applicableWorkflows.some(workflow => workflow.path === legacyPath)) {
+  if (['master', 'main'].includes(pullRequest.base.ref) && applicableWorkflows.some(workflow => workflow.path === legacyPath)) {
     if (applicableWorkflows.some(workflow => workflow.path === replacementPath)) {
       disabled.push({path: legacyPath, reason: `Legacy coverage is required through ${replacementPath} (#14950)`});
     } else {
@@ -313,7 +349,7 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     // until a strictly later run.
     if (liveBase && baseSha) {
       if (baseArrived.status === 'error') {
-        pending.push(`${workflow.path}: Cannot establish master arrival for base ${baseSha}: lookup failed. Retrying.`);
+        pending.push(`${workflow.path}: Cannot establish development-branch arrival for base ${baseSha}: lookup failed. Retrying.`);
       } else if (baseArrived.status === 'arrived' && Date.parse(run.created_at) <= baseArrived.arrivedAt) {
         pending.push(`${workflow.path}: awaiting a fresh CI run against the new base`);
       }
@@ -324,7 +360,15 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     expected: expected.map(workflow => workflow.path), disabled, missing, documentation};
 }
 
-async function loadBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {
+async function loadBaseInventory(options) {
+  const {owner, repo, pullRequest, baseSha, root, cacheRunId} = options;
+  const base = pullRequest.base;
+  return immutableEvidence('inventory', [owner, repo, base?.repo?.full_name, base?.ref, baseSha ?? base?.sha],
+    root, cacheRunId, () => fetchBaseInventory(options),
+    value => validateInventory(value.inventory, value.workflowFiles));
+}
+
+async function fetchBaseInventory({github, owner, repo, pullRequest, baseSha, root}) {
   const base = pullRequest.base;
   const fullName = `${owner}/${repo}`;
   const sha = baseSha ?? base?.sha;

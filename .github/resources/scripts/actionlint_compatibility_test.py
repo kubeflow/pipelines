@@ -31,12 +31,19 @@ class ActionlintCompatibilityTest(unittest.TestCase):
         self.patterns = self.config['paths'][WORKFLOW]['ignore']
 
     def test_exceptions_only_match_known_diagnostics(self):
-        self.assertEqual(len(self.patterns), 2)
+        self.assertEqual(len(self.patterns), 3)
+        job_context = (
+            '{check_run_id: number; container: {id: string; network: string}; '
+            'services: {string => {id: string; network: string; ports: '
+            '{string => string}}}; status: string}'
+        )
         known = (
             'unexpected key "queue" for "concurrency" section. expected one of '
             '"cancel-in-progress", "group"',
             'unknown permission scope "copilot-requests". all available '
             'permission scopes are "actions", "contents"',
+            'property "workflow_ref" is not defined in object type '
+            + job_context,
         )
         for diagnostic in known:
             self.assertTrue(
@@ -46,6 +53,10 @@ class ActionlintCompatibilityTest(unittest.TestCase):
             known[0].replace('"queue"', '"queues"'),
             known[0].replace('"concurrency"', '"jobs"'),
             known[1].replace('copilot-requests', 'unknown-scope'),
+            known[2].replace('workflow_ref', 'workflow_refs'),
+            known[2].replace('check_run_id: number; ', ''),
+            'property "admission-result" is not defined in object type '
+            '{aw_context: string}',
             'undefined variable "missing". available variables are "github"',
         ):
             self.assertFalse(
