@@ -17,11 +17,13 @@ import { Apis } from 'src/lib/Apis';
 
 // These keys and values must exactly match the launcher's
 // backend/src/v2/component/debug_pause.go (customPropDebugPauseBarrier /
-// customPropDebugPauseResumeRequested). Debug pause is a separate overlay
-// signal on a task's status_metadata.custom_properties - it never competes
-// with the task's real RUNNING/SUCCEEDED/FAILED state.
+// customPropDebugPauseResumeRequested / customPropDebugPauseInstance).
+// Debug pause is a separate overlay signal on a task's
+// status_metadata.custom_properties - it never competes with the task's
+// real RUNNING/SUCCEEDED/FAILED state.
 const CUSTOM_PROP_DEBUG_PAUSE_BARRIER = 'debug_pause_barrier';
 const CUSTOM_PROP_DEBUG_PAUSE_RESUME_REQUESTED = 'debug_pause_resume_requested';
+const CUSTOM_PROP_DEBUG_PAUSE_INSTANCE = 'debug_pause_instance';
 
 export type DebugPauseBarrier = 'before' | 'after' | 'on_error';
 
@@ -60,6 +62,16 @@ export function isDebugPaused(task: V2PipelineTask | undefined): boolean {
   return getDebugPauseBarrier(task) !== undefined;
 }
 
+// Reads the per-pause instance ID the launcher published with the barrier.
+// A task can park at the same barrier value on two separate pause epochs
+// (e.g. a restarted pod re-parking at "before"), so the barrier alone does
+// not identify WHICH pause a row belongs to - the instance does.
+export function getDebugPauseInstance(task: V2PipelineTask | undefined): string | undefined {
+  const properties = task?.status_metadata?.custom_properties as CustomProperties;
+  const raw = properties?.[CUSTOM_PROP_DEBUG_PAUSE_INSTANCE];
+  return typeof raw === 'string' && raw !== '' ? raw : undefined;
+}
+
 /**
  * Requests that a paused task resume. This calls the existing UpdateTask RPC
  * directly — no purpose-built "/:resume" endpoint exists or is needed, since
@@ -72,10 +84,11 @@ export function isDebugPaused(task: V2PipelineTask | undefined): boolean {
  * read-merge-write the launcher does - the page's cached task snapshot can
  * be seconds stale, and writing it back blindly could resurrect an older
  * barrier and grant a resume meant for a previous pause. The task is
- * refetched first, the write is refused if the barrier has changed (the
- * poll loop and banner refetch will pick up the new state), and the resume
- * flag is merged into the fresh custom_properties so keys written since
- * the page loaded are not lost.
+ * refetched first, the write is refused if the barrier or its pause
+ * instance has changed (a changed barrier means the task parked somewhere
+ * else; a changed instance means a different pause epoch even at the same
+ * barrier), and the resume flag is merged into the fresh custom_properties
+ * so keys written since the page loaded are not lost.
  */
 export async function requestDebugPauseResume(
   runId: string,
@@ -88,6 +101,7 @@ export async function requestDebugPauseResume(
   if (!expectedBarrier) {
     throw new Error('This task is not paused.');
   }
+  const expectedInstance = getDebugPauseInstance(task);
   const freshTask = await Apis.runServiceApiV2.task_1(runId, task.task_id);
   const currentBarrier = getDebugPauseBarrier(freshTask);
   if (currentBarrier !== expectedBarrier) {
@@ -95,6 +109,11 @@ export async function requestDebugPauseResume(
       currentBarrier
         ? `This task moved from the "${expectedBarrier}" barrier to "${currentBarrier}" - refresh and resume again.`
         : 'This task is no longer paused - it may have already been resumed or finished.',
+    );
+  }
+  if (expectedInstance && getDebugPauseInstance(freshTask) !== expectedInstance) {
+    throw new Error(
+      'This pause was restarted since the page loaded - refresh and resume again.',
     );
   }
   const existingProperties =

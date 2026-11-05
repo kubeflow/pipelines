@@ -290,6 +290,7 @@ func TestFinalizeExecutionClearsDebugPauseProperties(t *testing.T) {
 	// finalizeExecution may return a downstream error (status propagation
 	// needs a full pipeline spec) - what matters is the batched task update
 	// it flushed first.
+	launcher.debugPauseCfg = NewDebugPauseConfigFromEnv()
 	_ = launcher.finalizeExecution(context.Background(), nil)
 
 	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
@@ -354,6 +355,7 @@ func TestFinalizeExecutionClearsDebugPauseProperties_NilStatusMetadata(t *testin
 		batchUpdater:  NewBatchUpdater(),
 	}
 
+	launcher.debugPauseCfg = NewDebugPauseConfigFromEnv()
 	_ = launcher.finalizeExecution(context.Background(), nil)
 
 	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")
@@ -412,6 +414,7 @@ func TestFinalizeExecutionClearsDebugPauseProperties_OnExecutorFailure(t *testin
 		batchUpdater:  NewBatchUpdater(),
 	}
 
+	launcher.debugPauseCfg = NewDebugPauseConfigFromEnv()
 	_ = launcher.finalizeExecution(context.Background(), errors.New("executor failed"))
 
 	require.NotNil(t, capturingAPI.lastBulkUpdate, "finalization must flush a task update")

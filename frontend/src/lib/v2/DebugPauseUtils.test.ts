@@ -159,4 +159,28 @@ describe('requestDebugPauseResume', () => {
     ).rejects.toThrow(/no longer paused/);
     expect(updateSpy).not.toHaveBeenCalled();
   });
+
+  it('refuses to write when the pause instance changed at the same barrier', async () => {
+    // A task can park at the same barrier value on a different pause epoch
+    // (e.g. a restarted pod) - the barrier alone is not proof the pause the
+    // page shows is the pause the row holds.
+    vi.spyOn(Apis.runServiceApiV2, 'task_1').mockResolvedValueOnce(
+      taskWithCustomProperties({
+        debug_pause_barrier: 'before',
+        debug_pause_instance: 'pause-new',
+      }),
+    );
+    const updateSpy = vi.spyOn(Apis.runServiceApiV2, 'task_2');
+
+    await expect(
+      requestDebugPauseResume(
+        'run-1',
+        taskWithCustomProperties({
+          debug_pause_barrier: 'before',
+          debug_pause_instance: 'pause-old',
+        }),
+      ),
+    ).rejects.toThrow(/pause was restarted/);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
 });

@@ -414,8 +414,8 @@ func (e *debugPauseTimeoutError) Error() string {
 // timeout, so callers can distinguish "nobody resumed in time" from any
 // other execution failure.
 func IsDebugPauseTimeout(err error) bool {
-	_, ok := err.(*debugPauseTimeoutError)
-	return ok
+	var target *debugPauseTimeoutError
+	return errors.As(err, &target)
 }
 
 // BarrierForError resolves which barrier applies once the user's command has

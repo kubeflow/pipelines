@@ -785,6 +785,12 @@ class PipelineTask:
                 component fails (sets ``KFP_DEBUG_PAUSE_ON_ERROR`` instead
                 of ``KFP_DEBUG_PAUSE_AFTER``).
 
+        How long a task may stay paused is bounded by the
+        ``KFP_DEBUG_PAUSE_MAX_DURATION`` environment variable - a Go
+        duration string such as ``'30m'`` or ``'2h'``, default ``'1h'``.
+        Set it via ``set_env_variable`` when a task is expected to sit
+        paused longer than an hour; on timeout the task fails cleanly.
+
         Returns:
             Self return to allow chained setting calls.
 
