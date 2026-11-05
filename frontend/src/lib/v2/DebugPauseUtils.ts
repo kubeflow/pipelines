@@ -112,9 +112,7 @@ export async function requestDebugPauseResume(
     );
   }
   if (expectedInstance && getDebugPauseInstance(freshTask) !== expectedInstance) {
-    throw new Error(
-      'This pause was restarted since the page loaded - refresh and resume again.',
-    );
+    throw new Error('This pause was restarted since the page loaded - refresh and resume again.');
   }
   const existingProperties =
     (freshTask.status_metadata?.custom_properties as CustomProperties) || {};
