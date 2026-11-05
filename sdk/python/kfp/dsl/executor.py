@@ -74,18 +74,12 @@ class Executor:
             list_of_artifact_proto_structs = artifacts.get('artifacts') or []
             annotation = self.func.__annotations__[name]
             # InputPath has no attribute __origin__ and also should be handled as a single artifact
-            annotation = (
-                type_annotations.maybe_strip_optional_from_annotation(
-                    annotation
-                )
+            annotation = type_annotations.maybe_strip_optional_from_annotation(
+                annotation
             )
             is_list_of_artifacts = (
-                type_annotations.is_Input_Output_artifact_annotation(
-                    annotation
-                )
-                and type_annotations.is_list_of_artifacts(
-                    annotation.__origin__
-                )
+                type_annotations.is_Input_Output_artifact_annotation(annotation)
+                and type_annotations.is_list_of_artifacts(annotation.__origin__)
             ) or type_annotations.is_list_of_artifacts(annotation)
             if is_list_of_artifacts:
                 inner_annotation = self._resolve_list_artifact_inner_type(
