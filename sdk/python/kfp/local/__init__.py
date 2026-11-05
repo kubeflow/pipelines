@@ -15,9 +15,12 @@
 locally."""
 
 from kfp.local.config import DockerRunner, SubprocessRunner, init
+from kfp.local.progress import EventType, ExecutionEvent
 
 __all__ = [
     'init',
     'SubprocessRunner',
     'DockerRunner',
+    'ExecutionEvent',
+    'EventType',
 ]

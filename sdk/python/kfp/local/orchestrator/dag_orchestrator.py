@@ -15,7 +15,7 @@
 
 from typing import Any, Dict, List, Tuple
 
-from kfp.local import config, graph_utils, io, status
+from kfp.local import config, graph_utils, io, progress, status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 Outputs = Dict[str, Any]
@@ -97,6 +97,13 @@ def run_dag(
                 parent_io_store=io_store,
             )
         else:
+            progress.emit(
+                progress.ExecutionEvent(
+                    event_type=progress.EventType.TASK_STARTED,
+                    pipeline_name=pipeline_resource_name,
+                    task_name=task_name,
+                )
+            )
             outputs, task_status = task_executor.execute_single_task(
                 task_name=task_name,
                 task_spec=task_spec,
@@ -109,6 +116,23 @@ def run_dag(
                 unique_pipeline_id=unique_pipeline_id,
                 fail_stack=fail_stack,
             )
+            if task_status == status.Status.SUCCESS:
+                progress.emit(
+                    progress.ExecutionEvent(
+                        event_type=progress.EventType.TASK_COMPLETED,
+                        pipeline_name=pipeline_resource_name,
+                        task_name=task_name,
+                    )
+                )
+            elif task_status == status.Status.FAILURE:
+                progress.emit(
+                    progress.ExecutionEvent(
+                        event_type=progress.EventType.TASK_FAILED,
+                        pipeline_name=pipeline_resource_name,
+                        task_name=task_name,
+                        error=f'task {task_name!r} exited with failure status',
+                    )
+                )
 
         if task_status == status.Status.FAILURE:
             fail_stack.append(task_name)

@@ -18,7 +18,7 @@ import os
 import shutil
 from typing import Any, Dict, List
 
-from kfp.local import config, logging_utils, placeholder_utils, status, utils
+from kfp.local import config, logging_utils, placeholder_utils, progress, status, utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -77,6 +77,13 @@ def _run_local_pipeline_implementation(
     with logging_utils.local_logger_context():
         logging.info(f'Running pipeline: {pipeline_name_with_color}')
         logging_utils.print_horizontal_line()
+
+    progress.emit(
+        progress.ExecutionEvent(
+            event_type=progress.EventType.PIPELINE_STARTED,
+            pipeline_name=pipeline_name,
+        )
+    )
 
     executors = {
         name: utils.struct_to_executor_spec(executor)
@@ -158,8 +165,21 @@ def _run_local_pipeline_implementation(
                 logging.info(
                     f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}'
                 )
+            progress.emit(
+                progress.ExecutionEvent(
+                    event_type=progress.EventType.PIPELINE_COMPLETED,
+                    pipeline_name=pipeline_name,
+                )
+            )
             return outputs
         elif dag_status == status.Status.FAILURE:
+            progress.emit(
+                progress.ExecutionEvent(
+                    event_type=progress.EventType.PIPELINE_COMPLETED,
+                    pipeline_name=pipeline_name,
+                    error='; '.join(fail_stack) if fail_stack else 'unknown',
+                )
+            )
             log_and_maybe_raise_for_failure(
                 pipeline_name=pipeline_name,
                 fail_stack=fail_stack,

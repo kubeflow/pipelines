@@ -17,7 +17,7 @@ import abc
 import dataclasses
 import os
 import tempfile
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 from kfp import local
 
@@ -225,6 +225,7 @@ class LocalExecutionConfig:
         raise_on_error: bool,
         enable_caching: bool = False,
         cache_root: Optional[str] = None,
+        progress_callback: Optional[Callable] = None,
     ) -> 'LocalExecutionConfig':
         # singleton pattern
         cls.instance = super(LocalExecutionConfig, cls).__new__(cls)
@@ -238,6 +239,7 @@ class LocalExecutionConfig:
         raise_on_error: bool,
         enable_caching: bool = False,
         cache_root: Optional[str] = None,
+        progress_callback: Optional[Callable] = None,
     ) -> None:
         permitted_runners = (SubprocessRunner, DockerRunner)
         if not isinstance(runner, permitted_runners):
@@ -256,6 +258,7 @@ class LocalExecutionConfig:
         self.raise_on_error = raise_on_error
         self.enable_caching = enable_caching
         self.cache_root = cache_root
+        self.progress_callback = progress_callback
 
     @classmethod
     def validate(cls):
@@ -273,6 +276,7 @@ def init(
     raise_on_error: bool = True,
     enable_caching: bool = False,
     cache_root: Optional[str] = None,
+    progress_callback: Optional[Callable] = None,
 ) -> None:
     """Initializes a local execution session.
 
@@ -285,6 +289,14 @@ def init(
         raise_on_error: If True, raises an exception when a local task execution fails. If False, fails gracefully and does not terminate the current program.
         enable_caching: If True, enables local task output caching (off by default). Tasks with `set_caching_options(enable_caching=False)` still bypass the cache.
         cache_root: Directory used to store cache entries. If None, defaults to `{pipeline_root}/.kfp_cache`.
+        progress_callback: An optional callable that receives an
+            :class:`~kfp.local.ExecutionEvent` for each lifecycle event
+            during local pipeline execution (pipeline started/completed,
+            task started/completed/failed).  The callback is invoked
+            synchronously in the execution thread.  Exceptions raised by
+            the callback propagate to the caller.  If ``None`` (the
+            default), no events are emitted and existing behaviour is
+            unchanged.
     """
     # updates a global config
     pipeline_root = os.path.abspath(pipeline_root)
@@ -300,6 +312,7 @@ def init(
         raise_on_error=raise_on_error,
         enable_caching=enable_caching,
         cache_root=cache_root,
+        progress_callback=progress_callback,
     )
 
     # Reset the local cache singleton so a new LocalCache is created against
