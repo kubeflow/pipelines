@@ -345,25 +345,31 @@ func Pause(ctx context.Context, signaler PauseSignaler, barrier DebugPauseBarrie
 			}
 			consecutivePollErrors = 0
 
-			if !published {
-				if state.Barrier == barrier && state.Instance == instance {
-					// The earlier publish did commit - only its response was
-					// lost. Republishing would reset resume_requested and
-					// could erase a resume already accepted for this pause.
-					published = true
-					glog.Infof("debug pause: barrier %q publish confirmed by reconcile", barrier)
-				} else {
-					if err := signaler.PublishBarrier(waitCtx, barrier, instance); err != nil {
-						consecutivePollErrors++
-						logDebugPausePollError(barrier, consecutivePollErrors, err)
-						continue
-					}
-					published = true
-					glog.Infof("debug pause: barrier %q published after retry", barrier)
-					// The state read predates this write (which reset the
-					// resume flag); get a fresh read next tick.
+			if state.Barrier != barrier || state.Instance != instance {
+				// The row does not belong to this pause epoch: either the
+				// initial publish never committed, or a stale write rewound
+				// it (e.g. a UI resume PATCH for an older barrier landing
+				// after this one published). Reclaim the row - republishing
+				// fences the stale barrier AND resets a resume flag that was
+				// never meant for this pause, so it can never be honored.
+				if err := signaler.PublishBarrier(waitCtx, barrier, instance); err != nil {
+					consecutivePollErrors++
+					logDebugPausePollError(barrier, consecutivePollErrors, err)
 					continue
 				}
+				published = true
+				glog.Infof("debug pause: barrier %q published after reconciling row {barrier: %q, instance: %q}", barrier, state.Barrier, state.Instance)
+				// The state read predates this write (which reset the
+				// resume flag); get a fresh read next tick.
+				continue
+			}
+
+			if !published {
+				// The earlier publish did commit - only its response was
+				// lost. Republishing would reset resume_requested and
+				// could erase a resume already accepted for this pause.
+				published = true
+				glog.Infof("debug pause: barrier %q publish confirmed by reconcile", barrier)
 			}
 
 			if state.ResumeRequested {

@@ -63,6 +63,11 @@ type mockPauseSignaler struct {
 	// particular moment. -1 means never.
 	resumeAfter int
 
+	// serverWrites, if non-nil, overwrites the simulated server row on the
+	// Nth successful read (0-indexed) - modeling an external writer (e.g.
+	// a stale UI PATCH) landing between polls and rewinding the record.
+	serverWrites map[int]PauseState
+
 	clearErr    error
 	clearCalled bool
 }
@@ -101,6 +106,9 @@ func (m *mockPauseSignaler) ReadPauseState(ctx context.Context) (PauseState, err
 		return PauseState{}, m.readErr
 	}
 
+	if s, ok := m.serverWrites[idx]; ok {
+		m.server = s
+	}
 	if m.resumeAfter >= 0 && idx >= m.resumeAfter {
 		m.server.ResumeRequested = true
 	}
@@ -248,6 +256,25 @@ func TestPause_StaleEpochDoesNotBlockRepublish(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, signaler.publishes, 2,
 		"a barrier published by a dead epoch must be republished, resetting its stale resume flag")
+}
+
+// TestPause_ResumeFromStaleEpochIsFenced is the post-publish side of the
+// same fence: the row can be rewound to an older barrier+instance with
+// resume=true even after our publish committed (a stale UI PATCH landing
+// late). That flag was never granted to this pause - honoring it would
+// release a barrier nobody resumed, so the loop must republish to fence
+// it and keep waiting for a resume on our own epoch.
+func TestPause_ResumeFromStaleEpochIsFenced(t *testing.T) {
+	signaler := &mockPauseSignaler{
+		serverWrites: map[int]PauseState{
+			0: {Barrier: DebugPauseBarrierBefore, Instance: "dead-epoch", ResumeRequested: true},
+		},
+		resumeAfter: 2,
+	}
+	err := Pause(context.Background(), signaler, DebugPauseBarrierAfter, fastTestConfig())
+	require.NoError(t, err, "a resume accepted for this pause must still release it")
+	require.Len(t, signaler.publishes, 2,
+		"a row rewound to a stale epoch must be republished to fence it, not released")
 }
 
 // TestPause_PollErrorsDoNotAbortWait verifies that transient poll errors are
