@@ -30,6 +30,30 @@ DIGEST = 'b' * 64
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_tensorboard_executes_candidate_with_local_pull_policy(self):
+        kubectl = mock.Mock(
+            return_value='tensorboard.compat.tensorflow_stub.io.gfile'
+        )
+        image = 'kind-registry:5000/tensorboard:ci'
+        result = smoke.check_tensorboard_runtime(kubectl, image, 'local')
+        command = kubectl.call_args_list[0].args
+        self.assertIn('--image=' + image, command)
+        self.assertIn('--image-pull-policy=Never', command)
+        self.assertIn('aarch64', command[-1])
+        self.assertEqual(result, kubectl.return_value)
+
+    def test_tensorboard_failure_blocks_native_smoke(self):
+        kubectl = mock.Mock(
+            side_effect=[
+                'created',
+                subprocess.CalledProcessError(1, 'kubectl wait'),
+            ]
+        )
+        with self.assertRaises(subprocess.CalledProcessError):
+            smoke.check_tensorboard_runtime(
+                kubectl, 'image@sha256:digest', 'published'
+            )
+
     def test_observed_agent_pod_survives_argo_cleanup(self):
         agent = {'metadata': {'name': 'workflow-agent'}}
         kubectl = mock.Mock(

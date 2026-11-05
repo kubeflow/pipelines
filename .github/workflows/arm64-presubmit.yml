@@ -58,6 +58,13 @@ jobs:
           architecture: arm64
           path: arm64-images
           layout: flat
+      - name: Download verified shared ARM TensorBoard image
+        uses: ./.github/actions/shared-ci-images
+        with:
+          architecture: arm64
+          kind: tensorboard
+          path: arm64-images
+          layout: flat
       - name: Install KFP and run a pipeline natively
         uses: ./.github/actions/arm64-smoke
         with:

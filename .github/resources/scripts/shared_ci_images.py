@@ -24,6 +24,11 @@ IMAGES = (
     'driver',
     'launcher',
 )
+IMAGE_SETS = {
+    'images': IMAGES,
+    'runtime': ('runtime-base-images',),
+    'tensorboard': ('tensorboard',),
+}
 ARCHITECTURES = ('amd64', 'arm64')
 
 
@@ -416,7 +421,10 @@ def artifact_name(image, architecture, attempt):
 
 def filenames(image, architecture):
     require(architecture in ARCHITECTURES, 'Unsupported architecture')
-    require(image in IMAGES or image == 'runtime-base-images', 'Unknown image')
+    require(
+        image in (*IMAGES, 'tensorboard', 'runtime-base-images'),
+        'Unknown image',
+    )
     if image == 'runtime-base-images':
         require(architecture == 'amd64', 'Runtime artifact is AMD64 only')
         return ('runtime-base-images.tar', 'modelcar.tar')
@@ -724,7 +732,7 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 pin(state)
         if artifacts is None:
             artifacts = api.artifacts(identity['run_id'])
-        images = IMAGES if kind == 'images' else ('runtime-base-images',)
+        images = IMAGE_SETS[kind]
         records = []
         for image in images:
             artifact = named_artifact(
@@ -854,7 +862,7 @@ def verify(api, state, consumer, directory, layout, kind=None):
     require(state['consumer'] == consumer, 'State consumer changed')
     same_source(identity, consumer)
     require(
-        kind in ('runtime', 'images') and kind in state['sets'],
+        kind in IMAGE_SETS and kind in state['sets'],
         'Missing selected set',
     )
     records = state['sets'][kind]
@@ -863,7 +871,7 @@ def verify(api, state, consumer, directory, layout, kind=None):
         require(isinstance(record, dict), 'Malformed selected record')
         image = record.get('image')
         require(
-            image in (IMAGES if kind == 'images' else ('runtime-base-images',)),
+            image in (IMAGE_SETS[kind]),
             'Unexpected selected image',
         )
         validate_record(record, identity, architecture, image)
@@ -908,9 +916,9 @@ def verify(api, state, consumer, directory, layout, kind=None):
     if kind == 'images':
         make_manifest(identity, architecture, records, api, artifacts=indexed)
     else:
-        require(len(records) == 1, 'Invalid runtime set')
+        require(len(records) == 1, 'Invalid single-image set')
         validate_record(
-            records[0], identity, architecture, 'runtime-base-images', indexed
+            records[0], identity, architecture, IMAGE_SETS[kind][0], indexed
         )
     validate_run(api.run(identity['run_id']), identity)
     if layout == 'nested' and kind == 'images':
@@ -936,7 +944,9 @@ def main():
     record = commands.add_parser('record')
     record.add_argument('--architecture', required=True, choices=ARCHITECTURES)
     record.add_argument(
-        '--image', required=True, choices=(*IMAGES, 'runtime-base-images')
+        '--image',
+        required=True,
+        choices=(*IMAGES, 'tensorboard', 'runtime-base-images'),
     )
     record.add_argument('--directory', required=True, type=Path)
     record.add_argument('--output', required=True, type=Path)
@@ -944,9 +954,7 @@ def main():
     resolver.add_argument(
         '--architecture', required=True, choices=ARCHITECTURES
     )
-    resolver.add_argument(
-        '--kind', required=True, choices=('runtime', 'images')
-    )
+    resolver.add_argument('--kind', required=True, choices=tuple(IMAGE_SETS))
     resolver.add_argument('--state', required=True, type=Path)
     resolver.add_argument('--output', required=True, type=Path)
     resolver.add_argument('--timeout-seconds', type=int, default=2400)
@@ -955,7 +963,7 @@ def main():
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
-    verifier.add_argument('--kind', choices=('runtime', 'images'))
+    verifier.add_argument('--kind', choices=tuple(IMAGE_SETS))
     args = parser.parse_args()
     try:
         identity = environment_identity()

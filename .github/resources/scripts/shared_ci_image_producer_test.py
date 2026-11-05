@@ -18,6 +18,7 @@ CONSUMERS = (
     'kfp-webhooks.yml',
     'arm64-presubmit.yml',
     'upgrade-test.yml',
+    'tensorboard-acceptance.yml',
 )
 IMAGES = {
     'apiserver',
@@ -27,11 +28,15 @@ IMAGES = {
     'driver',
     'frontend',
     'viewer-crd-controller',
+    'tensorboard',
 }
 
 
 def workflow(name):
-    return yaml.safe_load((WORKFLOWS / name).read_text())
+    result = yaml.safe_load((WORKFLOWS / name).read_text())
+    if 'on' in result:
+        result[True] = result['on']
+    return result
 
 
 class SharedImageProducerTest(unittest.TestCase):

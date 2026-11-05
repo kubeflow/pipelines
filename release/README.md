@@ -991,3 +991,18 @@ index by digest to `latest`, and verifies the result and unchanged versioned tag
 It never rebuilds images or uploads SDK packages. Evidence includes previous and
 promoted digests, including partial progress if a registry operation fails.
 Only releases without a newer published stable backend release may be promoted.
+
+### TensorBoard viewer image
+
+The release image inventory includes `ghcr.io/kubeflow/kfp-tensorboard` on AMD64
+and ARM64. The release manifest stamping command also updates the controller
+and UI defaults and bundled viewer assets through
+`hack/update_tensorboard_image.py`. Build the UI and viewer assets after stamping
+so they use the release tag. Publication and native image qualification require
+the TensorBoard record alongside the other seven KFP image records.
+
+Before publishing a release, run the TensorBoard runtime acceptance workflow
+for the release candidate. It checks local/S3/GCS event ingestion, live log
+updates, prefixed browser routes, and deployed viewer lifecycle behavior. See
+[the runtime contract](../backend/src/tensorboard/README.md) for the supported
+plugins and custom-image compatibility.
