@@ -216,11 +216,11 @@ def executor_input_to_dict(
 
     # Preserve empty collected artifact lists. Protobuf JSON conversion omits
     # empty repeated fields, but the executor expects an explicit empty list.
-    input_artifacts = executor_input_dict.setdefault('inputs', {}).setdefault(
-        'artifacts', {}
-    )
     for artifact_name, artifact_list in executor_input.inputs.artifacts.items():
         if not artifact_list.artifacts:
+            input_artifacts = executor_input_dict.setdefault(
+                'inputs', {}
+            ).setdefault('artifacts', {})
             input_artifacts[artifact_name] = {'artifacts': []}
     parameter_types = {
         in_param_name: parameter_spec.parameter_type
