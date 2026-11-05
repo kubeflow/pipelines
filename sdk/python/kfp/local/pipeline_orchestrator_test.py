@@ -72,7 +72,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_no_io(self):
         local.init(
-           local.SubprocessRunner(use_venv=False),
+            local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING,
         )
 
@@ -589,6 +589,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         task = my_pipeline()
         self.assertEqual(task.output, 0)
+
     def test_parallel_for_empty_items_with_collected_artifacts(self):
         local.init(
             local.SubprocessRunner(),
@@ -620,7 +621,6 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         task = my_pipeline()
         self.assertEqual(task.output, 0)
-
 
     def test_parallel_for_uses_iterator_policy_parallelism_limit(self):
         local.init(

@@ -536,9 +536,8 @@ def _run_parallel_for_task(
         component_spec = components[task_spec.component_ref.name]
         loop_outputs = component_spec.dag.outputs
 
-        output_keys = (
-            set(loop_outputs.parameters.keys())
-            | set(loop_outputs.artifacts.keys())
+        output_keys = set(loop_outputs.parameters.keys()) | set(
+            loop_outputs.artifacts.keys()
         )
         for output_key in output_keys:
             io_store.put_task_output(task_name, output_key, [])
