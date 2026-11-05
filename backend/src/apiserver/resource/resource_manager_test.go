@@ -4120,6 +4120,15 @@ func (s *runStoreWithBeforeWorkflowUpdateHook) UpdateRunFromWorkflow(
 	)
 }
 
+// assertStateHistoryEndsWithSingleCancel checks that termination appended one
+// CANCELING entry and nothing else changed the history.
+func assertStateHistoryEndsWithSingleCancel(t *testing.T, before, after []*model.RuntimeStatus) {
+	t.Helper()
+	require.Len(t, after, len(before)+1)
+	assert.Equal(t, before, after[:len(before)])
+	assert.Equal(t, model.RuntimeStateCancelling, after[len(before)].State)
+}
+
 func TestReportWorkflowResource_DoesNotOverwriteConcurrentTermination(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
@@ -4153,7 +4162,7 @@ func TestReportWorkflowResource_DoesNotOverwriteConcurrentTermination(t *testing
 	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 	assert.Equal(t, "Terminating", persistedRun.Conditions)
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
-	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+	assertStateHistoryEndsWithSingleCancel(t, beforeTermination.StateHistory, persistedRun.StateHistory)
 
 	// Model a retry after the first request committed CANCELING but exited
 	// before patching the Workflow. The repeated termination must finish it.
@@ -4190,7 +4199,7 @@ func TestReportWorkflowResource_DoesNotOverwriteExistingCancellation(t *testing.
 	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 	assert.Equal(t, "Terminating", persistedRun.Conditions)
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
-	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+	assertStateHistoryEndsWithSingleCancel(t, beforeTermination.StateHistory, persistedRun.StateHistory)
 }
 
 func TestReportWorkflowResource_UsesLiveWorkflowState(t *testing.T) {

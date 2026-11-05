@@ -70,6 +70,21 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                 with self.subTest(workflow=relative_path, job=job_name):
                     job = _job_block(workflow, job_name)
                     self.assertNotIn('needs: build', job)
+                    parsed = yaml.safe_load(job)[job_name]
+                    self.assertNotIn('needs', parsed)
+                    steps = parsed['steps']
+                    cluster = next(
+                        i
+                        for i, step in enumerate(steps)
+                        if step.get('uses')
+                        == './.github/actions/create-cluster'
+                    )
+                    deploy = next(
+                        i
+                        for i, step in enumerate(steps)
+                        if step.get('uses') == './.github/actions/deploy'
+                    )
+                    self.assertLess(cluster, deploy)
                     self.assertIn(
                         'permissions:\n      actions: read\n'
                         '      contents: read',
@@ -90,41 +105,24 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             )
         )
         steps = deploy_action['runs']['steps']
-        wait_steps = [
+        downloads = [
             step
             for step in steps
-            if './.github/resources/scripts/wait-for-image-artifacts.sh'
-            in step.get('run', '')
+            if step.get('uses') == './.github/actions/shared-ci-images'
         ]
-        download_steps = [
-            step
-            for step in steps
-            if step.get('uses')
-            == './.github/actions/download-artifact-with-retry'
-        ]
-        self.assertEqual(len(wait_steps), 2)
-        self.assertEqual(len(download_steps), 2)
-        runtime_wait, branch_wait = wait_steps
-        runtime_download, branch_download = download_steps
-        self.assertEqual(runtime_wait['id'], 'runtime-image-artifacts')
-        self.assertEqual(branch_wait['id'], 'image-artifacts')
-        self.assertIn(
-            'wait-for-image-artifacts.sh runtime-base-images',
-            runtime_wait['run'],
+        self.assertEqual(len(downloads), 2)
+        runtime_download, branch_download = downloads
+        self.assertEqual(runtime_download['with']['kind'], 'runtime')
+        self.assertEqual(runtime_download['with']['layout'], 'flat')
+        self.assertEqual(
+            branch_download['with'].get('kind', 'images'), 'images'
         )
-        self.assertIn(
-            'runtime-base-image-files "$LOAD_MODELCAR_FIXTURE"',
-            runtime_wait['run'],
-        )
-        self.assertIn('branch-image-files', branch_wait['run'])
-        self.assertIn(
-            'wait-for-image-artifacts.sh "${BRANCH_CI_IMAGE_ARTIFACTS[@]}"',
-            branch_wait['run'],
-        )
-        self.assertIn(
-            'source .github/resources/scripts/ci-image-artifacts.sh',
-            branch_wait['run'],
-        )
+        self.assertEqual(branch_download['with']['layout'], 'nested')
+        for download in downloads:
+            self.assertEqual(download['with']['architecture'], 'amd64')
+            self.assertNotIn('continue-on-error', download)
+            # Both invocations use the same producer-state default.
+            self.assertNotIn('state', download['with'])
         cache_restore = next(
             step for step in steps if step.get('id') == 'runtime-image-cache'
         )
@@ -150,36 +148,15 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
             runtime_download['with']['path'],
         )
         self.assertLess(steps.index(cache_restore), steps.index(cache_stage))
-        self.assertLess(steps.index(cache_stage), steps.index(runtime_wait))
-        for step in (runtime_wait, runtime_download):
-            self.assertEqual(
-                step['if'],
-                "steps.runtime-image-cache-files.outputs.ready != 'true'",
-            )
-        for step in (branch_wait, branch_download):
-            self.assertNotIn('if', step)
-        for wait, download in zip(wait_steps, download_steps):
-            self.assertLess(steps.index(wait), steps.index(download))
-            self.assertEqual(
-                wait.get('env', {}).get('GH_TOKEN'), '${{ github.token }}'
-            )
-            self.assertEqual(
-                download['with']['required-files'],
-                '${{ steps.' + wait['id'] + '.outputs.required-files }}',
-            )
-            self.assertNotIn('continue-on-error', wait)
-            self.assertNotIn('continue-on-error', download)
+        self.assertLess(steps.index(cache_stage), steps.index(runtime_download))
         self.assertEqual(
-            runtime_download['with']['name'], 'runtime-base-images'
+            runtime_download['if'],
+            "steps.runtime-image-cache-files.outputs.ready != 'true'",
         )
+        self.assertNotIn('if', branch_download)
         self.assertEqual(
             runtime_download['with']['path'],
             '${{ inputs.image_path }}/runtime-base-images',
-        )
-        self.assertNotIn('pattern', runtime_download['with'])
-        self.assertEqual(
-            branch_download['with']['pattern'],
-            '${{ steps.image-artifacts.outputs.artifact-pattern }}',
         )
         self.assertEqual(
             branch_download['with']['path'], '${{ inputs.image_path }}'
@@ -197,12 +174,11 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         self.assertNotIn('if', runtime_load)
         self.assertIn('verify_runtime_base_images_in_kind', runtime_load['run'])
         self.assertEqual(
-            modelcar_load['if'],
-            "${{ inputs.load_modelcar_fixture == 'true' }}",
+            modelcar_load['if'], "${{ inputs.load_modelcar_fixture == 'true' }}"
         )
         for load in (runtime_load, modelcar_load):
             self.assertLess(steps.index(runtime_download), steps.index(load))
-            self.assertLess(steps.index(load), steps.index(branch_wait))
+            self.assertLess(steps.index(load), steps.index(branch_download))
         for name in (
             'Load Control Plane Images Into Kind',
             'Load Driver and Launcher Images Into Kind',

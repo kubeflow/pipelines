@@ -59,6 +59,25 @@ class ArtifactExpressionTest(unittest.TestCase):
             render('${{ true }}/${{ false }}/${{ null }}', {}), 'true/false/'
         )
 
+    def test_format_resolves_branch_refs_without_reparsing_arguments(self):
+        self.assertEqual(
+            evaluate(
+                "format('refs/heads/{0}', github.event.repository.default_branch)",
+                {
+                    'github': {
+                        'event': {'repository': {'default_branch': 'main'}}
+                    }
+                },
+            ),
+            'refs/heads/main',
+        )
+        self.assertEqual(
+            evaluate("format('{{{0}}}', 'main || false')", {}),
+            '{main || false}',
+        )
+        with self.assertRaises(AssertionError):
+            evaluate("format('{0}', true)", {})
+
     def test_status_functions_are_explicitly_supplied(self):
         self.assertTrue(
             evaluate(

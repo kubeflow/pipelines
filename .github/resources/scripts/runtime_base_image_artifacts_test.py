@@ -68,6 +68,29 @@ class FingerprintTest(unittest.TestCase):
 
 
 class ProducerSelectionTest(unittest.TestCase):
+    def test_main_fallback_rejects_retired_master_and_fork(self):
+        payload = {
+            'artifacts': [
+                artifact(1, '2026-07-16T00:00:00Z', head_branch='main'),
+                artifact(2, '2026-07-16T01:00:00Z', head_branch='master'),
+                artifact(
+                    3,
+                    '2026-07-16T02:00:00Z',
+                    head_branch='main',
+                    head_repository_id=2,
+                ),
+            ]
+        }
+        self.assertEqual(
+            artifacts.select_producer_run_id(payload, SOURCE_SHA, 'main'), 10
+        )
+
+    def test_rejects_unsupported_default_branch(self):
+        with self.assertRaises(ValueError):
+            artifacts.select_producer_run_id(
+                {'artifacts': []}, SOURCE_SHA, 'feature'
+            )
+
     def test_selects_newest_current_source_or_upstream_master(self):
         payload = {
             'artifacts': [
@@ -78,7 +101,7 @@ class ProducerSelectionTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            artifacts.select_producer_run_id(payload, SOURCE_SHA),
+            artifacts.select_producer_run_id(payload, SOURCE_SHA, 'master'),
             20,
         )
 
@@ -97,7 +120,7 @@ class ProducerSelectionTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            artifacts.select_producer_run_id(payload, SOURCE_SHA),
+            artifacts.select_producer_run_id(payload, SOURCE_SHA, 'master'),
             10,
         )
 
@@ -115,7 +138,7 @@ class ProducerSelectionTest(unittest.TestCase):
         }
 
         self.assertEqual(
-            artifacts.select_producer_run_id(payload, SOURCE_SHA),
+            artifacts.select_producer_run_id(payload, SOURCE_SHA, 'master'),
             10,
         )
 
@@ -130,6 +153,7 @@ class ProducerSelectionTest(unittest.TestCase):
             artifacts.select_producer_run_id(
                 {'artifacts': [candidate]},
                 SOURCE_SHA,
+                'master',
             )
         )
 
@@ -145,7 +169,9 @@ class ProducerSelectionTest(unittest.TestCase):
             ]
         }
 
-        self.assertIsNone(artifacts.select_producer_run_id(payload, SOURCE_SHA))
+        self.assertIsNone(
+            artifacts.select_producer_run_id(payload, SOURCE_SHA, 'master')
+        )
 
 
 if __name__ == '__main__':

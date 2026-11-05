@@ -101,6 +101,12 @@ class RunPipelineResult:
         return f'RunPipelineResult(run_id={self.run_id})'
 
 
+def _validate_max_attempts(value: int, name: str) -> None:
+    # bool is a subclass of int, so reject it explicitly.
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f'{name} must be an integer >= 1, got {value!r}.')
+
+
 class Client:
     """The KFP SDK client for the Kubeflow Pipelines backend API.
 
@@ -128,6 +134,10 @@ class Client:
         ui_host: Base URL to use to open the Kubeflow Pipelines UI. This is used
             when running the client from a notebook to generate and print links.
         verify_ssl: Whether to verify the server's TLS certificate.
+        healthz_max_attempts: Maximum number of attempts for the health check
+            that runs during initialization when no namespace is set in the
+            local context. Set it to 1 to fail fast when the backend is
+            unreachable, or raise it for slow clusters. Defaults to 5.
     """
 
     # in-cluster DNS name of the pipeline service
@@ -157,8 +167,10 @@ class Client:
         credentials: Optional[TokenCredentialsBase] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
+        healthz_max_attempts: int = 5,
     ) -> None:
         """Create a new instance of kfp client."""
+        _validate_max_attempts(healthz_max_attempts, 'healthz_max_attempts')
         warnings.warn(
             'This client requires a Kubeflow Pipelines backend that exposes '
             'the v2 pipeline runtime. The SDK uses /apis/v2beta1 for server compatibility.',
@@ -224,7 +236,10 @@ class Client:
         self._healthz_api = kfp.server_api.HealthzServiceApi(api_client)
         if (
             not self._context_setting['namespace']
-            and self.get_kfp_healthz().multi_user is True
+            and self.get_kfp_healthz(
+                max_attempts=healthz_max_attempts
+            ).multi_user
+            is True
         ):
             try:
                 with open(Client._NAMESPACE_PATH, 'r') as f:
@@ -306,14 +321,14 @@ class Client:
             token, self._is_refresh_token = auth.get_auth_token(
                 client_id, other_client_id, other_client_secret
             )
-        elif self._is_inverse_proxy_host(host):
-            token = auth.get_gcp_access_token()
-            self._is_refresh_token = False
-            self._uses_gcp_credentials = True
         elif credentials:
             config.api_key['authorization'] = 'placeholder'
             config.api_key_prefix['authorization'] = 'Bearer'
             config.refresh_api_key_hook = credentials.refresh_api_key_hook
+        elif self._is_inverse_proxy_host(host):
+            token = auth.get_gcp_access_token()
+            self._is_refresh_token = False
+            self._uses_gcp_credentials = True
 
         if token:
             config.api_key['authorization'] = token
@@ -499,18 +514,21 @@ class Client:
     def get_kfp_healthz(
         self,
         sleep_duration: int = 5,
+        max_attempts: int = 5,
     ) -> kfp.server_api.V2GetHealthzResponse:
         """Gets healthz info for KFP deployment.
 
         Args:
             sleep_duration: Time in seconds between retries.
+            max_attempts: Maximum number of attempts before raising
+                ``TimeoutError``. Must be at least 1.
 
         Returns:
             JSON response from the healthz endpoint.
         """
+        _validate_max_attempts(max_attempts, 'max_attempts')
         count = 0
         response = None
-        max_attempts = 5
         while not response:
             count += 1
             if count > max_attempts:
@@ -533,7 +551,8 @@ class Client:
                 logging.exception(
                     f'Failed to get healthz info attempt {count} of {max_attempts}.'
                 )
-                time.sleep(sleep_duration)
+                if count < max_attempts:
+                    time.sleep(sleep_duration)
 
     def get_user_namespace(self) -> str:
         """Gets user namespace in context config.
@@ -823,6 +842,7 @@ class Client:
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         namespace: Optional[str] = None,
+        plugins_input: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> kfp.server_api.V2Run:
         """Runs a specified pipeline.
 
@@ -854,6 +874,10 @@ class Client:
                 account to use for this run.
             namespace: Kubernetes namespace to place the run in when
                 ``experiment_id`` is not set. Required in multi-user mode.
+            plugins_input: Inputs for backend plugins, keyed by plugin name
+                (for example, ``{'mlflow': {'experiment_name': 'my-exp'}}``).
+                Each value must be a JSON-serializable dict. Requires a KFP
+                backend with the named plugin enabled.
 
         Returns:
             ``V2Run`` object.
@@ -879,6 +903,7 @@ class Client:
             pipeline_version_reference=job_config.pipeline_version_reference,
             runtime_config=job_config.runtime_config,
             service_account=service_account,
+            plugins_input=plugins_input,
         )
 
         response = self._run_api.run_service_create_run(run=run_body)
@@ -959,6 +984,7 @@ class Client:
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         namespace: Optional[str] = None,
+        plugins_input: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> kfp.server_api.V2RecurringRun:
         """Creates a recurring run.
 
@@ -1011,6 +1037,11 @@ class Client:
                 account this recurring run uses.
             namespace: Kubernetes namespace to place the recurring run in when
                 ``experiment_id`` is not set. Required in multi-user mode.
+            plugins_input: Inputs for backend plugins, keyed by plugin name
+                (for example, ``{'mlflow': {'experiment_name': 'my-exp'}}``).
+                Each value must be a JSON-serializable dict. Every triggered
+                run inherits these inputs. Requires a KFP backend with the
+                named plugin enabled.
         Returns:
             ``V2RecurringRun`` object.
         """
@@ -1067,6 +1098,7 @@ class Client:
             trigger=trigger,
             max_concurrency=max_concurrency,
             service_account=service_account,
+            plugins_input=plugins_input,
         )
         return (
             self._recurring_run_api.recurring_run_service_create_recurring_run(
@@ -1170,6 +1202,7 @@ class Client:
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         experiment_id: Optional[str] = None,
+        plugins_input: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> RunPipelineResult:
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
@@ -1196,6 +1229,10 @@ class Client:
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
+            plugins_input: Inputs for backend plugins, keyed by plugin name
+                (for example, ``{'mlflow': {'experiment_name': 'my-exp'}}``).
+                Each value must be a JSON-serializable dict. Requires a KFP
+                backend with the named plugin enabled.
 
         Returns:
             ``RunPipelineResult`` object containing information about the pipeline run.
@@ -1227,6 +1264,7 @@ class Client:
                 enable_caching=enable_caching,
                 cache_key=cache_key,
                 service_account=service_account,
+                plugins_input=plugins_input,
             )
 
     def create_run_from_pipeline_package(
@@ -1241,6 +1279,7 @@ class Client:
         cache_key: Optional[str] = None,
         service_account: Optional[str] = None,
         experiment_id: Optional[str] = None,
+        plugins_input: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> RunPipelineResult:
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
@@ -1267,6 +1306,10 @@ class Client:
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
+            plugins_input: Inputs for backend plugins, keyed by plugin name
+                (for example, ``{'mlflow': {'experiment_name': 'my-exp'}}``).
+                Each value must be a JSON-serializable dict. Requires a KFP
+                backend with the named plugin enabled.
 
         Returns:
             ``RunPipelineResult`` object containing information about the pipeline run.
@@ -1312,6 +1355,7 @@ class Client:
             enable_caching=enable_caching,
             cache_key=cache_key,
             service_account=service_account,
+            plugins_input=plugins_input,
         )
         return RunPipelineResult(self, run_info)
 
