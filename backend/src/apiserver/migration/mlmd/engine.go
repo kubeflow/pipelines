@@ -676,5 +676,11 @@ func migrateOnce(ctx context.Context, source pb.MetadataStoreServiceClient, data
 			return report, err
 		}
 	}
+	if err := db.WithContext(ctx).Exec("CREATE TABLE IF NOT EXISTS mlmd_migration_complete (ID tinyint NOT NULL PRIMARY KEY) ENGINE=InnoDB").Error; err != nil {
+		return report, err
+	}
+	if err := db.WithContext(ctx).Exec("INSERT IGNORE INTO mlmd_migration_complete (ID) VALUES (1)").Error; err != nil {
+		return report, err
+	}
 	return report, nil
 }

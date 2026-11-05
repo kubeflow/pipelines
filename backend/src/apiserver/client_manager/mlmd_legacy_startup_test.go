@@ -230,9 +230,8 @@ func TestMLMDLegacyStartup(t *testing.T) {
 	cmd.Env = append(os.Environ(), "KFP_MLMD_STARTUP_CHILD_CONFIG="+string(config), "GOTRACEBACK=none")
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, ctx.Err(), "startup must fail promptly, not time out")
-	require.Error(t, err, "baseline has no MLMD migration; replace this characterization with graph-preservation assertions when migration is wired into startup")
-	require.Contains(t, string(output), "AutoMigrate failed", string(output))
-	require.Contains(t, string(output), "Data truncated for column 'Name'")
+	require.Error(t, err, "legacy startup must refuse migration without MLMD connection settings")
+	require.Contains(t, string(output), "requires METADATA_GRPC_SERVICE_HOST and METADATA_GRPC_SERVICE_PORT", string(output))
 	var executionID, state string
 	require.NoError(t, db.QueryRow("SELECT `MLMDExecutionID`, `State` FROM `tasks` WHERE `UUID` = ?", "33333333-3333-4333-8333-333333333333").Scan(&executionID, &state))
 	require.Equal(t, "7", executionID)
@@ -243,20 +242,14 @@ func TestMLMDLegacyStartup(t *testing.T) {
 	require.Equal(t, fixture.SeedTasks[1].PodName, podName)
 	require.Equal(t, fixture.SeedTasks[1].MLMDInputs, inputs)
 	require.Equal(t, fixture.SeedTasks[1].Payload, payload)
-	partial := inspectLegacyPartialCatalog(t, db)
-	if directory := os.Getenv("KFP_MLMD_CAPTURE_PARTIAL_DIR"); directory != "" {
-		data, err := json.MarshalIndent(partial, "", "  ")
-		require.NoError(t, err)
-		require.NoError(t, os.WriteFile(filepath.Join(directory, "legacy_partial_mysql.json"), append(data, '\n'), 0o600))
-	} else {
-		require.Equal(t, readLegacyPartialCatalog(t), partial)
-	}
-	// Report only the relevant startup diagnostic, not a subprocess stack.
-	for _, line := range strings.Split(string(output), "\n") {
-		if strings.Contains(line, "AutoMigrate failed") {
-			t.Log(line)
+	actual := inspectLegacyPartialCatalog(t, db)
+	var expected [][3]string
+	for _, column := range fixture.Columns {
+		if column[0] == "tasks" || column[0] == "artifacts" || column[0] == "artifact_tasks" {
+			expected = append(expected, [3]string{column[0], column[1], column[2]})
 		}
 	}
+	require.Equal(t, expected, actual.Columns, "missing MLMD settings must fail before any schema change")
 }
 
 func TestMLMDReleasedStartup(t *testing.T) {
@@ -403,7 +396,7 @@ func TestMLMDReleasedStartup(t *testing.T) {
 	cmd.Env = append(os.Environ(), "KFP_MLMD_STARTUP_CHILD_CONFIG="+string(config), "GOTRACEBACK=none")
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, ctx.Err(), "startup must fail promptly, not time out")
-	require.Error(t, err, "current startup must reject this populated released schema until migration is enabled")
-	require.Contains(t, string(output), "AutoMigrate failed")
+	require.Error(t, err, "legacy startup must refuse migration without MLMD connection settings")
+	require.Contains(t, string(output), "requires METADATA_GRPC_SERVICE_HOST and METADATA_GRPC_SERVICE_PORT")
 	require.Equal(t, selected, readTask(), "failed startup must preserve the released source row")
 }

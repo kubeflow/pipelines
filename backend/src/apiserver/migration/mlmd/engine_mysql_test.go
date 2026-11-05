@@ -19,6 +19,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -181,8 +183,28 @@ func releasedDatabase(t *testing.T) (*sql.DB, *sql.DB, mysqlDriver.Config, strin
 
 func TestMySQLReleasedSchemaMigration(t *testing.T) {
 	db, admin, config, name := releasedDatabase(t)
+	required, err := mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.True(t, required)
 	client := sourceClient(t)
 	report, err := mlmd.Migrate(context.Background(), client, db)
+	require.NoError(t, err)
+	required, err = mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.False(t, required)
+	_, err = db.Exec("DROP TABLE artifact_tasks")
+	require.NoError(t, err)
+	required, err = mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.True(t, required, "a missing native table invalidates the completion marker")
+	_, err = mlmd.Migrate(context.Background(), client, db)
+	require.NoError(t, err)
+	_, err = db.Exec("DELETE FROM mlmd_migration_complete WHERE ID=1")
+	require.NoError(t, err)
+	required, err = mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.True(t, required, "a missing completion row must resume migration")
+	_, err = mlmd.Migrate(context.Background(), client, db)
 	require.NoError(t, err)
 	require.Equal(t, 12, report.Tasks)
 	require.Equal(t, 4, report.Artifacts)
@@ -232,6 +254,11 @@ func TestMySQLReleasedSchemaMigration(t *testing.T) {
 	native, err := gorm.Open(mysql.Open(config.FormatDSN()), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, native.AutoMigrate(model.AllModels()...))
+	nativeSQL, err := native.DB()
+	require.NoError(t, err)
+	required, err = mlmd.NeedsMigration(context.Background(), nativeSQL)
+	require.NoError(t, err)
+	require.False(t, required, "fresh native installs must not require MLMD configuration")
 	for _, table := range []string{"artifacts", "artifact_tasks"} {
 		var manualName, manualDDL, nativeName, nativeDDL string
 		require.NoError(t, db.QueryRow("SHOW CREATE TABLE `"+table+"`").Scan(&manualName, &manualDDL))
@@ -260,6 +287,9 @@ func TestMySQLResumeAfterInterruptedTaskCopy(t *testing.T) {
 	var count int
 	require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='tasks_migration_tmp'").Scan(&count))
 	require.Equal(t, 1, count)
+	required, err := mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.True(t, required, "a partial task copy must resume before serving")
 	report, err := mlmd.Migrate(context.Background(), client, db)
 	require.NoError(t, err)
 	require.Equal(t, 12, report.Tasks)
@@ -269,6 +299,41 @@ func TestMySQLResumeAfterInterruptedTaskCopy(t *testing.T) {
 
 func TestBuiltCLIOnReleasedMySQL(t *testing.T) {
 	db, _, config, _ := releasedDatabase(t)
+	oldPodPresent := true
+	unreportedWorkflow := false
+	activeWorkflow := false
+	kube := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/apis/apps/v1/namespaces/kubeflow/deployments/ml-pipeline-scheduledworkflow":
+			_, _ = w.Write([]byte(`{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"ml-pipeline-scheduledworkflow","generation":1},"spec":{"replicas":0,"selector":{"matchLabels":{"app":"ml-pipeline-scheduledworkflow"}}},"status":{"observedGeneration":1}}`))
+		case "/apis/apps/v1/namespaces/kubeflow/deployments/ml-pipeline":
+			_, _ = w.Write([]byte(`{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"ml-pipeline","generation":1},"spec":{"replicas":0,"selector":{"matchLabels":{"app":"ml-pipeline"}}},"status":{"observedGeneration":1}}`))
+		case "/api/v1/namespaces/kubeflow/pods":
+			if r.URL.Query().Get("labelSelector") == "app=ml-pipeline-scheduledworkflow" {
+				_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"PodList","items":[]}`))
+				return
+			}
+			if oldPodPresent {
+				_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"PodList","items":[{"metadata":{"name":"old-api"}}]}`))
+			} else {
+				_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"PodList","items":[]}`))
+			}
+		case "/apis/argoproj.io/v1alpha1/workflows":
+			if activeWorkflow {
+				_, _ = w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowList","items":[{"metadata":{"namespace":"kubeflow","name":"active","labels":{"pipeline/runid":"run-1","pipeline/persistedFinalState":"true"}},"status":{"phase":"Running"}}]}`))
+			} else if unreportedWorkflow {
+				_, _ = w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowList","items":[{"metadata":{"namespace":"kubeflow","name":"unfinished","labels":{"pipeline/runid":"run-1"}},"status":{"phase":"Succeeded"}}]}`))
+			} else {
+				_, _ = w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowList","items":[]}`))
+			}
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(kube.Close)
+	kubeconfig := filepath.Join(t.TempDir(), "kubeconfig")
+	require.NoError(t, os.WriteFile(kubeconfig, []byte("apiVersion: v1\nkind: Config\nclusters:\n- name: test\n  cluster:\n    server: "+kube.URL+"\ncontexts:\n- name: test\n  context:\n    cluster: test\n    user: test\ncurrent-context: test\nusers:\n- name: test\n  user: {}\n"), 0600))
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	server := grpc.NewServer()
@@ -279,7 +344,47 @@ func TestBuiltCLIOnReleasedMySQL(t *testing.T) {
 	build := exec.Command("go", "build", "-o", binary, "./cmd/mlmd-migrate")
 	output, err := build.CombinedOutput()
 	require.NoError(t, err, string(output))
+	check := exec.Command(binary, "--drain-check", "--mysql-dsn="+config.FormatDSN())
+	check.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = check.CombinedOutput()
+	require.NoError(t, err, string(output))
+	require.Contains(t, string(output), `"status":"drained"`)
 	command := exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN())
+	command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = command.CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "no remaining pods")
+	oldPodPresent = false
+	check = exec.Command(binary, "--gate-only", "--mysql-dsn="+config.FormatDSN())
+	check.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = check.CombinedOutput()
+	require.NoError(t, err, string(output))
+	require.Contains(t, string(output), `"status":"fenced"`)
+	_, err = db.Exec("UPDATE run_details SET State='RUNNING', FinishedAtInSec=0")
+	require.NoError(t, err)
+	command = exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN())
+	command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = command.CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "lack a stored terminal report")
+	_, err = db.Exec("UPDATE run_details SET State='SUCCEEDED', FinishedAtInSec=1700000003")
+	require.NoError(t, err)
+	unreportedWorkflow = true
+	command = exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN())
+	command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = command.CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "no stored terminal report")
+	unreportedWorkflow = false
+	activeWorkflow = true
+	command = exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN())
+	command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = command.CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "is not terminal")
+	activeWorkflow = false
+	command = exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN())
+	command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
 	output, err = command.CombinedOutput()
 	require.NoError(t, err, string(output))
 	var report struct {

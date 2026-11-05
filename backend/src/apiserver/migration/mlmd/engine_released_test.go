@@ -24,98 +24,19 @@ import (
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/migration/mlmd"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/migration/mlmdfixture"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func released218Client(t *testing.T) fixtureClient {
+func released218Client(t *testing.T) *mlmdfixture.Source {
 	t.Helper()
-	var graph releaseGraph
-	readFixture(t, "release_218/source_graph.json", &graph)
-	client := fixtureClient{
-		executions: &pb.GetExecutionsResponse{}, artifacts: &pb.GetArtifactsResponse{},
-		events: &pb.GetEventsByExecutionIDsResponse{}, contexts: map[int64]*pb.GetContextsByExecutionResponse{},
-	}
-	types := map[int]string{}
-	for _, entry := range graph.Types {
-		types[entry.ID] = entry.Name
-	}
-	runIDs := map[string]bool{}
-	for _, run := range graph.Runs {
-		runIDs[run.ID] = true
-	}
-	contexts := map[int]*pb.Context{}
-	for _, entry := range graph.Contexts {
-		kind := "system.Pipeline"
-		if runIDs[entry.Name] {
-			kind = "system.PipelineRun"
-		}
-		contexts[entry.ID] = &pb.Context{Id: proto.Int64(int64(entry.ID)), Name: proto.String(entry.Name), Type: proto.String(kind)}
-	}
-	for _, association := range graph.Associations {
-		id := int64(association.ExecutionID)
-		if client.contexts[id] == nil {
-			client.contexts[id] = &pb.GetContextsByExecutionResponse{}
-		}
-		client.contexts[id].Contexts = append(client.contexts[id].Contexts, contexts[association.ContextID])
-	}
-	for _, entry := range graph.Executions {
-		state := pb.Execution_State(entry.State)
-		client.executions.Executions = append(client.executions.Executions, &pb.Execution{
-			Id: proto.Int64(int64(entry.ID)), Name: proto.String(entry.Name),
-			Type: proto.String(types[entry.TypeID]), LastKnownState: &state,
-			CreateTimeSinceEpoch: proto.Int64(entry.CreatedMS), LastUpdateTimeSinceEpoch: proto.Int64(entry.UpdatedMS),
-			CustomProperties: map[string]*pb.Value{},
-		})
-	}
-	executions := map[int]*pb.Execution{}
-	for _, entry := range client.executions.Executions {
-		executions[int(entry.GetId())] = entry
-	}
-	for _, property := range graph.Properties {
-		value := &pb.Value{Value: &pb.Value_StringValue{StringValue: property.StringValue}}
-		if property.IntValue != nil {
-			value.Value = &pb.Value_IntValue{IntValue: *property.IntValue}
-		}
-		executions[property.ExecutionID].CustomProperties[property.Name] = value
-	}
-	artifacts := map[int]*pb.Artifact{}
-	for _, entry := range graph.Artifacts {
-		artifact := &pb.Artifact{
-			Id: proto.Int64(int64(entry.ID)), Type: proto.String(types[entry.TypeID]), Uri: proto.String(entry.URI),
-			CreateTimeSinceEpoch: proto.Int64(entry.CreatedMS), LastUpdateTimeSinceEpoch: proto.Int64(entry.UpdatedMS),
-			CustomProperties: map[string]*pb.Value{},
-		}
-		client.artifacts.Artifacts = append(client.artifacts.Artifacts, artifact)
-		artifacts[entry.ID] = artifact
-	}
-	for _, property := range graph.ArtifactProperties {
-		value := &pb.Value{Value: &pb.Value_StringValue{StringValue: property.StringValue}}
-		if property.DoubleValue != nil {
-			value.Value = &pb.Value_DoubleValue{DoubleValue: *property.DoubleValue}
-		}
-		artifacts[property.ArtifactID].CustomProperties[property.Name] = value
-	}
-	paths := map[int]*pb.Event_Path{}
-	for _, path := range graph.EventPaths {
-		if paths[path.EventID] == nil {
-			paths[path.EventID] = &pb.Event_Path{}
-		}
-		paths[path.EventID].Steps = append(paths[path.EventID].Steps, &pb.Event_Path_Step{Value: &pb.Event_Path_Step_Key{Key: path.StepKey}})
-	}
-	for _, entry := range graph.Events {
-		kind := pb.Event_Type(entry.Type)
-		client.events.Events = append(client.events.Events, &pb.Event{
-			ArtifactId: proto.Int64(int64(entry.ArtifactID)), ExecutionId: proto.Int64(int64(entry.ExecutionID)),
-			Type: &kind, Path: paths[entry.ID],
-		})
-	}
-	return client
+	source, err := mlmdfixture.Load("testdata/release_218/source_graph.json")
+	require.NoError(t, err)
+	return source
 }
 
 func TestMySQL218ReleasedSourceMigration(t *testing.T) {
