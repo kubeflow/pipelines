@@ -18,7 +18,7 @@ import os
 import shutil
 from typing import Any, Dict, List
 
-from kfp.local import config, logging_utils, placeholder_utils, status, utils
+from kfp.local import config, events, logging_utils, placeholder_utils, status, utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -73,6 +73,8 @@ def _run_local_pipeline_implementation(
         executor_input_utils.get_local_pipeline_resource_name(pipeline_name)
     )
     pipeline_name_with_color = logging_utils.format_pipeline_name(pipeline_name)
+
+    events.fire_event(events.PipelineStartedEvent(pipeline_name=pipeline_name))
 
     with logging_utils.local_logger_context():
         logging.info(f'Running pipeline: {pipeline_name_with_color}')
@@ -135,6 +137,7 @@ def _run_local_pipeline_implementation(
                 runner=runner,
                 unique_pipeline_id=placeholder_utils.make_random_id(),
                 fail_stack=fail_stack,
+                pipeline_name=pipeline_name,
             )
         else:
             from kfp.local.orchestrator import dag_orchestrator
@@ -149,6 +152,7 @@ def _run_local_pipeline_implementation(
                 runner=runner,
                 unique_pipeline_id=placeholder_utils.make_random_id(),
                 fail_stack=fail_stack,
+                pipeline_name=pipeline_name,
             )
         if dag_status == status.Status.SUCCESS:
             status_with_color = logging_utils.format_status(
@@ -158,8 +162,20 @@ def _run_local_pipeline_implementation(
                 logging.info(
                     f'Pipeline {pipeline_name_with_color} finished with status {status_with_color}'
                 )
+            events.fire_event(
+                events.PipelineFinishedEvent(
+                    pipeline_name=pipeline_name,
+                    status=status.Status.SUCCESS,
+                )
+            )
             return outputs
         elif dag_status == status.Status.FAILURE:
+            events.fire_event(
+                events.PipelineFinishedEvent(
+                    pipeline_name=pipeline_name,
+                    status=status.Status.FAILURE,
+                )
+            )
             log_and_maybe_raise_for_failure(
                 pipeline_name=pipeline_name,
                 fail_stack=fail_stack,

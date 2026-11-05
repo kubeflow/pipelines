@@ -15,9 +15,25 @@
 locally."""
 
 from kfp.local.config import DockerRunner, SubprocessRunner, init
+from kfp.local.events import (
+    PipelineFinishedEvent,
+    PipelineStartedEvent,
+    TaskFailedEvent,
+    TaskLifecycleCallback,
+    TaskLifecycleEvent,
+    TaskStartedEvent,
+    TaskSucceededEvent,
+)
 
 __all__ = [
     'init',
     'SubprocessRunner',
     'DockerRunner',
+    'PipelineStartedEvent',
+    'TaskStartedEvent',
+    'TaskSucceededEvent',
+    'TaskFailedEvent',
+    'PipelineFinishedEvent',
+    'TaskLifecycleEvent',
+    'TaskLifecycleCallback',
 ]

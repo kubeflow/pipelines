@@ -585,6 +585,7 @@ def run_enhanced_dag(
     unique_pipeline_id: str,
     fail_stack: List[str],
     parent_io_store: 'io.IOStore' = None,
+    pipeline_name: str = '',
 ) -> Tuple[Outputs, status.Status]:
     """Enhanced DAG runner with support for dsl.Condition and dsl.ParallelFor.
 
@@ -868,6 +869,7 @@ def execute_task(
             unique_pipeline_id=unique_pipeline_id,
             fail_stack=fail_stack,
             parent_io_store=io_store,
+            pipeline_name=pipeline_name,
         )
 
     else:
@@ -882,4 +884,5 @@ def execute_task(
             runner=runner,
             unique_pipeline_id=unique_pipeline_id,
             fail_stack=fail_stack,
+            pipeline_name=pipeline_name,
         )

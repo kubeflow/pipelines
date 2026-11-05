@@ -81,6 +81,7 @@ def execute_single_task(
     runner: config.LocalRunnerType,
     unique_pipeline_id: str,
     fail_stack: List[str],
+    pipeline_name: str = '',
 ) -> Tuple[Outputs, status.Status]:
     """Execute one local task with shared cache/retry/importer policy."""
     component_name = task_spec.component_ref.name
@@ -170,6 +171,7 @@ def execute_single_task(
                     raise_on_error=False,
                     block_input_artifact=False,
                     unique_pipeline_id=unique_pipeline_id,
+                    pipeline_name=pipeline_name,
                 )
             )
         else:

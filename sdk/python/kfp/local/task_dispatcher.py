@@ -30,6 +30,7 @@ except ImportError:
     _DOCKER_AVAILABLE = False
 
 from kfp.local import (
+    events,
     executor_input_utils,
     executor_output_utils,
     logging_utils,
@@ -148,6 +149,7 @@ def run_single_task_implementation(
     raise_on_error: bool,
     block_input_artifact: bool,
     unique_pipeline_id: str,
+    pipeline_name: str = '',
 ) -> Tuple[Outputs, status.Status]:
 
     task_resource_name = executor_input_utils.get_local_task_resource_name(
@@ -221,6 +223,13 @@ def run_single_task_implementation(
         # separate logs visually
         logging.info(f'Streamed logs:\n')
 
+        events.fire_event(
+            events.TaskStartedEvent(
+                task_name=task_resource_name,
+                pipeline_name=pipeline_name,
+            )
+        )
+
         with logging_utils.indented_print():
             task_status = task_handler.run()
 
@@ -242,8 +251,23 @@ def run_single_task_implementation(
             else:
                 logging.info(f'Task {task_name_for_logs} has no outputs')
 
+            events.fire_event(
+                events.TaskSucceededEvent(
+                    task_name=task_resource_name,
+                    pipeline_name=pipeline_name,
+                    outputs=outputs,
+                )
+            )
+
         elif task_status == status.Status.FAILURE:
             msg = f'Task {task_name_for_logs} finished with status {logging_utils.format_status(task_status)}'
+            events.fire_event(
+                events.TaskFailedEvent(
+                    task_name=task_resource_name,
+                    pipeline_name=pipeline_name,
+                    error_message=msg,
+                )
+            )
             if raise_on_error:
                 raise RuntimeError(msg)
             else:
