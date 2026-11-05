@@ -278,7 +278,7 @@ function TaskNodeDetail({
   return (
     <div className={commonCss.page}>
       <LifecycleBanner task={task} sourceFinished={sourceFinished} />
-      {runId && (
+      {runId && !sourceFinished && (
         <DebugPauseResumeBanner
           // Key on run + task + barrier identity so the banner remounts with
           // fresh mutation state when either the barrier advances (before ->

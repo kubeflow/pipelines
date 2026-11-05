@@ -19,6 +19,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os/signal"
+	"syscall"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -136,7 +138,11 @@ func main() {
 func run() error {
 	flag.Parse()
 	providedFlags := collectProvidedFlags()
-	ctx := context.Background()
+	// Cancel on SIGTERM so parked debug pauses get a chance to clear their
+	// task-record state during the pod's termination grace period instead
+	// of leaving stale markers behind when the run is terminated.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
+	defer stop()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
 	err := flag.Set("v", *logLevel)

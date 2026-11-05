@@ -1240,6 +1240,20 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(screen.getByText('Resume')).toBeInTheDocument();
     });
 
+    it('does not render a Resume banner on a finished run with stale pause keys', () => {
+      renderTask(
+        createTask({
+          state: PipelineTaskTaskState.RUNNING,
+          status_metadata: {
+            custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+          },
+        }),
+        { sourceFinished: true },
+      );
+      expect(screen.queryByText(/paused .* for debugging/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Resume')).not.toBeInTheDocument();
+    });
+
     it('renders a Resume banner describing an "on_error" barrier', () => {
       renderTask(
         createTask({
