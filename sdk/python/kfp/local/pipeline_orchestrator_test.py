@@ -72,7 +72,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
     def test_no_io(self):
         local.init(
-            local.SubprocessRunner(use_venv=False),
+           local.SubprocessRunner(use_venv=False),
             pipeline_root=ROOT_FOR_TESTING,
         )
 
@@ -560,6 +560,67 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         self.assertIsInstance(task, pipeline_task.PipelineTask)
         # ParallelFor detection should route to enhanced orchestrator
         # and execute tasks in parallel
+
+    def test_parallel_for_empty_items_with_collected_output(self):
+        local.init(
+            local.SubprocessRunner(),
+            pipeline_root=ROOT_FOR_TESTING,
+        )
+
+        @dsl.component
+        def get_items() -> List[int]:
+            return []
+
+        @dsl.component
+        def double(x: int) -> int:
+            return x * 2
+
+        @dsl.component
+        def summarize(items: List[int]) -> int:
+            return len(items)
+
+        @dsl.pipeline
+        def my_pipeline() -> int:
+            items = get_items()
+            with dsl.ParallelFor(items.output) as item:
+                step = double(x=item)
+            result = summarize(items=dsl.Collected(step.output))
+            return result.output
+
+        task = my_pipeline()
+        self.assertEqual(task.output, 0)
+    def test_parallel_for_empty_items_with_collected_artifacts(self):
+        local.init(
+            local.SubprocessRunner(),
+            pipeline_root=ROOT_FOR_TESTING,
+        )
+
+        @dsl.component
+        def get_items() -> List[int]:
+            return []
+
+        @dsl.component
+        def make_dataset(x: int) -> Dataset:
+            dataset = Dataset(uri=dsl.get_uri())
+            with open(dataset.path, 'w') as f:
+                f.write(str(x))
+            return dataset
+
+        @dsl.component
+        def summarize(datasets: List[Dataset]) -> int:
+            return len(datasets)
+
+        @dsl.pipeline
+        def my_pipeline() -> int:
+            items = get_items()
+            with dsl.ParallelFor(items.output) as item:
+                step = make_dataset(x=item)
+            result = summarize(datasets=dsl.Collected(step.output))
+            return result.output
+
+        task = my_pipeline()
+        self.assertEqual(task.output, 0)
+
 
     def test_parallel_for_uses_iterator_policy_parallelism_limit(self):
         local.init(
