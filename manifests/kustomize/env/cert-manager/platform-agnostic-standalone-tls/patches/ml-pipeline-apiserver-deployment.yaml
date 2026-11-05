@@ -30,22 +30,6 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
-          livenessProbe:
-            httpGet:
-              path: /apis/v2/healthz
-              port: 8888
-              scheme: HTTPS
-            initialDelaySeconds: 3
-            periodSeconds: 5
-            timeoutSeconds: 2
-          startupProbe:
-            httpGet:
-              path: /apis/v2/healthz
-              port: 8888
-              scheme: HTTPS
-            failureThreshold: 12
-            periodSeconds: 5
-            timeoutSeconds: 2
           volumeMounts:
             - name: tls-certs
               mountPath: /etc/pki/tls/certs

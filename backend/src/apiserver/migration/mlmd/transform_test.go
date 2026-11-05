@@ -177,30 +177,98 @@ func TestLoopOutputRetainsProducerIteration(t *testing.T) {
 		Events:    []*pb.Event{{ExecutionId: proto.Int64(19), ArtifactId: proto.Int64(6), Type: &eventType, Path: namedEventPath("output")}},
 		Contexts:  map[int64][]*pb.Context{10: {context}, 15: {context}, 19: {context}},
 	}
-	plan := mlmd.BuildPlan(snapshot, map[string]string{"run": "team"}, nil)
+	plan, err := mlmd.BuildPlan(snapshot, map[string]string{"run": "team"}, nil)
+	require.NoError(t, err)
 	require.Empty(t, plan.Skipped)
 	require.Len(t, plan.Links, 1)
 	require.Equal(t, int64(0), plan.Links[0].Iteration)
 	require.Equal(t, model.JSONData{"taskName": "double", "iteration": "0"}, plan.Links[0].Producer)
 }
 
-func TestMissingParentSkipsChildAndItsLineage(t *testing.T) {
-	execution := &pb.Execution{Id: proto.Int64(42), Type: proto.String("system.ContainerExecution"), CustomProperties: map[string]*pb.Value{
+func TestUnavailableParentPreservesChildAndLineage(t *testing.T) {
+	parentContext := &pb.Context{Type: proto.String("system.PipelineRun"), Name: proto.String("run")}
+	child := &pb.Execution{Id: proto.Int64(42), Type: proto.String("system.ContainerExecution"), CustomProperties: map[string]*pb.Value{
 		"parent_dag_id": {Value: &pb.Value_IntValue{IntValue: 999}},
 	}}
-	context := &pb.Context{Type: proto.String("system.PipelineRun"), Name: proto.String("run")}
-	eventType := pb.Event_OUTPUT
-	snapshot := &mlmd.Snapshot{
-		Executions: []*pb.Execution{execution},
-		Artifacts:  []*pb.Artifact{{Id: proto.Int64(7), Type: proto.String("system.Dataset")}},
-		Events:     []*pb.Event{{ExecutionId: proto.Int64(42), ArtifactId: proto.Int64(7), Type: &eventType}},
-		Contexts:   map[int64][]*pb.Context{42: {context}},
+	descendant := &pb.Execution{Id: proto.Int64(43), Type: proto.String("system.ContainerExecution"), CustomProperties: map[string]*pb.Value{
+		"parent_dag_id": {Value: &pb.Value_IntValue{IntValue: 42}},
+	}}
+	for _, tc := range []struct {
+		name, parentType, parentRun, warning string
+	}{
+		{name: "absent", warning: "missing or skipped"},
+		{name: "unsupported", parentType: "custom.Unsupported", parentRun: "run", warning: "missing or skipped"},
+		{name: "different run", parentType: "system.DAGExecution", parentRun: "other", warning: "cross-run"},
+		{name: "same run", parentType: "system.DAGExecution", parentRun: "run"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			snapshot := &mlmd.Snapshot{
+				Executions: []*pb.Execution{child, descendant},
+				Artifacts:  []*pb.Artifact{{Id: proto.Int64(7), Type: proto.String("system.Dataset")}},
+				Events: []*pb.Event{{
+					ExecutionId: proto.Int64(42), ArtifactId: proto.Int64(7), Type: pb.Event_OUTPUT.Enum(),
+					Path: &pb.Event_Path{Steps: []*pb.Event_Path_Step{{Value: &pb.Event_Path_Step_Key{Key: "dataset"}}}},
+				}},
+				Contexts: map[int64][]*pb.Context{42: {parentContext}, 43: {parentContext}},
+			}
+			if tc.parentType != "" {
+				snapshot.Executions = append(snapshot.Executions, &pb.Execution{Id: proto.Int64(999), Type: proto.String(tc.parentType)})
+				snapshot.Contexts[999] = []*pb.Context{{Type: proto.String("system.PipelineRun"), Name: proto.String(tc.parentRun)}}
+			}
+			plan, err := mlmd.BuildPlan(snapshot, map[string]string{"run": "team", "other": "team"}, nil)
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, len(plan.Tasks), 2)
+			require.Equal(t, mlmd.ExecutionUUID(42), plan.Tasks[0].UUID)
+			require.Equal(t, &plan.Tasks[0].UUID, plan.Tasks[1].ParentTaskUUID)
+			if tc.warning == "" {
+				parentUUID := mlmd.ExecutionUUID(999)
+				require.Equal(t, &parentUUID, plan.Tasks[0].ParentTaskUUID)
+			} else {
+				require.Nil(t, plan.Tasks[0].ParentTaskUUID)
+				require.Contains(t, plan.Warnings, "execution 42: ignored "+tc.warning+" parent 999")
+			}
+			require.Len(t, plan.Artifacts, 1)
+			require.Len(t, plan.Links, 1)
+			require.Equal(t, plan.Tasks[0].UUID, plan.Links[0].TaskID)
+		})
 	}
-	plan := mlmd.BuildPlan(snapshot, map[string]string{"run": "team"}, nil)
-	require.Empty(t, plan.Tasks)
-	require.Empty(t, plan.Artifacts)
-	require.Empty(t, plan.Links)
-	require.Contains(t, plan.Skipped, mlmd.Skip{Kind: "execution", ID: 42, Reason: "parent execution 999 is absent from the same run"})
+}
+
+func TestCyclicParentsPreserveTasksAndLineage(t *testing.T) {
+	run := &pb.Context{Type: proto.String("system.PipelineRun"), Name: proto.String("run")}
+	execution := func(id, parent int64) *pb.Execution {
+		return &pb.Execution{
+			Id: proto.Int64(id), Type: proto.String("system.ContainerExecution"),
+			CustomProperties: map[string]*pb.Value{"parent_dag_id": {Value: &pb.Value_IntValue{IntValue: parent}}},
+		}
+	}
+	snapshot := &mlmd.Snapshot{
+		Executions: []*pb.Execution{execution(2, 4), execution(4, 2), execution(5, 5), execution(6, 2)},
+		Contexts:   map[int64][]*pb.Context{2: {run}, 4: {run}, 5: {run}, 6: {run}},
+		Artifacts:  []*pb.Artifact{{Id: proto.Int64(7), Type: proto.String("system.Dataset")}},
+		Events: []*pb.Event{{
+			ExecutionId: proto.Int64(2), ArtifactId: proto.Int64(7), Type: pb.Event_OUTPUT.Enum(),
+			Path: &pb.Event_Path{Steps: []*pb.Event_Path_Step{{Value: &pb.Event_Path_Step_Key{Key: "dataset"}}}},
+		}},
+	}
+	plan, err := mlmd.BuildPlan(snapshot, map[string]string{"run": "team"}, nil)
+	require.NoError(t, err)
+	require.Empty(t, plan.Skipped)
+	require.Len(t, plan.Tasks, 4)
+	for _, task := range plan.Tasks[:3] {
+		require.Nil(t, task.ParentTaskUUID)
+	}
+	require.Equal(t, &plan.Tasks[0].UUID, plan.Tasks[3].ParentTaskUUID)
+	for _, warning := range []string{
+		"execution 2: ignored cyclic parent 4",
+		"execution 4: ignored cyclic parent 2",
+		"execution 5: ignored cyclic parent 5",
+	} {
+		require.Contains(t, plan.Warnings, warning)
+	}
+	require.Len(t, plan.Artifacts, 1)
+	require.Len(t, plan.Links, 1)
+	require.Equal(t, mlmd.ExecutionUUID(2), plan.Links[0].TaskID)
 }
 
 func TestOversizedExecutionIsSkipped(t *testing.T) {
@@ -208,7 +276,8 @@ func TestOversizedExecutionIsSkipped(t *testing.T) {
 		"display_name": stringValue(strings.Repeat("x", 129)),
 	}}
 	context := &pb.Context{Type: proto.String("system.PipelineRun"), Name: proto.String("run")}
-	plan := mlmd.BuildPlan(&mlmd.Snapshot{Executions: []*pb.Execution{execution}, Contexts: map[int64][]*pb.Context{42: {context}}}, map[string]string{"run": "team"}, nil)
+	plan, err := mlmd.BuildPlan(&mlmd.Snapshot{Executions: []*pb.Execution{execution}, Contexts: map[int64][]*pb.Context{42: {context}}}, map[string]string{"run": "team"}, nil)
+	require.NoError(t, err)
 	require.Empty(t, plan.Tasks)
 	require.Len(t, plan.Skipped, 1)
 	require.Equal(t, int64(42), plan.Skipped[0].ID)
@@ -233,7 +302,8 @@ func TestJoinedTaskPrecedenceAndFallback(t *testing.T) {
 		{"MLMD fallback", mlmd.LegacyTask{RunUUID: "run", Namespace: "team", State: "RUNTIME_STATE_UNSPECIFIED"}, apiv2.PipelineTask_SUCCEEDED, "mlmd-pod", 100},
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
-			plan := mlmd.BuildPlan(snapshot, map[string]string{"run": "team"}, map[int64]mlmd.LegacyTask{12: scenario.legacy})
+			plan, err := mlmd.BuildPlan(snapshot, map[string]string{"run": "team"}, map[int64]mlmd.LegacyTask{12: scenario.legacy})
+			require.NoError(t, err)
 			require.Len(t, plan.Tasks, 1)
 			task := plan.Tasks[0]
 			require.Equal(t, scenario.state, apiv2.PipelineTask_TaskState(task.State))
@@ -273,7 +343,8 @@ func TestBuildPlanFromPinnedSource(t *testing.T) {
 		State: fixture.LegacyTask.State, CreatedAtInSec: fixture.LegacyTask.CreatedTimestamp,
 		StartedInSec: fixture.LegacyTask.StartedTimestamp, FinishedInSec: fixture.LegacyTask.FinishedTimestamp,
 	}}
-	plan := mlmd.BuildPlan(snapshot, map[string]string{fixture.LegacyTask.RunID: fixture.LegacyTask.Namespace}, legacy)
+	plan, err := mlmd.BuildPlan(snapshot, map[string]string{fixture.LegacyTask.RunID: fixture.LegacyTask.Namespace}, legacy)
+	require.NoError(t, err)
 	var expected nativeFixture
 	readFixture(t, "expected_native.json", &expected)
 	require.Len(t, plan.Tasks, 12)
@@ -345,7 +416,8 @@ func TestMigrationVerifiedOwnership(t *testing.T) {
 	legacy := map[int64]mlmd.LegacyTask{12: {UUID: "legacy-row", RunUUID: "run", Namespace: "other", CreatedAtInSec: 500}}
 	snapshot.Artifacts = []*pb.Artifact{{Id: proto.Int64(7), Type: proto.String("system.Dataset")}}
 	snapshot.Events = []*pb.Event{{ArtifactId: proto.Int64(7), ExecutionId: proto.Int64(12), Type: pb.Event_OUTPUT.Enum(), Path: namedEventPath("data")}}
-	plan := mlmd.BuildPlan(snapshot, map[string]string{"run": "owner"}, legacy)
+	plan, err := mlmd.BuildPlan(snapshot, map[string]string{"run": "owner"}, legacy)
+	require.NoError(t, err)
 	require.Len(t, plan.Tasks, 1)
 	require.Equal(t, "owner", plan.Tasks[0].Namespace)
 	require.Equal(t, int64(100), plan.Tasks[0].CreatedAtInSec)
@@ -357,7 +429,8 @@ func TestMigrationVerifiedOwnership(t *testing.T) {
 	}}, plan.Skipped)
 
 	snapshot.Contexts[12] = append(snapshot.Contexts[12], &pb.Context{Type: proto.String("system.PipelineRun"), Name: proto.String("second")})
-	plan = mlmd.BuildPlan(snapshot, map[string]string{"run": "owner", "second": "other"}, legacy)
+	plan, err = mlmd.BuildPlan(snapshot, map[string]string{"run": "owner", "second": "other"}, legacy)
+	require.NoError(t, err)
 	require.Empty(t, plan.Tasks)
 	require.Len(t, plan.Skipped, 4)
 	require.Contains(t, plan.Skipped, mlmd.Skip{
@@ -366,7 +439,8 @@ func TestMigrationVerifiedOwnership(t *testing.T) {
 	require.Empty(t, plan.Links)
 	snapshot.Contexts[12] = []*pb.Context{run}
 	execution.CustomProperties["namespace"] = stringValue("other")
-	plan = mlmd.BuildPlan(snapshot, map[string]string{"run": "owner"}, nil)
+	plan, err = mlmd.BuildPlan(snapshot, map[string]string{"run": "owner"}, nil)
+	require.NoError(t, err)
 	require.Empty(t, plan.Tasks)
 	require.Empty(t, plan.Artifacts)
 	require.Empty(t, plan.Links)
@@ -402,12 +476,13 @@ func TestMigrationRejectsUnrepresentableEventPath(t *testing.T) {
 	path := namedEventPath("data")
 	path.Steps = append(path.Steps, &pb.Event_Path_Step{Value: &pb.Event_Path_Step_Index{Index: 0}})
 	event := &pb.Event{ExecutionId: proto.Int64(1), ArtifactId: proto.Int64(2), Type: pb.Event_OUTPUT.Enum(), Path: path}
-	plan := mlmd.BuildPlan(&mlmd.Snapshot{
+	plan, err := mlmd.BuildPlan(&mlmd.Snapshot{
 		Executions: []*pb.Execution{execution},
 		Artifacts:  []*pb.Artifact{{Id: proto.Int64(2), Type: proto.String("system.Dataset")}},
 		Events:     []*pb.Event{event},
 		Contexts:   map[int64][]*pb.Context{1: {run}},
 	}, map[string]string{"run": "team"}, nil)
+	require.NoError(t, err)
 	require.Empty(t, plan.Links)
 	require.Len(t, plan.Skipped, 1)
 	require.Contains(t, plan.Skipped[0].Source, "execution=1 artifact=2")

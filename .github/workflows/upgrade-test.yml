@@ -1,12 +1,7 @@
 name: KFP upgrade tests
 
 env:
-  TESTS_DIR: "./backend/test/v2/api"
-  TESTS_LABEL: "ApiServerTests"
-  NUMBER_OF_PARALLEL_NODES: 15
-  CLUSTER_NAME: "kfp"
-  NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.11"
+  CLUSTER_NAME: kfp-mlmd-upgrade
 
 on:
   merge_group:
@@ -15,11 +10,30 @@ on:
   push:
     branches: [master, main]
 
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master, main, or release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+
   pull_request:
     paths:
       - '**/pyproject.toml'
       - 'uv.lock'
       - '.github/workflows/upgrade-test.yml'
+      - 'backend/Dockerfile'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-images.yml'
       - '.github/workflows/shared-ci-images-ready.yml'
@@ -47,8 +61,17 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   image-artifacts-ready:
-    if: ${{ false }}
     permissions:
       actions: read
       contents: read
@@ -56,16 +79,17 @@ jobs:
 
   upgrade-test:
     needs: image-artifacts-ready
-    # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ false }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: read
     strategy:
+      fail-fast: false
       matrix:
-        k8s_version: [ "v1.36.1" ]
-    name: KFP upgrade tests - K8s ${{ matrix.k8s_version }}
+        upgrade_mode: [cli-first, startup-only]
+        k8s_version: ['v1.36.1']
+    name: KFP upgrade tests - ${{ matrix.upgrade_mode }} (K8s ${{ matrix.k8s_version }})
 
     steps:
       - name: Checkout code
@@ -79,91 +103,70 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
-      - name: Get last release tag
-        shell: bash
-        id: get-tag
+      - name: Install upgrade script dependencies
         run: |
-          lastRelease=""
-          for attempt in 1 2 3; do
-            lastRelease=$(curl -sSL --fail-with-body --connect-timeout 10 --max-time 60 \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ github.token }}" \
-              "https://api.github.com/repos/kubeflow/pipelines/releases/latest" | jq -r .tag_name 2>/dev/null || echo "")
-            if [[ -n "$lastRelease" && "$lastRelease" != "null" ]]; then
-              break
-            fi
-            if [[ "$attempt" -lt 3 ]]; then
-              echo "Attempt $attempt: Failed to fetch release tag. Retrying in 5s..."
-              sleep 5
-            fi
-          done
-
-          if [[ -z "$lastRelease" || "$lastRelease" == "null" ]]; then
-            echo "::error::Could not fetch latest release tag from GitHub API after 3 attempts."
-            exit 1
-          fi
-
-          echo "Fetched last release tag: $lastRelease"
-          echo "lastRelease=$lastRelease" >> "$GITHUB_OUTPUT"
+          python -m venv .venv
+          .venv/bin/python -m pip install -r backend/src/apiserver/migration/mlmd/fixturetools/requirements.txt
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
-        id: create-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
 
-      - name: Deploy Last Release
-        shell: bash
-        id: deploy-release
+      - name: Download and verify the target images
+        uses: ./.github/actions/shared-ci-images
+        with:
+          ready-state: ${{ needs.image-artifacts-ready.outputs.state }}
+          kind: images
+          path: ${{ runner.temp }}/upgrade-images
+
+      - name: Load the target API server
         run: |
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=${{ steps.get-tag.outputs.lastRelease }}
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=${{ steps.get-tag.outputs.lastRelease }}
-          source "./.github/resources/scripts/helper-functions.sh"
-          wait_for_pods || EXIT_CODE=$?
-          if [[ $EXIT_CODE -ne 0 ]]; then
-            echo "Deploy unsuccessful. Not all pods running."
+          docker load -i "$RUNNER_TEMP/upgrade-images/apiserver/apiserver.tar"
+          docker tag kind-registry:5000/apiserver:latest kfp-api-server:upgrade-ci
+          kind load docker-image --name "$CLUSTER_NAME" kfp-api-server:upgrade-ci
+          if docker run --rm --entrypoint /bin/mlmd-migrate kfp-api-server:upgrade-ci --check-release-eligibility > "$RUNNER_TEMP/mlmd-cli-hold.log" 2>&1; then
+            echo "The release CLI unexpectedly enabled migration" >&2
             exit 1
           fi
+          grep -q 'production MLMD migration is disabled' "$RUNNER_TEMP/mlmd-cli-hold.log"
 
-      - name: Forward API port
-        id: forward-api-port
-        if: ${{ steps.deploy-release.outcome == 'success' }}
-        shell: bash
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-
-      - name: Prepare for Upgrade
-        id: prepare-upgrade
-        if: ${{ steps.forward-api-port.outcome == 'success' }}
-        working-directory: ${{ env.TESTS_DIR }}
+      - name: Build and load the disposable migration binaries
         run: |
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation" -- -useLegacyAPIPrefix=true
+          bin_dir="$(mktemp -d)"
+          go build -tags=mlmd_migration_test -o "$bin_dir/apiserver" ./backend/src/apiserver
+          go build -tags=mlmd_migration_test -o "$RUNNER_TEMP/mlmd-migrate-test" ./backend/src/apiserver/migration/mlmd/cmd/mlmd-migrate
+          docker build -t kfp-api-server:mlmd-cutover-test -f - "$bin_dir" <<'DOCKERFILE'
+          FROM kfp-api-server:upgrade-ci
+          COPY apiserver /bin/apiserver
+          RUN /bin/apiserver -help > /dev/null 2>&1
+          DOCKERFILE
+          kind load docker-image --name "$CLUSTER_NAME" kfp-api-server:mlmd-cutover-test
 
-      - name: Stop port forwarding
-        if: ${{ always() }}
+      - name: Deploy pinned KFP 2.18.0
         run: |
-          pkill -f "port-forward"
-        continue-on-error: true
+          release=555bfa60a70da88c594960bdacfd78fa7c061043
+          kubectl apply -k "https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$release"
+          kubectl wait crd/applications.app.k8s.io --for=condition=Established --timeout=60s
+          kubectl apply -k "https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=$release"
+          kubectl -n kubeflow rollout status deployment/mysql --timeout=240s
+          kubectl -n kubeflow rollout status deployment/ml-pipeline --timeout=240s
 
-      - name: Deploy from Branch
-        uses: ./.github/actions/deploy
-        if: ${{ steps.prepare-upgrade.outcome == 'success' }}
-        id: deploy
-        with:
-          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
-          image_path: images_${{ github.run_id }}
-          image_tag: latest
-          image_registry: kind-registry:5000
-          forward_port: 'true'
+      - name: Verify pinned upgrade and rollback
+        env:
+          UPGRADE_MODE: ${{ matrix.upgrade_mode }}
+        run: >-
+          bash .github/resources/scripts/run-mlmd-upgrade.sh
+          "$UPGRADE_MODE" kfp-api-server:mlmd-cutover-test
+          "$RUNNER_TEMP/mlmd-migrate-test" kfp-api-server:upgrade-ci
 
-      - name: Verify Upgrade
-        uses: ./.github/actions/test-and-report
-        if: ${{ steps.prepare-upgrade.outcome == 'success' && steps.deploy.outcome == 'success' }}
-        with:
-          test_directory: ${{ env.TESTS_DIR }}
-          test_label: "UpgradeVerification"
-          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
-          default_namespace: ${{ env.NAMESPACE }}
-          python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "Upgrade Verification"
+      - name: Inspect upgrade failure
+        if: failure()
+        run: |
+          kubectl -n kubeflow get pods
+          kubectl -n kubeflow get events --sort-by=.lastTimestamp
+          kubectl -n kubeflow logs deployment/ml-pipeline --all-containers --tail=150

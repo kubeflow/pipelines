@@ -39,7 +39,6 @@ WORKFLOW_JOBS = {
     ),
     '.github/workflows/kfp-sdk-client-tests.yml': ('sdk-client-tests',),
     '.github/workflows/kfp-webhooks.yml': ('webhook-tests',),
-    '.github/workflows/upgrade-test.yml': ('upgrade-test',),
     '.github/workflows/tensorboard-acceptance.yml': ('deployed',),
 }
 

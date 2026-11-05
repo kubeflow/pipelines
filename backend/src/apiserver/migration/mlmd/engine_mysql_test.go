@@ -20,6 +20,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -76,6 +78,10 @@ func (client *flakyClient) GetExecutions(ctx context.Context, request *pb.GetExe
 type fixtureServer struct {
 	pb.UnimplementedMetadataStoreServiceServer
 	fixtureClient
+}
+
+func (server fixtureServer) GetExecutionTypes(context.Context, *pb.GetExecutionTypesRequest) (*pb.GetExecutionTypesResponse, error) {
+	return &pb.GetExecutionTypesResponse{}, nil
 }
 
 func (server fixtureServer) GetExecutions(ctx context.Context, request *pb.GetExecutionsRequest) (*pb.GetExecutionsResponse, error) {
@@ -185,8 +191,30 @@ func releasedDatabase(t *testing.T) (*sql.DB, *sql.DB, mysqlDriver.Config, strin
 
 func TestMySQLReleasedSchemaMigration(t *testing.T) {
 	db, admin, config, name := releasedDatabase(t)
+	required, err := mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.True(t, required)
 	client := sourceClient(t)
 	report, err := mlmd.Migrate(context.Background(), client, db, fixtureDiskBudget)
+	require.NoError(t, err)
+	required, err = mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.False(t, required)
+	_, err = db.Exec("RENAME TABLE artifact_tasks TO missing_artifact_tasks")
+	require.NoError(t, err)
+	_, err = mlmd.NeedsMigration(context.Background(), db)
+	require.ErrorContains(t, err, "validation marker conflicts")
+	_, err = mlmd.Migrate(context.Background(), client, db, fixtureDiskBudget)
+	require.ErrorContains(t, err, "validation marker conflicts")
+	_, err = db.Exec("RENAME TABLE missing_artifact_tasks TO artifact_tasks")
+	require.NoError(t, err)
+	_, err = db.Exec("DELETE FROM mlmd_migration_complete WHERE ID=1")
+	require.NoError(t, err)
+	_, err = mlmd.NeedsMigration(context.Background(), db)
+	require.ErrorContains(t, err, "without a validation record or legacy task backup")
+	_, err = mlmd.Migrate(context.Background(), client, db, fixtureDiskBudget)
+	require.ErrorContains(t, err, "without a validation record or legacy task backup")
+	_, err = db.Exec("INSERT INTO mlmd_migration_complete VALUES (1)")
 	require.NoError(t, err)
 	require.Equal(t, 12, report.Tasks)
 	require.Equal(t, 4, report.Artifacts)
@@ -226,6 +254,11 @@ func TestMySQLReleasedSchemaMigration(t *testing.T) {
 	native, err := gorm.Open(mysql.Open(config.FormatDSN()), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, native.AutoMigrate(model.AllModels()...))
+	nativeSQL, err := native.DB()
+	require.NoError(t, err)
+	required, err = mlmd.NeedsMigration(context.Background(), nativeSQL)
+	require.NoError(t, err)
+	require.False(t, required, "fresh native installs must not require MLMD configuration")
 	for _, table := range []string{"artifacts", "artifact_tasks"} {
 		var manualName, manualDDL, nativeName, nativeDDL string
 		require.NoError(t, db.QueryRow("SHOW CREATE TABLE `"+table+"`").Scan(&manualName, &manualDDL))
@@ -273,6 +306,9 @@ func TestMySQLResumeAfterInterruptedTaskCopy(t *testing.T) {
 	var count int
 	require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='tasks_migration_tmp'").Scan(&count))
 	require.Equal(t, 1, count)
+	required, err := mlmd.NeedsMigration(context.Background(), db)
+	require.NoError(t, err)
+	require.True(t, required, "a partial task copy must resume before serving")
 	report, err := mlmd.Migrate(context.Background(), client, db, fixtureDiskBudget)
 	require.NoError(t, err)
 	require.Equal(t, 12, report.Tasks)
@@ -311,6 +347,42 @@ func TestMySQLResumeTaskCopyRepairsInteriorGap(t *testing.T) {
 
 func TestBuiltCLIOnReleasedMySQL(t *testing.T) {
 	db, _, config, _ := releasedDatabase(t)
+	oldPodPresent := true
+	unreportedWorkflow := false
+	activeWorkflow := false
+	kube := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/apis/apps/v1/namespaces/kubeflow/deployments/ml-pipeline-scheduledworkflow":
+			_, _ = w.Write([]byte(`{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"ml-pipeline-scheduledworkflow","generation":1},"spec":{"replicas":0,"selector":{"matchLabels":{"app":"ml-pipeline-scheduledworkflow"}}},"status":{"observedGeneration":1}}`))
+		case "/apis/apps/v1/namespaces/kubeflow/deployments/ml-pipeline":
+			_, _ = w.Write([]byte(`{"apiVersion":"apps/v1","kind":"Deployment","metadata":{"name":"ml-pipeline","generation":1},"spec":{"replicas":0,"selector":{"matchLabels":{"app":"ml-pipeline"}}},"status":{"observedGeneration":1}}`))
+		case "/api/v1/namespaces/kubeflow/pods":
+			if r.URL.Query().Get("labelSelector") == "app=ml-pipeline-scheduledworkflow" {
+				_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"PodList","items":[]}`))
+				return
+			}
+			if oldPodPresent {
+				_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"PodList","items":[{"metadata":{"name":"old-api"}}]}`))
+			} else {
+				_, _ = w.Write([]byte(`{"apiVersion":"v1","kind":"PodList","items":[]}`))
+			}
+		case "/apis/argoproj.io/v1alpha1/workflows":
+			switch {
+			case activeWorkflow:
+				_, _ = w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowList","items":[{"metadata":{"namespace":"migration-fixture","name":"active","labels":{"pipeline/runid":"11111111-1111-4111-8111-111111111111","pipeline/persistedFinalState":"true"}},"status":{"phase":"Running"}}]}`))
+			case unreportedWorkflow:
+				_, _ = w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowList","items":[{"metadata":{"namespace":"migration-fixture","name":"unfinished","labels":{"pipeline/runid":"11111111-1111-4111-8111-111111111111"}},"status":{"phase":"Succeeded"}}]}`))
+			default:
+				_, _ = w.Write([]byte(`{"apiVersion":"argoproj.io/v1alpha1","kind":"WorkflowList","items":[{"metadata":{"namespace":"another-installation","name":"unrelated","labels":{"pipeline/runid":"11111111-1111-4111-8111-111111111111"}},"status":{"phase":"Running"}}]}`))
+			}
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(kube.Close)
+	kubeconfig := filepath.Join(t.TempDir(), "kubeconfig")
+	require.NoError(t, os.WriteFile(kubeconfig, []byte("apiVersion: v1\nkind: Config\nclusters:\n- name: test\n  cluster:\n    server: "+kube.URL+"\ncontexts:\n- name: test\n  context:\n    cluster: test\n    user: test\ncurrent-context: test\nusers:\n- name: test\n  user: {}\n"), 0600))
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	server := grpc.NewServer()
@@ -318,11 +390,13 @@ func TestBuiltCLIOnReleasedMySQL(t *testing.T) {
 	go func() { _ = server.Serve(listener) }()
 	t.Cleanup(func() { server.Stop(); _ = listener.Close() })
 	binary := filepath.Join(t.TempDir(), "mlmd-migrate")
-	build := exec.Command("go", "build", "-o", binary, "./cmd/mlmd-migrate")
+	build := exec.Command("go", "build", "-tags=mlmd_migration_test", "-o", binary, "./cmd/mlmd-migrate")
 	output, err := build.CombinedOutput()
 	require.NoError(t, err, string(output))
+	oldPodPresent = false
 	insufficient := exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN(),
 		"--available-disk-bytes=1", "--mlmd-database-bytes=1024")
+	insufficient.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
 	output, err = insufficient.CombinedOutput()
 	require.Error(t, err, string(output))
 	require.Contains(t, string(output), "insufficient MySQL disk capacity")
@@ -344,9 +418,76 @@ func TestBuiltCLIOnReleasedMySQL(t *testing.T) {
 	require.Zero(t, migrationObjects)
 
 	runMigration := func(database mysqlDriver.Config) ([]byte, error) {
-		return exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+database.FormatDSN(),
-			"--available-disk-bytes=1073741824", "--mlmd-database-bytes=1048576").CombinedOutput()
+		command := exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+database.FormatDSN(),
+			"--available-disk-bytes=1073741824", "--mlmd-database-bytes=1048576")
+		command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+		return command.CombinedOutput()
 	}
+	oldPodPresent = true
+	validate := func(endpoint string) ([]byte, error) {
+		command := exec.Command(binary, "validate", "--mlmd-address="+endpoint, "--mysql-dsn="+config.FormatDSN())
+		command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+		return command.CombinedOutput()
+	}
+	output, err = validate(listener.Addr().String())
+	require.NoError(t, err, string(output))
+	require.Contains(t, string(output), `"status":"validated"`)
+	_, err = db.Exec("UPDATE run_details SET State='SUCCEEDED', FinishedAtInSec=NULL")
+	require.NoError(t, err)
+	activeWorkflow = true
+	output, err = validate(listener.Addr().String())
+	require.Error(t, err)
+	require.Contains(t, string(output), "no persisted finish time")
+	require.Contains(t, string(output), "Workflow migration-fixture/active is not terminal")
+	activeWorkflow = false
+	_, err = db.Exec("UPDATE run_details SET FinishedAtInSec=1700000003")
+	require.NoError(t, err)
+	output, err = validate("127.0.0.1:1")
+	require.ErrorContains(t, err, "exit status 1")
+	require.Contains(t, string(output), "read MLMD execution types")
+	_, err = db.Exec("ALTER TABLE tasks RENAME COLUMN PodName TO UnknownPodName")
+	require.NoError(t, err)
+	output, err = validate(listener.Addr().String())
+	require.Error(t, err)
+	require.Contains(t, string(output), "unqualified schema")
+	_, err = db.Exec("ALTER TABLE tasks RENAME COLUMN UnknownPodName TO PodName")
+	require.NoError(t, err)
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE()
+		AND TABLE_NAME IN ('mlmd_migration_state','mlmd_migration_complete','tasks_migration_tmp','tasks_pre_migration','artifacts','artifact_tasks')`).Scan(&migrationObjects))
+	require.Zero(t, migrationObjects, "preflight must not write")
+	check := exec.Command(binary, "--drain-check", "--mysql-dsn="+config.FormatDSN())
+	check.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = check.CombinedOutput()
+	require.NoError(t, err, string(output))
+	require.Contains(t, string(output), `"status":"drained"`)
+	command := exec.Command(binary, "--mlmd-address="+listener.Addr().String(), "--mysql-dsn="+config.FormatDSN())
+	command.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = command.CombinedOutput()
+	require.Error(t, err)
+	require.Contains(t, string(output), "no remaining pods")
+	oldPodPresent = false
+	check = exec.Command(binary, "--gate-only", "--mysql-dsn="+config.FormatDSN())
+	check.Env = append(os.Environ(), "KUBECONFIG="+kubeconfig)
+	output, err = check.CombinedOutput()
+	require.NoError(t, err, string(output))
+	require.Contains(t, string(output), `"status":"fenced"`)
+	_, err = db.Exec("UPDATE run_details SET State='RUNNING', FinishedAtInSec=0")
+	require.NoError(t, err)
+	output, err = runMigration(config)
+	require.Error(t, err)
+	require.Contains(t, string(output), "lacks a stored terminal report")
+	_, err = db.Exec("UPDATE run_details SET State='SUCCEEDED', FinishedAtInSec=1700000003")
+	require.NoError(t, err)
+	unreportedWorkflow = true
+	output, err = runMigration(config)
+	require.Error(t, err)
+	require.Contains(t, string(output), "no stored terminal report")
+	unreportedWorkflow = false
+	activeWorkflow = true
+	output, err = runMigration(config)
+	require.Error(t, err)
+	require.Contains(t, string(output), "is not terminal")
+	activeWorkflow = false
 	output, err = runMigration(config)
 	require.NoError(t, err, string(output))
 	var report struct {
@@ -419,7 +560,7 @@ func TestMySQLMigrationRefusesActiveRunBeforeDDL(t *testing.T) {
 	_, err := db.Exec("UPDATE run_details SET State='RUNNING', FinishedAtInSec=0")
 	require.NoError(t, err)
 	_, err = mlmd.Migrate(context.Background(), sourceClient(t), db, fixtureDiskBudget)
-	require.ErrorContains(t, err, "drain runs before migration")
+	require.ErrorContains(t, err, "is not terminal")
 	var temporaryTables int
 	require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='tasks_migration_tmp'").Scan(&temporaryTables))
 	require.Zero(t, temporaryTables)
@@ -571,7 +712,7 @@ func TestMySQLRejectsNarrowedMigrationColumn(t *testing.T) {
 func TestMySQLCutoverRespectsSessionLockTimeout(t *testing.T) {
 	db, _, config, _ := releasedDatabase(t)
 	db.SetMaxOpenConns(1)
-	_, err := db.Exec("SET SESSION lock_wait_timeout=1")
+	_, err := db.Exec("SET SESSION lock_wait_timeout=3")
 	require.NoError(t, err)
 	blocker, err := sql.Open("mysql", config.FormatDSN())
 	require.NoError(t, err)
@@ -585,11 +726,39 @@ func TestMySQLCutoverRespectsSessionLockTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 	client := sourceClient(t)
-	_, err = mlmd.Migrate(ctx, client, db, fixtureDiskBudget)
-	require.ErrorContains(t, err, "MySQL lock wait expired during MLMD migration")
+	migrationResult := make(chan error, 1)
+	go func() {
+		_, err := mlmd.Migrate(ctx, client, db, fixtureDiskBudget)
+		migrationResult <- err
+	}()
+	require.Eventually(t, func() bool {
+		var waiting int
+		err := blocker.QueryRowContext(ctx, `SELECT COUNT(*) FROM information_schema.PROCESSLIST
+			WHERE DB=? AND STATE='Waiting for table metadata lock' AND INFO LIKE 'RENAME TABLE tasks %'`, config.DBName).Scan(&waiting)
+		return err == nil && waiting == 1
+	}, 5*time.Second, 25*time.Millisecond, "the swap must be waiting on the old tasks table")
+	readWriteContext, cancelReadWrite := context.WithTimeout(ctx, time.Second)
+	defer cancelReadWrite()
+	var runID string
+	require.NoError(t, blocker.QueryRowContext(readWriteContext, "SELECT UUID FROM run_details LIMIT 1").Scan(&runID))
+	_, err = blocker.ExecContext(readWriteContext, "UPDATE experiments SET Description='concurrent update' WHERE UUID='fixture-experiment'")
+	require.NoError(t, err, "unrelated writes must complete while the swap waits")
+	select {
+	case err := <-migrationResult:
+		t.Fatalf("migration ended before the concurrent read and write: %v", err)
+	default:
+	}
+
+	// MySQL also locks the parent of the task table's foreign key. A write to
+	// run_details can wait, but must be allowed through when the DDL gives up.
+	relatedWriteContext, cancelRelatedWrite := context.WithTimeout(ctx, 2*time.Second)
+	defer cancelRelatedWrite()
+	_, err = blocker.ExecContext(relatedWriteContext, "UPDATE run_details SET DisplayName='concurrent update' WHERE UUID=?", runID)
+	require.NoError(t, err, "the related write must survive the bounded DDL wait")
+	require.ErrorContains(t, <-migrationResult, "MySQL lock wait expired during MLMD migration")
 	var timeout int
 	require.NoError(t, db.QueryRow("SELECT @@SESSION.lock_wait_timeout").Scan(&timeout))
-	require.Equal(t, 1, timeout)
+	require.Equal(t, 3, timeout)
 	var legacyID string
 	require.NoError(t, db.QueryRow("SELECT MLMDExecutionID FROM tasks WHERE UUID=?", taskID).Scan(&legacyID))
 

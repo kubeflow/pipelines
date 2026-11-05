@@ -1,20 +1,109 @@
-# MLMD migration CLI
+# Upgrade a KFP 2.18.0 installation from MLMD to native metadata
 
-The standalone migrator implements PR 2 of the [KFP 2.18 to 3.0 upgrade](../../../../../proposals/12147-mlmd-removal/database-migration-implementation-plan.md). API-server startup migration and deployment packaging are PR 3 work.
+## Production release hold
+
+Keep an MLMD-backed production installation on KFP 2.18 until the database
+cutover meets the [nonblocking database qualification](../../../../../proposals/12147-mlmd-removal/pr-3-review-fix-design.md).
+The shipped API and CLI refuse migration writes. The shipped CLI still supports
+read-only validation, drain checks, and capacity estimation. Leave production
+routing, API replicas, and recurring-run controllers in service.
+
+## Disposable upgrade procedure
+
+The commands below are for the pinned test workflow and disposable databases.
+The workflow builds the API and CLI with the `mlmd_migration_test` build tag
+and verifies refusal with the normal release binaries before testing cutover.
+Use a fresh test environment for each run.
+
+Use a maintenance window for this MySQL upgrade. Legacy PostgreSQL installations
+must stay on the old release. Fresh and already-native PostgreSQL installations
+start without MLMD.
+
+The release API image contains the read-only production CLI at `/bin/mlmd-migrate`.
+For a preflight workstation with access to the source, database, and Kubernetes API:
+
+```sh
+container=$(docker create "$NEW_API_IMAGE")
+docker cp "$container:/bin/mlmd-migrate" ./mlmd-migrate-read-only
+docker rm "$container"
+```
+
+The standalone CLI and API startup use the same [migration engine](../../../../../proposals/12147-mlmd-removal/database-migration-design.md). The API-server image also contains `/bin/mlmd-migrate`.
 
 Build from the repository root:
 
 ```sh
-go build -o mlmd-migrate ./backend/src/apiserver/migration/mlmd/cmd/mlmd-migrate
+go build -tags=mlmd_migration_test -o mlmd-migrate ./backend/src/apiserver/migration/mlmd/cmd/mlmd-migrate
 ```
 
-PR 2 qualifies this CLI on disposable databases. Production use awaits the PR 3
-maintenance and writer fence. That upgrade must block submissions, retries, and
-recurring triggers; wait for zero active KFP runs and Argo Workflows with final
-reports stored; then terminate old API replicas and their database connections
-before Phase 2/3. Back up the KFP MySQL database. The CLI requires a stable
-source and does not enforce those deployment gates itself. Legacy PostgreSQL
-upgrades are not qualified.
+Back up the KFP MySQL database and MLMD store before cutover. Block user API
+traffic at the installation's ingress while preserving runtime reporting, and
+scale the recurring-run controller to zero. Wait for all KFP runs and Argo
+Workflows to finish and for terminal reports to be stored. Then scale the old
+`ml-pipeline` API Deployment to zero and wait until its pods and database
+connections have closed. Keep the ingress gate in place while applying the new
+API image. Its startup gate refuses migration if an old API pod, active run, or
+unreported Workflow remains. Readiness stays false while migration runs;
+liveness remains available on port 8889. Do not route normal traffic back to
+the API until startup completes and the completion marker exists. Resume the
+recurring-run controller only after that point.
+
+The CLI requires the old Deployment scaled to zero with no remaining pods. It
+checks the same run and Workflow drain conditions and requires Kubernetes
+credentials with access to the API Deployment and cluster-wide KFP Workflows.
+Use `--namespace` and `--deployment` when the installation does not use
+`kubeflow/ml-pipeline`. The advisory lock coordinates CLI and API migration;
+it does not fence old writers. Legacy PostgreSQL upgrades are not qualified.
+
+`cutover.sh` performs the drain and writer-fence sequence after the operator
+has installed a public ingress gate that returns HTTP 503 with a maintenance
+message while keeping internal runtime reporting reachable. The optional
+`manifests/kustomize/components/mlmd-maintenance/maintenance.yaml` supplies
+that HTTP response: apply it separately before upgrading the old API, set
+its `maintenance` container to the new API image, and scale it to one replica.
+Route public HTTP API traffic to `ml-pipeline-maintenance:8888` and block
+public gRPC access while leaving the old internal `ml-pipeline` Service
+reachable by the persistence agent, driver, and launcher. The maintenance
+Deployment is deliberately separate from the normal Kustomize base so the
+upgrade does not scale it down during cutover. Prepare it from the repository
+root, replacing `NEW_API_IMAGE` with the image built from this revision:
+
+```sh
+kubectl -n kubeflow apply -f manifests/kustomize/components/mlmd-maintenance/maintenance.yaml
+kubectl -n kubeflow set image deployment/ml-pipeline-maintenance maintenance="$NEW_API_IMAGE"
+kubectl -n kubeflow scale deployment/ml-pipeline-maintenance --replicas=1
+kubectl -n kubeflow rollout status deployment/ml-pipeline-maintenance
+```
+
+After routing public traffic, set
+`KFP_MLMD_MAINTENANCE_URL`, `KFP_MLMD_MYSQL_DSN`, and
+`KFP_MLMD_ADDRESS`, then run the script from an operator workstation
+with `kubectl`, `curl`, and `mlmd-migrate` on `PATH`. Pass optional
+`--mlmd-tls` and `--mlmd-header` arguments to the script for preflight.
+It pauses recurring triggers, waits for terminal reports, runs `validate`,
+scales the old API Deployment to zero, waits for its pods to disappear,
+and rechecks the fence. Prevent deployment controllers and autoscalers from
+restoring old API replicas or scheduled-run triggers during migration.
+It does not reopen traffic or resume recurring triggers; do that after the new
+API completes migration. If the script refuses to proceed, leave the public
+gate in place and resume the old Deployment only after investigating.
+Restore public routing and scale the maintenance Deployment to zero only after
+the new API readiness and migration completion checks pass.
+
+Before starting, take a consistent backup of the entire KFP MySQL database
+and retain the paired MLMD database and old API image. Allow temporary disk
+space for a second `tasks` table and new artifact tables. If draining times
+out, leave the old API in place and investigate the active run or Workflow.
+The task-table swap and cleanup use a short MySQL metadata-lock timeout.
+A transaction on a table related by a foreign key, such as `run_details`,
+can delay the swap and a queued swap can briefly delay writes to that table.
+If the lock timeout expires, close the blocking transaction before retrying.
+If migration fails after the fence, keep public maintenance routing active;
+fix the cause and rerun the idempotent CLI or restart the new API. To roll
+back, stop the new API, restore the pre-upgrade KFP database backup, deploy
+the old API image, verify its readiness and runtime reports, then restore
+public routing and the recurring-run controller. Do not reopen traffic on a
+partially migrated database.
 
 Measure the bytes available on the destination MySQL data volume, for example
 with `df -B1` on that volume or the database provider's free-storage metric.
@@ -24,7 +113,32 @@ an MLMD MySQL database, use the sum of `DATA_LENGTH + INDEX_LENGTH` in
 required space as twice the MLMD database size plus the estimated size of the
 legacy KFP tasks table and its indexes. Refresh the measurements before retrying.
 
-Run the read-only check using those measurements:
+Immediately before scaling down the old API, run the read-only preflight.
+It checks both endpoints and the target schema, reports active KFP runs and
+owned Argo Workflows, and exits nonzero if it cannot establish the prerequisites.
+Keep submissions and retries blocked after it succeeds. The checks reflect a
+point-in-time view of the installation.
+
+```sh
+./mlmd-migrate validate --mlmd-address='metadata-grpc-service:8080'
+```
+
+For historical single-user databases whose run and experiment namespaces are
+both unset, explicitly declare a single-user source with
+`--source-single-user` (CLI) or `MLMD_MIGRATION_SOURCE_SINGLE_USER=true` (API).
+The fallback requires a verified server-persisted Workflow identity. The
+checker reads the API Deployment and any ConfigMaps used to supply its
+`MULTIUSER` setting. Give its credentials `get` access to those referenced
+ConfigMaps when the installation uses them. An API Deployment configured for
+multiple users cannot use the fallback.
+
+Both MLMD clients default to a 100 MiB receive limit. Set
+`METADATA_GRPC_MESSAGE_SIZE` if the released installation used a different
+limit. The read-only preflight checks connectivity and drain status. A full
+history read occurs during migration.
+
+Use the same TLS and header flags you plan to use for migration. Check capacity
+separately using the measured byte counts:
 
 ```sh
 ./mlmd-migrate --check-capacity \
@@ -33,7 +147,7 @@ Run the read-only check using those measurements:
   --mlmd-database-bytes="$MLMD_DATABASE_BYTES"
 ```
 
-The migration repeats the capacity check before writing:
+After fencing the old Deployment, run the migration. It repeats the capacity check before writing:
 
 ```sh
 ./mlmd-migrate \
@@ -58,28 +172,37 @@ entities by kind. The separate table totals include each row from a metric split
 
 Use `--mlmd-tls` for a TLS endpoint and repeat `--mlmd-header=key:value` for required gRPC metadata. The CLI prints a JSON report with `status: complete`, row counts, warnings, and skipped source entities; it exits nonzero on an incomplete migration. Keep the source MLMD store and database backup until the completed installation has been validated. Restore the pre-upgrade database backup with the old server image to roll back. A failed or interrupted CLI run can be repeated while the source remains stable.
 
-The migrator drops its internal `tasks_pre_migration` table after successful
-cutover. Take and retain the operator backup before running the CLI.
+For API-only migration, set `METADATA_GRPC_SERVICE_HOST`,
+`METADATA_GRPC_SERVICE_PORT`, `MLMD_MIGRATION_AVAILABLE_DISK_BYTES`, and
+`MLMD_MIGRATION_DATABASE_BYTES` on the upgrade boot. Use the same measured
+byte values as the CLI disk check. Optional
+`MLMD_MIGRATION_TLS=true` enables TLS, and `MLMD_MIGRATION_HEADERS_JSON`
+contains a JSON object of gRPC request headers. The Deployment must expose
+`POD_NAME` through the downward API. A completed installation starts without
+MLMD settings. If validation finished and startup was interrupted during
+cleanup, the next attempt verifies the writer fence and finishes cleanup
+without MLMD. Reuse the original MLMD endpoint for every retry that has not
+finished validation. Review skip diagnostics before removing the source. Startup
+also preserves a released 2.18 `transfer_identities` installation UUID while
+reconciling that table for the current model. A failed
+upgrade stays out of service; restore the pre-upgrade database backup and old
+server image before reopening traffic.
 
 The MySQL regression suite uses `KFP_MLMD_MYSQL_TEST_DSN` pointing to a
-disposable loopback server and requires MySQL's `mysqldump` on `PATH` for the
-restore check. It creates and drops uniquely named test databases, compares
-persisted rows with the direct-writer golden, checks task-copy gap repair,
-and restores a dump taken immediately before migration. It also runs the
-built CLI against a fixture gRPC server and compares manual artifact-table
-SQL with the native GORM schema.
+disposable loopback server. It creates and drops uniquely named test databases,
+replays the pinned 2.17 and 2.18 schemas, runs the built CLI against a fixture
+gRPC server, checks interruption and repeated runs, and compares manual
+artifact-table SQL with the native GORM schema:
 
 ```sh
 KFP_MLMD_MYSQL_TEST_DSN='user:password@tcp(127.0.0.1:3306)/mysql?parseTime=true' \
   go test ./backend/src/apiserver/migration/mlmd -run 'TestMySQL|TestBuiltCLI' -count=1
 ```
 
-The files under [`testdata/engine/`](testdata/engine/) pin the direct-writer
-and earlier 2.18 pipeline captures used by these engine tests.
-
-The pinned 2.18 engine test restores KFP SQL rows and serves fixture MLMD
-responses from the same release capture. The production qualification plan
-adds replay through the pinned MLMD server and old API server.
+The pinned upgrade workflow runs CLI-first and startup-only upgrades with
+both databases restored from the same release dump. It checks the serving APIs,
+restarts without MLMD, then restores the KFP backup and verifies the old API.
+The backend presubmit retains the smaller SQL, fixture-RPC, and startup tests.
 
 ## KFP 2.18.0 migration fixtures
 

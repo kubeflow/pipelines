@@ -1,5 +1,7 @@
 # Kubeflow Pipelines
 
+Last updated: 2026-11-23
+
 Kubeflow Pipelines is a monorepo for compiling, running, and managing machine-learning pipelines on Kubernetes.
 
 ## Bug fixes and PR evidence

@@ -27,12 +27,18 @@ import (
 
 	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/migration/mlmd"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Read every old task column so the failed startup cannot silently rewrite a
-// source row while reconciling the incompatible target model.
+// source row before attempting to reconcile the incompatible target model.
 func releasedTaskRows(t *testing.T, db *sql.DB) map[string][]string {
 	t.Helper()
 	rows, err := db.Query("SELECT `UUID`, `Namespace`, `PipelineName`, `RunUUID`, `PodName`, `MLMDExecutionID`, `CreatedTimestamp`, `StartedTimestamp`, `FinishedTimestamp`, `Fingerprint`, `Name`, `ParentTaskUUID`, `State`, `StateHistory`, `MLMDInputs`, `MLMDOutputs`, `ChildrenPods`, `Payload` FROM `tasks` ORDER BY `UUID`")
@@ -98,7 +104,7 @@ func TestMLMDReleasedStartup(t *testing.T) {
 		var values map[string]any
 		require.NoError(t, json.Unmarshal([]byte(config), &values))
 		setConfig(t, values)
-		db, _, _ := InitDBClient(10 * time.Second)
+		db, _, _ := initDBClientWithMigration(context.Background(), 10*time.Second, os.Getenv("KFP_MLMD_TEST_ALLOW_CUTOVER") == "true")
 		require.NoError(t, db.Close())
 		return
 	}
@@ -107,14 +113,14 @@ func TestMLMDReleasedStartup(t *testing.T) {
 		t.Skip("set KFP_MLMD_MYSQL_TEST_DSN to replay the released source in disposable MySQL")
 	}
 	t.Run("released database", func(t *testing.T) {
-		testReleasedStartupFailure(t, dsn, "", "State")
+		testReleasedStartupFailure(t, dsn, "")
 	})
 	t.Run("wide legacy task name", func(t *testing.T) {
-		testReleasedStartupFailure(t, dsn, strings.Repeat("n", 240), "Name")
+		testReleasedStartupFailure(t, dsn, strings.Repeat("n", 240))
 	})
 }
 
-func testReleasedStartupFailure(t *testing.T, dsn, taskName, failedColumn string) {
+func testReleasedStartupFailure(t *testing.T, dsn, taskName string) {
 	t.Helper()
 	db, settings := releasedStartupDatabase(t, dsn)
 	dump, err := os.ReadFile("../migration/mlmd/testdata/release_218/source.sql")
@@ -149,18 +155,101 @@ func testReleasedStartupFailure(t *testing.T, dsn, taskName, failedColumn string
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestMLMDReleasedStartup$", "-test.v")
-	cmd.Env = append(os.Environ(), "KFP_MLMD_STARTUP_CHILD_CONFIG="+string(config), "GOTRACEBACK=none")
+	cmd.Env = append(os.Environ(), "KFP_MLMD_STARTUP_CHILD_CONFIG="+string(config), "GOTRACEBACK=none", "METADATA_GRPC_SERVICE_HOST=", "METADATA_GRPC_SERVICE_PORT=")
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, ctx.Err(), "startup must fail promptly, not time out")
 	require.Error(t, err, "current startup must reject the populated released schema")
-	require.Contains(t, string(output), "AutoMigrate failed", string(output))
-	require.Contains(t, string(output), "column '"+failedColumn+"'", "the failure must be on the old tasks schema")
+	require.Contains(t, string(output), mlmd.CutoverHoldMessage)
 	require.Equal(t, before, releasedTaskRows(t, db), "failed startup must preserve every released task row")
 	require.NoError(t, db.QueryRow(hasNativePods).Scan(&nativePods))
-	require.True(t, nativePods, "failed startup leaves partial schema changes")
-	for _, line := range strings.Split(string(output), "\n") {
-		if strings.Contains(line, "AutoMigrate failed") {
-			t.Log(line)
-		}
+	require.False(t, nativePods, "startup must refuse migration before changing the schema")
+}
+
+// Exercise the actual startup entry point with PostgreSQL, including its normal
+// reconciliation on both a fresh database and a populated native database.
+func TestMLMDPostgreSQLStartupBoundary(t *testing.T) {
+	dsn := os.Getenv("KFP_NATIVE_POSTGRES_TEST_DSN")
+	if dsn == "" {
+		t.Skip("set KFP_NATIVE_POSTGRES_TEST_DSN to a disposable loopback PostgreSQL service")
+	}
+	config, err := pgx.ParseConfig(dsn)
+	require.NoError(t, err)
+	address := net.ParseIP(config.Host)
+	require.True(t, config.Host == "localhost" || address != nil && address.IsLoopback())
+	admin := stdlib.OpenDB(*config)
+	t.Cleanup(func() { require.NoError(t, admin.Close()) })
+	for _, state := range []string{"legacy", "fresh", "interrupted", "native while bootstrap lock is held"} {
+		t.Run(state, func(t *testing.T) {
+			name := "kfp_mlmd_" + strings.ReplaceAll(uuid.NewString(), "-", "")
+			_, err := admin.Exec("CREATE DATABASE " + name)
+			require.NoError(t, err)
+			t.Cleanup(func() { _, err := admin.Exec("DROP DATABASE " + name); require.NoError(t, err) })
+			targetConfig := config.Copy()
+			targetConfig.Database = name
+			target := stdlib.OpenDB(*targetConfig)
+			t.Cleanup(func() { require.NoError(t, target.Close()) })
+			start := func() ([]byte, error) {
+				t.Helper()
+				settings, err := json.Marshal(map[string]any{
+					"DBDriverName": "pgx", common.DBCredentialProviderEnabled: false,
+					postgresHost: config.Host, postgresPort: config.Port,
+					postgresUser: config.User, postgresPassword: config.Password,
+					postgresDBName: name, postgresExtraParams: map[string]string{"sslmode": "disable"},
+				})
+				require.NoError(t, err)
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cancel()
+				command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestMLMDReleasedStartup$")
+				command.Env = append(os.Environ(), "KFP_MLMD_STARTUP_CHILD_CONFIG="+string(settings),
+					"METADATA_GRPC_SERVICE_HOST=", "METADATA_GRPC_SERVICE_PORT=")
+				return command.CombinedOutput()
+			}
+			if state == "legacy" {
+				_, err := target.Exec(`CREATE TABLE tasks ("UUID" text PRIMARY KEY, "MLMDExecutionID" text);
+					INSERT INTO tasks VALUES ('legacy-task', '7')`)
+				require.NoError(t, err)
+				output, err := start()
+				require.Error(t, err)
+				require.Contains(t, string(output), "PostgreSQL upgrades are unsupported")
+				var sourceID string
+				require.NoError(t, target.QueryRow(`SELECT "MLMDExecutionID" FROM tasks WHERE "UUID"='legacy-task'`).Scan(&sourceID))
+				require.Equal(t, "7", sourceID)
+				var tables int
+				require.NoError(t, target.QueryRow("SELECT count(*) FROM information_schema.tables WHERE table_schema=current_schema()").Scan(&tables))
+				require.Equal(t, 1, tables)
+				var columns int
+				require.NoError(t, target.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='tasks'").Scan(&columns))
+				require.Equal(t, 2, columns)
+				return
+			}
+			if state == "interrupted" {
+				db, err := gorm.Open(postgres.New(postgres.Config{Conn: target}), &gorm.Config{})
+				require.NoError(t, err)
+				require.NoError(t, db.Exec("CREATE TABLE "+nativeBootstrapMarker+" (id integer PRIMARY KEY)").Error)
+				applyNativeModelPrefix(t, db, &model.Artifact{})
+			}
+			output, err := start()
+			require.NoError(t, err, string(output))
+			var pending bool
+			require.NoError(t, target.QueryRow("SELECT to_regclass('"+nativeBootstrapMarker+"') IS NOT NULL").Scan(&pending))
+			require.False(t, pending)
+			_, err = target.Exec(`INSERT INTO experiments ("UUID", "Name", "Description", "CreatedAtInSec", "LastRunCreatedAtInSec", "Namespace", "StorageState")
+				VALUES ('native-fixture', 'Existing native experiment', '', 1, 1, 'kubeflow', 'AVAILABLE')`)
+			require.NoError(t, err)
+			if state == "native while bootstrap lock is held" {
+				ctx := context.Background()
+				connection, err := target.Conn(ctx)
+				require.NoError(t, err)
+				defer connection.Close()
+				unlock, err := lockNativeBootstrap(ctx, connection, "pgx")
+				require.NoError(t, err)
+				defer unlock()
+			}
+			output, err = start()
+			require.NoError(t, err, string(output))
+			var description string
+			require.NoError(t, target.QueryRow(`SELECT "Name" FROM experiments WHERE "UUID"='native-fixture'`).Scan(&description))
+			require.Equal(t, "Existing native experiment", description)
+		})
 	}
 }

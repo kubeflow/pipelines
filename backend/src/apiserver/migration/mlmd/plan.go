@@ -17,6 +17,7 @@ package mlmd
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"unicode/utf8"
@@ -200,10 +201,11 @@ func (plan *Plan) skipEvent(event *pb.Event, reason string) {
 
 // BuildPlan joins MLMD entities to KFP runs and legacy task rows. It only
 // includes events whose task and artifact both survived source validation.
-func BuildPlan(snapshot *Snapshot, runs map[string]string, legacy map[int64]LegacyTask) Plan {
+// An eligible execution without a verified run namespace prevents migration.
+func BuildPlan(snapshot *Snapshot, runs map[string]string, legacy map[int64]LegacyTask) (Plan, error) {
 	plan := Plan{}
 	if snapshot == nil {
-		return plan
+		return plan, nil
 	}
 	tasks := map[int64]model.Task{}
 	parents := map[int64]int64{}
@@ -216,14 +218,17 @@ func BuildPlan(snapshot *Snapshot, runs map[string]string, legacy map[int64]Lega
 			continue
 		}
 		namespace := runs[runUUID]
-		if sourceNamespace := propertyString(execution.GetCustomProperties(), "namespace"); sourceNamespace != "" &&
-			sourceNamespace != model.NoNamespace && sourceNamespace != namespace {
-			plan.Skipped = append(plan.Skipped, Skip{Kind: "execution", ID: id, Reason: "MLMD execution namespace differs from its KFP run"})
-			continue
-		}
 		task, parent, err := TransformExecution(execution, runUUID, namespace)
 		if err != nil {
 			plan.Skipped = append(plan.Skipped, Skip{Kind: "execution", ID: id, Reason: err.Error()})
+			continue
+		}
+		if namespace == "" {
+			return plan, fmt.Errorf("cannot verify the persisted namespace of KFP run %s; resolve its Workflow ownership before migrating", runUUID)
+		}
+		if sourceNamespace := propertyString(execution.GetCustomProperties(), "namespace"); sourceNamespace != "" &&
+			sourceNamespace != model.NoNamespace && sourceNamespace != namespace {
+			plan.Skipped = append(plan.Skipped, Skip{Kind: "execution", ID: id, Reason: "MLMD execution namespace differs from its KFP run"})
 			continue
 		}
 		if source, ok := legacy[id]; ok {
@@ -243,32 +248,43 @@ func BuildPlan(snapshot *Snapshot, runs map[string]string, legacy map[int64]Lega
 			parents[id] = parent
 		}
 	}
-	for changed := true; changed; {
-		changed = false
-		for id, parent := range parents {
-			task, childExists := tasks[id]
-			if !childExists {
-				continue
-			}
-			parentTask, found := tasks[parent]
-			if found && parentTask.RunUUID != task.RunUUID {
-				plan.Warnings = append(plan.Warnings, fmt.Sprintf("execution %d: ignored cross-run parent %d", id, parent))
-				delete(parents, id)
-				continue
-			}
-			if !found {
-				plan.Skipped = append(plan.Skipped, Skip{Kind: "execution", ID: id, Reason: "parent execution " + strconv.FormatInt(parent, 10) + " is absent from the same run"})
-				delete(tasks, id)
-				changed = true
+	removeParent := func(id int64, reason string) {
+		plan.Warnings = append(plan.Warnings, fmt.Sprintf("execution %d: ignored %s parent %d", id, reason, parents[id]))
+		delete(parents, id)
+		task := tasks[id]
+		if task.Type == model.TaskType(apiv2.PipelineTask_CONDITION) {
+			task.Type = model.TaskType(apiv2.PipelineTask_DAG)
+			tasks[id] = task
+		}
+	}
+	for id, parent := range parents {
+		parentTask, found := tasks[parent]
+		if !found {
+			removeParent(id, "missing or skipped")
+		} else if parentTask.RunUUID != tasks[id].RunUUID {
+			removeParent(id, "cross-run")
+		}
+	}
+
+	// Each task has at most one parent. A previously visited node is in this
+	// cycle only if it also appears on the current walk.
+	visited := make(map[int64]bool, len(parents))
+	for id := range parents {
+		var path []int64
+		current := id
+		for current != 0 && !visited[current] {
+			visited[current] = true
+			path = append(path, current)
+			current = parents[current]
+		}
+		if first := slices.Index(path, current); first >= 0 {
+			for _, cyclic := range path[first:] {
+				removeParent(cyclic, "cyclic")
 			}
 		}
 	}
 	for id, parent := range parents {
-		task, found := tasks[id]
-		if !found {
-			continue
-		}
-		parentTask := tasks[parent]
+		task, parentTask := tasks[id], tasks[parent]
 		if task.Type == model.TaskType(apiv2.PipelineTask_CONDITION) &&
 			parentTask.Type != model.TaskType(apiv2.PipelineTask_CONDITION_BRANCH) &&
 			(parentTask.Type != model.TaskType(apiv2.PipelineTask_ROOT) || !releasedConditionName.MatchString(task.Name)) {
@@ -398,5 +414,5 @@ func BuildPlan(snapshot *Snapshot, runs map[string]string, legacy map[int64]Lega
 	// MLMD gRPC does not expose Event.id. The native relationship identity
 	// supplies a stable source order even when gRPC returns links in a different order.
 	sort.Slice(plan.Links, func(i, j int) bool { return plan.Links[i].UUID < plan.Links[j].UUID })
-	return plan
+	return plan, nil
 }

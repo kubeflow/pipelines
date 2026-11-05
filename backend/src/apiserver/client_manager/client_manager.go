@@ -43,6 +43,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	commonsql "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql"
 	sqldrv "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/migration/mlmd"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
@@ -304,7 +305,7 @@ func (c *ClientManager) init(options *Options) error {
 	}
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db, dbDialect, gcIndexChecker := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, dbDialect, gcIndexChecker := initDBClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	c.dbDialect = dbDialect
 	glog.Info("DB client initialized successfully")
@@ -510,6 +511,17 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect sqldrv.DBDialect, spec g
 }
 
 func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialect, func() bool) {
+	return initDBClient(context.Background(), initConnectionTimeout)
+}
+
+func initDBClient(ctx context.Context, initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialect, func() bool) {
+	return initDBClientWithMigration(ctx, initConnectionTimeout, mlmd.CutoverEnabled)
+}
+
+func initDBClientWithMigration(ctx context.Context, initConnectionTimeout time.Duration, allowCutover bool) (*sql.DB, sqldrv.DBDialect, func() bool) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -549,19 +561,21 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 	dbDialect := sqldrv.NewDBDialect(driverName)
-
-	legacy, err := isLegacySchema(db)
-	if err != nil {
-		glog.Fatalf("failed to detect schema version: %v", err)
-	}
-	if legacy {
-		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
-		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
-	} else {
-		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
-		// upgrades between >=2.15 versions.
-		util.TerminateIfError(autoMigrate(db))
+	sqlDB, err := db.DB()
+	util.TerminateIfError(err)
+	bootstrapped, err := bootstrapNativeSchema(ctx, db, driverName)
+	util.TerminateIfError(err)
+	if !bootstrapped {
+		util.TerminateIfError(migrateMLMDOnStartup(ctx, sqlDB, driverName, allowCutover))
+		legacy, err := isLegacySchema(db)
+		if err != nil {
+			glog.Fatalf("failed to detect schema version: %v", err)
+		}
+		if legacy {
+			util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
+		} else {
+			util.TerminateIfError(autoMigrate(db))
+		}
 	}
 
 	// Runs on both paths: a deployment that took the legacy upgrade before this

@@ -191,7 +191,7 @@ def project_parameters(runs: dict, tasks: list, exec_props: dict) -> None:
         spec = specs[task['RunUUID']]
         parent = tasks_by_uuid.get(task['ParentTaskUUID'])
         if parent is None:
-            return {}, spec.get('root', {})
+            return {}, spec.get('root', {}) if task['Type'] == 1 else {}
         if parent['RunUUID'] != task['RunUUID']:
             return {}, {}
         parent_spec, component = task_spec(parent['UUID'])
@@ -383,43 +383,44 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
             )
     unresolved = []
     execution_rows = {row['id']: row for row in mlmd['executions']}
-    execution_skips = {}
 
-    def execution_skip(
-        execution_id: int, visiting: set[int] | None = None
-    ) -> tuple[str, str] | None:
-        if execution_id in execution_skips:
-            return execution_skips[execution_id]
-        if visiting is None:
-            visiting = set()
-        if execution_id in visiting:
-            return 'execution parent cycle', 'error'
+    def execution_skip(execution_id: int) -> tuple[str, str] | None:
         row = execution_rows[execution_id]
         owned_runs = exec_runs[execution_id]
         if len(owned_runs) != 1 or not owned_runs <= runs.keys():
-            result = ('run context has no matching run_details row', 'warning')
-        elif types[row['type_id']] not in (
+            return ('run context has no matching run_details row', 'warning')
+        if types[row['type_id']] not in (
             'system.DAGExecution',
             'system.ContainerExecution',
             'system.ImporterExecution',
         ):
-            result = ('unknown execution type', 'warning')
-        else:
-            parent = property_value(exec_props[execution_id], 'parent_dag_id')
-            if parent and parent not in execution_rows:
-                result = (f'missing parent execution:{parent}', 'error')
-            elif parent:
-                parent_result = execution_skip(
-                    parent, visiting | {execution_id}
-                )
-                if parent_result:
-                    result = (f'parent execution:{parent} was skipped', 'error')
-                else:
-                    result = None
-            else:
-                result = None
-        execution_skips[execution_id] = result
-        return result
+            return ('unknown execution type', 'warning')
+        return None
+
+    # Establish the candidate hierarchy before projecting task types or parameters.
+    parent_edges = {}
+    for execution_id in execution_rows:
+        if execution_skip(execution_id) is not None:
+            continue
+        parent = property_value(exec_props[execution_id], 'parent_dag_id')
+        if (
+            parent in execution_rows
+            and execution_skip(parent) is None
+            and exec_runs[parent] == exec_runs[execution_id]
+        ):
+            parent_edges[execution_id] = parent
+
+    visited = set()
+    cyclic = set()
+    for execution_id in parent_edges:
+        path = []
+        current = execution_id
+        while current is not None and current not in visited:
+            visited.add(current)
+            path.append(current)
+            current = parent_edges.get(current)
+        if current in path:
+            cyclic.update(path[path.index(current) :])
 
     for row in mlmd['executions']:
         source_ref = f'mlmd.executions[id={row["id"]}]'
@@ -448,11 +449,32 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
             )
         kind = types[row['type_id']]
         parent = property_value(props, 'parent_dag_id')
-        if parent and exec_runs[parent] != owned_runs:
+        has_source_parent = bool(parent)
+        if parent and (
+            parent not in execution_rows or execution_skip(parent) is not None
+        ):
+            expected['diagnostics'].append(
+                {
+                    'source': source_ref,
+                    'reason': f'parent execution:{parent} is missing or skipped',
+                    'severity': 'warning',
+                }
+            )
+            parent = None
+        elif parent and exec_runs[parent] != owned_runs:
             expected['diagnostics'].append(
                 {
                     'source': source_ref,
                     'reason': f'parent execution:{parent} belongs to a different run',
+                    'severity': 'warning',
+                }
+            )
+            parent = None
+        elif row['id'] in cyclic:
+            expected['diagnostics'].append(
+                {
+                    'source': source_ref,
+                    'reason': f'parent execution:{parent} forms a cycle',
                     'severity': 'warning',
                 }
             )
@@ -462,12 +484,12 @@ def build_expected(source: dict) -> tuple[dict, list[dict]]:
             task_type = 2
         elif kind == 'system.ImporterExecution':
             task_type = 7
-        elif not parent:
+        elif not has_source_parent:
             task_type = 1
         elif name.startswith('condition-branches-'):
             task_type = 3
         elif name.startswith('condition-'):
-            task_type = 4
+            task_type = 4 if parent else 8
         elif name.startswith(('exit-handler-', 'on-exit-', 'onexit-')):
             task_type = 6
         elif 'iteration_count' in props:

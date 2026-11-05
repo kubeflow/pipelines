@@ -16,9 +16,11 @@
 import importlib
 import importlib.util
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from kfp import compiler, components, dsl
 
@@ -56,6 +58,39 @@ class ComponentMigrationTest(unittest.TestCase):
                         loaded.component_spec.name, pipeline.component_spec.name
                     )
                     self.assertTrue(loaded.pipeline_spec.root.dag.tasks)
+
+    def test_various_io_types_preserve_bqml_schema_without_gcpc(self):
+        source = (
+            Path(__file__).with_name('sdk_compiled_pipelines')
+            / 'valid'
+            / 'pipeline_with_various_io_types.py'
+        )
+        spec = importlib.util.spec_from_file_location(
+            'various_io_fixture', source
+        )
+        module = importlib.util.module_from_spec(spec)
+        with mock.patch.dict(
+            sys.modules, {'google_cloud_pipeline_components': None}
+        ):
+            spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'pipeline.yaml'
+            compiler.Compiler().compile(module.my_pipeline, str(output))
+            specs = components.load_component_from_file(
+                str(output)
+            ).pipeline_spec.components
+
+        model_output = specs['comp-upstream'].output_definitions.artifacts[
+            'output_9'
+        ]
+        model_input = specs['comp-downstream'].input_definitions.artifacts[
+            'input_i'
+        ]
+        for artifact in (model_output, model_input):
+            self.assertEqual(
+                artifact.artifact_type.schema_title, 'google.BQMLModel'
+            )
+            self.assertEqual(artifact.artifact_type.schema_version, '0.0.1')
 
     def test_browser_fixture_emits_the_expected_log_message(self):
         source = (

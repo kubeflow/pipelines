@@ -18,9 +18,12 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -35,43 +38,21 @@ type Snapshot struct {
 // ReadSnapshot fetches all pages and relationships from the source store. The
 // caller must quiesce source writers before using it for the final migration.
 func ReadSnapshot(ctx context.Context, client pb.MetadataStoreServiceClient) (*Snapshot, error) {
-	const pageSize int32 = 100
 	snapshot := &Snapshot{Contexts: map[int64][]*pb.Context{}}
-	seenTokens := map[string]bool{}
-	for token := ""; ; {
-		callContext, cancel := context.WithTimeout(ctx, 30*time.Second)
-		response, err := client.GetExecutions(callContext, &pb.GetExecutionsRequest{Options: &pb.ListOperationOptions{MaxResultSize: proto.Int32(pageSize), NextPageToken: proto.String(token)}})
-		cancel()
-		if err != nil {
-			return nil, fmt.Errorf("list MLMD executions: %w", err)
-		}
-		snapshot.Executions = append(snapshot.Executions, response.GetExecutions()...)
-		token = response.GetNextPageToken()
-		if token == "" {
-			break
-		}
-		if seenTokens[token] {
-			return nil, fmt.Errorf("MLMD execution pagination repeated token")
-		}
-		seenTokens[token] = true
+	var err error
+	snapshot.Executions, err = readSourcePages(ctx, func(ctx context.Context, options *pb.ListOperationOptions) ([]*pb.Execution, string, error) {
+		page, err := client.GetExecutions(ctx, &pb.GetExecutionsRequest{Options: options})
+		return page.GetExecutions(), page.GetNextPageToken(), err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list MLMD executions: %w", err)
 	}
-	seenTokens = map[string]bool{}
-	for token := ""; ; {
-		callContext, cancel := context.WithTimeout(ctx, 30*time.Second)
-		response, err := client.GetArtifacts(callContext, &pb.GetArtifactsRequest{Options: &pb.ListOperationOptions{MaxResultSize: proto.Int32(pageSize), NextPageToken: proto.String(token)}})
-		cancel()
-		if err != nil {
-			return nil, fmt.Errorf("list MLMD artifacts: %w", err)
-		}
-		snapshot.Artifacts = append(snapshot.Artifacts, response.GetArtifacts()...)
-		token = response.GetNextPageToken()
-		if token == "" {
-			break
-		}
-		if seenTokens[token] {
-			return nil, fmt.Errorf("MLMD artifact pagination repeated token")
-		}
-		seenTokens[token] = true
+	snapshot.Artifacts, err = readSourcePages(ctx, func(ctx context.Context, options *pb.ListOperationOptions) ([]*pb.Artifact, string, error) {
+		page, err := client.GetArtifacts(ctx, &pb.GetArtifactsRequest{Options: options})
+		return page.GetArtifacts(), page.GetNextPageToken(), err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list MLMD artifacts: %w", err)
 	}
 	sort.Slice(snapshot.Executions, func(i, j int) bool { return snapshot.Executions[i].GetId() < snapshot.Executions[j].GetId() })
 	sort.Slice(snapshot.Artifacts, func(i, j int) bool { return snapshot.Artifacts[i].GetId() < snapshot.Artifacts[j].GetId() })
@@ -149,13 +130,11 @@ func ReadSnapshot(ctx context.Context, client pb.MetadataStoreServiceClient) (*S
 			}
 			snapshot.Contexts[execution.GetId()] = response.GetContexts()
 		}
-		callContext, cancel := context.WithTimeout(ctx, 30*time.Second)
-		response, err := client.GetEventsByExecutionIDs(callContext, &pb.GetEventsByExecutionIDsRequest{ExecutionIds: ids})
-		cancel()
+		events, err := readSourceEvents(ctx, client, ids)
 		if err != nil {
 			return nil, fmt.Errorf("events for MLMD executions: %w", err)
 		}
-		snapshot.Events = append(snapshot.Events, response.GetEvents()...)
+		snapshot.Events = append(snapshot.Events, events...)
 	}
 	missingContextType := false
 	for _, contexts := range snapshot.Contexts {
@@ -186,4 +165,60 @@ func ReadSnapshot(ctx context.Context, client pb.MetadataStoreServiceClient) (*S
 		}
 	}
 	return snapshot, nil
+}
+
+func readSourcePages[T any](ctx context.Context, read func(context.Context, *pb.ListOperationOptions) ([]T, string, error)) ([]T, error) {
+	for pageSize := int32(100); ; pageSize /= 2 {
+		var records []T
+		seenTokens := map[string]bool{}
+		for token := ""; ; {
+			callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			page, next, err := read(callCtx, &pb.ListOperationOptions{
+				MaxResultSize: proto.Int32(pageSize), NextPageToken: proto.String(token),
+			})
+			cancel()
+			if sourceResponseTooLarge(err) && pageSize > 1 {
+				// Restart with a smaller fixed size. Released MLMD cursors are
+				// opaque and may depend on the options that created them.
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+			records = append(records, page...)
+			if next == "" {
+				return records, nil
+			}
+			if seenTokens[next] {
+				return nil, fmt.Errorf("MLMD pagination repeated token")
+			}
+			seenTokens[next] = true
+			token = next
+		}
+	}
+}
+
+func readSourceEvents(ctx context.Context, client pb.MetadataStoreServiceClient, ids []int64) ([]*pb.Event, error) {
+	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	response, err := client.GetEventsByExecutionIDs(callCtx, &pb.GetEventsByExecutionIDsRequest{ExecutionIds: ids})
+	cancel()
+	if len(ids) < 2 || !sourceResponseTooLarge(err) {
+		return response.GetEvents(), err
+	}
+	middle := len(ids) / 2
+	first, err := readSourceEvents(ctx, client, ids[:middle])
+	if err != nil {
+		return nil, err
+	}
+	second, err := readSourceEvents(ctx, client, ids[middle:])
+	if err != nil {
+		return nil, err
+	}
+	return append(first, second...), nil
+}
+
+func sourceResponseTooLarge(err error) bool {
+	return status.Code(err) == codes.ResourceExhausted &&
+		(strings.Contains(err.Error(), "received message larger than max") ||
+			strings.Contains(err.Error(), "received message after decompression larger than max"))
 }

@@ -253,45 +253,52 @@
             "id": 40,
             "execution_id": 200,
             "artifact_id": 30,
-            "type": "OUTPUT"
+            "type": "OUTPUT",
+            "path": ["dataset"]
           }
         ]
       },
       "expected": {
-        "tasks": [],
+        "tasks": [
+          {
+            "uuid": "7169a41b-ef2c-591d-b544-af3e55482c0c",
+            "parent_uuid": null
+          }
+        ],
         "artifacts": [
           {
             "uuid": "8252fe42-9cd7-570d-9be9-3cbface7753e",
             "source_artifact_id": 30
           }
         ],
-        "artifact_tasks": [],
-        "skips": [
+        "artifact_tasks": [
           {
-            "source": "execution:200",
-            "reason": "missing parent execution:999",
-            "severity": "error",
-            "target_uuid": "7169a41b-ef2c-591d-b544-af3e55482c0c"
-          },
+            "source_event_id": 40,
+            "task_id": "7169a41b-ef2c-591d-b544-af3e55482c0c",
+            "artifact_id": "8252fe42-9cd7-570d-9be9-3cbface7753e"
+          }
+        ],
+        "skips": [
           {
             "source": "execution:201",
             "reason": "run context has no matching run_details row",
             "severity": "warning",
             "target_uuid": "88b7b9fa-0d51-52a3-816d-3e20a768a825"
-          },
+          }
+        ],
+        "diagnostics": [
           {
-            "source": "event:40",
-            "reason": "dependent task execution:200 was skipped",
-            "severity": "error",
-            "target_uuid": "6d88f60e-4e30-5474-b78d-d49ad2ebf6ec"
+            "source": "execution:200",
+            "reason": "parent execution:999 is missing or skipped",
+            "severity": "warning"
           }
         ]
       },
       "dispositions": [
         {
           "source": "execution:200",
-          "status": "skip",
-          "reason": "do not convert a child with a missing parent into a root"
+          "status": "map",
+          "reason": "preserve the child with no verified parent"
         },
         {
           "source": "execution:201",
@@ -300,8 +307,8 @@
         },
         {
           "source": "event:40",
-          "status": "skip",
-          "reason": "task foreign key cannot be satisfied"
+          "status": "map",
+          "reason": "preserve valid lineage for the retained task"
         }
       ]
     },

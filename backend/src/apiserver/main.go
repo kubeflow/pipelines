@@ -215,6 +215,17 @@ func main() {
 
 	backgroundCtx, backgroundCancel := context.WithCancel(signals.SetupSignalHandler())
 	defer backgroundCancel()
+	// Migration can outlast the normal API startup probe. Keep liveness separate
+	// from API readiness while the database is being converted.
+	liveServer := &http.Server{Addr: ":8889", Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})}
+	go func() {
+		if err := liveServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			glog.Fatalf("Failed to start liveness server: %v", err)
+		}
+	}()
+	defer liveServer.Shutdown(context.Background())
 
 	wg := sync.WaitGroup{}
 

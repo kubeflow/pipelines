@@ -99,10 +99,10 @@ class MergeQueueWorkflowsTest(unittest.TestCase):
                         'branches': ['master', 'main', 'release-2.18'],
                     },
                 )
-        paused = next(
+        upgrade = next(
             item for item in lanes if item['path'].endswith('/upgrade-test.yml')
         )
-        self.assertTrue(paused['disabled_for_migration'])
+        self.assertNotIn('disabled_for_migration', upgrade)
 
     def test_inventory_distinguishes_missing_and_unfiltered_queue_trigger(self):
         for events, expected in [

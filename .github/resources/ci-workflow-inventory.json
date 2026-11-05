@@ -221,7 +221,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "b1e6919533df14d98f4961be5a6bb93c734c207cb1650810ed37ddfe7728e890",
+      "header_sha256": "6f23bc9f8a16ad135fa1d03f06a109a07bff8cad48d762419d527fc8173f3198",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -252,13 +252,19 @@
           ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
           ".github/workflows/kfp-sdk-client-tests.yml",
           ".github/workflows/kfp-webhooks.yml",
+          ".github/workflows/upgrade-test.yml",
           ".github/workflows/legacy-v2-api-integration-tests.yml",
           "api/**",
           "api/v2alpha1/**",
           "backend/**",
+          "backend/Dockerfile",
+          "backend/api/v2/**",
+          "backend/api/v2beta1/**",
+          "backend/src/**",
           "backend/src/apiserver/**",
           "backend/src/common/**",
           "backend/test/constants/**",
+          "backend/test/v2/api/**",
           "frontend/**",
           "frontend/server/handlers/artifacts.ts",
           "go.mod",
@@ -1358,12 +1364,13 @@
     {
       "path": ".github/workflows/upgrade-test.yml",
       "name": "KFP upgrade tests",
-      "header_sha256": "5fa3e53d3ff36ba15b3b80152d8c097733a8c91f96d0ec6545d20faa04ed86b3",
+      "header_sha256": "7c0d6a1d67538c23d7f691695bb1fd65af1bf971972516d98ee0eb27324acf6f",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
           "uv.lock",
           ".github/workflows/upgrade-test.yml",
+          "backend/Dockerfile",
           ".github/workflows/image-builds.yml",
           ".github/workflows/ci-images.yml",
           ".github/workflows/shared-ci-images-ready.yml",
@@ -1392,8 +1399,7 @@
           "main",
           "release-2.18"
         ]
-      },
-      "disabled_for_migration": true
+      }
     },
     {
       "path": ".github/workflows/validate-generated-files.yml",

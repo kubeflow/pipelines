@@ -39,7 +39,7 @@ def release_command_builder():
 class V2DeploymentContractTest(unittest.TestCase):
     def test_api_and_ui_probes_use_v2_healthz(self):
         for filename, count in (
-            ('ml-pipeline-apiserver-deployment.yaml', 3),
+            ('ml-pipeline-apiserver-deployment.yaml', 1),
             ('ml-pipeline-ui-deployment.yaml', 2),
         ):
             with self.subTest(deployment=filename):
@@ -126,34 +126,34 @@ class V2DeploymentContractTest(unittest.TestCase):
                 )
                 self.assertTrue(source.is_file(), source)
 
-    def test_upgrade_preparation_uses_legacy_prefix_and_gates_verification(
-        self,
-    ):
-        workflow = yaml.safe_load(
-            (ROOT / '.github/workflows/upgrade-test.yml').read_text()
+    def test_migrating_api_uses_liveness_port_in_the_tls_overlay(self):
+        base_path = ROOT / 'manifests/kustomize/base/pipeline'
+        tls_path = ROOT / (
+            'manifests/kustomize/env/cert-manager/'
+            'platform-agnostic-standalone-tls/patches'
         )
-        for job in workflow['jobs'].values():
-            self.assertEqual(job['if'], '${{ false }}')
-        steps = {
-            step['name']: step
-            for step in workflow['jobs']['upgrade-test']['steps']
-        }
-        prepare = steps['Prepare for Upgrade']
-        self.assertIn('-- -useLegacyAPIPrefix=true', prepare['run'])
-        self.assertFalse(prepare.get('continue-on-error', False))
-        self.assertFalse(
-            steps['Forward API port'].get('continue-on-error', False)
-        )
+        filename = 'ml-pipeline-apiserver-deployment.yaml'
+        base = yaml.safe_load((base_path / filename).read_text())
+        patch = yaml.safe_load((tls_path / filename).read_text())
+        api = base['spec']['template']['spec']['containers'][0]
+        tls = patch['spec']['template']['spec']['containers'][0]
+        self.assertEqual(tls['readinessProbe']['httpGet']['scheme'], 'HTTPS')
+        for probe in ('livenessProbe', 'startupProbe'):
+            self.assertEqual(
+                api[probe]['httpGet'], {'path': '/livez', 'port': 'live'}
+            )
+            self.assertNotIn(probe, tls)
+
+    def test_upgrade_verification_uses_the_released_and_native_surfaces(self):
+        scripts = ROOT / '.github/resources/scripts'
+        runner = (scripts / 'run-mlmd-upgrade.sh').read_text()
+        verifier = (scripts / 'verify-mlmd-upgrade.py').read_text()
+        for prefix in ('/apis/v2beta1', '/apis/v2'):
+            self.assertIn(repr(prefix), verifier)
+        self.assertEqual(runner.count('"$fixture" --legacy'), 2)
         self.assertIn(
-            "steps.prepare-upgrade.outcome == 'success'",
-            steps['Deploy from Branch']['if'],
+            'DROP DATABASE mlpipeline; CREATE DATABASE mlpipeline', runner
         )
-        self.assertIn(
-            "steps.prepare-upgrade.outcome == 'success'",
-            steps['Verify Upgrade']['if'],
-        )
-        self.assertNotIn('useLegacyAPIPrefix', str(steps['Verify Upgrade']))
-        self.assertEqual(steps['Stop port forwarding']['if'], '${{ always() }}')
 
     def test_legacy_api_specs_reuse_existing_cluster_jobs(self):
         workflow = yaml.safe_load(

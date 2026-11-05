@@ -202,33 +202,6 @@ func qualifyArtifactTable(ctx context.Context, db *gorm.DB, table string) error 
 	})
 }
 
-func loadRuns(ctx context.Context, db *gorm.DB) (map[string]string, error) {
-	rows, err := db.WithContext(ctx).Raw("SELECT r.UUID, COALESCE(NULLIF(NULLIF(r.Namespace, ''), '-'), NULLIF(e.Namespace, '-'), ''), r.State, r.FinishedAtInSec FROM run_details r LEFT JOIN experiments e ON e.UUID=r.ExperimentUUID").Rows()
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	runs := map[string]string{}
-	for rows.Next() {
-		var id, namespace string
-		var state sql.NullString
-		var finished sql.NullInt64
-		if err := rows.Scan(&id, &namespace, &state, &finished); err != nil {
-			return nil, err
-		}
-		switch strings.ToUpper(state.String) {
-		case "SUCCEEDED", "FAILED", "SKIPPED", "CANCELED", "ERROR", "DONE", "DISABLED":
-			if !finished.Valid || finished.Int64 <= 0 {
-				return nil, fmt.Errorf("KFP run %s has no persisted finish time; wait for its final report before migration", id)
-			}
-		default:
-			return nil, fmt.Errorf("KFP run %s is not terminal (%q); drain runs before migration", id, state.String)
-		}
-		runs[id] = namespace
-	}
-	return runs, rows.Err()
-}
-
 func loadLegacyTasks(ctx context.Context, db *gorm.DB, table string) (map[int64]LegacyTask, []Skip, error) {
 	query := "SELECT UUID, MLMDExecutionID, RunUUID, Namespace, PodName, State, StateHistory, CreatedTimestamp, StartedTimestamp, FinishedTimestamp, Fingerprint, Name, ParentTaskUUID, PipelineName, MLMDInputs, MLMDOutputs, ChildrenPods, Payload FROM `" + table + "` WHERE MLMDExecutionID <> ''"
 	rows, err := db.WithContext(ctx).Raw(query).Rows()
@@ -382,16 +355,50 @@ func releaseMigrationLock(connection *sql.Conn) {
 	}
 }
 
+// BoundMetadataLockWait limits how long a migration's DDL can queue on its dedicated connection.
+// The caller must defer the returned cleanup before returning the connection to its pool.
+func BoundMetadataLockWait(ctx context.Context, connection *sql.Conn) (func(), error) {
+	var lockWait int
+	if err := connection.QueryRowContext(ctx, "SELECT @@SESSION.lock_wait_timeout").Scan(&lockWait); err != nil {
+		return nil, err
+	}
+	if lockWait > 1 {
+		if _, err := connection.ExecContext(ctx, "SET SESSION lock_wait_timeout=1"); err != nil {
+			return nil, err
+		}
+		return func() {
+			restoreCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if _, err := connection.ExecContext(restoreCtx, fmt.Sprintf("SET SESSION lock_wait_timeout=%d", lockWait)); err != nil {
+				_ = connection.Raw(func(any) error { return driver.ErrBadConn })
+			}
+		}, nil
+	}
+	return func() {}, nil
+}
+
 // Migrate copies a stable MLMD snapshot to the native MySQL schema. The caller
 // is responsible for quiescing writers and backing up the KFP database first.
 func Migrate(ctx context.Context, source pb.MetadataStoreServiceClient, database *sql.DB, budget DiskBudget) (Report, error) {
+	return migrate(ctx, source, database, budget, false, nil)
+}
+
+// MigrateFenced verifies the cluster's writer fence under the database lock before writing.
+func MigrateFenced(ctx context.Context, source pb.MetadataStoreServiceClient, database *sql.DB, budget DiskBudget, gate DrainGate) (Report, error) {
+	return migrate(ctx, source, database, budget, gate.SourceSingleUser, func(ctx context.Context, connection *sql.Conn) error {
+		gate.Database = connection
+		return gate.Check(ctx)
+	})
+}
+
+func migrate(ctx context.Context, source pb.MetadataStoreServiceClient, database *sql.DB, budget DiskBudget, singleUser bool, fence func(context.Context, *sql.Conn) error) (Report, error) {
 	if _, ok := database.Driver().(*mysqlDriver.MySQLDriver); !ok {
 		return Report{}, fmt.Errorf("legacy MLMD migration requires MySQL; PostgreSQL upgrades are unsupported")
 	}
 	var report Report
 	var err error
 	for attempt := 0; attempt < 3; attempt++ {
-		report, err = migrateOnce(ctx, source, database, budget)
+		report, err = migrateOnce(ctx, source, database, budget, singleUser, fence)
 		var mysqlError *mysqlDriver.MySQLError
 		if errors.As(err, &mysqlError) && mysqlError.Number == 1205 {
 			return report, fmt.Errorf("MySQL lock wait expired during MLMD migration; release the blocking database transaction before retrying: %w", err)
@@ -411,7 +418,7 @@ func Migrate(ctx context.Context, source pb.MetadataStoreServiceClient, database
 	return report, fmt.Errorf("migration exhausted connection retries: %w", err)
 }
 
-func migrateOnce(ctx context.Context, source pb.MetadataStoreServiceClient, database *sql.DB, budget DiskBudget) (Report, error) {
+func migrateOnce(ctx context.Context, source pb.MetadataStoreServiceClient, database *sql.DB, budget DiskBudget, singleUser bool, fence func(context.Context, *sql.Conn) error) (Report, error) {
 	report := Report{}
 	connection, err := database.Conn(ctx)
 	if err != nil {
@@ -426,99 +433,45 @@ func migrateOnce(ctx context.Context, source pb.MetadataStoreServiceClient, data
 		return report, fmt.Errorf("MLMD migration already in progress")
 	}
 	defer releaseMigrationLock(connection)
-	var lockWait int
-	if err := connection.QueryRowContext(ctx, "SELECT @@SESSION.lock_wait_timeout").Scan(&lockWait); err != nil {
+	restoreLockWait, err := BoundMetadataLockWait(ctx, connection)
+	if err != nil {
 		return report, err
 	}
-	if lockWait > 10 {
-		if _, err := connection.ExecContext(ctx, "SET SESSION lock_wait_timeout=10"); err != nil {
-			return report, err
-		}
-		defer func() {
-			restoreCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if _, err := connection.ExecContext(restoreCtx, fmt.Sprintf("SET SESSION lock_wait_timeout=%d", lockWait)); err != nil {
-				_ = connection.Raw(func(any) error { return driver.ErrBadConn })
-			}
-		}()
-	}
+	defer restoreLockWait()
 	db, err := gorm.Open(mysql.New(mysql.Config{Conn: connection, SkipInitializeWithVersion: true}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		return report, err
 	}
-	exists, err := tableExists(ctx, db, "tasks")
+	state, err := ClassifyStartup(ctx, connection, "mysql")
 	if err != nil {
 		return report, err
 	}
-	if !exists {
-		return report, fmt.Errorf("KFP tasks table is missing; this CLI requires a released MySQL installation")
-	}
-	legacySchema, err := columnExists(ctx, db, "tasks", "MLMDExecutionID")
+	legacyTable, temporaryExists, err := qualifyMigrationSchema(ctx, db)
 	if err != nil {
 		return report, err
 	}
-	if err := qualifyTaskSchema(ctx, db, "tasks", legacySchema); err != nil {
+	if state == Native {
+		err := countNativeRows(ctx, db, &report)
 		return report, err
 	}
-	backupExists, err := tableExists(ctx, db, "tasks_pre_migration")
-	if err != nil {
-		return report, err
+	if fence != nil {
+		if err := fence(ctx, connection); err != nil {
+			return report, fmt.Errorf("migration refused: %w", err)
+		}
 	}
-	if legacySchema && backupExists {
-		return report, fmt.Errorf("both legacy tasks and tasks_pre_migration exist; restore the backup before retrying")
-	}
-	for _, table := range []string{"artifacts", "artifact_tasks"} {
-		present, err := tableExists(ctx, db, table)
-		if err != nil {
+	if state == CleanupPending {
+		if err := countNativeRows(ctx, db, &report); err != nil {
 			return report, err
 		}
-		switch {
-		case legacySchema && present:
-			return report, fmt.Errorf("legacy tasks coexist with %s; refusing unqualified partial schema", table)
-		case present:
-			if err := qualifyArtifactTable(ctx, db, table); err != nil {
-				return report, err
-			}
-		case !legacySchema && !backupExists:
-			return report, fmt.Errorf("native tasks has no %s table and no legacy backup", table)
-		}
+		return report, db.WithContext(ctx).Exec("DROP TABLE tasks_pre_migration").Error
 	}
-	if !legacySchema && !backupExists {
-		temporaryExists, err := tableExists(ctx, db, "tasks_migration_tmp")
-		if err != nil {
-			return report, err
-		}
-		if temporaryExists {
-			return report, fmt.Errorf("native tasks still has a staging table and no legacy backup")
-		}
-		err = countNativeRows(ctx, db, &report)
-		return report, err
-	}
-	legacyTable := "tasks"
-	if backupExists {
-		legacyTable = "tasks_pre_migration"
-		if err := qualifyTaskSchema(ctx, db, legacyTable, true); err != nil {
-			return report, err
-		}
-	}
-	temporaryExists, err := tableExists(ctx, db, "tasks_migration_tmp")
-	if err != nil {
-		return report, err
-	}
-	if temporaryExists {
-		if !legacySchema {
-			return report, fmt.Errorf("native tasks and the staging table coexist; refusing unqualified partial schema")
-		}
-		if err := qualifyTaskSchema(ctx, db, "tasks_migration_tmp", false); err != nil {
-			return report, err
-		}
-	}
+	legacySchema := legacyTable == "tasks"
 	capacity, err := checkDiskCapacity(ctx, connection, budget)
 	report.DiskCapacity = &capacity
 	if err != nil {
 		return report, err
 	}
-	runs, err := loadRuns(ctx, db)
+	runs, err := loadRuns(ctx, connection, singleUser)
 	if err != nil {
 		return report, err
 	}
@@ -533,14 +486,23 @@ func migrateOnce(ctx context.Context, source pb.MetadataStoreServiceClient, data
 	if err != nil {
 		return report, err
 	}
-	plan := BuildPlan(snapshot, runs, legacy)
+	plan, err := BuildPlan(snapshot, runs, legacy)
 	plan.Skipped = append(plan.Skipped, skippedLegacy...)
+	if err != nil {
+		report.Skipped = plan.Skipped
+		return report, err
+	}
 	cacheRuns, err := loadCacheRuns(ctx, db)
 	if err != nil {
 		return report, err
 	}
 	projectParameterOrigins(plan.Tasks, cacheRuns)
-	cutoff, err := cacheCutoff(ctx, db, legacySchema || backupExists)
+	if fence != nil {
+		if err := fence(ctx, connection); err != nil {
+			return report, fmt.Errorf("migration refused: %w", err)
+		}
+	}
+	cutoff, err := cacheCutoff(ctx, db, true)
 	if err != nil {
 		return report, err
 	}
@@ -642,11 +604,107 @@ func migrateOnce(ctx context.Context, source pb.MetadataStoreServiceClient, data
 	if report.Tasks != len(plan.Tasks) || report.Artifacts != len(plan.Artifacts) || report.Links != len(plan.Links) {
 		return report, fmt.Errorf("migrated table counts do not match the verified source graph")
 	}
+	if err := markMigrationComplete(ctx, db); err != nil {
+		return report, err
+	}
 	if err := db.WithContext(ctx).Exec("DROP TABLE tasks_pre_migration").Error; err != nil {
 		return report, err
 	}
 	report.MigratedByKind = map[string]int{"execution": report.Tasks, "artifact": len(plan.artifactSizes), "event": report.Links}
 	return report, nil
+}
+
+// ValidateSource qualifies the target SQL schema and verifies the configured MLMD endpoint.
+func ValidateSource(ctx context.Context, database *sql.DB, source pb.MetadataStoreServiceClient) error {
+	if source == nil {
+		return fmt.Errorf("--mlmd-address is required for validation")
+	}
+	if err := database.PingContext(ctx); err != nil {
+		return fmt.Errorf("connect to KFP database: %w", err)
+	}
+	if _, err := ClassifyStartup(ctx, database, "mysql"); err != nil {
+		return err
+	}
+	db, err := gorm.Open(mysql.New(mysql.Config{Conn: database, SkipInitializeWithVersion: true}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		return err
+	}
+	if _, _, err := qualifyMigrationSchema(ctx, db); err != nil {
+		return err
+	}
+	callContext, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if _, err := source.GetExecutionTypes(callContext, &pb.GetExecutionTypesRequest{}); err != nil {
+		return fmt.Errorf("read MLMD execution types: %w", err)
+	}
+	return nil
+}
+
+func qualifyMigrationSchema(ctx context.Context, db *gorm.DB) (string, bool, error) {
+	exists, err := tableExists(ctx, db, "tasks")
+	if err != nil {
+		return "", false, err
+	}
+	if !exists {
+		return "", false, fmt.Errorf("KFP tasks table is missing; this CLI requires a released MySQL installation")
+	}
+	legacySchema, err := columnExists(ctx, db, "tasks", "MLMDExecutionID")
+	if err != nil {
+		return "", false, err
+	}
+	if err := qualifyTaskSchema(ctx, db, "tasks", legacySchema); err != nil {
+		return "", false, err
+	}
+	backupExists, err := tableExists(ctx, db, "tasks_pre_migration")
+	if err != nil {
+		return "", false, err
+	}
+	if legacySchema && backupExists {
+		return "", false, fmt.Errorf("both legacy tasks and tasks_pre_migration exist; restore the backup before retrying")
+	}
+	for _, table := range []string{"artifacts", "artifact_tasks"} {
+		present, err := tableExists(ctx, db, table)
+		if err != nil {
+			return "", false, err
+		}
+		switch {
+		case legacySchema && present:
+			return "", false, fmt.Errorf("legacy tasks coexist with %s; refusing unqualified partial schema", table)
+		case present:
+			if err := qualifyArtifactTable(ctx, db, table); err != nil {
+				return "", false, err
+			}
+		case !legacySchema && !backupExists:
+			return "", false, fmt.Errorf("native tasks has no %s table and no legacy backup", table)
+		}
+	}
+	legacyTable := "tasks"
+	if backupExists {
+		legacyTable = "tasks_pre_migration"
+		if err := qualifyTaskSchema(ctx, db, legacyTable, true); err != nil {
+			return "", false, err
+		}
+	}
+	temporaryExists, err := tableExists(ctx, db, "tasks_migration_tmp")
+	if err != nil {
+		return "", false, err
+	}
+	if temporaryExists {
+		if !legacySchema {
+			return "", false, fmt.Errorf("native tasks and the staging table coexist; refusing unqualified partial schema")
+		}
+		if err := qualifyTaskSchema(ctx, db, "tasks_migration_tmp", false); err != nil {
+			return "", false, err
+		}
+	}
+	return legacyTable, temporaryExists, nil
+}
+
+func markMigrationComplete(ctx context.Context, db *gorm.DB) error {
+	if err := db.WithContext(ctx).Exec("CREATE TABLE IF NOT EXISTS mlmd_migration_complete (ID tinyint NOT NULL PRIMARY KEY) ENGINE=InnoDB").Error; err != nil {
+		return err
+	}
+	return db.WithContext(ctx).Exec("INSERT IGNORE INTO mlmd_migration_complete (ID) VALUES (1)").Error
 }
 
 func countNativeRows(ctx context.Context, db *gorm.DB, report *Report) error {

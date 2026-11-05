@@ -1,5 +1,8 @@
 # Kubeflow Pipelines Kustomize Manifests
 
+For an upgrade from KFP 2.18.0 to the native metadata schema, follow the
+[MLMD upgrade guide](../../backend/src/apiserver/migration/mlmd/README.md).
+
 Kubeflow Pipelines can be installed standalone and as part of the [community distribution](https://github.com/kubeflow/community-distribution).
 [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 

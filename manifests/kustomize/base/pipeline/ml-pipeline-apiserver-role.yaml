@@ -6,6 +6,15 @@ metadata:
   name: ml-pipeline
 rules:
 - apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - ml-pipeline
+  - ml-pipeline-scheduledworkflow
+  verbs:
+  - get
+- apiGroups:
   - ""
   resources:
   - pods

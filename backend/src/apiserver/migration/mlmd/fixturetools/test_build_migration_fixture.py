@@ -305,36 +305,75 @@ class MigrationFixtureDesignTest(unittest.TestCase):
                 table,
             )
 
-    def test_missing_parent_skips_child_and_dependent_event(self) -> None:
+    def test_missing_parent_keeps_child_and_event(self) -> None:
         parent = next(
             row
             for row in self.source['mlmd']['execution_properties']
-            if row['name'] == 'parent_dag_id'
-            and any(
-                event['execution_id'] == row['execution_id']
-                for event in self.source['mlmd']['events']
-            )
+            if row['name'] == 'parent_dag_id' and row['execution_id'] == 2
         )
         parent['int_value'] = 999999
         expected, _ = build_expected(self.source)
-        skipped = {row['source']: row for row in expected['skips']}
-        child = f'mlmd.executions[id={parent["execution_id"]}]'
-        self.assertIn(child, skipped)
-        self.assertEqual('error', skipped[child]['severity'])
-        self.assertFalse(
-            any(row['source'] == child for row in expected['tasks'])
+        child = next(
+            row
+            for row in expected['tasks']
+            if row['source'] == 'mlmd.executions[id=2]'
         )
-        for event in self.source['mlmd']['events']:
-            if event['execution_id'] == parent['execution_id']:
-                event_skip = skipped[f'mlmd.events[id={event["id"]}]']
-                self.assertEqual('error', event_skip['severity'])
+        self.assertIsNone(child['fields']['ParentTaskUUID'])
         self.assertTrue(
             any(
-                row['status'] == 'skip'
-                and row['source'].startswith('mlmd.execution_properties[')
-                for row in dispositions(self.source, expected)
+                'parent execution:999999 is missing or skipped'
+                in entry['reason']
+                for entry in expected['diagnostics']
             )
         )
+        self.assertTrue(
+            any(
+                link['fields']['TaskID'] == child['target_uuid']
+                for link in expected['artifact_tasks']
+            )
+        )
+
+    def test_cyclic_parents_detach_only_the_cycle(self) -> None:
+        for edges, cyclic in (
+            ({2: 2, 4: 2}, {2}),
+            ({2: 4, 4: 2}, {2, 4}),
+        ):
+            with self.subTest(edges=edges):
+                source = source_from_sql()
+                for prop in source['mlmd']['execution_properties']:
+                    if (
+                        prop['name'] == 'parent_dag_id'
+                        and prop['execution_id'] in edges
+                    ):
+                        prop['int_value'] = edges[prop['execution_id']]
+                expected, _ = build_expected(source)
+                tasks = {
+                    row['target_uuid']: row['fields']
+                    for row in expected['tasks']
+                }
+                for child, parent in edges.items():
+                    task_id = identity('execution', child)
+                    self.assertEqual(
+                        None
+                        if child in cyclic
+                        else identity('execution', parent),
+                        tasks[task_id]['ParentTaskUUID'],
+                    )
+                    if child in cyclic:
+                        self.assertIn(
+                            {
+                                'source': f'mlmd.executions[id={child}]',
+                                'reason': f'parent execution:{parent} forms a cycle',
+                                'severity': 'warning',
+                            },
+                            expected['diagnostics'],
+                        )
+                self.assertTrue(
+                    any(
+                        link['fields']['TaskID'] == identity('execution', 2)
+                        for link in expected['artifact_tasks']
+                    )
+                )
 
     def test_cross_run_parent_is_rejected(self) -> None:
         parent_link = next(
