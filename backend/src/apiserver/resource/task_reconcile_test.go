@@ -174,6 +174,7 @@ func TestExecutorFailureForTask_UsesResolvedMessageAndFinishTime(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "main: OOMKilled (exit code 137)", got.message)
 	assert.Equal(t, int64(99), got.finishedAt)
+	assert.Equal(t, "p1", got.podName, "the write is fenced on the pod the evidence is about")
 }
 
 func TestExecutorFailureForTask_UnfinishedNodeFallsBackToNow(t *testing.T) {
@@ -271,4 +272,92 @@ func TestReportWorkflowResource_ReconcileDoesNotOverwriteSucceededTask(t *testin
 	got, err := manager.GetTask(task.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), got.State)
+}
+
+func createRunningTaskWithExecutorPod(t *testing.T, store *FakeClientManager, runUUID, podName string) *model.Task {
+	t.Helper()
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{executorPod(podName)})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: runUUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-" + podName, Pods: pods, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+	return task
+}
+
+// The report that carries the old failure was read before RetryRun reset the task. Writing it
+// afterwards would fail the new attempt with the old attempt's message and finish time.
+func TestReconcileTaskFailure_DoesNotFailARetryThatResetTheTask(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	task := createRunningTaskWithExecutorPod(t, store, run.UUID, "oom-pod")
+	staleSnapshot, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+
+	require.NoError(t, store.TaskStore().ResetTasksForRetry([]string{task.UUID}))
+
+	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes))
+	require.NoError(t, err)
+	assert.False(t, applied)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), got.State)
+	assert.Zero(t, got.FinishedInSec)
+	assert.Nil(t, got.StatusMetadata)
+}
+
+func TestReconcileTaskFailure_DoesNotFailANewerAttemptOnAnotherPod(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	task := createRunningTaskWithExecutorPod(t, store, run.UUID, "oom-pod")
+	staleSnapshot, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+
+	// The retried attempt recorded its own executor pod after the report was read.
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{executorPod("oom-pod"), executorPod("oom-pod-retry")})
+	require.NoError(t, err)
+	_, err = store.TaskStore().UpdateTask(&model.Task{UUID: task.UUID, Pods: pods})
+	require.NoError(t, err)
+
+	nodes := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes()).ExecutionStatus().NodeStatuses()
+	applied, err := manager.reconcileTaskFailure(staleSnapshot, nodes, util.ResolveNodeLifecycleMessages(nodes))
+	require.NoError(t, err)
+	assert.False(t, applied)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), got.State)
+}
+
+// Before the launcher records its executor pod, the stored task only knows the driver pod. With
+// no executor pod there is nothing to tie the dead pod to, so the task is left alone.
+func TestReportWorkflowResource_DriverOnlyTaskStaysRunning(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{driverPod("oom-driver")})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-driver-only", Pods: pods, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	workflow := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes())
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), got.State)
 }

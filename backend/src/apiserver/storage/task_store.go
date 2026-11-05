@@ -87,10 +87,12 @@ type TaskStoreInterface interface {
 	// UpdateTask Updates an existing task entry in the database.
 	UpdateTask(new *model.Task) (*model.Task, error)
 
-	// UpdateTaskIfState behaves like UpdateTask but only applies the update while the task is still
-	// in the expected state. The check and the write share one row lock, so a report that moved the
-	// task on first is never overwritten. applied is false, with no error, when the state differs.
-	UpdateTaskIfState(expected model.TaskStatus, new *model.Task) (updated *model.Task, applied bool, err error)
+	// UpdateTaskIfAttempt behaves like UpdateTask but only applies the update while the stored task
+	// is still the attempt the caller has evidence about: in the guard's state, with the guard's
+	// executor pod as its latest executor pod. Both checks share one row lock with the write, so
+	// neither a report that moved the task on first nor a retry that reset it is overwritten.
+	// applied is false, with no error, when the guard does not hold.
+	UpdateTaskIfAttempt(guard TaskAttemptGuard, new *model.Task) (updated *model.Task, applied bool, err error)
 
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
 	// from a clean RUNNING attempt while preserving task history.
@@ -1078,8 +1080,8 @@ func (s *TaskStore) getTaskForUpdate(tx *sql.Tx, id string) (*model.Task, error)
 	return task, nil
 }
 
-// errTaskStateMismatch is returned by updateTask when the task is not in the state the caller expected.
-var errTaskStateMismatch = errors.New("task is not in the expected state")
+// errTaskAttemptMismatch is returned by updateTask when the stored task no longer matches the caller's guard.
+var errTaskAttemptMismatch = errors.New("task is not the expected attempt")
 
 // UpdateTask updates an existing task in the tasks table and returns the updated task.
 // Uses row-level locking to prevent race conditions when multiple concurrent updates
@@ -1088,12 +1090,26 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	return s.updateTask(new, nil)
 }
 
-// UpdateTaskIfState updates a task like UpdateTask, but only while the task is in the expected
-// state. It is for writers that infer a state from outside evidence and must not overwrite a
-// report that arrived first. applied is false, with no error, when the task is in another state.
-func (s *TaskStore) UpdateTaskIfState(expected model.TaskStatus, new *model.Task) (*model.Task, bool, error) {
-	updated, err := s.updateTask(new, &expected)
-	if errors.Is(err, errTaskStateMismatch) {
+// TaskAttemptGuard names the attempt of a task that a conditional update may touch.
+type TaskAttemptGuard struct {
+	// State is the state the stored task must still be in.
+	State model.TaskStatus
+	// ExecutorPod is the name of the executor pod that must still be the latest one recorded on
+	// the stored task. A retry reset clears the pods, and a newer attempt records a different pod,
+	// so a stale snapshot of an older attempt no longer matches.
+	ExecutorPod string
+}
+
+// UpdateTaskIfAttempt updates a task like UpdateTask, but only while the stored task is in the
+// guard's state and its latest executor pod is the guard's pod. It is for writers that infer an
+// outcome from outside evidence and must not overwrite a report that arrived first, or a retry
+// that started after the evidence was read. applied is false, with no error, when the guard fails.
+func (s *TaskStore) UpdateTaskIfAttempt(guard TaskAttemptGuard, new *model.Task) (*model.Task, bool, error) {
+	if guard.ExecutorPod == "" {
+		return nil, false, util.NewInvalidInputError("Failed to update task: the guard needs an executor pod")
+	}
+	updated, err := s.updateTask(new, &guard)
+	if errors.Is(err, errTaskAttemptMismatch) {
 		return nil, false, nil
 	}
 	if err != nil {
@@ -1102,9 +1118,25 @@ func (s *TaskStore) UpdateTaskIfState(expected model.TaskStatus, new *model.Task
 	return updated, true, nil
 }
 
-// updateTask implements UpdateTask. When expected is not nil the update is skipped, and
-// errTaskStateMismatch returned, unless the locked task is in that state.
-func (s *TaskStore) updateTask(new *model.Task, expected *model.TaskStatus) (*model.Task, error) {
+// latestExecutorPodName returns the name of the last executor pod recorded in pods, or "".
+func latestExecutorPodName(pods model.JSONSlice) (string, error) {
+	taskPods, err := model.JSONSliceToProtoSlice(pods, func() *apiv2.PipelineTask_TaskPod {
+		return &apiv2.PipelineTask_TaskPod{}
+	})
+	if err != nil {
+		return "", err
+	}
+	for i := len(taskPods) - 1; i >= 0; i-- {
+		if taskPods[i].GetType() == apiv2.PipelineTask_EXECUTOR {
+			return taskPods[i].GetName(), nil
+		}
+	}
+	return "", nil
+}
+
+// updateTask implements UpdateTask. When guard is not nil the update is skipped, and
+// errTaskAttemptMismatch returned, unless the locked task matches the guard.
+func (s *TaskStore) updateTask(new *model.Task, guard *TaskAttemptGuard) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if new == nil {
@@ -1131,8 +1163,17 @@ func (s *TaskStore) updateTask(new *model.Task, expected *model.TaskStatus) (*mo
 	if err != nil {
 		return nil, err
 	}
-	if expected != nil && lockedOld.State != *expected {
-		return nil, errTaskStateMismatch
+	if guard != nil {
+		if lockedOld.State != guard.State {
+			return nil, errTaskAttemptMismatch
+		}
+		latestPod, err := latestExecutorPodName(lockedOld.Pods)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to read pods of task %s", new.UUID)
+		}
+		if latestPod != guard.ExecutorPod {
+			return nil, errTaskAttemptMismatch
+		}
 	}
 
 	// Use the locked version for merging instead of the 'old' parameter

@@ -20,6 +20,7 @@ import (
 
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -30,6 +31,8 @@ const (
 
 // executorFailure is terminal failure evidence for the current attempt of a task.
 type executorFailure struct {
+	// podName is the executor pod the evidence is about. The write is fenced on it.
+	podName    string
 	message    string
 	finishedAt int64
 }
@@ -142,12 +145,13 @@ func executorFailureForTask(task *model.Task, nodes map[string]util.NodeStatus, 
 	if finishedAt <= 0 {
 		finishedAt = time.Now().Unix()
 	}
-	return executorFailure{message: msg, finishedAt: finishedAt}, true
+	return executorFailure{podName: current.ID, message: msg, finishedAt: finishedAt}, true
 }
 
-// reconcileTaskFailure moves a RUNNING task to FAILED when executorFailureForTask finds evidence,
-// without overwriting a state the launcher reported in the meantime. It returns true when the task
-// was updated.
+// reconcileTaskFailure moves a RUNNING task to FAILED when executorFailureForTask finds evidence.
+// The write only lands while the stored task is still RUNNING with that executor pod as its latest
+// one, so neither a state the launcher reported in the meantime nor a retry that reset the task
+// after this report was read is overwritten. It returns true when the task was updated.
 func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[string]util.NodeStatus, resolved map[string]string) (bool, error) {
 	failure, ok := executorFailureForTask(task, nodes, resolved)
 	if !ok {
@@ -157,8 +161,11 @@ func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[strin
 	if err != nil {
 		return false, err
 	}
-	_, applied, err := r.taskStore.UpdateTaskIfState(
-		model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	_, applied, err := r.taskStore.UpdateTaskIfAttempt(
+		storage.TaskAttemptGuard{
+			State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+			ExecutorPod: failure.podName,
+		},
 		&model.Task{
 			UUID:           task.UUID,
 			State:          model.TaskStatus(apiv2.PipelineTask_FAILED),

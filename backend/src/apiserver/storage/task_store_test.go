@@ -1911,6 +1911,8 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 	}
 }
 
+var runningOnPod1 = TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), ExecutorPod: "p1"}
+
 func createRunningTaskForStateTest(t *testing.T, taskStore *TaskStore) *model.Task {
 	t.Helper()
 	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
@@ -1929,14 +1931,14 @@ func createRunningTaskForStateTest(t *testing.T, taskStore *TaskStore) *model.Ta
 	return created
 }
 
-func TestUpdateTaskIfState_AppliesWhenStateMatches(t *testing.T) {
+func TestUpdateTaskIfAttempt_AppliesWhenStateMatches(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 	created := createRunningTaskForStateTest(t, taskStore)
 
 	metadata, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{Message: "main: OOMKilled (exit code 137)"})
 	require.NoError(t, err)
-	updated, applied, err := taskStore.UpdateTaskIfState(model.TaskStatus(apiv2.PipelineTask_RUNNING), &model.Task{
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
 		UUID:           created.UUID,
 		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
 		FinishedInSec:  42,
@@ -1955,7 +1957,7 @@ func TestUpdateTaskIfState_AppliesWhenStateMatches(t *testing.T) {
 	assert.Equal(t, "main: OOMKilled (exit code 137)", statusMetadata.GetMessage())
 }
 
-func TestUpdateTaskIfState_DoesNotOverwriteALaterState(t *testing.T) {
+func TestUpdateTaskIfAttempt_DoesNotOverwriteALaterState(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 	created := createRunningTaskForStateTest(t, taskStore)
@@ -1968,7 +1970,7 @@ func TestUpdateTaskIfState_DoesNotOverwriteALaterState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	updated, applied, err := taskStore.UpdateTaskIfState(model.TaskStatus(apiv2.PipelineTask_RUNNING), &model.Task{
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
 		UUID:          created.UUID,
 		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
 		FinishedInSec: 42,
@@ -1984,14 +1986,102 @@ func TestUpdateTaskIfState_DoesNotOverwriteALaterState(t *testing.T) {
 	assert.Equal(t, 2, len(stored.StateHistory), "no FAILED entry was added")
 }
 
-func TestUpdateTaskIfState_MissingTaskIsAnError(t *testing.T) {
+func TestUpdateTaskIfAttempt_MissingTaskIsAnError(t *testing.T) {
 	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 
-	_, applied, err := taskStore.UpdateTaskIfState(model.TaskStatus(apiv2.PipelineTask_RUNNING), &model.Task{
+	_, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
 		UUID:  testUUID2,
 		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
 	})
+	assert.Error(t, err)
+	assert.False(t, applied)
+}
+
+func TestUpdateTaskIfAttempt_SkipsWhenRetryResetClearedThePods(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// A retry reset clears the pods of the failed attempt and puts the task back to RUNNING.
+	require.NoError(t, taskStore.ResetTasksForRetry([]string{created.UUID}))
+
+	updated, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:          created.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_FAILED),
+		FinishedInSec: 42,
+	})
+	require.NoError(t, err)
+	assert.False(t, applied)
+	assert.Nil(t, updated)
+
+	stored, err := taskStore.GetTask(created.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), stored.State)
+	assert.Zero(t, stored.FinishedInSec)
+}
+
+func TestUpdateTaskIfAttempt_SkipsWhenANewerExecutorPodIsRecorded(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	// The next attempt recorded its own executor pod after the evidence for p1 was read.
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID: created.UUID,
+		Pods: createTaskPodsAsJSONSlice(
+			createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR),
+			createTaskPod("p2", "uid2", apiv2.PipelineTask_EXECUTOR),
+		),
+	})
+	require.NoError(t, err)
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:  created.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+	assert.False(t, applied)
+
+	_, applied, err = taskStore.UpdateTaskIfAttempt(
+		TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING), ExecutorPod: "p2"},
+		&model.Task{UUID: created.UUID, State: model.TaskStatus(apiv2.PipelineTask_FAILED)},
+	)
+	require.NoError(t, err)
+	assert.True(t, applied, "the latest executor pod is the one the guard may fail")
+}
+
+func TestUpdateTaskIfAttempt_IgnoresDriverPodsWhenMatchingTheExecutor(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	_, err := taskStore.UpdateTask(&model.Task{
+		UUID: created.UUID,
+		Pods: createTaskPodsAsJSONSlice(
+			createTaskPod("p1", "uid1", apiv2.PipelineTask_EXECUTOR),
+			createTaskPod("d1", "uid-d", apiv2.PipelineTask_DRIVER),
+		),
+	})
+	require.NoError(t, err)
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(runningOnPod1, &model.Task{
+		UUID:  created.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+	assert.True(t, applied)
+}
+
+func TestUpdateTaskIfAttempt_RequiresAnExecutorPod(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+	created := createRunningTaskForStateTest(t, taskStore)
+
+	_, applied, err := taskStore.UpdateTaskIfAttempt(
+		TaskAttemptGuard{State: model.TaskStatus(apiv2.PipelineTask_RUNNING)},
+		&model.Task{UUID: created.UUID, State: model.TaskStatus(apiv2.PipelineTask_FAILED)},
+	)
 	assert.Error(t, err)
 	assert.False(t, applied)
 }
