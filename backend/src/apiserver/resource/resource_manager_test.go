@@ -3883,6 +3883,39 @@ func TestArchiveExperiment_CustomResourceNotFound(t *testing.T) {
 	require.Equal(t, job.Enabled, false)
 }
 
+func TestArchiveExperiment_K8sSucceedsDbFails(t *testing.T) {
+	// K8s patch (disable ScheduledWorkflow) succeeds but the subsequent DB
+	// write (ArchiveExperiment) fails.  ArchiveExperiment must surface the DB
+	// error rather than silently succeed.
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	// Verify the job's CR exists so the K8s Patch call succeeds.
+	_, err := manager.getScheduledWorkflowClient(job.Namespace).Get(
+		context.Background(), job.K8SName, v1.GetOptions{})
+	require.Nil(t, err, "scheduled workflow CR must exist for the patch to succeed")
+
+	// Close the DB after the K8s state is confirmed but before Archive runs.
+	store.DB().Close()
+
+	err = manager.ArchiveExperiment(context.Background(), job.ExperimentId)
+	require.NotNil(t, err, "ArchiveExperiment must fail when DB is closed")
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestArchiveExperiment_DbFailureNoJobs(t *testing.T) {
+	// ArchiveExperiment on an experiment with no jobs: DB write fails.
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.ArchiveExperiment(context.Background(), experiment.UUID)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
 func TestEnableJob_DbFailure(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
