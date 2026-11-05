@@ -22,6 +22,7 @@ upgrade guidance, start at [Releases](../RELEASE.md).
   - [Final release-note review checklist](#final-release-note-review-checklist)
 - [Recovery helpers](#recovery-helpers)
 - [Commands](#commands)
+- [Code layout](#code-layout)
 
 ## Prerequisites and access
 
@@ -913,6 +914,10 @@ kfpr reset-step update-version-tags --state-file release-state.json
 
 `status` prints saved answers, completed steps, the next step, the resume command, and the active
 manual checklist when the next step needs external confirmation.
+If the checkpoint is not a JSON object, its `answers` is not an object, or its `completed_steps` is
+not a list of strings, `status` and `validate-state` report the problem, and commands that change
+the checkpoint (`run`, `next`, `run <step>`, `done`, `reset-step` and `goto`) stop without
+modifying it. Fix the file or delete it with `kfpr clear`.
 `merge-version-pr` watches PR CI and fails as soon as a reported gate fails; after all reported
 gates complete successfully, it continues waiting for the PR to merge.
 `watch-publish-images` watches the latest image publication workflow for the saved release branch
@@ -991,3 +996,24 @@ index by digest to `latest`, and verifies the result and unchanged versioned tag
 It never rebuilds images or uploads SDK packages. Evidence includes previous and
 promoted digests, including partial progress if a registry operation fails.
 Only releases without a newer published stable backend release may be promoted.
+
+## Code layout
+
+The release flow's shared helpers live in focused modules under `release/kfpr/`:
+
+| Module | Responsibility |
+| --- | --- |
+| `metadata.py` | Release version parsing and derived tags and branches |
+| `state.py` | The `release-state.json` checkpoint |
+| `runner.py` | Command execution and dry runs |
+| `prompts.py` | Terminal formatting and interactive prompts |
+| `github_api.py` | Repository lookups and pull request and workflow polling |
+| `commands.py` | Package, workflow and release-container command construction |
+| `validation.py` | Answer and checkpoint validation |
+| `preflight.py` | Non-mutating `kfpr doctor` diagnostics |
+| `context.py` | Assembling a release context from arguments, state and prompts |
+| `steps.py` | Release steps and their orchestration |
+| `cli.py` | The `kfpr` command-line interface |
+
+`core.py` only re-exports the shared helpers for compatibility. New code should import from the
+module that owns a helper.
