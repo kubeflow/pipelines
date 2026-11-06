@@ -247,7 +247,15 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	}()
 
 	defer func() {
-		executionErr = l.finalizeExecution(ctx, executionErr)
+		finalizeCtx := ctx
+		if ctx.Err() != nil {
+			// The launcher ctx is already canceled (e.g. SIGTERM): finalize
+			// on a detached, bounded context so terminal state still persists.
+			var cancel context.CancelFunc
+			finalizeCtx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+			defer cancel()
+		}
+		executionErr = l.finalizeExecution(finalizeCtx, executionErr)
 	}()
 
 	defer stopWaitingArtifacts(l.executorInput.GetInputs().GetArtifacts())
