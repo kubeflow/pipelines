@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -360,4 +361,66 @@ func TestReportWorkflowResource_DriverOnlyTaskStaysRunning(t *testing.T) {
 	got, err := manager.GetTask(task.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), got.State)
+}
+
+func decodeStatusMetadata(t *testing.T, data model.JSONData) *apiv2.PipelineTask_StatusMetadata {
+	t.Helper()
+	got, err := model.JSONDataToProtoMessage(data, func() *apiv2.PipelineTask_StatusMetadata {
+		return &apiv2.PipelineTask_StatusMetadata{}
+	})
+	require.NoError(t, err)
+	return got
+}
+
+func TestFailureStatusMetadata(t *testing.T) {
+	withPlugin, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{
+		Message:          "earlier message",
+		CustomProperties: map[string]*structpb.Value{"owner": structpb.NewStringValue("plugin-a")},
+	})
+	require.NoError(t, err)
+
+	t.Run("no existing metadata gives a message only", func(t *testing.T) {
+		got, err := failureStatusMetadata(nil, "OOMKilled")
+		require.NoError(t, err)
+		assert.Equal(t, "OOMKilled", decodeStatusMetadata(t, got).GetMessage())
+		assert.Empty(t, decodeStatusMetadata(t, got).GetCustomProperties())
+	})
+	t.Run("custom properties survive and the message is replaced", func(t *testing.T) {
+		got, err := failureStatusMetadata(withPlugin, "OOMKilled")
+		require.NoError(t, err)
+		decoded := decodeStatusMetadata(t, got)
+		assert.Equal(t, "OOMKilled", decoded.GetMessage())
+		assert.Equal(t, "plugin-a", decoded.GetCustomProperties()["owner"].GetStringValue())
+	})
+}
+
+func TestReportWorkflowResource_ReconcilePreservesCustomProperties(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{executorPod("oom-pod")})
+	require.NoError(t, err)
+	withPlugin, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{
+		CustomProperties: map[string]*structpb.Value{"owner": structpb.NewStringValue("plugin-a")},
+	})
+	require.NoError(t, err)
+	task, err := store.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1", RunUUID: run.UUID, Name: "oom", DisplayName: "oom",
+		Type: model.TaskType(apiv2.PipelineTask_RUNTIME), State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Fingerprint: "fp-props", Pods: pods, StatusMetadata: withPlugin, TypeAttrs: model.JSONData{},
+		StateHistory: model.JSONSlice{}, InputParameters: model.JSONSlice{}, OutputParameters: model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	workflow := reconcileTestWorkflow(run.K8SName, run.UUID, oomedWorkflowNodes())
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	got, err := manager.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_FAILED), got.State)
+	metadata := decodeStatusMetadata(t, got.StatusMetadata)
+	assert.Equal(t, "main: OOMKilled (exit code 137)", metadata.GetMessage())
+	assert.Equal(t, "plugin-a", metadata.GetCustomProperties()["owner"].GetStringValue())
 }

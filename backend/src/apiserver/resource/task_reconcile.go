@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
@@ -148,6 +149,25 @@ func executorFailureForTask(task *model.Task, nodes map[string]util.NodeStatus, 
 	return executorFailure{podName: current.ID, message: msg, finishedAt: finishedAt}, true
 }
 
+// failureStatusMetadata returns the task's stored status metadata with the failure message set.
+// Everything else in it, such as custom properties a plugin recorded before the pod died, is kept.
+// Metadata that cannot be decoded is replaced by a message-only value rather than failing the report.
+func failureStatusMetadata(existing model.JSONData, message string) (model.JSONData, error) {
+	statusMetadata := &apiv2.PipelineTask_StatusMetadata{}
+	if len(existing) > 0 {
+		decoded, err := model.JSONDataToProtoMessage(existing, func() *apiv2.PipelineTask_StatusMetadata {
+			return &apiv2.PipelineTask_StatusMetadata{}
+		})
+		if err != nil {
+			glog.Warningf("Dropping unreadable status metadata while recording a task failure: %v", err)
+		} else {
+			statusMetadata = decoded
+		}
+	}
+	statusMetadata.Message = message
+	return model.ProtoMessageToJSONData(statusMetadata)
+}
+
 // reconcileTaskFailure moves a RUNNING task to FAILED when executorFailureForTask finds evidence.
 // The write only lands while the stored task is still RUNNING with that executor pod as its latest
 // one, so neither a state the launcher reported in the meantime nor a retry that reset the task
@@ -157,7 +177,7 @@ func (r *ResourceManager) reconcileTaskFailure(task *model.Task, nodes map[strin
 	if !ok {
 		return false, nil
 	}
-	metadata, err := model.ProtoMessageToJSONData(&apiv2.PipelineTask_StatusMetadata{Message: failure.message})
+	metadata, err := failureStatusMetadata(task.StatusMetadata, failure.message)
 	if err != nil {
 		return false, err
 	}
