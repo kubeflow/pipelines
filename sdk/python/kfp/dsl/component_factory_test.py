@@ -64,7 +64,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
         command = component_factory._get_packages_to_install_command(
             packages_to_install=packages_to_install,
-            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python',
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@main#subdirectory=sdk/python',
         )
 
         self.assertEqual(
@@ -73,7 +73,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 [
                     'sh',
                     '-c',
-                    '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python\' && "$0" "$@"\n',
+                    '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'git+https://github.com/kubeflow/pipelines.git@main#subdirectory=sdk/python\' && "$0" "$@"\n',
                 ]
             ),
         )
@@ -85,7 +85,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
         command = component_factory._get_packages_to_install_command(
             packages_to_install=packages_to_install,
-            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python',
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@main#subdirectory=sdk/python',
             install_kfp_package=False,
         )
         self.assertEqual(command, [])
@@ -116,7 +116,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
         command = component_factory._get_packages_to_install_command(
             packages_to_install=packages_to_install,
-            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python',
+            kfp_package_path='git+https://github.com/kubeflow/pipelines.git@main#subdirectory=sdk/python',
             install_kfp_package=False,
         )
 

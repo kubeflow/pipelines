@@ -136,12 +136,12 @@ node scripts/ui-smoke-test/smoke-test-runner.js --current-only --use-existing --
 
 Screenshots are saved to `.ui-smoke-test/screenshots/pr/`.
 
-### Compare your branch against master
+### Compare your branch against main
 
 The full workflow — detects changed backend components, ensures a Kind cluster, builds both frontends, captures screenshots from both, and generates a side-by-side comparison with diff percentages:
 
 ```bash
-node scripts/ui-smoke-test/smoke-test-runner.js --compare master
+node scripts/ui-smoke-test/smoke-test-runner.js --compare main
 ```
 
 If your PR only touches frontend code, the backend rebuild is auto-skipped since no backend components changed.
@@ -151,7 +151,7 @@ If your PR only touches frontend code, the backend rebuild is auto-skipped since
 Fetch and test a PR you don't have checked out locally:
 
 ```bash
-node scripts/ui-smoke-test/smoke-test-runner.js --compare master --pr 12756
+node scripts/ui-smoke-test/smoke-test-runner.js --compare main --pr 12756
 ```
 
 Results are saved to `.ui-smoke-test/screenshots/comparison/`. See [scripts/ui-smoke-test/README.md] for the full command reference, troubleshooting, and architecture details.
@@ -172,8 +172,8 @@ For a more comprehensive guide on contributing, please read [CONTRIBUTING.md].
 [http://127.0.0.1:3000]: http://127.0.0.1:3000
 [Kubectl]: https://kubernetes.io/docs/tasks/tools/#kubectl
 [Docker + Colima]: https://github.com/abiosoft/colima?tab=readme-ov-file#docker
-[sample pipeline]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.py
-[sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/sdk/python/test_data/pipelines/pipeline_with_env.yaml
+[sample pipeline]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/main/test_data/sdk_compiled_pipelines/valid/critical/pipeline_with_env.py
+[sample pipeline in yaml]: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/main/test_data/sdk_compiled_pipelines/valid/critical/pipeline_with_env.yaml
 [KFP docs]: https://www.kubeflow.org/docs/components/pipelines/getting-started/
 
 ## Multi-user artifact ownership

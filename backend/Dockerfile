@@ -105,8 +105,8 @@ COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
 
 # Pin sample doc links to the commit that built the backend image
-RUN sed -E "s#/(blob|tree)/master/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
-    sed -E "s/%252Fmaster/%252F${COMMIT_SHA}/#g" -i /config/sample_config.json
+RUN sed -E "s#/(blob|tree)/(master|main)/#/\1/${COMMIT_SHA}/#g" -i /config/sample_config.json && \
+    sed -E "s#%252F(master|main)%252F#%252F${COMMIT_SHA}%252F#g" -i /config/sample_config.json
 
 # Expose apiserver port
 EXPOSE 8888

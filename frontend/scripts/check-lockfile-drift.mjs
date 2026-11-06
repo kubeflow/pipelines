@@ -58,7 +58,7 @@ Usage:
   node scripts/check-lockfile-drift.mjs --base-ref <git-ref>
 
 Examples:
-  node scripts/check-lockfile-drift.mjs --base-ref origin/master`.trim(),
+  node scripts/check-lockfile-drift.mjs --base-ref origin/main`.trim(),
   );
 }
 
