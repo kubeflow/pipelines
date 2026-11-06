@@ -95,6 +95,7 @@ type (
 	PipelineTask_InputOutputs              = canonical.PipelineTask_InputOutputs
 	PipelineTask_InputOutputs_IOArtifact   = canonical.PipelineTask_InputOutputs_IOArtifact
 	PipelineTask_InputOutputs_IOParameter  = canonical.PipelineTask_InputOutputs_IOParameter
+	PipelineTask_LogHistory                = canonical.PipelineTask_LogHistory
 	PipelineTask_StatusMetadata            = canonical.PipelineTask_StatusMetadata
 	PipelineTask_TaskPod                   = canonical.PipelineTask_TaskPod
 	PipelineTask_TaskPodType               = canonical.PipelineTask_TaskPodType

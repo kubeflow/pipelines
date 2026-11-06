@@ -3347,6 +3347,51 @@
         }
       }
     },
+    "PipelineTaskLogHistory": {
+      "type": "object",
+      "properties": {
+        "before_retry_generation": {
+          "type": "string",
+          "format": "int64",
+          "description": "Together with task_id, identifies this snapshot. This is the manual retry\ngeneration that archived it, not an automatic pod retry attempt number."
+        },
+        "archived_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "state": {
+          "$ref": "#/definitions/PipelineTaskTaskState"
+        },
+        "pods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PipelineTaskTaskPod"
+          }
+        },
+        "log_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/InputOutputsIOArtifact"
+          },
+          "description": "Log artifacts only; never includes task outputs used by downstream tasks."
+        },
+        "driver_logs_uri": {
+          "type": "string",
+          "description": "Legacy driver log reference, when not represented by a log artifact."
+        }
+      },
+      "description": "Log references from an execution archived before a manual run retry.\nReferences can outlive pods or archived objects and do not guarantee availability."
+    },
     "PipelineTaskStatusMetadata": {
       "type": "object",
       "properties": {
@@ -3636,6 +3681,15 @@
         "lifecycle_category": {
           "type": "string",
           "description": "Classified category of lifecycle_message.\nOne of image-pull, scheduling, runtime, admission, or unknown.\nEmpty when lifecycle_message is empty."
+        },
+        "log_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PipelineTaskLogHistory"
+          },
+          "description": "Output only. Prior executions archived by manual retries, oldest first.\nHistory begins when preservation is enabled; older retries are not backfilled.",
+          "readOnly": true
         }
       },
       "description": "Runtime information of a task execution used by task APIs and Run.tasks."

@@ -32,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -89,7 +90,7 @@ type TaskStoreInterface interface {
 
 	// ResetTasksForRetry clears attempt-local state so retried tasks can resume
 	// from a clean RUNNING attempt while preserving task history.
-	ResetTasksForRetry(taskIDs []string) error
+	ResetTasksForRetry(runUUID string, retryGeneration int64, taskIDs []string) error
 
 	// GetChildTasks Fetches all child tasks for a given task UUID.
 	GetChildTasks(taskID string) ([]*model.Task, error)
@@ -260,7 +261,11 @@ func scanTaskRow(rowscanner interface{ Scan(dest ...any) error }) (*model.Task, 
 // hydrateArtifactsForTasks fills InputArtifactsHydrated and OutputArtifactsHydrated for provided tasks by
 // querying artifact_tasks joined with artifacts. It uses TaskID IN (...) to limit scope.
 // The helper clears previously hydrated transient slices first so repeated hydration is idempotent.
-func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDialect) error {
+type taskQueryer interface {
+	Query(string, ...any) (*sql.Rows, error)
+}
+
+func hydrateArtifactsForTasks(db taskQueryer, tasks []*model.Task, d dialect.DBDialect) error {
 	q := d.QuoteIdentifier
 	qb := d.QueryBuilder()
 	if len(tasks) == 0 {
@@ -424,7 +429,13 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 			task.InputArtifactsHydrated = append(task.InputArtifactsHydrated, h)
 		}
 	}
-	return rows.Err()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	return hydrateTaskLogHistory(db, tasks, d)
 }
 
 func iOTypeIsOutput(ioType apiv2.IOType) (bool, error) {
@@ -1287,7 +1298,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	return s.GetTask(new.UUID)
 }
 
-func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
+func (s *TaskStore) ResetTasksForRetry(runUUID string, retryGeneration int64, taskIDs []string) error {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	if len(taskIDs) == 0 {
@@ -1304,10 +1315,23 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		}
 	}()
 
+	// Lock the run first so an older retry claimant cannot reset a newer attempt.
+	runSQL, runArgs, err := qb.Select(q("RetryGeneration")).From(q("run_details")).Where(sq.Eq{q("UUID"): runUUID}).ToSql()
+	if err != nil {
+		return err
+	}
+	var generation int64
+	if err := tx.QueryRow(s.dbDialect.SelectForUpdate(runSQL), runArgs...).Scan(&generation); err != nil {
+		return err
+	}
+	if generation != retryGeneration {
+		return util.NewFailedPreconditionError(fmt.Errorf("retry generation changed"), "Retry task reset is stale")
+	}
+
 	sqlStr, args, err := qb.
 		Select(dialect.QuoteAll(q, taskColumns)...).
 		From(q(tableName)).
-		Where(sq.Eq{q("UUID"): taskIDs}).
+		Where(sq.Eq{q("UUID"): taskIDs, q("RunUUID"): runUUID}).
 		OrderBy(q("CreatedAtInSec")+" ASC", q("UUID")+" ASC").
 		ToSql()
 	if err != nil {
@@ -1332,9 +1356,73 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 		return util.NewInternalServerError(err, "Failed while reading retry tasks for reset: %v", err.Error())
 	}
 
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if len(tasks) != len(taskIDs) {
+		return fmt.Errorf("retry task does not belong to run %s", runUUID)
+	}
+	if err := hydrateArtifactsForTasks(tx, tasks, s.dbDialect); err != nil {
+		return err
+	}
+	// Read idempotency markers separately: history without log references is
+	// intentionally omitted from API hydration, but must still fence redelivery.
+	markerSQL, markerArgs, err := qb.Select(q("TaskID")).From(q("task_log_history")).Where(sq.Eq{q("RunUUID"): runUUID, q("BeforeRetryGeneration"): retryGeneration}).ToSql()
+	if err != nil {
+		return err
+	}
+	markerRows, err := tx.Query(markerSQL, markerArgs...)
+	if err != nil {
+		return err
+	}
+	resetTasks := map[string]bool{}
+	for markerRows.Next() {
+		var id string
+		if err := markerRows.Scan(&id); err != nil {
+			markerRows.Close()
+			return err
+		}
+		resetTasks[id] = true
+	}
+	markerErr := markerRows.Err()
+	markerRows.Close()
+	if markerErr != nil {
+		return markerErr
+	}
 	retryStartedAt := s.time.Now().Unix()
 	emptyJSONArray := "[]"
 	for _, task := range tasks {
+
+		// A committed snapshot is the idempotency marker for this retry boundary.
+		if resetTasks[task.UUID] {
+			continue
+		}
+		switch task.State {
+		case model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), model.TaskStatus(apiv2.PipelineTask_CACHED), model.TaskStatus(apiv2.PipelineTask_SKIPPED):
+			continue
+		}
+		snapshot, err := retryLogSnapshot(task, retryGeneration, retryStartedAt)
+		if err != nil {
+			return err
+		}
+		encoded, err := protojson.Marshal(snapshot)
+		if err != nil {
+			return err
+		}
+		insertSQL, insertArgs, err := qb.Insert(q("task_log_history")).Columns(q("TaskID"), q("BeforeRetryGeneration"), q("RunUUID"), q("Snapshot")).Values(task.UUID, retryGeneration, runUUID, string(encoded)).ToSql()
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(insertSQL, insertArgs...); err != nil {
+			return err
+		}
+		deleteSQL, deleteArgs, err := qb.Delete(q("artifact_tasks")).Where(sq.Eq{q("TaskID"): task.UUID, q("RunUUID"): runUUID}).ToSql()
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(deleteSQL, deleteArgs...); err != nil {
+			return err
+		}
 		mergedHistory := task.StateHistory
 		if len(mergedHistory) == 0 || getLastTaskState(mergedHistory) != model.TaskStatus(apiv2.PipelineTask_RUNNING) {
 			taskStatus := &apiv2.PipelineTask_TaskStatus{
@@ -1670,19 +1758,34 @@ func getLastTaskState(history model.JSONSlice) model.TaskStatus {
 // DeleteTasksForRun deletes all tasks associated with a specific run.
 // This should be called before deleting a run to avoid foreign key constraint violations.
 func (s *TaskStore) DeleteTasksForRun(tx *sql.Tx, runUUID string) error {
+	if tx == nil {
+		ownTx, err := s.db.Begin()
+		if err != nil {
+			return err
+		}
+		defer ownTx.Rollback()
+		if err := s.DeleteTasksForRun(ownTx, runUUID); err != nil {
+			return err
+		}
+		return ownTx.Commit()
+	}
+
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
+	historySQL, historyArgs, err := qb.Delete(q("task_log_history")).Where(sq.Eq{q("RunUUID"): runUUID}).ToSql()
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(historySQL, historyArgs...); err != nil {
+		return err
+	}
+
 	deleteSQL, deleteArgs, err := qb.Delete(q(tableName)).Where(sq.Eq{q("RunUUID"): runUUID}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to delete tasks for run: %s", runUUID)
 	}
 
-	var result sql.Result
-	if tx != nil {
-		result, err = tx.Exec(deleteSQL, deleteArgs...)
-	} else {
-		result, err = s.db.Exec(deleteSQL, deleteArgs...)
-	}
+	result, err := tx.Exec(deleteSQL, deleteArgs...)
 
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete tasks for run %s from table", runUUID)
@@ -1696,4 +1799,94 @@ func (s *TaskStore) DeleteTasksForRun(tx *sql.Tx, runUUID string) error {
 	}
 
 	return nil
+}
+
+// hydrateTaskLogHistory is shared by task and run reads, avoiding one history
+// query per task. Snapshot paths are immutable references, never live outputs.
+func hydrateTaskLogHistory(db taskQueryer, tasks []*model.Task, d dialect.DBDialect) error {
+	byID := map[string]*model.Task{}
+	ids := []string{}
+	for _, task := range tasks {
+		if task != nil && task.UUID != "" {
+			task.LogHistory = nil
+			if _, ok := byID[task.UUID]; !ok {
+				ids = append(ids, task.UUID)
+			}
+			byID[task.UUID] = task
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	q := d.QuoteIdentifier
+	query, args, err := d.QueryBuilder().Select(q("TaskID"), q("Snapshot")).From(q("task_log_history")).Where(sq.Eq{q("TaskID"): ids}).OrderBy(q("BeforeRetryGeneration") + " ASC").ToSql()
+	if err != nil {
+		return err
+	}
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, data string
+		if err := rows.Scan(&id, &data); err != nil {
+			return err
+		}
+		history := &apiv2.PipelineTask_LogHistory{}
+		if err := protojson.Unmarshal([]byte(data), history); err != nil {
+			return fmt.Errorf("decode log history for task %s: %w", id, err)
+		}
+		// A reset followed by a failed resume can leave an empty boundary.
+		// Keep its database marker, but expose only actual troubleshooting references.
+		if len(history.Pods) > 0 || len(history.LogArtifacts) > 0 || history.DriverLogsUri != "" {
+			byID[id].LogHistory = append(byID[id].LogHistory, history)
+		}
+	}
+	return rows.Err()
+}
+
+func retryLogSnapshot(task *model.Task, generation, archivedAt int64) (*apiv2.PipelineTask_LogHistory, error) {
+	snapshot := &apiv2.PipelineTask_LogHistory{BeforeRetryGeneration: generation, ArchivedAt: &timestamppb.Timestamp{Seconds: archivedAt}, State: apiv2.PipelineTask_TaskState(task.State)}
+	if task.StartedInSec != 0 {
+		snapshot.StartTime = &timestamppb.Timestamp{Seconds: task.StartedInSec}
+	}
+	if task.FinishedInSec != 0 {
+		snapshot.EndTime = &timestamppb.Timestamp{Seconds: task.FinishedInSec}
+	}
+	pods, err := model.JSONSliceToProtoSlice(task.Pods, func() *apiv2.PipelineTask_TaskPod { return &apiv2.PipelineTask_TaskPod{} })
+	if err != nil {
+		return nil, err
+	}
+	snapshot.Pods = pods
+	metadata, err := model.JSONDataToProtoMessage(task.StatusMetadata, func() *apiv2.PipelineTask_StatusMetadata { return &apiv2.PipelineTask_StatusMetadata{} })
+	if err != nil {
+		return nil, err
+	}
+	if metadata != nil {
+		snapshot.DriverLogsUri = metadata.GetCustomProperties()["driver_logs_uri"].GetStringValue()
+	}
+	for _, h := range task.OutputArtifactsHydrated {
+		if h.Key != "executor-logs" && h.Key != "driver-logs" {
+			continue
+		}
+		if h.Value == nil {
+			continue
+		}
+		a := h.Value
+		artifact := &apiv2.Artifact{ArtifactId: a.UUID, Namespace: a.Namespace, Type: apiv2.Artifact_ArtifactType(a.Type), Uri: a.URI, Name: a.Name, Description: a.Description, NumberValue: a.NumberValue, CreatedAt: &timestamppb.Timestamp{Seconds: a.CreatedAtInSec}}
+		if a.Metadata != nil {
+			metadata, err := structpb.NewStruct(a.Metadata)
+			if err != nil {
+				return nil, err
+			}
+			artifact.Metadata = metadata.Fields
+		}
+		link := &apiv2.PipelineTask_InputOutputs_IOArtifact{Artifacts: []*apiv2.Artifact{artifact}, Type: h.Type, ArtifactKey: h.Key}
+		if h.Producer != nil {
+			link.Producer = &apiv2.IOProducer{TaskName: h.Producer.TaskName, Iteration: h.Producer.Iteration}
+		}
+		snapshot.LogArtifacts = append(snapshot.LogArtifacts, link)
+	}
+	return snapshot, nil
 }

@@ -147,6 +147,7 @@ Class | Method | HTTP request | Description
  - [MetadataValueRenderType](docs/MetadataValueRenderType.md)
  - [PipelineTaskChildTask](docs/PipelineTaskChildTask.md)
  - [PipelineTaskInputOutputs](docs/PipelineTaskInputOutputs.md)
+ - [PipelineTaskLogHistory](docs/PipelineTaskLogHistory.md)
  - [PipelineTaskStatusMetadata](docs/PipelineTaskStatusMetadata.md)
  - [PipelineTaskTaskPod](docs/PipelineTaskTaskPod.md)
  - [PipelineTaskTaskPodType](docs/PipelineTaskTaskPodType.md)

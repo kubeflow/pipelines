@@ -71,5 +71,6 @@
     ],
     "artifacts": []
   },
-  "scope_path": "root.trainer-task"
+  "scope_path": "root.trainer-task",
+  "log_history": []
 }

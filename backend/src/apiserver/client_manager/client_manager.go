@@ -910,7 +910,18 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 func autoMigrate(db *gorm.DB) error {
 	glog.Infof("Running AutoMigrate.")
 
-	if err := db.AutoMigrate(model.AllModels()...); err != nil {
+	if err := createTaskLogHistory(db); err != nil {
+		return err
+	}
+	// The immutable-history table has its own coordinated create-only migration.
+	// Never let broad reconciliation alter it on subsequent startups.
+	models := make([]any, 0, len(model.AllModels()))
+	for _, entry := range model.AllModels() {
+		if _, history := entry.(*model.TaskLogHistory); !history {
+			models = append(models, entry)
+		}
+	}
+	if err := db.AutoMigrate(models...); err != nil {
 		return fmt.Errorf("AutoMigrate failed: %w", err)
 	}
 

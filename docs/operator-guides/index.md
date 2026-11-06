@@ -14,5 +14,6 @@ multi-user
 high-availability
 rbac-migration-2.18
 configure-object-store
+retry-log-history
 mlflow-plugin
 ```

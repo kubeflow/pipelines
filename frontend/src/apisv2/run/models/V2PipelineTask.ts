@@ -62,6 +62,13 @@ import {
   PipelineTaskTypeAttributesToJSON,
   PipelineTaskTypeAttributesToJSONTyped,
 } from './PipelineTaskTypeAttributes';
+import type { PipelineTaskLogHistory } from './PipelineTaskLogHistory';
+import {
+  PipelineTaskLogHistoryFromJSON,
+  PipelineTaskLogHistoryFromJSONTyped,
+  PipelineTaskLogHistoryToJSON,
+  PipelineTaskLogHistoryToJSONTyped,
+} from './PipelineTaskLogHistory';
 import type { PipelineTaskTaskState } from './PipelineTaskTaskState';
 import {
   PipelineTaskTaskStateFromJSON,
@@ -202,6 +209,13 @@ export interface V2PipelineTask {
    * @memberof V2PipelineTask
    */
   lifecycle_category?: string;
+  /**
+   * Output only. Prior executions archived by manual retries, oldest first.
+   * History begins when preservation is enabled; older retries are not backfilled.
+   * @type {Array<PipelineTaskLogHistory>}
+   * @memberof V2PipelineTask
+   */
+  readonly log_history?: Array<PipelineTaskLogHistory>;
 }
 
 /**
@@ -259,6 +273,10 @@ export function V2PipelineTaskFromJSONTyped(
     scope_path: json['scope_path'] == null ? undefined : json['scope_path'],
     lifecycle_message: json['lifecycle_message'] == null ? undefined : json['lifecycle_message'],
     lifecycle_category: json['lifecycle_category'] == null ? undefined : json['lifecycle_category'],
+    log_history:
+      json['log_history'] == null
+        ? undefined
+        : (json['log_history'] as Array<any>).map(PipelineTaskLogHistoryFromJSON),
   };
 }
 
@@ -267,7 +285,7 @@ export function V2PipelineTaskToJSON(json: any): V2PipelineTask {
 }
 
 export function V2PipelineTaskToJSONTyped(
-  value?: V2PipelineTask | null,
+  value?: Omit<V2PipelineTask, 'log_history'> | null,
   ignoreDiscriminator: boolean = false,
 ): any {
   if (value == null) {

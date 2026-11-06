@@ -167,6 +167,15 @@ if ! grep -Eq '^[[:space:]]*Tasks \[\]\*V2PipelineTask `json:"tasks,omitempty"`$
     exit 1
 fi
 
+# Unset log history must remain compatible with servers predating this field.
+sed -i -- 's/LogHistory \[\]\*PipelineTaskLogHistory `json:"log_history"`/LogHistory []*PipelineTaskLogHistory `json:"log_history,omitempty"`/g' \
+    backend/api/${API_VERSION}/go_http_client/run_model/${API_VERSION}_pipeline_task.go
+if ! grep -Eq '^[[:space:]]*LogHistory \[\]\*PipelineTaskLogHistory `json:"log_history,omitempty"`$' \
+    backend/api/${API_VERSION}/go_http_client/run_model/${API_VERSION}_pipeline_task.go; then
+    echo 'Generated PipelineTask.log_history must have json:"log_history,omitempty"; update the go-swagger compatibility substitution.' >&2
+    exit 1
+fi
+
 # grpc-gateway 2.32 renders Any.additionalProperties as true rather than {}.
 # Preserve the exported Go map field name used by existing HTTP client callers.
 for model in artifact experiment healthz pipeline recurring_run run; do

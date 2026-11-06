@@ -404,7 +404,7 @@ func (o *LauncherV2Options) validate() error {
 // artifacts to object storage, updates the task's recorded outputs, flushes the
 // queued API mutations, and finally propagates the resulting outputs up the DAG.
 func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutput, error) {
-	qualifyExecutorLogsForRetry(ctx, l.executorInput, l.options.PublishLogs, l.options.Namespace, l.clientManager.K8sClient(), l.options.PodName)
+	qualifyExecutorLogsForRetry(ctx, l.executorInput, l.options.PublishLogs, l.options.Namespace, l.clientManager.K8sClient(), l.options.PodName, l.options.PodUID)
 
 	// Populate component defaults for placeholders without mutating the original
 	// executor input used by the rest of the launcher flow.
@@ -543,15 +543,12 @@ const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
 // We overwrite this as a DI mechanism for testing getLogWriter.
 var osCreateFunc = os.Create
 
-// qualifyExecutorLogsURI appends the retry index to the executor-logs artifact
-// URI so that each Argo retry attempt writes to and registers a distinct,
-// human-readable path in the object store and MLMD (e.g. executor-logs-0,
-// executor-logs-1, …). Without this, all retry pods share the single URI that
-// the driver provisioned before any attempt ran, causing every retry to
-// overwrite the same S3 key and register duplicate MLMD artifacts pointing at
-// stale data.
-func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, retryIndex string) {
-	if retryIndex == "" {
+// qualifyExecutorLogsURI gives every executor pod an immutable log location.
+// Manual retry can retain the successful driver and reuse its output prefix and
+// automatic retry index, but Kubernetes assigns the new executor a fresh UID.
+// Keep the executor-logs-N basename for clients that identify log artifacts by it.
+func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, retryIndex, podUID string) {
+	if retryIndex == "" || podUID == "" {
 		return
 	}
 	logsArtifactList, ok := artifacts["executor-logs"]
@@ -562,23 +559,28 @@ func qualifyExecutorLogsURI(artifacts map[string]*pipelinespec.ArtifactList, ret
 	if art == nil {
 		return
 	}
-	art.Uri = appendRetryIndexSuffix(art.Uri, retryIndex)
+	art.Uri = executorLogAttemptPath(art.Uri, retryIndex, podUID)
 	if art.CustomPath != nil && *art.CustomPath != "" {
-		*art.CustomPath = appendRetryIndexSuffix(*art.CustomPath, retryIndex)
+		*art.CustomPath = executorLogAttemptPath(*art.CustomPath, retryIndex, podUID)
 	}
 }
 
-// appendRetryIndexSuffix appends "-<retryIndex>" to a log path or URI once,
-// preserving already-qualified values.
-func appendRetryIndexSuffix(pathOrURI, retryIndex string) string {
-	if pathOrURI == "" || retryIndex == "" {
+// executorLogAttemptPath qualifies a driver-provisioned URI or local path once.
+func executorLogAttemptPath(pathOrURI, retryIndex, podUID string) string {
+	if pathOrURI == "" {
 		return pathOrURI
+	}
+	separator := strings.LastIndex(pathOrURI, "/")
+	parent, name := pathOrURI[:separator+1], pathOrURI[separator+1:]
+	attemptDirectory := "attempts/" + podUID + "/"
+	if !strings.HasSuffix(parent, attemptDirectory) {
+		parent += attemptDirectory
 	}
 	suffix := "-" + retryIndex
-	if strings.HasSuffix(pathOrURI, suffix) {
-		return pathOrURI
+	if !strings.HasSuffix(name, suffix) {
+		name += suffix
 	}
-	return pathOrURI + suffix
+	return parent + name
 }
 
 // qualifyExecutorLogsForRetry resolves the current retry attempt and updates the
@@ -590,6 +592,7 @@ func qualifyExecutorLogsForRetry(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	podName string,
+	podUID string,
 ) {
 	if publishLogs != "true" {
 		return
@@ -606,7 +609,7 @@ func qualifyExecutorLogsForRetry(
 	if retryIndex == "" {
 		retryIndex = "0"
 	}
-	qualifyExecutorLogsURI(executorInput.GetOutputs().GetArtifacts(), retryIndex)
+	qualifyExecutorLogsURI(executorInput.GetOutputs().GetArtifacts(), retryIndex, podUID)
 }
 
 // retryIndexFromPodAnnotation reads the Argo node-name annotation on the current

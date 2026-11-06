@@ -7,6 +7,7 @@ export * from './InputOutputsIOParameter';
 export * from './MetadataValueRenderType';
 export * from './PipelineTaskChildTask';
 export * from './PipelineTaskInputOutputs';
+export * from './PipelineTaskLogHistory';
 export * from './PipelineTaskStatusMetadata';
 export * from './PipelineTaskTaskPod';
 export * from './PipelineTaskTaskPodType';

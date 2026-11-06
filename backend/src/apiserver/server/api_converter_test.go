@@ -1252,6 +1252,34 @@ func Test_toAPIRuntimeStatuses(t *testing.T) {
 	assert.Equal(t, expected, got)
 }
 
+func TestToModelAndAPITask_LogHistory(t *testing.T) {
+	history := []*apiv2.PipelineTask_LogHistory{{
+		BeforeRetryGeneration: 2,
+		ArchivedAt:            &timestamppb.Timestamp{Seconds: 200},
+		StartTime:             &timestamppb.Timestamp{Seconds: 100},
+		EndTime:               &timestamppb.Timestamp{Seconds: 150},
+		State:                 apiv2.PipelineTask_FAILED,
+		Pods:                  []*apiv2.PipelineTask_TaskPod{{Name: "old-executor", Uid: "old-uid", Type: apiv2.PipelineTask_EXECUTOR}},
+		LogArtifacts:          []*apiv2.PipelineTask_InputOutputs_IOArtifact{{ArtifactKey: "executor-logs"}},
+		DriverLogsUri:         "gs://logs/old-driver.log",
+	}}
+	task := &model.Task{UUID: "task-1", RunUUID: "run-1", LogHistory: history}
+	exported, err := toAPITask(task, nil)
+	require.NoError(t, err)
+	assert.Equal(t, history, exported.GetLogHistory())
+	assert.Empty(t, exported.GetPods())
+	assert.Empty(t, exported.GetOutputs().GetArtifacts(), "historical logs must not become current outputs")
+
+	// Clients cannot inject server-owned history through task create/update input.
+	input, err := toModelTask(exported)
+	require.NoError(t, err)
+	assert.Empty(t, input.LogHistory)
+
+	empty, err := toAPITask(&model.Task{UUID: "legacy-task"}, nil)
+	require.NoError(t, err)
+	assert.Empty(t, empty.GetLogHistory(), "pre-upgrade tasks have no synthetic history")
+}
+
 func TestToModelAndAPITask_LifecycleMessage(t *testing.T) {
 	msg := "ImagePullBackOff"
 	apiTask := &apiv2.PipelineTask{
