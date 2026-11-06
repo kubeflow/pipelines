@@ -232,12 +232,9 @@ class OutputSpec:
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
 
-
 def spec_type_is_parameter(type_: str) -> bool:
-    in_memory_type = (
-        type_annotations.maybe_strip_optional_from_annotation_string(
-            type_utils.get_canonical_name_for_outer_generic(type_)
-        )
+    in_memory_type = type_utils.get_canonical_name_for_outer_generic(
+        type_annotations.maybe_strip_optional_from_annotation_string(type_)
     )
 
     return (

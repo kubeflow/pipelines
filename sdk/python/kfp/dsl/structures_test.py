@@ -342,6 +342,17 @@ class TestInputSpec(unittest.TestCase):
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec.optional, False)
 
+    def test_optional_generic_parameter_types(self):
+        optional_types = [
+            'Optional[List[str]]',
+            'Optional[Dict[str, int]]',
+        ]
+
+        for type_ in optional_types:
+            with self.subTest(type=type_):
+                self.assertTrue(structures.spec_type_is_parameter(type_))
+                structures.InputSpec(type=type_)
+
     def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
