@@ -18,10 +18,11 @@ import io
 import json
 import subprocess
 import unittest
-from http.client import BadStatusLine, IncompleteRead
+from http.client import BadStatusLine, HTTPResponse, IncompleteRead
 from unittest import mock
 
 import main_branch_readiness as readiness
+import yaml
 
 PREFIX = 'repos/kubeflow/pipelines'
 SHA = 'a' * 40
@@ -562,6 +563,16 @@ class CommandLineTest(unittest.TestCase):
 
 
 class ReadOnlyTransportTest(unittest.TestCase):
+    def response(self, body, headers):
+        socket = mock.Mock()
+        socket.makefile.return_value = io.BytesIO(
+            b'HTTP/1.1 200 OK\r\n' + headers + b'\r\n' + body
+        )
+        response = HTTPResponse(socket)
+        response.begin()
+        self.addCleanup(response.close)
+        return response
+
     @mock.patch.object(readiness.subprocess, 'run')
     def test_github_requests_are_get_and_paginated_output_is_preserved(
         self, run
@@ -610,6 +621,9 @@ class ReadOnlyTransportTest(unittest.TestCase):
     def test_public_configuration_uses_bounded_read_without_auth(self, urlopen):
         body = b'config_version_sha: abc\ntide: {}\n'
         urlopen.return_value.__enter__.return_value.read.return_value = body
+        urlopen.return_value.__enter__.return_value.getheader.return_value = (
+            None
+        )
         value, digest = readiness.deployed_config()
         self.assertEqual(value['tide'], {})
         self.assertEqual(len(digest), 64)
@@ -617,6 +631,79 @@ class ReadOnlyTransportTest(unittest.TestCase):
         urlopen.return_value.__enter__.return_value.read.assert_called_once_with(
             8 * 1024 * 1024 + 1
         )
+
+    @mock.patch.object(readiness, 'urlopen')
+    def test_complete_http_response_is_accepted(self, urlopen):
+        body = b'config_version_sha: abc\ntide: {}\n'
+        for headers, wire_body in (
+            (f'Content-Length: {len(body)}\r\n'.encode(), body),
+            (b'', body),
+            (
+                b'Transfer-Encoding: chunked\r\n',
+                f'{len(body):x}\r\n'.encode() + body + b'\r\n0\r\n\r\n',
+            ),
+        ):
+            with self.subTest(headers=headers):
+                urlopen.return_value = self.response(wire_body, headers)
+                value, digest = readiness.deployed_config()
+                self.assertEqual(value['tide'], {})
+                self.assertEqual(len(digest), 64)
+
+    @mock.patch.object(readiness, 'urlopen')
+    def test_short_content_length_cannot_hide_a_later_tide_query(self, urlopen):
+        responses, config = fixture()
+        body = yaml.safe_dump(config, sort_keys=False).encode()
+        omitted = (
+            b'  - repos:\n    - kubeflow/pipelines\n'
+            b'    missingLabels:\n    - do-not-merge/hold\n'
+        )
+        self.assertFalse(readiness.tide_ok(yaml.safe_load(body + omitted)))
+        headers = f'Content-Length: {len(body + omitted)}\r\n'.encode()
+        urlopen.return_value = self.response(body, headers)
+        with mock.patch.object(readiness.yaml, 'safe_load') as parse:
+            report = readiness.collect(
+                get=lambda path, paginated=False: copy.deepcopy(
+                    responses[path]
+                ),
+                fetch_config=readiness.deployed_config,
+            )
+        parse.assert_not_called()
+        self.assertEqual(report['decision'], 'NO-GO')
+        self.assertFalse(report['automated_checks_passed'])
+        self.assertIn(
+            {
+                'name': 'deployed Tide accepts and gates both branches',
+                'status': 'UNKNOWN',
+                'reason': 'EvidenceError',
+            },
+            report['checks'],
+        )
+        self.assertTrue(
+            all(check['status'] == 'PASS' for check in report['checks'][-2:])
+        )
+        self.assertNotIn('prow_config_sha256', report['evidence'])
+        self.assertNotIn('prow_revision', report['evidence'])
+
+    @mock.patch.object(readiness, 'urlopen')
+    def test_invalid_content_length_is_an_evidence_error(self, urlopen):
+        body = b'tide: {}\n'
+        for length in (b'-1', b'not-a-size'):
+            with self.subTest(length=length):
+                urlopen.return_value = self.response(
+                    body, b'Content-Length: ' + length + b'\r\n'
+                )
+                with self.assertRaises(readiness.EvidenceError):
+                    readiness.deployed_config()
+
+    @mock.patch.object(readiness, 'urlopen')
+    def test_truncated_chunked_response_is_an_evidence_error(self, urlopen):
+        body = b'tide: {}\n'
+        urlopen.return_value = self.response(
+            f'{len(body):x}\r\n'.encode() + body + b'\r\n',
+            b'Transfer-Encoding: chunked\r\n',
+        )
+        with self.assertRaises(readiness.EvidenceError):
+            readiness.deployed_config()
 
     @mock.patch.object(readiness, 'urlopen')
     def test_http_protocol_errors_are_sanitized_evidence_errors(self, urlopen):

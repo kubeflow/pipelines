@@ -20,11 +20,40 @@ import subprocess
 import unittest
 from pathlib import Path
 
+import generate_ci_workflow_inventory as workflow_inventory
+
 ROOT = Path(__file__).resolve().parents[3]
 COMMIT = '0123456789abcdef0123456789abcdef01234567'
 
 
 class SampleConfigRevisionTest(unittest.TestCase):
+    def test_sample_inputs_trigger_ci_scripts_tests(self):
+        workflow_path = '.github/workflows/ci-scripts-tests.yml'
+        generated = workflow_inventory.build_inventory(
+            [
+                {
+                    'path': workflow_path,
+                    'content': (ROOT / workflow_path).read_text(),
+                }
+            ]
+        )['workflows'][0]
+        inventory = json.loads(
+            (ROOT / '.github/resources/ci-workflow-inventory.json').read_text()
+        )
+        recorded = next(
+            entry
+            for entry in inventory['workflows']
+            if entry['path'] == workflow_path
+        )
+        for source, entry in (('workflow', generated), ('inventory', recorded)):
+            for path in (
+                'backend/Dockerfile',
+                'backend/src/apiserver/config/sample_config.json',
+            ):
+                with self.subTest(source=source, path=path):
+                    self.assertIn(path, entry['pull_request']['paths'])
+        self.assertEqual(recorded, generated)
+
     def rewrite(self, value):
         dockerfile = (ROOT / 'backend/Dockerfile').read_text()
         expressions = re.findall(

@@ -69,9 +69,15 @@ def github(path, paginated=False):
 def deployed_config():
     try:
         with urlopen(PROW_URL, timeout=30) as response:
+            content_length = response.getheader('Content-Length')
             data = response.read(8 * 1024 * 1024 + 1)
         if len(data) > 8 * 1024 * 1024:
             raise EvidenceError('Deployed configuration exceeds size limit')
+        # Bounded HTTP reads may return a short body without IncompleteRead.
+        if content_length is not None and len(data) != int(content_length):
+            raise EvidenceError(
+                'Deployed configuration size does not match Content-Length'
+            )
         value = yaml.safe_load(data)
         if not isinstance(value, dict):
             raise EvidenceError('Deployed configuration is not a mapping')
