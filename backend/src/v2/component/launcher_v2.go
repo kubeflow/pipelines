@@ -222,6 +222,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		Uid:  l.options.PodUID,
 		Type: apiV2.PipelineTask_EXECUTOR,
 	})
+	l.persistExecutorPod(ctx)
 
 	dispatcher := plugins.TaskPluginDispatcher(plugins.NoOpDispatcher{})
 	var executorOutput *pipelinespec.ExecutorOutput
@@ -297,6 +298,34 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	}
 	l.options.Task.State = apiV2.PipelineTask_SUCCEEDED
 	return nil
+}
+
+// persistExecutorPod saves the pods recorded on the task, now including this executor pod, before
+// any user code runs. The task update at the end of Execute carries the same pods, but a launcher
+// that is killed first (OOMKilled, evicted) never gets there, and the API server would then know
+// only the driver pod and could not tie the dead executor pod to this task. The write is best
+// effort: failing the attempt over it would turn a diagnostics gap into a failed task.
+func (l *LauncherV2) persistExecutorPod(ctx context.Context) {
+	task := l.options.Task
+	if l.clientManager == nil || task.GetTaskId() == "" {
+		return
+	}
+	apiClient := l.clientManager.KFPAPIClient()
+	if apiClient == nil {
+		return
+	}
+	_, err := apiClient.UpdateTask(ctx, &apiV2.UpdateTaskRequest{
+		TaskId: task.GetTaskId(),
+		RunId:  task.GetRunId(),
+		Task: &apiV2.PipelineTask{
+			TaskId: task.GetTaskId(),
+			RunId:  task.GetRunId(),
+			Pods:   task.GetPods(),
+		},
+	})
+	if err != nil {
+		glog.Warningf("Failed to record executor pod %q on task %s before execution: %v", l.options.PodName, task.GetTaskId(), err)
+	}
 }
 
 func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) error {
