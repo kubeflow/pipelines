@@ -23,6 +23,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -130,6 +131,38 @@ func TestNativeStoresPostgreSQL(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, linkPage, 1)
 	require.Equal(t, 1, total)
+
+	// Exercise replay-safe artifact creation against the real PostgreSQL dialect.
+	replayURI := "s3://native-postgres/replay-artifact"
+	replayArtifactInput := &model.Artifact{
+		Namespace:   "pg-ns",
+		Name:        "ReplayResult",
+		Description: "PostgreSQL replay-safe artifact",
+		URI:         &replayURI,
+	}
+	replayLinkInput := &model.ArtifactTask{
+		TaskID:      task.UUID,
+		RunUUID:     "pg-run",
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		ArtifactKey: "replay-result",
+		Producer:    model.JSONData{"taskName": "producer"},
+	}
+
+	replayArtifact, replayLink, err := artifacts.CreateArtifactWithTask(
+		replayArtifactInput,
+		replayLinkInput,
+		"pg-replay-1",
+	)
+	require.NoError(t, err)
+
+	replayedArtifact, replayedLink, err := artifacts.CreateArtifactWithTask(
+		replayArtifactInput,
+		replayLinkInput,
+		"pg-replay-1",
+	)
+	require.NoError(t, err)
+	require.Equal(t, replayArtifact.UUID, replayedArtifact.UUID)
+	require.Equal(t, replayLink.UUID, replayedLink.UUID)
 
 	_, err = tasks.UpdateTask(&model.Task{UUID: task.UUID, DisplayName: "Updated"})
 	require.NoError(t, err)

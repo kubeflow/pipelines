@@ -60,7 +60,11 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2.Crea
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
-	task, err := s.validateArtifactOwnershipNoAuth(request.GetRunId(), request.GetTaskId(), namespace)
+	task, err := s.validateArtifactOwnershipNoAuth(
+		request.GetRunId(),
+		request.GetTaskId(),
+		namespace,
+	)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to validate artifact ownership")
 	}
@@ -101,12 +105,23 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2.Crea
 		return nil, util.Wrap(err, "Failed to convert artifact_task")
 	}
 
+	if request.GetReuseIfExists() && request.GetOperationId() != "" {
+		return nil, util.NewInvalidInputError(
+			"reuse_if_exists cannot be combined with operation_id",
+		)
+	}
+
 	var artifact *model.Artifact
 	if request.GetReuseIfExists() {
 		artifact, _, err = s.resourceManager.FindOrCreateArtifactWithTask(modelArtifact, modelAT)
 	} else {
-		artifact, _, err = s.resourceManager.CreateArtifactWithTask(modelArtifact, modelAT)
+		artifact, _, err = s.resourceManager.CreateArtifactWithTask(
+			modelArtifact,
+			modelAT,
+			request.GetOperationId(),
+		)
 	}
+
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact and artifact-task")
 	}
@@ -152,6 +167,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 
 	modelArtifacts := make([]*model.Artifact, 0, len(request.GetArtifacts()))
 	modelArtifactTasks := make([]*model.ArtifactTask, 0, len(request.GetArtifacts()))
+	operationIDs := make([]string, 0, len(request.GetArtifacts()))
 	authorizedRunIDs := make(map[string]struct{})
 
 	authorizeRunUpdate := func(runID string) error {
@@ -179,10 +195,15 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		// Extract namespace for authorization
 		namespace := s.resourceManager.ReplaceNamespace(artifactReq.GetArtifact().GetNamespace())
 
-		task, err := s.validateArtifactOwnershipNoAuth(artifactReq.GetRunId(), artifactReq.GetTaskId(), namespace)
+		task, err := s.validateArtifactOwnershipNoAuth(
+			artifactReq.GetRunId(),
+			artifactReq.GetTaskId(),
+			namespace,
+		)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
 		}
+
 		if err := authorizeRunUpdate(task.RunUUID); err != nil {
 			return nil, util.Wrapf(err, "Failed to validate ownership for artifact %d", i)
 		}
@@ -221,9 +242,14 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		}
 		modelArtifacts = append(modelArtifacts, modelArtifact)
 		modelArtifactTasks = append(modelArtifactTasks, modelAT)
+		operationIDs = append(operationIDs, artifactReq.GetOperationId())
 	}
 
-	createdArtifacts, _, err := s.resourceManager.CreateArtifactsWithTasks(modelArtifacts, modelArtifactTasks)
+	createdArtifacts, _, err := s.resourceManager.CreateArtifactsWithTasks(
+		modelArtifacts,
+		modelArtifactTasks,
+		operationIDs,
+	)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifacts and artifact-tasks")
 	}
@@ -242,19 +268,23 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 	return response, nil
 }
 
-func (s *ArtifactServer) validateArtifactOwnershipNoAuth(runID, taskID, artifactNamespace string) (*model.Task, error) {
+func (s *ArtifactServer) validateArtifactOwnershipNoAuth(
+	runID, taskID, artifactNamespace string,
+) (*model.Task, error) {
 	task, err := s.resourceManager.GetTask(taskID)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get task")
 	}
+
 	if task.RunUUID != runID {
 		return nil, util.NewInvalidInputError("Task ID does not belong to this Run ID")
 	}
+
 	if !common.IsMultiUserMode() {
 		return task, nil
 	}
 
-	run, err := s.resourceManager.GetRun(task.RunUUID)
+	run, err := s.resourceManager.GetRunWithHydration(task.RunUUID, false)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get run")
 	}
@@ -263,6 +293,7 @@ func (s *ArtifactServer) validateArtifactOwnershipNoAuth(runID, taskID, artifact
 	if taskNamespace == "" {
 		taskNamespace = run.Namespace
 	}
+
 	if taskNamespace != artifactNamespace || run.Namespace != artifactNamespace {
 		return nil, util.NewInvalidInputError(
 			"artifact, task, and run must be in the same namespace: artifact=%s task=%s run=%s",
@@ -284,7 +315,7 @@ func (s *ArtifactServer) validateArtifactTaskNamespaceOwnership(task *model.Task
 		return task.Namespace, nil
 	}
 
-	run, err := s.resourceManager.GetRun(task.RunUUID)
+	run, err := s.resourceManager.GetRunWithHydration(task.RunUUID, false)
 	if err != nil {
 		return "", util.Wrap(err, "Failed to get run for artifact-task namespace validation")
 	}
