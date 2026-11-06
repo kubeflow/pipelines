@@ -18,6 +18,20 @@ if you use that integration. Existing 2.x releases are unchanged.
 > install. See the [releases page](https://github.com/kubeflow/pipelines/releases)
 > for available versions.
 
+## Upgrading existing installations
+
+Existing installations must upgrade through **2.18** before moving to 3.0/master.
+Complete the [2.18 upgrade and verification steps](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/upgrade-2.18.md),
+including recurring-run adoption where applicable and the UI shared signing-key
+rollout. Do not apply master manifests directly to an older installation.
+This prerequisite does not replace other migration requirements for 3.0.
+
+The 2.18 UI uses `Recreate` for first signing-key adoption. After that rollout
+completes, master uses rolling UI updates with the same Secret. Preserve the
+Secret across the upgrade and allow capacity for one additional UI Pod; see
+[UI signing-key configuration](server-config.md#tensorboard-proxy-signing-secret).
+Fresh installations do not need to install 2.18 first.
+
 ## Deploying Kubeflow Pipelines
 
 ### 1. Deploy the Kubeflow Pipelines development flavor standalone and non-production for first experiments:

@@ -310,11 +310,12 @@ The frontend signs scoped TensorBoard proxy paths with
 `TENSORBOARD_PROXY_SIGNING_SECRET`. The default Kustomize installation initializes
 a dedicated random key in the `ml-pipeline-ui-tensorboard-proxy` Secret and
 injects its `signing-secret` field into every UI replica. The UI uses
-`Recreate` by default so the first upgrade cannot serve requests through old and
-new UI pods with incompatible signing keys. During Deployment upgrades,
-[Kubernetes waits for old pods to terminate before creating replacements](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#recreate-deployment).
-After adopting the shared key, operators can
-[enable rolling UI updates](#enabling-rolling-ui-updates).
+`RollingUpdate` with `maxUnavailable: 0` and `maxSurge: 1`, keeping ready replicas
+serving while a replacement starts. Allow capacity for one additional UI Pod.
+Existing installations must first complete the upgrade through **2.18**, which
+adopts the shared key using `Recreate`; do not upgrade directly from an older
+release to these manifests. See [upgrade prerequisites](installation.md#upgrading-existing-installations)
+and [rolling UI updates](#enabling-rolling-ui-updates).
 
 A separate initialization Job generates the key only if the field is absent.
 It preserves existing keys, including operator-provided keys, and concurrent
@@ -364,8 +365,8 @@ Do not reuse `MINIO_SECRET_KEY` or another application credential. The frontend
 refuses to start if the configured signing secret is shorter than 32 UTF-8 bytes
 or matches `MINIO_SECRET_KEY`.
 
-**Upgrade and rotation:** the first upgrade from a storage-derived or
-process-local key briefly interrupts the UI and invalidates existing TensorBoard
+**Upgrade and rotation:** the initial upgrade to 2.18 from a storage-derived or
+process-local key interrupts the Pipelines UI and invalidates existing TensorBoard
 proxy URLs. Wait for the upgrade to complete, then reopen TensorBoard from the
 UI to obtain a new URL. Subsequent UI restarts and rolling updates keep URLs
 valid while the shared key remains unchanged. Deliberately replacing or losing
@@ -380,45 +381,30 @@ before enabling multiple replicas or rolling updates in custom deployments.
 
 #### Enabling rolling UI updates
 
-Adopt the shared key and enable rolling updates in two separate apply or GitOps
-sync phases. Keep the same shared-key revision throughout both phases.
+Rolling updates are the default on master after the required 2.18 upgrade.
+During first adoption, old and new UI Pods can use different keys and reject
+each other's TensorBoard URLs. The 2.18 manifests retain `Recreate` to avoid that
+mixed-key window; this interrupts all Pipelines pages because the TensorBoard
+proxy runs in the same Deployment. The separate Kubeflow central dashboard is
+not restarted by that change.
 
-First, remove any existing rolling-update overrides and apply the shared-key
-revision with `Recreate`. If `spec.strategy.rollingUpdate` was explicitly
-configured, remove that field as well or replace the entire strategy with
-`{type: Recreate}`. Wait for the rollout to complete for your installation's UI
-Deployment and namespace; for the default `kubeflow` installation:
+Complete the 2.18 rollout before applying master manifests. For the default
+namespace and Deployment:
 
 ```bash
 kubectl -n kubeflow rollout status deployment/ml-pipeline-ui
 ```
 
-Only after that command succeeds and every UI pod uses the shared key, add this
-override to your installation's `kustomization.yaml` and apply the same revision
-again:
+Verify that every UI Pod uses the shared signing Secret and preserve that Secret
+through the upgrade. Fresh installations initialize the same key for all UI Pods
+and do not need an intermediate 2.18 installation.
 
-```yaml
-patches:
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: ml-pipeline-ui
-    patch: |-
-      - op: replace
-        path: /spec/strategy
-        value:
-          type: RollingUpdate
-          rollingUpdate:
-            maxUnavailable: 0
-            maxSurge: 1
-```
-
-For GitOps, complete the first sync and wait for the UI rollout before starting
-the second sync with this override. Do not combine the phases or enable rolling
-updates while adoption is in progress: old and shared-key UI pods must not
-overlap during the first migration. Keep the override for future upgrades and
-allow capacity for one additional UI pod.
+Remove any custom `Recreate` override when adopting the master default. The
+manifest sets `maxUnavailable: 0` and `maxSurge: 1`, so provide capacity for one
+additional UI Pod. Keep the key unchanged during rolling updates; replacing it
+requires a coordinated restart and invalidates existing TensorBoard URLs.
+Operators remaining on 2.18 can optionally enable rolling updates after adoption
+using the [2.18 procedure](https://github.com/kubeflow/pipelines/blob/release-2.18/docs/operator-guides/server-config.md#enabling-rolling-ui-updates).
 
 ## Proxy
 
