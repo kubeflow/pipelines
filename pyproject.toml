@@ -17,6 +17,8 @@ extend-exclude = [
   "backend/api/v2beta1/python_http_client",
   "sdk/python/kfp/server_api",
   "*_pb2.py",
+  # Release capture files are pinned byte-for-byte by their manifest.
+  "backend/src/apiserver/migration/mlmd/testdata/release_218/*.py",
   # Scheduled for deletion; leave this tree untouched by the tooling migration.
   "components/google-cloud",
 ]
