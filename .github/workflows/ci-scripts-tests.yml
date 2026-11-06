@@ -4,6 +4,9 @@
 name: CI Scripts Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches:
       - master
@@ -102,6 +105,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'test/install-argo-cli.sh'
+      - 'test/presubmit-tests-sdk-unit.sh'
       - 'test/kfp-kubernetes-native-migration-tests/**'
       - 'third_party/argo/COMPATIBILITY_VERSION'
       - 'third_party/argo/Makefile'

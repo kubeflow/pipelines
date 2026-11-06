@@ -1,6 +1,9 @@
 name: Check Python dependency artifacts
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   pull_request:
     paths:
       - 'pyproject.toml'

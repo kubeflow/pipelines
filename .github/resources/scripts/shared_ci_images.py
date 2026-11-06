@@ -66,6 +66,8 @@ def validate_identity(value):
         'run_attempt',
         'pr',
     }
+    if isinstance(value, dict) and value.get('event') == 'merge_group':
+        fields.add('merge_group')
     require(
         isinstance(value, dict) and set(value) == fields, 'Malformed identity'
     )
@@ -79,11 +81,35 @@ def validate_identity(value):
         matches('[0-9a-f]{40}', value['source_sha']), 'Invalid checkout SHA'
     )
     require(
-        value['event'] in ('pull_request', 'push', 'workflow_dispatch'),
+        value['event']
+        in ('pull_request', 'push', 'workflow_dispatch', 'merge_group'),
         'Unsupported event',
     )
     require(matches('refs/.+', value['ref']), 'Invalid ref')
     pr = value['pr']
+    if value['event'] == 'merge_group':
+        group = value['merge_group']
+        require(
+            isinstance(group, dict)
+            and set(group) == {'head_sha', 'head_ref', 'base_sha', 'base_ref'},
+            'Malformed merge group identity',
+        )
+        require(
+            group['base_ref'] == 'refs/heads/master', 'Expected master queue'
+        )
+        require(
+            matches(
+                r'refs/heads/gh-readonly-queue/master/pr-[0-9]+-[^/]+',
+                group['head_ref'],
+            )
+            and group['head_ref'] == value['ref'],
+            'Merge group ref mismatch',
+        )
+        require(
+            group['head_sha'] == value['source_sha']
+            and matches('[0-9a-f]{40}', group['base_sha']),
+            'Merge group SHA mismatch',
+        )
     if value['event'] != 'pull_request':
         require(pr is None, 'Unexpected PR identity')
         return value
@@ -141,6 +167,12 @@ def environment_identity(environ=None, checkout=True):
             value['pr'][side + '_repository_id'] = pr[side]['repo']['id']
             value['pr'][side + '_sha'] = pr[side]['sha']
         value['pr']['base_ref'] = pr['base']['ref']
+    if value['event'] == 'merge_group':
+        group = event['merge_group']
+        value['merge_group'] = {
+            key: group[key]
+            for key in ('head_sha', 'head_ref', 'base_sha', 'base_ref')
+        }
     validate_identity(value)
     if checkout:
         actual = subprocess.check_output(
@@ -159,6 +191,10 @@ def same_source(producer, consumer):
         require(
             producer[field] == consumer[field], f'Producer {field} mismatch'
         )
+    require(
+        producer.get('merge_group') == consumer.get('merge_group'),
+        'Producer merge group mismatch',
+    )
     events = (
         ('push', 'workflow_dispatch')
         if consumer['event'] == 'workflow_dispatch'
@@ -199,6 +235,12 @@ def validate_run(run, identity, *, check_conclusion=True):
         == (pr['head_repository'] if pr else identity['repository']),
         'Producer head repository mismatch',
     )
+    if identity['event'] == 'merge_group':
+        require(
+            run.get('head_branch')
+            == identity['ref'].removeprefix('refs/heads/'),
+            'Producer queue branch mismatch',
+        )
     # Real fork runs can have pull_requests: []; never require a populated array.
     require(
         run.get('status')

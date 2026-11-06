@@ -1,6 +1,9 @@
 name: KFP Kubernetes Native Migration Tests
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master]
   push:
     branches: [master, main]
 
@@ -87,6 +90,7 @@ jobs:
         id: run-db-mode-tests
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
+          TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha }}
           REPO_NAME: ${{ github.repository }}
           KFP_ENDPOINT: "http://localhost:8888"
         run: uv run pytest ./test/kfp-kubernetes-native-migration-tests/kfp_db_mode_migration_tests.py -v
@@ -170,6 +174,7 @@ jobs:
         id: run-k8s-mode-tests
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
+          TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha }}
           REPO_NAME: ${{ github.repository }}
           KFP_ENDPOINT: "http://localhost:8888"
         run: uv run pytest ./test/kfp-kubernetes-native-migration-tests/kfp_k8s_mode_migration_tests.py -v
