@@ -2445,6 +2445,7 @@ func (r *ResourceManager) reportWorkflowResource(
 			RecurringRunId: jobId,
 			DisplayName:    displayName,
 			K8SName:        execSpec.ExecutionName(),
+			ServiceAccount: execSpec.ServiceAccount(),
 			StorageState:   model.StorageStateAvailable,
 			Namespace:      namespace,
 			PipelineSpec:   pipelineSpec,
