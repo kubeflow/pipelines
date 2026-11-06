@@ -110,6 +110,7 @@ func resetGCConfig() {
 	viper.Set(common.RunsRetentionTime, "")
 	viper.Set(common.ArchivedRunsRetentionTime, "")
 	viper.Set(common.RunsGCBatchSize, "")
+	viper.Set(common.RunsGCIndexPrepareOnly, false)
 }
 
 func TestCollect_BothDisabled(t *testing.T) {
@@ -638,4 +639,120 @@ func TestLeaderLifecycle_SecondCallbackWaitsForFirstToDrain(t *testing.T) {
 	}()
 	requireSignal(t, thirdDone, "third callback did not run after the first drained")
 	assert.Equal(t, int32(2), runLoopStarts.Load())
+}
+
+func TestIndexPreparationSeparatesCatchUp(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	viper.Set(common.RunsRetentionTime, "1h")
+	store := &fakeRunStore{}
+	built := false
+	collector := &RunGarbageCollector{runStore: store, nowFunc: func() int64 { return 1000000 }, indexPrepare: func(context.Context) (bool, error) { return built, nil }}
+	state := indexPreparationState{}
+	// Even pre-existing indexes wait one interval on a new leader.
+	require.Equal(t, common.GetRunsGCInterval(), collector.runCycle(context.Background(), &state))
+	assert.Zero(t, store.archiveCalls)
+	collector.runCycle(context.Background(), &state)
+	assert.Equal(t, 1, store.archiveCalls)
+	built = true
+	require.Equal(t, common.GetRunsGCInterval(), collector.runCycle(context.Background(), &state))
+	assert.Equal(t, 1, store.archiveCalls, "new build must not trigger immediate catch-up")
+	built = false
+	collector.runCycle(context.Background(), &state)
+	assert.Equal(t, 2, store.archiveCalls)
+}
+
+func TestIndexPreparationOnly(t *testing.T) {
+	for _, retention := range []string{"", "1h"} {
+		t.Run("retention="+retention, func(t *testing.T) {
+			resetGCConfig()
+			defer resetGCConfig()
+			viper.Set(common.RunsGCIndexPrepareOnly, true)
+			viper.Set(common.RunsRetentionTime, retention)
+			viper.Set(common.ArchivedRunsRetentionTime, retention)
+			store := &fakeRunStore{}
+			preparations := 0
+			collector := &RunGarbageCollector{runStore: store, indexPrepare: func(context.Context) (bool, error) { preparations++; return false, nil }}
+			state := indexPreparationState{}
+			collector.runCycle(context.Background(), &state)
+			collector.runCycle(context.Background(), &state)
+			assert.Equal(t, 2, preparations)
+			assert.Zero(t, store.archiveCalls)
+			assert.Zero(t, store.deleteCalls)
+		})
+	}
+}
+
+func TestIndexPreparationRetriesAndCancellation(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	viper.Set(common.RunsRetentionTime, "1h")
+	store := &fakeRunStore{}
+	attempts := 0
+	collector := &RunGarbageCollector{runStore: store, indexPrepare: func(ctx context.Context) (bool, error) {
+		attempts++
+		return false, fmt.Errorf("metadata lock unavailable")
+	}}
+	state := indexPreparationState{}
+	for i := 0; i < 8; i++ {
+		delay := collector.runCycle(context.Background(), &state)
+		assert.GreaterOrEqual(t, delay, time.Minute)
+		assert.LessOrEqual(t, delay, 15*time.Minute)
+	}
+	assert.Zero(t, store.archiveCalls)
+	assert.Equal(t, 4, state.failures)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	collector.runCycle(ctx, &state)
+	assert.Equal(t, 8, attempts, "canceled leader must not start DDL")
+	assert.False(t, sleepUnlessDone(ctx, 12*time.Hour))
+}
+
+func TestIndexPreparationReceivesLeaderCancellation(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	ctx, cancel := context.WithCancel(context.Background())
+	entered := make(chan struct{})
+	done := make(chan struct{})
+	collector := &RunGarbageCollector{indexPrepare: func(ctx context.Context) (bool, error) { close(entered); <-ctx.Done(); return false, ctx.Err() }}
+	go func() { defer close(done); collector.runLoop(ctx) }()
+	requireSignal(t, entered, "index preparation did not start")
+	cancel()
+	requireSignal(t, done, "index preparation did not stop with leader context")
+}
+
+func TestCollectInvalidPrepareOnlyNeverDeletes(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	viper.Set(common.RunsGCIndexPrepareOnly, "tru")
+	viper.Set(common.RunsRetentionTime, "1h")
+	viper.Set(common.ArchivedRunsRetentionTime, "1h")
+	store := &fakeRunStore{}
+	collector := &RunGarbageCollector{runStore: store}
+	collector.collect(context.Background())
+	assert.Zero(t, store.archiveCalls)
+	assert.Zero(t, store.deleteCalls)
+}
+
+func TestIndexPreparationFailureRestartsSeparationInterval(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	viper.Set(common.RunsRetentionTime, "1h")
+	store := &fakeRunStore{}
+	failed := true
+	collector := &RunGarbageCollector{runStore: store, nowFunc: func() int64 { return 1000000 }, indexPrepare: func(context.Context) (bool, error) {
+		if failed {
+			return true, fmt.Errorf("second index build interrupted")
+		}
+		return false, nil
+	}}
+	state := indexPreparationState{prepared: true}
+	collector.runCycle(context.Background(), &state)
+	assert.False(t, state.prepared)
+	failed = false
+	require.Equal(t, common.GetRunsGCInterval(), collector.runCycle(context.Background(), &state))
+	assert.Zero(t, store.archiveCalls)
+	assert.Zero(t, state.failures)
+	collector.runCycle(context.Background(), &state)
+	assert.Equal(t, 1, store.archiveCalls)
 }
