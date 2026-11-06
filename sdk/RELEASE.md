@@ -34,6 +34,17 @@
 
 ## Breaking changes
 
+* `PipelineTask.set_debug_pause` is now implemented by the KFP v2 launcher
+  instead of the Argo executor. It emits `KFP_DEBUG_PAUSE_*` environment
+  variables (renamed from `ARGO_DEBUG_PAUSE_*`), all of `before`, `after`,
+  and `on_error` now default to `False` so a bare `set_debug_pause()` call
+  raises `ValueError` (previously `after=True` was the default), and
+  `on_error` no longer requires `after=True`. Resuming a paused task is
+  done through the KFP API/UI rather than `kubectl exec`; Argo 3.5+ and
+  pod-exec RBAC are no longer required. Pause duration is bounded by the
+  `KFP_DEBUG_PAUSE_MAX_DURATION` environment variable (Go duration string,
+  default `1h`); set it via `set_env_variable` for longer sessions.
+
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
   a PlatformSpec document. Old `implementation: container:` component YAML is
   rejected, including when loaded by a v2 pipeline. Define components with the
