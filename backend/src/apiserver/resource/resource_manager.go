@@ -2067,11 +2067,11 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		}
 	}
 
-	_, err = r.getScheduledWorkflowClient(k8sNamespace).Patch(
+	scheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Patch(
 		ctx,
 		job.K8SName,
 		types.MergePatchType,
-		[]byte(fmt.Sprintf(`{"spec":{"enabled":%s}}`, strconv.FormatBool(enable))),
+		[]byte(fmt.Sprintf(`{"metadata":{"uid":%q},"spec":{"enabled":%s}}`, jobId, strconv.FormatBool(enable))),
 	)
 	if err != nil {
 		if enable || !util.IsNotFound(err) {
@@ -2081,7 +2081,17 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 		glog.Infof("Disabling recurring run '%v', but skipped patching ScheduledWorkflow '%v' in namespace '%v' because it was not found", jobId, job.K8SName, k8sNamespace)
 	}
 
-	err = r.jobStore.ChangeJobMode(jobId, enable)
+	generation := storage.DeletedScheduledWorkflowGeneration
+	if err == nil {
+		if scheduledWorkflow == nil {
+			return util.NewInternalServerError(fmt.Errorf("empty ScheduledWorkflow patch response"), "Failed to change recurring run %s mode", jobId)
+		}
+		if string(scheduledWorkflow.UID) != jobId {
+			return util.NewResourceNotFoundError("ScheduledWorkflow", jobId)
+		}
+		generation = scheduledWorkflow.Generation
+	}
+	err = r.jobStore.ChangeJobModeAtGeneration(jobId, enable, generation)
 	if err != nil {
 		return util.Wrapf(err, "Failed to change recurring run's %v mode to enable:%v", jobId, enable)
 	}
