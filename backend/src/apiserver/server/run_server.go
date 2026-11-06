@@ -351,7 +351,7 @@ func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, h
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
-	run, err := s.resourceManager.GetRunWithHydration(runID, hydrateTasks)
+	run, err := s.resourceManager.GetRunWithHydrationContext(ctx, runID, hydrateTasks)
 	if err != nil {
 		return nil, err
 	}
@@ -866,7 +866,7 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		return nil
 	}
 	if runId != "" {
-		run, err := s.resourceManager.GetRun(runId)
+		run, err := s.resourceManager.GetRunWithHydration(runId, false)
 		if err != nil {
 			return util.Wrapf(err, "Failed to authorize with the run ID %v", runId)
 		}

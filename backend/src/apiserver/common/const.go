@@ -103,4 +103,8 @@ const (
 	DefaultPluginMaxPayloadBytes      = 64 * 1024
 	DefaultPluginMaxTotalPayloadBytes = 256 * 1024
 	DefaultPluginMaxNestingDepth      = 10
+
+	// AuthoritativeFinalStatusMetadataKey is the gRPC metadata key used by exit-handler
+	// and runtime callers to declare that authoritative final status is required.
+	AuthoritativeFinalStatusMetadataKey = "x-kfp-authoritative-final-status"
 )

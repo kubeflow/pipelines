@@ -254,6 +254,9 @@ type RunStoreInterface interface {
 	// The claimGeneration must match the value returned by ClaimRunForRetry
 	// to prevent ABA rollback of a later retry.
 	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
+
+	// HydrateTasksForRuns fetches tasks for the provided runs and assigns them to the Run model.
+	HydrateTasksForRuns(runs []*model.Run) error
 }
 
 type RunStore struct {
@@ -337,7 +340,7 @@ func (s *RunStore) ListRuns(
 	// Either hydrate full task details or just populate task counts for the runs we return on this page
 	if len(runs) <= opts.PageSize {
 		if hydrateTasks {
-			if err := s.hydrateTasksForRuns(runs); err != nil {
+			if err := s.HydrateTasksForRuns(runs); err != nil {
 				return errorF(err)
 			}
 		} else {
@@ -354,7 +357,7 @@ func (s *RunStore) ListRuns(
 	}
 	page := runs[:opts.PageSize]
 	if hydrateTasks {
-		if err := s.hydrateTasksForRuns(page); err != nil {
+		if err := s.HydrateTasksForRuns(page); err != nil {
 			return errorF(err)
 		}
 	} else {
@@ -454,7 +457,7 @@ func (s *RunStore) GetRun(runID string, hydrateTasks bool) (*model.Run, error) {
 
 	// Either hydrate full task details or just populate task count
 	if hydrateTasks {
-		if err := s.hydrateTasksForRuns(runs); err != nil {
+		if err := s.HydrateTasksForRuns(runs); err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to get run tasks: %v", err)
 		}
 	} else {
@@ -465,10 +468,10 @@ func (s *RunStore) GetRun(runID string, hydrateTasks bool) (*model.Run, error) {
 	return runs[0], nil
 }
 
-// hydrateTasksForRuns fetches tasks for the provided runs and assigns them to the Run model.
+// HydrateTasksForRuns fetches tasks for the provided runs and assigns them to the Run model.
 // It issues queries using WHERE RunUUID IN (...) and groups results by RunUUID.
 // It also maps artifacts to tasks using artifact_tasks joined with artifacts.
-func (s *RunStore) hydrateTasksForRuns(runs []*model.Run) error {
+func (s *RunStore) HydrateTasksForRuns(runs []*model.Run) error {
 	if len(runs) == 0 {
 		return nil
 	}

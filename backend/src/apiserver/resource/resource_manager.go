@@ -333,6 +333,9 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 }
 
 func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
+	if r.execClient == nil {
+		return nil
+	}
 	return r.execClient.Execution(namespace)
 }
 
@@ -1077,9 +1080,30 @@ func (r *ResourceManager) GetRun(runId string) (*model.Run, error) {
 // If hydrateTasks is true, full task details are loaded (expensive operation).
 // If hydrateTasks is false, only task count is populated (lightweight operation).
 func (r *ResourceManager) GetRunWithHydration(runID string, hydrateTasks bool) (*model.Run, error) {
+	return r.GetRunWithHydrationContext(context.Background(), runID, hydrateTasks)
+}
+
+// GetRunWithHydrationContext fetches a run with optional task hydration using the provided context.
+// Ordinary hydrated reads remain strictly read-only from database storage.
+// Live workflow synchronization is an explicit server-owned operation triggered only when authoritative
+// final status is required (e.g. exit-handler input resolution via common.IsAuthoritativeFinalStatusRequired(ctx)).
+// If synchronization fails, it fails closed and returns an error to prevent returning stale, unverified task state.
+func (r *ResourceManager) GetRunWithHydrationContext(ctx context.Context, runID string, hydrateTasks bool) (*model.Run, error) {
 	run, err := r.runStore.GetRun(runID, hydrateTasks)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to fetch run %v", runID)
+	}
+	if common.IsAuthoritativeFinalStatusRequired(ctx) && run != nil && run.K8SName != "" {
+		performed, err := r.synchronizeRunFromLiveWorkflow(ctx, run)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to synchronize run %v from live workflow", runID)
+		}
+		if performed {
+			run.Tasks = nil
+			if err := r.runStore.HydrateTasksForRuns([]*model.Run{run}); err != nil {
+				return nil, util.Wrapf(err, "Failed to re-hydrate tasks after synchronization for run %s", runID)
+			}
+		}
 	}
 	return run, nil
 }
@@ -1151,7 +1175,7 @@ func newStandardBackoffPolicy() backoff.BackOff {
 
 // Deletes a run entry with a given id.
 func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
-	run, err := r.GetRun(runId)
+	run, err := r.GetRunWithHydration(runId, false)
 	if err != nil {
 		return util.Wrapf(err, "Failed to delete run %v as it does not exist", runId)
 	}
@@ -1350,7 +1374,7 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 
 // Retries a run given its id.
 func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
-	run, err := r.GetRun(runId)
+	run, err := r.GetRunWithHydration(runId, false)
 	if err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to error fetching the run", runId)
 	}
@@ -1643,12 +1667,24 @@ func isTransientWorkflowReconcileError(err error) bool {
 }
 
 func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
-	if run == nil || len(run.Tasks) == 0 {
+	if run == nil {
 		return nil
 	}
 
-	taskIDsToReset := make([]string, 0, len(run.Tasks))
-	for _, task := range run.Tasks {
+	tasks := run.Tasks
+	if len(tasks) == 0 && run.UUID != "" {
+		allTasks, err := fetchAllTasksForRun(r, run.UUID)
+		if err != nil {
+			return err
+		}
+		tasks = allTasks
+	}
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	taskIDsToReset := make([]string, 0, len(tasks))
+	for _, task := range tasks {
 		if task == nil || task.UUID == "" || shouldPreserveTaskAcrossRetry(task) {
 			continue
 		}
@@ -2160,7 +2196,7 @@ func (r *ResourceManager) reportWorkflowResource(
 	// If run already exists, simply update it
 	var updateError error
 	if run == nil {
-		run, updateError = r.GetRun(runId)
+		run, updateError = r.GetRunWithHydration(runId, false)
 	} else if run.UUID != runId {
 		return nil, util.NewInvalidInputError(
 			"Failed to report workflow: provided run does not match the workflow run ID")
@@ -2595,7 +2631,7 @@ func (r *ResourceManager) reportWorkflowResource(
 			// Refresh the process-local identity cache from the authoritative
 			// row, then retry the complete RPC with a freshly loaded run.
 			r.storedWorkflowIdentities.delete(runId)
-			currentRun, readError := r.GetRun(runId)
+			currentRun, readError := r.GetRunWithHydration(runId, false)
 			if readError != nil {
 				return nil, util.NewUnavailableServerError(
 					readError,
@@ -2623,8 +2659,19 @@ func (r *ResourceManager) reportWorkflowResource(
 				manifestDigest:  sha256.Sum256([]byte(run.WorkflowRuntimeManifest)),
 			})
 	}
-	if len(run.Tasks) > 0 {
-		if err := r.persistTaskLifecycleMessages(run.Tasks, execSpec); err != nil {
+	if _, _, err := r.reconcileStrandedTasks(ctx, run, execSpec, execSpec.ExecutionStatus().IsInFinalState()); err != nil {
+		return nil, util.Wrapf(err, "Failed to reconcile stranded tasks for run %s", run.UUID)
+	}
+	tasks := run.Tasks
+	if len(tasks) == 0 && run.UUID != "" {
+		allTasks, err := fetchAllTasksForRun(r, run.UUID)
+		if err != nil {
+			return nil, util.Wrapf(err, "Failed to list tasks for pod lifecycle message persistence on run %s", run.UUID)
+		}
+		tasks = allTasks
+	}
+	if len(tasks) > 0 {
+		if err := r.persistTaskLifecycleMessages(tasks, execSpec); err != nil {
 			return nil, util.Wrapf(err, "Failed to persist pod lifecycle messages for run %s", run.UUID)
 		}
 	}
@@ -3973,7 +4020,7 @@ func (r *ResourceManager) GetNamespaceFromExperimentId(experimentId string) (str
 
 // Fetches namespace that a run belongs to.
 func (r *ResourceManager) getNamespaceFromRunId(runId string) (string, error) {
-	run, err := r.GetRun(runId)
+	run, err := r.GetRunWithHydration(runId, false)
 	if err != nil {
 		return "", util.Wrapf(err, "Failed to fetch namespace from run %v due to fetching error", runId)
 	}
@@ -4352,6 +4399,9 @@ func (r *ResourceManager) persistTaskLifecycleMessages(tasks []*model.Task, exec
 	}
 	resolved := util.ResolveNodeLifecycleMessages(nodes)
 	for _, task := range tasks {
+		if isTerminalTaskState(task.State) && task.LifecycleMessage != nil && *task.LifecycleMessage != "" {
+			continue
+		}
 		msg, phase, matched := lifecycleMessageForTask(task, nodes, resolved)
 		if !matched {
 			continue

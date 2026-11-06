@@ -80,6 +80,14 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 	opts.ParentTask = parentTask
 
+	driverPods := []*apiV2.PipelineTask_TaskPod{
+		{
+			Name: opts.PodName,
+			Uid:  opts.PodUID,
+			Type: apiV2.PipelineTask_DRIVER,
+		},
+	}
+
 	taskToCreate := &apiV2.PipelineTask{
 		Name:         opts.TaskName,
 		DisplayName:  opts.Task.GetTaskInfo().GetName(),
@@ -89,13 +97,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		ParentTaskId: util.StringPointer(opts.ParentTask.TaskId),
 		ScopePath:    opts.ScopePath.DotNotation(),
 		CreateTime:   timestamppb.Now(),
-		Pods: []*apiV2.PipelineTask_TaskPod{
-			{
-				Name: opts.PodName,
-				Uid:  opts.PodUID,
-				Type: apiV2.PipelineTask_DRIVER,
-			},
-		},
+		Pods:         driverPods,
 	}
 	// Set iteration identity before fallible resolution so retry cleanup
 	// CreateTask matches the existing logical task key.
@@ -130,8 +132,11 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				statusMetadata = &apiV2.PipelineTask_StatusMetadata{}
 			}
 			statusMetadata.Message = driverErr.Error()
+			if len(taskToCreate.GetPods()) == 0 {
+				taskToCreate.Pods = driverPods
+			}
 			failedAttemptFields := &apiV2.PipelineTask{
-				Pods:           taskToCreate.GetPods(),
+				Pods:           driverPods,
 				State:          apiV2.PipelineTask_FAILED,
 				EndTime:        failedEndTime,
 				StatusMetadata: statusMetadata,
@@ -155,6 +160,19 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			// Always UpdateTask after CreateTask: on retry, CreateTask returns the
 			// existing RUNNING row unchanged and must be finalized to FAILED.
 			if taskIDToUpdate != "" {
+				// Establish current driver-attempt identity before terminal callbacks:
+				// If the task was reset for retry, register the driver pod in RUNNING state first.
+				if len(taskToCreate.GetPods()) == 0 {
+					runningAttempt := &apiV2.PipelineTask{
+						Pods:  driverPods,
+						State: apiV2.PipelineTask_RUNNING,
+					}
+					if regTask, regErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), taskToCreate, runningAttempt); regErr == nil {
+						taskToCreate = regTask
+					} else {
+						log.Warningf("Failed to establish driver attempt before failure for task %s: %v", taskToCreate.Name, regErr)
+					}
+				}
 				updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
 					ctx,
 					clientManager.KFPAPIClient(),
@@ -373,7 +391,21 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			if createErr != nil {
 				return execution, fmt.Errorf("failed to update task: %w", createErr)
 			}
+			// On retry, CreateTask returns the reset RUNNING task with empty pods.
+			// Establish the current driver-attempt identity before terminal updates.
+			if len(createdTask.GetPods()) == 0 {
+				runningAttempt := &apiV2.PipelineTask{
+					Pods:  driverPods,
+					State: apiV2.PipelineTask_RUNNING,
+				}
+				regTask, regErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, runningAttempt)
+				if regErr != nil {
+					return execution, fmt.Errorf("failed to register driver pod before cached completion: %w", regErr)
+				}
+				createdTask = regTask
+			}
 			taskToCreate = createdTask
+			taskToCreate.Pods = driverPods
 			taskToCreate.State = apiV2.PipelineTask_CACHED
 			taskToCreate.Outputs = cachedOutputs
 			taskToCreate.EndTime = timestamppb.Now()
@@ -388,6 +420,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				return execution, fmt.Errorf("failed to update cached task state: %w", updateErr)
 			}
 			createdTask = taskToCreate
+			execution.TaskID = createdTask.TaskId
 
 			driverErr = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())
 			if driverErr != nil {
@@ -464,6 +497,20 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	})
 	if driverErr != nil {
 		return execution, driverErr
+	}
+	// On retry, CreateTask returns the reset RUNNING task with empty pods.
+	// Establish the current driver-attempt identity in RUNNING state first so that
+	// terminal updates (e.g. SKIPPED when condition not met) are accepted by retry fencing.
+	if len(createdTask.GetPods()) == 0 {
+		runningAttempt := &apiV2.PipelineTask{
+			Pods:  driverPods,
+			State: apiV2.PipelineTask_RUNNING,
+		}
+		regTask, regErr := updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, runningAttempt)
+		if regErr != nil {
+			return execution, fmt.Errorf("failed to establish driver attempt before updating task attempt: %w", regErr)
+		}
+		createdTask = regTask
 	}
 	createdTask, driverErr = updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, attemptLocalFields)
 	if driverErr != nil {
