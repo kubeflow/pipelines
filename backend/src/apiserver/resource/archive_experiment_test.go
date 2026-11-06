@@ -94,7 +94,7 @@ func (c *failOnNthPatchSwfNs) Patch(ctx context.Context, name string, patchType 
 // TestArchiveExperiment_K8sFailBeforeAnyPatch_NoStateChange demonstrates that
 // when ArchiveExperiment fails on its very first ScheduledWorkflow Patch call,
 // the function returns a non-nil error and the experiment remains unarchived in
-// the database.  This documents the early-return behaviour: the DB write at
+// the database.  This documents the early-return behavior: the DB write at
 // the end of ArchiveExperiment is never reached.
 func TestArchiveExperiment_K8sFailBeforeAnyPatch_NoStateChange(t *testing.T) {
 	store, manager, job := initWithJob(t)
