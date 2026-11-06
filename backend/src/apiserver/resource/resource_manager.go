@@ -894,14 +894,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		PipelineVersionID: run.PipelineSpec.PipelineVersionId, //nolint:staticcheck // QF1008
 		PluginsInput:      (*string)(run.PluginsInputString),
 	}
-	if err := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec); err != nil {
-		return nil, err
-	}
-	// Copy plugin output back to the model.
-	if pendingRun.PluginsOutput != nil {
-		lt := model.LargeText(*pendingRun.PluginsOutput)
-		run.PluginsOutputString = &lt
-	}
 
 	runPersisted := false
 
@@ -912,6 +904,20 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 			}
 		}
 	}()
+
+	if err := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec); err != nil {
+		if pendingRun.PluginsOutput != nil {
+			lt := model.LargeText(*pendingRun.PluginsOutput)
+			run.PluginsOutputString = &lt
+		}
+		return nil, err
+	}
+
+	// Copy plugin output back to the model.
+	if pendingRun.PluginsOutput != nil {
+		lt := model.LargeText(*pendingRun.PluginsOutput)
+		run.PluginsOutputString = &lt
+	}
 
 	if r.pluginDispatcher.PluginsRegistered() {
 		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {
@@ -925,6 +931,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 
 	newExecSpec, executionCreated, err := r.createRunExecution(ctx, run, executionSpec)
+
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return nil, util.NewUnavailableServerError(err, "Failed to create a workflow for (%s) - try again later", executionSpec.ExecutionName())
