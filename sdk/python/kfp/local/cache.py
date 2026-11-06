@@ -168,14 +168,17 @@ class LocalCache:
     def _serialize_output(value: Any) -> Any:
         if isinstance(value, dsl.Artifact):
             return LocalCache._serialize_artifact(value)
-        if (
-            isinstance(value, list)
-            and value
-            and isinstance(value[0], dsl.Artifact)
+        if isinstance(value, list) and any(
+            isinstance(x, dsl.Artifact) for x in value
         ):
             return {
                 _ARTIFACT_LIST_MARKER: True,
-                'artifacts': [LocalCache._serialize_artifact(a) for a in value],
+                'artifacts': [
+                    LocalCache._serialize_artifact(a)
+                    if isinstance(a, dsl.Artifact)
+                    else a
+                    for a in value
+                ],
             }
         return value
 
@@ -203,6 +206,8 @@ class LocalCache:
         if isinstance(value, dict) and value.get(_ARTIFACT_LIST_MARKER):
             return [
                 LocalCache._deserialize_artifact(a)
+                if isinstance(a, dict) and a.get(_ARTIFACT_MARKER)
+                else a
                 for a in value.get('artifacts', [])
             ]
         return value
