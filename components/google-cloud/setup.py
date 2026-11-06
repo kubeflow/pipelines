@@ -65,7 +65,7 @@ setuptools.setup(
         # second list of deps are true dependencies for building the site
         "docs": (
             [
-                "protobuf>=4.21.1,<5",
+                "protobuf>=4.21.1,<7",
                 "grpcio-status<=1.47.0",
             ]
             + [
