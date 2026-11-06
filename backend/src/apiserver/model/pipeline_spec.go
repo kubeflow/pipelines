@@ -14,12 +14,22 @@
 
 package model
 
+// PipelineNameRef addresses a pipeline, and optionally one of its versions, by name.
+type PipelineNameRef struct {
+	PipelineName        string
+	PipelineVersionName string
+}
+
 type PipelineSpec struct {
 	// Parent pipeline's id.
 	PipelineId string `gorm:"column:PipelineId; not null;"`
 
 	// Pipeline version's id.
 	PipelineVersionId string `gorm:"column:PipelineVersionId; default:null;"`
+
+	// NameRef is resolved into PipelineId and PipelineVersionId when a run or
+	// recurring run is created. It is never persisted.
+	NameRef *PipelineNameRef `gorm:"-"`
 
 	// TODO(gkcalat): consider adding PipelineVersionName to avoid confusion.
 	// Pipeline versions's Name will be required if ID is not empty.
