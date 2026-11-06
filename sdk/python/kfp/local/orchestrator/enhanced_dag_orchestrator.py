@@ -531,6 +531,19 @@ def _run_parallel_for_task(
         loop_tasks.append((iteration_task_name, iteration_task_spec))
 
     if not loop_tasks:
+        # A zero-iteration loop still has declared outputs. Publish empty
+        # collections so downstream dsl.Collected consumers can resolve them.
+        component_spec = components[task_spec.component_ref.name]
+        loop_outputs = component_spec.dag.outputs
+
+        output_keys = set(loop_outputs.parameters.keys()) | set(
+            loop_outputs.artifacts.keys()
+        )
+        for output_key in output_keys:
+            io_store.put_task_output(task_name, output_key, [])
+
+        # The backend represents a zero-iteration loop as SKIPPED.
+        io_store.put_task_status(task_name, 'SKIPPED')
         return False
 
     parallel_outputs, parallel_status = (
