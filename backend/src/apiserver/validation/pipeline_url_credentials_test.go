@@ -264,6 +264,7 @@ func TestCredentialTransport_SkipsOtherHostsAndPlainHTTP(t *testing.T) {
 		"https://artifactory.example.com.attacker.example/pipeline.yaml",
 		"https://mirror.artifactory.example.com/pipeline.yaml",
 		"http://artifactory.example.com/pipeline.yaml",
+		"https://artifactory.example.com:8443/pipeline.yaml",
 	} {
 		base := &recordingRoundTripper{}
 		transport := &credentialTransport{base: base, credentials: credentials}
@@ -336,23 +337,37 @@ func TestCredentialTransport_SendsNoCredentialToUnicodeLookalikeHost(t *testing.
 	}
 }
 
-func TestNewPipelineHTTPClient_SendsConfiguredCredential(t *testing.T) {
+func TestNewPipelineHTTPClient_SendsCredentialOnlyToDefaultHTTPSPort(t *testing.T) {
 	viper.Reset()
+	// Disabled validation no longer rejects ports other than 443.
 	viper.Set(common.PipelineURLValidationEnabled, "false")
 	resetURLConfig()
 	setTestCredentialEnv(t, "127.0.0.1")
 
-	var received string
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		received = r.Header.Get("Authorization")
-		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, r.Header.Get("Authorization"))
 	}))
 	defer server.Close()
+	// Every address reaches the test server, so port 443 can be requested.
+	base := server.Client().Transport.(*http.Transport).Clone()
+	base.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+	}
+	client := NewPipelineHTTPClient(base)
 
-	response, err := NewPipelineHTTPClient(server.Client().Transport.(*http.Transport)).Get(server.URL + "/pipeline.yaml")
-	require.NoError(t, err)
-	defer response.Body.Close()
-	assert.Equal(t, "Bearer test-token", received)
+	for _, tt := range []struct{ target, wantAuthorization string }{
+		{"https://127.0.0.1/pipeline.yaml", "Bearer test-token"},
+		{"https://127.0.0.1:443/pipeline.yaml", "Bearer test-token"},
+		{server.URL + "/pipeline.yaml", ""},
+	} {
+		response, err := client.Get(tt.target)
+		require.NoError(t, err)
+		received, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		require.NoError(t, err)
+
+		assert.Equal(t, tt.wantAuthorization, string(received), "credential received from %s", tt.target)
+	}
 }
 
 func TestSafePipelineHTTPClient_CredentialDomainMustBeAllowed(t *testing.T) {
@@ -375,11 +390,6 @@ func TestNewPipelineHTTPClient_CredentialKeepsProxyAndIPGuards(t *testing.T) {
 	resetURLConfig()
 	setTestCredentialEnv(t, "127.0.0.1")
 
-	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-		t.Error("a request with a credential reached a blocked address")
-	}))
-	defer server.Close()
-
 	base := http.DefaultTransport.(*http.Transport).Clone()
 	proxyUsed := false
 	base.Proxy = func(*http.Request) (*url.URL, error) {
@@ -387,10 +397,14 @@ func TestNewPipelineHTTPClient_CredentialKeepsProxyAndIPGuards(t *testing.T) {
 		return url.Parse("http://proxy.invalid:3128")
 	}
 	client := NewPipelineHTTPClient(base)
-	_, wrapped := client.Transport.(*credentialTransport)
+	transport, wrapped := client.Transport.(*credentialTransport)
 	require.True(t, wrapped, "the allowed credential is configured")
+	target, err := url.Parse("https://127.0.0.1/pipeline.yaml")
+	require.NoError(t, err)
+	_, found := transport.credentials.forURL(target)
+	require.True(t, found, "the request carries the credential")
 
-	_, err := client.Get(server.URL + "/pipeline.yaml")
+	_, err = client.Get(target.String())
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "connection to blocked IP range denied")
