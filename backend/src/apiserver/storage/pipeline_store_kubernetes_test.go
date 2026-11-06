@@ -1453,3 +1453,53 @@ func TestListK8sPipelineVersions_Pagination_TiedSortValues(t *testing.T) {
 	slices.Sort(sorted)
 	require.Equal(t, []string{"v1", "v2", "v3", "v4", "v5", "v6"}, sorted, "every version exactly once")
 }
+
+// TestDeleteK8sPipelineAndVersions verifies explicit version deletion
+// instead of relying on Kubernetes owner-reference GC.
+func TestDeleteK8sPipelineAndVersions(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	v1 := newPinnedPipelineVersion("v1", "version-1", metav1.Unix(1700000000, 0))
+	v2 := newPinnedPipelineVersion("v2", "version-2", metav1.Unix(1800000000, 0))
+
+	k8sClient, pipelineID := newVersionFixture(t, v1, v2)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	versionID, err := store.GetAnyPipelineVersionID(pipelineID)
+	require.NoError(t, err)
+	assert.NotEmpty(t, versionID, "Expected at least one version before delete")
+
+	err = store.DeletePipelineAndVersions(pipelineID)
+	require.NoError(t, err)
+
+	_, err = store.GetPipeline(pipelineID)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	versionID, err = store.GetAnyPipelineVersionID(pipelineID)
+	require.NoError(t, err)
+	assert.Empty(t, versionID, "All versions should be deleted")
+
+	_, err = store.GetPipelineVersion(string(v1.UID))
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = store.GetPipelineVersion(string(v2.UID))
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+// TestDeleteK8sPipelineAndVersions_NoPipeline verifies that deleting a non-existent pipeline is a no-op.
+func TestDeleteK8sPipelineAndVersions_NoPipeline(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, _ := newVersionFixture(t)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	err := store.DeletePipelineAndVersions("non-existent-id")
+	require.NoError(t, err)
+}
