@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the boundaries between kfpr release modules."""
 
-import ast
 import importlib
 import subprocess
 import sys
@@ -23,6 +22,47 @@ FOCUSED_MODULES = (
     'preflight',
     'context',
 )
+# Names kfpr.core exported before the split, mapped to their new module.
+# Frozen for compatibility: do not add new helpers here.
+CORE_EXPORTS = {
+    '_release_git_mounts': 'commands',
+    'ANSI_BOLD': 'prompts',
+    'ANSI_RESET': 'prompts',
+    'ANSI_UNDERLINE': 'prompts',
+    'collect_context': 'context',
+    'CommandRunner': 'runner',
+    'confirm': 'prompts',
+    'default_branch': 'github_api',
+    'doctor_errors': 'preflight',
+    'emphasize_prompt': 'prompts',
+    'image_workflow_command': 'commands',
+    'is_pending_merge_queue_check': 'github_api',
+    'kfp_kubernetes_docs_build_command': 'commands',
+    'kfp_requirements_command': 'commands',
+    'kubernetes_requirements_command': 'commands',
+    'normalize_fork_remote': 'validation',
+    'parse_github_owner': 'validation',
+    'prompt_choice': 'prompts',
+    'prompt_numbered_choice': 'prompts',
+    'prompt_required': 'prompts',
+    'prompt_validated': 'prompts',
+    'release_version_bump_command': 'commands',
+    'ReleaseContext': 'context',
+    'ReleaseMetadata': 'metadata',
+    'ReleaseState': 'state',
+    'REPO': 'github_api',
+    'sdk_workflow_command': 'commands',
+    'STATE_FILE': 'state',
+    'underline_links': 'prompts',
+    'upstream_default_branch': 'github_api',
+    'URL_RE': 'prompts',
+    'validate_answers': 'validation',
+    'validate_state': 'validation',
+    'VERSION_RE': 'metadata',
+    'wait_for_pr_merge': 'github_api',
+    'watch_latest_workflow_run': 'github_api',
+    'watch_pr_ci': 'github_api',
+}
 # Modules that only build, validate or format values must not run commands.
 COMMAND_FREE_MODULES = ('metadata', 'prompts', 'commands', 'validation')
 # Release workflows run these with only PyYAML installed.
@@ -31,17 +71,6 @@ WORKFLOW_MODULES = (
     'kfpr.ci_images_client',
     'kfpr.ci_qualification_client',
 )
-
-
-def defined_names(module_name):
-    tree = ast.parse((PACKAGE_DIR / f'{module_name}.py').read_text())
-    names = []
-    for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-            names.append(node.name)
-        elif isinstance(node, ast.Assign):
-            names.extend(t.id for t in node.targets)
-    return names
 
 
 def run_python(code):
@@ -55,15 +84,12 @@ def run_python(code):
 
 
 class ModuleBoundaryTest(unittest.TestCase):
-    def test_core_reexports_every_focused_name(self):
-        expected = []
-        for module_name in FOCUSED_MODULES:
-            module = importlib.import_module(f'kfpr.{module_name}')
-            for name in defined_names(module_name):
-                with self.subTest(module=module_name, name=name):
-                    self.assertIs(getattr(core, name), getattr(module, name))
-                expected.append(name)
-        self.assertEqual(sorted(core.__all__), sorted(expected))
+    def test_core_reexports_its_original_names(self):
+        self.assertEqual(sorted(core.__all__), sorted(CORE_EXPORTS))
+        for name, module_name in CORE_EXPORTS.items():
+            with self.subTest(name=name):
+                module = importlib.import_module(f'kfpr.{module_name}')
+                self.assertIs(getattr(core, name), getattr(module, name))
 
     def test_each_module_imports_on_its_own(self):
         for module_name in (*FOCUSED_MODULES, 'core'):
