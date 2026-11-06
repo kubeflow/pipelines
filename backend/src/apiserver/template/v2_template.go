@@ -31,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v3"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -242,6 +243,9 @@ func NewV2SpecTemplate(template []byte, opts TemplateOptions) (*V2Spec, error) {
 			if spec.GetRoot() == nil {
 				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 			}
+			if err := objectstore.ValidatePipelineRoot(spec.GetDefaultPipelineRoot()); err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("invalid v2 pipeline spec: %s", err.Error()))
+			}
 			v2Spec.spec = &spec
 		} else if IsPlatformSpecWithKubernetesConfig(valueBytes) {
 			// Pick out the yaml document with platform spec
@@ -437,6 +441,10 @@ func IsPlatformSpecWithKubernetesConfig(template []byte) bool {
 }
 
 func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error {
+	if err := objectstore.ValidatePipelineRoot(t.spec.GetDefaultPipelineRoot()); err != nil {
+		return util.NewInvalidInputError("%s", err.Error())
+	}
+
 	// If the pipeline requires no input, t.spec.GetRoot().GetInputDefinitions() will be nil,
 	// but we still need to verify that no extra parameters are provided.
 	requiredParams := make(map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec)
@@ -459,6 +467,10 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			// both required parameters and inputs are empty
 			return nil
 		}
+	}
+
+	if err := objectstore.ValidatePipelineRoot(runtimeConfig.GetGcsOutputDirectory()); err != nil {
+		return util.NewInvalidInputError("%s", err.Error())
 	}
 
 	// Verify that required parameters are provided
