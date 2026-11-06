@@ -1,0 +1,63 @@
+{
+  "benchmark_suite": "kfp-generator",
+  "version": "agentskills.io/v1",
+  "iteration": 1,
+  "cluster_endpoint": "http://localhost:8080",
+  "namespace": "shristimodis",
+  "evaluations": [
+    {
+      "task_id": "eval-churn-prediction",
+      "description": "Customer Churn Prediction Pipeline with data ingestion, scaling, train/test split, XGBoost classifier, ROC-AUC/Precision/Recall metric artifacts, and serialized model artifact.",
+      "configurations": {
+        "with_skill": {
+          "static_compile_passed": true,
+          "backend_e2e_state": "SUCCEEDED",
+          "run_id": "6b6c17b9-6411-4997-9cad-05e4879a1449",
+          "experiment_id": "9fe791c1-a5c7-4ddf-9c91-d4068b7e796f",
+          "assertions_passed": 4,
+          "assertions_total": 4,
+          "pass_rate": 1.0,
+          "duration_seconds": 96.0,
+          "timing": {
+            "start_time": "2026-10-14 10:24:08+00:00",
+            "end_time": "2026-10-14 10:25:44+00:00"
+          },
+          "artifact_evidence": {
+            "pipeline_yaml": "pipeline.py.yaml (15842 bytes)",
+            "metrics_logged": ["roc_auc", "precision", "recall"],
+            "model_format": "joblib serialized dsl.Model"
+          }
+        },
+        "without_skill": {
+          "static_compile_passed": true,
+          "backend_e2e_state": "FAILED",
+          "run_id": "910647a5-06b3-4ce8-b9b7-100ae50a960d",
+          "experiment_id": "9fe791c1-a5c7-4ddf-9c91-d4068b7e796f",
+          "assertions_passed": 3,
+          "assertions_total": 4,
+          "pass_rate": 0.75,
+          "duration_seconds": 193.0,
+          "timing": {
+            "start_time": "2026-10-14 10:38:07+00:00",
+            "end_time": "2026-10-14 10:41:20+00:00"
+          },
+          "failure_root_cause": "MLMD MySQL duplicate property collision: Duplicate entry for key 'ArtifactProperty.PRIMARY' caused by logging mixed-case metric names ('recall' and 'Recall') on case-insensitive MySQL collation. Static compiler passed cleanly, but live container launcher crashed."
+        }
+      },
+      "delta": {
+        "pass_rate_gain": "+25.0%",
+        "backend_execution_delta": "SUCCEEDED vs FAILED (+100%)",
+        "duration_delta_seconds": -97.0,
+        "runtime_reliability_impact": "The kfp-generator skill enforces valid canonical KFP v2 patterns and prevents MLMD database collisions that bypass static Python compilers."
+      }
+    }
+  ],
+  "summary": {
+    "total_tasks": 1,
+    "with_skill_pass_rate": 1.0,
+    "without_skill_pass_rate": 0.75,
+    "net_pass_rate_delta": "+25.0%",
+    "live_cluster_success_with_skill": "100%",
+    "live_cluster_success_without_skill": "0%"
+  }
+}
