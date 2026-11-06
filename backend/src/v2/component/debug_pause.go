@@ -182,6 +182,10 @@ func (s *kfpAPIPauseSignaler) ClearBarrier(ctx context.Context) error {
 // mergeCustomProperties does a read-merge-write because UpdateTask replaces
 // StatusMetadata wholesale rather than merging per-key; writing without the
 // read would erase unrelated custom properties.
+// TODO: UpdateTask has no optimistic concurrency, so a concurrent writer to
+// other custom_properties keys could still lose updates between our read and
+// write. The pause keys are fenced by the instance check, but other keys are
+// not.
 func (s *kfpAPIPauseSignaler) mergeCustomProperties(ctx context.Context, updates map[string]*structpb.Value) error {
 	current, err := s.client.GetTask(ctx, &apiV2.GetTaskRequest{
 		TaskId: s.taskID,
