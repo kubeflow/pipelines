@@ -70,6 +70,10 @@ spec:
               done
       containers:
         - env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             # Whether or not to publish component logs to the object store.
             - name: PUBLISH_LOGS
               value: "true"
@@ -285,6 +289,8 @@ spec:
               containerPort: 8888
             - name: grpc
               containerPort: 8887
+            - name: live
+              containerPort: 8889
           readinessProbe:
             httpGet:
               path: /apis/v2/healthz
@@ -294,18 +300,17 @@ spec:
             timeoutSeconds: 2
           livenessProbe:
             httpGet:
-              path: /apis/v2/healthz
-              port: 8888
+              path: /livez
+              port: live
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
-          # This startup probe provides up to a 60 second grace window before the
-          # liveness probe takes over to accomodate the occasional database
-          # migration.
+          # Liveness is available before database migration; readiness above
+          # remains false until normal API serving starts.
           startupProbe:
             httpGet:
-              path: /apis/v2/healthz
-              port: 8888
+              path: /livez
+              port: live
             failureThreshold: 12
             periodSeconds: 5
             timeoutSeconds: 2

@@ -30,6 +30,8 @@ RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflow
 
 COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+RUN GO111MODULE=on go build -o /bin/mlmd-migrate ./backend/src/apiserver/migration/mlmd/cmd/mlmd-migrate
+RUN GO111MODULE=on go build -o /bin/mlmd-maintenance ./backend/src/apiserver/migration/mlmd/cmd/maintenance
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.14-slim AS compiler
@@ -100,6 +102,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 COPY backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
+COPY --from=builder /bin/mlmd-migrate /bin/mlmd-migrate
+COPY --from=builder /bin/mlmd-maintenance /bin/mlmd-maintenance
 
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver

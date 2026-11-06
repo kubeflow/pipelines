@@ -1,0 +1,116 @@
+[
+  {
+    "kind": "execution",
+    "source_id": "1",
+    "name": "execution:1",
+    "uuid": "9f26f813-9778-53bc-b93c-78b30df19075"
+  },
+  {
+    "kind": "execution",
+    "source_id": "9007199254740993",
+    "name": "execution:9007199254740993",
+    "uuid": "5f05b256-bea2-547f-bf7f-86b31e0a20f6"
+  },
+  {
+    "kind": "execution",
+    "source_id": "9223372036854775807",
+    "name": "execution:9223372036854775807",
+    "uuid": "e6c21c71-74c1-5428-b2c6-dd34a462f19e"
+  },
+  {
+    "kind": "artifact",
+    "source_id": "1",
+    "name": "artifact:1",
+    "uuid": "20ca2f7d-bb0f-591b-a6e3-d7f1c2e344cd"
+  },
+  {
+    "kind": "artifact",
+    "source_id": "9007199254740993",
+    "name": "artifact:9007199254740993",
+    "uuid": "e7e59a47-f7d2-5861-b9f3-83bcdeaede55"
+  },
+  {
+    "kind": "artifact",
+    "source_id": "9223372036854775807",
+    "name": "artifact:9223372036854775807",
+    "uuid": "52a03543-a28b-5a48-a4a1-e7dd0485b8ce"
+  },
+  {
+    "kind": "metric_primary",
+    "source_id": "42",
+    "metric": "accuracy",
+    "name": "artifact:42",
+    "uuid": "c1f95b09-e8fd-561f-9e07-a85dc78105ba"
+  },
+  {
+    "kind": "metric",
+    "source_id": "42",
+    "metric": "loss",
+    "name": "artifact:42:metric:loss",
+    "uuid": "cd176e72-3ba1-5002-af4b-40a0a35cd5f3"
+  },
+  {
+    "kind": "metric",
+    "source_id": "42",
+    "metric": "quality:macro",
+    "name": "artifact:42:metric:quality:macro",
+    "uuid": "eb6066e3-ebc8-5045-835e-403f12ba9ea1"
+  },
+  {
+    "kind": "metric",
+    "source_id": "42",
+    "metric": "Δ<& ",
+    "name": "artifact:42:metric:Δ<& ",
+    "uuid": "1db89f70-ce69-5245-bcec-f42c932b8875"
+  },
+  {
+    "kind": "link",
+    "artifact_id": "c1f95b09-e8fd-561f-9e07-a85dc78105ba",
+    "task_id": "5f05b256-bea2-547f-bf7f-86b31e0a20f6",
+    "io_type": 9,
+    "iteration": -1,
+    "artifact_key": "metrics",
+    "name": "[\"artifact-task\",\"c1f95b09-e8fd-561f-9e07-a85dc78105ba\",\"5f05b256-bea2-547f-bf7f-86b31e0a20f6\",9,-1,\"metrics\"]",
+    "uuid": "20c9af42-aa5f-55b5-9be1-ac22f411d4b0"
+  },
+  {
+    "kind": "link",
+    "artifact_id": "c1f95b09-e8fd-561f-9e07-a85dc78105ba",
+    "task_id": "5f05b256-bea2-547f-bf7f-86b31e0a20f6",
+    "io_type": 9,
+    "iteration": 0,
+    "artifact_key": "metrics",
+    "name": "[\"artifact-task\",\"c1f95b09-e8fd-561f-9e07-a85dc78105ba\",\"5f05b256-bea2-547f-bf7f-86b31e0a20f6\",9,0,\"metrics\"]",
+    "uuid": "290c2e6a-4c43-5a5b-b202-e44cddce5d74"
+  },
+  {
+    "kind": "link",
+    "artifact_id": "c1f95b09-e8fd-561f-9e07-a85dc78105ba",
+    "task_id": "5f05b256-bea2-547f-bf7f-86b31e0a20f6",
+    "io_type": 9,
+    "iteration": 1,
+    "artifact_key": "metrics",
+    "name": "[\"artifact-task\",\"c1f95b09-e8fd-561f-9e07-a85dc78105ba\",\"5f05b256-bea2-547f-bf7f-86b31e0a20f6\",9,1,\"metrics\"]",
+    "uuid": "b798ba00-be3c-5155-8517-f94a87d98c67"
+  },
+  {
+    "kind": "link",
+    "artifact_id": "c1f95b09-e8fd-561f-9e07-a85dc78105ba",
+    "task_id": "5f05b256-bea2-547f-bf7f-86b31e0a20f6",
+    "io_type": 9,
+    "iteration": -1,
+    "artifact_key": "metrics:quality",
+    "name": "[\"artifact-task\",\"c1f95b09-e8fd-561f-9e07-a85dc78105ba\",\"5f05b256-bea2-547f-bf7f-86b31e0a20f6\",9,-1,\"metrics:quality\"]",
+    "uuid": "c13e27b0-f9ed-5954-bf5f-c298ad656984"
+  },
+  {
+    "kind": "link",
+    "artifact_id": "c1f95b09-e8fd-561f-9e07-a85dc78105ba",
+    "task_id": "5f05b256-bea2-547f-bf7f-86b31e0a20f6",
+    "io_type": 9,
+    "iteration": -1,
+    "artifact_key": "\"x\\<>&雪 ",
+    "name": "[\"artifact-task\",\"c1f95b09-e8fd-561f-9e07-a85dc78105ba\",\"5f05b256-bea2-547f-bf7f-86b31e0a20f6\",9,-1,\"\\\"x\\\\\\u003c\\u003e\\u0026雪\\u2028\"]",
+    "uuid": "721a5385-f865-50fc-b1c2-48a3386370b1"
+  }
+]

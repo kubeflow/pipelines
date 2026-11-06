@@ -549,6 +549,11 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 	dbDialect := sqldrv.NewDBDialect(driverName)
+	if driverName == "mysql" {
+		sqlDB, err := db.DB()
+		util.TerminateIfError(err)
+		util.TerminateIfError(migrateMLMDOnStartup(context.Background(), sqlDB))
+	}
 
 	legacy, err := isLegacySchema(db)
 	if err != nil {
