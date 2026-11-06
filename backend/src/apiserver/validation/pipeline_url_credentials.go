@@ -133,8 +133,13 @@ func (c *pipelineURLCredentials) domains() []string {
 	return slices.Sorted(maps.Keys(c.byDomain))
 }
 
+// forURL matches HTTPS URLs on the default port only. ValidatePipelineURL also
+// requires that port, but this check still applies when validation is disabled.
 func (c *pipelineURLCredentials) forURL(target *url.URL) (pipelineURLCredential, bool) {
 	if target.Scheme != "https" {
+		return pipelineURLCredential{}, false
+	}
+	if port := target.Port(); port != "" && port != defaultPorts["https"] {
 		return pipelineURLCredential{}, false
 	}
 	host, err := normalizeHost(target.Hostname())
@@ -248,9 +253,9 @@ func withPipelineURLCredentials(transport *http.Transport) http.RoundTripper {
 	return &credentialTransport{base: transport, credentials: credentials}
 }
 
-// credentialTransport adds the configured credential to HTTPS requests for its
-// domain. It runs on every redirect hop, so a credential is never sent to a
-// host it was not configured for.
+// credentialTransport adds the configured credential to HTTPS requests on port
+// 443 for its domain. It runs on every redirect hop, so a credential is never
+// sent to a host it was not configured for.
 type credentialTransport struct {
 	base        http.RoundTripper
 	credentials *pipelineURLCredentials

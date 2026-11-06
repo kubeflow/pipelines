@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -996,17 +997,22 @@ func TestPipelineServer_CreatePipelineAndVersion_SendsConfiguredURLCredentials(t
 		rw.Write(pipelineFile)
 	}))
 	defer httpServer.Close()
+	// Credentials are sent only to port 443, so every address reaches the test server.
+	transport := httpServer.Client().Transport.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, httpServer.Listener.Addr().String())
+	}
 
 	request := &apiv2.CreatePipelineAndVersionRequest{
 		Pipeline: &apiv2.Pipeline{DisplayName: "Protected pipeline"},
 		PipelineVersion: &apiv2.PipelineVersion{
-			PackageUrl: &apiv2.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+			PackageUrl: &apiv2.Url{PipelineUrl: "https://127.0.0.1/arguments-parameters.yaml"},
 		},
 	}
 	newPipelineServer := func() *PipelineServer {
 		clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 		resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-		return createPipelineServer(resourceManager, validation.NewPipelineHTTPClient(httpServer.Client().Transport.(*http.Transport)))
+		return createPipelineServer(resourceManager, validation.NewPipelineHTTPClient(transport))
 	}
 
 	t.Run("without credentials", func(t *testing.T) {

@@ -65,6 +65,7 @@ do
 done
 
 python3 "${DIR}/tensorboard_signing_key_test.py"
+python3 "${DIR}/pipeline_url_credentials_test.py"
 python3 "${DIR}/yq_release_test.py"
 python3 "${DIR}/scheduledworkflow_leader_election_test.py"
 

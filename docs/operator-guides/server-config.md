@@ -678,30 +678,66 @@ data:
   pipelineUrlAllowedDomains: artifactory.example.com,github.example.com
 ```
 
-Then patch the API server container, for example with Kustomize:
+Then add both settings to the API server container. For example, add these patches to
+the `kustomization.yaml` of your KFP overlay:
 
 ```yaml
-spec:
-  template:
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ml-pipeline
     spec:
-      containers:
-      - name: ml-pipeline-api-server
-        env:
-        - name: PIPELINE_URL_ALLOWED_DOMAINS
-          valueFrom:
-            configMapKeyRef:
-              name: pipeline-install-config
-              key: pipelineUrlAllowedDomains
-              optional: true
-        envFrom:
-        - prefix: PIPELINE_URL_CREDENTIAL_ARTIFACTORY_
-          secretRef:
-            name: artifactory-pipeline-credentials
-            optional: true
-        - prefix: PIPELINE_URL_CREDENTIAL_GITHUB_
-          secretRef:
-            name: github-pipeline-credentials
-            optional: true
+      template:
+        spec:
+          containers:
+          - name: ml-pipeline-api-server
+            env:
+            - name: PIPELINE_URL_ALLOWED_DOMAINS
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: pipelineUrlAllowedDomains
+                  optional: true
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: ml-pipeline
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/envFrom/-
+      value:
+        prefix: PIPELINE_URL_CREDENTIAL_ARTIFACTORY_
+        secretRef:
+          name: artifactory-pipeline-credentials
+          optional: true
+    - op: add
+      path: /spec/template/spec/containers/0/envFrom/-
+      value:
+        prefix: PIPELINE_URL_CREDENTIAL_GITHUB_
+        secretRef:
+          name: github-pipeline-credentials
+          optional: true
+```
+
+The two settings use different patch types on purpose. A strategic-merge patch merges
+`env` entries by name, but it replaces the whole `envFrom` list. In multi-user installs,
+this container's `envFrom` loads the `pipeline-api-server-config` ConfigMap, which sets
+`MULTIUSER=true`. Replacing the list removes that reference and turns off multi-user
+authorization checks. The JSON patch appends to the list instead, so existing entries
+stay. Index `0` is the `ml-pipeline-api-server` container in the KFP manifests.
+Standalone installs have no `envFrom` on this container, so the first append fails with
+a missing path error. There, change the first operation's path to
+`/spec/template/spec/containers/0/envFrom` and wrap its value in a list; the second
+operation then appends to that list.
+
+Before applying the overlay, render it and check that `envFrom` still lists every entry
+it had before, for example:
+
+```sh
+kustomize build . | yq 'select(.kind == "Deployment" and .metadata.name == "ml-pipeline") | .spec.template.spec.containers[0].envFrom'
 ```
 
 Each prefix must start with `PIPELINE_URL_CREDENTIAL_`, end with `_`, and be unique. The
@@ -720,10 +756,10 @@ must also be covered by `PIPELINE_URL_ALLOWED_CIDRS`. Pipeline URLs must use an 
 hostname; write an internationalized domain name in its punycode (`xn--`) form in both
 the URL and the allowlist.
 
-Credentials are sent only over HTTPS and only to their exact domain. Every redirect is
-checked again, so a credential never follows a redirect to another host, such as a
-presigned object-store URL. Downloads allowed over HTTP by `PIPELINE_URL_ALLOW_HTTP`
-never carry credentials.
+Credentials are sent only over HTTPS on port 443 and only to their exact domain. Every
+redirect is checked again, so a credential never follows a redirect to another host,
+such as a presigned object-store URL. Downloads allowed over HTTP by
+`PIPELINE_URL_ALLOW_HTTP` never carry credentials.
 
 A misconfigured credential never stops the API server. At startup, the API server logs
 the domains that receive credentials and logs a warning for each problem, without
@@ -741,7 +777,11 @@ credential values:
 Downloads from a domain whose credential is ignored are sent without credentials. Roll
 out the deployment after changing a Secret. Anyone who can create pipelines can make
 the API server download any file the credential can read on that domain, so use a
-read-only token limited to the repositories that hold pipeline files.
+read-only token limited to the repositories that hold pipeline files. In multi-user
+deployments, these credentials belong to the API server and are shared by all
+namespaces: a user who can create a pipeline or pipeline version in any namespace can
+use them through a matching pipeline URL. Scope each token to files that every such
+user may read.
 
 ## Recurring runs and custom service accounts
 
