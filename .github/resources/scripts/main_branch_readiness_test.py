@@ -18,6 +18,7 @@ import io
 import json
 import subprocess
 import unittest
+from http.client import BadStatusLine, IncompleteRead
 from unittest import mock
 
 import main_branch_readiness as readiness
@@ -165,6 +166,18 @@ class ReadinessTest(unittest.TestCase):
             get=self.get, fetch_config=lambda: (self.config, 'd' * 64), **kwargs
         )
 
+    def tide_scopes(self):
+        options = self.config['tide']['context_options']
+        org = options['orgs']['kubeflow']
+        repo = org['repos']['pipelines']
+        return (
+            options,
+            org,
+            repo,
+            repo['branches']['master'],
+            repo['branches']['main'],
+        )
+
     def assert_blocked(self, report, name, status='BLOCKED'):
         self.assertFalse(report['automated_checks_passed'])
         self.assertEqual(report['decision'], 'NO-GO')
@@ -281,6 +294,44 @@ class ReadinessTest(unittest.TestCase):
             self.collect(), 'deployed Tide accepts and gates both branches'
         )
 
+    def test_dependabot_branch_allowlist_cannot_be_missing_or_broadened(self):
+        for branches in (
+            None,
+            [],
+            ['main'],
+            ['master', 'main', 'release-2.18'],
+            ['master', 'main', '*'],
+            ['master', 'main', 'main'],
+        ):
+            with self.subTest(branches=branches):
+                self.setUp()
+                query = self.config['tide']['queries'][1]
+                if branches is None:
+                    query.pop('includedBranches')
+                else:
+                    query['includedBranches'] = branches
+                self.assert_blocked(
+                    self.collect(),
+                    'deployed Tide accepts and gates both branches',
+                )
+
+    def test_dependabot_branch_allowlist_is_order_independent(self):
+        self.config['tide']['queries'][1]['includedBranches'] = [
+            'main',
+            'master',
+        ]
+        self.assertTrue(self.collect()['automated_checks_passed'])
+
+    def test_malformed_dependabot_branch_allowlist_is_unknown(self):
+        for branches in (None, 'master main', ['master', 'main', 123]):
+            with self.subTest(branches=branches):
+                self.config['tide']['queries'][1]['includedBranches'] = branches
+                self.assert_blocked(
+                    self.collect(),
+                    'deployed Tide accepts and gates both branches',
+                    'UNKNOWN',
+                )
+
     def test_missing_main_required_context_blocks(self):
         self.config['tide']['context_options']['orgs']['kubeflow']['repos'][
             'pipelines'
@@ -290,10 +341,45 @@ class ReadinessTest(unittest.TestCase):
         )
 
     def test_optional_ci_passed_override_blocks(self):
-        self.config['tide']['context_options']['optional-contexts'] = ['ci-.*']
-        self.assert_blocked(
-            self.collect(), 'deployed Tide accepts and gates both branches'
-        )
+        for index in range(5):
+            with self.subTest(scope=index):
+                self.setUp()
+                self.tide_scopes()[index]['optional-contexts'] = ['ci-passed']
+                self.assert_blocked(
+                    self.collect(),
+                    'deployed Tide accepts and gates both branches',
+                )
+
+    def test_optional_contexts_are_literal_names(self):
+        for index in range(5):
+            for context in ('ci-.*', 'passed', '[', 'ci-passed-extra'):
+                with self.subTest(scope=index, context=context):
+                    self.setUp()
+                    self.tide_scopes()[index]['optional-contexts'] = [context]
+                    self.assertTrue(self.collect()['automated_checks_passed'])
+
+    def test_matching_optional_context_regex_blocks_at_each_scope(self):
+        for index in range(5):
+            for pattern in ('^ci-passed$', 'ci-.*', 'passed'):
+                with self.subTest(scope=index, pattern=pattern):
+                    self.setUp()
+                    self.tide_scopes()[index]['optional-regex-contexts'] = [
+                        pattern
+                    ]
+                    self.assert_blocked(
+                        self.collect(),
+                        'deployed Tide accepts and gates both branches',
+                    )
+
+    def test_unrelated_optional_context_regex_does_not_block(self):
+        for index in range(5):
+            with self.subTest(scope=index):
+                self.setUp()
+                self.tide_scopes()[index]['optional-regex-contexts'] = [
+                    '^passed$',
+                    '^other-.*',
+                ]
+                self.assertTrue(self.collect()['automated_checks_passed'])
 
     def test_additional_unreviewed_query_blocks(self):
         self.config['tide']['queries'].append(
@@ -330,14 +416,16 @@ class ReadinessTest(unittest.TestCase):
         )
 
     def test_scalar_optional_contexts_are_unknown(self):
-        self.config['tide']['context_options']['optional-contexts'] = (
-            'unrelated'
-        )
-        self.assert_blocked(
-            self.collect(),
-            'deployed Tide accepts and gates both branches',
-            'UNKNOWN',
-        )
+        for field in ('optional-contexts', 'optional-regex-contexts'):
+            for index in range(5):
+                with self.subTest(field=field, scope=index):
+                    self.setUp()
+                    self.tide_scopes()[index][field] = 'unrelated'
+                    self.assert_blocked(
+                        self.collect(),
+                        'deployed Tide accepts and gates both branches',
+                        'UNKNOWN',
+                    )
 
     def test_scalar_query_orgs_are_unknown(self):
         self.config['tide']['queries'][0].pop('repos')
@@ -349,7 +437,9 @@ class ReadinessTest(unittest.TestCase):
         )
 
     def test_partial_optional_context_pattern_blocks(self):
-        self.config['tide']['context_options']['optional-contexts'] = ['passed']
+        self.config['tide']['context_options']['optional-regex-contexts'] = [
+            'passed'
+        ]
         self.assert_blocked(
             self.collect(), 'deployed Tide accepts and gates both branches'
         )
@@ -381,12 +471,15 @@ class ReadinessTest(unittest.TestCase):
         )
 
     def test_invalid_optional_context_regex_is_unknown(self):
-        self.config['tide']['context_options']['optional-contexts'] = ['[']
-        self.assert_blocked(
-            self.collect(),
-            'deployed Tide accepts and gates both branches',
-            'UNKNOWN',
-        )
+        for index in range(5):
+            with self.subTest(scope=index):
+                self.setUp()
+                self.tide_scopes()[index]['optional-regex-contexts'] = ['[']
+                self.assert_blocked(
+                    self.collect(),
+                    'deployed Tide accepts and gates both branches',
+                    'UNKNOWN',
+                )
 
     def test_malformed_master_ref_never_crashes_collection(self):
         for value in (
@@ -524,6 +617,55 @@ class ReadOnlyTransportTest(unittest.TestCase):
         urlopen.return_value.__enter__.return_value.read.assert_called_once_with(
             8 * 1024 * 1024 + 1
         )
+
+    @mock.patch.object(readiness, 'urlopen')
+    def test_http_protocol_errors_are_sanitized_evidence_errors(self, urlopen):
+        for stage in ('open', 'read'):
+            for error in (
+                IncompleteRead(b'secret-token private-hook-url', 100),
+                BadStatusLine('secret-token private-hook-url'),
+            ):
+                with self.subTest(stage=stage, error=type(error).__name__):
+                    urlopen.reset_mock(side_effect=True, return_value=True)
+                    target = (
+                        urlopen
+                        if stage == 'open'
+                        else urlopen.return_value.__enter__.return_value.read
+                    )
+                    target.side_effect = error
+                    with self.assertRaises(readiness.EvidenceError) as caught:
+                        readiness.deployed_config()
+                    self.assertNotIn('secret-token', str(caught.exception))
+                    self.assertNotIn('private-hook-url', str(caught.exception))
+
+    @mock.patch.object(readiness, 'urlopen')
+    def test_truncated_configuration_is_unknown_and_collection_continues(
+        self, urlopen
+    ):
+        responses, _ = fixture()
+        urlopen.return_value.__enter__.return_value.read.side_effect = (
+            IncompleteRead(b'secret-token private-hook-url', 100)
+        )
+        report = readiness.collect(
+            get=lambda path, paginated=False: copy.deepcopy(responses[path]),
+            fetch_config=readiness.deployed_config,
+        )
+        self.assertEqual(report['decision'], 'NO-GO')
+        self.assertFalse(report['automated_checks_passed'])
+        self.assertIn(
+            {
+                'name': 'deployed Tide accepts and gates both branches',
+                'status': 'UNKNOWN',
+                'reason': 'EvidenceError',
+            },
+            report['checks'],
+        )
+        self.assertTrue(
+            all(check['status'] == 'PASS' for check in report['checks'][-2:])
+        )
+        self.assertNotIn('prow_config_sha256', report['evidence'])
+        self.assertNotIn('secret-token', json.dumps(report))
+        self.assertNotIn('private-hook-url', json.dumps(report))
 
 
 if __name__ == '__main__':

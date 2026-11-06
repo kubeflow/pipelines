@@ -20,6 +20,7 @@ import json
 import re
 import subprocess
 from datetime import datetime, timezone
+from http.client import HTTPException
 from urllib.request import urlopen
 
 import yaml
@@ -75,7 +76,7 @@ def deployed_config():
         if not isinstance(value, dict):
             raise EvidenceError('Deployed configuration is not a mapping')
         return value, hashlib.sha256(data).hexdigest()
-    except (OSError, ValueError, yaml.YAMLError) as exc:
+    except (HTTPException, OSError, ValueError, yaml.YAMLError) as exc:
         raise EvidenceError(
             'Public Prow configuration unavailable or invalid'
         ) from exc
@@ -140,9 +141,13 @@ def tide_ok(value):
         for scope in (options, org, repo, branch_options):
             if scope.get('skip-unknown-contexts', False) is not False:
                 return False
+            if 'ci-passed' in string_list(scope.get('optional-contexts', [])):
+                return False
             if any(
                 re.search(pattern, 'ci-passed')
-                for pattern in string_list(scope.get('optional-contexts', []))
+                for pattern in string_list(
+                    scope.get('optional-regex-contexts', [])
+                )
             ):
                 return False
     normal = bot = False
@@ -164,6 +169,8 @@ def tide_ok(value):
         ):
             return False
         if query.get('author') == 'dependabot[bot]':
+            if sorted(included) != ['main', 'master']:
+                return False
             if 'needs-ok-to-test' not in string_list(
                 query.get('missingLabels', [])
             ):
