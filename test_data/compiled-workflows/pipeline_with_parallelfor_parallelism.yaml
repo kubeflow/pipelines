@@ -86,6 +86,8 @@ spec:
     metadata: {}
     name: system-container-executor
     outputs: {}
+    retryStrategy:
+      limit: 0
   - container:
       command:
       - should-be-overridden-during-runtime
@@ -233,6 +235,8 @@ spec:
     metadata: {}
     name: comp-for-loop-2
     outputs: {}
+    retryStrategy:
+      limit: 0
   - inputs:
       parameters:
       - default: ""
@@ -314,6 +318,8 @@ spec:
     metadata: {}
     name: comp-for-loop-2-for-loop-2-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -354,6 +360,8 @@ spec:
     metadata: {}
     name: comp-for-loop-1
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -386,6 +394,8 @@ spec:
     metadata: {}
     name: comp-for-loop-10
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -418,6 +428,8 @@ spec:
     metadata: {}
     name: comp-for-loop-11
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -450,6 +462,8 @@ spec:
     metadata: {}
     name: comp-for-loop-12
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -482,6 +496,8 @@ spec:
     metadata: {}
     name: comp-for-loop-13
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -536,6 +552,8 @@ spec:
     metadata: {}
     name: comp-for-loop-6
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -568,6 +586,8 @@ spec:
     name: comp-for-loop-6-for-loop-6-iterator
     outputs: {}
     parallelism: 1
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -630,6 +650,8 @@ spec:
     metadata: {}
     name: comp-for-loop-4
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -662,6 +684,8 @@ spec:
     metadata: {}
     name: comp-for-loop-8
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -694,6 +718,8 @@ spec:
     metadata: {}
     name: comp-for-loop-9
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -722,6 +748,8 @@ spec:
     name: comp-for-loop-1-for-loop-1-iterator
     outputs: {}
     parallelism: 2
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -749,6 +777,8 @@ spec:
     metadata: {}
     name: comp-for-loop-10-for-loop-10-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -776,6 +806,8 @@ spec:
     metadata: {}
     name: comp-for-loop-11-for-loop-11-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -803,6 +835,8 @@ spec:
     metadata: {}
     name: comp-for-loop-12-for-loop-12-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -830,6 +864,8 @@ spec:
     metadata: {}
     name: comp-for-loop-13-for-loop-13-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -857,6 +893,8 @@ spec:
     metadata: {}
     name: comp-for-loop-4-for-loop-4-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -885,6 +923,8 @@ spec:
     name: comp-for-loop-8-for-loop-8-iterator
     outputs: {}
     parallelism: 1
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -912,6 +952,8 @@ spec:
     metadata: {}
     name: comp-for-loop-9-for-loop-9-iterator
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -1063,6 +1105,8 @@ spec:
     metadata: {}
     name: root
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -1086,6 +1130,8 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
+    retryStrategy:
+      limit: 0
 status:
   finishedAt: null
   startedAt: null
