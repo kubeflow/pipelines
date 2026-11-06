@@ -139,7 +139,9 @@ func run() error {
 	flag.Parse()
 	providedFlags := collectProvidedFlags()
 	// Cancel on SIGTERM so deferred cleanup (e.g. clearing a parked debug
-	// pause) runs during the pod's termination grace period.
+	// pause) runs during the pod's termination grace period. The user
+	// process relies on Argo's emissary for signal delivery - canceling
+	// this context does not signal it.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 	defer stop()
 
