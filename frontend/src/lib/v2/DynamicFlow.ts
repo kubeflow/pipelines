@@ -219,9 +219,8 @@ export function updateFlowElementsState(
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
       // Always assign so the warning clears when the message is cleared on recovery.
       data.lifecycleMessage = getNodeLifecycleMessage(runtimeInfo.task, data.state);
-      // Stale pause keys can survive on a finished run (pod killed before
-      // the launcher could clear them) - never render the pause overlay on
-      // a terminal run, or a dead task appears resumable.
+      // Never render the pause overlay on a terminal run: stale pause keys
+      // can outlive a dead task's pod.
       data.debugPauseBarrier = flowContext.runIsTerminal
         ? undefined
         : getDebugPauseBarrier(runtimeInfo.task);

@@ -280,11 +280,8 @@ function TaskNodeDetail({
       <LifecycleBanner task={task} sourceFinished={sourceFinished} />
       {runId && !sourceFinished && (
         <DebugPauseResumeBanner
-          // Key on run + task + barrier identity so the banner remounts with
-          // fresh mutation state when either the barrier advances (before ->
-          // after) or a different task parked at the same barrier is
-          // selected - otherwise the Resume button stays disabled from a
-          // previous task's successful click.
+          // Remount on run/task/barrier identity so a previous task's
+          // successful Resume doesn't leave this button disabled.
           key={`${runId}:${task?.task_id ?? 'none'}:${getDebugPauseBarrier(task) ?? 'none'}`}
           runId={runId}
           task={task}
@@ -389,12 +386,9 @@ interface DebugPauseResumeBannerProps {
   task?: V2PipelineTask;
 }
 
-// Shown at the top of a task's detail panel while it is parked at a
-// debug-pause barrier. Clicking Resume calls the existing UpdateTask RPC
-// directly (see DebugPauseUtils.ts) - nothing reaches into the running pod.
-// The launcher's own polling loop discovers the resume request on its own
-// next poll and continues by itself; this component does not (and cannot)
-// confirm that has happened, only that the request was recorded.
+// Banner shown while a task is parked at a debug-pause barrier. Resume
+// writes the flag via UpdateTask (see DebugPauseUtils.ts); the launcher
+// observes it on its next poll.
 function DebugPauseResumeBanner({ runId, task }: DebugPauseResumeBannerProps) {
   const barrier = getDebugPauseBarrier(task);
   const resumeMutation = useMutation({

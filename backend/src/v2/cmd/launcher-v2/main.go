@@ -138,9 +138,8 @@ func main() {
 func run() error {
 	flag.Parse()
 	providedFlags := collectProvidedFlags()
-	// Cancel on SIGTERM so parked debug pauses get a chance to clear their
-	// task-record state during the pod's termination grace period instead
-	// of leaving stale markers behind when the run is terminated.
+	// Cancel on SIGTERM so deferred cleanup (e.g. clearing a parked debug
+	// pause) runs during the pod's termination grace period.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 	defer stop()
 

@@ -15,12 +15,9 @@
 import { V2PipelineTask } from 'src/apisv2/run';
 import { Apis } from 'src/lib/Apis';
 
-// These keys and values must exactly match the launcher's
-// backend/src/v2/component/debug_pause.go (customPropDebugPauseBarrier /
-// customPropDebugPauseResumeRequested / customPropDebugPauseInstance).
-// Debug pause is a separate overlay signal on a task's
-// status_metadata.custom_properties - it never competes with the task's
-// real RUNNING/SUCCEEDED/FAILED state.
+// Keys must match the launcher's backend/src/v2/component/debug_pause.go.
+// Pause is an overlay on status_metadata.custom_properties - never a
+// PipelineTask state.
 const CUSTOM_PROP_DEBUG_PAUSE_BARRIER = 'debug_pause_barrier';
 const CUSTOM_PROP_DEBUG_PAUSE_RESUME_REQUESTED = 'debug_pause_resume_requested';
 const CUSTOM_PROP_DEBUG_PAUSE_INSTANCE = 'debug_pause_instance';
@@ -29,23 +26,13 @@ export type DebugPauseBarrier = 'before' | 'after' | 'on_error';
 
 const VALID_BARRIERS: ReadonlySet<string> = new Set(['before', 'after', 'on_error']);
 
-// PipelineTaskStatusMetadata types custom_properties as
-// { [key: string]: object } because it's generated from a
-// map<string, google.protobuf.Value> field. In practice, a string-valued
-// protobuf.Value serializes over JSON as a bare JSON string, not an object -
-// the generated type is simply imprecise for this case. This helper narrows
-// safely at runtime (typeof check) rather than trusting the declared type.
+// The generated type says { [key: string]: object } but a string-valued
+// protobuf.Value serializes as a bare JSON string - narrow at runtime.
 type CustomProperties = Record<string, unknown> | undefined;
 
 /**
- * Reads the task's current debug-pause barrier, if any, from
- * status_metadata.custom_properties. Returns undefined when the task is not
- * currently parked (the common case for a task that never called
- * set_debug_pause(), or one that hasn't reached a configured barrier yet).
- *
- * This is a live signal reported directly by the launcher - not an
- * inference from how long a task has been running - so it accurately
- * distinguishes "genuinely parked" from "just taking a while."
+ * Reads the task's current debug-pause barrier from
+ * status_metadata.custom_properties, or undefined when not parked.
  */
 export function getDebugPauseBarrier(
   task: V2PipelineTask | undefined,
@@ -62,10 +49,8 @@ export function isDebugPaused(task: V2PipelineTask | undefined): boolean {
   return getDebugPauseBarrier(task) !== undefined;
 }
 
-// Reads the per-pause instance ID the launcher published with the barrier.
-// A task can park at the same barrier value on two separate pause epochs
-// (e.g. a restarted pod re-parking at "before"), so the barrier alone does
-// not identify WHICH pause a row belongs to - the instance does.
+// Reads the per-pause instance ID. The same barrier value can appear on two
+// pause epochs (e.g. pod restart); the instance distinguishes them.
 export function getDebugPauseInstance(task: V2PipelineTask | undefined): string | undefined {
   const properties = task?.status_metadata?.custom_properties as CustomProperties;
   const raw = properties?.[CUSTOM_PROP_DEBUG_PAUSE_INSTANCE];
@@ -73,22 +58,14 @@ export function getDebugPauseInstance(task: V2PipelineTask | undefined): string 
 }
 
 /**
- * Requests that a paused task resume. This calls the existing UpdateTask RPC
- * directly — no purpose-built "/:resume" endpoint exists or is needed, since
- * UpdateTask already performs the same run-scoped authorization such an
- * endpoint would require. The launcher's own polling loop (in the running
- * pod) discovers this flag on its own next poll and continues by itself;
- * this call never reaches into the pod directly.
+ * Requests resume via the existing UpdateTask RPC - no dedicated endpoint
+ * needed since UpdateTask already does run-scoped authorization. The
+ * launcher observes the flag on its next poll.
  *
- * UpdateTask replaces status_metadata wholesale, so this does the same
- * read-merge-write the launcher does - the page's cached task snapshot can
- * be seconds stale, and writing it back blindly could resurrect an older
- * barrier and grant a resume meant for a previous pause. The task is
- * refetched first, the write is refused if the barrier or its pause
- * instance has changed (a changed barrier means the task parked somewhere
- * else; a changed instance means a different pause epoch even at the same
- * barrier), and the resume flag is merged into the fresh custom_properties
- * so keys written since the page loaded are not lost.
+ * UpdateTask replaces status_metadata wholesale, so refetch first and merge
+ * into fresh custom_properties. The write is refused if the barrier or pause
+ * instance changed since the page loaded - a stale write could resurrect an
+ * older barrier and grant a resume meant for a previous pause.
  */
 export async function requestDebugPauseResume(
   runId: string,
