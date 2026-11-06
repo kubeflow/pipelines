@@ -343,12 +343,6 @@ func (e *debugPauseTimeoutError) Error() string {
 	return "debug pause timed out after " + e.maxDuration.String() + " waiting at barrier " + strconv.Quote(string(e.barrier))
 }
 
-// IsDebugPauseTimeout reports whether err is a debug pause safety-valve timeout.
-func IsDebugPauseTimeout(err error) bool {
-	var target *debugPauseTimeoutError
-	return errors.As(err, &target)
-}
-
 // BarrierForError resolves which barrier applies once the command finishes.
 // The SDK never sets both after and on_error; on_error is checked first
 // defensively in case the env vars are set by hand.

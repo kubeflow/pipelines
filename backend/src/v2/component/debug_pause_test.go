@@ -33,6 +33,12 @@ import (
 // already have been accepted for this pause).
 var errLostResponse = errors.New("lost response after commit")
 
+// isPauseTimeout reports whether err is a debug-pause safety-valve timeout.
+func isPauseTimeout(err error) bool {
+	var target *debugPauseTimeoutError
+	return errors.As(err, &target)
+}
+
 // mockPauseSignaler is a hand-rolled PauseSignaler for testing Pause()'s
 // control flow without any real network call. It simulates the "server"
 // side of the task record: a failed publish does not commit, a successful
@@ -218,7 +224,7 @@ func TestPause_PermanentPublishFailureTimesOut(t *testing.T) {
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, fastTestConfig())
 	require.Error(t, err)
-	require.True(t, IsDebugPauseTimeout(err))
+	require.True(t, isPauseTimeout(err))
 	require.GreaterOrEqual(t, len(signaler.publishes), 2, "publish must keep retrying until the safety valve")
 	require.True(t, signaler.clearCalled, "best-effort clear still runs on timeout")
 }
@@ -304,7 +310,7 @@ func TestPause_SafetyValveTimesOut(t *testing.T) {
 	}
 	err := Pause(context.Background(), signaler, DebugPauseBarrierBefore, cfg)
 	require.Error(t, err)
-	require.True(t, IsDebugPauseTimeout(err), "timeout must be identifiable via IsDebugPauseTimeout")
+	require.True(t, isPauseTimeout(err), "timeout must be identifiable as the safety-valve timeout")
 	require.True(t, signaler.clearCalled, "barrier must still be cleared, best effort, after a timeout")
 }
 
@@ -325,7 +331,7 @@ func TestPause_StalledPollIsBoundedBySafetyValve(t *testing.T) {
 	select {
 	case err := <-done:
 		require.Error(t, err)
-		require.True(t, IsDebugPauseTimeout(err), "a stalled RPC must surface as the safety-valve timeout")
+		require.True(t, isPauseTimeout(err), "a stalled RPC must surface as the safety-valve timeout")
 		require.True(t, signaler.clearCalled, "best-effort clear still runs after a stalled-RPC timeout")
 	case <-time.After(10 * time.Second):
 		t.Fatal("Pause did not return - a stalled poll escaped the safety valve")
@@ -401,7 +407,7 @@ func TestPause_StaleResumeFlagDoesNotReleaseBarrier(t *testing.T) {
 	signaler := NewKFPAPIPauseSignaler(api, "run-1", "task-1")
 	err := Pause(context.Background(), signaler, DebugPauseBarrierAfter, fastTestConfig())
 	require.Error(t, err)
-	require.True(t, IsDebugPauseTimeout(err), "stale resume flag must not release the barrier; expected timeout")
+	require.True(t, isPauseTimeout(err), "stale resume flag must not release the barrier; expected timeout")
 }
 
 func TestBarrierForError(t *testing.T) {
