@@ -132,7 +132,7 @@ Replace deprecated `react-flow-renderer` v9 with `@xyflow/react`, updating the D
 **Depends on**: #2
 
 **Status**:
-Completed by [#12925](https://github.com/kubeflow/pipelines/pull/12925). The repo now uses `@mui/material`, `@mui/icons-material`, and Emotion.
+Completed by [#12925](https://github.com/kubeflow/pipelines/pull/12925). That migration introduced `@mui/material`, `@mui/icons-material`, and Emotion. The subsequent [UI modernization](https://github.com/kubeflow/pipelines/issues/14572) replaces them with Tailwind CSS and Base UI.
 
 **Description**:
 Migrate `@material-ui/core` and `@material-ui/icons` to MUI v5, including theme migration and the few non-codemod-safe styling updates.
@@ -228,14 +228,14 @@ Completed via [#13075](https://github.com/kubeflow/pipelines/pull/13075) and [#1
 - Removed `notifyManager.setNotifyFunction` act() workaround for React Query from `frontend/src/vitest.setup.ts`
 - Removed `filterReactDeprecationWarnings` utility from `frontend/src/TestUtils.ts`
 - Updated `frontend/src/components/Metric.test.tsx` and `frontend/src/pages/ExperimentDetails.test.tsx` to remove filter usage
-- Updated `frontend/src/pages/ExperimentDetails.test.tsx`, `frontend/src/pages/NewPipelineVersion.test.tsx`, `frontend/src/pages/NewRun.test.tsx`, and `frontend/src/pages/RunDetails.test.tsx` to wrap the remaining direct instance-method and modal interaction flows in explicit `act()` + flush handling
+- Updated `frontend/src/pages/ExperimentDetails.test.tsx`, `frontend/src/pages/UploadPipelinePage.test.tsx`, `frontend/src/pages/NewRun.test.tsx`, and `frontend/src/pages/RunDetails.test.tsx` to wrap the remaining direct instance-method and modal interaction flows in explicit `act()` + flush handling
 - Regenerated all affected snapshots (95 snapshot updates across multiple files)
 
 **Acceptance Criteria**:
 
 - [x] `npm run check:react-peers:18` passes with an empty allowlist
 - [x] `npm ci` no longer depends on `legacy-peer-deps=true` for the frontend
-- [x] Targeted reruns of `ExperimentDetails`, `NewPipelineVersion`, `NewRun`, and `RunDetails` are clean of React 18 `act(...)` warnings
+- [x] Targeted reruns of `ExperimentDetails`, `UploadPipelinePage`, `NewRun`, and `RunDetails` are clean of React 18 `act(...)` warnings
 - [x] `npm run build` and the affected frontend suite verification pass
 
 ---

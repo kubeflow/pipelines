@@ -12,4 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export { KubernetesExecutorConfig, PvcMount } from 'src/generated/platform_spec/kubernetes_platform/kubernetes_executor_config';
+export {
+  KubernetesExecutorConfig,
+  PvcMount,
+} from 'src/generated/platform_spec/kubernetes_platform/kubernetes_executor_config';

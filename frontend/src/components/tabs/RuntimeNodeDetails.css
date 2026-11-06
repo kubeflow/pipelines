@@ -1,0 +1,87 @@
+.kfp-node-logs {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+.kfp-node-logs-driver {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.kfp-node-logs-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  padding: 4px 0;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.kfp-node-logs-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.kfp-node-logs-description {
+  color: var(--muted-foreground);
+  margin: 8px 0;
+}
+.kfp-node-logs-task h3 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 500;
+}
+.kfp-node-logs .kfp-inspection-log-window {
+  flex: none;
+  max-height: 320px;
+  min-height: 0;
+}
+.kfp-node-logs-driver .kfp-inspection-log-window {
+  min-height: 0;
+  max-height: 200px;
+}
+
+.kfp-node-logs-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.kfp-node-logs-task > .kfp-node-logs-heading {
+  margin-bottom: 8px;
+}
+.kfp-node-logs-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.kfp-node-logs-copy:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--muted);
+}
+.kfp-node-logs-copy:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.kfp-node-logs-copy:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.kfp-node-logs-task + .kfp-node-logs-task {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 8px;
+}

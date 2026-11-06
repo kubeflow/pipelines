@@ -65,7 +65,7 @@ describe('MetadataTransferForm', () => {
     expect(apply).toBeEnabled();
     await user.type(screen.getByLabelText('Imported name prefix'), 'copy');
     expect(apply).toBeDisabled();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Import result' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Validate archive' }));
     await screen.findByText('Archive validated. Ready to import.');
     await user.click(apply);
@@ -149,7 +149,7 @@ describe('MetadataTransferForm', () => {
     await user.click(screen.getByRole('button', { name: 'Validate archive' }));
     await screen.findByText('Archive validated. Ready to import.');
     view.rerender(<MetadataTransferForm key='two' namespace='two' />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Import result' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Import metadata' })).toBeDisabled();
   });
   it('aborts an in-flight request when leaving the namespace', async () => {

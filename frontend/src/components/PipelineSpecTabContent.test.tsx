@@ -29,38 +29,38 @@ vi.mock('./Editor', () => ({
 }));
 
 describe('PipelineSpecTabContent', () => {
-  it('converts JSON template to YAML and passes to editor', () => {
+  it('converts JSON template to YAML and passes to editor', async () => {
     const jsonTemplate = JSON.stringify({ key: 'value', nested: { a: 1 } });
-    const { getByTestId } = render(<PipelineSpecTabContent templateString={jsonTemplate} />);
-    const editor = getByTestId('editor-mock');
+    const { findByTestId } = render(<PipelineSpecTabContent templateString={jsonTemplate} />);
+    const editor = await findByTestId('editor-mock');
     expect(editor.textContent).toContain('key: value');
     expect(editor.textContent).toContain('nested:');
     expect(editor.textContent).toContain('a: 1');
   });
 
-  it('preserves YAML template format through round-trip', () => {
+  it('preserves YAML template format through round-trip', async () => {
     const yamlTemplate = 'key: value\nnested:\n  a: 1\n';
-    const { getByTestId } = render(<PipelineSpecTabContent templateString={yamlTemplate} />);
-    const editor = getByTestId('editor-mock');
+    const { findByTestId } = render(<PipelineSpecTabContent templateString={yamlTemplate} />);
+    const editor = await findByTestId('editor-mock');
     expect(editor.textContent).toContain('key: value');
     expect(editor.textContent).toContain('nested:');
   });
 
-  it('renders an empty editor when no template is provided', () => {
+  it('renders an empty editor when no template is provided', async () => {
     // js-yaml 5 throws on input holding no document, so an absent template
     // would otherwise fail during render rather than showing an empty editor.
-    const { getByTestId } = render(<PipelineSpecTabContent templateString={undefined as any} />);
-    expect(getByTestId('editor-mock').textContent).toBe('');
+    const { findByTestId } = render(<PipelineSpecTabContent templateString={undefined as any} />);
+    expect((await findByTestId('editor-mock')).textContent).toBe('');
   });
 
-  it('renders an empty editor for an empty template string', () => {
-    const { getByTestId } = render(<PipelineSpecTabContent templateString='' />);
-    expect(getByTestId('editor-mock').textContent).toBe('');
+  it('renders an empty editor for an empty template string', async () => {
+    const { findByTestId } = render(<PipelineSpecTabContent templateString='' />);
+    expect((await findByTestId('editor-mock')).textContent).toBe('');
   });
 
-  it('passes yaml mode and readOnly to the editor', () => {
-    const { getByTestId } = render(<PipelineSpecTabContent templateString='name: test' />);
-    const editor = getByTestId('editor-mock');
+  it('passes yaml mode and readOnly to the editor', async () => {
+    const { findByTestId } = render(<PipelineSpecTabContent templateString='name: test' />);
+    const editor = await findByTestId('editor-mock');
     expect(editor).toHaveAttribute('data-mode', 'yaml');
     expect(editor).toHaveAttribute('data-readonly', 'true');
   });

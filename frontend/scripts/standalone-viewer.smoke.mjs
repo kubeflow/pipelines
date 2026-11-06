@@ -160,7 +160,7 @@ def pipeline():
         /(<script id="kfp-data" type="application\/json">)(.*?)(<\/script>)/s,
         (_match, open, data, close) => {
           const payload = JSON.parse(data);
-          // JSON artifact schemas exercise the inspector's read-only code editor.
+          // JSON artifact schemas exercise the inspector's structured-value rendering.
           for (const component of Object.values(payload.state.spec.components)) {
             for (const artifact of Object.values(component.outputDefinitions?.artifacts ?? {})) {
               artifact.artifactType = { instanceSchema: '{"type":"object"}' };
@@ -177,7 +177,7 @@ def pipeline():
       }, artifact);
       const frame = sandboxPage.frameLocator('iframe');
       await frame.getByRole('button', { name: 'Train model', exact: true }).click();
-      await frame.locator('.ace_editor').waitFor();
+      await frame.getByRole('region', { name: 'Output Artifacts' }).locator('pre').waitFor();
       await sandboxPage.waitForTimeout(500);
       assert.deepEqual(sandboxRequests, [], 'Sandboxed inspector must not load external assets');
 

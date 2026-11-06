@@ -3,126 +3,119 @@
 exports[`PagedTable > does not break on empty data 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
-    style="width: 100%;"
+    class="kfp-viewer-table "
   >
-    <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
-      style="display: block; overflow: auto;"
-    >
-      <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
-      >
-        <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
-          style="height: 300px;"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
-            colspan="6"
-          />
-        </tr>
-      </tbody>
-    </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      aria-label="Table output"
+      class="kfp-viewer-table-scroll"
+      role="region"
+      tabindex="0"
     >
-      <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      <table
+        aria-label="Table output"
       >
-        <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
-        />
-        <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="react-use-id-0"
+        <tbody
+          class="kfp-viewer-table-unlabelled"
         >
-          Rows per page:
-        </p>
-        <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          <tr
+            style="height: 300px;"
+          >
+            <td
+              colspan="1"
+            />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="kfp-viewer-table-pagination"
+    >
+      <label>
+        Rows per page
+        <select
+          class="kfp-viewer-select"
         >
-          <div
-            aria-controls="react-use-id-2"
-            aria-expanded="false"
-            aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="react-use-id-1"
-            role="combobox"
-            tabindex="0"
+          <option
+            value="10"
           >
             10
-          </div>
-          <input
-            aria-hidden="true"
-            aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-            tabindex="-1"
-            value="10"
+          </option>
+          <option
+            value="25"
+          >
+            25
+          </option>
+          <option
+            value="50"
+          >
+            50
+          </option>
+          <option
+            value="100"
+          >
+            100
+          </option>
+        </select>
+      </label>
+      <span
+        aria-live="polite"
+      >
+        0–0 of 0
+      </span>
+      <button
+        aria-label="Go to previous page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-left"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m15 18-6-6 6-6"
           />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-            data-testid="ArrowDropDownIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
-        </div>
-        <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        </svg>
+      </button>
+      <button
+        aria-label="Go to next page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-right"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          0–0 of 0
-        </p>
-        <div
-          class="MuiTablePagination-actions"
-        >
-          <button
-            aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to previous page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowLeftIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </button>
-          <button
-            aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to next page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowRightIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <path
+            d="m9 18 6-6-6-6"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>
@@ -133,250 +126,252 @@ exports[`PagedTable > does not break on no config 1`] = `<DocumentFragment />`;
 exports[`PagedTable > renders simple data 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
-    style="width: 100%;"
+    class="kfp-viewer-table "
   >
-    <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
-      style="display: block; overflow: auto;"
-    >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        >
-          <th
-            aria-sort="ascending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field1
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-          <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field2
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-          <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field3
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col1
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col2
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col3
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col4
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col5
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col6
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
-          style="height: 240px;"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
-            colspan="6"
-          />
-        </tr>
-      </tbody>
-    </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      aria-label="Table output"
+      class="kfp-viewer-table-scroll"
+      role="region"
+      tabindex="0"
     >
-      <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      <table
+        aria-label="Table output"
       >
-        <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
-        />
-        <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="react-use-id-0"
+        <thead>
+          <tr>
+            <th
+              aria-sort="ascending"
+              scope="col"
+            >
+              <button
+                aria-label="field1"
+                class="kfp-viewer-table-sort"
+              >
+                field1
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m5 12 7-7 7 7"
+                  />
+                  <path
+                    d="M12 19V5"
+                  />
+                </svg>
+              </button>
+            </th>
+            <th
+              aria-sort="none"
+              scope="col"
+            >
+              <button
+                aria-label="field2"
+                class="kfp-viewer-table-sort"
+              >
+                field2
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 16-4 4-4-4"
+                  />
+                  <path
+                    d="M17 20V4"
+                  />
+                  <path
+                    d="m3 8 4-4 4 4"
+                  />
+                  <path
+                    d="M7 4v16"
+                  />
+                </svg>
+              </button>
+            </th>
+            <th
+              aria-sort="none"
+              scope="col"
+            >
+              <button
+                aria-label="field3"
+                class="kfp-viewer-table-sort"
+              >
+                field3
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 16-4 4-4-4"
+                  />
+                  <path
+                    d="M17 20V4"
+                  />
+                  <path
+                    d="m3 8 4-4 4 4"
+                  />
+                  <path
+                    d="M7 4v16"
+                  />
+                </svg>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col1
+            </td>
+            <td>
+              col2
+            </td>
+            <td>
+              col3
+            </td>
+          </tr>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col4
+            </td>
+            <td>
+              col5
+            </td>
+            <td>
+              col6
+            </td>
+          </tr>
+          <tr
+            style="height: 240px;"
+          >
+            <td
+              colspan="3"
+            />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="kfp-viewer-table-pagination"
+    >
+      <label>
+        Rows per page
+        <select
+          class="kfp-viewer-select"
         >
-          Rows per page:
-        </p>
-        <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
-        >
-          <div
-            aria-controls="react-use-id-2"
-            aria-expanded="false"
-            aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="react-use-id-1"
-            role="combobox"
-            tabindex="0"
+          <option
+            value="10"
           >
             10
-          </div>
-          <input
-            aria-hidden="true"
-            aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-            tabindex="-1"
-            value="10"
+          </option>
+          <option
+            value="25"
+          >
+            25
+          </option>
+          <option
+            value="50"
+          >
+            50
+          </option>
+          <option
+            value="100"
+          >
+            100
+          </option>
+        </select>
+      </label>
+      <span
+        aria-live="polite"
+      >
+        1–2 of 2
+      </span>
+      <button
+        aria-label="Go to previous page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-left"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m15 18-6-6 6-6"
           />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-            data-testid="ArrowDropDownIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
-        </div>
-        <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        </svg>
+      </button>
+      <button
+        aria-label="Go to next page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-right"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          1–2 of 2
-        </p>
-        <div
-          class="MuiTablePagination-actions"
-        >
-          <button
-            aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to previous page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowLeftIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </button>
-          <button
-            aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to next page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowRightIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <path
+            d="m9 18 6-6-6-6"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>
@@ -385,166 +380,145 @@ exports[`PagedTable > renders simple data 1`] = `
 exports[`PagedTable > renders simple data without labels 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
-    style="width: 100%;"
+    class="kfp-viewer-table "
   >
-    <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
-      style="display: block; overflow: auto;"
-    >
-      <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
-          >
-            col1
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
-          >
-            col2
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm topBorder_fvomkg7 css-1ex1afd-MuiTableCell-root"
-          >
-            col3
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col4
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col5
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col6
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
-          style="height: 240px;"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
-            colspan="6"
-          />
-        </tr>
-      </tbody>
-    </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      aria-label="Table output"
+      class="kfp-viewer-table-scroll"
+      role="region"
+      tabindex="0"
     >
-      <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      <table
+        aria-label="Table output"
       >
-        <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
-        />
-        <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="react-use-id-0"
+        <tbody
+          class="kfp-viewer-table-unlabelled"
         >
-          Rows per page:
-        </p>
-        <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col1
+            </td>
+            <td>
+              col2
+            </td>
+            <td>
+              col3
+            </td>
+          </tr>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col4
+            </td>
+            <td>
+              col5
+            </td>
+            <td>
+              col6
+            </td>
+          </tr>
+          <tr
+            style="height: 240px;"
+          >
+            <td
+              colspan="3"
+            />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="kfp-viewer-table-pagination"
+    >
+      <label>
+        Rows per page
+        <select
+          class="kfp-viewer-select"
         >
-          <div
-            aria-controls="react-use-id-2"
-            aria-expanded="false"
-            aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="react-use-id-1"
-            role="combobox"
-            tabindex="0"
+          <option
+            value="10"
           >
             10
-          </div>
-          <input
-            aria-hidden="true"
-            aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-            tabindex="-1"
-            value="10"
+          </option>
+          <option
+            value="25"
+          >
+            25
+          </option>
+          <option
+            value="50"
+          >
+            50
+          </option>
+          <option
+            value="100"
+          >
+            100
+          </option>
+        </select>
+      </label>
+      <span
+        aria-live="polite"
+      >
+        1–2 of 2
+      </span>
+      <button
+        aria-label="Go to previous page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-left"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m15 18-6-6 6-6"
           />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-            data-testid="ArrowDropDownIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
-        </div>
-        <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        </svg>
+      </button>
+      <button
+        aria-label="Go to next page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-right"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          1–2 of 2
-        </p>
-        <div
-          class="MuiTablePagination-actions"
-        >
-          <button
-            aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to previous page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowLeftIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </button>
-          <button
-            aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to next page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowRightIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <path
+            d="m9 18 6-6-6-6"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>
@@ -553,250 +527,252 @@ exports[`PagedTable > renders simple data without labels 1`] = `
 exports[`PagedTable > sorts on first column ascending 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
-    style="width: 100%;"
+    class="kfp-viewer-table "
   >
-    <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
-      style="display: block; overflow: auto;"
-    >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        >
-          <th
-            aria-sort="ascending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field1
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-          <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field2
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-          <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field3
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col1
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col2
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col3
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col4
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col5
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col6
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
-          style="height: 240px;"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
-            colspan="6"
-          />
-        </tr>
-      </tbody>
-    </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      aria-label="Table output"
+      class="kfp-viewer-table-scroll"
+      role="region"
+      tabindex="0"
     >
-      <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      <table
+        aria-label="Table output"
       >
-        <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
-        />
-        <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="react-use-id-0"
+        <thead>
+          <tr>
+            <th
+              aria-sort="ascending"
+              scope="col"
+            >
+              <button
+                aria-label="field1"
+                class="kfp-viewer-table-sort"
+              >
+                field1
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m5 12 7-7 7 7"
+                  />
+                  <path
+                    d="M12 19V5"
+                  />
+                </svg>
+              </button>
+            </th>
+            <th
+              aria-sort="none"
+              scope="col"
+            >
+              <button
+                aria-label="field2"
+                class="kfp-viewer-table-sort"
+              >
+                field2
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 16-4 4-4-4"
+                  />
+                  <path
+                    d="M17 20V4"
+                  />
+                  <path
+                    d="m3 8 4-4 4 4"
+                  />
+                  <path
+                    d="M7 4v16"
+                  />
+                </svg>
+              </button>
+            </th>
+            <th
+              aria-sort="none"
+              scope="col"
+            >
+              <button
+                aria-label="field3"
+                class="kfp-viewer-table-sort"
+              >
+                field3
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 16-4 4-4-4"
+                  />
+                  <path
+                    d="M17 20V4"
+                  />
+                  <path
+                    d="m3 8 4-4 4 4"
+                  />
+                  <path
+                    d="M7 4v16"
+                  />
+                </svg>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col1
+            </td>
+            <td>
+              col2
+            </td>
+            <td>
+              col3
+            </td>
+          </tr>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col4
+            </td>
+            <td>
+              col5
+            </td>
+            <td>
+              col6
+            </td>
+          </tr>
+          <tr
+            style="height: 240px;"
+          >
+            <td
+              colspan="3"
+            />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="kfp-viewer-table-pagination"
+    >
+      <label>
+        Rows per page
+        <select
+          class="kfp-viewer-select"
         >
-          Rows per page:
-        </p>
-        <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
-        >
-          <div
-            aria-controls="react-use-id-2"
-            aria-expanded="false"
-            aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="react-use-id-1"
-            role="combobox"
-            tabindex="0"
+          <option
+            value="10"
           >
             10
-          </div>
-          <input
-            aria-hidden="true"
-            aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-            tabindex="-1"
-            value="10"
+          </option>
+          <option
+            value="25"
+          >
+            25
+          </option>
+          <option
+            value="50"
+          >
+            50
+          </option>
+          <option
+            value="100"
+          >
+            100
+          </option>
+        </select>
+      </label>
+      <span
+        aria-live="polite"
+      >
+        1–2 of 2
+      </span>
+      <button
+        aria-label="Go to previous page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-left"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m15 18-6-6 6-6"
           />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-            data-testid="ArrowDropDownIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
-        </div>
-        <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        </svg>
+      </button>
+      <button
+        aria-label="Go to next page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-right"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          1–2 of 2
-        </p>
-        <div
-          class="MuiTablePagination-actions"
-        >
-          <button
-            aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to previous page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowLeftIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </button>
-          <button
-            aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to next page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowRightIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <path
+            d="m9 18 6-6-6-6"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>
@@ -805,250 +781,252 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
 exports[`PagedTable > sorts on first column descending 1`] = `
 <DocumentFragment>
   <div
-    class="page_f1flacxk"
-    style="width: 100%;"
+    class="kfp-viewer-table "
   >
-    <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
-      style="display: block; overflow: auto;"
-    >
-      <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
-        >
-          <th
-            aria-sort="descending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field1
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-          <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field2
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-          <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
-            scope="col"
-          >
-            <span
-              aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              field3
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
-      >
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col4
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col5
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col6
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
-          tabindex="-1"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col1
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col2
-          </td>
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_fhuzpwm css-1ex1afd-MuiTableCell-root"
-          >
-            col3
-          </td>
-        </tr>
-        <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
-          style="height: 240px;"
-        >
-          <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
-            colspan="6"
-          />
-        </tr>
-      </tbody>
-    </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      aria-label="Table output"
+      class="kfp-viewer-table-scroll"
+      role="region"
+      tabindex="0"
     >
-      <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      <table
+        aria-label="Table output"
       >
-        <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
-        />
-        <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
-          id="react-use-id-0"
+        <thead>
+          <tr>
+            <th
+              aria-sort="descending"
+              scope="col"
+            >
+              <button
+                aria-label="field1"
+                class="kfp-viewer-table-sort"
+              >
+                field1
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 5v14"
+                  />
+                  <path
+                    d="m19 12-7 7-7-7"
+                  />
+                </svg>
+              </button>
+            </th>
+            <th
+              aria-sort="none"
+              scope="col"
+            >
+              <button
+                aria-label="field2"
+                class="kfp-viewer-table-sort"
+              >
+                field2
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 16-4 4-4-4"
+                  />
+                  <path
+                    d="M17 20V4"
+                  />
+                  <path
+                    d="m3 8 4-4 4 4"
+                  />
+                  <path
+                    d="M7 4v16"
+                  />
+                </svg>
+              </button>
+            </th>
+            <th
+              aria-sort="none"
+              scope="col"
+            >
+              <button
+                aria-label="field3"
+                class="kfp-viewer-table-sort"
+              >
+                field3
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-arrow-up-down"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m21 16-4 4-4-4"
+                  />
+                  <path
+                    d="M17 20V4"
+                  />
+                  <path
+                    d="m3 8 4-4 4 4"
+                  />
+                  <path
+                    d="M7 4v16"
+                  />
+                </svg>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col4
+            </td>
+            <td>
+              col5
+            </td>
+            <td>
+              col6
+            </td>
+          </tr>
+          <tr
+            class="kfp-viewer-table-data"
+          >
+            <td>
+              col1
+            </td>
+            <td>
+              col2
+            </td>
+            <td>
+              col3
+            </td>
+          </tr>
+          <tr
+            style="height: 240px;"
+          >
+            <td
+              colspan="3"
+            />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div
+      class="kfp-viewer-table-pagination"
+    >
+      <label>
+        Rows per page
+        <select
+          class="kfp-viewer-select"
         >
-          Rows per page:
-        </p>
-        <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
-        >
-          <div
-            aria-controls="react-use-id-2"
-            aria-expanded="false"
-            aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
-            id="react-use-id-1"
-            role="combobox"
-            tabindex="0"
+          <option
+            value="10"
           >
             10
-          </div>
-          <input
-            aria-hidden="true"
-            aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
-            tabindex="-1"
-            value="10"
+          </option>
+          <option
+            value="25"
+          >
+            25
+          </option>
+          <option
+            value="50"
+          >
+            50
+          </option>
+          <option
+            value="100"
+          >
+            100
+          </option>
+        </select>
+      </label>
+      <span
+        aria-live="polite"
+      >
+        1–2 of 2
+      </span>
+      <button
+        aria-label="Go to previous page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-left"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="m15 18-6-6 6-6"
           />
-          <svg
-            aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
-            data-testid="ArrowDropDownIcon"
-            focusable="false"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M7 10l5 5 5-5z"
-            />
-          </svg>
-        </div>
-        <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        </svg>
+      </button>
+      <button
+        aria-label="Go to next page"
+        class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-control border font-kfp-sans text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-wait [&_svg]:size-[18px] [&_svg]:shrink-0 border-transparent bg-transparent text-foreground-2 hover:bg-muted hover:text-foreground size-[34px] p-0"
+        data-disabled=""
+        data-slot="button"
+        disabled=""
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="lucide lucide-chevron-right"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          1–2 of 2
-        </p>
-        <div
-          class="MuiTablePagination-actions"
-        >
-          <button
-            aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to previous page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowLeftIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
-              />
-            </svg>
-          </button>
-          <button
-            aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
-            disabled=""
-            tabindex="-1"
-            title="Go to next page"
-            type="button"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="KeyboardArrowRightIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+          <path
+            d="m9 18 6-6-6-6"
+          />
+        </svg>
+      </button>
     </div>
   </div>
 </DocumentFragment>

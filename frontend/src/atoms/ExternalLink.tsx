@@ -14,34 +14,17 @@
  * limitations under the License.
  */
 
-import React, { DetailedHTMLProps, AnchorHTMLAttributes } from 'react';
-import { classes, stylesheet } from 'typestyle';
-import { color } from '../Css';
+import type { ComponentProps } from 'react';
+import { cn } from '../components/ui/utils';
+import './SharedAtoms.css';
 
-const css = stylesheet({
-  link: {
-    $nest: {
-      '&:hover': {
-        textDecoration: 'underline',
-      },
-    },
-    color: color.theme,
-    textDecoration: 'none',
-    wordBreak: 'break-all', // Links do not need to break at words.
-  },
-});
-
-export const ExternalLink: React.FC<
-  DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>
-> = (props) => (
-  <a {...props} className={classes(css.link, props.className)} target='_blank' rel='noopener' />
+export const ExternalLink = ({ className, ...props }: ComponentProps<'a'>) => (
+  <a {...props} className={cn('kfp-external-link', className)} target='_blank' rel='noopener' />
 );
 
-export const AutoLink: React.FC<
-  DetailedHTMLProps<AnchorHTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>
-> = (props) =>
-  props.href && props.href.startsWith('#') ? (
-    <a {...props} className={classes(css.link, props.className)} />
+export const AutoLink = ({ className, ...props }: ComponentProps<'a'>) =>
+  props.href?.startsWith('#') ? (
+    <a {...props} className={cn('kfp-external-link', className)} />
   ) : (
-    <ExternalLink {...props} />
+    <ExternalLink {...props} className={className} />
   );

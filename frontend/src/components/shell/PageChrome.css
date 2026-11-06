@@ -1,0 +1,194 @@
+.kfp-theme {
+  --kfp-text-body: 13px;
+  --kfp-text-secondary: 12px;
+  --kfp-text-section: 16px;
+  --kfp-text-title: 22px;
+  --kfp-line-body: 20px;
+  --kfp-line-secondary: 18px;
+}
+
+.kfp-theme .kfp-modern-page {
+  --kfp-page-gutter: 16px;
+  --kfp-control-gap: 8px;
+  --kfp-section-gap: 12px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  color: var(--foreground);
+  font-family: var(--kfp-font-sans);
+  font-size: var(--kfp-text-body);
+  line-height: var(--kfp-line-body);
+  background: var(--background);
+  overflow: auto;
+}
+.kfp-theme .kfp-page-header {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px var(--kfp-page-gutter, 16px);
+}
+/* Reserve the loaded breadcrumb row (22px), actions (34px), and padding (16px). */
+.kfp-theme .kfp-page-header[data-reserve-breadcrumb-header='true'] {
+  min-height: 72px;
+}
+.kfp-theme .kfp-page-heading {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+.kfp-theme .kfp-page-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kfp-theme .kfp-page-title-row h1 {
+  margin: 0;
+  font-size: var(--kfp-text-title);
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.kfp-theme .kfp-page-breadcrumbs {
+  /* Keep the route breadcrumb slot stable while its metadata is loading. */
+  min-height: 18px;
+  line-height: var(--kfp-line-secondary);
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-theme .kfp-page-breadcrumbs span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.kfp-theme .kfp-page-breadcrumbs a {
+  color: inherit;
+}
+.kfp-theme .kfp-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.kfp-theme .kfp-page-actions button {
+  gap: 6px;
+}
+.kfp-theme .kfp-page-actions > span > button {
+  width: 100%;
+}
+.kfp-theme .kfp-modern-page-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.kfp-theme .kfp-page-theme {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.kfp-theme .kfp-page-theme select {
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--foreground);
+}
+.kfp-theme .kfp-page-banner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 0 var(--kfp-page-gutter, 24px) var(--kfp-section-gap, 16px);
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: var(--status-failed);
+  background: var(--status-failed-soft);
+}
+.kfp-theme .kfp-page-banner p {
+  margin: 0;
+}
+.kfp-theme .kfp-page-banner[data-mode='warning'] {
+  color: var(--status-warning);
+  background: var(--status-warning-soft);
+}
+.kfp-theme .kfp-page-banner[data-mode='info'] {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.kfp-theme .kfp-page-banner-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.kfp-theme .kfp-page-banner a {
+  color: inherit;
+  text-decoration: underline;
+  font-size: 12px;
+}
+.kfp-theme .kfp-page-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100% - 32px);
+  padding: 10px 12px 10px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-card);
+}
+.kfp-theme .kfp-page-spinner {
+  animation: kfp-page-spin 1s linear infinite;
+}
+@keyframes kfp-page-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 767px) {
+  .kfp-theme .kfp-modern-page {
+    --kfp-page-gutter: 16px;
+  }
+  .kfp-theme .kfp-page-header {
+    min-height: 52px;
+    padding: 8px var(--kfp-page-gutter, 16px);
+  }
+  .kfp-theme .kfp-page-header[data-reserve-breadcrumb-header='true'] {
+    min-height: 72px;
+  }
+  .kfp-theme .kfp-page-banner {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+}
+
+.kfp-theme .kfp-page-header[data-embedded='true'] {
+  min-height: 0;
+  padding: 8px 0;
+}
+.kfp-theme .kfp-page-title-row h2 {
+  margin: 0;
+  font-size: var(--kfp-text-section);
+  font-weight: 600;
+  line-height: 24px;
+}

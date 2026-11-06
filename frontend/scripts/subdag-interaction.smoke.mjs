@@ -86,7 +86,7 @@ test(
       const canvas = page.getByRole('region', { name: 'Pipeline graph', exact: true });
       assert.equal(
         await page
-          .getByRole('button', { name: 'Unlock graph', exact: true })
+          .getByRole('button', { name: 'Unlock node positions', exact: true })
           .getAttribute('aria-pressed'),
         'true',
       );
@@ -199,10 +199,10 @@ test(
           'Locked selected node arrows pan',
         );
       }
-      await page.getByRole('button', { name: 'Unlock graph', exact: true }).click();
+      await page.getByRole('button', { name: 'Unlock node positions', exact: true }).click();
       assert.equal(
         await page
-          .getByRole('button', { name: 'Lock graph', exact: true })
+          .getByRole('button', { name: 'Lock node positions', exact: true })
           .getAttribute('aria-pressed'),
         'false',
       );
@@ -331,7 +331,7 @@ test(
       );
       await page.getByRole('button', { name: 'Expand Training pipeline', exact: true }).click();
       await page.getByText('Train model', { exact: true }).waitFor();
-      await page.getByRole('button', { name: 'Lock graph', exact: true }).click();
+      await page.getByRole('button', { name: 'Lock node positions', exact: true }).click();
       await canvas.focus();
       const beforeRelock = await positions();
       await page.keyboard.press('ArrowRight');
@@ -345,7 +345,7 @@ test(
         );
       }
       await page.reload();
-      await page.getByRole('button', { name: 'Unlock graph', exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Unlock node positions', exact: true }).waitFor();
       assert.deepEqual(errors, []);
     } finally {
       await browser.close();

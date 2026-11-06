@@ -15,8 +15,34 @@
  */
 
 import { CustomRendererProps } from './CustomTable';
-import React from 'react';
-import { Tooltip } from '@mui/material';
+import React, { type ReactElement, useId, useState } from 'react';
+import { Tooltip } from '@base-ui/react/tooltip';
+
+export function NameTooltip({ name, children }: { name: string; children: ReactElement }) {
+  const [trigger, setTrigger] = useState<HTMLElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const triggerId = useId();
+  return (
+    <Tooltip.Root open={open} onOpenChange={setOpen} triggerId={triggerId}>
+      <Tooltip.Trigger
+        id={triggerId}
+        ref={setTrigger}
+        render={children}
+        closeOnClick={false}
+        onPointerDown={(event) => {
+          if (event.pointerType === 'touch') setOpen(true);
+        }}
+      />
+      <Tooltip.Portal container={trigger?.closest<HTMLElement>('.kfp-theme') ?? undefined}>
+        <Tooltip.Positioner side='top' sideOffset={8} className='kfp-shell-utility-positioner'>
+          <Tooltip.Popup role='tooltip' className='kfp-shell-utility-tooltip'>
+            {name}
+          </Tooltip.Popup>
+        </Tooltip.Positioner>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
 
 /**
  * Common name custom renderer that shows a tooltip when hovered. The tooltip helps if there isn't
@@ -29,8 +55,10 @@ export const NameWithTooltip: React.FC<
   }>
 > = (props: CustomRendererProps<{ display_name?: string; name?: string }>) => {
   return (
-    <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
-      <span>{props.value?.display_name || props.value?.name || ''}</span>
-    </Tooltip>
+    <NameTooltip name={'Name: ' + (props.value?.name || '')}>
+      <span tabIndex={0} aria-label={'Name: ' + (props.value?.name || '')}>
+        {props.value?.display_name || props.value?.name || ''}
+      </span>
+    </NameTooltip>
   );
 };

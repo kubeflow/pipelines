@@ -100,15 +100,20 @@ describe('artifact content previews', () => {
       .mockResolvedValue(JSON.stringify(dataset));
     const { rerender } = render(view([artifact, second]));
     expect(read).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Artifact preview' }));
-    fireEvent.click(screen.getByRole('option', { name: 'second data' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Artifact preview' }), {
+      target: {
+        value: (screen.getByRole('option', { name: 'second data' }) as HTMLOptionElement).value,
+      },
+    });
     await screen.findByRole('table', { name: 'Dataset sample' });
     expect(completedRequests(read)).toEqual([
       ['dataset-2', 'team-a', expect.objectContaining({ aborted: false })],
     ]);
     const attempts = read.mock.calls.length;
     rerender(view([{ ...second }, { ...artifact }]));
-    expect(screen.getByRole('combobox')).toHaveTextContent('second data');
+    expect(
+      (screen.getByRole('option', { name: 'second data' }) as HTMLOptionElement).selected,
+    ).toBe(true);
     expect(read).toHaveBeenCalledTimes(attempts);
   });
 

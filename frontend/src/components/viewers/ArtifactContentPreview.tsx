@@ -12,25 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+import { Button } from '../ui/button';
+import { InspectionNotice } from '../inspection/InspectionNotice';
+import { InspectionFields } from '../inspection/InspectionFields';
+import './RichViewers.css';
+import './ComparisonViewers.css';
 import { useQuery } from '@tanstack/react-query';
 import { useId, useState } from 'react';
 import { V2Artifact } from 'src/apisv2/run';
-import Banner from 'src/components/Banner';
-import DetailsTable from 'src/components/DetailsTable';
-import { padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import {
@@ -81,24 +70,24 @@ export function ArtifactContentPreviews({
     return null;
   }
   return (
-    <div className={padding(20, 'lrt')}>
+    <div className='kfp-visualization-section'>
       {entries.length > 1 && (
-        <FormControl variant='standard' style={{ minWidth: 240 }}>
-          <InputLabel id={labelId}>Artifact preview</InputLabel>
-          <Select
-            labelId={labelId}
+        <label className='kfp-visualization-field' htmlFor={labelId}>
+          Artifact preview
+          <select
+            id={labelId}
+            className='kfp-visualization-select'
             value={selected?.[0] || ''}
             onChange={(event) => setSelectedKey(event.target.value)}
-            inputProps={{ 'aria-label': 'Artifact preview' }}
           >
-            <MenuItem value=''>Choose an artifact</MenuItem>
+            <option value=''>Choose an artifact</option>
             {entries.map(([key, artifact], index) => (
-              <MenuItem key={key} value={key}>
+              <option key={key} value={key}>
                 {getArtifactDisplayName(artifact, undefined, index, artifacts)}
-              </MenuItem>
+              </option>
             ))}
-          </Select>
-        </FormControl>
+          </select>
+        </label>
       )}
       {active && selected && (
         <SelectedArtifactPreview key={selected[0]} artifact={selected[1]} {...context} />
@@ -151,7 +140,7 @@ function SelectedArtifactPreview({
   });
   if (descriptorError) {
     return (
-      <Banner
+      <InspectionNotice
         mode='error'
         message='Invalid artifact preview declaration.'
         additionalInfo={descriptorError}
@@ -160,7 +149,7 @@ function SelectedArtifactPreview({
   }
   if (!descriptor) {
     return (
-      <Banner
+      <InspectionNotice
         mode='info'
         message='No preview is available for this artifact. Check the pipeline and component preview settings, supported formats, component SDK, and logs.'
       />
@@ -168,7 +157,7 @@ function SelectedArtifactPreview({
   }
   if (!artifact.artifact_id) {
     return (
-      <Banner
+      <InspectionNotice
         mode='info'
         message='The artifact preview will be available after the artifact is registered.'
       />
@@ -176,15 +165,20 @@ function SelectedArtifactPreview({
   }
   return (
     <>
-      {isFetching && <Banner mode='info' message='Artifact preview is loading.' />}
+      {isFetching && <InspectionNotice mode='info' message='Artifact preview is loading.' />}
       {error && (
         <>
-          <Banner
+          <InspectionNotice
             mode='error'
             message='Unable to display the artifact preview.'
             additionalInfo={error.message}
           />
-          <Button size='small' disabled={isFetching} onClick={() => void refetch()}>
+          <Button
+            size='sm'
+            variant='secondary'
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
             Retry preview
           </Button>
         </>
@@ -213,12 +207,12 @@ export function DatasetPreviewTable({ preview }: { preview: DatasetPreview }) {
         {total_columns ?? 'unknown'} columns. Sample: {sample.method}.
       </p>
       {sample.rows_omitted ? (
-        <Banner
+        <InspectionNotice
           mode='info'
           message='Row values were intentionally omitted by the producer. This is a schema-only preview.'
         />
       ) : rows.length === 0 ? (
-        <Banner
+        <InspectionNotice
           mode='info'
           message={total_rows === 0 ? 'Dataset is empty.' : 'No sample rows were recorded.'}
         />
@@ -234,24 +228,24 @@ export function DatasetPreviewTable({ preview }: { preview: DatasetPreview }) {
           {sample.redacted && 'The producer redacted sample values.'}
         </p>
       )}
-      <TableContainer style={{ maxWidth: '100%' }}>
-        <Table size='small' aria-label='Dataset sample'>
-          <TableHead>
-            <TableRow>
+      <div className='kfp-viewer-table kfp-viewer-table-scroll'>
+        <table aria-label='Dataset sample'>
+          <thead>
+            <tr>
               {columns.map((column, index) => (
-                <TableCell key={index} scope='col' style={{ verticalAlign: 'top' }}>
+                <th key={index} scope='col' style={{ verticalAlign: 'top' }}>
                   {column.name}
                   <br />
                   <small>{column.dtype}</small>
-                </TableCell>
+                </th>
               ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
+            </tr>
+          </thead>
+          <tbody>
             {rows.map((row, index) => (
-              <TableRow key={index}>
+              <tr className='kfp-viewer-table-data' key={index}>
                 {row.map((cell, columnIndex) => (
-                  <TableCell
+                  <td
                     key={columnIndex}
                     style={{
                       minWidth: 100,
@@ -261,13 +255,13 @@ export function DatasetPreviewTable({ preview }: { preview: DatasetPreview }) {
                     }}
                   >
                     {displayCell(cell)}
-                  </TableCell>
+                  </td>
                 ))}
-              </TableRow>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -284,39 +278,30 @@ function ModelEntries({
     <>
       <h4>{title}</h4>
       {names.length ? (
-        <TableContainer>
-          <Table
-            size='small'
-            aria-label={title}
-            sx={{
-              tableLayout: 'fixed',
-              '& th, & td': {
-                overflowWrap: 'anywhere',
-                whiteSpace: 'pre-wrap',
-                verticalAlign: 'top',
-              },
-            }}
-          >
-            <TableHead>
-              <TableRow>
-                <TableCell scope='col' style={{ width: '40%' }}>
+        <div className='kfp-viewer-table kfp-viewer-table-scroll'>
+          <table aria-label={title} style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr>
+                <th scope='col' style={{ width: '40%' }}>
                   Name
-                </TableCell>
-                <TableCell scope='col'>Recorded value</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+                </th>
+                <th scope='col'>Recorded value</th>
+              </tr>
+            </thead>
+            <tbody>
               {names.map((name) => (
-                <TableRow key={name}>
-                  <TableCell component='th' scope='row'>
+                <tr className='kfp-viewer-table-data' key={name}>
+                  <th scope='row' style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
                     {name}
-                  </TableCell>
-                  <TableCell>{JSON.stringify(entries[name])}</TableCell>
-                </TableRow>
+                  </th>
+                  <td style={{ overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+                    {JSON.stringify(entries[name])}
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p>Not recorded.</p>
       )}
@@ -328,7 +313,7 @@ export function ModelPreviewSummary({ preview }: { preview: ModelPreview }) {
   return (
     <section aria-label='Model preview'>
       <h3>Model preview</h3>
-      <DetailsTable
+      <InspectionFields
         fields={[
           ['Framework', preview.framework?.name || 'Not recorded'],
           ['Framework version', preview.framework?.version || 'Not recorded'],

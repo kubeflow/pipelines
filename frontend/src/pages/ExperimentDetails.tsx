@@ -14,92 +14,32 @@
  * limitations under the License.
  */
 
+import { PageContainer } from 'src/components/layout/PageContainer';
+import 'src/pages/DetailLayouts.css';
 import * as React from 'react';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import PopOutIcon from '@mui/icons-material/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
-import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
-import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
+import ExperimentRunTabs, { RunListsGroupTab } from './ExperimentRunTabs';
+import type { ToolbarProps } from 'src/lib/PageChromeTypes';
+import { Toolbar } from 'src/components/shell/PageChrome';
 import { V2Experiment, V2ExperimentStorageState } from 'src/apisv2/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding } from 'src/Css';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Navigate } from 'react-router';
 import { V2RunStorageState } from 'src/apisv2/run';
 import { V2RecurringRunStatus } from 'src/apisv2/recurringrun';
 
-import { Button, Dialog, DialogActions, DialogContent, Paper, Tooltip } from '@mui/material';
-
-const css = stylesheet({
-  card: {
-    border: '1px solid #ddd',
-    borderRadius: 8,
-    height: 70,
-    marginRight: 24,
-    padding: '12px 20px 13px 24px',
-  },
-  cardActive: {
-    border: `1px solid ${color.success}`,
-  },
-  cardBtn: {
-    $nest: {
-      '&:hover': {
-        backgroundColor: 'initial',
-      },
-    },
-    color: color.theme,
-    fontSize: 12,
-    minHeight: 16,
-    paddingLeft: 0,
-    marginRight: 0,
-  },
-  cardContent: {
-    color: color.secondaryText,
-    fontSize: 16,
-    lineHeight: '28px',
-  },
-  cardRow: {
-    borderBottom: `1px solid ${color.lightGrey}`,
-    display: 'flex',
-    flexFlow: 'row',
-    minHeight: 120,
-  },
-  cardTitle: {
-    color: color.strong,
-    display: 'flex',
-    fontSize: 12,
-    fontWeight: 'bold',
-    height: 20,
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  popOutIcon: {
-    color: color.secondaryText,
-    margin: -2,
-    minWidth: 0,
-    padding: 3,
-  },
-  recurringRunsActive: {
-    color: '#0d652d',
-  },
-  recurringRunsCard: {
-    width: 270,
-  },
-  recurringRunsDialog: {
-    minWidth: 600,
-  },
-  runStatsCard: {
-    width: 270,
-  },
-});
+import { Button } from 'src/components/ui/button';
+import { ModalDialog } from 'src/components/ui/dialog';
+import 'src/components/runs/ExperimentWorkflows.css';
 
 interface ExperimentDetailsState {
   activeRecurringRunsCount: number;
   experiment: V2Experiment | null;
+  loadFailed: boolean;
   recurringRunsManagerOpen: boolean;
   selectedIds: string[];
   runStorageState: V2RunStorageState;
@@ -114,6 +54,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     this.state = {
       activeRecurringRunsCount: 0,
       experiment: null,
+      loadFailed: false,
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
         actions: this._getRunInitialToolBarButtons().getToolbarActionMap(),
@@ -153,49 +94,20 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     const description = experiment ? experiment.description || '' : '';
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lrt'))}>
-        {experiment && (
-          <div className={commonCss.page}>
-            <div className={css.cardRow}>
-              <Paper
-                id='recurringRunsCard'
-                className={classes(
-                  css.card,
-                  css.recurringRunsCard,
-                  !!activeRecurringRunsCount && css.cardActive,
-                )}
-                elevation={0}
-              >
-                <div>
-                  <div className={css.cardTitle}>
-                    <span>Recurring run configs</span>
-                    <Button
-                      className={css.cardBtn}
-                      id='manageExperimentRecurringRunsBtn'
-                      disableRipple={true}
-                      onClick={() => this.setState({ recurringRunsManagerOpen: true })}
-                    >
-                      Manage
-                    </Button>
-                  </div>
-                  <div
-                    className={classes(
-                      css.cardContent,
-                      !!activeRecurringRunsCount && css.recurringRunsActive,
-                    )}
-                  >
-                    {activeRecurringRunsCount + ' active'}
-                  </div>
-                </div>
-              </Paper>
-              <Paper
-                id='experimentDescriptionCard'
-                className={classes(css.card, css.runStatsCard)}
-                elevation={0}
-              >
-                <div className={css.cardTitle}>
-                  <span>Experiment description</span>
+      <PageContainer className='kfp-detail-page'>
+        {experiment ? (
+          <div className='kfp-workflow-content'>
+            <div className='kfp-experiment-summary'>
+              {description.trim() && (
+                <section
+                  id='experimentDescriptionCard'
+                  className='kfp-experiment-description'
+                  aria-label='Experiment description'
+                >
+                  <p>{description}</p>
                   <Button
+                    variant='ghost'
+                    size='sm'
                     id='expandExperimentDescriptionBtn'
                     onClick={() =>
                       this.props.updateDialog({
@@ -203,29 +115,34 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                         title: 'Experiment description',
                       })
                     }
-                    className={classes(css.popOutIcon, 'popOutButton')}
                   >
-                    <Tooltip title='Read more'>
-                      <PopOutIcon style={{ fontSize: 18 }} />
-                    </Tooltip>
+                    View description
                   </Button>
-                </div>
-                {description
-                  .split('\n')
-                  .slice(0, 2)
-                  .map((line, i) => (
-                    <div
-                      key={i}
-                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
-                      {line}
-                    </div>
-                  ))}
-                {description.split('\n').length > 2 ? '...' : ''}
-              </Paper>
+                </section>
+              )}
+              <section
+                id='recurringRunsCard'
+                className='kfp-experiment-recurring-summary'
+                aria-label='Recurring run configs'
+              >
+                <span>Recurring run configs</span>
+                <span data-active={activeRecurringRunsCount > 0 ? '' : undefined}>
+                  {activeRecurringRunsCount < 0
+                    ? 'Unavailable'
+                    : `${activeRecurringRunsCount} active`}
+                </span>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  id='manageExperimentRecurringRunsBtn'
+                  onClick={() => this.setState({ recurringRunsManagerOpen: true })}
+                >
+                  Manage
+                </Button>
+              </section>
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
-            <RunListsRouter
+            <ExperimentRunTabs
               storageState={this.state.runStorageState}
               onError={this.showPageError.bind(this)}
               hideExperimentColumn={true}
@@ -236,31 +153,37 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               onTabSwitch={this._onRunTabSwitch}
               {...this.props}
             />
-
-            <Dialog
-              open={this.state.recurringRunsManagerOpen}
-              classes={{ paper: css.recurringRunsDialog }}
-              onClose={this._recurringRunsManagerClosed.bind(this)}
-            >
-              <DialogContent>
+            {this.state.recurringRunsManagerOpen && (
+              <ModalDialog
+                open
+                title='Recurring run configs'
+                size='lg'
+                onClose={this._recurringRunsManagerClosed.bind(this)}
+                actions={
+                  <Button
+                    variant='secondary'
+                    id='closeExperimentRecurringRunManagerBtn'
+                    onClick={this._recurringRunsManagerClosed.bind(this)}
+                  >
+                    Close
+                  </Button>
+                }
+              >
                 <RecurringRunsManager
                   {...this.props}
                   experimentId={this.props.params[RouteParams.experimentId] ?? ''}
                 />
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  id='closeExperimentRecurringRunManagerBtn'
-                  onClick={this._recurringRunsManagerClosed.bind(this)}
-                  color='secondary'
-                >
-                  Close
-                </Button>
-              </DialogActions>
-            </Dialog>
+              </ModalDialog>
+            )}
+          </div>
+        ) : this.state.loadFailed ? (
+          <div role='alert'>Unable to load experiment details. Refresh this page to retry.</div>
+        ) : (
+          <div role='progressbar' aria-label='Loading experiment'>
+            Loading experiment…
           </div>
         )}
-      </div>
+      </PageContainer>
     );
   }
 
@@ -345,6 +268,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         {
           activeRecurringRunsCount,
           experiment,
+          loadFailed: false,
           runStorageState,
           runlistRefreshCount,
         },
@@ -353,6 +277,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         },
       );
     } catch (err) {
+      this.setStateSafe({ loadFailed: true });
       const error = err instanceof Error ? err : new Error(await errorToMessage(err));
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, error);
       logger.error(`Error loading experiment: ${experimentId}`, err);
@@ -432,7 +357,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 }
 
-const EnhancedExperimentDetails: React.FC<PageProps> = (props) => {
+const ExperimentDetailsWithContext: React.FC<PageProps> = (props) => {
   // When namespace changes, this experiment no longer belongs to new namespace.
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();
@@ -443,4 +368,4 @@ const EnhancedExperimentDetails: React.FC<PageProps> = (props) => {
   return <ExperimentDetails {...props} />;
 };
 
-export default EnhancedExperimentDetails;
+export default ExperimentDetailsWithContext;
