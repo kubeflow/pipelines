@@ -53,5 +53,5 @@ spec:
       parameters:
       - name: message
     container:
-      image: alpine:3.7
+      image: alpine:3.20
       command: [echo, "{{inputs.parameters.message}}"]

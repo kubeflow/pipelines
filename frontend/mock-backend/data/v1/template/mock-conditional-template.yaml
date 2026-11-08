@@ -127,11 +127,11 @@ spec:
       command:
       - echo
       - '"it was tail"'
-      image: alpine:3.6
+      image: alpine:3.20
     name: print1
   - container:
       command:
       - echo
       - '"it was tail"'
-      image: alpine:3.6
+      image: alpine:3.20
     name: print2
