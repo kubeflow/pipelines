@@ -6065,6 +6065,116 @@ def return_bool() -> bool:
     return True
 
 
+class TestConditionGroupNames(parameterized.TestCase):
+    @parameterized.parameters(
+        (0, True),
+        (1, True),
+        (2, True),
+        (1, False),
+    )
+    def test_group_name_changes_only_wrapper_display_name(
+        self,
+        num_elifs: int,
+        has_else: bool,
+    ):
+
+        def make_pipeline(group_name: Optional[str] = None):
+            kwargs = {} if group_name is None else {'group_name': group_name}
+
+            @dsl.pipeline
+            def my_pipeline(value: str):
+                with dsl.If(value == 'a', name='First branch', **kwargs):
+                    first = print_and_return(text='a')
+                for index in range(num_elifs):
+                    with dsl.Elif(value == str(index), name=f'Branch {index}'):
+                        print_and_return(text=str(index))
+                if has_else:
+                    with dsl.Else(name='Fallback branch'):
+                        last = print_and_return(text='other')
+                    print_and_return(text=dsl.OneOf(first.output, last.output))
+
+            return my_pipeline.pipeline_spec
+
+        original = make_pipeline()
+        wrapper_key = 'condition-branches-1'
+        for group_name in ('Choose model / v2', ''):
+            with self.subTest(group_name=group_name):
+                named = make_pipeline(group_name)
+                wrapper = named.root.dag.tasks[wrapper_key]
+                self.assertEqual(wrapper.task_info.name, group_name or wrapper_key)
+                branches = named.components[wrapper.component_ref.name].dag.tasks
+                self.assertEqual(branches['condition-2'].task_info.name, 'First branch')
+                wrapper.task_info.CopyFrom(
+                    original.root.dag.tasks[wrapper_key].task_info,
+                )
+                self.assertEqual(named, original)
+
+    @parameterized.parameters(
+        ('Choose model', 'Choose model', 'Choose model'),
+        ('Outer choice', 'Inner choice', 'Sibling choice'),
+    )
+    def test_nested_and_sibling_chain_names(
+        self,
+        outer_name: str,
+        inner_name: str,
+        sibling_name: str,
+    ):
+
+        def make_pipeline(names: Optional[tuple[str, str, str]] = None):
+            kwargs = [{} for _ in range(3)] if names is None else [
+                {'group_name': name} for name in names
+            ]
+
+            @dsl.pipeline
+            def my_pipeline(value: str):
+                with dsl.If(value == 'a', **kwargs[0]):
+                    with dsl.If(value == 'b', **kwargs[1]):
+                        print_and_return(text='inner if')
+                    with dsl.Else():
+                        print_and_return(text='inner else')
+                with dsl.Else():
+                    print_and_return(text='outer else')
+                with dsl.If(value == 'c', **kwargs[2]):
+                    print_and_return(text='sibling if')
+                with dsl.Else():
+                    print_and_return(text='sibling else')
+
+            return my_pipeline.pipeline_spec
+
+        original = make_pipeline()
+        named = make_pipeline((outer_name, inner_name, sibling_name))
+        expected_names = {
+            'condition-branches-1': outer_name,
+            'condition-branches-2': inner_name,
+            'condition-branches-7': sibling_name,
+        }
+        components = [named.root, *named.components.values()]
+        wrapper_keys = []
+        for component in components:
+            for task_key, task in component.dag.tasks.items():
+                if task_key.startswith('condition-branches-'):
+                    self.assertEqual(task.task_info.name, expected_names[task_key])
+                    wrapper_keys.append(task_key)
+                    task.task_info.name = task_key
+        self.assertLen(set(wrapper_keys), 3)
+        self.assertEqual(named, original)
+
+    def test_standalone_if_does_not_create_wrapper(self):
+
+        @dsl.pipeline
+        def my_pipeline(value: str):
+            with dsl.If(
+                value == 'a',
+                name='First branch',
+                group_name='Choose model',
+            ):
+                print_and_return(text='a')
+
+        tasks = my_pipeline.pipeline_spec.root.dag.tasks
+        self.assertEqual(set(tasks), {'condition-1'})
+        self.assertEqual(tasks['condition-1'].task_info.name, 'First branch')
+
+
 class TestConditionLogic(parameterized.TestCase):
     def test_if(self):
 

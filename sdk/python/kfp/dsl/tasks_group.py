@@ -161,10 +161,10 @@ class ExitHandler(TasksGroup):
 class ConditionBranches(TasksGroup):
     _oneof_id = 0
 
-    def __init__(self) -> None:
+    def __init__(self, name: Optional[str] = None) -> None:
         super().__init__(
             group_type=TasksGroupType.CONDITION_BRANCHES,
-            name=None,
+            name=name,
             is_root=False,
         )
 
@@ -208,6 +208,7 @@ class If(_ConditionBase):
     Args:
         condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
         name: The name of the condition group.
+        group_name: The display name for the group containing this If and its following Elif/Else branches. Has no effect when there are no following branches. Defaults to an automatically generated name.
 
     Example:
       ::
@@ -215,17 +216,25 @@ class If(_ConditionBase):
         task1 = my_component1(...)
         with dsl.If(task1.output=='pizza', 'pizza-condition'):
             task2 = my_component2(...)
+
+        with dsl.If(task1.output=='pizza', name='Pizza', group_name='Choose meal'):
+            task3 = my_component3(...)
+        with dsl.Else(name='Other meal'):
+            task4 = my_component4(...)
     """
 
     def __init__(
         self,
         condition,
         name: Optional[str] = None,
+        *,
+        group_name: Optional[str] = None,
     ) -> None:
         super().__init__(
             conditions=[condition],
             name=name,
         )
+        self._group_name = group_name
         if isinstance(condition, bool):
             raise ValueError(
                 f'Got constant boolean {condition} as a condition. This is likely because the provided condition evaluated immediately. At least one of the operands must be an output from an upstream task or a pipeline parameter.'
@@ -399,7 +408,9 @@ def maybe_make_and_insert_conditional_branches_group(
     if already_has_pipeline_wrapper:
         return
 
-    condition_wrapper_group = ConditionBranches()
+    condition_wrapper_group = ConditionBranches(
+        name=pipeline.get_last_tasks_group()._group_name,
+    )
     condition_wrapper_group._make_name_unique()
 
     # swap outer and inner group ids so that numbering stays sequentially consistent with how such hypothetical code would be authored
