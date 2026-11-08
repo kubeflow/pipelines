@@ -525,7 +525,7 @@ jobs:
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@8cce38d303a578fb17e0a00ca82c227a06eb74f5
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@518de9f9c6caa1c54f7e32456377e70ece7166a2
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
