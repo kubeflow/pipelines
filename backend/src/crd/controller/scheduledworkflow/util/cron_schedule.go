@@ -95,6 +95,11 @@ func (s *CronSchedule) getNextScheduledTimeImp(lastJobTime time.Time, catchup bo
 	}
 
 	result := schedule.Next(startTime.In(location))
+	if result.IsZero() {
+		// The cron expression parses but never matches a real date (for
+		// example February 30), so there is no next scheduled time.
+		return maxTime.In(location)
+	}
 	var endTime time.Time = maxTime
 	if s.EndTime != nil {
 		endTime = s.EndTime.Time

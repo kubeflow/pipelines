@@ -198,3 +198,39 @@ func TestCronSchedule_GetNextScheduledTimeNoCatchup(t *testing.T) {
 	assert.Equal(t, time.Unix(10*hour+15*minute+minute, 0).UTC(),
 		schedule.GetNextScheduledTimeNoCatchup(nil, defaultStartTime, time.Unix(0, 0), location))
 }
+
+// A cron expression can parse successfully yet never match a real date (for
+// example February 30). robfig/cron then returns the zero time from Next, which
+// must be treated as "never" rather than as a time in the past.
+func TestCronSchedule_NeverMatchingCron(t *testing.T) {
+	location, _ := time.LoadLocation("UTC")
+	lastJobTime := v1.NewTime(time.Unix(10*hour, 0).UTC())
+	defaultStartTime := time.Unix(10*hour, 0).UTC()
+	nowTime := time.Unix(20*hour, 0).UTC()
+
+	for _, cronExpr := range []string{
+		"0 0 0 30 2 *", // February 30th
+		"0 0 0 31 4 *", // April 31st
+	} {
+		t.Run(cronExpr, func(t *testing.T) {
+			schedule := NewCronSchedule(&swfapi.CronSchedule{Cron: cronExpr})
+
+			// Catch-up: must not return the zero time, which is always in the
+			// past and makes the controller trigger a run on every sync.
+			assert.Equal(t, maxTime.UTC(),
+				schedule.GetNextScheduledTime(&lastJobTime, defaultStartTime, location))
+
+			// No catch-up: must return instead of looping forever.
+			result := make(chan time.Time, 1)
+			go func() {
+				result <- schedule.GetNextScheduledTimeNoCatchup(&lastJobTime, defaultStartTime, nowTime, location)
+			}()
+			select {
+			case next := <-result:
+				assert.Equal(t, maxTime.UTC(), next)
+			case <-time.After(5 * time.Second):
+				t.Fatal("GetNextScheduledTimeNoCatchup did not return: infinite loop on a never-matching cron")
+			}
+		})
+	}
+}
