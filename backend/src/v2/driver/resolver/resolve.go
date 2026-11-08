@@ -29,6 +29,7 @@ var paramError = func(paramSpec *pipelinespec.TaskInputsSpec_InputParameterSpec,
 }
 
 var ErrResolvedParameterNull = errors.New("the resolved input is null")
+var ErrProducerOutputNotFound = errors.New("producer output not found")
 
 type ParameterMetadata struct {
 	// This is the key of the parameter in this task's inputs.

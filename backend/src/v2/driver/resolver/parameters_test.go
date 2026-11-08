@@ -15,6 +15,7 @@
 package resolver
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -164,6 +165,68 @@ func TestResolveTaskOutputParameter_CollectionBoundary(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestResolveTaskOutputParameter_FallsBackToNullWhenProducerHasNoOutput(t *testing.T) {
+	tests := []struct {
+		name          string
+		producerState apiv2.PipelineTask_TaskState
+		wantNull      bool
+	}{
+		{
+			name:          "failed producer falls back to default",
+			producerState: apiv2.PipelineTask_FAILED,
+			wantNull:      true,
+		},
+		{
+			name:          "skipped producer falls back to default",
+			producerState: apiv2.PipelineTask_SKIPPED,
+			wantNull:      true,
+		},
+		{
+			name:          "succeeded producer with missing output errors",
+			producerState: apiv2.PipelineTask_SUCCEEDED,
+			wantNull:      false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parentTaskID := "loop-parent"
+			parentTask := &apiv2.PipelineTask{
+				TaskId: parentTaskID,
+				Name:   "loop-body",
+				Type:   apiv2.PipelineTask_LOOP,
+			}
+
+			producerTask := &apiv2.PipelineTask{
+				TaskId:       "producer-task",
+				Name:         "produce",
+				ParentTaskId: util.StringPointer(parentTaskID),
+				Type:         apiv2.PipelineTask_RUNTIME,
+				State:        test.producerState,
+			}
+
+			opts := common.Options{
+				ParentTask:     parentTask,
+				Run:            &apiv2.Run{Tasks: []*apiv2.PipelineTask{producerTask}},
+				IterationIndex: -1,
+			}
+
+			paramSpec := common.InputParamTaskOutput("produce", "result")
+
+			_, err := resolveTaskOutputParameter(opts, paramSpec)
+
+			if test.wantNull {
+				require.Error(t, err)
+				require.True(t, errors.Is(err, ErrResolvedParameterNull))
+			} else {
+				require.Error(t, err)
+				require.False(t, errors.Is(err, ErrResolvedParameterNull))
+			}
+
+		})
 	}
 }
 

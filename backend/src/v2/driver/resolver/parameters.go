@@ -412,6 +412,9 @@ func resolveTaskOutputParameter(
 	}
 	outputIO, err := findParameterByProducerKeyInList(outputKey, producerTask.GetName(), outputs, canExportIterationCollection(producerTask))
 	if err != nil {
+		if errors.Is(err, ErrProducerOutputNotFound) && (producerTask.GetState() == apiv2.PipelineTask_SKIPPED || producerTask.GetState() == apiv2.PipelineTask_FAILED) {
+			return nil, ErrResolvedParameterNull
+		}
 		return nil, err
 	}
 	if outputIO == nil {
@@ -694,7 +697,7 @@ func findParameterByProducerKeyInList(
 		}
 	}
 	if len(parameterIOList) == 0 {
-		return nil, fmt.Errorf("parameter with producer key %s not found", producerKey)
+		return nil, fmt.Errorf("parameter with producer key %s not found: %w", producerKey, ErrProducerOutputNotFound)
 	}
 
 	// Leaf tasks mark their own iteration outputs too. Only group outputs
