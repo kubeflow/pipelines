@@ -4615,3 +4615,199 @@ func Test_extendPodSpecPatch_PodResourceClaims_DefaultSetOnPod(t *testing.T) {
 	assert.NotEmpty(t, podSpec.Containers[0].Resources.Claims)
 	assert.Empty(t, taskCfg.ResourceClaims)
 }
+
+// ---------------------------------------------------------------------------
+// safePodVolumeName unit tests (issue #15477)
+// ---------------------------------------------------------------------------
+
+func Test_safePodVolumeName(t *testing.T) {
+	tests := []struct {
+		name       string
+		objectName string
+		used       map[string]bool
+		want       string
+	}{
+		{
+			name:       "simple name passes through unchanged",
+			objectName: "my-secret",
+			used:       map[string]bool{},
+			want:       "my-secret",
+		},
+		{
+			name:       "dotted name has dots replaced",
+			objectName: "example.com-tls",
+			used:       map[string]bool{},
+			want:       "example-com-tls",
+		},
+		{
+			name:       "uppercase is lowercased",
+			objectName: "MySecret",
+			used:       map[string]bool{},
+			want:       "mysecret",
+		},
+		{
+			name:       "name longer than 63 chars is truncated",
+			objectName: "a-very-long-secret-name-that-exceeds-the-sixty-three-char-limit-xyz",
+			used:       map[string]bool{},
+			want:       "a-very-long-secret-name-that-exceeds-the-sixty-three-char-limit",
+		},
+		{
+			name:       "collision produces unique suffix",
+			objectName: "app-config",
+			used:       map[string]bool{"app-config": true},
+			want:       "app-config-2",
+		},
+		{
+			name:       "second collision increments further",
+			objectName: "app-config",
+			used:       map[string]bool{"app-config": true, "app-config-2": true},
+			want:       "app-config-3",
+		},
+		{
+			name:       "leading and trailing dots become hyphens then are trimmed",
+			objectName: ".leading-dot",
+			used:       map[string]bool{},
+			want:       "leading-dot",
+		},
+		{
+			name:       "name registers itself in used map",
+			objectName: "my-secret",
+			used:       map[string]bool{},
+			want:       "my-secret",
+			// after the call used["my-secret"] must be true — checked below
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := safePodVolumeName(tt.objectName, tt.used)
+			assert.Equal(t, tt.want, got)
+			assert.True(t, tt.used[got], "safePodVolumeName must register the returned name in the used map")
+		})
+	}
+}
+
+// Test_extendPodSpecPatch_SecretVolumeNameSafety covers the three failure scenarios
+// described in https://github.com/kubeflow/pipelines/issues/15477:
+//
+//   - A secret whose name contains a dot (e.g. "example.com-tls") must produce a
+//     valid DNS-1123 label volume name instead of the literal secret name.
+//   - The same secret mounted at two different paths must produce two distinct
+//     volume names (no duplicate-volume error from the API server).
+//   - A Secret and a ConfigMap that share the same name must also produce two
+//     distinct volume names.
+func Test_extendPodSpecPatch_SecretVolumeNameSafety(t *testing.T) {
+	falseVal := false
+
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		// wantSecretNames and wantCMNames are the expected SecretName / ConfigMap.Name
+		// fields in VolumeSource — these must equal the original object name.
+		wantObjectNames []string
+		// wantVolumeNames are the generated Volume.Name / VolumeMount.Name values.
+		// They must be valid DNS-1123 labels and all unique within the list.
+		wantVolumeNames []string
+	}{
+		{
+			name: "dotted secret name produces valid volume name",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretNameParameter: common.InputParamConstant("example.com-tls"),
+						MountPath:           "/certs",
+						Optional:            &falseVal,
+					},
+				},
+			},
+			wantObjectNames: []string{"example.com-tls"},
+			wantVolumeNames: []string{"example-com-tls"},
+		},
+		{
+			name: "same secret mounted twice produces two unique volume names",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretNameParameter: common.InputParamConstant("app-config"),
+						MountPath:           "/a",
+						Optional:            &falseVal,
+					},
+					{
+						SecretNameParameter: common.InputParamConstant("app-config"),
+						MountPath:           "/b",
+						Optional:            &falseVal,
+					},
+				},
+			},
+			wantObjectNames: []string{"app-config", "app-config"},
+			wantVolumeNames: []string{"app-config", "app-config-2"},
+		},
+		{
+			name: "secret and configmap with same name produce two unique volume names",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsVolume: []*kubernetesplatform.SecretAsVolume{
+					{
+						SecretNameParameter: common.InputParamConstant("app-config"),
+						MountPath:           "/secret",
+						Optional:            &falseVal,
+					},
+				},
+				ConfigMapAsVolume: []*kubernetesplatform.ConfigMapAsVolume{
+					{
+						ConfigMapNameParameter: common.InputParamConstant("app-config"),
+						MountPath:              "/config",
+						Optional:               &falseVal,
+					},
+				},
+			},
+			wantObjectNames: []string{"app-config", "app-config"},
+			wantVolumeNames: []string{"app-config", "app-config-2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podSpec := &k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+			}
+			taskConfig := &TaskConfig{}
+
+			err := extendPodSpecPatch(
+				newTestLoggerContext(t),
+				podSpec,
+				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				taskConfig,
+			)
+			require.NoError(t, err)
+
+			require.Len(t, podSpec.Volumes, len(tt.wantVolumeNames),
+				"expected %d volumes, got %d", len(tt.wantVolumeNames), len(podSpec.Volumes))
+			require.Len(t, podSpec.Containers[0].VolumeMounts, len(tt.wantVolumeNames))
+
+			for i, vol := range podSpec.Volumes {
+				assert.Equal(t, tt.wantVolumeNames[i], vol.Name,
+					"volume[%d].Name", i)
+				assert.Equal(t, podSpec.Containers[0].VolumeMounts[i].Name, vol.Name,
+					"VolumeMount[%d].Name must match Volume[%d].Name", i, i)
+
+				// The real object name must be preserved in the VolumeSource.
+				if vol.VolumeSource.Secret != nil {
+					assert.Equal(t, tt.wantObjectNames[i], vol.VolumeSource.Secret.SecretName,
+						"volume[%d].Secret.SecretName must be the original object name", i)
+				}
+				if vol.VolumeSource.ConfigMap != nil {
+					assert.Equal(t, tt.wantObjectNames[i], vol.VolumeSource.ConfigMap.Name,
+						"volume[%d].ConfigMap.Name must be the original object name", i)
+				}
+			}
+
+			// All generated volume names must be unique within the pod spec.
+			seen := make(map[string]bool)
+			for _, vol := range podSpec.Volumes {
+				assert.False(t, seen[vol.Name], "duplicate volume name %q", vol.Name)
+				seen[vol.Name] = true
+			}
+		})
+	}
+}

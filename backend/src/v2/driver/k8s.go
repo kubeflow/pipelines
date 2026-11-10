@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -57,6 +58,45 @@ func validateResourceClaimTemplateName(templateName *string) error {
 		return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
 	}
 	return nil
+}
+
+// nonDNSLabelChar matches any character that is not a lowercase letter, digit, or hyphen —
+// i.e., characters that are invalid in a Kubernetes pod volume name (DNS-1123 label).
+var nonDNSLabelChar = regexp.MustCompile(`[^a-z0-9-]`)
+
+// safePodVolumeName converts an arbitrary Kubernetes object name (Secret or ConfigMap) into a
+// valid pod volume name. Pod volume names must be DNS-1123 labels: lowercase, at most 63
+// characters, no dots or other special characters.
+//
+// The algorithm:
+//  1. Lowercase the input.
+//  2. Replace every character that is not a lowercase letter, digit, or hyphen with a hyphen.
+//  3. Trim leading/trailing hyphens and truncate to 63 characters.
+//  4. If the resulting name is already present in used (a set of volume names already assigned
+//     within the current pod spec), append "-N" (N=2, 3, …) until the name is unique.
+func safePodVolumeName(objectName string, used map[string]bool) string {
+	// Step 1-3: sanitise.
+	safe := nonDNSLabelChar.ReplaceAllString(strings.ToLower(objectName), "-")
+	safe = strings.Trim(safe, "-")
+	if len(safe) > 63 {
+		safe = strings.TrimRight(safe[:63], "-")
+	}
+	if safe == "" {
+		safe = "vol"
+	}
+
+	// Step 4: deduplicate within this pod spec.
+	candidate := safe
+	for i := 2; used[candidate]; i++ {
+		suffix := fmt.Sprintf("-%d", i)
+		base := safe
+		if len(base)+len(suffix) > 63 {
+			base = base[:63-len(suffix)]
+		}
+		candidate = base + suffix
+	}
+	used[candidate] = true
+	return candidate
 }
 
 // kubernetesPlatformOps() carries out the Kubernetes-specific operations, such as create PVC,
@@ -179,6 +219,15 @@ func extendPodSpecPatch(
 	// Return an error if the podSpec has no user container.
 	if len(podSpec.Containers) == 0 {
 		return fmt.Errorf("failed to patch the pod with kubernetes-specific config due to missing user container: %v", podSpec)
+	}
+
+	// usedVolumeNames tracks volume names that are already present in the pod spec so that
+	// safePodVolumeName can generate unique names when two secrets/configmaps map to the same
+	// sanitised label (e.g. same name mounted twice at different paths, or a Secret and a
+	// ConfigMap that share a name).
+	usedVolumeNames := make(map[string]bool, len(podSpec.Volumes))
+	for _, v := range podSpec.Volumes {
+		usedVolumeNames[v.Name] = true
 	}
 
 	// Get volume mount information
@@ -450,8 +499,9 @@ func extendPodSpecPatch(
 		}
 
 		optional := secretAsVolume.Optional != nil && *secretAsVolume.Optional
+		volName := safePodVolumeName(secretName, usedVolumeNames)
 		secretVolume := k8score.Volume{
-			Name: secretName,
+			Name: volName,
 			VolumeSource: k8score.VolumeSource{
 				Secret: &k8score.SecretVolumeSource{
 					SecretName: secretName,
@@ -460,7 +510,7 @@ func extendPodSpecPatch(
 			},
 		}
 		secretVolumeMount := k8score.VolumeMount{
-			Name:      secretName,
+			Name:      volName,
 			MountPath: secretAsVolume.GetMountPath(),
 		}
 
@@ -546,8 +596,9 @@ func extendPodSpecPatch(
 		}
 
 		optional := configMapAsVolume.Optional != nil && *configMapAsVolume.Optional
+		volName := safePodVolumeName(configMapName, usedVolumeNames)
 		configMapVolume := k8score.Volume{
-			Name: configMapName,
+			Name: volName,
 			VolumeSource: k8score.VolumeSource{
 				ConfigMap: &k8score.ConfigMapVolumeSource{
 					LocalObjectReference: k8score.LocalObjectReference{
@@ -558,7 +609,7 @@ func extendPodSpecPatch(
 			},
 		}
 		configMapVolumeMount := k8score.VolumeMount{
-			Name:      configMapName,
+			Name:      volName,
 			MountPath: configMapAsVolume.GetMountPath(),
 		}
 
