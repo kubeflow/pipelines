@@ -2060,10 +2060,28 @@ def _override_caching_options(
 
     Args:
         pipeline_spec: The PipelineSpec object to update in-place.
-        enable_caching: Overrides options, one of True, False.
-        cache_key: Overrides cache_key, default None, no-op.
+        enable_caching: Overrides options for every task in every DAG reachable
+            from the root, one of True, False.
+        cache_key: Overrides cache_key on root DAG tasks, default None, no-op.
     """
-    for _, task_spec in pipeline_spec.root.dag.tasks.items():
-        task_spec.caching_options.enable_cache = enable_caching
-        if cache_key:
+    # Tasks inside dsl.If, ParallelFor, ExitHandler and nested pipelines live
+    # in the DAGs of their parent components, not in the root DAG.
+    dags, visited = [pipeline_spec.root.dag], set()
+    while dags:
+        for task_spec in dags.pop().tasks.values():
+            task_spec.caching_options.enable_cache = enable_caching
+            name = task_spec.component_ref.name
+            # Membership check first: indexing a protobuf map inserts the key.
+            if (
+                name not in visited
+                and name in pipeline_spec.components
+                and pipeline_spec.components[name].HasField('dag')
+            ):
+                visited.add(name)
+                dags.append(pipeline_spec.components[name].dag)
+    if cache_key:
+        # A custom key replaces input-based fingerprinting, and ParallelFor
+        # iterations share one task spec, so pushing it into nested DAGs would
+        # give every iteration the same fingerprint.
+        for task_spec in pipeline_spec.root.dag.tasks.values():
             task_spec.caching_options.cache_key = cache_key

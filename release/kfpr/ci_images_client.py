@@ -8,7 +8,7 @@ import subprocess
 import uuid
 from pathlib import Path
 
-from .core import REPO, default_branch
+from .github_api import REPO, default_branch
 from .security import _trivy_findings, evaluate_policy
 from .security_exceptions import load_exceptions
 from .workflow_runs import dispatch_and_watch, validate_run

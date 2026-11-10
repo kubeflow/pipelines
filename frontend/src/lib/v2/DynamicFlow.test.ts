@@ -283,6 +283,67 @@ describe('DynamicFlow', () => {
       ).toBeUndefined();
     });
 
+    it('sets debugPauseBarrier on an execution node when the task reports a live pause', () => {
+      const preprocessTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        status_metadata: {
+          custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+        },
+      };
+      const yamlObject = load(v2YamlTemplateString);
+      const graph = convertFlowElements(PipelineSpec.fromJSON(yamlObject));
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, preprocessTask]);
+
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        state: PipelineTaskTaskState.RUNNING,
+        debugPauseBarrier: 'before',
+      });
+    });
+
+    it('ignores debugPauseBarrier on a terminal run (stale keys from a killed pod)', () => {
+      const preprocessTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+        status_metadata: {
+          custom_properties: { debug_pause_barrier: 'before' } as { [key: string]: object },
+        },
+      };
+      const tasks = [rootTask, preprocessTask];
+      const yamlObject = load(v2YamlTemplateString);
+      const graph = convertFlowElements(PipelineSpec.fromJSON(yamlObject));
+      const runtimeGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true),
+      );
+
+      expect(
+        runtimeGraph.find((element) => element.id === 'task.preprocess')?.data?.debugPauseBarrier,
+      ).toBeUndefined();
+    });
+
+    it('leaves debugPauseBarrier undefined for a normally-running task', () => {
+      const preprocessTask: V2PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+      };
+      const yamlObject = load(v2YamlTemplateString);
+      const graph = convertFlowElements(PipelineSpec.fromJSON(yamlObject));
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, preprocessTask]);
+
+      expect(
+        runtimeGraph.find((element) => element.id === 'task.preprocess')?.data?.debugPauseBarrier,
+      ).toBeUndefined();
+    });
+
     it('does not preserve React Flow hidden flags when applying task state', () => {
       const preprocessTask: V2PipelineTask = {
         task_id: 'preprocess-task',

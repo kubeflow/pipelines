@@ -12,15 +12,12 @@ from pathlib import Path
 
 import yaml
 
-from .core import (
-    REPO,
-    CommandRunner,
-    ReleaseContext,
-    ReleaseMetadata,
-    ReleaseState,
-    default_branch,
-)
+from .context import ReleaseContext
+from .github_api import REPO, default_branch
+from .metadata import ReleaseMetadata
 from .qualification import _matrix_records
+from .runner import CommandRunner
+from .state import ReleaseState
 from .steps import _should_set_backend_latest
 from .workflow_runs import dispatch_and_watch, validate_run
 
