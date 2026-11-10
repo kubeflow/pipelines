@@ -94,9 +94,9 @@ func getFingerPrint(opts common.Options, executorInput *pipelinespec.ExecutorInp
 // A cache hit requires the task to resolve to the same effective execution
 // shape: the same resolved inputs and declared outputs, the same output
 // parameter types, the same user container image, command/args and env in
-// order, and the same referenced PVC names. If caching is disabled, the task
-// will not run, or the task opts out of caching, this returns no fingerprint
-// and no match. When multiple successful tasks share the fingerprint, the first
+// order, and the same referenced PVC names and subPaths. If caching is
+// disabled, the task will not run, or the task opts out of caching, this
+// returns no fingerprint and no match. When multiple successful tasks share the fingerprint, the first
 // match found is reused.
 func getFingerPrintsAndID(
 	ctx context.Context,
