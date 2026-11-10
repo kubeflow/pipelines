@@ -37,7 +37,7 @@ def build_serverless_customjob_container_spec(
     project: str,
     location: str,
     custom_job_payload: Dict[str, Any],
-    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
 ) -> dsl.ContainerSpec:
   """Builds a container spec that launches a custom job.
 
@@ -144,7 +144,7 @@ def container_component_dumps(obj: Any) -> Any:
 def gcpc_output_name_converter(
     new_name: str,
     original_name: Optional[str] = None,
-) -> Callable[["BaseComponent"], "BaseComponent"]:  # pytype: disable=name-error
+) -> Callable[["BaseComponent"], "BaseComponent"]:  # pyrefly: ignore[unknown-name]
   """Replace the output with original_name with a new_name in a component decorated with an @dsl.container_component decorator.
 
   Enables authoring components that have an input and output with the same

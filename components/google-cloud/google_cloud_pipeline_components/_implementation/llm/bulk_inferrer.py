@@ -33,9 +33,9 @@ def bulk_inferrer(
     large_model_reference: str,
     input_model: str,
     input_dataset_path: str,
-    output_prediction: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    output_prediction_gcs_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    output_prediction: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    output_prediction_gcs_path: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    gcp_resources: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     sampling_strategy: str = 'greedy',
     encryption_spec_key_name: str = '',
 ) -> kfp.dsl.ContainerSpec:  # pylint: disable=g-doc-args

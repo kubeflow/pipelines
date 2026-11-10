@@ -31,24 +31,24 @@ def rlhf_preprocessor(
     location: str,
     artifact_registry: str,
     tag: str,
-    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    has_tensorboard_id: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
-    has_inference_dataset: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
-    metadata_candidate_columns_string: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_large_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_reference_model_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_reward_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_reward_model_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_machine_type: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_tuning_location: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_accelerator_type: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_accelerator_count: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
-    metadata_refined_image_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_num_microbatches: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
-    metadata_upload_location: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_deploy_model: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
-    metadata_model_display_name: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_upload_model: dsl.OutputPath(bool),  # pytype: disable=invalid-annotation
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    has_tensorboard_id: dsl.OutputPath(bool),  # pyrefly: ignore[invalid-annotation]
+    has_inference_dataset: dsl.OutputPath(bool),  # pyrefly: ignore[invalid-annotation]
+    metadata_candidate_columns_string: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_large_model_reference: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_reference_model_path: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_reward_model_reference: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_reward_model_path: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_machine_type: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_tuning_location: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_accelerator_type: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_accelerator_count: dsl.OutputPath(int),  # pyrefly: ignore[invalid-annotation]
+    metadata_refined_image_uri: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_num_microbatches: dsl.OutputPath(int),  # pyrefly: ignore[invalid-annotation]
+    metadata_upload_location: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_deploy_model: dsl.OutputPath(bool),  # pyrefly: ignore[invalid-annotation]
+    metadata_model_display_name: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_upload_model: dsl.OutputPath(bool),  # pyrefly: ignore[invalid-annotation]
     use_experimental_image: bool = False,
     evaluation_dataset: str = '',
     tensorboard_resource_id: str = '',

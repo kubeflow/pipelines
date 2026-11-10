@@ -101,6 +101,7 @@ def create_custom_training_job_from_component(
     psc_interface_config: Optional[
         Dict[str, Union[str, List[Dict[str, str]]]]
     ] = None,
+    fallback_specs: Optional[List[Dict[str, str]]] = None,
 ) -> Callable:
   # fmt: off
   """Convert a KFP component into Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API.
@@ -135,6 +136,7 @@ def create_custom_training_job_from_component(
     reservation_affinity_key: Corresponds to the label key of a reservation resource. To target a SPECIFIC_RESERVATION by name, use compute.googleapis.com/reservation-name as the key and specify the name of your reservation as its value.
     reservation_affinity_values: Corresponds to the label values of a reservation resource. This must be the full resource name of the reservation.
     psc_interface_config: Configuration CustomJob with PSC-I. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#PscInterfaceConfig).
+    fallback_specs: A list of fallback machine family specs, in Json dict format, applied when the requested machine type is capacity constrained. Takes the form `[{'machine_family': '...'}]`. Because this utility constructs a ClusterSpec where all worker pools share the same spec, the same `fallback_specs` is replicated across every worker pool. Fallback is only supported for single-replica, CPU-only jobs using the STANDARD or SPOT scheduling strategy; see [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).
 
    Returns:
     A KFP component with CustomJob specification applied.
@@ -228,6 +230,9 @@ def create_custom_training_job_from_component(
 
   if nfs_mounts:
     worker_pool_spec['nfs_mounts'] = nfs_mounts
+
+  if fallback_specs:
+    worker_pool_spec['fallback_specs'] = fallback_specs
 
   worker_pool_specs = [worker_pool_spec]
 

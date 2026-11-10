@@ -39,10 +39,10 @@ def batch_prediction_pairwise(
     autorater_prompt_parameters: Dict[str, Dict[str, str]],
     response_column_a: str,
     response_column_b: str,
-    preprocessed_evaluation_dataset: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    preprocessed_evaluation_dataset_uri: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=invalid-annotation
-    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata: dsl.OutputPath(Dict[str, Any]),  # pytype: disable=invalid-annotation
+    preprocessed_evaluation_dataset: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument
+    preprocessed_evaluation_dataset_uri: dsl.OutputPath(str),  # pylint: disable=unused-argument  # pyrefly: ignore[invalid-annotation]
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata: dsl.OutputPath(Dict[str, Any]),  # pyrefly: ignore[invalid-annotation]
     model_a: str = '',
     model_b: str = '',
     model_a_prompt_parameters: Dict[str, Dict[str, str]] = {},

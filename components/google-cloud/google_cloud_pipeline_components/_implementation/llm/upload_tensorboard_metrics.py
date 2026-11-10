@@ -89,8 +89,8 @@ echo -n "https://${LOCATION}.${web_server_uri}/experiment/${tensorboard_resource
 def upload_tensorboard_metrics(
     tensorboard_resource_id: str,
     experiment_name: str,
-    metrics_directory: dsl.Input[dsl.Artifact],  # pytype: disable=unsupported-operands
-    tensorboard_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    metrics_directory: dsl.Input[dsl.Artifact],
+    tensorboard_uri: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
 ) -> dsl.ContainerSpec:
   # fmt: off
   # pylint: disable=g-doc-args

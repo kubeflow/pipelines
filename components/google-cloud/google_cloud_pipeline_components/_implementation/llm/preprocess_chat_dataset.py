@@ -22,8 +22,8 @@ def preprocess_chat_dataset(
     large_model_reference: str,
     input_dataset_uri: str,
     dataset_type: str,
-    processed_dataset: dsl.OutputPath(dsl.Artifact),  # pytype: disable=invalid-annotation
-    processed_dataset_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    processed_dataset: dsl.OutputPath(dsl.Artifact),  # pyrefly: ignore[invalid-annotation]
+    processed_dataset_uri: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     default_context: str = '',
     allow_local_files: bool = False,
 ):  # pylint: disable=g-doc-args
@@ -80,7 +80,7 @@ def preprocess_chat_dataset(
     user_postfix: str
     assistant_prefix: str
     assistant_postfix: str
-    get_system_message: Callable[[str], str]  # pytype: disable=invalid-annotation
+    get_system_message: Callable[[str], str]
 
   def _get_chat_bison_001_system_message(context: str) -> str:
     return f'[SYSTEM]:{context}\n\n' if context else ''

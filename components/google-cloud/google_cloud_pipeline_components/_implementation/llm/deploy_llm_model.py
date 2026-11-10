@@ -19,8 +19,6 @@ from kfp import dsl
 
 # pylint: disable=g-import-not-at-top, invalid-name
 # pylint: disable=g-doc-args
-# pytype: disable=invalid-annotation
-# pytype: disable=import-error
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def deploy_llm_model(
     project: str,
@@ -28,9 +26,9 @@ def deploy_llm_model(
     model_resource_name: str,
     display_name: str,
     regional_endpoint: str,
-    endpoint_resource_name: dsl.OutputPath(str),
-    create_endpoint_gcp_resources: dsl.OutputPath(str),
-    deploy_model_gcp_resources: dsl.OutputPath(str),
+    endpoint_resource_name: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    create_endpoint_gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    deploy_model_gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     encryption_spec_key_name: str = '',
     service_account: str = '',
     deploy_model: bool = True,
@@ -63,7 +61,7 @@ def deploy_llm_model(
   from typing import Any, Dict
 
   try:
-    from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
+    from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner  # pyrefly: ignore[missing-import]
   except ImportError:
     from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
 
@@ -93,7 +91,7 @@ def deploy_llm_model(
       create_endpoint_payload['labels'] = json.loads(pipeline_labels_str)
 
     if encryption_spec_key_name:
-      create_endpoint_payload['encryption_spec'] = {
+      create_endpoint_payload['encryption_spec'] = {  # pyrefly: ignore[bad-assignment]
           'kms_key_name': encryption_spec_key_name
       }
 
@@ -139,7 +137,5 @@ def deploy_llm_model(
     sys.exit(13)
 
 
-# pytype: enable=import-error
-# pytype: enable=invalid-annotation
 # pylint: enable=g-doc-args
 # pylint: enable=g-import-not-at-top, invalid-name

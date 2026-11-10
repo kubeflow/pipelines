@@ -1,8 +1,16 @@
 ## Upcoming release
 
+## Release 2.23.0
+
+* Remove old deprecated AutoML tabular pipeline.
 * Remove deprecated Wide and Deep Tabular Workflow pipeline.
 * Remove deprecated TabNet Tabular Workflow pipeline.
+* Remove the `num_selected_features` parameter from the AutoML Tabular pipeline utils.
+* Return an Artifact Registry template URI instead of a local YAML path from the AutoML Tabular pipeline utils.
+* Remove the preview AutoML Tabular V2 API.
 * Dynamically set default boot disk type in CustomJob component for Vertex Pipelines based on machine type.
+* Add fallback_specs to v1 GCPC custom job components/utils
+* Apply latest GCPC image vulnerability resolutions (base OS and software updates).
 
 ## Release 2.22.0
 
@@ -609,7 +617,7 @@ Google Cloud Pipeline Components v2 is generally available!
 
 ## Release 0.3.0
 * Update BQML export model input from string to artifact
-* Move model/endpoint/job/bqml components to 1.0 namespace
+* Move model/endpoint/job/bqml compoennts to 1.0 namespace
 * Expose `enable_web_access` and `reserved_ip_ranges` for custom job component
 * Add delete model and undeploy model components
 * Add utility library for google artifacts

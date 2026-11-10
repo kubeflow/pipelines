@@ -24,7 +24,6 @@ def _resolve_image(default: str = '') -> str:
   return os.environ.get('TEXT_IMPORTER_IMAGE_OVERRIDE') or default
 
 
-# pytype: disable=unsupported-operands
 @dsl.container_component
 def private_text_importer(
     project: str,
@@ -34,8 +33,8 @@ def private_text_importer(
     targets_field_name: str,
     large_model_reference: str,
     imported_data: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument
-    imported_data_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    imported_data_path: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     instruction: str = '',
     image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
     machine_type: str = 'e2-highmem-8',
@@ -98,6 +97,3 @@ def private_text_importer(
       ),
       gcp_resources=gcp_resources,
   )
-
-
-# pytype: enable=unsupported-operands

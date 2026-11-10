@@ -28,17 +28,17 @@ def infer_preprocessor(
     location: str,
     artifact_registry: str,
     tag: str,
-    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_large_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_reference_model_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_reward_model_reference: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_reward_model_path: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_machine_type: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_tuning_location: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_accelerator_type: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_accelerator_count: dsl.OutputPath(int),  # pytype: disable=invalid-annotation
-    metadata_instruction: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    metadata_refined_image_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_large_model_reference: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_reference_model_path: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_reward_model_reference: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_reward_model_path: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_machine_type: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_tuning_location: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_accelerator_type: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_accelerator_count: dsl.OutputPath(int),  # pyrefly: ignore[invalid-annotation]
+    metadata_instruction: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    metadata_refined_image_uri: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     use_experimental_image: bool = False,
     input_reference_model_path: str = '',
     instruction: str = '',

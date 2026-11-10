@@ -31,12 +31,12 @@ def _resolve_image() -> str:
 @dsl.container_component
 def model_evaluation_text_generation_pairwise(
     judgments_dir: str,
-    autosxs_metrics: dsl.Output[dsl.Metrics],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    gcp_resources: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    model_a_evaluation_path: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    model_b_evaluation_path: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    evaluation_count_path: dsl.OutputPath(int),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    evaluation_dataset_path: dsl.OutputPath(str),  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
+    autosxs_metrics: dsl.Output[dsl.Metrics],  # pylint: disable=unused-argument
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    model_a_evaluation_path: dsl.OutputPath(str),  # pylint: disable=unused-argument  # pyrefly: ignore[invalid-annotation]
+    model_b_evaluation_path: dsl.OutputPath(str),  # pylint: disable=unused-argument  # pyrefly: ignore[invalid-annotation]
+    evaluation_count_path: dsl.OutputPath(int),  # pylint: disable=unused-argument  # pyrefly: ignore[invalid-annotation]
+    evaluation_dataset_path: dsl.OutputPath(str),  # pylint: disable=unused-argument  # pyrefly: ignore[invalid-annotation]
     human_preference_column: str = '',
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     location: str = _placeholders.LOCATION_PLACEHOLDER,

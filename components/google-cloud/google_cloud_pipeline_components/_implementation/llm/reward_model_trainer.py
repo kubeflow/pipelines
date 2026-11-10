@@ -32,9 +32,9 @@ def reward_model_trainer(
     targets_sequence_length: int,
     input_model_path: str,
     input_dataset_path: str,
-    output_adapter_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
-    gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    output_adapter_path: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],
+    gcp_resources: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     eval_dataset_path: str = '',
     train_split: str = 'train',
     batch_size: int = 64,

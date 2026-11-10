@@ -28,8 +28,8 @@ def private_text_comparison_importer(
     choice_field_name: str,
     split: str,
     large_model_reference: str,
-    output_dataset_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    output_dataset_path: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    gcp_resources: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     image_uri: str = utils.get_default_image_uri('refined_cpu', ''),
     machine_type: str = 'e2-highmem-8',
     instruction: str = '',

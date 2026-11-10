@@ -19,9 +19,6 @@ from kfp import dsl
 
 # pylint: disable=g-import-not-at-top, invalid-name,
 # pylint: disable=g-doc-args
-# pytype: disable=invalid-annotation
-# pytype: disable=unsupported-operands
-# pytype: disable=import-error
 @dsl.component(base_image=_image.GCPC_IMAGE_TAG, install_kfp_package=False)
 def refined_upload_llm_model(
     project: str,
@@ -30,8 +27,8 @@ def refined_upload_llm_model(
     model_reference_name: str,
     model_display_name: str,
     regional_endpoint: str,
-    model_resource_name: dsl.OutputPath(str),
-    gcp_resources: dsl.OutputPath(str),
+    model_resource_name: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     encryption_spec_key_name: str = '',
     upload_model: bool = True,
     tune_type: str = '',
@@ -62,7 +59,7 @@ def refined_upload_llm_model(
   import sys
 
   try:
-    from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
+    from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner  # pyrefly: ignore[missing-import]
   except ImportError:
     from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
 
@@ -126,8 +123,5 @@ def refined_upload_llm_model(
     sys.exit(13)
 
 
-# pytype: enable=import-error
-# pytype: enable=unsupported-operands
-# pytype: enable=invalid-annotation
 # pylint: enable=g-doc-args
 # pylint: enable=g-import-not-at-top, invalid-name, broad-exception-caught

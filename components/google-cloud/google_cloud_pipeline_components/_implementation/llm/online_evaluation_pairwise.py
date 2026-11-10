@@ -40,9 +40,9 @@ def online_evaluation_pairwise(
     inference_output_uri: str,
     id_columns: List[str],
     task: str,
-    judgments: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
-    judgments_uri: dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    error_messages: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument # pytype: disable=unsupported-operands
+    judgments: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument
+    judgments_uri: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    error_messages: dsl.Output[dsl.Dataset],  # pylint: disable=unused-argument
     gcp_resources: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     metadata: dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     human_preference_column: str = '',

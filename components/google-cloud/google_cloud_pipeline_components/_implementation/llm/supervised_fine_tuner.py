@@ -32,9 +32,9 @@ def supervised_fine_tuner(
     image_uri: str,
     input_model_path: str,
     input_dataset_path: str,
-    output_model_path: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
-    tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],  # pytype: disable=unsupported-operands
-    gcp_resources: kfp.dsl.OutputPath(str),  # pytype: disable=invalid-annotation
+    output_model_path: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
+    tensorboard_metrics: kfp.dsl.Output[kfp.dsl.Artifact],
+    gcp_resources: kfp.dsl.OutputPath(str),  # pyrefly: ignore[invalid-annotation]
     train_split: str = 'train',
     batch_size: int = 64,
     learning_rate_multiplier: float = 1.0,
