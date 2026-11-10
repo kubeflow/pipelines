@@ -130,6 +130,9 @@ class Banner extends React.Component<BannerProps, BannerState> {
 
     return (
       <div
+        role='status'
+        aria-live='polite'
+        aria-atomic='true'
         className={classes(
           commonCss.flex,
           css.banner,
