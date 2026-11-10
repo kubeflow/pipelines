@@ -4086,6 +4086,39 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
 
 class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
+
+    def test_ignore_upstream_failure_with_unset_default_input(self):
+
+        @dsl.component
+        def comp(req: str, opt: str = 'default'):
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            comp(req='hello').ignore_upstream_failure()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+            )
+
+    def test_ignore_upstream_failure_with_unset_optional_input(self):
+
+        @dsl.component
+        def comp(req: str, opt: Optional[str] = None):
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            comp(req='hello').ignore_upstream_failure()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=os.path.join(tmpdir, 'pipeline.yaml'),
+            )
+
     def test_basic_permitted(self):
 
         @dsl.component

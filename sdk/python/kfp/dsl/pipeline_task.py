@@ -935,7 +935,9 @@ class PipelineTask:
         ).items():
             if type_utils.is_task_final_status_type(input_spec.type):
                 continue
-            argument_value = self._inputs[input_spec_name]
+            argument_value = self._inputs.get(input_spec_name)
+            if argument_value is None:
+                continue
             if (
                 (isinstance(argument_value, pipeline_channel.PipelineChannel))
                 and (not input_spec.optional)
