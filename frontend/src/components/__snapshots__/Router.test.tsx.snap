@@ -490,6 +490,6 @@ exports[`Router > initial render 1`] = `
         </div>
       </div>
     </div>
-  </nav>
+  </div>
 </DocumentFragment>
 `;
