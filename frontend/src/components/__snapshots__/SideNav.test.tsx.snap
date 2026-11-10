@@ -15,6 +15,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -499,6 +500,7 @@ exports[`SideNav > populates the display build information using the default pro
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -966,6 +968,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -1433,6 +1436,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -1900,6 +1904,7 @@ exports[`SideNav > renders collapsed state 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -2367,6 +2372,7 @@ exports[`SideNav > renders expanded state 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -2916,6 +2922,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -3462,6 +3469,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -3929,6 +3937,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -4317,6 +4326,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -4863,6 +4873,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -5371,6 +5382,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -5797,6 +5809,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -6185,6 +6198,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -6772,6 +6786,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -7239,6 +7254,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -7665,6 +7681,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
