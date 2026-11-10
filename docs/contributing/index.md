@@ -28,6 +28,7 @@ see the [DCO sign-off guide](https://github.com/kubeflow/community/tree/master/d
 ```{toctree}
 :hidden:
 
+Architecture Overview <architecture-overview>
 Pipeline Anatomy <anatomy>
 Platform validation and releases <platform-validation>
 Frontend qualification reliability <frontend-qualification-reliability>
