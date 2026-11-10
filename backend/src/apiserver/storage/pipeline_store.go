@@ -328,6 +328,9 @@ func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, er
 			)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return pipelines, nil
 }
 
@@ -1063,6 +1066,9 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 			)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return pipelineVersions, nil
 }
 
@@ -1290,6 +1296,9 @@ func (s *PipelineStore) getTags(tableName, idColumn, entityID string) (map[strin
 		}
 		tags[key] = value
 	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate tag rows for %v %v", tableName, entityID)
+	}
 	return tags, nil
 }
 
@@ -1333,6 +1342,9 @@ func queryTagsForEntities(querier sqlQuerier, dbDialect dialect.DBDialect, table
 			result[entityID] = make(map[string]string)
 		}
 		result[entityID][key] = value
+	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate tag rows for %v", tableName)
 	}
 	return result, nil
 }

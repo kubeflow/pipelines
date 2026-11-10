@@ -240,6 +240,9 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 		}
 		experiments = append(experiments, experiment)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return experiments, nil
 }
 
