@@ -379,3 +379,74 @@ func TestCopyLogFromArchive_FromCriOTextToTextWithTimestamp(t *testing.T) {
 	line = scanner.Text()
 	assert.Equal(t, "2020-08-31T15:00:02.260657206Z [ERROR] Unable to connect", line)
 }
+
+func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
+	logArchive := initLogArchive()
+
+	tests := []struct {
+		name     string
+		input    string
+		opts     ExtractLogOptions
+		expected string
+	}{
+		{
+			name:     "raw JSON metrics line in text format",
+			input:    "{\"epoch\":1,\"loss\":0.25}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "{\"epoch\":1,\"loss\":0.25}\n",
+		},
+		{
+			name:     "JSON log with timestamp and msg in text format with timestamps",
+			input:    "{\"timestamp\":\"2020-08-31T15:00:00Z\",\"msg\":\"Model saved\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "{\"timestamp\":\"2020-08-31T15:00:00Z\",\"msg\":\"Model saved\"}\n",
+		},
+		{
+			name:     "literal null and empty object in text format",
+			input:    "null\n{}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "null\n{}\n",
+		},
+		{
+			name:     "non-string or null log field preserved in text format",
+			input:    "{\"log\":123}\n{\"log\":null}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "{\"log\":123}\n{\"log\":null}\n",
+		},
+		{
+			name:     "Docker wrapper JSON with extra fields unwrapped in text format",
+			input:    "{\"log\":\"hello world\",\"stream\":\"stdout\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "hello world\n",
+		},
+		{
+			name:     "Docker wrapper JSON with intentional empty log preserved as empty line",
+			input:    "{\"log\":\"\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "\n",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var dst bytes.Buffer
+			src := compressInput(t, tc.input)
+			err := logArchive.CopyLogFromArchive(src, &dst, tc.opts)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, dst.String())
+		})
+	}
+
+	t.Run("raw JSON metrics line wrapped in RunLogEntry in JSON format", func(t *testing.T) {
+		var dst bytes.Buffer
+		rawLine := `{"epoch":1,"loss":0.25}`
+		src := compressInput(t, rawLine+"\n")
+		err := logArchive.CopyLogFromArchive(src, &dst, ExtractLogOptions{LogFormat: LogFormatJSON})
+		require.NoError(t, err)
+
+		var entry RunLogEntry
+		err = json.Unmarshal(bytes.TrimSpace(dst.Bytes()), &entry)
+		require.NoError(t, err)
+		assert.Equal(t, rawLine, entry.Log)
+	})
+}
