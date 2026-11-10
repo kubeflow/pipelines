@@ -1045,6 +1045,14 @@ func extendPodSpecPatch(
 				MountPath: volumeMount.GetMountPath(),
 			})
 		}
+		// Propagate image pull policy from the task-level setting so that init
+		// containers use the same policy as the user container.  Without this,
+		// init containers always default to the Kubernetes cluster default
+		// (IfNotPresent for tagged images), which breaks private-registry and
+		// air-gapped environments where Always is required.
+		if pullPolicy != "" {
+			k8sInitContainer.ImagePullPolicy = k8score.PullPolicy(pullPolicy)
+		}
 		podSpec.InitContainers = append(podSpec.InitContainers, k8sInitContainer)
 	}
 

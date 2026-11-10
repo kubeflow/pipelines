@@ -3782,6 +3782,7 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 					{
 						Name:            "prepare-data",
 						Image:           "busybox:1.36",
+						ImagePullPolicy: k8score.PullAlways,
 						SecurityContext: hardenedSecurityContext,
 					},
 				},
@@ -4054,6 +4055,84 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 	assert.NotNil(t, got.HostUsers)
 	assert.False(t, *got.HostUsers)
 }
+
+// Test_extendPodSpecPatch_InitContainers_ImagePullPolicy is a regression test for
+// https://github.com/kubeflow/pipelines/issues/15486.
+//
+// image_pull_policy must be propagated to init containers, not just to the user
+// container (Containers[0]).  Previously the ImagePullPolicy field was never set
+// on init-container structs, which caused init containers to silently default to
+// IfNotPresent in environments that require Always (e.g. private registries).
+func Test_extendPodSpecPatch_InitContainers_ImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		name             string
+		imagePullPolicy  string
+		wantUserPolicy   k8score.PullPolicy
+		wantInitPolicy   k8score.PullPolicy
+	}{
+		{
+			name:            "Always propagates to init container",
+			imagePullPolicy: "Always",
+			wantUserPolicy:  k8score.PullAlways,
+			wantInitPolicy:  k8score.PullAlways,
+		},
+		{
+			name:            "Never propagates to init container",
+			imagePullPolicy: "Never",
+			wantUserPolicy:  k8score.PullNever,
+			wantInitPolicy:  k8score.PullNever,
+		},
+		{
+			name:            "IfNotPresent propagates to init container",
+			imagePullPolicy: "IfNotPresent",
+			wantUserPolicy:  k8score.PullIfNotPresent,
+			wantInitPolicy:  k8score.PullIfNotPresent,
+		},
+		{
+			name:            "empty policy leaves both unset",
+			imagePullPolicy: "",
+			wantUserPolicy:  "",
+			wantInitPolicy:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				InitContainers: []k8score.Container{{Name: "kfp-launcher"}},
+			}
+			err := extendPodSpecPatch(
+				newTestLoggerContext(t),
+				got,
+				common.Options{
+					KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+						ImagePullPolicy: tt.imagePullPolicy,
+						InitContainers: []*kubernetesplatform.InitContainer{
+							{Name: "init-fetch", Image: "private.registry.example.com/init:latest"},
+						},
+					},
+				},
+				nil,
+				nil,
+			)
+			require.NoError(t, err)
+
+			// User container (Containers[0]) must have the requested policy.
+			assert.Equal(t, tt.wantUserPolicy, got.Containers[0].ImagePullPolicy,
+				"user container ImagePullPolicy")
+
+			// Init containers appended by extendPodSpecPatch start at index 1
+			// (index 0 is the pre-existing kfp-launcher init container which is
+			// not touched by extendPodSpecPatch).
+			require.Len(t, got.InitContainers, 2, "expected kfp-launcher + init-fetch")
+			assert.Equal(t, tt.wantInitPolicy, got.InitContainers[1].ImagePullPolicy,
+				"init container ImagePullPolicy must match user container policy (issue #15486)")
+		})
+	}
+}
+
+
 
 func Test_extendPodSpecPatch_InvalidStorageQuantities(t *testing.T) {
 	invalidSize := "invalid-size"
