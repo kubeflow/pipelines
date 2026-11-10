@@ -6,7 +6,7 @@ new contributors and anyone looking for a quick mental model of Kubeflow Pipelin
 useful for your current task.
 
 For the full, detailed cluster-wide diagram see
-[`images/kfp-cluster-wide-architecture.png`](../../images/kfp-cluster-wide-architecture.png).
+[`images/kfp-cluster-wide-architecture.png`](../images/kfp-cluster-wide-architecture.png).
 For a per-pipeline anatomy breakdown see [Pipeline Anatomy](anatomy.md).
 
 ---
@@ -160,5 +160,5 @@ is re-queued and retried, making the controller self-healing by design.
 
 - [Pipeline Anatomy](anatomy.md) — detailed breakdown of the Argo Workflow tasks
   generated for a single-component pipeline
-- [`images/kfp-cluster-wide-architecture.png`](../../images/kfp-cluster-wide-architecture.png) — full cluster diagram with every component labelled
-- [`docs/agents/architecture.md`](../agents/architecture.md) — key source paths and local runner notes
+- [`images/kfp-cluster-wide-architecture.png`](../images/kfp-cluster-wide-architecture.png) — full cluster diagram with every component labelled
+- [`docs/agents/architecture.md`](https://github.com/kubeflow/pipelines/blob/master/docs/agents/architecture.md) — key source paths and local runner notes (contributor reference, not part of the published docs site)
