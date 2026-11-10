@@ -638,9 +638,11 @@ snapshot while the UI retains its last successful view. Invalid tokens return
 the supported replay window. Deleting a run terminates its stream under normal authorized
 not-found behavior.
 
-Retry establishes a new accepted execution epoch and a revisioned reset before accepting its
-task writes. Earlier writers are fenced transactionally; stale cursors receive an attempt-reset
-record and restart snapshots rather than merge generations. Coordinate this mechanism with
+A manual run retry establishes a new accepted execution epoch and a revisioned reset before
+accepting its task writes. Automatic task retries create a new `task_attempt_id` within the
+existing `run_attempt_id`; they do not reset the whole run snapshot. Earlier run-epoch writers
+are fenced transactionally; stale cursors receive an attempt-reset record and restart snapshots
+rather than merge generations. Coordinate this mechanism with
 [#14322](https://github.com/kubeflow/pipelines/issues/14322). Existing `RetryGeneration` is a
 claim/fencing token: failed claims can increment it without executing a new attempt. Do not
 expose it as a human attempt number. Terminal task-write protection can ship separately under
