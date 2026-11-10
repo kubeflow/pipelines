@@ -4086,7 +4086,6 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
 
 
 class TestValidIgnoreUpstreamTaskSyntax(unittest.TestCase):
-
     def test_ignore_upstream_failure_with_unset_default_input(self):
 
         @dsl.component
