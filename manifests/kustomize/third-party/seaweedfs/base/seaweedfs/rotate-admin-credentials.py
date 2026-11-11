@@ -190,6 +190,7 @@ class Migration:
         self.storage_factory = storage_factory
         self.storage_pair = None
         self.storage = None
+        self.stage = 'initialization'
 
     def phase(self, state, value):
         if state['metadata'].get('annotations', {}).get(PHASE) != value:
@@ -405,6 +406,7 @@ class Migration:
                 self.roll_deployment(name, value)
 
     def reconcile(self):
+        self.stage = 'credential preparation'
         state = self.prepare()
         pair = credentials(state)
         self.storage_ready()
@@ -414,13 +416,17 @@ class Migration:
             self.storage = self.storage_factory(pair)
             self.storage_pair = pair
         storage = self.storage
+        self.stage = 'S3 registration verification'
         storage.verify_registration()
         # The separate IAM listener does not refresh its authentication cache
         # when postStart adds a key through the filer gRPC API. Restart once
         # after S3 confirms registration, before changing any consumer Secret.
         # Secret UID is durable and independent of later consumer-only rollouts.
+        self.stage = 'storage IAM cache reload'
         self.roll_deployment('seaweedfs', state['metadata']['uid'])
+        self.stage = 'IAM authentication verification'
         storage.verify()
+        self.stage = 'consumer credential rollout'
         self.publish(pair)
         self.roll_consumers(revision(state))
         # Re-read to detect a concurrent operator edit before revoking a key.
@@ -431,6 +437,7 @@ class Migration:
             raise Retry(
                 'Credentials changed during rollout; restarting verification'
             )
+        self.stage = 'default credential revocation'
         storage.revoke_default()
         storage.verify()
         self.phase(state, 'DefaultRevoked')
@@ -469,8 +476,18 @@ class Storage:
         self.s3 = session.create_client(
             's3', endpoint_url='http://seaweedfs:8333', **common
         )
+        # SeaweedFS accepts legacy access-key IDs shorter than AWS's 16-byte
+        # minimum. All IAM request fields here are internal constants, not user
+        # input; disable only this client's AWS-specific parameter validation.
         self.iam = session.create_client(
-            'iam', endpoint_url='http://seaweedfs:8111', **common
+            'iam',
+            endpoint_url='http://seaweedfs:8111',
+            **{
+                **common,
+                'config': common['config'].merge(
+                    Config(parameter_validation=False)
+                ),
+            },
         )
 
     def verify_registration(self):
@@ -526,11 +543,11 @@ def main():
         except Retry as error:
             ready.unlink(missing_ok=True)
             print(str(error), flush=True)
-        except Exception:
+        except Exception as error:
             ready.unlink(missing_ok=True)
             # API/SDK exceptions can include credentials or entire Secret bodies.
             print(
-                'Credential reconciliation failed; inspect RBAC, storage health and deployment readiness. Retrying.',
+                f'Credential reconciliation failed during {migration.stage} ({type(error).__name__}); inspect RBAC, storage health and deployment readiness. Retrying.',
                 flush=True,
             )
         time.sleep(10)

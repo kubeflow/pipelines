@@ -210,6 +210,32 @@ class RotationTest(unittest.TestCase):
         storage.revoke_default()
         storage.iam.delete_access_key.assert_not_called()
 
+    @unittest.skipUnless(
+        importlib.util.find_spec('botocore'),
+        'SDK model test requires botocore (installed in CI)',
+    )
+    def test_real_sdk_accepts_short_legacy_id_for_revocation(self):
+        from botocore.stub import Stubber
+
+        storage = rotation.Storage(
+            ('synthetic-replacement', 'synthetic-secret')
+        )
+        storage.default_accepted = Mock(side_effect=[True, False])
+        try:
+            with Stubber(storage.iam) as stub:
+                stub.add_response(
+                    'delete_access_key',
+                    {},
+                    {
+                        'UserName': 'kubeflow-admin',
+                        'AccessKeyId': rotation.DEFAULT_ACCESS_KEY,
+                    },
+                )
+                storage.revoke_default()
+                stub.assert_no_pending_responses()
+        finally:
+            storage.close()
+
     def test_known_default_is_revoked_and_rechecked(self):
         storage = rotation.Storage.__new__(rotation.Storage)
         storage.pair = ('replacement', 'new-secret')
