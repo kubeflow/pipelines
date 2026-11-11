@@ -63,6 +63,20 @@ class ManifestTest(unittest.TestCase):
             container['lifecycle']['postStart']['exec']['command'][-1],
         )
 
+    def test_both_listeners_require_bootstrap_authentication(self):
+        container = self.resource('Deployment', 'seaweedfs')['spec'][
+            'template'
+        ]['spec']['containers'][0]
+        env = {item['name']: item for item in container['env']}
+        for variable, key in (
+            ('AWS_ACCESS_KEY_ID', 'accesskey'),
+            ('AWS_SECRET_ACCESS_KEY', 'secretkey'),
+        ):
+            reference = env[variable]['valueFrom']['secretKeyRef']
+            self.assertEqual('seaweedfs-admin-credentials', reference['name'])
+            self.assertEqual(key, reference['key'])
+            self.assertFalse(reference.get('optional', False))
+
     def test_reconciler_has_no_cluster_role_or_pod_exec(self):
         role = self.resource('Role', 'seaweedfs-credential-rotation')
         for rule in role['rules']:

@@ -13,9 +13,10 @@ Deployment performs the migration automatically:
 2. Wait for the updated SeaweedFS pod to register the replacement, then restart
    it once automatically so the separate IAM listener reloads its credential
    cache. Consumer credentials are switched only after that restart. The pod
-   requires both generated Secret keys before startup. An explicit empty S3
-   configuration enables authentication during initial registration while
-   retaining dynamically managed tenant identities.
+   requires both generated Secret keys before startup. The generated credential
+   bootstraps both S3 and the separate IAM listener through required environment
+   references, enabling authentication before dynamic identities are registered.
+   Dynamically managed tenant identities remain supported.
 3. Update the legacy `mlpipeline-minio-artifact` Secret, preserving its name for
    existing workflow references. Roll the API server, UI and profile controller
    if they consume that Secret. Wait for their old pods to terminate.
@@ -76,17 +77,31 @@ the separate IAM authentication cache. Managed services then roll during
 migration; zero downtime is not guaranteed.
 Multi-user workloads retain their per-namespace credentials. Standalone and
 custom clients using the shared administrator credential can cache the old key.
-The 2.18 launcher rereads credentials when retrying output uploads, but an Argo
-artifact/log upload can retain its driver credential through retries. Do not
-assume active uploads are disruption-free merely because the Secret changed.
+The 2.18 launcher rereads credentials on its one retry of output uploads; that
+retry may still fail during storage downtime. Master's launcher refreshes only
+after transient transport errors, so an already-cached key rejected after
+revocation does not trigger a refresh. An Argo artifact/log upload initializes
+its credential once and retries with that value on both branches. Revoking a
+key during such an upload can fail the task. A component still computing may
+instead load the new key when its Argo upload starts.
+
+A newer launcher image cannot change binaries already running during upgrade.
+Do not claim uninterrupted active standalone uploads: they require a deliberate
+cutover policy (drain existing clients or accept retry/resubmission), or a
+separate migration mechanism. Keeping the published credential valid during a
+grace period also keeps the vulnerability exploitable during that period.
 
 Before releasing this change, validate actual SeaweedFS 4.50/master and
 4.51/release-2.18 persistence, interruption at each migration phase, repeated
 manifest apply, tenant access, bootstrap authentication and active standalone
 Argo/launcher uploads. The third-party compatibility workflow applies the actual
 baseline and candidate manifests, preserves a pre-upgrade tenant key and data,
-and checks old-key rejection before and after a storage restart. It does not
-replace the active-upload validation gate.
+and checks old-key rejection before and after a storage restart. It also probes
+fresh S3/IAM authentication before dynamic registration, completes a fresh
+installation, and checks that client-side and server-side manifest apply retain
+runtime Secret data and identity. This does not validate GitOps prune, replace,
+or application-specific field ownership, and it does not replace the
+active-upload validation gate.
 
 Do not roll back by restoring the published default credential. Preserve the
 new Secrets and use them with any rollback manifests; old startup manifests
