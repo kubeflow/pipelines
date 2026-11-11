@@ -42,6 +42,7 @@ on:
       - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
       - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
@@ -68,7 +69,14 @@ permissions:
   contents: read
 
 jobs:
+  image-artifacts-ready:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+
   api-test-versions:
+    needs: image-artifacts-ready
     # Full prefix coverage after merges, without adding PR-time clusters.
     if: ${{ github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
@@ -96,6 +104,7 @@ jobs:
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           pipeline_store: database
           cache_enabled: 'true'
           db_type: mysql
@@ -119,6 +128,7 @@ jobs:
           report_name: "APIVersion_${{ matrix.api_version }}"
 
   api-test-standalone:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -178,6 +188,7 @@ jobs:
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           proxy: ${{ matrix.proxy }}
@@ -262,6 +273,7 @@ jobs:
 
 
   api-test-k8s-native:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -296,6 +308,7 @@ jobs:
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -339,6 +352,7 @@ jobs:
 
 
   api-test-multi-user:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -385,6 +399,7 @@ jobs:
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
           db_type: ${{ matrix.db_type }}

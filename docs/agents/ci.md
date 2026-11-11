@@ -10,17 +10,20 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 `ci-images.yml` (`Shared CI Images`) is the application-image producer for the
 active integration workflows. It invokes `image-builds.yml` once per required
 architecture: seven AMD64 images shared by six workflows, and seven ARM64 images
-for the ARM smoke. Consumers start setup independently and use
-`.github/actions/shared-ci-images` at their existing image barrier. Runtime base
-archives remain available before the application-image barrier; their existing
-fingerprint cache is unchanged. The paused upgrade workflow remains paused.
+for the ARM smoke. Each consumer workflow calls `shared-ci-images-ready.yml`
+once before its deployment jobs. That job resolves the required runtime and
+application artifacts together and passes the exact immutable IDs and producer
+identity to every dependent lane. ARM readiness selects only ARM application
+images. Cluster setup starts after this barrier; the existing runtime fingerprint
+cache is unchanged. The paused upgrade workflow and its readiness job remain paused.
 
 The producer publishes checkout identity before builds, then immutable
 attempt-specific image archives. Each archive includes its source identity and
 file checksums in a distinct `*.provenance.json` file, prepared before upload.
-Consumers can download as soon as the seven application artifacts exist; there
-is no additional record upload, aggregate publisher job, or runtime-image job
-barrier on this path.
+The readiness job can complete once all selected artifacts exist; no aggregate
+publisher or additional record upload is required. A failed or skipped readiness
+job prevents its deployment jobs from starting. Direct users of the deploy or
+shared-image action retain discovery and bounded polling by default.
 Consumers require the same repository, event/ref, actual checkout SHA (the PR
 merge SHA, not only its head), PR head/base identity, architecture and producer
 attempt. They download exact artifact IDs, verify archive SHA-256 checksums and
@@ -38,8 +41,13 @@ bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
 publication grace period. Revision-specific concurrency prevents a newer
 revision from cancelling images still needed by older consumers.
 
-Artifact readiness is polled every ten seconds, with producer status checked
-at most thirty seconds apart and again at readiness. Authenticated conditional
+Artifact readiness is polled once per consumer workflow every ten seconds,
+with producer status checked at most thirty seconds apart and again at readiness.
+Dependent lanes validate the supplied source/run identity and skip discovery and
+readiness polling. A failed-job-only consumer retry may reuse a successful
+readiness result from an earlier attempt of that same workflow run/source;
+the producer attempt is never rewritten. Per-download validation still rejects
+a changed producer attempt, failed producer or deleted artifact. Authenticated conditional
 requests reuse unchanged metadata pages without charging GitHub's primary API
 quota; pagination and rate-limit retry headers are preserved. Archive verification
 uses fresh unconditional metadata after hashing. These controls keep the handoff
@@ -131,7 +139,7 @@ and workflow overlap contracts with the rest of CI Scripts Tests.
 - Positive E2E pipeline waits report image-pull failures after two minutes of continuously observed `ErrImagePull`/`ImagePullBackOff` for a pod/container/image. Reports preserve registry error details and supplement them with pod events. Recovery, pod replacement, and observation gaps reset the grace period; negative fixtures opt out. This does not change product runtime behavior or extend test timeouts.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
 - The KFP Manifests suite also checks the rendered profile-controller NetworkPolicy for the base multi-user install and the plain, platform-agnostic, and PostgreSQL multi-user overlays. These selector/namespace/port assertions run through `manifests/kustomize/hack/test.sh`; they do not verify live CNI enforcement or override additive allowances from other policies.
-- CI Check publishes the `ci-passed` status from trusted base-branch code. It derives workflow expectations from the current PR base SHA, parsing upstream YAML as data with the shared pinned PyYAML dependency. The MLMD upgrade lane is paused only when every job has an explicit checked-in false condition; changing a repository variable cannot change gate requirements. Successful statuses record a fingerprint of their validated base branch and SHA, and recovery revisits green statuses with a missing or different base stamp. Queued and running evidence reports pending; actual failures and evidence errors remain red, and missing workflows fail after a bounded registration grace. A structured check reader distinguishes external pending checks while the pinned checker remains required for success. Changed explanations refresh the status and run link, while identical state and bounded explanation do not consume another status. See [the merge-gate contract](ci-passed.md) for evidence requirements, trigger-inventory updates, and rollout validation.
+- CI Check publishes the `ci-passed` status from trusted base-branch code. It derives workflow expectations from the current PR base SHA, parsing upstream YAML as data with the shared pinned PyYAML dependency. The MLMD upgrade lane is paused only when every job has an explicit checked-in false condition; changing a repository variable cannot change gate requirements. Successful statuses record a fingerprint of their validated base branch and SHA, and recovery revisits green statuses with a missing or different base stamp. Queued and running evidence reports pending; actual failures and evidence errors remain red, and missing workflows fail after a bounded registration grace. A structured check reader distinguishes external pending checks while the pinned checker remains required for success. Changed explanations refresh the status and run link, while identical state and bounded explanation do not consume another status. Scheduled recovery can use a validated latest-workflow failure without rereading policy or every check; only full assessment can publish success. Base-push revocation batches status discovery and individually revalidates stale-green candidates before writing. See [the merge-gate contract](ci-passed.md) for evidence requirements, trigger-inventory updates, and rollout validation.
 - `.github/workflows/ci-passed-stale-revoke.yml` runs on every push to `master` or `main` and flips a stale `ci-passed` success to failure the moment the base advances, before the 15-minute sweep. It is a second writer of the `ci-passed` status but only ever writes `failure`; CI Check remains the sole writer of `success`. It reuses the publisher's freshness stamp, resolves the live triggering branch tip and skips when the tip has already moved past the triggering push, and serializes its jobs with a concurrency group. Permissions are `contents: read`, `pull-requests: read`, `statuses: write`; it never touches labels.
 - `.github/actions/arm64-smoke` validates the standalone `env/platform-agnostic` installation on a native ARM64 Kind node after master image publication and in the path-filtered `arm64-presubmit.yml` workflow. Its image records must cover all seven KFP images from the checked-out source SHA. Published records reference immutable shared AMD64/ARM64 OCI indexes from the same workflow attempt; presubmit records reference the seven Kind-loaded `:ci` images, whose Linux ARM64 architecture is inspected before loading. The overlay changes five control-plane image references and the API server's driver/launcher settings; local mode also makes the viewer controller use its loaded image. The smoke submits a cache-disabled container pipeline through the v2 API, requires a successful run, and records successful driver, launcher initialization, and launcher-executed main containers on verified ARM64 nodes. It uploads deployment, run, workflow, pod, and log evidence. The broad functional suites continue to run on AMD64; this ARM lane supplies targeted native execution coverage. Kind node cache keys include `runner.arch` to prevent cross-architecture restores.
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.

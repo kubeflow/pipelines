@@ -12,7 +12,7 @@
 'use strict';
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
-const {verifyCheckRuns} = require('./ci_check_runs');
+const {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
 
 function isDevelopmentBranch(ref) {
@@ -126,17 +126,21 @@ async function revokeStaleGreens({github, context, tip}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', base: branch, per_page: 100,
   });
+  const unblocked = prs.filter(pr => !blocked(pr));
+  const statuses = await readRecoveryStatuses({github, ...context.repo,
+    heads: unblocked.map(pr => pr.head.sha)});
   let revoked = 0;
-  for (const pr of prs) {
-    if (blocked(pr)) continue;
+  for (const pr of unblocked) {
+    const candidate = statuses.get(pr.head.sha);
+    if (candidate?.state !== 'success' || candidate.description === successDescription(pr, tip)) continue;
+    // Discovery never authorizes a write: a concurrent reconciler may already
+    // have replaced this stale green with a fresh success or a negative result.
     const status = await currentStatus(github, context, pr.head.sha);
+    if (status?.state !== 'success' || status.description === successDescription(pr, tip)) continue;
     // Revalidate AFTER reading the status: the combined-status lookup can
     // paginate, and the branch may advance mid-read publishing a fresher success.
     const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
     if (liveRef.object.sha !== tip) return revoked;
-    // Never revoke a head without a ci-passed success.
-    if (status?.state !== 'success') continue;
-    if (status.description === successDescription(pr, tip)) continue;
     await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
       description: `Base advanced; re-test against new ${branch}.`,
@@ -347,6 +351,41 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
   if (pr.state !== 'open' || blocked(pr)) return;
+  if (context.eventName === 'schedule') {
+    let reasons = [];
+    try {
+      reasons = await workflowFailures({github, ...context.repo, sha: pr.head.sha});
+    } catch (error) {
+      core.info(`Cannot probe recovery workflow failures: ${error.message}`);
+    }
+    if (reasons.length) {
+      core.setOutput('ready', 'false');
+      core.setOutput('prepared_result', JSON.stringify({state: 'failure', reasons}));
+      return;
+    }
+  }
+  if (context.eventName === 'workflow_run' && context.payload.action === 'completed' &&
+      context.payload.workflow_run.conclusion === 'success') {
+    let active = false;
+    try {
+      active = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
+      // An earlier failure may concern an expected workflow that never
+      // registered. Only full policy assessment may reconsider that failure.
+      if (active && (await currentStatus(github, context, pr.head.sha))?.state === 'failure') {
+        active = false;
+      }
+    } catch (error) {
+      // An optimization failure must not bypass the normal fail-closed checks.
+      active = false;
+      core.info(`Cannot coalesce CI completion: ${error.message}`);
+    }
+    if (active) {
+      core.setOutput('ready', 'false');
+      core.setOutput('prepared_result', JSON.stringify({state: 'pending',
+        reasons: ['CI workflows are still running; awaiting final completion.']}));
+      return;
+    }
+  }
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
@@ -382,14 +421,15 @@ async function finalize({github, context, core, number, head, before, pollPassed
         }
       }
       // A prior negative assessment can delay green, but can never authorize it.
-      // External checks still run once to preserve failure-over-pending precedence.
+      // A verified failure already wins over every check state. Pending results
+      // still require a fresh check scan so an external failure takes precedence.
       const [workflows, checks] = await Promise.all([
         prepared || evidence(github, context, pr, root),
-        verifyCheckRuns({github, ...context.repo, sha: head}),
+        prepared?.state === 'failure' ? null : verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
       validatedBaseSha = workflows.baseSha;
       core.info(JSON.stringify({workflows, checks}));
-      const results = [workflows, checks];
+      const results = checks ? [workflows, checks] : [workflows];
       state = results.some(result => result.state === 'failure') ? 'failure' :
         results.some(result => result.state === 'pending') ? 'pending' : 'success';
       reason = results.filter(result => result.state === state)

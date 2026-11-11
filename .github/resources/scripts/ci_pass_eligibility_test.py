@@ -77,7 +77,9 @@ const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => {
   requestCounts.runs++;
-  return {data: {total_count: 0, workflow_runs: []}};
+  const records = options.discoveredRunsByCycle?.[cycle] || options.discoveredRuns || [];
+  if (options.discoveredRunsFailure) throw Error('Workflow runs unavailable');
+  return {data: {total_count: options.discoveredTotal ?? records.length, workflow_runs: records}};
 };
 methods.associated = {};
 const statusHistory = options.statusHistory || [];
@@ -240,7 +242,7 @@ github.paginate.iterator = async function* () {
   requestCounts.statuses++;
   if (options.statusRace && statusReads === 4) status = options.statusRace;
   if (options.retryWriter && statusReads === 6) {statusId += 1; status = options.retryWriter;}
-  if (options.statusReadFailure || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
+  if (options.statusReadFailure || statusReads === options.statusReadFailureAt || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
   yield {data: {statuses: status ? [{id: statusId, context: 'ci-passed', state: status, description, target_url: statusTarget}] : []}};
 };
 (async () => {
@@ -1521,7 +1523,7 @@ const statuses = {
   pending: {state: 'pending', description: 'some pending'},
   blocked: {state: 'success', description: successDesc(B1)},
 };
-const prs = FLIP === 'status-pagination'
+let prs = FLIP === 'status-pagination'
   ? [{number: 1, head: {sha: 'fresh'}, base: {ref: BRANCH, sha: B1}, labels: []}]
   : [
   {number: 1, head: {sha: 'stale'}, base: {ref: BRANCH, sha: B1}, labels: []},
@@ -1532,27 +1534,60 @@ const prs = FLIP === 'status-pagination'
   {number: 6, head: {sha: 'blocked'}, base: {ref: BRANCH, sha: B1},
     labels: [{name: 'needs-ok-to-test'}]},
 ];
+const hash = value => crypto.createHash('sha1').update(value).digest('hex');
+if (FLIP === 'many-failed') {
+  prs = Array.from({length: 122}, (_, i) => {
+    const name = `failed-${i}`;
+    statuses[name] = {state: 'failure', description: 'some failure'};
+    return {number: i + 1, head: {sha: name}, base: {ref: BRANCH, sha: B1}, labels: []};
+  });
+}
+const names = new Map(prs.map(pr => [hash(pr.head.sha), pr.head.sha]));
+for (const pr of prs) pr.head.sha = hash(pr.head.sha);
 const listCalls = [];
+const batchSizes = [];
+let statusReads = 0;
 const writes = [];
 const github = {
+  graphql: async (query, variables) => {
+    const repository = {nameWithOwner: 'kubeflow/pipelines'};
+    const heads = Object.entries(variables).filter(([key]) => key.startsWith('sha'));
+    batchSizes.push(heads.length);
+    for (const [key, oid] of heads) {
+      const status = statuses[names.get(oid)];
+      repository[`head${key.slice(3)}`] = {__typename: 'Commit',
+        oid: FLIP === 'malformed-batch' ? 'wrong-head' : oid,
+        status: {context: status ? {context: 'ci-passed',
+          state: status.state.toUpperCase(), description: status.description} : null}};
+    }
+    if (FLIP === 'fresh-after-batch') statuses.stale = {state: 'success', description: successDesc(TIP)};
+    if (FLIP === 'negative-after-batch') statuses.stale = {state: 'pending', description: 'Rerun started'};
+    return {repository};
+  },
   rest: {pulls: {list: {}},
     git: {getRef: async request => {refCalls.push(request.ref); return {data: {object: {sha: nextLiveTip()}}};}},
     repos: {
     getCombinedStatusForRef: async ({ref}) => ({
-      data: {statuses: statuses[ref] ?
-        [{context: 'ci-passed', ...statuses[ref]}] : []}}),
+      data: {statuses: statuses[names.get(ref)] ?
+        [{context: 'ci-passed', ...statuses[names.get(ref)]}] : []}}),
     createCommitStatus: async request => {writes.push(request);},
   }},
   paginate: async (method, params) => {listCalls.push(params); return prs;},
 };
 github.paginate.iterator = async function* (method, params) {
-  yield {data: {statuses: [{context: 'other', state: 'success'}]}};
-  if (FLIP === 'status-pagination') statusPaginationFlip = true;
+  if (FLIP === 'status-pagination') {
+    statusReads++;
+    yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+    statusPaginationFlip = true;
+  }
+  statusReads++;
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7, eventName: EVENT, ref: `refs/heads/${BRANCH}`};
 revokeStaleGreens({github, context, tip: TIP}).then(count => {
-  console.log(JSON.stringify({count, writes, listCalls, refCalls}));
+  console.log(JSON.stringify({count,
+    writes: writes.map(write => ({...write, sha: names.get(write.sha)})),
+    listCalls, refCalls, batchSizes, statusReads}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
 
@@ -1599,6 +1634,32 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
         self.assertEqual(actual['listCalls'][0]['base'], 'master')
         self.assertEqual(actual['listCalls'][0]['state'], 'open')
         self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_batches_failed_heads_without_individual_reads(
+        self,
+    ):
+        actual = self._run_revoke('c' * 40, 'c' * 40, flip='many-failed')
+        self.assertEqual(actual['writes'], [])
+        self.assertEqual(actual['batchSizes'], [50, 50, 22])
+        self.assertEqual(actual['statusReads'], 0)
+        self.assertEqual(len(actual['refCalls']), 1)
+        self.assertEqual(len(actual['listCalls']), 1)
+
+    def test_push_revocation_rechecks_concurrent_fresh_or_negative_status(self):
+        for flip in ('fresh-after-batch', 'negative-after-batch'):
+            with self.subTest(flip=flip):
+                actual = self._run_revoke('c' * 40, 'c' * 40, flip=flip)
+                self.assertEqual(
+                    [w['sha'] for w in actual['writes']], ['legacy']
+                )
+                self.assertEqual(actual['statusReads'], 2)
+
+    def test_push_revocation_rejects_malformed_batch(self):
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            self._run_revoke('c' * 40, 'c' * 40, flip='malformed-batch')
+        self.assertIn(
+            'Incomplete recovery commit response', raised.exception.stderr
+        )
 
     def test_push_revocation_bails_when_master_has_advanced(self):
         # A delayed job for an older push (tip=B1) must not revoke a green
