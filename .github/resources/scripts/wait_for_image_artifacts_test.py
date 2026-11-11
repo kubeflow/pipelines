@@ -54,6 +54,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         missing_artifact: str = 'metadata-envoy',
         publication_grace_attempts: Optional[int] = None,
         producer_state_unavailable_extensions: Optional[int] = None,
+        artifact_api_failures: tuple[int, ...] = (),
+        failure_status: int = 429,
+        failure_headers: tuple[str, ...] = (),
+        artifact_api_timeout: int = 1200,
     ) -> tuple[subprocess.CompletedProcess[str], int]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -61,6 +65,20 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             fake_bin.mkdir()
             counter = root / 'counter'
             counter.write_text('0', encoding='utf-8')
+            clock = root / 'clock'
+            clock.write_text('1000', encoding='utf-8')
+            sleeps = root / 'sleeps'
+            sleeps.touch()
+            for name, body in {
+                    'date': 'cat "$FAKE_CLOCK"',
+                    'sleep':
+                        'echo "$1" >> "$FAKE_SLEEPS"; '
+                        'echo $(($(cat "$FAKE_CLOCK") + $1)) > "$FAKE_CLOCK"',
+            }.items():
+                command = fake_bin / name
+                command.write_text(
+                    '#!/usr/bin/env bash\n' + body + '\n', encoding='utf-8')
+                command.chmod(0o755)
             fake_gh = fake_bin / 'gh'
             fake_gh.write_text(
                 textwrap.dedent('''\
@@ -75,6 +93,19 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                     count=$(cat "$GH_COUNTER")
                     count=$((count + 1))
                     echo "$count" > "$GH_COUNTER"
+                    if [[ " $ARTIFACT_API_FAILURES " == *" $count "* ]]; then
+                      if [[ "$*" == *"--include"* ]]; then
+                        printf 'HTTP/2.0 %s\\n' "$FAILURE_STATUS"
+                        if [[ -n "$FAILURE_HEADERS" ]]; then
+                          printf '%s\\n' "$FAILURE_HEADERS"
+                        fi
+                        printf '\\n'
+                      fi
+                      exit 1
+                    fi
+                    if [[ "$*" == *"--include"* ]]; then
+                      printf 'HTTP/2.0 200\\nETag: "inventory-%s"\\n\\n' "$count"
+                    fi
                     if (( count >= READY_AFTER )); then
                       printf '%s\n' $ARTIFACT_NAMES
                     else
@@ -98,6 +129,18 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                     ' '.join(ARTIFACTS),
                 'GH_COUNTER':
                     str(counter),
+                'FAKE_CLOCK':
+                    str(clock),
+                'FAKE_SLEEPS':
+                    str(sleeps),
+                'ARTIFACT_API_FAILURES':
+                    ' '.join(str(value) for value in artifact_api_failures),
+                'FAILURE_STATUS':
+                    str(failure_status),
+                'FAILURE_HEADERS':
+                    '\n'.join(failure_headers),
+                'ARTIFACT_API_TIMEOUT_SECONDS':
+                    str(artifact_api_timeout),
                 'GITHUB_REPOSITORY':
                     'kubeflow/pipelines',
                 'GITHUB_RUN_ID':
@@ -131,6 +174,11 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 check=False,
                 env=environment,
             )
+            self.sleep_delays = [
+                int(value)
+                for value in sleeps.read_text().splitlines()
+                if int(value) > 0
+            ]
             return result, int(counter.read_text(encoding='utf-8'))
 
     def test_succeeds_when_all_artifacts_are_available(self):
@@ -304,6 +352,81 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertIn('producer state remains unavailable', result.stderr)
         self.assertIn('metadata-envoy', result.stderr)
         self.assertEqual(attempts, 2)
+
+    def test_api_outage_does_not_consume_publication_grace(self):
+        result, calls = self._run(
+            ready_after=4,
+            attempts=1,
+            artifact_api_failures=(2, 3),
+            publication_grace_attempts=1,
+            producer_jobs=(
+                ('build / image-build (metadata-envoy, Dockerfile, .)',
+                 'completed', 'success'),),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, 4)
+        self.assertEqual(self.sleep_delays, [60, 120])
+
+    def test_honors_longest_rate_limit_header(self):
+        result, calls = self._run(
+            ready_after=2,
+            artifact_api_failures=(1,),
+            failure_status=403,
+            failure_headers=('Retry-After: 180', 'X-RateLimit-Remaining: 0',
+                             'X-RateLimit-Reset: 1240'),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, 2)
+        self.assertEqual(self.sleep_delays, [240])
+
+    def test_does_not_poll_before_long_retry_after(self):
+        result, calls = self._run(
+            ready_after=2,
+            artifact_api_failures=(1,),
+            failure_headers=('Retry-After: 1200',),
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(calls, 1)
+        self.assertEqual(self.sleep_delays, [])
+        self.assertIn('exceeds the remaining API wait budget', result.stderr)
+
+    def test_repeated_api_failures_have_bounded_backoff(self):
+        result, calls = self._run(
+            ready_after=99,
+            artifact_api_failures=tuple(range(1, 10)),
+            artifact_api_timeout=800,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(calls, 5)
+        self.assertEqual(self.sleep_delays, [60, 120, 240, 300])
+        self.assertIn('Artifact inventory remains unavailable', result.stderr)
+        self.assertNotIn('Missing branch image artifacts', result.stderr)
+
+    def test_successful_inventory_resets_api_backoff(self):
+        result, calls = self._run(
+            ready_after=4,
+            attempts=10,
+            artifact_api_failures=(1, 3),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, 4)
+        self.assertEqual(self.sleep_delays, [60, 60])
+
+    def test_permission_failure_does_not_retry(self):
+        result, calls = self._run(
+            ready_after=2,
+            artifact_api_failures=(1,),
+            failure_status=403,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(calls, 1)
+        self.assertEqual(self.sleep_delays, [])
+        self.assertIn('actions:read', result.stderr)
+
+    def test_rejects_invalid_api_timeout(self):
+        result, calls = self._run(ready_after=1, artifact_api_timeout=0)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(calls, 0)
 
 
 if __name__ == '__main__':

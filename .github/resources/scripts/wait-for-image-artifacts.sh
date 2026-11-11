@@ -24,8 +24,8 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 2
 fi
 
-# Many matrix jobs can reach this barrier together. Poll slowly enough to keep
-# their shared GITHUB_TOKEN comfortably below the repository API rate limit.
+# Many matrix jobs reach this barrier together. Conditional artifact reads avoid
+# charging unchanged inventories against their shared primary API rate limit.
 # Forty attempts at the default interval form a roughly 20-minute wait window.
 # If that window expires while a missing artifact still has an active producer
 # job, start another window instead of racing the producer upload.
@@ -33,6 +33,7 @@ WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-40}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
 PUBLICATION_GRACE_ATTEMPTS="${PUBLICATION_GRACE_ATTEMPTS:-3}"
 PRODUCER_STATE_UNAVAILABLE_EXTENSIONS="${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS:-1}"
+ARTIFACT_API_TIMEOUT_SECONDS="${ARTIFACT_API_TIMEOUT_SECONDS:-1200}"
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2
   exit 2
@@ -50,7 +51,15 @@ if ! [[ "$PRODUCER_STATE_UNAVAILABLE_EXTENSIONS" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+if ! [[ "$ARTIFACT_API_TIMEOUT_SECONDS" =~ ^[1-9][0-9]{0,5}$ ]]; then
+  echo "ARTIFACT_API_TIMEOUT_SECONDS must be an integer from 1 to 999999, got: ${ARTIFACT_API_TIMEOUT_SECONDS}" >&2
+  exit 2
+fi
+
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
+source "${BASH_SOURCE%/*}/list-image-artifacts.sh"
+artifact_cache_dir=$(mktemp -d)
+trap 'rm -rf "$artifact_cache_dir"' EXIT
 
 # Most deployments never start a viewer. Only viewer acceptance callers need
 # the optional runtime; do not delay every backend lane on its publication.
@@ -110,15 +119,37 @@ missing_artifacts=()
 attempt=0
 publication_grace_remaining=0
 producer_state_unavailable_extensions=0
+artifact_api_deadline=0
+artifact_api_retry_delay=60
 while true; do
+  artifact_names=""
+  if artifact_names=$(list_image_artifacts "$artifact_cache_dir"); then
+    artifact_api_deadline=0
+    artifact_api_retry_delay=60
+  else
+    api_status=$?
+    if (( api_status == 2 )); then exit 1; fi
+    now=$(date +%s)
+    if (( artifact_api_deadline == 0 )); then
+      artifact_api_deadline=$((now + ARTIFACT_API_TIMEOUT_SECONDS))
+    fi
+    retry_delay=$artifact_api_retry_delay
+    if [[ -f "$artifact_cache_dir/retry-after" ]]; then
+      server_delay=$(<"$artifact_cache_dir/retry-after")
+      if (( server_delay > retry_delay )); then retry_delay=$server_delay; fi
+    fi
+    if (( now + retry_delay >= artifact_api_deadline )); then
+      echo "Artifact inventory remains unavailable; retry delay ${retry_delay}s exceeds the remaining API wait budget. Retry the workflow after API access recovers." >&2
+      exit 1
+    fi
+    echo "::warning::Artifact inventory unavailable; retrying in ${retry_delay}s without consuming publication grace."
+    sleep "$retry_delay"
+    artifact_api_retry_delay=$((artifact_api_retry_delay * 2))
+    if (( artifact_api_retry_delay > 300 )); then artifact_api_retry_delay=300; fi
+    continue
+  fi
   attempt=$((attempt + 1))
   window_attempt=$((((attempt - 1) % WAIT_ATTEMPTS) + 1))
-  artifact_names=""
-  if ! artifact_names=$(gh api --paginate \
-      "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
-      --jq '.artifacts[].name'); then
-    echo "::warning::Could not list image artifacts on attempt ${window_attempt}/${WAIT_ATTEMPTS}."
-  fi
 
   missing_artifacts=()
   for artifact in "${required_artifacts[@]}"; do
