@@ -17,6 +17,7 @@ upgrade."""
 
 import argparse
 import base64
+import copy
 from contextlib import contextmanager
 import hashlib
 import json
@@ -37,6 +38,8 @@ CLUSTER = 'third-party-upgrade'
 BUCKET = 'mlpipeline'
 S3_LOCAL_PORT = 18333
 S3_PORT = 8333
+IAM_LOCAL_PORT = 18111
+IAM_PORT = 8111
 PROFILE_LOCAL_PORT = 18080
 PROFILE_PORT = 8080
 ROLLOUT_TIMEOUT = '360s'
@@ -110,6 +113,11 @@ def forward(deployment, local, remote, evidence):
                 try:
                     with urllib.request.urlopen(url + health, timeout=2):
                         break
+                except urllib.error.HTTPError as error:
+                    if remote == IAM_PORT and error.code in (400, 401, 403,
+                                                             404):
+                        break  # IAM has no public health endpoint.
+                    time.sleep(1)
                 except OSError:
                     time.sleep(1)
             else:
@@ -304,6 +312,129 @@ def upgrade_store(storage):
         wait_ready('seaweedfs-credential-rotation')
 
 
+def require_authentication_rejection(request):
+    """Do not mistake routing, transport or storage failures for authentication."""
+    try:
+        with urllib.request.urlopen(request, timeout=10):
+            pass
+    except urllib.error.HTTPError as error:
+        if error.code in (401, 403):
+            return
+        raise
+    raise AssertionError('Unauthenticated storage request succeeded')
+
+
+def verify_fresh_bootstrap(evidence):
+    """Probe listener authentication before any dynamic identity is seeded."""
+    import boto3
+    from botocore.exceptions import ClientError
+
+    storage = rendered(SEAWEED)
+    unseeded = copy.deepcopy(storage)
+    for obj in unseeded:
+        if (obj['kind'] == 'Deployment' and
+                obj['metadata']['name'] == 'seaweedfs'):
+            container = obj['spec']['template']['spec']['containers'][0]
+            # Test-only: keep the PVC empty to expose initial listener auth.
+            container.pop('lifecycle')
+            container.pop('startupProbe')
+    apply([{
+        'apiVersion': 'v1',
+        'kind': 'Namespace',
+        'metadata': {
+            'name': 'kubeflow'
+        },
+    }])
+    apply(unseeded)
+    wait_ready('seaweedfs')
+    candidate = secret_credentials(
+        json.loads(
+            kubectl('get', 'secret', 'seaweedfs-admin-credentials', '-o',
+                    'json')))
+    with forward('seaweedfs', IAM_LOCAL_PORT, IAM_PORT, evidence) as endpoint:
+        require_authentication_rejection(
+            urllib.request.Request(
+                endpoint,
+                data=b'Action=ListUsers&Version=2010-05-08',
+            ))
+
+        def iam(pair):
+            return boto3.client(
+                'iam',
+                endpoint_url=endpoint,
+                aws_access_key_id=pair[0],
+                aws_secret_access_key=pair[1],
+                region_name='us-east-1',
+            )
+
+        with iam(candidate) as authorized:
+            authorized.list_users()
+        with iam(
+            ('invalid-bootstrap-key', 'invalid-bootstrap-secret')) as invalid:
+            try:
+                invalid.list_users()
+            except ClientError as error:
+                if error.response.get('ResponseMetadata',
+                                      {}).get('HTTPStatusCode') not in (401,
+                                                                        403):
+                    raise
+            else:
+                raise AssertionError('Wrong-key IAM request succeeded')
+    with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
+        require_authentication_rejection(urllib.request.Request(endpoint))
+    # Restore the exact manifest and complete a real first-install migration.
+    upgrade_store(storage)
+    if current_admin_credentials() != candidate:
+        raise AssertionError(
+            'Fresh installation changed its prepared credential')
+    verify_manifest_reapply(storage)
+    (evidence / 'fresh-bootstrap.json').write_text(
+        json.dumps(
+            {
+                'result':
+                    'passed',
+                'checks': [
+                    'unsigned-iam-denied-before-registration',
+                    'wrong-key-iam-denied-before-registration',
+                    'generated-key-iam-accepted-before-registration',
+                    'unsigned-s3-denied-before-registration',
+                    'fresh-install-migration-complete',
+                ],
+            },
+            indent=2,
+        ) + '\n')
+    # This function runs only inside this script's disposable Kind cluster.
+    kubectl('delete', 'namespace', 'kubeflow', '--wait=true', '--timeout=180s')
+
+
+def verify_manifest_reapply(storage):
+    """Ensure client-side and server-side apply preserve runtime credentials."""
+    names = ('seaweedfs-admin-credentials', 'mlpipeline-minio-artifact')
+
+    def snapshot():
+        result = []
+        for name in names:
+            secret = json.loads(kubectl('get', 'secret', name, '-o', 'json'))
+            result.append((secret['metadata']['uid'], secret['data']))
+        return result
+
+    expected = snapshot()
+    apply(storage)
+    if snapshot() != expected:
+        raise AssertionError('Client-side apply changed runtime credentials')
+    kubectl(
+        'apply',
+        '--server-side',
+        '--field-manager=compatibility-gitops',
+        '-f',
+        '-',
+        data=yaml.safe_dump_all(storage),
+    )
+    if snapshot() != expected:
+        raise AssertionError('Server-side apply changed runtime credentials')
+    wait_ready('seaweedfs-credential-rotation')
+
+
 def verify_old_credentials_rejected(old, current, evidence):
     from botocore.exceptions import ClientError
 
@@ -404,6 +535,7 @@ def write_result(evidence, baseline_image, target, pvc_uid):
                     'same-pvc',
                     'pre-upgrade-tenant-key-preserved',
                     'post-upgrade-new-tenant-credentials',
+                    'client-and-server-side-reapply-preserves-runtime-secrets',
                     'default-credential-rejected-after-restart',
                 ],
             },
@@ -439,6 +571,7 @@ def exercise(evidence, baseline):
     secret = exercise_profile(old_credentials, evidence)
     upgrade_store(storage)
     credentials = current_admin_credentials()
+    verify_manifest_reapply(storage)
     exercise_profile(credentials, evidence, namespace='compat-after-upgrade')
     verify_old_credentials_rejected(old_credentials, credentials, evidence)
     verify_after_restart(credentials, secret, pvc_uid, evidence)
@@ -475,6 +608,7 @@ def main():
             '--wait',
             '120s',
         )
+        verify_fresh_bootstrap(args.evidence)
         exercise(args.evidence, args.baseline)
     finally:
         for name, command in {
