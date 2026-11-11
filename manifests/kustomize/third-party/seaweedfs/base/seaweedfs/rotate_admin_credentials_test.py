@@ -12,6 +12,7 @@
 import copy
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -152,6 +153,47 @@ class RotationTest(unittest.TestCase):
             'spec': spec or {},
             'status': {'phase': phase},
         }
+
+    def test_healthy_drain_is_ready_without_completing_migration(self):
+        self.api.drain_pages[0]['items'] = [self.workload()]
+        with tempfile.TemporaryDirectory() as directory:
+            ready = Path(directory) / 'controller-ready'
+            with (
+                patch.object(
+                    rotation, 'Migration', return_value=self.migration
+                ),
+                patch.object(rotation, 'Kubernetes'),
+                patch.dict(rotation.os.environ, {'POD_NAMESPACE': 'fixture'}),
+                patch.object(rotation, 'Path', return_value=ready),
+                patch.object(rotation.time, 'sleep', side_effect=StopIteration),
+            ):
+                with self.assertRaises(StopIteration):
+                    rotation.main()
+            self.assertTrue(ready.exists())
+        state = self.api.get('secrets', rotation.ADMIN_SECRET)
+        self.assertEqual(
+            'DrainingWorkloads',
+            state['metadata']['annotations'][rotation.PHASE],
+        )
+        self.storage.revoke_default.assert_not_called()
+
+    def test_readiness_recovers_after_an_actual_failure(self):
+        migration = Mock(stage='fixture')
+        with tempfile.TemporaryDirectory() as directory:
+            ready = Path(directory) / 'controller-ready'
+            for failure in (
+                rotation.Retry('bad configuration'),
+                rotation.APIError(503),
+            ):
+                ready.touch()
+                migration.reconcile.side_effect = failure
+                rotation.reconcile_once(migration, ready)
+                self.assertFalse(ready.exists())
+                migration.reconcile.side_effect = rotation.Waiting(
+                    'normal rollout wait'
+                )
+                rotation.reconcile_once(migration, ready)
+                self.assertTrue(ready.exists())
 
     def test_drain_resumes_and_new_work_extends_wait(self):
         self.api.drain_pages[0]['items'] = [self.workload()]
