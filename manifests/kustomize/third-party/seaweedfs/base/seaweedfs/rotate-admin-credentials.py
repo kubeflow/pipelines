@@ -188,6 +188,8 @@ class Migration:
     def __init__(self, api, storage_factory):
         self.api = api
         self.storage_factory = storage_factory
+        self.storage_pair = None
+        self.storage = None
 
     def phase(self, state, value):
         if state['metadata'].get('annotations', {}).get(PHASE) != value:
@@ -361,47 +363,63 @@ class Migration:
                 },
             )
 
+    def roll_deployment(self, name, value):
+        deployment = self.api.get('deployments', name)
+        if (
+            deployment['spec']['template']
+            .get('metadata', {})
+            .get('annotations', {})
+            .get(REVISION)
+            != value
+        ):
+            self.api.request(
+                'PATCH',
+                'deployments',
+                name,
+                {
+                    'metadata': {
+                        'resourceVersion': deployment['metadata'][
+                            'resourceVersion'
+                        ]
+                    },
+                    'spec': {
+                        'template': {
+                            'metadata': {'annotations': {REVISION: value}}
+                        }
+                    },
+                },
+            )
+            raise Retry(
+                'Rolling deployment '
+                + name
+                + ' onto the replacement credential'
+            )
+        self.rollout_ready(deployment, value)
+
     def roll_consumers(self, value):
         for name in CONSUMERS:
             deployment = self.api.get('deployments', name)
-            if deployment is None or not uses_secret(deployment, LEGACY_SECRET):
-                continue
-            if (
-                deployment['spec']['template']
-                .get('metadata', {})
-                .get('annotations', {})
-                .get(REVISION)
-                != value
+            if deployment is not None and uses_secret(
+                deployment, LEGACY_SECRET
             ):
-                self.api.request(
-                    'PATCH',
-                    'deployments',
-                    name,
-                    {
-                        'metadata': {
-                            'resourceVersion': deployment['metadata'][
-                                'resourceVersion'
-                            ]
-                        },
-                        'spec': {
-                            'template': {
-                                'metadata': {'annotations': {REVISION: value}}
-                            }
-                        },
-                    },
-                )
-                raise Retry(
-                    'Rolling deployment '
-                    + name
-                    + ' onto the replacement credential'
-                )
-            self.rollout_ready(deployment, value)
+                self.roll_deployment(name, value)
 
     def reconcile(self):
         state = self.prepare()
         pair = credentials(state)
         self.storage_ready()
-        storage = self.storage_factory(pair)
+        if self.storage_pair != pair:
+            if self.storage is not None:
+                self.storage.close()
+            self.storage = self.storage_factory(pair)
+            self.storage_pair = pair
+        storage = self.storage
+        storage.verify_registration()
+        # The separate IAM listener does not refresh its authentication cache
+        # when postStart adds a key through the filer gRPC API. Restart once
+        # after S3 confirms registration, before changing any consumer Secret.
+        # Secret UID is durable and independent of later consumer-only rollouts.
+        self.roll_deployment('seaweedfs', state['metadata']['uid'])
         storage.verify()
         self.publish(pair)
         self.roll_consumers(revision(state))
@@ -455,9 +473,16 @@ class Storage:
             'iam', endpoint_url='http://seaweedfs:8111', **common
         )
 
-    def verify(self):
+    def verify_registration(self):
         self.s3.head_bucket(Bucket='mlpipeline')
+
+    def verify(self):
+        self.verify_registration()
         self.iam.get_user(UserName='kubeflow-admin')
+
+    def close(self):
+        for client in (self.s3, self.iam, self.default_s3):
+            client.close()
 
     def default_accepted(self):
         from botocore.exceptions import ClientError

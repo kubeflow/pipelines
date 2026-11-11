@@ -25,7 +25,11 @@ spec.loader.exec_module(rotation)
 
 def secret(name, pair=None):
     return {
-        'metadata': {'name': name, 'resourceVersion': '1'},
+        'metadata': {
+            'name': name,
+            'resourceVersion': '1',
+            'uid': 'test-secret-uid',
+        },
         'data': rotation.encoded(pair) if pair else {},
     }
 
@@ -70,6 +74,9 @@ class API:
                 'seaweedfs', rotation.ADMIN_SECRET
             ),
         }
+        self.objects[('deployments', 'seaweedfs')]['spec']['template'][
+            'metadata'
+        ]['annotations'][rotation.REVISION] = 'test-secret-uid'
         self.requests = []
         self.old_storage = False
         self.old_consumer = False
@@ -81,12 +88,15 @@ class API:
         self.requests.append((method, kind, name, copy.deepcopy(body)))
         if kind == 'pods':
             if 'seaweedfs' in query:
-                pod = deployment(
-                    'seaweedfs',
-                    rotation.LEGACY_SECRET
-                    if self.old_storage
-                    else rotation.ADMIN_SECRET,
-                )['spec']['template']
+                pod = copy.deepcopy(
+                    self.objects[('deployments', 'seaweedfs')]['spec'][
+                        'template'
+                    ]
+                )
+                if self.old_storage:
+                    pod['spec']['containers'][0]['envFrom'][0]['secretRef'][
+                        'name'
+                    ] = rotation.LEGACY_SECRET
                 return {'items': [pod]}
             return {
                 'items': [{'metadata': {}, 'status': {'phase': 'Running'}}]
@@ -117,7 +127,27 @@ class RotationTest(unittest.TestCase):
     def setUp(self):
         self.api = API()
         self.storage = Mock()
-        self.migration = rotation.Migration(self.api, lambda _: self.storage)
+        self.factory = Mock(return_value=self.storage)
+        self.migration = rotation.Migration(self.api, self.factory)
+
+    def test_storage_restarts_after_registration_before_switching_consumers(
+        self,
+    ):
+        self.api.objects[('deployments', 'seaweedfs')]['spec']['template'][
+            'metadata'
+        ]['annotations'] = {}
+        with self.assertRaisesRegex(
+            rotation.Retry, 'Rolling deployment seaweedfs'
+        ):
+            self.migration.reconcile()
+        self.storage.verify_registration.assert_called_once()
+        self.storage.verify.assert_not_called()
+        self.storage.revoke_default.assert_not_called()
+        self.assertIsNone(self.api.get('secrets', rotation.LEGACY_SECRET))
+        self.migration.reconcile()
+        self.storage.verify.assert_called()
+        self.storage.revoke_default.assert_called_once()
+        self.assertEqual(1, self.factory.call_count)
 
     def test_new_install_generates_once_and_publishes(self):
         self.migration.reconcile()

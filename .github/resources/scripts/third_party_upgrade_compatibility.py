@@ -497,6 +497,10 @@ def main():
                 'deployment/seaweedfs',
                 '--all-containers=true',
             ),
+            'credential-rotation.log': (
+                'logs',
+                'deployment/seaweedfs-credential-rotation',
+            ),
             'profile.log': (
                 'logs',
                 'deployment/kubeflow-pipelines-profile-controller',
