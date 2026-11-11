@@ -438,9 +438,12 @@ class Storage:
         # minimum. All IAM request fields here are internal constants, not user
         # input; disable only this client's AWS-specific parameter validation.
         self.iam = session.create_client(
-            'iam', endpoint_url='http://seaweedfs:8111',
-            **{**common, 'config': common['config'].merge(Config(parameter_validation=False))})
-
+            'iam',
+            endpoint_url='http://seaweedfs:8111',
+            **{
+                **common, 'config':
+                    common['config'].merge(Config(parameter_validation=False))
+            })
 
     def verify_registration(self):
         self.s3.head_bucket(Bucket='mlpipeline')
