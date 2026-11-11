@@ -485,6 +485,8 @@ image tags as part of the Git branch rename.
 
 ### GitHub API efficiency
 
+- Requested/in-progress CI events use the existing writer lock to invalidate green after checking the current PR and run identity; active runs do not trigger full evidence scans. Completed delayed events still reconcile all evidence. A prepared pending/failure workflow result can be reused only within the same job after successful preparation and a fresh PR/head check; external checks remain fresh, and every success retains full pre/post-publication verification.
+
 - CI status publication deduplicates state/description transitions and reconciles the informational `ci-passed` label only when its fresh PR snapshot differs. Successful label writes update the local snapshot for rollback; ambiguous write errors invalidate it, and unknown state still permits conservative removal. Preserve green invalidation, live-base checks and post-publication rollback; do not add polling delays to reduce API load.
 
 - CI gate workflow inventories are fetched by immutable base SHA and reused only within the trusted publisher job. Runner-local entries include run/attempt and verifier/parser revisions and are validated before reuse; never restore them from shared Actions caches or PR artifacts. PR files, timeline, PR snapshots, and workflow runs remain fresh at every existing publication boundary. PR-number file responses are mutable and must not be cached under a prior head snapshot.
