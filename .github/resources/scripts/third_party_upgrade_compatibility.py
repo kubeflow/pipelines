@@ -280,7 +280,7 @@ def seed_old_store(storage, baseline_image, evidence):
     apply(storage)
     wait_ready('seaweedfs')
     if admin_credentials is None:
-        wait_ready('seaweedfs-credential-rotation')
+        wait_migration_complete()
         admin_credentials = current_admin_credentials()
     (evidence / 'before-upgrade-pods.json').write_text(
         kubectl('get', 'pods', '-o', 'json'))
@@ -323,7 +323,23 @@ def upgrade_store(storage):
             obj.get('kind') == 'Deployment' and
             obj['metadata']['name'] == 'seaweedfs-credential-rotation'
             for obj in storage):
-        wait_ready('seaweedfs-credential-rotation')
+        wait_migration_complete()
+
+
+def wait_migration_complete():
+    """Wait for revocation separately from controller readiness."""
+    deadline = time.monotonic() + 360
+    while time.monotonic() < deadline:
+        state = json.loads(
+            kubectl('get', 'secret', 'seaweedfs-admin-credentials', '-o',
+                    'json'))
+        if (state['metadata'].get(
+                'annotations',
+            {}).get('pipelines.kubeflow.org/storage-credential-phase') ==
+                'DefaultRevoked'):
+            return
+        time.sleep(2)
+    raise AssertionError('Credential migration did not complete')
 
 
 def require_authentication_rejection(request):
@@ -436,7 +452,7 @@ def verify_manifest_reapply(storage):
     )
     if snapshot() != expected:
         raise AssertionError('Server-side apply changed runtime credentials')
-    wait_ready('seaweedfs-credential-rotation')
+    wait_migration_complete()
 
 
 def verify_workload_drain(storage, old, evidence):
@@ -508,6 +524,7 @@ def verify_workload_drain(storage, old, evidence):
         time.sleep(2)
     else:
         raise AssertionError('Migration did not reach the workload drain')
+    wait_ready('seaweedfs-credential-rotation')
     if (json.loads(kubectl('get', 'pod', name, '-o', 'json'))['status']['phase']
             != 'Running'):
         raise AssertionError(
@@ -519,7 +536,7 @@ def verify_workload_drain(storage, old, evidence):
         with iam_client(endpoint, *old) as iam:
             iam.list_users()
     kubectl('delete', 'pod', name, '--wait=true', '--timeout=60s')
-    wait_ready('seaweedfs-credential-rotation')
+    wait_migration_complete()
     (evidence / 'workload-drain.json').write_text(
         json.dumps(
             {
