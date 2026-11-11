@@ -76,11 +76,12 @@ func TestRemoteStorageRetriesStaleIAMRevocation(t *testing.T) {
 		case "GetUser":
 			w.WriteHeader(http.StatusOK)
 		case "ListUsers":
-			if iamStatus != 0 {
+			switch {
+			case iamStatus != 0:
 				w.WriteHeader(iamStatus)
-			} else if old && iamAccepted {
+			case old && iamAccepted:
 				w.WriteHeader(http.StatusOK)
-			} else {
+			default:
 				w.WriteHeader(http.StatusForbidden)
 			}
 		case "DeleteAccessKey":

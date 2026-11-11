@@ -389,7 +389,7 @@ func TestDrainExemptsOnlyVerifiedManagedConsumers(t *testing.T) {
 	managed.Spec.Template.Labels["pipeline/runid"] = "real-run"
 	requireWaiting(t, m.Reconcile(testContext))
 	if s.revokeCalls != 1 {
-		t.Fatal("run-labelled pod bypassed draining")
+		t.Fatal("run-labeled pod bypassed draining")
 	}
 }
 func TestDrainRejectsWrongRevisionExemption(t *testing.T) {
