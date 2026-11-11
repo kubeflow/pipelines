@@ -84,6 +84,22 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         deployment = resource(resources, 'Deployment', 'ml-pipeline-ui')
         self.assertEqual(deployment['spec']['strategy'], {'type': 'Recreate'})
 
+    def test_initializer_job_has_no_deadline(self):
+        # A Job deadline also counts image pull time; a slow pull would fail the
+        # Job before it runs and leave the UI without its signing key.
+        for path, external in (
+            (PIPELINE, False),
+            (REPO_ROOT / '.github/resources/manifests/standalone/default', True),
+            (REPO_ROOT / 'manifests/kustomize/env/openshift/base', False),
+        ):
+            with self.subTest(path=path):
+                job = resource(render(path, external), 'Job', INIT)
+                self.assertNotIn('activeDeadlineSeconds', job['spec'])
+                self.assertNotIn(
+                    'activeDeadlineSeconds', job['spec']['template']['spec']
+                )
+                self.assertEqual(job['spec']['backoffLimit'], 3)
+
     def test_shared_key_and_least_privilege(self):
         resources = render(PIPELINE)
         secret = resource(resources, 'Secret', SECRET)
