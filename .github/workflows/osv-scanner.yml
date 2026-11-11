@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload OSV-Scanner results to GitHub Security
         if: always() && hashFiles('osv-results-deduplicated.sarif') != ''
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@3ea37a44b6e4e6847c46edae209410d258d548d1 # v4
         with:
           sarif_file: osv-results-deduplicated.sarif
           category: kubeflow-pipelines-osv-scanner
@@ -162,7 +162,7 @@ jobs:
 
       - name: Upload image results to GitHub Security
         if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@3ea37a44b6e4e6847c46edae209410d258d548d1 # v4
         with:
           sarif_file: osv-image-results-deduplicated.sarif
           category: kubeflow-pipelines-osv-image-${{ matrix.category }}
