@@ -7,6 +7,10 @@ on:
       - 'manifests/kustomize/third-party/argo/**'
       - '.github/resources/scripts/third_party_upgrade_*.py'
       - '.github/workflows/third-party-image-upgrades.yml'
+      - 'backend/src/agent/credentialrotation/**'
+      - 'backend/Dockerfile'
+      - 'go.mod'
+      - 'go.sum'
   workflow_dispatch:
     inputs:
       baseline_ref:
@@ -22,11 +26,13 @@ concurrency:
 jobs:
   compatibility:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -59,15 +65,26 @@ jobs:
         run: |
           python -m unittest discover -s .github/resources/scripts -p 'third_party_upgrade_compatibility_test.py'
           python -m pytest manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/test_sync.py
+      - uses: ./.github/actions/setup-go
       - name: Test credential migration and rendered deployment contracts
         run: |
-          python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'rotate_admin_credentials_test.py'
+          go test ./backend/src/agent/credentialrotation/...
           kustomize build manifests/kustomize/third-party/seaweedfs/base > "$RUNNER_TEMP/seaweedfs.yaml"
           SEAWEEDFS_RENDERED="$RUNNER_TEMP/seaweedfs.yaml" python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
           kustomize build manifests/kustomize/env/openshift/base > "$RUNNER_TEMP/seaweedfs-openshift.yaml"
           SEAWEEDFS_RENDERED="$RUNNER_TEMP/seaweedfs-openshift.yaml" OPENSHIFT_RENDERED=true python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
+      - name: Download the verified branch image containing the Go migrator
+        uses: ./.github/actions/shared-ci-images
+        with:
+          architecture: amd64
+          kind: images
+          path: ${{ runner.temp }}/credential-images
       - name: Upgrade the persistent store and exercise the actual profile image
-        run: python .github/resources/scripts/third_party_upgrade_compatibility.py --baseline baseline --evidence compatibility-evidence
+        run: |
+          python .github/resources/scripts/third_party_upgrade_compatibility.py \
+            --baseline baseline --evidence compatibility-evidence \
+            --controller-image-archive "$RUNNER_TEMP/credential-images/apiserver/apiserver.tar" \
+            --controller-image kind-registry:5000/apiserver:latest
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:

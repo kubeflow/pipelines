@@ -27,6 +27,12 @@ patches:
     target:
       group: apps
       kind: Deployment
+      name: seaweedfs
+      version: v1
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
       name: ml-pipeline
       version: v1
   - path: patches/remove-sc-init.json
@@ -125,10 +131,4 @@ patches:
       group: batch
       kind: Job
       name: ml-pipeline-ui-signing-key-init
-      version: v1
-  - path: patches/remove-sc-pod.json
-    target:
-      group: apps
-      kind: Deployment
-      name: seaweedfs-credential-rotation
       version: v1

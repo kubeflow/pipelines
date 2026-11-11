@@ -29,7 +29,8 @@ RUN GO111MODULE=on go mod download
 RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflows/v4 > /tmp/argo-version
 
 COPY . .
-RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go && \
+    GO111MODULE=on go build -o /bin/credential-rotation ./backend/src/agent/credentialrotation/cmd
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.14-slim AS compiler
@@ -100,6 +101,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 COPY backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
+COPY --from=builder /bin/credential-rotation /bin/credential-rotation
 
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver

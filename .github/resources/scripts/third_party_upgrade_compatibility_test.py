@@ -221,12 +221,13 @@ class CompatibilityTest(unittest.TestCase):
                 side_effect=[
                     state('DrainingWorkloads'),
                     state('DefaultRevoked'),
+                    json.dumps({'items': [{'status': {'succeeded': 1}}]}),
                 ],
             ) as get,
             patch.object(compatibility.time, 'sleep') as sleep,
         ):
             compatibility.wait_migration_complete()
-        self.assertEqual(get.call_count, 2)
+        self.assertEqual(get.call_count, 3)
         sleep.assert_called_once_with(2)
 
     def test_iam_reachability_accepts_method_not_allowed(self):
