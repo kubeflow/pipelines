@@ -39,6 +39,18 @@ spec:
             secretKeyRef:
               name: seaweedfs-admin-credentials
               key: secretkey
+        # The separate IAM listener does not read -s3.config. Bootstrap both
+        # listeners with authentication before dynamic identities are registered.
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: accesskey
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: secretkey
         image: ghcr.io/chrislusf/seaweedfs:4.50
         args:
         - "server"

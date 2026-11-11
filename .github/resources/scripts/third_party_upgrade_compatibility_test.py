@@ -17,6 +17,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+import urllib.error
 from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -171,6 +172,7 @@ class CompatibilityTest(unittest.TestCase):
                 return_value=(('user', 'key'), 'pvc'),
             ) as seed,
             patch.object(compatibility, 'upgrade_store') as upgrade,
+            patch.object(compatibility, 'verify_manifest_reapply'),
             patch.object(compatibility, 'exercise_profile', return_value={}),
             patch.object(compatibility, 'verify_after_restart'),
             patch.object(compatibility, 'write_result') as result,
@@ -196,6 +198,68 @@ class CompatibilityTest(unittest.TestCase):
         result.assert_called_once_with(
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc'
         )
+
+    def test_bootstrap_probe_requires_explicit_authentication_rejection(self):
+        for status in (401, 403, 404, 500):
+            error = urllib.error.HTTPError(
+                'http://fixture', status, 'fixture', {}, None
+            )
+            with (
+                self.subTest(status=status),
+                patch.object(
+                    compatibility.urllib.request, 'urlopen', side_effect=error
+                ),
+            ):
+                if status in (401, 403):
+                    compatibility.require_authentication_rejection(
+                        'http://fixture'
+                    )
+                else:
+                    with self.assertRaises(urllib.error.HTTPError):
+                        compatibility.require_authentication_rejection(
+                            'http://fixture'
+                        )
+        with patch.object(
+            compatibility.urllib.request, 'urlopen', return_value=nullcontext()
+        ):
+            with self.assertRaisesRegex(AssertionError, 'Unauthenticated'):
+                compatibility.require_authentication_rejection('http://fixture')
+
+    def test_manifest_reapply_preserves_both_runtime_secrets(self):
+        secret = json.dumps(
+            {'metadata': {'uid': 'same'}, 'data': {'key': 'value'}}
+        )
+        with (
+            patch.object(
+                compatibility, 'kubectl', return_value=secret
+            ) as kubectl,
+            patch.object(compatibility, 'apply') as apply,
+            patch.object(compatibility, 'wait_ready'),
+        ):
+            compatibility.verify_manifest_reapply([])
+        apply.assert_called_once_with([])
+        self.assertEqual(kubectl.call_count, 7)
+        self.assertIn('--server-side', kubectl.call_args_list[4].args)
+
+    def test_manifest_reapply_detects_secret_replacement(self):
+        original = json.dumps(
+            {'metadata': {'uid': 'old'}, 'data': {'key': 'value'}}
+        )
+        replaced = json.dumps(
+            {'metadata': {'uid': 'new'}, 'data': {'key': 'value'}}
+        )
+        with (
+            patch.object(
+                compatibility,
+                'kubectl',
+                side_effect=[original, original, replaced, original],
+            ),
+            patch.object(compatibility, 'apply'),
+        ):
+            with self.assertRaisesRegex(
+                AssertionError, 'Client-side apply changed'
+            ):
+                compatibility.verify_manifest_reapply([])
 
     def test_ambiguous_baseline_image_fails(self):
         with self.assertRaisesRegex(ValueError, 'Expected one'):
