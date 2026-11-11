@@ -12,6 +12,8 @@
 import copy
 import importlib.util
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
@@ -28,7 +30,7 @@ def secret(name, pair=None):
         'metadata': {
             'name': name,
             'resourceVersion': '1',
-            'uid': 'test-secret-uid'
+            'uid': 'test-secret-uid',
         },
         'data': rotation.encoded(pair) if pair else {},
     }
@@ -145,7 +147,7 @@ class RotationTest(unittest.TestCase):
         self.migration = rotation.Migration(self.api, self.factory)
 
     def test_storage_restarts_after_registration_before_switching_consumers(
-            self):
+        self,):
         self.api.objects[(
             'deployments',
             'seaweedfs')]['spec']['template']['metadata']['annotations'] = {}
@@ -214,22 +216,75 @@ class RotationTest(unittest.TestCase):
 
     @unittest.skipUnless(
         importlib.util.find_spec('botocore'),
-        'SDK model test requires botocore (installed in CI)')
+        'SDK model test requires botocore (installed in CI)',
+    )
     def test_real_sdk_accepts_short_legacy_id_for_revocation(self):
         from botocore.stub import Stubber
+
         storage = rotation.Storage(
             ('synthetic-replacement', 'synthetic-secret'))
         storage.default_accepted = Mock(side_effect=[True, False])
         try:
             with Stubber(storage.iam) as stub:
-                stub.add_response('delete_access_key', {}, {
-                    'UserName': 'kubeflow-admin',
-                    'AccessKeyId': rotation.DEFAULT_ACCESS_KEY
-                })
+                stub.add_response(
+                    'delete_access_key',
+                    {},
+                    {
+                        'UserName': 'kubeflow-admin',
+                        'AccessKeyId': rotation.DEFAULT_ACCESS_KEY,
+                    },
+                )
                 storage.revoke_default()
                 stub.assert_no_pending_responses()
         finally:
             storage.close()
+
+    def test_stale_iam_cache_blocks_completion_and_retries_deletion(self):
+
+        class ClientError(Exception):
+
+            def __init__(self, status):
+                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+
+        storage = rotation.Storage.__new__(rotation.Storage)
+        storage.pair = ('replacement', 'new-secret')
+        storage.iam = Mock()
+        storage.default_s3 = Mock()
+        storage.default_s3.head_bucket.side_effect = ClientError(403)
+        storage.default_iam = Mock()
+        storage.default_iam.list_users.side_effect = [
+            {},
+            {},
+            {},
+            ClientError(403),
+        ]
+        with patch.dict(
+                sys.modules,
+            {'botocore.exceptions': SimpleNamespace(ClientError=ClientError)},
+        ):
+            with self.assertRaises(rotation.Retry):
+                storage.revoke_default()
+            storage.revoke_default()
+        self.assertEqual(storage.iam.delete_access_key.call_count, 2)
+
+    def test_iam_probe_server_failure_is_not_revocation(self):
+
+        class ClientError(Exception):
+
+            def __init__(self, status):
+                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+
+        storage = rotation.Storage.__new__(rotation.Storage)
+        storage.default_s3 = Mock()
+        storage.default_s3.head_bucket.side_effect = ClientError(403)
+        storage.default_iam = Mock()
+        storage.default_iam.list_users.side_effect = ClientError(503)
+        with patch.dict(
+                sys.modules,
+            {'botocore.exceptions': SimpleNamespace(ClientError=ClientError)},
+        ):
+            with self.assertRaises(ClientError):
+                storage.default_accepted()
 
     def test_known_default_is_revoked_and_rechecked(self):
         storage = rotation.Storage.__new__(rotation.Storage)

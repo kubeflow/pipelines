@@ -11,8 +11,8 @@
 """Verify rendered manifests: set SEAWEEDFS_RENDERED to kubectl kustomize output."""
 
 import os
-import unittest
 from pathlib import Path
+import unittest
 
 import yaml
 
