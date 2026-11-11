@@ -136,7 +136,7 @@ func CredentialsFromSecret(secret *corev1.Secret) (Credentials, bool, error) {
 			return Credentials{}, false, failure("Credential Secret is incomplete; preserve and repair it", nil)
 		}
 		for _, c := range value {
-			if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || strings.ContainsRune("/+=_.-", rune(c))) {
+			if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && !strings.ContainsRune("/+=_.-", rune(c)) {
 				return Credentials{}, false, failure("Credential Secret contains unsupported characters; preserve and repair it", nil)
 			}
 		}
