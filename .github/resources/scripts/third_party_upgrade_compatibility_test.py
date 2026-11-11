@@ -80,6 +80,7 @@ class CompatibilityTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch.object(compatibility, 'apply') as apply,
             patch.object(compatibility, 'wait_ready'),
+            patch.object(compatibility, 'wait_migration_complete'),
             patch.object(
                 compatibility,
                 'kubectl',
@@ -201,6 +202,33 @@ class CompatibilityTest(unittest.TestCase):
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc'
         )
 
+    def test_migration_wait_does_not_treat_draining_as_completion(self):
+        def state(phase):
+            return json.dumps(
+                {
+                    'metadata': {
+                        'annotations': {
+                            'pipelines.kubeflow.org/storage-credential-phase': phase
+                        }
+                    }
+                }
+            )
+
+        with (
+            patch.object(
+                compatibility,
+                'kubectl',
+                side_effect=[
+                    state('DrainingWorkloads'),
+                    state('DefaultRevoked'),
+                ],
+            ) as get,
+            patch.object(compatibility.time, 'sleep') as sleep,
+        ):
+            compatibility.wait_migration_complete()
+        self.assertEqual(get.call_count, 2)
+        sleep.assert_called_once_with(2)
+
     def test_iam_reachability_accepts_method_not_allowed(self):
         process = Mock()
         process.poll.return_value = None
@@ -267,6 +295,7 @@ class CompatibilityTest(unittest.TestCase):
             ) as kubectl,
             patch.object(compatibility, 'apply') as apply,
             patch.object(compatibility, 'wait_ready'),
+            patch.object(compatibility, 'wait_migration_complete'),
         ):
             compatibility.verify_manifest_reapply([])
         apply.assert_called_once_with([])

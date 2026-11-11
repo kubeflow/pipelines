@@ -56,6 +56,10 @@ class Retry(Exception):
     """Safe, non-secret progress or failure message."""
 
 
+class Waiting(Retry):
+    """Successful reconciliation waiting for expected external progress."""
+
+
 class APIError(Exception):
     def __init__(self, status):
         self.status = status
@@ -220,7 +224,7 @@ class Migration:
     def prepare(self):
         state = self.api.get('secrets', ADMIN_SECRET)
         if state is None:
-            raise Retry(
+            raise Waiting(
                 'Waiting for the seaweedfs-admin-credentials Secret manifest'
             )
         current = credentials(state)
@@ -285,7 +289,7 @@ class Migration:
     def storage_ready(self):
         deployment = self.api.get('deployments', 'seaweedfs')
         if not deployment or not uses_secret(deployment, ADMIN_SECRET):
-            raise Retry(
+            raise Waiting(
                 'Waiting for the SeaweedFS deployment to use the replacement Secret'
             )
         self.rollout_ready(deployment)
@@ -297,7 +301,7 @@ class Migration:
             not uses_secret({'spec': {'template': pod}}, ADMIN_SECRET)
             for pod in pods
         ):
-            raise Retry(
+            raise Waiting(
                 'Waiting for all old SeaweedFS pods to terminate before revocation'
             )
 
@@ -311,7 +315,7 @@ class Migration:
             or status.get('replicas', 0) != desired
             or status.get('availableReplicas', 0) != desired
         ):
-            raise Retry(
+            raise Waiting(
                 'Waiting for deployment '
                 + deployment['metadata']['name']
                 + ' to finish rolling out'
@@ -338,7 +342,7 @@ class Migration:
                 != expected_revision
                 for pod in pods
             ):
-                raise Retry('Waiting for old consumer pods to terminate')
+                raise Waiting('Waiting for old consumer pods to terminate')
 
     def publish(self, pair):
         old = self.api.get('secrets', LEGACY_SECRET)
@@ -400,7 +404,7 @@ class Migration:
                     },
                 },
             )
-            raise Retry(
+            raise Waiting(
                 'Rolling deployment '
                 + name
                 + ' onto the replacement credential'
@@ -500,7 +504,7 @@ class Migration:
                     DRAIN_SAMPLE: json.dumps(sample),
                 },
             )
-            raise Retry(
+            raise Waiting(
                 f'Waiting for {count} affected workload Pods to finish; old credential remains valid'
             )
 
@@ -646,28 +650,37 @@ class Storage:
             UserName='kubeflow-admin', AccessKeyId=DEFAULT_ACCESS_KEY
         )
         if self.default_accepted():
-            raise Retry(
+            raise Waiting(
                 'Waiting for storage to reject the default credential after revocation'
             )
 
 
+def reconcile_once(migration, ready):
+    """Report controller health separately from migration completion."""
+    try:
+        migration.reconcile()
+    except Waiting as error:
+        print(str(error), flush=True)
+    except Retry as error:
+        ready.unlink(missing_ok=True)
+        print(str(error), flush=True)
+        return
+    except Exception as error:
+        ready.unlink(missing_ok=True)
+        # API/SDK exceptions can include credential data; never log bodies.
+        print(
+            f'Credential reconciliation failed during {migration.stage} ({type(error).__name__}); inspect RBAC, storage health and deployment readiness. Retrying.',
+            flush=True,
+        )
+        return
+    ready.touch()
+
+
 def main():
     migration = Migration(Kubernetes(os.environ['POD_NAMESPACE']), Storage)
-    ready = Path('/tmp/credentials-ready')
+    ready = Path('/tmp/controller-ready')
     while True:
-        try:
-            migration.reconcile()
-            ready.touch()
-        except Retry as error:
-            ready.unlink(missing_ok=True)
-            print(str(error), flush=True)
-        except Exception as error:
-            ready.unlink(missing_ok=True)
-            # API/SDK exceptions can include credentials or entire Secret bodies.
-            print(
-                f'Credential reconciliation failed during {migration.stage} ({type(error).__name__}); inspect RBAC, storage health and deployment readiness. Retrying.',
-                flush=True,
-            )
+        reconcile_once(migration, ready)
         time.sleep(10)
 
 

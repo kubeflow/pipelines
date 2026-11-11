@@ -39,6 +39,7 @@ Inspect progress without displaying credentials:
 kubectl -n kubeflow logs deployment/seaweedfs-credential-rotation
 kubectl -n kubeflow get secret seaweedfs-admin-credentials \
   -o 'jsonpath={.metadata.annotations.pipelines\.kubeflow\.org/storage-credential-phase}{"\n"}'
+# Controller health only; this does not wait for credential revocation.
 kubectl -n kubeflow rollout status deployment/seaweedfs-credential-rotation
 ```
 
@@ -51,8 +52,12 @@ and up to five pod names. A busy namespace can delay revocation indefinitely;
 operators can pause submissions to let it become idle. Suspending a schedule
 with no active pods does not itself block the drain. `DefaultRevoked` means the managed rollout completed
 and the shipped credential was rejected at the last successful reconciliation.
-A subsequent storage/API failure makes the reconciler unready, even if the
-annotation records an earlier successful reconciliation. Repair the reported
+Controller readiness is independent of migration completion: successful
+reconciliation remains ready during normal rollout waits and `DrainingWorkloads`.
+API failures, malformed state and reconciliation errors make it unready. A
+healthy Deployment therefore does not mean the published credential has been
+revoked; check the phase and drain annotations separately. A failure can leave
+the phase recording an earlier successful reconciliation. Repair the reported
 failure and let the reconciler retry. Never log or paste the Secret data.
 
 ### Secret ownership and custom deployments
@@ -121,3 +126,14 @@ new Secrets and use them with any rollback manifests; old startup manifests
 can re-register the vulnerable credential. Credential rotation is not incident
 recovery: investigate any additional identities or policies created by a
 previously unauthorized administrator separately.
+
+### Controller lifecycle
+
+This Deployment is installed on both master and release-2.18. It remains active
+after migration to provision credentials on fresh installations, preserve them
+across restarts and detect restoration of the old declarative defaults. It uses
+the existing profile-controller Python/botocore runtime pattern. This is a
+long-lived maintained component, not a release-2.18-only upgrade Job. Removing
+it later requires retaining those bootstrap and reconciliation responsibilities
+elsewhere; the legacy-key migration path can be retired separately when the
+supported upgrade policy permits it.
