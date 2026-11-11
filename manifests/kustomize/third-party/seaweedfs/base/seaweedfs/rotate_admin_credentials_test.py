@@ -11,37 +11,54 @@
 
 import copy
 import importlib.util
-import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+import unittest
+from unittest.mock import Mock
+from unittest.mock import patch
 
 HERE = Path(__file__).parent
 spec = importlib.util.spec_from_file_location(
-    'rotation', HERE / 'rotate-admin-credentials.py'
-)
+    'rotation', HERE / 'rotate-admin-credentials.py')
 rotation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(rotation)
 
 
 def secret(name, pair=None):
     return {
-        'metadata': {'name': name, 'resourceVersion': '1'},
+        'metadata': {
+            'name': name,
+            'resourceVersion': '1'
+        },
         'data': rotation.encoded(pair) if pair else {},
     }
 
 
 def deployment(name, credential):
     return {
-        'metadata': {'name': name, 'generation': 1, 'resourceVersion': '1'},
+        'metadata': {
+            'name': name,
+            'generation': 1,
+            'resourceVersion': '1'
+        },
         'spec': {
             'replicas': 1,
-            'selector': {'matchLabels': {'app': name}},
+            'selector': {
+                'matchLabels': {
+                    'app': name
+                }
+            },
             'template': {
-                'metadata': {'annotations': {}},
+                'metadata': {
+                    'annotations': {}
+                },
                 'spec': {
-                    'containers': [
-                        {'envFrom': [{'secretRef': {'name': credential}}]}
-                    ]
+                    'containers': [{
+                        'envFrom': [{
+                            'secretRef': {
+                                'name': credential
+                            }
+                        }]
+                    }]
                 },
             },
         },
@@ -63,12 +80,13 @@ def merge(target, changes):
 
 
 class API:
+
     def __init__(self):
         self.objects = {
-            ('secrets', rotation.ADMIN_SECRET): secret(rotation.ADMIN_SECRET),
-            ('deployments', 'seaweedfs'): deployment(
-                'seaweedfs', rotation.ADMIN_SECRET
-            ),
+            ('secrets', rotation.ADMIN_SECRET):
+                secret(rotation.ADMIN_SECRET),
+            ('deployments', 'seaweedfs'):
+                deployment('seaweedfs', rotation.ADMIN_SECRET),
         }
         self.requests = []
         self.old_storage = False
@@ -84,14 +102,16 @@ class API:
                 pod = deployment(
                     'seaweedfs',
                     rotation.LEGACY_SECRET
-                    if self.old_storage
-                    else rotation.ADMIN_SECRET,
+                    if self.old_storage else rotation.ADMIN_SECRET,
                 )['spec']['template']
                 return {'items': [pod]}
             return {
-                'items': [{'metadata': {}, 'status': {'phase': 'Running'}}]
-                if self.old_consumer
-                else []
+                'items': [{
+                    'metadata': {},
+                    'status': {
+                        'phase': 'Running'
+                    }
+                }] if self.old_consumer else []
             }
         if method == 'POST':
             name = body['metadata']['name']
@@ -101,19 +121,17 @@ class API:
             self.objects[(kind, name)]['metadata']['resourceVersion'] = '1'
         elif method == 'PATCH':
             obj = self.objects[(kind, name)]
-            if (
-                body['metadata'].get('resourceVersion')
-                != obj['metadata']['resourceVersion']
-            ):
+            if (body['metadata'].get('resourceVersion')
+                    != obj['metadata']['resourceVersion']):
                 raise rotation.APIError(409)
             merge(obj, body)
             obj['metadata']['resourceVersion'] = str(
-                int(obj['metadata']['resourceVersion']) + 1
-            )
+                int(obj['metadata']['resourceVersion']) + 1)
         return self.get(kind, name)
 
 
 class RotationTest(unittest.TestCase):
+
     def setUp(self):
         self.api = API()
         self.storage = Mock()
@@ -122,53 +140,43 @@ class RotationTest(unittest.TestCase):
     def test_new_install_generates_once_and_publishes(self):
         self.migration.reconcile()
         pair = rotation.credentials(
-            self.api.get('secrets', rotation.ADMIN_SECRET)
-        )
+            self.api.get('secrets', rotation.ADMIN_SECRET))
         self.assertFalse(rotation.is_default(pair))
         self.assertEqual(
             pair,
             rotation.credentials(
-                self.api.get('secrets', rotation.LEGACY_SECRET)
-            ),
+                self.api.get('secrets', rotation.LEGACY_SECRET)),
         )
         self.assertEqual(
-            self.api.get('secrets', rotation.ADMIN_SECRET)['metadata'][
-                'annotations'
-            ][rotation.PHASE],
+            self.api.get('secrets', rotation.ADMIN_SECRET)['metadata']
+            ['annotations'][rotation.PHASE],
             'DefaultRevoked',
         )
         self.migration.reconcile()
         self.assertEqual(
             pair,
             rotation.credentials(
-                self.api.get('secrets', rotation.ADMIN_SECRET)
-            ),
+                self.api.get('secrets', rotation.ADMIN_SECRET)),
         )
 
     def test_nondefault_custom_credentials_preserved(self):
         pair = ('operator-key', 'operator-secret')
         self.api.objects[('secrets', rotation.LEGACY_SECRET)] = secret(
-            rotation.LEGACY_SECRET, pair
-        )
+            rotation.LEGACY_SECRET, pair)
         self.migration.reconcile()
         self.assertEqual(
             pair,
             rotation.credentials(
-                self.api.get('secrets', rotation.ADMIN_SECRET)
-            ),
+                self.api.get('secrets', rotation.ADMIN_SECRET)),
         )
         self.assertFalse(
-            any(
-                request[1:3] == ('secrets', rotation.LEGACY_SECRET)
-                for request in self.api.requests
-            )
-        )
+            any(request[1:3] == ('secrets', rotation.LEGACY_SECRET)
+                for request in self.api.requests))
 
     def test_public_key_id_with_custom_secret_is_not_revoked(self):
         pair = (rotation.DEFAULT_ACCESS_KEY, 'operator-secret')
         self.api.objects[('secrets', rotation.LEGACY_SECRET)] = secret(
-            rotation.LEGACY_SECRET, pair
-        )
+            rotation.LEGACY_SECRET, pair)
         self.migration.reconcile()
         self.storage.revoke_default.assert_called_once()
 
@@ -187,33 +195,29 @@ class RotationTest(unittest.TestCase):
         storage.default_accepted = Mock(side_effect=[True, False])
         storage.revoke_default()
         storage.iam.delete_access_key.assert_called_once_with(
-            UserName='kubeflow-admin', AccessKeyId=rotation.DEFAULT_ACCESS_KEY
-        )
+            UserName='kubeflow-admin', AccessKeyId=rotation.DEFAULT_ACCESS_KEY)
         self.assertEqual(2, storage.default_accepted.call_count)
 
     def test_default_pair_is_rotated(self):
         old = ('synthetic-default', 'synthetic-default-secret')
         self.api.objects[('secrets', rotation.LEGACY_SECRET)] = secret(
-            rotation.LEGACY_SECRET, old
-        )
+            rotation.LEGACY_SECRET, old)
         with patch.object(
-            rotation,
-            'DEFAULT_FINGERPRINT',
-            rotation.hashlib.sha256('\0'.join(old).encode()).hexdigest(),
+                rotation,
+                'DEFAULT_FINGERPRINT',
+                rotation.hashlib.sha256('\0'.join(old).encode()).hexdigest(),
         ):
             self.migration.reconcile()
         self.assertNotEqual(
             old,
             rotation.credentials(
-                self.api.get('secrets', rotation.LEGACY_SECRET)
-            ),
+                self.api.get('secrets', rotation.LEGACY_SECRET)),
         )
 
     def test_crash_after_prepare_reuses_same_replacement(self):
         state = self.migration.prepare()
         self.storage.verify.side_effect = RuntimeError(
-            'simulated unavailable storage'
-        )
+            'simulated unavailable storage')
         with self.assertRaises(RuntimeError):
             self.migration.reconcile()
         self.assertIsNone(self.api.get('secrets', rotation.LEGACY_SECRET))
@@ -223,8 +227,7 @@ class RotationTest(unittest.TestCase):
         self.assertEqual(
             rotation.credentials(state),
             rotation.credentials(
-                self.api.get('secrets', rotation.LEGACY_SECRET)
-            ),
+                self.api.get('secrets', rotation.LEGACY_SECRET)),
         )
 
     def test_old_storage_pod_blocks_revocation_and_publish(self):
@@ -235,28 +238,26 @@ class RotationTest(unittest.TestCase):
         self.assertIsNone(self.api.get('secrets', rotation.LEGACY_SECRET))
 
     def test_pending_rollout_blocks_revocation(self):
-        self.api.objects[('deployments', 'ml-pipeline')] = deployment(
-            'ml-pipeline', rotation.LEGACY_SECRET
-        )
+        self.api.objects[('deployments',
+                          'ml-pipeline')] = deployment('ml-pipeline',
+                                                       rotation.LEGACY_SECRET)
         with self.assertRaisesRegex(rotation.Retry, 'Rolling deployment'):
             self.migration.reconcile()
         self.storage.revoke_default.assert_not_called()
-        self.api.objects[('deployments', 'ml-pipeline')]['status'][
-            'availableReplicas'
-        ] = 0
+        self.api.objects[('deployments',
+                          'ml-pipeline')]['status']['availableReplicas'] = 0
         with self.assertRaisesRegex(rotation.Retry, 'finish rolling out'):
             self.migration.reconcile()
         self.storage.revoke_default.assert_not_called()
-        self.api.objects[('deployments', 'ml-pipeline')]['status'][
-            'availableReplicas'
-        ] = 1
+        self.api.objects[('deployments',
+                          'ml-pipeline')]['status']['availableReplicas'] = 1
         self.migration.reconcile()
         self.storage.revoke_default.assert_called_once()
 
     def test_terminating_old_consumer_blocks_revocation(self):
-        self.api.objects[('deployments', 'ml-pipeline')] = deployment(
-            'ml-pipeline', rotation.LEGACY_SECRET
-        )
+        self.api.objects[('deployments',
+                          'ml-pipeline')] = deployment('ml-pipeline',
+                                                       rotation.LEGACY_SECRET)
         with self.assertRaises(rotation.Retry):
             self.migration.reconcile()
         self.api.old_consumer = True
@@ -266,64 +267,58 @@ class RotationTest(unittest.TestCase):
 
     def test_unrelated_secrets_and_custom_deployments_untouched(self):
         self.api.objects[('secrets', 'tenant-secret')] = secret(
-            'tenant-secret', ('tenant', 'tenant-secret')
-        )
-        self.api.objects[('deployments', 'ml-pipeline')] = deployment(
-            'ml-pipeline', 'external-s3'
-        )
+            'tenant-secret', ('tenant', 'tenant-secret'))
+        self.api.objects[('deployments',
+                          'ml-pipeline')] = deployment('ml-pipeline',
+                                                       'external-s3')
         before = self.api.get('secrets', 'tenant-secret')
         self.migration.reconcile()
         self.assertEqual(before, self.api.get('secrets', 'tenant-secret'))
         self.assertFalse(
-            any(request[1] == 'deployments' for request in self.api.requests)
-        )
+            any(request[1] == 'deployments' for request in self.api.requests))
 
     def test_custom_edit_during_migration_is_not_overwritten(self):
         self.migration.prepare()
         self.api.objects[('secrets', rotation.LEGACY_SECRET)] = secret(
-            rotation.LEGACY_SECRET, ('new-operator', 'new-secret')
-        )
+            rotation.LEGACY_SECRET, ('new-operator', 'new-secret'))
         with self.assertRaisesRegex(rotation.Retry, 'custom credentials'):
             self.migration.reconcile()
         self.storage.revoke_default.assert_not_called()
 
     def test_malformed_secret_blocks_before_generation(self):
         self.api.objects[('secrets', rotation.LEGACY_SECRET)] = secret(
-            rotation.LEGACY_SECRET
-        )
+            rotation.LEGACY_SECRET)
         self.api.objects[('secrets', rotation.LEGACY_SECRET)]['data'] = {
             'accesskey': 'not-base64'
         }
         with self.assertRaisesRegex(rotation.Retry, 'incomplete'):
             self.migration.reconcile()
         self.assertIsNone(
-            rotation.credentials(self.api.get('secrets', rotation.ADMIN_SECRET))
-        )
+            rotation.credentials(
+                self.api.get('secrets', rotation.ADMIN_SECRET)))
 
     def test_declarative_drift_triggers_a_new_consumer_rollout(self):
         self.migration.reconcile()
         first = self.api.get('secrets', rotation.ADMIN_SECRET)
         del self.api.objects[('secrets', rotation.LEGACY_SECRET)]
-        self.api.objects[('deployments', 'ml-pipeline')] = deployment(
-            'ml-pipeline', rotation.LEGACY_SECRET
-        )
-        self.api.objects[('deployments', 'ml-pipeline')]['spec']['template'][
-            'metadata'
-        ]['annotations'][rotation.REVISION] = rotation.revision(first)
+        self.api.objects[('deployments',
+                          'ml-pipeline')] = deployment('ml-pipeline',
+                                                       rotation.LEGACY_SECRET)
+        self.api.objects[(
+            'deployments',
+            'ml-pipeline')]['spec']['template']['metadata']['annotations'][
+                rotation.REVISION] = rotation.revision(first)
         with self.assertRaisesRegex(rotation.Retry, 'Rolling deployment'):
             self.migration.reconcile()
         second = self.api.get('secrets', rotation.ADMIN_SECRET)
         self.assertEqual(
-            rotation.credentials(first), rotation.credentials(second)
-        )
+            rotation.credentials(first), rotation.credentials(second))
         self.assertNotEqual(rotation.revision(first), rotation.revision(second))
 
     def test_negative_probe_matches_shipped_default_fingerprint(self):
         self.assertTrue(
             rotation.is_default(
-                (rotation.DEFAULT_ACCESS_KEY, rotation.DEFAULT_SECRET_KEY)
-            )
-        )
+                (rotation.DEFAULT_ACCESS_KEY, rotation.DEFAULT_SECRET_KEY)))
 
     def test_secret_updates_use_resource_version(self):
         self.migration.reconcile()
@@ -333,15 +328,13 @@ class RotationTest(unittest.TestCase):
 
     def test_revocation_failure_never_marks_complete(self):
         self.storage.revoke_default.side_effect = RuntimeError(
-            'synthetic failure'
-        )
+            'synthetic failure')
         with self.assertRaises(RuntimeError):
             self.migration.reconcile()
         self.assertNotEqual(
             'DefaultRevoked',
-            self.api.get('secrets', rotation.ADMIN_SECRET)['metadata'][
-                'annotations'
-            ][rotation.PHASE],
+            self.api.get('secrets', rotation.ADMIN_SECRET)['metadata']
+            ['annotations'][rotation.PHASE],
         )
 
 

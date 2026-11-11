@@ -229,14 +229,10 @@ def seed_old_store(storage, baseline_image, evidence):
     if len(credentials) > 1:
         raise ValueError('Ambiguous legacy credential Secret')
     admin_credentials = (
-        secret_credentials(credentials[0]) if credentials else None
-    )
+        secret_credentials(credentials[0]) if credentials else None)
     deployment = next(
-        obj
-        for obj in storage
-        if obj['kind'] == 'Deployment'
-        and obj.get('metadata', {}).get('name', 'seaweedfs') == 'seaweedfs'
-    )
+        obj for obj in storage if obj['kind'] == 'Deployment' and
+        obj.get('metadata', {}).get('name', 'seaweedfs') == 'seaweedfs')
     deployment['spec']['template']['spec']['containers'][0]['image'] = (
         baseline_image)
     apply([
@@ -293,9 +289,8 @@ def seed_old_store(storage, baseline_image, evidence):
 def current_admin_credentials():
     return secret_credentials(
         json.loads(
-            kubectl('get', 'secret', 'mlpipeline-minio-artifact', '-o', 'json')
-        )
-    )
+            kubectl('get', 'secret', 'mlpipeline-minio-artifact', '-o',
+                    'json')))
 
 
 def upgrade_store(storage):
@@ -303,10 +298,9 @@ def upgrade_store(storage):
     apply(storage)
     wait_ready('seaweedfs')
     if any(
-        obj.get('kind') == 'Deployment'
-        and obj['metadata']['name'] == 'seaweedfs-credential-rotation'
-        for obj in storage
-    ):
+            obj.get('kind') == 'Deployment' and
+            obj['metadata']['name'] == 'seaweedfs-credential-rotation'
+            for obj in storage):
         wait_ready('seaweedfs-credential-rotation')
 
 
@@ -319,14 +313,12 @@ def verify_old_credentials_rejected(old, current, evidence):
         try:
             client(endpoint, *old).head_bucket(Bucket=BUCKET)
         except ClientError as error:
-            if error.response.get('ResponseMetadata', {}).get(
-                'HTTPStatusCode'
-            ) in (401, 403):
+            if error.response.get('ResponseMetadata',
+                                  {}).get('HTTPStatusCode') in (401, 403):
                 return
             raise
     raise AssertionError(
-        'Pre-upgrade default admin credential is still accepted'
-    )
+        'Pre-upgrade default admin credential is still accepted')
 
 
 def exercise_profile(admin_credentials, evidence):
@@ -440,9 +432,8 @@ def exercise(evidence, baseline):
     target = storage_image(storage)
     baseline_storage = rendered(baseline / SEAWEED.relative_to(ROOT))
     baseline_image = storage_image(baseline_storage)
-    old_credentials, pvc_uid = seed_old_store(
-        baseline_storage, baseline_image, evidence
-    )
+    old_credentials, pvc_uid = seed_old_store(baseline_storage, baseline_image,
+                                              evidence)
     # Establish a tenant key and objects BEFORE rotation to prove preservation.
     secret = exercise_profile(old_credentials, evidence)
     upgrade_store(storage)

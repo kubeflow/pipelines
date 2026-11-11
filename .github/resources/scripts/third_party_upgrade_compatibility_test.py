@@ -191,28 +191,31 @@ class CompatibilityTest(unittest.TestCase):
             }]
 
         with (
-            patch.object(
-                compatibility,
-                'rendered',
-                side_effect=[store('candidate:4.50'), store('baseline:4.49')],
-            ) as render,
-            patch.object(
-                compatibility,
-                'seed_old_store',
-                return_value=(('user', 'key'), 'pvc'),
-            ) as seed,
-            patch.object(compatibility, 'upgrade_store') as upgrade,
-            patch.object(compatibility, 'exercise_profile', return_value={}),
-            patch.object(compatibility, 'verify_after_restart'),
-            patch.object(compatibility, 'write_result') as result,
-            patch.object(
-                compatibility,
-                'current_admin_credentials',
-                return_value=('replacement', 'new-key'),
-            ),
-            patch.object(
-                compatibility, 'verify_old_credentials_rejected'
-            ) as rejected,
+                patch.object(
+                    compatibility,
+                    'rendered',
+                    side_effect=[
+                        store('candidate:4.50'),
+                        store('baseline:4.49')
+                    ],
+                ) as render,
+                patch.object(
+                    compatibility,
+                    'seed_old_store',
+                    return_value=(('user', 'key'), 'pvc'),
+                ) as seed,
+                patch.object(compatibility, 'upgrade_store') as upgrade,
+                patch.object(
+                    compatibility, 'exercise_profile', return_value={}),
+                patch.object(compatibility, 'verify_after_restart'),
+                patch.object(compatibility, 'write_result') as result,
+                patch.object(
+                    compatibility,
+                    'current_admin_credentials',
+                    return_value=('replacement', 'new-key'),
+                ),
+                patch.object(compatibility, 'verify_old_credentials_rejected')
+                as rejected,
         ):
             compatibility.exercise(Path('evidence'), Path('baseline'))
         self.assertEqual(

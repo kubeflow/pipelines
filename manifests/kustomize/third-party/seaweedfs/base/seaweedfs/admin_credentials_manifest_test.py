@@ -11,27 +11,24 @@
 """Verify rendered manifests: set SEAWEEDFS_RENDERED to kubectl kustomize output."""
 
 import os
-import unittest
 from pathlib import Path
+import unittest
 
 import yaml
 
 
 class ManifestTest(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.resources = list(
             yaml.safe_load_all(
-                Path(os.environ['SEAWEEDFS_RENDERED']).read_text()
-            )
-        )
+                Path(os.environ['SEAWEEDFS_RENDERED']).read_text()))
 
     def resource(self, kind, name):
         return next(
-            item
-            for item in self.resources
-            if item['kind'] == kind and item['metadata']['name'] == name
-        )
+            item for item in self.resources
+            if item['kind'] == kind and item['metadata']['name'] == name)
 
     def test_no_declarative_legacy_secret_or_generated_credential_data(self):
         for item in self.resources:
@@ -46,18 +43,17 @@ class ManifestTest(unittest.TestCase):
         self.assertFalse(state.get('stringData'))
 
     def test_storage_requires_both_generated_keys_before_start(self):
-        container = self.resource('Deployment', 'seaweedfs')['spec'][
-            'template'
-        ]['spec']['containers'][0]
+        container = self.resource(
+            'Deployment',
+            'seaweedfs')['spec']['template']['spec']['containers'][0]
         env = {item['name']: item for item in container['env']}
         for key in ('accesskey', 'secretkey'):
             reference = env[key]['valueFrom']['secretKeyRef']
             self.assertEqual('seaweedfs-admin-credentials', reference['name'])
             self.assertEqual(key, reference['key'])
             self.assertFalse(reference.get('optional', False))
-        self.assertIn(
-            '-s3.config=/etc/seaweedfs-auth/s3-auth.json', container['args']
-        )
+        self.assertIn('-s3.config=/etc/seaweedfs-auth/s3-auth.json',
+                      container['args'])
         self.assertIn(
             '/usr/bin/weed shell >/dev/null 2>&1',
             container['lifecycle']['postStart']['exec']['command'][-1],
@@ -74,9 +70,9 @@ class ManifestTest(unittest.TestCase):
     def test_openshift_uses_assigned_identity(self):
         if os.environ.get('OPENSHIFT_RENDERED') != 'true':
             self.skipTest('OpenShift overlay only')
-        pod = self.resource('Deployment', 'seaweedfs-credential-rotation')[
-            'spec'
-        ]['template']['spec']
+        pod = self.resource(
+            'Deployment',
+            'seaweedfs-credential-rotation')['spec']['template']['spec']
         self.assertNotIn('runAsUser', pod.get('securityContext', {}))
         self.assertNotIn('fsGroup', pod.get('securityContext', {}))
 

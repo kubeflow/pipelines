@@ -23,13 +23,13 @@ import base64
 import hashlib
 import json
 import os
+from pathlib import Path
 import secrets
 import ssl
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 
 ADMIN_SECRET = 'seaweedfs-admin-credentials'
 LEGACY_SECRET = 'mlpipeline-minio-artifact'
@@ -46,8 +46,7 @@ DEFAULT_ACCESS_KEY = 'minio'
 # It is never used to provision or authenticate the replacement administrator.
 DEFAULT_SECRET_KEY = 'minio123'
 DEFAULT_FINGERPRINT = (
-    '0c9d72cb381b9afa7023c36f330317ee8783fc8becf72e2c0610688e9afb544d'
-)
+    '0c9d72cb381b9afa7023c36f330317ee8783fc8becf72e2c0610688e9afb544d')
 
 
 class Retry(Exception):
@@ -55,23 +54,20 @@ class Retry(Exception):
 
 
 class APIError(Exception):
+
     def __init__(self, status):
         self.status = status
 
 
 class Kubernetes:
+
     def __init__(self, namespace):
         self.namespace = namespace
-        self.base = (
-            'https://'
-            + os.environ['KUBERNETES_SERVICE_HOST']
-            + ':'
-            + os.environ.get('KUBERNETES_SERVICE_PORT', '443')
-        )
+        self.base = ('https://' + os.environ['KUBERNETES_SERVICE_HOST'] + ':' +
+                     os.environ.get('KUBERNETES_SERVICE_PORT', '443'))
         self.account = Path('/var/run/secrets/kubernetes.io/serviceaccount')
         self.context = ssl.create_default_context(
-            cafile=str(self.account / 'ca.crt')
-        )
+            cafile=str(self.account / 'ca.crt'))
 
     def request(self, method, kind, name='', body=None, query=''):
         group = '/apis/apps/v1' if kind == 'deployments' else '/api/v1'
@@ -81,15 +77,12 @@ class Kubernetes:
         if query:
             path += '?' + query
         headers = {
-            'Authorization': 'Bearer '
-            + (self.account / 'token').read_text().strip()
+            'Authorization':
+                'Bearer ' + (self.account / 'token').read_text().strip()
         }
         if body is not None:
-            headers['Content-Type'] = (
-                'application/merge-patch+json'
-                if method == 'PATCH'
-                else 'application/json'
-            )
+            headers['Content-Type'] = ('application/merge-patch+json' if method
+                                       == 'PATCH' else 'application/json')
         request = urllib.request.Request(
             self.base + path,
             method=method,
@@ -98,8 +91,7 @@ class Kubernetes:
         )
         try:
             with urllib.request.urlopen(
-                request, context=self.context, timeout=20
-            ) as response:
+                    request, context=self.context, timeout=20) as response:
                 return json.load(response)
         except urllib.error.HTTPError as error:
             raise APIError(error.code) from None
@@ -124,17 +116,13 @@ def credentials(secret):
     try:
         pair = tuple(
             base64.b64decode(data[key], validate=True).decode()
-            for key in ('accesskey', 'secretkey')
-        )
+            for key in ('accesskey', 'secretkey'))
         # The storage startup shell passes these as weed-shell arguments. Do not
         # accept whitespace/control characters or shell-command delimiters.
         if not all(
-            value
-            and all(
-                c.isascii() and (c.isalnum() or c in '/+=_.-') for c in value
-            )
-            for value in pair
-        ):
+                value and all(c.isascii() and (c.isalnum() or c in '/+=_.-')
+                              for c in value)
+                for value in pair):
             raise ValueError()
         return pair
     except (KeyError, ValueError, UnicodeError):
@@ -151,11 +139,8 @@ def encoded(pair):
 
 
 def is_default(pair):
-    return (
-        pair is not None
-        and hashlib.sha256(('\0'.join(pair)).encode()).hexdigest()
-        == DEFAULT_FINGERPRINT
-    )
+    return (pair is not None and hashlib.sha256(
+        ('\0'.join(pair)).encode()).hexdigest() == DEFAULT_FINGERPRINT)
 
 
 def revision(secret):
@@ -165,26 +150,22 @@ def revision(secret):
 def uses_secret(deployment, name):
     spec = deployment['spec']['template']['spec']
     for container in spec.get('containers', []) + spec.get(
-        'initContainers', []
-    ):
+            'initContainers', []):
         if any(
-            item.get('secretRef', {}).get('name') == name
-            for item in container.get('envFrom', [])
-        ):
+                item.get('secretRef', {}).get('name') == name
+                for item in container.get('envFrom', [])):
             return True
         if any(
-            item.get('valueFrom', {}).get('secretKeyRef', {}).get('name')
-            == name
-            for item in container.get('env', [])
-        ):
+                item.get('valueFrom', {}).get('secretKeyRef', {}).get('name') ==
+                name for item in container.get('env', [])):
             return True
     return any(
         item.get('secret', {}).get('secretName') == name
-        for item in spec.get('volumes', [])
-    )
+        for item in spec.get('volumes', []))
 
 
 class Migration:
+
     def __init__(self, api, storage_factory):
         self.api = api
         self.storage_factory = storage_factory
@@ -198,7 +179,9 @@ class Migration:
                 {
                     'metadata': {
                         'resourceVersion': state['metadata']['resourceVersion'],
-                        'annotations': {PHASE: value},
+                        'annotations': {
+                            PHASE: value
+                        },
                     }
                 },
             )
@@ -208,8 +191,7 @@ class Migration:
         state = self.api.get('secrets', ADMIN_SECRET)
         if state is None:
             raise Retry(
-                'Waiting for the seaweedfs-admin-credentials Secret manifest'
-            )
+                'Waiting for the seaweedfs-admin-credentials Secret manifest')
         current = credentials(state)
         annotations = state['metadata'].get('annotations', {})
         if current is not None and REVISION in annotations:
@@ -218,11 +200,8 @@ class Migration:
                     'Generated admin Secret contains the shipped default; refusing to use it'
                 )
             old = credentials(self.api.get('secrets', LEGACY_SECRET))
-            if (
-                old != current
-                and (old is None or is_default(old))
-                and annotations.get(PHASE) == 'DefaultRevoked'
-            ):
+            if (old != current and (old is None or is_default(old)) and
+                    annotations.get(PHASE) == 'DefaultRevoked'):
                 # A reconciler may restore stale declarative defaults after the
                 # first migration. Roll consumers again, even with the same key.
                 return self.api.request(
@@ -231,9 +210,8 @@ class Migration:
                     ADMIN_SECRET,
                     {
                         'metadata': {
-                            'resourceVersion': state['metadata'][
-                                'resourceVersion'
-                            ],
+                            'resourceVersion':
+                                state['metadata']['resourceVersion'],
                             'annotations': {
                                 REVISION: secrets.token_hex(16),
                                 PHASE: 'ReplacementPrepared',
@@ -245,14 +223,11 @@ class Migration:
         old = credentials(self.api.get('secrets', LEGACY_SECRET))
         if current is None:
             current = (
-                old
-                if old is not None and not is_default(old)
-                else ('kfp-' + secrets.token_hex(16), secrets.token_hex(32))
-            )
+                old if old is not None and not is_default(old) else
+                ('kfp-' + secrets.token_hex(16), secrets.token_hex(32)))
         if is_default(current):
             raise Retry(
-                'Admin Secret contains the shipped default; refusing to use it'
-            )
+                'Admin Secret contains the shipped default; refusing to use it')
         return self.api.request(
             'PATCH',
             'secrets',
@@ -277,13 +252,11 @@ class Migration:
             )
         self.rollout_ready(deployment)
         pods = self.api.request(
-            'GET', 'pods', query='labelSelector=app%3Dseaweedfs'
-        )['items']
+            'GET', 'pods', query='labelSelector=app%3Dseaweedfs')['items']
         # An old container restart can re-register the default through postStart.
-        if not pods or any(
-            not uses_secret({'spec': {'template': pod}}, ADMIN_SECRET)
-            for pod in pods
-        ):
+        if not pods or any(not uses_secret({'spec': {
+                'template': pod
+        }}, ADMIN_SECRET) for pod in pods):
             raise Retry(
                 'Waiting for all old SeaweedFS pods to terminate before revocation'
             )
@@ -291,40 +264,31 @@ class Migration:
     def rollout_ready(self, deployment, expected_revision=None):
         desired = deployment['spec'].get('replicas', 1)
         status = deployment.get('status', {})
-        if (
-            status.get('observedGeneration', 0)
-            < deployment['metadata']['generation']
-            or status.get('updatedReplicas', 0) != desired
-            or status.get('replicas', 0) != desired
-            or status.get('availableReplicas', 0) != desired
-        ):
-            raise Retry(
-                'Waiting for deployment '
-                + deployment['metadata']['name']
-                + ' to finish rolling out'
-            )
+        if (status.get('observedGeneration',
+                       0) < deployment['metadata']['generation'] or
+                status.get('updatedReplicas', 0) != desired or
+                status.get('replicas', 0) != desired or
+                status.get('availableReplicas', 0) != desired):
+            raise Retry('Waiting for deployment ' +
+                        deployment['metadata']['name'] +
+                        ' to finish rolling out')
         if expected_revision is not None:
             selector = deployment['spec']['selector']
             if selector.get('matchExpressions'):
                 raise Retry(
                     'Custom deployment selectors require explicit migration review'
                 )
-            query = urllib.parse.urlencode(
-                {
-                    'labelSelector': ','.join(
-                        key + '=' + value
-                        for key, value in selector['matchLabels'].items()
-                    )
-                }
-            )
+            query = urllib.parse.urlencode({
+                'labelSelector':
+                    ','.join(key + '=' + value
+                             for key, value in selector['matchLabels'].items())
+            })
             pods = self.api.request('GET', 'pods', query=query)['items']
             if any(
-                pod.get('status', {}).get('phase')
-                not in ('Succeeded', 'Failed')
-                and pod['metadata'].get('annotations', {}).get(REVISION)
-                != expected_revision
-                for pod in pods
-            ):
+                    pod.get('status', {}).get('phase') not in
+                ('Succeeded', 'Failed') and pod['metadata'].get(
+                    'annotations', {}).get(REVISION) != expected_revision
+                    for pod in pods):
                 raise Retry('Waiting for old consumer pods to terminate')
 
     def publish(self, pair):
@@ -344,7 +308,9 @@ class Migration:
                     'apiVersion': 'v1',
                     'kind': 'Secret',
                     'type': 'Opaque',
-                    'metadata': {'name': LEGACY_SECRET},
+                    'metadata': {
+                        'name': LEGACY_SECRET
+                    },
                     'data': encoded(pair),
                 },
             )
@@ -366,35 +332,32 @@ class Migration:
             deployment = self.api.get('deployments', name)
             if deployment is None or not uses_secret(deployment, LEGACY_SECRET):
                 continue
-            if (
-                deployment['spec']['template']
-                .get('metadata', {})
-                .get('annotations', {})
-                .get(REVISION)
-                != value
-            ):
+            if (deployment['spec']['template'].get('metadata',
+                                                   {}).get('annotations',
+                                                           {}).get(REVISION)
+                    != value):
                 self.api.request(
                     'PATCH',
                     'deployments',
                     name,
                     {
                         'metadata': {
-                            'resourceVersion': deployment['metadata'][
-                                'resourceVersion'
-                            ]
+                            'resourceVersion':
+                                deployment['metadata']['resourceVersion']
                         },
                         'spec': {
                             'template': {
-                                'metadata': {'annotations': {REVISION: value}}
+                                'metadata': {
+                                    'annotations': {
+                                        REVISION: value
+                                    }
+                                }
                             }
                         },
                     },
                 )
-                raise Retry(
-                    'Rolling deployment '
-                    + name
-                    + ' onto the replacement credential'
-                )
+                raise Retry('Rolling deployment ' + name +
+                            ' onto the replacement credential')
             self.rollout_ready(deployment, value)
 
     def reconcile(self):
@@ -406,19 +369,17 @@ class Migration:
         self.publish(pair)
         self.roll_consumers(revision(state))
         # Re-read to detect a concurrent operator edit before revoking a key.
-        if (
-            credentials(self.api.get('secrets', ADMIN_SECRET)) != pair
-            or credentials(self.api.get('secrets', LEGACY_SECRET)) != pair
-        ):
+        if (credentials(self.api.get('secrets', ADMIN_SECRET)) != pair or
+                credentials(self.api.get('secrets', LEGACY_SECRET)) != pair):
             raise Retry(
-                'Credentials changed during rollout; restarting verification'
-            )
+                'Credentials changed during rollout; restarting verification')
         storage.revoke_default()
         storage.verify()
         self.phase(state, 'DefaultRevoked')
 
 
 class Storage:
+
     def __init__(self, pair):
         try:
             import botocore.session
@@ -431,12 +392,17 @@ class Storage:
 
         session = botocore.session.get_session()
         common = {
-            'region_name': 'us-east-1',
-            'aws_access_key_id': pair[0],
-            'aws_secret_access_key': pair[1],
-            'config': Config(
-                connect_timeout=5, read_timeout=10, retries={'max_attempts': 2}
-            ),
+            'region_name':
+                'us-east-1',
+            'aws_access_key_id':
+                pair[0],
+            'aws_secret_access_key':
+                pair[1],
+            'config':
+                Config(
+                    connect_timeout=5,
+                    read_timeout=10,
+                    retries={'max_attempts': 2}),
         }
         self.pair = pair
         self.default_s3 = session.create_client(
@@ -449,11 +415,9 @@ class Storage:
             },
         )
         self.s3 = session.create_client(
-            's3', endpoint_url='http://seaweedfs:8333', **common
-        )
+            's3', endpoint_url='http://seaweedfs:8333', **common)
         self.iam = session.create_client(
-            'iam', endpoint_url='http://seaweedfs:8111', **common
-        )
+            'iam', endpoint_url='http://seaweedfs:8111', **common)
 
     def verify(self):
         self.s3.head_bucket(Bucket='mlpipeline')
@@ -469,9 +433,8 @@ class Storage:
             # HEAD responses can omit the XML error code. Only an explicit
             # authentication/authorization rejection is a successful negative
             # probe; transport errors, 404s and 5xx must retry.
-            if error.response.get('ResponseMetadata', {}).get(
-                'HTTPStatusCode'
-            ) in (401, 403):
+            if error.response.get('ResponseMetadata',
+                                  {}).get('HTTPStatusCode') in (401, 403):
                 return False
             raise
 
@@ -483,8 +446,7 @@ class Storage:
                 'Default remains accepted under an operator-owned access-key ID; inspect storage identities'
             )
         self.iam.delete_access_key(
-            UserName='kubeflow-admin', AccessKeyId=DEFAULT_ACCESS_KEY
-        )
+            UserName='kubeflow-admin', AccessKeyId=DEFAULT_ACCESS_KEY)
         if self.default_accepted():
             raise Retry(
                 'Waiting for storage to reject the default credential after revocation'
