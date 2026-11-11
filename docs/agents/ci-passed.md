@@ -86,6 +86,25 @@ coordinated protection in every overlapping Tide query. The publisher never
 removes this label, `do-not-merge`, or `do-not-merge/hold`; reviews and merge policy
 remain independent requirements.
 
+## Event invalidation and non-success results
+
+Requested and in-progress workflow events share the normal head-scoped writer
+lock, but first read only the current PR and triggering run. A matching active
+run revokes an existing success without scanning workflow policy, retarget
+history, changed files, or other checks. Existing pending/failure statuses are
+preserved. Invalid or unreadable run identity fails closed. A completed
+triggering run falls through to full reconciliation: its delayed event may have
+replaced another run's invalidation or a PR retarget event in the writer queue.
+
+When preparation finds expected workflows missing, running, or unsuccessful,
+it passes only that non-success assessment to finalization through trusted job
+outputs. Finalization rereads the PR/head snapshot and checks external results,
+but does not repeat the workflow assessment. If workflows recover between
+steps, the next completion event or recovery sweep can publish success. This
+may delay green; a prepared result can never authorize it. Successful decisions
+still require the independent checker and fresh workflow/check evidence before
+and after publication.
+
 ## Expected workflow inventory
 
 `.github/resources/ci-workflow-inventory.json` records local `pull_request`
