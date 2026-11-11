@@ -50,6 +50,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  image_artifacts_ready:
+    description: "Successful readiness output from the same workflow's image build."
+    required: false
+    default: 'false'
   load_tensorboard_image:
     description: "Wait for and load the default TensorBoard image for viewer tests."
     required: false
@@ -63,10 +67,12 @@ runs:
   using: "composite"
   steps:
     - name: Ensure GitHub CLI is available
+      if: ${{ inputs.image_artifacts_ready != 'true' }}
       shell: bash
       run: bash .github/resources/scripts/setup-github-cli.sh
 
     - name: Wait for branch image artifacts
+      if: ${{ inputs.image_artifacts_ready != 'true' }}
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}

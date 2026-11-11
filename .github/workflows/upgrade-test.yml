@@ -72,6 +72,7 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -159,6 +160,7 @@ jobs:
         if: ${{ success() && steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -218,6 +220,7 @@ jobs:
 
 
   readiness-schedules:
+    needs: build
     # Explicitly activate only after reviewing the candidate scheduling policy.
     if: ${{ vars.KFP_218_READINESS_SCHEDULES == 'enabled' || (github.event_name == 'workflow_dispatch' && inputs.run_readiness_schedules) }}
     runs-on: ubuntu-latest
@@ -257,6 +260,7 @@ jobs:
       - name: Deploy same-run candidate images
         uses: ./.github/actions/deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cluster_name: kfp-readiness
           image_path: images_${{ github.run_id }}
           image_tag: latest
@@ -280,6 +284,7 @@ jobs:
         run: kind delete cluster --name kfp-readiness
 
   readiness-adoption:
+    needs: build
     # Explicitly activate only after reviewing the candidate scheduling policy.
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_readiness_adoption }}
     runs-on: ubuntu-latest
@@ -321,6 +326,7 @@ jobs:
       - name: Roll out same-run candidate images with writers running
         uses: ./.github/actions/deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cluster_name: kfp-readiness
           image_path: images_${{ github.run_id }}
           image_tag: latest
@@ -356,6 +362,7 @@ jobs:
         run: kind delete cluster --name kfp-readiness
 
   custom-role-acceptance:
+    needs: build
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_custom_roles }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -372,6 +379,7 @@ jobs:
           cluster_name: kfp-custom-roles
       - uses: ./.github/actions/deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cluster_name: kfp-custom-roles
           image_path: images_${{ github.run_id }}
           image_tag: latest
@@ -390,6 +398,7 @@ jobs:
         run: kind delete cluster --name kfp-custom-roles
 
   readiness-reporting:
+    needs: build
     # Mutating fault injection is limited to an explicitly selected disposable lane.
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_readiness_reporting }}
     runs-on: ubuntu-latest
@@ -424,6 +433,7 @@ jobs:
       - name: Deploy same-run candidate images
         uses: ./.github/actions/deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cluster_name: kfp-readiness
           image_path: images_${{ github.run_id }}
           image_tag: latest

@@ -82,6 +82,7 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   end-to-end-scenario-tests:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -191,6 +192,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -274,6 +276,7 @@ jobs:
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
   end-to-end-critical-scenario-multi-user-tests:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -304,6 +307,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
@@ -377,6 +381,7 @@ jobs:
 
 
   end-to-end-critical-mlflow-tests:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -421,6 +426,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
