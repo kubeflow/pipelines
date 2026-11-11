@@ -5,7 +5,7 @@ set -xe
 kubectl create ns kubeflow || echo "namespace kubeflow already exists"
 kustomize build istio/ | kubectl apply --server-side -f -
 kubectl -n kubeflow wait --for=condition=available --timeout=600s deploy/seaweedfs
-kubectl -n kubeflow exec deployments/seaweedfs -c seaweedfs -- sh -c "echo \"s3.configure -user minio -access_key minio -secret_key minio123 -actions Read,Write,List -apply\" | /usr/bin/weed shell"
+kubectl -n kubeflow rollout status deployment/seaweedfs-credential-rotation --timeout=600s
 
 echo "Port forwarding S3 endpoint on localhost:9000"
 kubectl -n kubeflow port-forward svc/seaweedfs 9000:9000
