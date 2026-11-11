@@ -1,4 +1,5 @@
-"""One source-bound image readiness result fans out safely to workflow lanes."""
+"""One source-bound image readiness result fans out safely to workflow
+lanes."""
 
 import copy
 import json
