@@ -35,6 +35,7 @@ PROFILE = (
     ROOT /
     'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller')
 CLUSTER = 'third-party-upgrade'
+CONTROLLER_IMAGE = None
 BUCKET = 'mlpipeline'
 S3_LOCAL_PORT = 18333
 S3_PORT = 8333
@@ -69,7 +70,18 @@ def kubectl(*args, data=None):
 
 
 def rendered(path):
-    return list(yaml.safe_load_all(run('kustomize', 'build', str(path))))
+    objects = list(yaml.safe_load_all(run('kustomize', 'build', str(path))))
+    if path == SEAWEED and CONTROLLER_IMAGE:
+        for obj in objects:
+            if (obj.get('kind') != 'Deployment' or
+                    obj['metadata']['name'] != 'seaweedfs'):
+                continue
+            for container in obj['spec']['template']['spec'].get(
+                    'initContainers', []):
+                if container['name'] == 'prepare-storage-credentials':
+                    container['image'] = CONTROLLER_IMAGE
+                    container['imagePullPolicy'] = 'IfNotPresent'
+    return objects
 
 
 def apply(objects):
@@ -321,7 +333,8 @@ def upgrade_store(storage):
     wait_ready('seaweedfs')
     if any(
             obj.get('kind') == 'Deployment' and
-            obj['metadata']['name'] == 'seaweedfs-credential-rotation'
+            obj['metadata']['name'] == 'seaweedfs' and
+            obj['spec']['template']['spec'].get('initContainers')
             for obj in storage):
         wait_migration_complete()
 
@@ -337,7 +350,19 @@ def wait_migration_complete():
                 'annotations',
             {}).get('pipelines.kubeflow.org/storage-credential-phase') ==
                 'DefaultRevoked'):
-            return
+            jobs = json.loads(
+                kubectl(
+                    'get',
+                    'jobs',
+                    '-l',
+                    'app=seaweedfs-credential-rotation',
+                    '-o',
+                    'json',
+                ))['items']
+            if jobs and all(
+                    job.get('status', {}).get('succeeded', 0) == 1
+                    for job in jobs):
+                return
         time.sleep(2)
     raise AssertionError('Credential migration did not complete')
 
@@ -524,7 +549,14 @@ def verify_workload_drain(storage, old, evidence):
         time.sleep(2)
     else:
         raise AssertionError('Migration did not reach the workload drain')
-    wait_ready('seaweedfs-credential-rotation')
+    kubectl(
+        'wait',
+        'pod',
+        '-l',
+        'app=seaweedfs-credential-rotation',
+        '--for=condition=Ready',
+        '--timeout=120s',
+    )
     if (json.loads(kubectl('get', 'pod', name, '-o', 'json'))['status']['phase']
             != 'Running'):
         raise AssertionError(
@@ -617,8 +649,32 @@ def exercise_profile(admin_credentials, evidence, namespace='compat-user'):
 def verify_after_restart(admin_credentials, secret, pvc_uid, evidence):
     """Require both credentials and data to survive a restart on the same
     PVC."""
+    before_jobs = json.loads(
+        kubectl(
+            'get',
+            'jobs',
+            '-l',
+            'app=seaweedfs-credential-rotation',
+            '-o',
+            'json',
+        ))['items']
+    before_uids = {job['metadata']['uid'] for job in before_jobs}
     kubectl('rollout', 'restart', 'deployment/seaweedfs')
     wait_ready('seaweedfs')
+    after_jobs = json.loads(
+        kubectl(
+            'get',
+            'jobs',
+            '-l',
+            'app=seaweedfs-credential-rotation',
+            '-o',
+            'json',
+        ))['items']
+    if {job['metadata']['uid'] for job in after_jobs} != before_uids:
+        raise AssertionError('Storage restart recreated a completed migration')
+    if any(job.get('status', {}).get('active', 0) for job in after_jobs):
+        raise AssertionError(
+            'Migration still consumes a running worker after completion')
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
         verify_state(client(endpoint, *admin_credentials))
         user = client(
@@ -716,10 +772,14 @@ def delete_cluster():
 
 
 def main():
+    global CONTROLLER_IMAGE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--baseline', type=Path, required=True)
+    parser.add_argument('--controller-image-archive', type=Path, required=True)
+    parser.add_argument('--controller-image', required=True)
     args = parser.parse_args()
+    CONTROLLER_IMAGE = args.controller_image
     args.evidence.mkdir(parents=True, exist_ok=True)
     try:
         run(
@@ -732,6 +792,14 @@ def main():
             'kindest/node:v1.36.1',
             '--wait',
             '120s',
+        )
+        run(
+            'kind',
+            'load',
+            'image-archive',
+            '--name',
+            CLUSTER,
+            str(args.controller_image_archive),
         )
         verify_fresh_bootstrap(args.evidence)
         exercise(args.evidence, args.baseline)
@@ -750,7 +818,10 @@ def main():
                 ),
                 'credential-rotation.log': (
                     'logs',
-                    'deployment/seaweedfs-credential-rotation',
+                    '-l',
+                    'app=seaweedfs-credential-rotation',
+                    '--all-containers=true',
+                    '--prefix=true',
                 ),
                 'profile.log': (
                     'logs',

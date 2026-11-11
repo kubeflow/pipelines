@@ -4,3 +4,9 @@ namespace: kubeflow
 
 resources:
 - seaweedfs/
+
+# The binary is published in the existing API image. Release stamping replaces
+# this branch tag with the containing release, not an older image without it.
+images:
+- name: ghcr.io/kubeflow/kfp-api-server
+  newTag: release-2.18

@@ -25,6 +25,37 @@ spec:
           type: RuntimeDefault
         fsGroup: 1000
         fsGroupChangePolicy: "OnRootMismatch"
+      automountServiceAccountToken: false
+      initContainers:
+      - name: prepare-storage-credentials
+        image: ghcr.io/kubeflow/kfp-api-server:dummy
+        command: ["/bin/credential-rotation", "--mode=bootstrap"]
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        volumeMounts:
+        - name: bootstrap-api-access
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
       containers:
       - name: seaweedfs
         # Explicit required keys prevent starting against an empty bootstrap Secret.
@@ -172,6 +203,24 @@ spec:
             cpu: 64m
             memory: 256Mi
       volumes:
+      # Only the short init process receives an API token; the storage server
+      # does not receive the bootstrap Role's permission to create Jobs.
+      - name: bootstrap-api-access
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 3600
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+              - key: ca.crt
+                path: ca.crt
+          - downwardAPI:
+              items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
       - name: s3-auth
         configMap:
           name: seaweedfs-s3-auth

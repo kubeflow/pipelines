@@ -289,7 +289,12 @@ verify runner compatibility when changing it.
 ## Third-party image upgrade checks
 
 `third-party-image-upgrades.yml` reads baseline images from the PR base commit
-(or the explicit manual baseline ref) and candidate images from the tested head.
+(or the explicit manual baseline ref) and candidate images from the tested source.
+The compatibility job uses the PR merge revision and the API-server archive built
+by its reusable `image-builds.yml` job, which contains the Go credential migrator.
+It loads that archive into Kind instead of substituting a released API image that
+lacks the new binary. Go migration tests and rendered deployment contracts run
+before the fresh-install and drain compatibility checks.
 The Kind component check preserves seeded S3 objects, admin access and lifecycle
 rules on the same PVC across a SeaweedFS upgrade and restart. It issues reusable
 profile IAM credentials on the candidate and verifies them after restart. It invokes
