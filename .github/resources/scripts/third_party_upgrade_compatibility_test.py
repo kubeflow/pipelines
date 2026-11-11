@@ -205,7 +205,7 @@ class CompatibilityTest(unittest.TestCase):
                     'seed_old_store',
                     return_value=(('user', 'key'), 'pvc'),
                 ) as seed,
-                patch.object(compatibility, 'upgrade_store') as upgrade,
+                patch.object(compatibility, 'verify_workload_drain') as upgrade,
                 patch.object(compatibility, 'verify_manifest_reapply'),
                 patch.object(
                     compatibility, 'exercise_profile', return_value={}),
@@ -226,11 +226,38 @@ class CompatibilityTest(unittest.TestCase):
             compatibility.SEAWEED.relative_to(compatibility.ROOT),
         )
         self.assertEqual(seed.call_args.args[1], 'baseline:4.49')
-        upgrade.assert_called_once_with(store('candidate:4.50'))
+        upgrade.assert_called_once_with(
+            store('candidate:4.50'), ('user', 'key'), Path('evidence'))
         self.assertEqual(seed.call_args.args[0], store('baseline:4.49'))
         self.assertEqual(rejected.call_count, 2)
         result.assert_called_once_with(
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc')
+
+    def test_iam_reachability_accepts_method_not_allowed(self):
+        process = Mock()
+        process.poll.return_value = None
+        unavailable_health = urllib.error.HTTPError('http://fixture/status',
+                                                    405, 'Method Not Allowed',
+                                                    {}, None)
+        with (
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(
+                    compatibility.subprocess, 'Popen', return_value=process),
+                patch.object(
+                    compatibility.urllib.request,
+                    'urlopen',
+                    side_effect=unavailable_health),
+                patch.object(compatibility.time, 'sleep') as sleep,
+        ):
+            with compatibility.forward('seaweedfs',
+                                       compatibility.IAM_LOCAL_PORT,
+                                       compatibility.IAM_PORT,
+                                       Path(directory)) as endpoint:
+                self.assertEqual(
+                    endpoint,
+                    f'http://127.0.0.1:{compatibility.IAM_LOCAL_PORT}')
+        sleep.assert_not_called()
+        process.terminate.assert_called_once()
 
     def test_bootstrap_probe_requires_explicit_authentication_rejection(self):
         for status in (401, 403, 404, 500):
