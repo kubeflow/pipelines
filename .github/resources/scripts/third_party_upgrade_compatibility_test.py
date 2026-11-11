@@ -174,6 +174,14 @@ class CompatibilityTest(unittest.TestCase):
             patch.object(compatibility, 'exercise_profile', return_value={}),
             patch.object(compatibility, 'verify_after_restart'),
             patch.object(compatibility, 'write_result') as result,
+            patch.object(
+                compatibility,
+                'current_admin_credentials',
+                return_value=('replacement', 'new-key'),
+            ),
+            patch.object(
+                compatibility, 'verify_old_credentials_rejected'
+            ) as rejected,
         ):
             compatibility.exercise(Path('evidence'), Path('baseline'))
         self.assertEqual(
@@ -182,7 +190,9 @@ class CompatibilityTest(unittest.TestCase):
             / compatibility.SEAWEED.relative_to(compatibility.ROOT),
         )
         self.assertEqual(seed.call_args.args[1], 'baseline:4.49')
-        upgrade.assert_called_once_with('candidate:4.50')
+        upgrade.assert_called_once_with(store('candidate:4.50'))
+        self.assertEqual(seed.call_args.args[0], store('baseline:4.49'))
+        self.assertEqual(rejected.call_count, 2)
         result.assert_called_once_with(
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc'
         )

@@ -30,6 +30,9 @@ spec:
     - podSelector:
         matchLabels:
           app: kubeflow-pipelines-profile-controller
+    - podSelector:
+        matchLabels:
+          app: seaweedfs-credential-rotation
     ports:
     - port: 8111
   podSelector:
