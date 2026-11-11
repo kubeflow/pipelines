@@ -21,8 +21,8 @@ ARTIFACT_STORAGE="${3:?MLflow artifact storage required}"
 DEFAULT_MLFLOW_IMAGE="ghcr.io/mlflow/mlflow:v3.13.0-full"
 MLFLOW_IMAGE="${4:-$DEFAULT_MLFLOW_IMAGE}"
 
-AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-minio}"
-AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-minio123}"
+AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
+AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}"
 AWS_S3_BUCKET="${AWS_S3_BUCKET:-mlpipeline}"
 
 case "$MLFLOW_AUTH_TYPE" in
@@ -40,6 +40,16 @@ MANIFESTS_DIR="${C_DIR}/../mlflow-direct/manifests"
 ARTIFACTS_DESTINATION="file:///mlflow/artifacts"
 MLFLOW_S3_ENDPOINT_URL=""
 if [ "$ARTIFACT_STORAGE" = "s3" ]; then
+  # CI supplies the runtime-generated credential. Direct invocations read the
+  # same Secret instead of silently falling back to published defaults.
+  if [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    AWS_ACCESS_KEY_ID=$(kubectl -n kubeflow get secret mlpipeline-minio-artifact -o jsonpath='{.data.accesskey}' | base64 -d)
+    AWS_SECRET_ACCESS_KEY=$(kubectl -n kubeflow get secret mlpipeline-minio-artifact -o jsonpath='{.data.secretkey}' | base64 -d)
+  fi
+  if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo "ERROR: both S3 credentials are required; wait for storage credential initialization"
+    exit 1
+  fi
   ARTIFACTS_DESTINATION="s3://${AWS_S3_BUCKET}/artifacts"
   MLFLOW_S3_ENDPOINT_URL="http://seaweedfs.kubeflow.svc.cluster.local:9000"
 fi
