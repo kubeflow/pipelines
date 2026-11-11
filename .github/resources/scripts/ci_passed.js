@@ -359,6 +359,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
       }
     } catch (error) {
       // An optimization failure must not bypass the normal fail-closed checks.
+      active = false;
       core.info(`Cannot coalesce CI completion: ${error.message}`);
     }
     if (active) {

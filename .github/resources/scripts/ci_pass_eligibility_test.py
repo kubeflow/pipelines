@@ -242,7 +242,7 @@ github.paginate.iterator = async function* () {
   requestCounts.statuses++;
   if (options.statusRace && statusReads === 4) status = options.statusRace;
   if (options.retryWriter && statusReads === 6) {statusId += 1; status = options.retryWriter;}
-  if (options.statusReadFailure || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
+  if (options.statusReadFailure || statusReads === options.statusReadFailureAt || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
   yield {data: {statuses: status ? [{id: statusId, context: 'ci-passed', state: status, description, target_url: statusTarget}] : []}};
 };
 (async () => {

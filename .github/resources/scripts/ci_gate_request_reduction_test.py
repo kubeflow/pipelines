@@ -452,6 +452,25 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertGreater(result['requestCounts']['files'], 0)
         self.assertGreater(result['requestCounts']['timeline'], 0)
 
+    def test_status_lookup_failure_after_discovery_reassesses_missing_workflow(
+        self,
+    ):
+        result = self.completion(
+            initialStatus='failure',
+            missing=True,
+            registrationStartedAt='2026-09-07T11:00:00Z',
+            statusReadFailureAt=2,
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assert_never_green(result)
+        self.assertGreater(result['requestCounts']['files'], 0)
+        self.assertGreater(result['requestCounts']['timeline'], 0)
+        self.assertNotIn(['status', 'pending', 'head'], result['calls'])
+        self.assertIn(
+            'expected workflow has not registered', result['descriptions'][-1]
+        )
+
     def test_coalesced_result_rechecks_pr_binding_and_holds(self):
         for drift in ('head', 'base', 'base-sha', 'hold', 'closed'):
             with self.subTest(drift=drift):
