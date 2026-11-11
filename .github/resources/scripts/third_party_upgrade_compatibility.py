@@ -17,7 +17,7 @@ upgrade."""
 
 import argparse
 import base64
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import copy
 import hashlib
 import json
@@ -412,10 +412,11 @@ def verify_fresh_bootstrap(evidence):
                 data=b'Action=ListUsers&Version=2010-05-08',
             ))
 
-        with iam_client(endpoint, *candidate) as authorized:
+        with closing(iam_client(endpoint, *candidate)) as authorized:
             authorized.list_users()
-        with iam_client(endpoint, 'invalid-bootstrap-key',
-                        'invalid-bootstrap-secret') as invalid:
+        with closing(
+                iam_client(endpoint, 'invalid-bootstrap-key',
+                           'invalid-bootstrap-secret')) as invalid:
             try:
                 invalid.list_users()
             except ClientError as error:
@@ -562,10 +563,10 @@ def verify_workload_drain(storage, old, evidence):
         raise AssertionError(
             'Drain fixture stopped before credential verification')
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
-        with client(endpoint, *old) as s3:
+        with closing(client(endpoint, *old)) as s3:
             s3.head_bucket(Bucket=BUCKET)
     with forward('seaweedfs', IAM_LOCAL_PORT, IAM_PORT, evidence) as endpoint:
-        with iam_client(endpoint, *old) as iam:
+        with closing(iam_client(endpoint, *old)) as iam:
             iam.list_users()
     kubectl('delete', 'pod', name, '--wait=true', '--timeout=60s')
     wait_migration_complete()
