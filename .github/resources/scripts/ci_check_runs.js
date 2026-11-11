@@ -110,6 +110,23 @@ function checkIdForJob(job, run, owner, repo) {
   return Number(value);
 }
 
+// Negative-only completion coalescing. A live active run can delay a full
+// policy scan, never authorize success. Validate the entire collection before
+// using it; failed or malformed evidence falls through to ordinary assessment.
+async function hasActiveWorkflowRuns({github, owner, repo, sha}) {
+  const runs = await readPages(options => github.rest.actions.listWorkflowRunsForRepo(options),
+    'workflow_runs', {owner, repo, head_sha: sha});
+  const latest = new Map();
+  for (const run of runs) {
+    validateRun(run, sha);
+    const previous = latest.get(run.workflow_id);
+    if (!previous || laterRun(run, previous)) latest.set(run.workflow_id, run);
+  }
+  const constituents = [...latest.values()].filter(run => run.path !== OWN_WORKFLOW_PATH);
+  if (constituents.some(run => FAILED.has(run.conclusion))) return false;
+  return constituents.some(run => ACTIVE.has(run.status));
+}
+
 async function verifyCheckRuns({github, owner, repo, sha}) {
   const failures = [];
   const pending = [];
@@ -227,4 +244,4 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
   return {state: failures.length ? 'failure' : pending.length ? 'pending' : 'success', reasons};
 }
 
-module.exports = {verifyCheckRuns};
+module.exports = {hasActiveWorkflowRuns, verifyCheckRuns};

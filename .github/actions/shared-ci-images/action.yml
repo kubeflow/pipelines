@@ -13,6 +13,9 @@ inputs:
   layout:
     description: Use nested directories for deploy or flat files for ARM smoke
     default: nested
+  ready-state:
+    description: Validated state from this workflow's shared image readiness job
+    default: ''
   state:
     description: Pin one producer run and attempt across runtime and branch downloads
     default: ${{ runner.temp }}/kfp-shared-images.json
@@ -37,8 +40,13 @@ runs:
         IMAGE_ARCHITECTURE: ${{ inputs.architecture }}
         IMAGE_KIND: ${{ inputs.kind }}
         PRODUCER_STATE: ${{ inputs.state }}
+        SHARED_IMAGE_READY_STATE: ${{ inputs.ready-state }}
       run: |
-        python3 .github/resources/scripts/shared_ci_images.py resolve \
+        command=resolve
+        if [[ -n "$SHARED_IMAGE_READY_STATE" ]]; then
+          command=import-ready
+        fi
+        python3 .github/resources/scripts/shared_ci_images.py "$command" \
           --architecture "$IMAGE_ARCHITECTURE" --kind "$IMAGE_KIND" \
           --state "$PRODUCER_STATE" --output "$GITHUB_OUTPUT"
     - name: Download exact shared image artifacts

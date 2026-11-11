@@ -12,7 +12,7 @@
 'use strict';
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
-const {verifyCheckRuns} = require('./ci_check_runs');
+const {hasActiveWorkflowRuns, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
 
 function isDevelopmentBranch(ref) {
@@ -347,6 +347,27 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
   if (pr.state !== 'open' || blocked(pr)) return;
+  if (context.eventName === 'workflow_run' && context.payload.action === 'completed' &&
+      context.payload.workflow_run.conclusion === 'success') {
+    let active = false;
+    try {
+      active = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
+      // An earlier failure may concern an expected workflow that never
+      // registered. Only full policy assessment may reconsider that failure.
+      if (active && (await currentStatus(github, context, pr.head.sha))?.state === 'failure') {
+        active = false;
+      }
+    } catch (error) {
+      // An optimization failure must not bypass the normal fail-closed checks.
+      core.info(`Cannot coalesce CI completion: ${error.message}`);
+    }
+    if (active) {
+      core.setOutput('ready', 'false');
+      core.setOutput('prepared_result', JSON.stringify({state: 'pending',
+        reasons: ['CI workflows are still running; awaiting final completion.']}));
+      return;
+    }
+  }
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));

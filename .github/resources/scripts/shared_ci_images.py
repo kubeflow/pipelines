@@ -642,11 +642,7 @@ def candidate_runs(runs, consumer):
     return sorted(result, key=lambda run: run['id'], reverse=True)
 
 
-def load_state(path, consumer, architecture):
-    if not path.exists():
-        return None
-    require(not path.is_symlink(), 'Unsafe state path')
-    state = json.loads(path.read_text())
+def validate_state(state, consumer, architecture):
     require(
         isinstance(state, dict)
         and set(state)
@@ -659,6 +655,56 @@ def load_state(path, consumer, architecture):
     )
     same_source(state['identity'], consumer)
     require(isinstance(state['sets'], dict), 'Malformed state sets')
+    return state
+
+
+def load_state(path, consumer, architecture):
+    if not path.exists():
+        return None
+    require(not path.is_symlink(), 'Unsafe state path')
+    return validate_state(json.loads(path.read_text()), consumer, architecture)
+
+
+def import_ready_state(value, consumer, architecture, kind):
+    """Reuse readiness outputs safely on failed-job-only workflow retries."""
+    state = json.loads(value)
+    require(isinstance(state, dict), 'Malformed readiness state')
+    previous = state.get('consumer')
+    validate_identity(previous)
+    validate_state(state, previous, architecture)
+    expected = dict(consumer, run_attempt=previous['run_attempt'])
+    require(
+        previous == expected
+        and previous['run_attempt'] <= consumer['run_attempt'],
+        'Readiness consumer run/source mismatch',
+    )
+    require(kind in state['sets'], 'Readiness is missing the selected set')
+    require(
+        set(state['sets']) <= {'runtime', 'images'}, 'Unknown readiness set'
+    )
+    for selected, records in state['sets'].items():
+        images = IMAGES if selected == 'images' else ('runtime-base-images',)
+        require(isinstance(records, list), 'Malformed readiness records')
+        require(
+            len(records) == len(images)
+            and {
+                record.get('image')
+                for record in records
+                if isinstance(record, dict)
+            }
+            == set(images),
+            'Incomplete readiness set',
+        )
+        for record in records:
+            validate_record(
+                record, state['identity'], architecture, record['image']
+            )
+        require(
+            len({record['artifact_id'] for record in records}) == len(images),
+            'Repeated readiness artifact ID',
+        )
+    state['consumer'] = consumer
+    state['last_kind'] = kind
     return state
 
 
@@ -724,7 +770,13 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 pin(state)
         if artifacts is None:
             artifacts = api.artifacts(identity['run_id'])
-        images = IMAGES if kind == 'images' else ('runtime-base-images',)
+        images = (
+            (*IMAGES, 'runtime-base-images')
+            if kind == 'all'
+            else IMAGES
+            if kind == 'images'
+            else ('runtime-base-images',)
+        )
         records = []
         for image in images:
             artifact = named_artifact(
@@ -749,8 +801,13 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
             validate_run(api.run(identity['run_id']), identity)
         finally:
             api.polling = polling
-        state['sets'][kind] = records
-        state['last_kind'] = kind
+        if kind == 'all':
+            state['sets']['images'] = records[:-1]
+            state['sets']['runtime'] = records[-1:]
+            state['last_kind'] = 'images'
+        else:
+            state['sets'][kind] = records
+            state['last_kind'] = kind
         return state
     except NotReady as error:
         if run is not None and run.get('status') == 'completed':
@@ -951,6 +1008,21 @@ def main():
     resolver.add_argument('--output', required=True, type=Path)
     resolver.add_argument('--timeout-seconds', type=int, default=2400)
     resolver.add_argument('--poll-seconds', type=int, default=10)
+    readiness = commands.add_parser('prepare')
+    readiness.add_argument(
+        '--architecture', required=True, choices=ARCHITECTURES
+    )
+    readiness.add_argument('--state', required=True, type=Path)
+    readiness.add_argument('--output', required=True, type=Path)
+    imported = commands.add_parser('import-ready')
+    imported.add_argument(
+        '--architecture', required=True, choices=ARCHITECTURES
+    )
+    imported.add_argument(
+        '--kind', required=True, choices=('runtime', 'images')
+    )
+    imported.add_argument('--state', required=True, type=Path)
+    imported.add_argument('--output', required=True, type=Path)
     verifier = commands.add_parser('verify')
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
@@ -972,6 +1044,27 @@ def main():
                     args.directory,
                 ),
             )
+        elif args.command == 'prepare':
+            state = resolve(
+                api,
+                identity,
+                args.architecture,
+                'all' if args.architecture == 'amd64' else 'images',
+                args.state,
+            )
+            with args.output.open('a') as output:
+                output.write(
+                    'state=' + json.dumps(state, separators=(',', ':')) + '\n'
+                )
+        elif args.command == 'import-ready':
+            state = import_ready_state(
+                os.environ['SHARED_IMAGE_READY_STATE'],
+                identity,
+                args.architecture,
+                args.kind,
+            )
+            write_json(args.state, state)
+            emit_outputs(args.output, state, args.kind)
         elif args.command == 'resolve':
             state = resolve(
                 api,

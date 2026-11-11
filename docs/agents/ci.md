@@ -10,17 +10,20 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 `ci-images.yml` (`Shared CI Images`) is the application-image producer for the
 active integration workflows. It invokes `image-builds.yml` once per required
 architecture: seven AMD64 images shared by six workflows, and seven ARM64 images
-for the ARM smoke. Consumers start setup independently and use
-`.github/actions/shared-ci-images` at their existing image barrier. Runtime base
-archives remain available before the application-image barrier; their existing
-fingerprint cache is unchanged. The paused upgrade workflow remains paused.
+for the ARM smoke. Each consumer workflow calls `shared-ci-images-ready.yml`
+once before its deployment jobs. That job resolves the required runtime and
+application artifacts together and passes the exact immutable IDs and producer
+identity to every dependent lane. ARM readiness selects only ARM application
+images. Cluster setup starts after this barrier; the existing runtime fingerprint
+cache is unchanged. The paused upgrade workflow and its readiness job remain paused.
 
 The producer publishes checkout identity before builds, then immutable
 attempt-specific image archives. Each archive includes its source identity and
 file checksums in a distinct `*.provenance.json` file, prepared before upload.
-Consumers can download as soon as the seven application artifacts exist; there
-is no additional record upload, aggregate publisher job, or runtime-image job
-barrier on this path.
+The readiness job can complete once all selected artifacts exist; no aggregate
+publisher or additional record upload is required. A failed or skipped readiness
+job prevents its deployment jobs from starting. Direct users of the deploy or
+shared-image action retain discovery and bounded polling by default.
 Consumers require the same repository, event/ref, actual checkout SHA (the PR
 merge SHA, not only its head), PR head/base identity, architecture and producer
 attempt. They download exact artifact IDs, verify archive SHA-256 checksums and
@@ -38,8 +41,13 @@ bounded to 40 minutes; a completed producer missing artifacts gets a 60-second
 publication grace period. Revision-specific concurrency prevents a newer
 revision from cancelling images still needed by older consumers.
 
-Artifact readiness is polled every ten seconds, with producer status checked
-at most thirty seconds apart and again at readiness. Authenticated conditional
+Artifact readiness is polled once per consumer workflow every ten seconds,
+with producer status checked at most thirty seconds apart and again at readiness.
+Dependent lanes validate the supplied source/run identity and skip discovery and
+readiness polling. A failed-job-only consumer retry may reuse a successful
+readiness result from an earlier attempt of that same workflow run/source;
+the producer attempt is never rewritten. Per-download validation still rejects
+a changed producer attempt, failed producer or deleted artifact. Authenticated conditional
 requests reuse unchanged metadata pages without charging GitHub's primary API
 quota; pagination and rate-limit retry headers are preserved. Archive verification
 uses fresh unconditional metadata after hashing. These controls keep the handoff

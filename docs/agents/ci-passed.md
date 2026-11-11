@@ -9,9 +9,10 @@ label with the same name is informational. Tide remains the merge authority;
 human PRs still require review. Automatic Dependabot creation holds have been
 removed; merging now relies on the required `ci-passed` status and the deployed
 Tide policy. Existing PR-specific holds remain separate maintainer decisions and
-are never removed by the publisher. Required `ci-passed` protection is intended
-for the development default branch: older release branches do not publish this
-commit status. The publisher supports both `master` and `main`; external Tide
+are never removed by the publisher. Required `ci-passed` protection is configured for the development default
+branch. The default-branch `workflow_run` publisher and scheduled recovery also
+assess release PRs using their own base workflow policy; release branch
+protection retains its separately configured required contexts. The publisher supports both `master` and `main`; external Tide
 and GitHub protection must cover `main` before renaming the default branch.
 
 ## Push-triggered stale revocation
@@ -95,6 +96,17 @@ history, changed files, or other checks. Existing pending/failure statuses are
 preserved. Invalid or unreadable run identity fails closed. A completed
 triggering run falls through to full reconciliation: its delayed event may have
 replaced another run's invalidation or a PR retarget event in the writer queue.
+
+Successful completion events first inspect current workflow attempts. While another
+constituent is active, they defer the expensive workflow-policy, changed-file and
+retarget-history scan. This is a negative-only result: finalization still reads
+all current check results, with failures taking precedence over pending. Failed
+completion events, malformed evidence, the final completion and scheduled
+recovery retain full assessment. No positive evidence is cached across events;
+all pre-publication and post-publication checks remain required for success.
+The default-branch publisher applies this behavior to both development and
+release PRs. Requested/in-progress invalidation and push-triggered stale-green
+revocation are unchanged.
 
 When preparation finds expected workflows missing, running, or unsuccessful,
 it passes only that non-success assessment to finalization through trusted job

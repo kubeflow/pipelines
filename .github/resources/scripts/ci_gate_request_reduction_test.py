@@ -398,6 +398,119 @@ class CIGateRequestReductionTest(unittest.TestCase):
                 self.assert_no_evidence_reads(result)
                 self.assert_never_green(result)
 
+    def completion(self, **overrides):
+        active = {
+            'id': 43,
+            'workflow_id': 43,
+            'check_suite_id': 943,
+            'run_attempt': 1,
+            'path': '.github/workflows/backend.yml',
+            'event': 'pull_request',
+            'head_sha': 'head',
+            'status': 'in_progress',
+            'conclusion': None,
+            'created_at': '2026-09-07T11:00:00Z',
+            'run_started_at': '2026-09-07T11:01:00Z',
+        }
+        return exercise(
+            {
+                'workflowRun': True,
+                'action': 'completed',
+                'eventRun': {'conclusion': 'success'},
+                'discoveredRuns': [active],
+                **overrides,
+            }
+        )
+
+    def test_successful_completion_coalesces_while_another_run_is_active(self):
+        result = self.completion(initialStatus='success')
+        self.assertNotIn('error', result)
+        self.assertEqual(result['status'], 'pending', result)
+        self.assert_never_green(result)
+        for name in ('inventory', 'timeline', 'files', 'base', 'associated'):
+            self.assertEqual(result['requestCounts'][name], 0, (name, result))
+        self.assertEqual(result['requestCounts']['runs'], 2)
+        self.assertEqual(result['requestCounts']['checks'], 1)
+
+    def test_completion_coalescing_preserves_external_failure_precedence(self):
+        result = self.completion(pollPassed=False)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assert_never_green(result)
+        self.assertEqual(result['requestCounts']['checks'], 1)
+
+    def test_failed_workflow_completion_uses_full_assessment(self):
+        result = self.completion(
+            eventRun={'conclusion': 'failure'}, conclusion='failure'
+        )
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertGreater(result['requestCounts']['files'], 0)
+        self.assertGreater(result['requestCounts']['timeline'], 0)
+
+    def test_existing_failure_requires_full_policy_reassessment(self):
+        result = self.completion(initialStatus='failure', conclusion='failure')
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertGreater(result['requestCounts']['files'], 0)
+        self.assertGreater(result['requestCounts']['timeline'], 0)
+
+    def test_coalesced_result_rechecks_pr_binding_and_holds(self):
+        for drift in ('head', 'base', 'base-sha', 'hold', 'closed'):
+            with self.subTest(drift=drift):
+                result = self.completion(beforeFinalDrift=drift)
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
+
+    def test_completion_on_old_head_does_not_reconcile_current_head(self):
+        result = self.completion(
+            eventRun={'head_sha': 'old-head', 'conclusion': 'success'}
+        )
+        self.assertEqual(result['calls'], [], result)
+        self.assertEqual(result['requestCounts']['runs'], 0)
+
+    def test_final_completion_keeps_full_success_validation(self):
+        result = self.completion(discoveredRuns=[])
+        self.assertNotIn('error', result)
+        self.assertEqual(result['status'], 'success', result)
+        self.assertEqual(result['requestCounts']['files'], 3)
+        self.assertEqual(result['requestCounts']['timeline'], 3)
+        self.assertEqual(result['requestCounts']['checks'], 2)
+
+    def test_final_completion_rechecks_durable_retarget_history(self):
+        result = self.completion(discoveredRuns=[], retarget=True)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assert_never_green(result)
+        self.assertGreater(result['requestCounts']['timeline'], 0)
+
+    def test_recovery_bypasses_completion_coalescing(self):
+        result = self.completion(schedule=True)
+        self.assertEqual(result['status'], 'pending', result)
+        self.assertGreater(result['requestCounts']['files'], 0)
+        self.assertGreater(result['requestCounts']['timeline'], 0)
+
+    def test_malformed_completion_inventory_cannot_authorize_success(self):
+        for overrides in (
+            {'discoveredRuns': [{'id': 43}]},
+            {'discoveredRunsFailure': True},
+        ):
+            with self.subTest(overrides=overrides):
+                result = self.completion(**overrides)
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
+                self.assertGreater(result['requestCounts']['files'], 0)
+
+    def test_default_branch_publisher_handles_release_completions(self):
+        base = {
+            'sha': 'b' * 40,
+            'ref': 'release-2.18',
+            'repo': {'full_name': 'kubeflow/pipelines'},
+        }
+        active = self.completion(pr={'base': base})
+        self.assertEqual(active['status'], 'pending', active)
+        self.assertEqual(active['requestCounts']['files'], 0)
+        complete = self.completion(pr={'base': base}, discoveredRuns=[])
+        self.assertEqual(complete['status'], 'success', complete)
+        self.assertEqual(complete['requestCounts']['files'], 3)
+        self.assertEqual(complete['requestCounts']['checks'], 2)
+
     def test_success_keeps_all_pre_and_post_publication_checks(self):
         result = exercise()
         self.assertNotIn('error', result)

@@ -24,6 +24,7 @@ on:
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
       - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/setup-python/**'
@@ -80,7 +81,14 @@ permissions:
   contents: read
 
 jobs:
+  image-artifacts-ready:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+
   end-to-end-scenario-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -203,6 +211,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           proxy: ${{ matrix.proxy }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -286,6 +295,7 @@ jobs:
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
   dag-scale-test:
+    needs: image-artifacts-ready
     name: DAG Scale Test - 120 nodes
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -307,6 +317,7 @@ jobs:
       - name: Deploy KFP
         uses: ./.github/actions/deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: "false"
           argo_version: "v4.1.6"
           image_path: images_${{ github.run_id }}
@@ -325,6 +336,7 @@ jobs:
           report_name: DAGScale120Nodes
 
   end-to-end-critical-scenario-multi-user-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -364,6 +376,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
@@ -439,6 +452,7 @@ jobs:
 
 
   end-to-end-critical-mlflow-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -497,6 +511,7 @@ jobs:
         if: ${{ steps.create-cluster.outcome == 'success' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}

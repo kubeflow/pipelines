@@ -77,7 +77,9 @@ const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => {
   requestCounts.runs++;
-  return {data: {total_count: 0, workflow_runs: []}};
+  const records = options.discoveredRuns || [];
+  if (options.discoveredRunsFailure) throw Error('Workflow runs unavailable');
+  return {data: {total_count: records.length, workflow_runs: records}};
 };
 methods.associated = {};
 const statusHistory = options.statusHistory || [];

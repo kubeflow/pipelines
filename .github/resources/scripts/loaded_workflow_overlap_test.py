@@ -54,7 +54,7 @@ def _job_block(workflow: str, job_name: str) -> str:
 
 
 class LoadedWorkflowOverlapTest(unittest.TestCase):
-    def test_all_deploy_callers_overlap_cluster_setup_with_image_builds(self):
+    def test_all_deploy_callers_wait_for_shared_image_readiness(self):
         deploy_callers = set()
         for workflow_path in (ROOT / '.github/workflows').glob('*.y*ml'):
             workflow = workflow_path.read_text(encoding='utf-8')
@@ -71,7 +71,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     job = _job_block(workflow, job_name)
                     self.assertNotIn('needs: build', job)
                     parsed = yaml.safe_load(job)[job_name]
-                    self.assertNotIn('needs', parsed)
+                    self.assertEqual(parsed['needs'], 'image-artifacts-ready')
                     steps = parsed['steps']
                     cluster = next(
                         i
@@ -96,7 +96,7 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                     self.assertIn('image_tag: latest', job)
                     self.assertIn('image_registry: kind-registry:5000', job)
 
-    def test_runtime_import_overlaps_branch_builds_without_skipping_images(
+    def test_runtime_cache_and_import_preserve_required_images(
         self,
     ):
         deploy_action = yaml.safe_load(
