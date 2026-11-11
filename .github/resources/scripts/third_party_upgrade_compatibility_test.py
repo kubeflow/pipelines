@@ -19,9 +19,9 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-import urllib.error
 from unittest.mock import Mock
 from unittest.mock import patch
+import urllib.error
 
 import third_party_upgrade_compatibility as compatibility
 

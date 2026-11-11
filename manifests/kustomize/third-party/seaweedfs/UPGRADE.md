@@ -21,7 +21,7 @@ Deployment performs the migration automatically:
    existing workflow references. Roll the API server, UI and profile controller
    if they consume that Secret. Wait for their old pods to terminate.
 4. Test the publicly shipped credential. Revoke it only if that exact credential
-   still works, then verify rejection. An operator's customized credential with
+   still works, then verify rejection by both S3 and IAM. An operator's customized credential with
    the same access-key identifier is not deleted merely because of its name.
 
 The migration preserves the PVC, objects, tenant credentials and tenant IAM
