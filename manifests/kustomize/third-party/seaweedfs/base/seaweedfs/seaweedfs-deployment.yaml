@@ -27,14 +27,26 @@ spec:
         fsGroupChangePolicy: "OnRootMismatch"
       containers:
       - name: seaweedfs
-        envFrom:
-        - secretRef:
-            name: mlpipeline-minio-artifact
+        # Explicit required keys prevent starting against an empty bootstrap Secret.
+        env:
+        - name: accesskey
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: accesskey
+        - name: secretkey
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: secretkey
         image: "ghcr.io/chrislusf/seaweedfs:4.51@sha256:f7a49e3f3972ebed5be2ed4befa4a0c68eb7bdddba6e692d42729ceb545134b8"
         args:
         - "server"
         - "-dir=/data"
         - "-s3"
+        # An explicit empty static configuration enables authentication before
+        # postStart registers the dynamic identity, without masking tenant IAM.
+        - "-s3.config=/etc/seaweedfs-auth/s3-auth.json"
         - "-iam"
         - "-filer"
         - "-master.volumePreallocate=false"
@@ -72,7 +84,7 @@ spec:
 
                 # Configure admin user with retries (25s max)
                 for i in $(seq 1 5); do
-                  if echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell 2>&1; then
+                  if echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell >/dev/null 2>&1; then
                     break
                   fi
                   if [ "$i" -eq 5 ]; then
@@ -138,6 +150,9 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
+        - mountPath: /etc/seaweedfs-auth
+          name: s3-auth
+          readOnly: true
         - mountPath: /data
           name: data
         resources:
@@ -145,6 +160,9 @@ spec:
             cpu: 64m
             memory: 256Mi
       volumes:
+      - name: s3-auth
+        configMap:
+          name: seaweedfs-s3-auth
       - name: data
         persistentVolumeClaim:
           claimName: seaweedfs-pvc

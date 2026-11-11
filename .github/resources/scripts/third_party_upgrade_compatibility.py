@@ -226,11 +226,17 @@ def seed_old_store(storage, baseline_image, evidence):
         obj for obj in storage if obj.get('kind') == 'Secret' and
         obj.get('metadata', {}).get('name') == 'mlpipeline-minio-artifact'
     ]
-    if len(credentials) != 1:
-        raise ValueError(
-            'Expected exactly one rendered mlpipeline-minio-artifact Secret')
-    admin_credentials = secret_credentials(credentials[0])
-    deployment = next(obj for obj in storage if obj['kind'] == 'Deployment')
+    if len(credentials) > 1:
+        raise ValueError('Ambiguous legacy credential Secret')
+    admin_credentials = (
+        secret_credentials(credentials[0]) if credentials else None
+    )
+    deployment = next(
+        obj
+        for obj in storage
+        if obj['kind'] == 'Deployment'
+        and obj.get('metadata', {}).get('name', 'seaweedfs') == 'seaweedfs'
+    )
     deployment['spec']['template']['spec']['containers'][0]['image'] = (
         baseline_image)
     apply([
@@ -255,6 +261,9 @@ def seed_old_store(storage, baseline_image, evidence):
     ])
     apply(storage)
     wait_ready('seaweedfs')
+    if admin_credentials is None:
+        wait_ready('seaweedfs-credential-rotation')
+        admin_credentials = current_admin_credentials()
     (evidence / 'before-upgrade-pods.json').write_text(
         kubectl('get', 'pods', '-o', 'json'))
     pvc_uid = json.loads(kubectl('get', 'pvc', 'seaweedfs-pvc', '-o',
@@ -281,10 +290,43 @@ def seed_old_store(storage, baseline_image, evidence):
     return admin_credentials, pvc_uid
 
 
-def upgrade_store(target):
-    """Upgrade the deployed store while retaining its PVC."""
-    kubectl('set', 'image', 'deployment/seaweedfs', f'seaweedfs={target}')
+def current_admin_credentials():
+    return secret_credentials(
+        json.loads(
+            kubectl('get', 'secret', 'mlpipeline-minio-artifact', '-o', 'json')
+        )
+    )
+
+
+def upgrade_store(storage):
+    """Apply the actual candidate manifests, including credential migration."""
+    apply(storage)
     wait_ready('seaweedfs')
+    if any(
+        obj.get('kind') == 'Deployment'
+        and obj['metadata']['name'] == 'seaweedfs-credential-rotation'
+        for obj in storage
+    ):
+        wait_ready('seaweedfs-credential-rotation')
+
+
+def verify_old_credentials_rejected(old, current, evidence):
+    from botocore.exceptions import ClientError
+
+    if old == current:
+        return  # Operator-provided credentials are preserved.
+    with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
+        try:
+            client(endpoint, *old).head_bucket(Bucket=BUCKET)
+        except ClientError as error:
+            if error.response.get('ResponseMetadata', {}).get(
+                'HTTPStatusCode'
+            ) in (401, 403):
+                return
+            raise
+    raise AssertionError(
+        'Pre-upgrade default admin credential is still accepted'
+    )
 
 
 def exercise_profile(admin_credentials, evidence):
@@ -368,6 +410,8 @@ def write_result(evidence, baseline_image, target, pvc_uid):
                     'restart-read',
                     'restart-credentials',
                     'same-pvc',
+                    'pre-upgrade-tenant-key-preserved',
+                    'default-credential-rejected-after-restart',
                 ],
             },
             indent=2,
@@ -394,12 +438,18 @@ def exercise(evidence, baseline):
     """Validate a base-ref to candidate store upgrade and profile contract."""
     storage = rendered(SEAWEED)
     target = storage_image(storage)
-    baseline_image = storage_image(
-        rendered(baseline / SEAWEED.relative_to(ROOT)))
-    credentials, pvc_uid = seed_old_store(storage, baseline_image, evidence)
-    upgrade_store(target)
-    secret = exercise_profile(credentials, evidence)
+    baseline_storage = rendered(baseline / SEAWEED.relative_to(ROOT))
+    baseline_image = storage_image(baseline_storage)
+    old_credentials, pvc_uid = seed_old_store(
+        baseline_storage, baseline_image, evidence
+    )
+    # Establish a tenant key and objects BEFORE rotation to prove preservation.
+    secret = exercise_profile(old_credentials, evidence)
+    upgrade_store(storage)
+    credentials = current_admin_credentials()
+    verify_old_credentials_rejected(old_credentials, credentials, evidence)
     verify_after_restart(credentials, secret, pvc_uid, evidence)
+    verify_old_credentials_rejected(old_credentials, credentials, evidence)
     write_result(evidence, baseline_image, target, pvc_uid)
 
 
