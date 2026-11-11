@@ -20,7 +20,11 @@ Deployment performs the migration automatically:
 3. Update the legacy `mlpipeline-minio-artifact` Secret, preserving its name for
    existing workflow references. Roll the API server, UI and profile controller
    if they consume that Secret. Wait for their old pods to terminate.
-4. Test the publicly shipped credential. Revoke it only if that exact credential
+4. If the published credential remains accepted, wait automatically for active
+   pipeline pods and other pods referencing the shared legacy Secret in the
+   installation namespace to finish. Rolled managed services do not block.
+   New affected pods extend this conservative drain; there is no forced timeout.
+5. Test the publicly shipped credential. Revoke it only if that exact credential
    still works, then verify rejection by both S3 and IAM. An operator's customized credential with
    the same access-key identifier is not deleted merely because of its name.
 
@@ -39,7 +43,13 @@ kubectl -n kubeflow rollout status deployment/seaweedfs-credential-rotation
 ```
 
 `ReplacementPrepared` means the replacement is durable; logs identify storage
-or consumer rollout waits. `DefaultRevoked` means the managed rollout completed
+or consumer rollout waits. `DrainingWorkloads` means the old credential is still
+accepted while workloads finish. The Secret annotations
+`pipelines.kubeflow.org/storage-credential-drain-count` and
+`pipelines.kubeflow.org/storage-credential-drain-sample` show the blocking count
+and up to five pod names. A busy namespace can delay revocation indefinitely;
+operators can pause submissions to let it become idle. Suspending a schedule
+with no active pods does not itself block the drain. `DefaultRevoked` means the managed rollout completed
 and the shipped credential was rejected at the last successful reconciliation.
 A subsequent storage/API failure makes the reconciler unready, even if the
 annotation records an earlier successful reconciliation. Repair the reported
@@ -86,10 +96,12 @@ key during such an upload can fail the task. A component still computing may
 instead load the new key when its Argo upload starts.
 
 A newer launcher image cannot change binaries already running during upgrade.
-Do not claim uninterrupted active standalone uploads: they require a deliberate
-cutover policy (drain existing clients or accept retry/resubmission), or a
-separate migration mechanism. Keeping the published credential valid during a
-grace period also keeps the vulnerability exploitable during that period.
+The automatic drain prevents revocation while potentially affected pods remain;
+it does not prevent the earlier storage restarts from interrupting requests.
+The known credential remains exploitable until the drain completes. There is
+no automatic deadline that trades workload safety for immediate revocation.
+Clients outside the installation namespace or without a pipeline run label or
+visible Secret reference require explicit coordination.
 
 Before releasing this change, validate actual SeaweedFS 4.50/master and
 4.51/release-2.18 persistence, interruption at each migration phase, repeated
@@ -100,8 +112,9 @@ and checks old-key rejection before and after a storage restart. It also probes
 fresh S3/IAM authentication before dynamic registration, completes a fresh
 installation, and checks that client-side and server-side manifest apply retain
 runtime Secret data and identity. This does not validate GitOps prune, replace,
-or application-specific field ownership, and it does not replace the
-active-upload validation gate.
+or application-specific field ownership. A held synthetic pipeline pod verifies
+that both listeners accept the old key during draining and migration completes
+after the pod terminates; it is not a full Argo/launcher upload endurance test.
 
 Do not roll back by restoring the published default credential. Preserve the
 new Secrets and use them with any rollback manifests; old startup manifests

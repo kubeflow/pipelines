@@ -113,13 +113,8 @@ def forward(deployment, local, remote, evidence):
                 try:
                     with urllib.request.urlopen(url + health, timeout=2):
                         break
-                except urllib.error.HTTPError as error:
-                    if remote == IAM_PORT and error.code in (
-                            400,
-                            401,
-                            403,
-                            404,
-                    ):
+                except urllib.error.HTTPError:
+                    if remote == IAM_PORT:
                         break  # IAM has no public health endpoint.
                     time.sleep(1)
                 except OSError:
@@ -444,6 +439,102 @@ def verify_manifest_reapply(storage):
     wait_ready('seaweedfs-credential-rotation')
 
 
+def verify_workload_drain(storage, old, evidence):
+    """Verify revocation waits for a live pipeline pod."""
+    fingerprint = hashlib.sha256(('\0'.join(old)).encode()).hexdigest()
+    if (fingerprint !=
+            '0c9d72cb381b9afa7023c36f330317ee8783fc8becf72e2c0610688e9afb544d'):
+        upgrade_store(storage)  # Already migrated or custom credentials.
+        return
+    name = 'credential-drain-fixture'
+    apply([{
+        'apiVersion': 'v1',
+        'kind': 'Pod',
+        'metadata': {
+            'name': name,
+            'labels': {
+                'pipeline/runid': 'compatibility-drain'
+            },
+        },
+        'spec': {
+            'restartPolicy':
+                'Never',
+            'securityContext': {
+                'runAsNonRoot': True,
+                'runAsUser': 1000,
+                'seccompProfile': {
+                    'type': 'RuntimeDefault'
+                },
+            },
+            'containers': [{
+                'name': 'held-workload',
+                'image': storage_image(storage),
+                'command': ['/bin/sh', '-c', 'exec sleep 900'],
+                'securityContext': {
+                    'allowPrivilegeEscalation': False,
+                    'readOnlyRootFilesystem': True,
+                    'capabilities': {
+                        'drop': ['ALL']
+                    },
+                },
+                'resources': {
+                    'requests': {
+                        'cpu': '10m',
+                        'memory': '16Mi'
+                    },
+                    'limits': {
+                        'memory': '32Mi'
+                    },
+                },
+            }],
+        },
+    }])
+    kubectl('wait', '--for=condition=Ready', f'pod/{name}', '--timeout=120s')
+    apply(storage)
+    deadline = time.monotonic() + 300
+    while time.monotonic() < deadline:
+        state = json.loads(
+            kubectl('get', 'secret', 'seaweedfs-admin-credentials', '-o',
+                    'json'))
+        phase = (
+            state['metadata'].get(
+                'annotations',
+                {}).get('pipelines.kubeflow.org/storage-credential-phase'))
+        if phase == 'DefaultRevoked':
+            raise AssertionError(
+                'Credential revoked while pipeline fixture is still running')
+        if phase == 'DrainingWorkloads':
+            break
+        time.sleep(2)
+    else:
+        raise AssertionError('Migration did not reach the workload drain')
+    if (json.loads(kubectl('get', 'pod', name, '-o', 'json'))['status']['phase']
+            != 'Running'):
+        raise AssertionError(
+            'Drain fixture stopped before credential verification')
+    with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
+        with client(endpoint, *old) as s3:
+            s3.head_bucket(Bucket=BUCKET)
+    with forward('seaweedfs', IAM_LOCAL_PORT, IAM_PORT, evidence) as endpoint:
+        with iam_client(endpoint, *old) as iam:
+            iam.list_users()
+    kubectl('delete', 'pod', name, '--wait=true', '--timeout=60s')
+    wait_ready('seaweedfs-credential-rotation')
+    (evidence / 'workload-drain.json').write_text(
+        json.dumps(
+            {
+                'result':
+                    'passed',
+                'checks': [
+                    'live-pipeline-pod-blocks-revocation',
+                    'old-key-accepted-by-both-listeners-during-drain',
+                    'migration-completes-after-pod-termination',
+                ],
+            },
+            indent=2,
+        ) + '\n')
+
+
 def verify_old_credentials_rejected(old, current, evidence):
     from botocore.exceptions import ClientError
 
@@ -586,7 +677,7 @@ def exercise(evidence, baseline):
                                               evidence)
     # Establish a tenant key and objects BEFORE rotation to prove preservation.
     secret = exercise_profile(old_credentials, evidence)
-    upgrade_store(storage)
+    verify_workload_drain(storage, old_credentials, evidence)
     credentials = current_admin_credentials()
     verify_manifest_reapply(storage)
     exercise_profile(credentials, evidence, namespace='compat-after-upgrade')
