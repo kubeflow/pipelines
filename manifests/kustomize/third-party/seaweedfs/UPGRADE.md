@@ -10,7 +10,9 @@ Deployment performs the migration automatically:
 
 1. Preserve an existing nondefault `mlpipeline-minio-artifact` credential, or
    generate a replacement in `seaweedfs-admin-credentials`.
-2. Wait for the updated SeaweedFS pod to register the replacement. The pod
+2. Wait for the updated SeaweedFS pod to register the replacement, then restart
+   it once automatically so the separate IAM listener reloads its credential
+   cache. Consumer credentials are switched only after that restart. The pod
    requires both generated Secret keys before startup. An explicit empty S3
    configuration enables authentication during initial registration while
    retaining dynamically managed tenant identities.
@@ -60,7 +62,7 @@ or unsupported credential characters stop migration rather than silently
 overwriting an operator's configuration. Custom deployment names and consumers
 outside the three managed deployments require explicit rollout coordination.
 
-The reconciler can get/patch only the two named Secrets and three managed
+The reconciler can get/patch only the two named Secrets, the storage Deployment and three managed
 consumer Deployments. Kubernetes cannot scope Secret creation by name, so its
 namespace Role also permits Secret creation for first-install bootstrap. It
 has no cluster role or pod-exec permission. The storage NetworkPolicy adds only
@@ -69,7 +71,9 @@ master interfaces to tenants. NetworkPolicy enforcement remains required.
 
 ### Compatibility and release validation
 
-Managed services roll during migration; zero downtime is not guaranteed.
+Storage restarts once to register the new configuration and once more to reload
+the separate IAM authentication cache. Managed services then roll during
+migration; zero downtime is not guaranteed.
 Multi-user workloads retain their per-namespace credentials. Standalone and
 custom clients using the shared administrator credential can cache the old key.
 The 2.18 launcher rereads credentials when retrying output uploads, but an Argo
