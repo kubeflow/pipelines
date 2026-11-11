@@ -238,11 +238,18 @@ class CIGateRequestReductionTest(unittest.TestCase):
                 prepared = json.loads(result['outputs']['prepared_result'])
                 self.assertEqual(prepared['state'], expected)
                 self.assertTrue(prepared['reasons'])
-                for name in ('files', 'timeline', 'checks'):
+                for name in ('files', 'timeline'):
                     self.assertEqual(
                         result['requestCounts'][name], 1, (name, result)
                     )
-                self.assertEqual(result['requestCounts']['runs'], 2)
+                self.assertEqual(
+                    result['requestCounts']['checks'],
+                    int(expected == 'pending'),
+                )
+                self.assertEqual(
+                    result['requestCounts']['runs'],
+                    2 if expected == 'pending' else 1,
+                )
                 self.assert_never_green(result)
 
     def test_missing_workflow_still_obeys_registration_deadline(self):
@@ -256,8 +263,8 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertIn('after 15 minutes', result['descriptions'][-1])
         self.assertEqual(result['requestCounts']['timeline'], 1)
         self.assertEqual(result['requestCounts']['files'], 2)
-        self.assertEqual(result['requestCounts']['runs'], 3)
-        self.assertEqual(result['requestCounts']['checks'], 1)
+        self.assertEqual(result['requestCounts']['runs'], 2)
+        self.assertEqual(result['requestCounts']['checks'], 0)
 
     def test_external_failure_keeps_precedence_over_cached_pending_result(self):
         result = exercise({'runStatus': 'in_progress', 'pollPassed': False})
@@ -277,7 +284,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertEqual(result['status'], 'failure', result)
         self.assertIn('completed/failure', result['descriptions'][-1])
         self.assertEqual(result['requestCounts']['files'], 1)
-        self.assertEqual(result['requestCounts']['checks'], 1)
+        self.assertEqual(result['requestCounts']['checks'], 0)
 
     def test_external_read_failure_cannot_promote_cached_pending_result(self):
         result = exercise(
@@ -529,6 +536,163 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertEqual(complete['status'], 'success', complete)
         self.assertEqual(complete['requestCounts']['files'], 3)
         self.assertEqual(complete['requestCounts']['checks'], 2)
+
+    @staticmethod
+    def failed_workflow(**overrides):
+        return {
+            'id': 43,
+            'workflow_id': 43,
+            'check_suite_id': 943,
+            'run_attempt': 1,
+            'path': '.github/workflows/backend.yml',
+            'event': 'pull_request',
+            'head_sha': 'head',
+            'status': 'completed',
+            'conclusion': 'failure',
+            'created_at': '2026-09-07T11:00:00Z',
+            'run_started_at': '2026-09-07T11:01:00Z',
+            **overrides,
+        }
+
+    def test_scheduled_failed_workflow_avoids_policy_and_check_scans(self):
+        result = exercise(
+            {
+                'schedule': True,
+                'initialStatus': 'failure',
+                'discoveredRuns': [self.failed_workflow()],
+            }
+        )
+        self.assertEqual(result['status'], 'failure', result)
+        self.assert_never_green(result)
+        for name in (
+            'inventory',
+            'timeline',
+            'files',
+            'checks',
+            'base',
+            'associated',
+            'history',
+        ):
+            self.assertEqual(result['requestCounts'][name], 0, (name, result))
+        self.assertEqual(result['requestCounts']['runs'], 1)
+        self.assertEqual(result['requestCounts']['pr'], 2)
+
+    def test_scheduled_required_failure_has_bounded_request_cost(self):
+        result = exercise(
+            {
+                'schedule': True,
+                'initialStatus': 'failure',
+                'conclusion': 'failure',
+                'discoveredRuns': [self.failed_workflow()],
+            }
+        )
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertEqual(sum(result['requestCounts'].values()), 5)
+        self.assertEqual(result['calls'], [['status', 'failure', 'head']])
+
+    def test_prepared_failure_does_not_rescan_checks(self):
+        result = exercise({'conclusion': 'failure', 'checkApiFailure': True})
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertEqual(result['requestCounts']['checks'], 0)
+        self.assert_never_green(result)
+
+    def test_scheduled_superseded_failure_does_not_block_success(self):
+        failed = self.failed_workflow()
+        passed = self.failed_workflow(
+            id=44,
+            check_suite_id=944,
+            conclusion='success',
+            created_at='2026-09-07T12:00:00Z',
+            run_started_at='2026-09-07T12:01:00Z',
+        )
+        result = exercise(
+            {'schedule': True, 'discoveredRuns': [failed, passed]}
+        )
+        self.assertEqual(result['status'], 'success', result)
+        self.assertEqual(result['requestCounts']['files'], 3)
+        self.assertEqual(result['requestCounts']['checks'], 2)
+
+    def test_scheduled_malformed_probe_falls_back_to_full_assessment(self):
+        for values in (
+            {'discoveredRuns': [{'id': 43}]},
+            {'discoveredRunsFailure': True},
+            {'discoveredRuns': [self.failed_workflow()], 'discoveredTotal': 2},
+            {
+                'discoveredRuns': [
+                    self.failed_workflow(),
+                    self.failed_workflow(id=44),
+                ]
+            },
+        ):
+            with self.subTest(values=values):
+                result = exercise({'schedule': True, **values})
+                self.assertEqual(result['status'], 'failure', result)
+                self.assertGreater(result['requestCounts']['files'], 0)
+                self.assert_never_green(result)
+
+    def test_scheduled_failure_recovers_on_next_sweep(self):
+        result = exercise(
+            {
+                'schedule': True,
+                'initialStatus': 'failure',
+                'cycles': 2,
+                'discoveredRunsByCycle': [[self.failed_workflow()], []],
+            }
+        )
+        self.assertEqual(result['status'], 'success', result)
+        self.assertEqual(result['requestCounts']['files'], 3)
+        self.assertEqual(result['requestCounts']['checks'], 2)
+
+    def test_scheduled_own_workflow_failure_cannot_block_success(self):
+        result = exercise(
+            {
+                'schedule': True,
+                'discoveredRuns': [
+                    self.failed_workflow(path='.github/workflows/ci-checks.yml')
+                ],
+            }
+        )
+        self.assertEqual(result['status'], 'success', result)
+        self.assertEqual(result['requestCounts']['files'], 3)
+        self.assertEqual(result['requestCounts']['checks'], 2)
+
+    def test_scheduled_rerun_uses_latest_attempt_start_time(self):
+        failed = self.failed_workflow(
+            id=42, run_attempt=2, run_started_at='2026-09-07T12:03:00Z'
+        )
+        passed = self.failed_workflow(
+            id=44,
+            check_suite_id=944,
+            conclusion='success',
+            created_at='2026-09-07T12:00:00Z',
+            run_started_at='2026-09-07T12:01:00Z',
+        )
+        result = exercise(
+            {'schedule': True, 'discoveredRuns': [failed, passed]}
+        )
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertEqual(result['requestCounts']['files'], 0)
+        self.assertEqual(result['requestCounts']['checks'], 0)
+        self.assertIn('attempt 2', result['descriptions'][-1])
+
+    def test_scheduled_external_failure_still_gets_full_assessment(self):
+        result = exercise({'schedule': True, 'pollPassed': False})
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertGreater(result['requestCounts']['files'], 0)
+        self.assertGreater(result['requestCounts']['checks'], 0)
+
+    def test_scheduled_failure_rechecks_binding_before_publication(self):
+        for drift in ('head', 'base', 'base-sha', 'hold', 'closed'):
+            with self.subTest(drift=drift):
+                result = exercise(
+                    {
+                        'schedule': True,
+                        'discoveredRuns': [self.failed_workflow()],
+                        'beforeFinalDrift': drift,
+                    }
+                )
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
 
     def test_success_keeps_all_pre_and_post_publication_checks(self):
         result = exercise()

@@ -33,6 +33,13 @@ the informational label. Revocation concurrency is scoped by `github.ref`:
 a push to one development branch must not replace the other branch's pending
 run. `cancel-in-progress: false` preserves running jobs but does not prevent
 replacement of a pending job within the same group.
+Discovery batches current-head statuses and selects only stale successes for
+individual verification. Before revoking any candidate, it rereads that head's
+status and the live branch tip; a fresh success or a newer branch tip prevents
+the write. Non-green heads require no per-PR status or branch-tip reads.
+The discovery snapshot never authorizes success. As before, a concurrent
+publisher must validate its base before and after publishing green, and scheduled
+recovery catches missed revocations.
 
 ## Contract and enforcement
 
@@ -101,8 +108,9 @@ Successful completion events first inspect current workflow attempts. While anot
 constituent is active, they defer the expensive workflow-policy, changed-file and
 retarget-history scan. This is a negative-only result: finalization still reads
 all current check results, with failures taking precedence over pending. Failed
-completion events, malformed evidence, the final completion and scheduled
-recovery retain full assessment. No positive evidence is cached across events;
+completion events, malformed evidence and the final completion retain full
+workflow-policy assessment. Scheduled recovery uses the failure-only probe
+described below. No positive evidence is cached across events;
 all pre-publication and post-publication checks remain required for success.
 The default-branch publisher applies this behavior to both development and
 release PRs. Requested/in-progress invalidation and push-triggered stale-green
@@ -110,7 +118,8 @@ revocation are unchanged.
 
 When preparation finds expected workflows missing, running, or unsuccessful,
 it passes only that non-success assessment to finalization through trusted job
-outputs. Finalization rereads the PR/head snapshot and checks external results,
+outputs. Finalization rereads the PR/head snapshot. Pending results also check
+external results; a prepared failure already blocks success and skips that scan,
 but does not repeat the workflow assessment. If workflows recover between
 steps, the next completion event or recovery sweep can publish success. This
 may delay green; a prepared result can never authorize it. Successful decisions
@@ -186,9 +195,18 @@ invalidation and do not allocate recovery runners.
 Each job holds the same SHA-scoped writer lock as event-driven reconciliation
 only while checking and publishing; no sleep or long poll holds that lock.
 A late external check such as DCO can therefore recover after the final
-constituent workflow event. Every sweep rechecks the explicit hold, head, retarget
-history, expected workflows, and discovered checks. Stale sweep entries do not
-write to newer heads; existing holds are never removed by the publisher.
+constituent workflow event. Every sweep rechecks the explicit hold and head.
+A validated failure in the latest non-publisher workflow run can establish a
+negative result without loading expected-workflow policy or scanning job checks.
+The probe validates the full run collection and selects the latest execution per
+workflow; malformed, incomplete or unavailable probe evidence falls back to the
+ordinary assessment. Pending or successful runs alone cannot take this shortcut:
+retarget history, missing expected workflows and all checks remain part of full
+assessment before success. A prepared failure also skips the redundant final
+check scan after the PR binding is reread, because it cannot authorize green.
+Once the failed workflow recovers, the next event or 15-minute sweep performs
+full assessment. Stale sweep entries do not write to newer heads; existing holds
+are never removed by the publisher.
 Preliminary invalidation preserves existing non-success on every event. The final
 assessment can replace an old failure with pending when a rerun starts. Status
 writes are deduplicated by state and the published 140-character explanation to

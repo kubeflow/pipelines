@@ -110,21 +110,44 @@ function checkIdForJob(job, run, owner, repo) {
   return Number(value);
 }
 
-// Negative-only completion coalescing. A live active run can delay a full
-// policy scan, never authorize success. Validate the entire collection before
-// using it; failed or malformed evidence falls through to ordinary assessment.
-async function hasActiveWorkflowRuns({github, owner, repo, sha}) {
+function selectLatestWorkflowRuns(runs, sha) {
+  const bySuite = new Map();
+  const latestRuns = new Map();
+  const failures = [];
+  for (const run of runs) {
+    try {
+      validateRun(run, sha);
+      if (bySuite.has(run.check_suite_id)) throw new Error(`Workflow run ${run.id}: duplicate suite identity`);
+      bySuite.set(run.check_suite_id, run);
+      const previous = latestRuns.get(run.workflow_id);
+      if (!previous || laterRun(run, previous)) latestRuns.set(run.workflow_id, run);
+    } catch (error) {
+      failures.push(error.message);
+    }
+  }
+  return {bySuite, latestRuns, failures};
+}
+
+async function currentWorkflowRuns({github, owner, repo, sha}) {
   const runs = await readPages(options => github.rest.actions.listWorkflowRunsForRepo(options),
     'workflow_runs', {owner, repo, head_sha: sha});
-  const latest = new Map();
-  for (const run of runs) {
-    validateRun(run, sha);
-    const previous = latest.get(run.workflow_id);
-    if (!previous || laterRun(run, previous)) latest.set(run.workflow_id, run);
-  }
-  const constituents = [...latest.values()].filter(run => run.path !== OWN_WORKFLOW_PATH);
-  if (constituents.some(run => FAILED.has(run.conclusion))) return false;
-  return constituents.some(run => ACTIVE.has(run.status));
+  const {latestRuns, failures} = selectLatestWorkflowRuns(runs, sha);
+  if (failures.length) throw new Error(failures.join('; '));
+  return [...latestRuns.values()].filter(run => run.path !== OWN_WORKFLOW_PATH);
+}
+
+// These probes can establish only non-success. Both use the same validated
+// attempt ordering as full check verification; malformed data must fall back.
+async function hasActiveWorkflowRuns(options) {
+  const runs = await currentWorkflowRuns(options);
+  if (runs.some(run => FAILED.has(run.conclusion))) return false;
+  return runs.some(run => ACTIVE.has(run.status));
+}
+
+async function workflowFailures(options) {
+  const runs = await currentWorkflowRuns(options);
+  return runs.filter(run => FAILED.has(run.conclusion)).map(run =>
+    `Workflow run ${run.id}, attempt ${run.run_attempt}: ${run.conclusion}`);
 }
 
 async function verifyCheckRuns({github, owner, repo, sha}) {
@@ -151,19 +174,9 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
     else runs = result.value;
   }
 
-  const bySuite = new Map();
-  const latestRuns = new Map();
-  for (const run of runs) {
-    try {
-      validateRun(run, sha);
-      if (bySuite.has(run.check_suite_id)) throw new Error(`Workflow run ${run.id}: duplicate suite identity`);
-      bySuite.set(run.check_suite_id, run);
-      const previous = latestRuns.get(run.workflow_id);
-      if (!previous || laterRun(run, previous)) latestRuns.set(run.workflow_id, run);
-    } catch (error) {
-      failures.push(error.message);
-    }
-  }
+  const selected = selectLatestWorkflowRuns(runs, sha);
+  const {bySuite, latestRuns} = selected;
+  failures.push(...selected.failures);
 
   const candidates = [];
   for (const check of checks) {
@@ -244,4 +257,4 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
   return {state: failures.length ? 'failure' : pending.length ? 'pending' : 'success', reasons};
 }
 
-module.exports = {hasActiveWorkflowRuns, verifyCheckRuns};
+module.exports = {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns};
