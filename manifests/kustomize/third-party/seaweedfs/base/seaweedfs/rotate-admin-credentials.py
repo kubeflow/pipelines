@@ -473,6 +473,15 @@ class Storage:
                 'aws_secret_access_key': DEFAULT_SECRET_KEY,
             },
         )
+        self.default_iam = session.create_client(
+            'iam',
+            endpoint_url='http://seaweedfs:8111',
+            **{
+                **common,
+                'aws_access_key_id': DEFAULT_ACCESS_KEY,
+                'aws_secret_access_key': DEFAULT_SECRET_KEY,
+            },
+        )
         self.s3 = session.create_client(
             's3', endpoint_url='http://seaweedfs:8333', **common
         )
@@ -498,24 +507,29 @@ class Storage:
         self.iam.get_user(UserName='kubeflow-admin')
 
     def close(self):
-        for client in (self.s3, self.iam, self.default_s3):
+        for client in (self.s3, self.iam, self.default_s3, self.default_iam):
             client.close()
 
     def default_accepted(self):
         from botocore.exceptions import ClientError
 
-        try:
-            self.default_s3.head_bucket(Bucket='mlpipeline')
-            return True
-        except ClientError as error:
-            # HEAD responses can omit the XML error code. Only an explicit
-            # authentication/authorization rejection is a successful negative
-            # probe; transport errors, 404s and 5xx must retry.
-            if error.response.get('ResponseMetadata', {}).get(
-                'HTTPStatusCode'
-            ) in (401, 403):
-                return False
-            raise
+        # S3 and IAM have separate authentication caches. A successful delete
+        # can still leave IAM stale if its reload fails; require both to reject.
+        for request in (
+            lambda: self.default_s3.head_bucket(Bucket='mlpipeline'),
+            self.default_iam.list_users,
+        ):
+            try:
+                request()
+                return True
+            except ClientError as error:
+                # Only explicit authentication/authorization rejection counts.
+                # Transport errors, 404s and 5xx must retry verification.
+                if error.response.get('ResponseMetadata', {}).get(
+                    'HTTPStatusCode'
+                ) not in (401, 403):
+                    raise
+        return False
 
     def revoke_default(self):
         if not self.default_accepted():

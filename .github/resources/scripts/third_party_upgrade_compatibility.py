@@ -172,6 +172,22 @@ def client(endpoint, access, secret):
     )
 
 
+def iam_client(endpoint, access, secret):
+    import boto3
+    from botocore.config import Config
+
+    return boto3.client(
+        'iam',
+        endpoint_url=endpoint,
+        aws_access_key_id=access,
+        aws_secret_access_key=secret,
+        region_name='us-east-1',
+        config=Config(
+            connect_timeout=5, read_timeout=10, retries={'max_attempts': 2}
+        ),
+    )
+
+
 def sync_profile(endpoint, namespace, secret=None):
     attachments = {
         kind: {}
@@ -324,7 +340,7 @@ def upgrade_store(storage):
 
 
 def require_authentication_rejection(request):
-    """Do not mistake routing, transport or storage failures for authentication."""
+    """Require an explicit authentication rejection."""
     try:
         with urllib.request.urlopen(request, timeout=10):
             pass
@@ -337,7 +353,6 @@ def require_authentication_rejection(request):
 
 def verify_fresh_bootstrap(evidence):
     """Probe listener authentication before any dynamic identity is seeded."""
-    import boto3
     from botocore.exceptions import ClientError
 
     storage = rendered(SEAWEED)
@@ -377,19 +392,10 @@ def verify_fresh_bootstrap(evidence):
             )
         )
 
-        def iam(pair):
-            return boto3.client(
-                'iam',
-                endpoint_url=endpoint,
-                aws_access_key_id=pair[0],
-                aws_secret_access_key=pair[1],
-                region_name='us-east-1',
-            )
-
-        with iam(candidate) as authorized:
+        with iam_client(endpoint, *candidate) as authorized:
             authorized.list_users()
-        with iam(
-            ('invalid-bootstrap-key', 'invalid-bootstrap-secret')
+        with iam_client(
+            endpoint, 'invalid-bootstrap-key', 'invalid-bootstrap-secret'
         ) as invalid:
             try:
                 invalid.list_users()
@@ -430,7 +436,7 @@ def verify_fresh_bootstrap(evidence):
 
 
 def verify_manifest_reapply(storage):
-    """Ensure client-side and server-side apply preserve runtime credentials."""
+    """Check that manifest reapply preserves runtime credentials."""
     names = ('seaweedfs-admin-credentials', 'mlpipeline-minio-artifact')
 
     def snapshot():
@@ -462,18 +468,23 @@ def verify_old_credentials_rejected(old, current, evidence):
 
     if old == current:
         return  # Operator-provided credentials are preserved.
-    with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
-        try:
-            client(endpoint, *old).head_bucket(Bucket=BUCKET)
-        except ClientError as error:
-            if error.response.get('ResponseMetadata', {}).get(
-                'HTTPStatusCode'
-            ) in (401, 403):
-                return
-            raise
-    raise AssertionError(
-        'Pre-upgrade default admin credential is still accepted'
-    )
+    for local, port, factory, method, arguments in (
+        (S3_LOCAL_PORT, S3_PORT, client, 'head_bucket', {'Bucket': BUCKET}),
+        (IAM_LOCAL_PORT, IAM_PORT, iam_client, 'list_users', {}),
+    ):
+        with forward('seaweedfs', local, port, evidence) as endpoint:
+            with factory(endpoint, *old) as probe:
+                try:
+                    getattr(probe, method)(**arguments)
+                except ClientError as error:
+                    if error.response.get('ResponseMetadata', {}).get(
+                        'HTTPStatusCode'
+                    ) in (401, 403):
+                        continue
+                    raise
+        raise AssertionError(
+            f'Pre-upgrade default credential still accepted on port {port}'
+        )
 
 
 def exercise_profile(admin_credentials, evidence, namespace='compat-user'):
