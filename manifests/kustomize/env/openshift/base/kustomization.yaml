@@ -126,3 +126,9 @@ patches:
       kind: Job
       name: ml-pipeline-ui-signing-key-init
       version: v1
+  - path: patches/remove-sc-pod.json
+    target:
+      group: apps
+      kind: Deployment
+      name: seaweedfs-credential-rotation
+      version: v1

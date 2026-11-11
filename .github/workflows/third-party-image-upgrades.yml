@@ -59,6 +59,13 @@ jobs:
         run: |
           python -m unittest discover -s .github/resources/scripts -p 'third_party_upgrade_compatibility_test.py'
           python -m pytest manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/test_sync.py
+      - name: Test credential migration and rendered deployment contracts
+        run: |
+          python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'rotate_admin_credentials_test.py'
+          kustomize build manifests/kustomize/third-party/seaweedfs/base > "$RUNNER_TEMP/seaweedfs.yaml"
+          SEAWEEDFS_RENDERED="$RUNNER_TEMP/seaweedfs.yaml" python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
+          kustomize build manifests/kustomize/env/openshift/base > "$RUNNER_TEMP/seaweedfs-openshift.yaml"
+          SEAWEEDFS_RENDERED="$RUNNER_TEMP/seaweedfs-openshift.yaml" OPENSHIFT_RENDERED=true python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
       - name: Upgrade the persistent store and exercise the actual profile image
         run: python .github/resources/scripts/third_party_upgrade_compatibility.py --baseline baseline --evidence compatibility-evidence
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
