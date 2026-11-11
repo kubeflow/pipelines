@@ -35,6 +35,8 @@ ADMIN_SECRET = 'seaweedfs-admin-credentials'
 LEGACY_SECRET = 'mlpipeline-minio-artifact'
 REVISION = 'pipelines.kubeflow.org/storage-credential-revision'
 PHASE = 'pipelines.kubeflow.org/storage-credential-phase'
+DRAIN_COUNT = 'pipelines.kubeflow.org/storage-credential-drain-count'
+DRAIN_SAMPLE = 'pipelines.kubeflow.org/storage-credential-drain-sample'
 CONSUMERS = (
     'ml-pipeline',
     'ml-pipeline-ui',
@@ -164,8 +166,10 @@ def revision(secret):
 
 def uses_secret(deployment, name):
     spec = deployment['spec']['template']['spec']
-    for container in spec.get('containers', []) + spec.get(
-        'initContainers', []
+    for container in (
+        spec.get('containers', [])
+        + spec.get('initContainers', [])
+        + spec.get('ephemeralContainers', [])
     ):
         if any(
             item.get('secretRef', {}).get('name') == name
@@ -180,6 +184,10 @@ def uses_secret(deployment, name):
             return True
     return any(
         item.get('secret', {}).get('secretName') == name
+        or any(
+            source.get('secret', {}).get('name') == name
+            for source in item.get('projected', {}).get('sources', [])
+        )
         for item in spec.get('volumes', [])
     )
 
@@ -192,8 +200,10 @@ class Migration:
         self.storage = None
         self.stage = 'initialization'
 
-    def phase(self, state, value):
-        if state['metadata'].get('annotations', {}).get(PHASE) != value:
+    def phase(self, state, value, details=None):
+        annotations = {PHASE: value, **(details or {})}
+        existing = state['metadata'].get('annotations', {})
+        if any(existing.get(key) != val for key, val in annotations.items()):
             self.api.request(
                 'PATCH',
                 'secrets',
@@ -201,7 +211,7 @@ class Migration:
                 {
                     'metadata': {
                         'resourceVersion': state['metadata']['resourceVersion'],
-                        'annotations': {PHASE: value},
+                        'annotations': annotations,
                     }
                 },
             )
@@ -398,12 +408,101 @@ class Migration:
         self.rollout_ready(deployment, value)
 
     def roll_consumers(self, value):
+        managed = []
         for name in CONSUMERS:
             deployment = self.api.get('deployments', name)
             if deployment is not None and uses_secret(
                 deployment, LEGACY_SECRET
             ):
                 self.roll_deployment(name, value)
+                managed.append(deployment['spec']['selector']['matchLabels'])
+        return managed
+
+    def drain_workloads(self, state, managed):
+        # A continuously busy namespace can extend this wait. Do not guess a
+        # safe cutoff from timestamps or persist an unbounded list of Pod UIDs.
+        count = 0
+        sample = []
+        token = ''
+        for _ in range(100):
+            query = urllib.parse.urlencode({'limit': 200, 'continue': token})
+            page = self.api.request('GET', 'pods', query=query)
+            try:
+                if not isinstance(page, dict) or not isinstance(
+                    page.get('items'), list
+                ):
+                    raise ValueError('invalid Pod list')
+                following = page['metadata'].get('continue', '')
+                if not isinstance(following, str):
+                    raise ValueError('invalid continuation token')
+                for pod in page['items']:
+                    metadata = pod['metadata']
+                    name = metadata['name']
+                    labels = metadata.get('labels', {})
+                    annotations = metadata.get('annotations', {})
+                    spec = pod['spec']
+                    status = pod.get('status', {})
+                    if (
+                        not isinstance(name, str)
+                        or not name
+                        or not all(
+                            isinstance(value, dict)
+                            for value in (labels, annotations, spec, status)
+                        )
+                    ):
+                        raise ValueError('invalid Pod')
+                    if status.get('phase') in ('Succeeded', 'Failed'):
+                        continue
+                    workload = bool(labels.get('pipeline/runid'))
+                    if not workload and not uses_secret(
+                        {'spec': {'template': pod}}, LEGACY_SECRET
+                    ):
+                        continue
+                    # Run-labelled Pods always count, even if they copy a
+                    # managed Deployment's labels or revision annotation.
+                    if (
+                        not workload
+                        and annotations.get(REVISION) == revision(state)
+                        and any(
+                            selector
+                            and all(
+                                labels.get(key) == value
+                                for key, value in selector.items()
+                            )
+                            for selector in managed
+                        )
+                    ):
+                        continue
+                    count += 1
+                    if len(sample) < 5:
+                        sample.append(name[:253])
+            except (KeyError, TypeError, AttributeError, ValueError):
+                raise Retry(
+                    'Cannot verify workload drain from malformed Pod inventory; keeping old credential valid'
+                ) from None
+            if not following:
+                break
+            if following == token:
+                raise Retry(
+                    'Pod inventory did not advance; keeping old credential valid'
+                )
+            token = following
+        else:
+            raise Retry(
+                'Pod inventory exceeded the bounded scan; keeping old credential valid'
+            )
+        if count:
+            self.phase(
+                state,
+                'DrainingWorkloads',
+                {
+                    DRAIN_COUNT: str(count),
+                    DRAIN_SAMPLE: json.dumps(sample),
+                },
+            )
+            raise Retry(
+                f'Waiting for {count} affected workload Pods to finish; old credential remains valid'
+            )
 
     def reconcile(self):
         self.stage = 'credential preparation'
@@ -428,7 +527,10 @@ class Migration:
         storage.verify()
         self.stage = 'consumer credential rollout'
         self.publish(pair)
-        self.roll_consumers(revision(state))
+        managed = self.roll_consumers(revision(state))
+        self.stage = 'active workload drain'
+        if storage.default_accepted():
+            self.drain_workloads(state, managed)
         # Re-read to detect a concurrent operator edit before revoking a key.
         if (
             credentials(self.api.get('secrets', ADMIN_SECRET)) != pair
@@ -440,7 +542,9 @@ class Migration:
         self.stage = 'default credential revocation'
         storage.revoke_default()
         storage.verify()
-        self.phase(state, 'DefaultRevoked')
+        self.phase(
+            state, 'DefaultRevoked', {DRAIN_COUNT: '0', DRAIN_SAMPLE: '[]'}
+        )
 
 
 class Storage:

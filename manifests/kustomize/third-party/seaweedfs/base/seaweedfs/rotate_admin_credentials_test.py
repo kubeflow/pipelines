@@ -82,6 +82,7 @@ class API:
         self.requests = []
         self.old_storage = False
         self.old_consumer = False
+        self.drain_pages = [{'metadata': {}, 'items': []}]
 
     def get(self, kind, name):
         return copy.deepcopy(self.objects.get((kind, name)))
@@ -89,6 +90,11 @@ class API:
     def request(self, method, kind, name='', body=None, query=''):
         self.requests.append((method, kind, name, copy.deepcopy(body)))
         if kind == 'pods':
+            if query.startswith('limit='):
+                token = rotation.urllib.parse.parse_qs(query).get(
+                    'continue', ['0']
+                )[0]
+                return copy.deepcopy(self.drain_pages[int(token)])
             if 'seaweedfs' in query:
                 pod = copy.deepcopy(
                     self.objects[('deployments', 'seaweedfs')]['spec'][
@@ -129,8 +135,244 @@ class RotationTest(unittest.TestCase):
     def setUp(self):
         self.api = API()
         self.storage = Mock()
+        self.storage.default_accepted.return_value = True
         self.factory = Mock(return_value=self.storage)
         self.migration = rotation.Migration(self.api, self.factory)
+
+    def workload(
+        self, name='running-task', phase='Running', labels=None, spec=None
+    ):
+        return {
+            'metadata': {
+                'name': name,
+                'labels': labels
+                if labels is not None
+                else {'pipeline/runid': 'run-1'},
+            },
+            'spec': spec or {},
+            'status': {'phase': phase},
+        }
+
+    def test_drain_resumes_and_new_work_extends_wait(self):
+        self.api.drain_pages[0]['items'] = [self.workload()]
+        for _ in range(2):
+            with self.assertRaisesRegex(
+                rotation.Retry, 'old credential remains valid'
+            ):
+                self.migration.reconcile()
+            self.migration = rotation.Migration(self.api, self.factory)
+        state = self.api.get('secrets', rotation.ADMIN_SECRET)
+        self.assertEqual(
+            'DrainingWorkloads',
+            state['metadata']['annotations'][rotation.PHASE],
+        )
+        self.assertEqual(
+            '1', state['metadata']['annotations'][rotation.DRAIN_COUNT]
+        )
+        self.api.drain_pages[0]['items'] = [
+            self.workload(phase='Succeeded'),
+            self.workload('new-task'),
+        ]
+        with self.assertRaises(rotation.Retry):
+            self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+        self.api.drain_pages[0]['items'][1]['status']['phase'] = 'Failed'
+        self.migration.reconcile()
+        self.storage.revoke_default.assert_called_once()
+        self.assertEqual(
+            '0',
+            self.api.get('secrets', rotation.ADMIN_SECRET)['metadata'][
+                'annotations'
+            ][rotation.DRAIN_COUNT],
+        )
+
+    def test_drain_detects_secret_references_and_active_phases(self):
+        specs = []
+        for container_kind in (
+            'containers',
+            'initContainers',
+            'ephemeralContainers',
+        ):
+            specs.extend(
+                [
+                    {
+                        container_kind: [
+                            {
+                                'envFrom': [
+                                    {
+                                        'secretRef': {
+                                            'name': rotation.LEGACY_SECRET
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        container_kind: [
+                            {
+                                'env': [
+                                    {
+                                        'valueFrom': {
+                                            'secretKeyRef': {
+                                                'name': rotation.LEGACY_SECRET
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                ]
+            )
+        specs.extend(
+            [
+                {
+                    'volumes': [
+                        {'secret': {'secretName': rotation.LEGACY_SECRET}}
+                    ]
+                },
+                {
+                    'volumes': [
+                        {
+                            'projected': {
+                                'sources': [
+                                    {'secret': {'name': rotation.LEGACY_SECRET}}
+                                ]
+                            }
+                        }
+                    ]
+                },
+            ]
+        )
+        for spec in specs:
+            for phase in ('Pending', 'Running', 'Unknown', None):
+                with self.subTest(spec=spec, phase=phase):
+                    pod = self.workload(labels={}, spec=spec, phase=phase)
+                    pod['metadata']['deletionTimestamp'] = (
+                        '2026-01-01T00:00:00Z'
+                    )
+                    self.api.drain_pages[0]['items'] = [pod]
+                    with self.assertRaises(rotation.Retry):
+                        self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_ignores_unrelated_and_verified_managed_pods(self):
+        state = self.migration.prepare()
+        managed = deployment('ml-pipeline', rotation.LEGACY_SECRET)
+        managed['spec']['template']['metadata']['annotations'][
+            rotation.REVISION
+        ] = rotation.revision(state)
+        self.api.objects[('deployments', 'ml-pipeline')] = managed
+        pod = self.workload(
+            labels={'app': 'ml-pipeline'},
+            spec=managed['spec']['template']['spec'],
+        )
+        pod['metadata']['annotations'] = {
+            rotation.REVISION: rotation.revision(state)
+        }
+        self.api.drain_pages[0]['items'] = [
+            self.workload('unrelated', labels={}),
+            pod,
+        ]
+        self.migration.reconcile()
+        self.storage.revoke_default.assert_called_once()
+        self.storage.revoke_default.reset_mock()
+        pod['metadata']['labels']['pipeline/runid'] = 'run-1'
+        with self.assertRaises(rotation.Retry):
+            self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_does_not_exempt_wrong_consumer_revision(self):
+        state = self.migration.prepare()
+        managed = deployment('ml-pipeline', rotation.LEGACY_SECRET)
+        managed['spec']['template']['metadata']['annotations'][
+            rotation.REVISION
+        ] = rotation.revision(state)
+        self.api.objects[('deployments', 'ml-pipeline')] = managed
+        self.api.drain_pages[0]['items'] = [
+            self.workload(
+                labels={'app': 'ml-pipeline'},
+                spec=managed['spec']['template']['spec'],
+            )
+        ]
+        with self.assertRaises(rotation.Retry):
+            self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_paginates_with_bounded_sample(self):
+        self.api.drain_pages = [
+            {'metadata': {'continue': '1'}, 'items': [self.workload('first')]},
+            {
+                'metadata': {},
+                'items': [self.workload('task-' + str(i)) for i in range(8)],
+            },
+        ]
+        with self.assertRaises(rotation.Retry):
+            self.migration.reconcile()
+        annotations = self.api.get('secrets', rotation.ADMIN_SECRET)[
+            'metadata'
+        ]['annotations']
+        self.assertEqual('9', annotations[rotation.DRAIN_COUNT])
+        self.assertEqual(
+            5, len(rotation.json.loads(annotations[rotation.DRAIN_SAMPLE]))
+        )
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_fails_closed_on_malformed_inventory(self):
+        for response in (
+            {},
+            {'metadata': {}, 'items': [None]},
+            {'metadata': {}, 'items': [{}]},
+            {'metadata': {}, 'items': 'bad'},
+        ):
+            with self.subTest(response=response):
+                self.api.drain_pages = [response]
+                with self.assertRaises(rotation.Retry):
+                    self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_api_error_never_revokes(self):
+        original = self.api.request
+
+        def request(method, kind, name='', body=None, query=''):
+            if kind == 'pods' and query.startswith('limit='):
+                raise rotation.APIError(503)
+            return original(method, kind, name, body, query)
+
+        self.api.request = request
+        with self.assertRaises(rotation.APIError):
+            self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_repeated_continuation_never_revokes(self):
+        self.api.drain_pages = [
+            {'metadata': {'continue': '1'}, 'items': []},
+            {'metadata': {'continue': '1'}, 'items': []},
+        ]
+        with self.assertRaisesRegex(rotation.Retry, 'did not advance'):
+            self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_scan_limit_never_revokes(self):
+        self.api.drain_pages = [
+            {'metadata': {'continue': str(i + 1)}, 'items': []}
+            for i in range(100)
+        ]
+        with self.assertRaisesRegex(rotation.Retry, 'bounded scan'):
+            self.migration.reconcile()
+        self.storage.revoke_default.assert_not_called()
+
+    def test_drain_skipped_when_default_already_rejected(self):
+        self.storage.default_accepted.return_value = False
+        self.api.drain_pages[0]['items'] = [self.workload()]
+        self.migration.reconcile()
+        self.assertEqual(
+            'DefaultRevoked',
+            self.api.get('secrets', rotation.ADMIN_SECRET)['metadata'][
+                'annotations'
+            ][rotation.PHASE],
+        )
 
     def test_storage_restarts_after_registration_before_switching_consumers(
         self,
