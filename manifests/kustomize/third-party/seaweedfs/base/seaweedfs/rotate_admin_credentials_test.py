@@ -27,7 +27,8 @@ def secret(name, pair=None):
     return {
         'metadata': {
             'name': name,
-            'resourceVersion': '1', 'uid': 'test-secret-uid'
+            'resourceVersion': '1',
+            'uid': 'test-secret-uid'
         },
         'data': rotation.encoded(pair) if pair else {},
     }
@@ -88,7 +89,10 @@ class API:
             ('deployments', 'seaweedfs'):
                 deployment('seaweedfs', rotation.ADMIN_SECRET),
         }
-        self.objects[('deployments', 'seaweedfs')]['spec']['template']['metadata']['annotations'][rotation.REVISION] = 'test-secret-uid'
+        self.objects[(
+            'deployments',
+            'seaweedfs')]['spec']['template']['metadata']['annotations'][
+                rotation.REVISION] = 'test-secret-uid'
         self.requests = []
         self.old_storage = False
         self.old_consumer = False
@@ -100,9 +104,12 @@ class API:
         self.requests.append((method, kind, name, copy.deepcopy(body)))
         if kind == 'pods':
             if 'seaweedfs' in query:
-                pod = copy.deepcopy(self.objects[('deployments', 'seaweedfs')]['spec']['template'])
+                pod = copy.deepcopy(
+                    self.objects[('deployments',
+                                  'seaweedfs')]['spec']['template'])
                 if self.old_storage:
-                    pod['spec']['containers'][0]['envFrom'][0]['secretRef']['name'] = rotation.LEGACY_SECRET
+                    pod['spec']['containers'][0]['envFrom'][0]['secretRef'][
+                        'name'] = rotation.LEGACY_SECRET
                 return {'items': [pod]}
             return {
                 'items': [{
@@ -137,9 +144,13 @@ class RotationTest(unittest.TestCase):
         self.factory = Mock(return_value=self.storage)
         self.migration = rotation.Migration(self.api, self.factory)
 
-    def test_storage_restarts_after_registration_before_switching_consumers(self):
-        self.api.objects[('deployments', 'seaweedfs')]['spec']['template']['metadata']['annotations'] = {}
-        with self.assertRaisesRegex(rotation.Retry, 'Rolling deployment seaweedfs'):
+    def test_storage_restarts_after_registration_before_switching_consumers(
+            self):
+        self.api.objects[(
+            'deployments',
+            'seaweedfs')]['spec']['template']['metadata']['annotations'] = {}
+        with self.assertRaisesRegex(rotation.Retry,
+                                    'Rolling deployment seaweedfs'):
             self.migration.reconcile()
         self.storage.verify_registration.assert_called_once()
         self.storage.verify.assert_not_called()
@@ -200,6 +211,19 @@ class RotationTest(unittest.TestCase):
         storage.default_accepted = Mock(return_value=False)
         storage.revoke_default()
         storage.iam.delete_access_key.assert_not_called()
+
+    @unittest.skipUnless(importlib.util.find_spec('botocore'), 'SDK model test requires botocore (installed in CI)')
+    def test_real_sdk_accepts_short_legacy_id_for_revocation(self):
+        from botocore.stub import Stubber
+        storage = rotation.Storage(('synthetic-replacement', 'synthetic-secret'))
+        storage.default_accepted = Mock(side_effect=[True, False])
+        try:
+            with Stubber(storage.iam) as stub:
+                stub.add_response('delete_access_key', {}, {'UserName': 'kubeflow-admin', 'AccessKeyId': rotation.DEFAULT_ACCESS_KEY})
+                storage.revoke_default()
+                stub.assert_no_pending_responses()
+        finally:
+            storage.close()
 
     def test_known_default_is_revoked_and_rechecked(self):
         storage = rotation.Storage.__new__(rotation.Storage)
