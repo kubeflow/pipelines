@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Resumable rotation of the bundled SeaweedFS administrator credentials.
 
-The generated Secret is the durable source of truth. The legacy Secret remains
-at its original name for existing workflow references. No tenant Secret or
-policy is modified. Errors intentionally exclude API bodies and credential data.
+The generated Secret is the durable source of truth. The legacy Secret
+remains at its original name for existing workflow references. No tenant
+Secret or policy is modified. Errors intentionally exclude API bodies
+and credential data.
 """
 
 import base64
