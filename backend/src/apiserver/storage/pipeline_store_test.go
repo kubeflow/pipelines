@@ -2212,6 +2212,30 @@ func TestDeletePipelineAndVersions(t *testing.T) {
 	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v2", "version 2", "", "", ""))
 	require.Nil(t, err)
 
+	// A version stuck in DELETING (issue #14454) must also be removed.
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFour, nil))
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(pipeline.UUID, "v3-stuck", "stuck version", "", "", ""))
+	require.Nil(t, err)
+	require.Nil(t, pipelineStore.UpdatePipelineVersionStatus(DefaultFakePipelineIdFour, model.PipelineVersionDeleting))
+
+	// Second pipeline with its own version and tag — must survive the cascade.
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdFive, nil))
+	otherPipeline, err := pipelineStore.CreatePipeline(createPipeline("pipeline2", "other pipeline", "ns1"))
+	require.Nil(t, err)
+
+	otherPipelineTags := map[string]string{"env": "staging"}
+	err = pipelineStore.UpdatePipelineFields(otherPipeline.UUID, "", otherPipelineTags)
+	require.Nil(t, err)
+
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdSix, nil))
+	_, err = pipelineStore.CreatePipelineVersion(createPipelineVersion(otherPipeline.UUID, "other-v1", "other version", "", "", ""))
+	require.Nil(t, err)
+
+	otherVersionTags := map[string]string{"stage": "dev"}
+	err = pipelineStore.UpdatePipelineVersionFields(DefaultFakePipelineIdSix, "", otherVersionTags)
+	require.Nil(t, err)
+
+	// Cascade-delete the first pipeline.
 	err = pipelineStore.DeletePipelineAndVersions(pipeline.UUID)
 	assert.Nil(t, err)
 
@@ -2233,6 +2257,24 @@ func TestDeletePipelineAndVersions(t *testing.T) {
 	loadedVersionTags, err := pipelineStore.GetPipelineVersionTags(DefaultFakePipelineIdTwo)
 	require.Nil(t, err)
 	assert.Empty(t, loadedVersionTags, "Version tags should be removed by ON DELETE CASCADE")
+
+	// The second pipeline, its version, and their tags must be untouched.
+	survivedPipeline, err := pipelineStore.GetPipeline(otherPipeline.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, otherPipeline.UUID, survivedPipeline.UUID)
+
+	otherVersions, otherTotalSize, _, err := pipelineStore.ListPipelineVersions(otherPipeline.UUID, opts, nil)
+	require.Nil(t, err)
+	assert.Equal(t, 1, otherTotalSize)
+	assert.Equal(t, 1, len(otherVersions))
+
+	survivedPipelineTags, err := pipelineStore.GetPipelineTags(otherPipeline.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, otherPipelineTags, survivedPipelineTags, "Other pipeline's tags must survive")
+
+	survivedVersionTags, err := pipelineStore.GetPipelineVersionTags(DefaultFakePipelineIdSix)
+	require.Nil(t, err)
+	assert.Equal(t, otherVersionTags, survivedVersionTags, "Other version's tags must survive")
 }
 
 func TestDeletePipelineAndVersions_NoPipeline(t *testing.T) {

@@ -493,9 +493,6 @@ func (k *PipelineStoreKubernetes) listPipelineVersionsInNamespace(
 func (k *PipelineStoreKubernetes) GetAnyPipelineVersionID(pipelineID string) (string, error) {
 	k8sPipeline, err := k.getK8sPipeline(pipelineID)
 	if err != nil {
-		if strings.Contains(err.Error(), "ResourceNotFoundError:") {
-			return "", nil
-		}
 		return "", err
 	}
 

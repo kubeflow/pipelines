@@ -2216,6 +2216,45 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
+func TestDeletePipeline_CascadeDeletesVersions(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	p := createPipelineV1("pipeline")
+	pnew, err := manager.CreatePipeline(p)
+	require.Nil(t, err)
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	require.True(t, ok)
+
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pv1 := createPipelineVersion(pnew.UUID, "version1", "", "", v2SpecHelloWorld, "", "")
+	_, err = manager.CreatePipelineVersion(pv1)
+	require.Nil(t, err)
+
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
+	pv2 := createPipelineVersion(pnew.UUID, "version2", "", "", v2SpecHelloWorld, "", "")
+	_, err = manager.CreatePipelineVersion(pv2)
+	require.Nil(t, err)
+
+	err = manager.DeletePipeline(pnew.UUID, true)
+	require.Nil(t, err)
+
+	_, err = manager.GetPipeline(pnew.UUID)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = manager.GetPipelineVersion(FakeUUIDOne)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = manager.GetPipelineVersion(DefaultFakePipelineIdThree)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRunV2(t)
 	expectedExperimentUUID := runDetail.ExperimentId

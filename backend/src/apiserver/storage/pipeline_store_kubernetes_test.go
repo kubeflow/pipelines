@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"testing"
@@ -1464,7 +1465,22 @@ func TestDeleteK8sPipelineAndVersions(t *testing.T) {
 	v1 := newPinnedPipelineVersion("v1", "version-1", metav1.Unix(1700000000, 0))
 	v2 := newPinnedPipelineVersion("v2", "version-2", metav1.Unix(1800000000, 0))
 
-	k8sClient, pipelineID := newVersionFixture(t, v1, v2)
+	// A version owned by a different pipeline in the same namespace must survive.
+	foreignVersion := newPinnedPipelineVersion("foreign-v", "foreign-version", metav1.Unix(1900000000, 0))
+	foreignVersion.OwnerReferences[0].UID = "other-pipeline"
+	foreignVersion.Labels["pipelines.kubeflow.org/pipeline-id"] = "other-pipeline"
+
+	// A version with a second, non-Pipeline owner reference. Kubernetes GC would
+	// keep it alive (multiple owners), but explicit cascade deletion must remove it.
+	multiOwnerVersion := newPinnedPipelineVersion("multi-owner-v", "multi-owner-version", metav1.Unix(1850000000, 0))
+	multiOwnerVersion.OwnerReferences = append(multiOwnerVersion.OwnerReferences, metav1.OwnerReference{
+		APIVersion: "argoproj.io/v1alpha1",
+		Kind:       "Application",
+		Name:       "gitops-app",
+		UID:        "gitops-uid",
+	})
+
+	k8sClient, pipelineID := newVersionFixture(t, v1, v2, foreignVersion, multiOwnerVersion)
 	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
 
 	versionID, err := store.GetAnyPipelineVersionID(pipelineID)
@@ -1478,10 +1494,6 @@ func TestDeleteK8sPipelineAndVersions(t *testing.T) {
 	require.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 
-	versionID, err = store.GetAnyPipelineVersionID(pipelineID)
-	require.NoError(t, err)
-	assert.Empty(t, versionID, "All versions should be deleted")
-
 	_, err = store.GetPipelineVersion(string(v1.UID))
 	require.Error(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
@@ -1489,6 +1501,16 @@ func TestDeleteK8sPipelineAndVersions(t *testing.T) {
 	_, err = store.GetPipelineVersion(string(v2.UID))
 	require.Error(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	// Multi-owner version is owned by this pipeline, so it must be deleted.
+	_, err = store.GetPipelineVersion(string(multiOwnerVersion.UID))
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	// Foreign version belongs to a different pipeline and must survive.
+	foreignSurvived, err := store.GetPipelineVersion(string(foreignVersion.UID))
+	require.NoError(t, err)
+	assert.Equal(t, "foreign-version", foreignSurvived.Name)
 }
 
 // TestDeleteK8sPipelineAndVersions_NoPipeline verifies that deleting a non-existent pipeline is a no-op.
@@ -1502,4 +1524,68 @@ func TestDeleteK8sPipelineAndVersions_NoPipeline(t *testing.T) {
 
 	err := store.DeletePipelineAndVersions("non-existent-id")
 	require.NoError(t, err)
+}
+
+// TestDeleteK8sPipelineAndVersions_RetriesAfterVersionDeleteFailure verifies that
+// a failed version delete aborts the cascade (the pipeline survives), and that a
+// retry after the transient error clears succeeds.
+func TestDeleteK8sPipelineAndVersions_RetriesAfterVersionDeleteFailure(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	pipeline := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{
+			UID: defaultVersionPipelineID, Name: "pinned-pipeline", Namespace: "Test",
+		},
+	}
+
+	v1 := newPinnedPipelineVersion("v1", "version-1", metav1.Unix(1700000000, 0))
+	v2 := newPinnedPipelineVersion("v2", "version-2", metav1.Unix(1800000000, 0))
+
+	fail := true
+	injectedErr := errors.New("injected transient delete error")
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(pipeline, v1, v2).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+				if pv, ok := obj.(*v2beta1.PipelineVersion); ok && pv.Name == "v1" && fail {
+					return injectedErr
+				}
+				return c.Delete(ctx, obj, opts...)
+			},
+		}).
+		Build()
+
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	// First attempt: version delete fails, so the cascade must abort.
+	err := store.DeletePipelineAndVersions(string(pipeline.UID))
+	require.Error(t, err, "cascade must fail when a version delete fails")
+
+	// Pipeline must still exist.
+	_, err = store.GetPipeline(string(pipeline.UID))
+	require.NoError(t, err, "pipeline must survive a failed cascade")
+
+	// Clear the transient failure and retry.
+	fail = false
+	err = store.DeletePipelineAndVersions(string(pipeline.UID))
+	require.NoError(t, err)
+
+	_, err = store.GetPipeline(string(pipeline.UID))
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = store.GetPipelineVersion(string(v1.UID))
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = store.GetPipelineVersion(string(v2.UID))
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
