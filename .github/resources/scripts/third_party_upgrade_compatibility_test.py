@@ -15,17 +15,118 @@
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
 import urllib.error
 from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import third_party_upgrade_compatibility as compatibility
 
 
 class CompatibilityTest(unittest.TestCase):
+    def test_fresh_bootstrap_closes_plain_sdk_clients(self):
+        class ClientError(Exception):
+            def __init__(self, response, operation):
+                self.response = response
+                super().__init__(operation)
+
+        authorized = Mock(spec=['list_users', 'close'])
+        invalid = Mock(spec=['list_users', 'close'])
+        invalid.list_users.side_effect = ClientError(
+            {
+                'Error': {'Code': 'AccessDenied'},
+                'ResponseMetadata': {'HTTPStatusCode': 403},
+            },
+            'ListUsers',
+        )
+        credentials = ('generated-key', 'generated-secret')
+        secret = {
+            'stringData': dict(zip(('accesskey', 'secretkey'), credentials))
+        }
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.dict(
+                sys.modules,
+                {
+                    'botocore.exceptions': SimpleNamespace(
+                        ClientError=ClientError
+                    ),
+                },
+            ),
+            patch.object(compatibility, 'rendered', return_value=[]),
+            patch.object(compatibility, 'apply'),
+            patch.object(compatibility, 'wait_ready'),
+            patch.object(
+                compatibility, 'kubectl', return_value=json.dumps(secret)
+            ),
+            patch.object(
+                compatibility,
+                'forward',
+                side_effect=lambda *args: nullcontext('http://localhost'),
+            ),
+            patch.object(compatibility, 'require_authentication_rejection'),
+            patch.object(
+                compatibility, 'iam_client', side_effect=[authorized, invalid]
+            ),
+            patch.object(compatibility, 'upgrade_store'),
+            patch.object(
+                compatibility,
+                'current_admin_credentials',
+                return_value=credentials,
+            ),
+            patch.object(compatibility, 'verify_manifest_reapply'),
+        ):
+            compatibility.verify_fresh_bootstrap(Path(directory))
+        authorized.list_users.assert_called_once_with()
+        authorized.close.assert_called_once_with()
+        invalid.close.assert_called_once_with()
+
+    def test_workload_drain_closes_plain_sdk_clients(self):
+        s3 = Mock(spec=['head_bucket', 'close'])
+        iam = Mock(spec=['list_users', 'close'])
+        state = {
+            'metadata': {
+                'annotations': {
+                    'pipelines.kubeflow.org/storage-credential-phase': 'DrainingWorkloads'
+                }
+            }
+        }
+
+        def kubectl(*args, **kwargs):
+            if args[:2] == ('get', 'secret'):
+                return json.dumps(state)
+            if args[:2] == ('get', 'pod'):
+                return json.dumps({'status': {'phase': 'Running'}})
+            return ''
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(
+                compatibility, 'storage_image', return_value='seaweedfs:test'
+            ),
+            patch.object(compatibility, 'apply'),
+            patch.object(compatibility, 'kubectl', side_effect=kubectl),
+            patch.object(
+                compatibility,
+                'forward',
+                side_effect=lambda *args: nullcontext('http://localhost'),
+            ),
+            patch.object(compatibility, 'client', return_value=s3),
+            patch.object(compatibility, 'iam_client', return_value=iam),
+            patch.object(compatibility, 'wait_migration_complete'),
+        ):
+            compatibility.verify_workload_drain(
+                [], ('minio', 'minio123'), Path(directory)
+            )
+        s3.head_bucket.assert_called_once_with(Bucket=compatibility.BUCKET)
+        s3.close.assert_called_once_with()
+        iam.list_users.assert_called_once_with()
+        iam.close.assert_called_once_with()
+
     def test_secret_credentials_string_and_encoded_data(self):
         self.assertEqual(
             compatibility.secret_credentials(

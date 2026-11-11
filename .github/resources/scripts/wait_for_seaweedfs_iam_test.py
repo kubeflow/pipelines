@@ -113,7 +113,7 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
         self.assertIn('was not reachable after 2s', result.stdout)
         self.assertLess(duration, 3.5)
 
-    def test_network_policy_allows_only_profile_controller_to_iam(self):
+    def test_network_policy_scopes_iam_to_profile_and_migration(self):
         policy = NETWORK_POLICY.read_text(encoding='utf-8')
 
         self.assertIn(
@@ -121,6 +121,9 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             '    - podSelector:\n'
             '        matchLabels:\n'
             '          app: kubeflow-pipelines-profile-controller\n'
+            '    - podSelector:\n'
+            '        matchLabels:\n'
+            '          app: seaweedfs-credential-rotation\n'
             '    ports:\n'
             '    - port: 8111\n',
             policy,
