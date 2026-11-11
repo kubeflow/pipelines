@@ -11,8 +11,10 @@
 
 import copy
 import importlib.util
+import sys
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 HERE = Path(__file__).parent
@@ -235,6 +237,49 @@ class RotationTest(unittest.TestCase):
                 stub.assert_no_pending_responses()
         finally:
             storage.close()
+
+    def test_stale_iam_cache_blocks_completion_and_retries_deletion(self):
+        class ClientError(Exception):
+            def __init__(self, status):
+                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+
+        storage = rotation.Storage.__new__(rotation.Storage)
+        storage.pair = ('replacement', 'new-secret')
+        storage.iam = Mock()
+        storage.default_s3 = Mock()
+        storage.default_s3.head_bucket.side_effect = ClientError(403)
+        storage.default_iam = Mock()
+        storage.default_iam.list_users.side_effect = [
+            {},
+            {},
+            {},
+            ClientError(403),
+        ]
+        with patch.dict(
+            sys.modules,
+            {'botocore.exceptions': SimpleNamespace(ClientError=ClientError)},
+        ):
+            with self.assertRaises(rotation.Retry):
+                storage.revoke_default()
+            storage.revoke_default()
+        self.assertEqual(storage.iam.delete_access_key.call_count, 2)
+
+    def test_iam_probe_server_failure_is_not_revocation(self):
+        class ClientError(Exception):
+            def __init__(self, status):
+                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+
+        storage = rotation.Storage.__new__(rotation.Storage)
+        storage.default_s3 = Mock()
+        storage.default_s3.head_bucket.side_effect = ClientError(403)
+        storage.default_iam = Mock()
+        storage.default_iam.list_users.side_effect = ClientError(503)
+        with patch.dict(
+            sys.modules,
+            {'botocore.exceptions': SimpleNamespace(ClientError=ClientError)},
+        ):
+            with self.assertRaises(ClientError):
+                storage.default_accepted()
 
     def test_known_default_is_revoked_and_rechecked(self):
         storage = rotation.Storage.__new__(rotation.Storage)
