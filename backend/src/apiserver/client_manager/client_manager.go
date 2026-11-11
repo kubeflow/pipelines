@@ -1111,13 +1111,10 @@ func dropLegacyIndexesMySQL(db *gorm.DB) error {
 			if err != nil {
 				return fmt.Errorf("query pipeline_versions indices failed: %w", err)
 			}
-			has := false
+			has := rows.Next()
 			if err := rows.Err(); err != nil {
 				_ = rows.Close()
 				return fmt.Errorf("iterate pipeline_versions indices failed: %w", err)
-			}
-			if rows.Next() {
-				has = true
 			}
 			_ = rows.Close()
 			if has {
