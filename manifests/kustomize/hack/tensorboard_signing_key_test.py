@@ -89,7 +89,10 @@ class TensorboardSigningKeyTest(unittest.TestCase):
         # Job before it runs and leave the UI without its signing key.
         for path, external in (
             (PIPELINE, False),
-            (REPO_ROOT / '.github/resources/manifests/standalone/default', True),
+            (
+                REPO_ROOT / '.github/resources/manifests/standalone/default',
+                True,
+            ),
             (REPO_ROOT / 'manifests/kustomize/env/openshift/base', False),
         ):
             with self.subTest(path=path):
