@@ -1,7 +1,16 @@
 name: Build Images
 on:
   workflow_call:
+    inputs:
+      load_tensorboard_image:
+        description: 'Include the default TensorBoard image in the readiness check.'
+        type: boolean
+        required: false
+        default: false
     outputs:
+      IMAGE_ARTIFACTS_READY:
+        description: 'Required branch image artifacts are published for this run.'
+        value: ${{ jobs.image-artifacts-ready.outputs.ready }}
       IMAGE_PATH:
         description: 'A description of my output'
         value: ${{ jobs.image-build.outputs.image_path }}
@@ -19,6 +28,34 @@ env:
   GITHUB_SHA: ${{ github.sha }}
 
 jobs:
+  image-artifacts-ready:
+    needs: [image-build, runtime-base-images]
+    runs-on: ubuntu-latest
+    # Allow the waiter's 20-minute API recovery budget plus setup/publication.
+    timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      ready: ${{ steps.ready.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Ensure GitHub CLI is available
+        run: bash .github/resources/scripts/setup-github-cli.sh
+      - name: Verify branch image artifacts
+        id: ready
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LOAD_TENSORBOARD_IMAGE: ${{ inputs.load_tensorboard_image }}
+          # Producer uploads completed; allow only their publication grace.
+          WAIT_ATTEMPTS: '1'
+          WAIT_INTERVAL_SECONDS: '10'
+        run: |
+          set -euo pipefail
+          ./.github/resources/scripts/wait-for-image-artifacts.sh
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+
   runtime-base-images:
     runs-on: ubuntu-latest
     timeout-minutes: 30

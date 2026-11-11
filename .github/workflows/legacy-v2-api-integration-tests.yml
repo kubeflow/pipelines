@@ -38,6 +38,7 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   api-integration-tests-v2:
+    needs: build
     runs-on: ubuntu-latest
     # Real ceiling for a hung suite. Without this the job inherits GitHub's
     # 6-hour default, and the go test -timeout below is the only hang-stop.
@@ -87,6 +88,7 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

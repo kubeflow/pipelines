@@ -69,6 +69,7 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   api-test-standalone:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -115,6 +116,7 @@ jobs:
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           proxy: ${{ matrix.proxy }}
@@ -184,6 +186,7 @@ jobs:
 
 
   api-test-k8s-native:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -214,6 +217,7 @@ jobs:
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
@@ -238,6 +242,7 @@ jobs:
 
 
   api-test-multi-user:
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -279,6 +284,7 @@ jobs:
         id: deploy
         if: ${{ steps.create-cluster.outcome == 'success' }}
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: ${{ matrix.multi_user }}
           db_type: ${{ matrix.db_type }}

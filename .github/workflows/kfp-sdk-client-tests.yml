@@ -39,6 +39,7 @@ jobs:
     uses: ./.github/workflows/image-builds.yml
 
   sdk-client-tests:
+    needs: build
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -72,6 +73,7 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

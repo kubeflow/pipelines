@@ -89,7 +89,10 @@ jobs:
 
   build:
     uses: ./.github/workflows/image-builds.yml
+    with:
+      load_tensorboard_image: true
   deployed:
+    needs: build
     permissions:
       actions: read
       contents: read
@@ -110,6 +113,7 @@ jobs:
         cluster_name: kfp-tensorboard
     - uses: ./.github/actions/deploy
       with:
+        image_artifacts_ready: ${{ needs.build.outputs.IMAGE_ARTIFACTS_READY }}
         cluster_name: kfp-tensorboard
         image_path: images_${{ github.run_id }}
         image_tag: latest

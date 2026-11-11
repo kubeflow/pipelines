@@ -37,8 +37,8 @@ def _has_mapping(document: str, key: str, indentation: int) -> bool:
 def _mapping_block(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = _mapping_marker(key, indentation)
-    start = next(index for index, line in enumerate(lines)
-                 if marker.match(line))
+    start = next(
+        index for index, line in enumerate(lines) if marker.match(line))
 
     end = len(lines)
     for index in range(start + 1, len(lines)):
@@ -56,8 +56,7 @@ def _mapping_block(document: str, key: str, indentation: int) -> str:
 def _before_mapping(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = _mapping_marker(key, indentation)
-    end = next(index for index, line in enumerate(lines)
-               if marker.match(line))
+    end = next(index for index, line in enumerate(lines) if marker.match(line))
     return '\n'.join(lines[:end]) + '\n'
 
 
@@ -65,8 +64,8 @@ def _folded_scalar(document: str, key: str, indentation: int) -> str:
     lines = document.splitlines()
     marker = re.compile(r'^' + (' ' * indentation) + re.escape(key) +
                         r':\s*[>|][-+]?\s*$')
-    start = next(index for index, line in enumerate(lines)
-                 if marker.match(line))
+    start = next(
+        index for index, line in enumerate(lines) if marker.match(line))
 
     values = []
     for line in lines[start + 1:]:
@@ -94,8 +93,8 @@ def _evaluate_condition_node(node, values):
     if isinstance(node, ast.Expression):
         return _evaluate_condition_node(node.body, values)
     if isinstance(node, ast.BoolOp):
-        operands = (_evaluate_condition_node(value, values)
-                    for value in node.values)
+        operands = (
+            _evaluate_condition_node(value, values) for value in node.values)
         if isinstance(node.op, ast.And):
             return all(operands)
         if isinstance(node.op, ast.Or):
@@ -142,44 +141,34 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
     def _read_workflow(self, name: str) -> str:
         return (ROOT / '.github/workflows' / name).read_text(encoding='utf-8')
 
-    def test_ci_check_filters_label_events_before_job_concurrency(self):
-        workflow = self._read_workflow('ci-checks.yml')
-        jobs = _mapping_block(workflow, 'jobs', 0)
-        job = _mapping_block(jobs, 'check_ci_status', 2)
-        pre_concurrency = _before_mapping(job, 'concurrency', 4)
-        condition = _folded_scalar(pre_concurrency, 'if', 4)
-        concurrency = _mapping_block(job, 'concurrency', 4)
-        concurrency_group = _folded_scalar(concurrency, 'group', 6)
+    def test_release_has_one_default_branch_positive_publisher(self):
+        self.assertFalse((ROOT / '.github/workflows/ci-checks.yml').exists())
+        workflow = self._read_workflow('add-ci-passed-label.yml')
+        self.assertNotIn('workflow_run:', workflow)
+        self.assertNotIn('ci-check-result', workflow)
+        self.assertNotIn('allcheckspassed', workflow)
+        self.assertNotIn('--add-label', workflow)
+        self.assertIn('--remove-label', workflow)
 
-        self.assertEqual(
-            condition,
-            "(github.event.action != 'labeled' && github.event.action != 'unlabeled') || "
-            "(github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') || "
-            "(github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')",
-        )
-
+    def test_release_label_reset_preserves_invalidation_events(self):
+        workflow = self._read_workflow('add-ci-passed-label.yml')
+        job = _mapping_block(
+            _mapping_block(workflow, 'jobs', 0), 'reset_ci_passed_label', 2)
+        condition = _folded_scalar(job, 'if', 4)
         expected_results = {
-            ('opened', ''): True,
             ('synchronize', ''): True,
             ('reopened', ''): True,
-            ('labeled', 'ok-to-test'): True,
-            ('unlabeled', 'needs-ok-to-test'): True,
+            ('labeled', 'needs-ok-to-test'): True,
+            ('unlabeled', 'ok-to-test'): True,
+            ('labeled', 'ok-to-test'): False,
+            ('unlabeled', 'needs-ok-to-test'): False,
             ('labeled', 'dependencies'): False,
-            ('labeled', 'size/M'): False,
-            ('labeled', 'needs-ok-to-test'): False,
-            ('unlabeled', 'ok-to-test'): False,
         }
         for event, expected in expected_results.items():
             with self.subTest(action=event[0], label=event[1]):
                 self.assertEqual(
                     _evaluate_label_condition(condition, *event), expected)
-
-        self.assertFalse(_has_mapping(workflow, 'concurrency', 0))
-        self.assertIn("&& 'head-update' || github.run_id", concurrency_group)
-        self.assertEqual(
-            _plain_scalar(concurrency, 'cancel-in-progress', 6),
-            "${{ github.event.action == 'synchronize' }}",
-        )
+        self.assertNotIn('concurrency:', workflow)
 
     def test_approval_runs_on_open_but_skips_unrelated_labels(self):
         workflow = self._read_workflow('gh-workflow-approve.yml')
@@ -216,21 +205,6 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             _plain_scalar(concurrency, 'cancel-in-progress', 6),
             "${{ github.event.action == 'synchronize' }}",
         )
-
-    def test_eligibility_shell_receives_label_name_through_environment(self):
-        workflow = self._read_workflow('ci-checks.yml')
-        step_start = workflow.index(
-            '      - name: Determine whether CI polling is needed')
-        step_end = workflow.index(
-            '      - name: Wait for action_required workflow runs to be approved'
-        )
-        eligibility_step = workflow[step_start:step_end]
-        shell_script = eligibility_step.split('        run: |', 1)[1]
-
-        self.assertIn('LABEL_NAME: ${{ github.event.label.name }}',
-                      eligibility_step)
-        self.assertNotIn('${{ github.event.label.name }}', shell_script)
-        self.assertIn("reason=\"Added label '${LABEL_NAME}'", shell_script)
 
 
 if __name__ == '__main__':
