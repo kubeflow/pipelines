@@ -8,6 +8,12 @@ paths:
       # job.workflow_ref is a GitHub job-context field gh-aw v0.93 reads; the
       # pattern is pinned to actionlint's exact job-context type signature.
       - '^property "workflow_ref" is not defined in object type \{check_run_id: number; container: \{id: string; network: string\}; services: \{string => \{id: string; network: string; ports: \{string => string\}\}\}; status: string\}$'
+  .github/workflows/frontend-browser-qualification.yml:
+    ignore:
+      # GitHub-hosted preview label absent from the pinned actionlint inventory.
+      # https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md
+      # Keep the runtime github-hosted guard; remove this when actionlint knows the label.
+      - '^label "xcode-27" is unknown\.'
   .github/workflows/upgrade-test.yml:
     ignore:
       # This deliberate checked-in pause is required until #14029 is delivered.
