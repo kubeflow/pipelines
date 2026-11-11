@@ -330,7 +330,7 @@ def verify_old_credentials_rejected(old, current, evidence):
     )
 
 
-def exercise_profile(admin_credentials, evidence):
+def exercise_profile(admin_credentials, evidence, namespace='compat-user'):
     """Check retained data and issue reusable credentials through the
     webhook."""
     # The webhook is invoked directly; installing Metacontroller is unnecessary for this contract test.
@@ -348,8 +348,8 @@ def exercise_profile(admin_credentials, evidence):
             PROFILE_PORT,
             evidence,
         ) as webhook:
-            secret = sync_profile(webhook, 'compat-user')
-            repeated = sync_profile(webhook, 'compat-user', secret)
+            secret = sync_profile(webhook, namespace)
+            repeated = sync_profile(webhook, namespace, secret)
             if repeated['data'] != secret['data']:
                 raise AssertionError(
                     'Profile reconciliation replaced existing credentials'
@@ -360,10 +360,10 @@ def exercise_profile(admin_credentials, evidence):
         )
         user.put_object(
             Bucket=BUCKET,
-            Key='private-artifacts/compat-user/after-upgrade',
+            Key=f'private-artifacts/{namespace}/after-upgrade',
             Body=PAYLOAD,
         )
-        verify_payload(user, 'private-artifacts/compat-user/after-upgrade')
+        verify_payload(user, f'private-artifacts/{namespace}/after-upgrade')
         verify_state(s3)
     return secret
 
@@ -409,6 +409,7 @@ def write_result(evidence, baseline_image, target, pvc_uid):
                     'restart-credentials',
                     'same-pvc',
                     'pre-upgrade-tenant-key-preserved',
+                    'post-upgrade-new-tenant-credentials',
                     'default-credential-rejected-after-restart',
                 ],
             },
@@ -448,6 +449,7 @@ def exercise(evidence, baseline):
     secret = exercise_profile(old_credentials, evidence)
     upgrade_store(storage)
     credentials = current_admin_credentials()
+    exercise_profile(credentials, evidence, namespace='compat-after-upgrade')
     verify_old_credentials_rejected(old_credentials, credentials, evidence)
     verify_after_restart(credentials, secret, pvc_uid, evidence)
     verify_old_credentials_rejected(old_credentials, credentials, evidence)
