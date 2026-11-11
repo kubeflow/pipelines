@@ -77,6 +77,53 @@ class ManifestTest(unittest.TestCase):
             self.assertEqual(key, reference['key'])
             self.assertFalse(reference.get('optional', False))
 
+    def test_go_bootstrap_replaces_permanent_controller(self):
+        self.assertFalse(
+            any(
+                item['kind'] == 'Deployment'
+                and item['metadata']['name'] == 'seaweedfs-credential-rotation'
+                for item in self.resources
+            )
+        )
+        pod = self.resource('Deployment', 'seaweedfs')['spec']['template'][
+            'spec'
+        ]
+        self.assertFalse(pod['automountServiceAccountToken'])
+        init = next(
+            item
+            for item in pod['initContainers']
+            if item['name'] == 'prepare-storage-credentials'
+        )
+        self.assertEqual(
+            init['command'], ['/bin/credential-rotation', '--mode=bootstrap']
+        )
+        self.assertNotIn(':dummy', init['image'])
+        if os.environ.get('OPENSHIFT_RENDERED') == 'true':
+            self.assertNotIn('runAsUser', init.get('securityContext', {}))
+        else:
+            self.assertEqual(1000, init['securityContext']['runAsUser'])
+        self.assertTrue(
+            any(
+                item['name'] == 'POD_NAME'
+                and item['valueFrom']['fieldRef']['fieldPath']
+                == 'metadata.name'
+                for item in init['env']
+            )
+        )
+        self.assertTrue(
+            any(
+                item['name'] == 'bootstrap-api-access'
+                for item in init['volumeMounts']
+            )
+        )
+        for container in pod['containers']:
+            self.assertFalse(
+                any(
+                    item['name'] == 'bootstrap-api-access'
+                    for item in container.get('volumeMounts', [])
+                )
+            )
+
     def test_reconciler_has_no_cluster_role_or_pod_exec(self):
         role = self.resource('Role', 'seaweedfs-credential-rotation')
         for rule in role['rules']:
@@ -88,9 +135,9 @@ class ManifestTest(unittest.TestCase):
     def test_openshift_uses_assigned_identity(self):
         if os.environ.get('OPENSHIFT_RENDERED') != 'true':
             self.skipTest('OpenShift overlay only')
-        pod = self.resource('Deployment', 'seaweedfs-credential-rotation')[
+        pod = self.resource('Deployment', 'seaweedfs')['spec']['template'][
             'spec'
-        ]['template']['spec']
+        ]
         self.assertNotIn('runAsUser', pod.get('securityContext', {}))
         self.assertNotIn('fsGroup', pod.get('securityContext', {}))
 

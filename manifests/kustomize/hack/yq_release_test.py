@@ -44,6 +44,7 @@ class YqReleaseTest(unittest.TestCase):
             'base/installs/generic/pipeline-install-config.yaml',
             'base/pipeline/ml-pipeline-apiserver-deployment.yaml',
             *PLUGIN_PATHS,
+            'third-party/seaweedfs/base/kustomization.yaml',
         )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -65,8 +66,12 @@ class YqReleaseTest(unittest.TestCase):
                 for path in paths:
                     self.assertEqual((root / path).stat().st_mode, modes[path])
                 expected = copy.deepcopy(before)
-                for image in expected[paths[0]]['images']:
-                    image['newTag'] = tag
+                for image_path in (paths[0], paths[-1]):
+                    for image in expected[image_path]['images']:
+                        image['newTag'] = tag
+                    self.assertEqual(
+                        read_yaml(root / image_path), expected[image_path]
+                    )
                 expected[paths[1]]['data']['appVersion'] = tag
                 containers = expected[paths[2]]['spec']['template']['spec'][
                     'containers'

@@ -11,9 +11,6 @@ resources:
 - admin-credentials.yaml
 
 configMapGenerator:
-- name: seaweedfs-credential-rotation
-  files:
-  - rotate-admin-credentials.py
 - name: seaweedfs-s3-auth
   literals:
   - 's3-auth.json={"identities":[]}'

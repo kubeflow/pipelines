@@ -221,7 +221,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "54536d179124d0b7ca9ca1fd79b2a5e96579608def378ddeae386a443196d5f5",
+      "header_sha256": "a95c5cea4275593044bfc0e33fdd4300380b32ede6c5139551947c6ff05c3fd5",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -281,6 +281,13 @@
           "third_party/**",
           "tools/k8s-native/**",
           "uv.lock",
+          "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
+          "manifests/kustomize/third-party/seaweedfs/**",
+          "manifests/kustomize/third-party/argo/**",
+          ".github/resources/scripts/third_party_upgrade_*.py",
+          ".github/workflows/third-party-image-upgrades.yml",
+          "backend/src/agent/credentialrotation/**",
+          "backend/Dockerfile",
           "!**/*.md",
           "!**/OWNERS"
         ]
@@ -1274,14 +1281,18 @@
     {
       "path": ".github/workflows/third-party-image-upgrades.yml",
       "name": "Third-party Image Upgrade Checks",
-      "header_sha256": "f895c0c2c9da3b2f7158724486364d60a381be360db674e96ac1ed19cf1a490b",
+      "header_sha256": "26463ef541a53b27a69f9b9c51f178b7e6e19216ef26b5859e22a31d1cd3b47a",
       "pull_request": {
         "paths": [
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
           "manifests/kustomize/third-party/seaweedfs/**",
           "manifests/kustomize/third-party/argo/**",
           ".github/resources/scripts/third_party_upgrade_*.py",
-          ".github/workflows/third-party-image-upgrades.yml"
+          ".github/workflows/third-party-image-upgrades.yml",
+          "backend/src/agent/credentialrotation/**",
+          "backend/Dockerfile",
+          "go.mod",
+          "go.sum"
         ]
       },
       "merge_group": {
