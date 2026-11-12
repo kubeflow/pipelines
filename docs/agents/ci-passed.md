@@ -105,20 +105,27 @@ triggering run falls through to full reconciliation: its delayed event may have
 replaced another run's invalidation or a PR retarget event in the writer queue.
 
 Successful completion events first inspect current workflow attempts. While another
-constituent is active, they defer the expensive workflow-policy, changed-file and
-retarget-history scan. This is a negative-only result: finalization still reads
-all current check results, with failures taking precedence over pending. Failed
-completion events, malformed evidence and the final completion retain full
-workflow-policy assessment. Scheduled recovery uses the failure-only probe
-described below. No positive evidence is cached across events;
-all pre-publication and post-publication checks remain required for success.
+constituent is active, a trusted intermediate result skips workflow-policy,
+changed-file, retarget-history and full check scans. Finalization still revalidates
+the PR/head/base snapshot and reads the current aggregate status before publication.
+It preserves an existing failure, including one published after preparation;
+unreadable status fails closed. This path can only revoke green or retain a
+non-success status. Newly appearing external failures are assessed on the next
+full reconciliation rather than scanned during each intermediate completion.
+Failed completion events, malformed evidence and the final completion retain full
+workflow-policy and check assessment. If the last workflow finishes after the
+active-run probe, the intermediate result remains non-green; a subsequent final
+completion event or scheduled recovery performs full validation. Scheduled
+recovery uses the failure-only probe described below. No positive evidence is
+cached across events; all pre-publication and post-publication checks remain
+required for success.
 The default-branch publisher applies this behavior to both development and
 release PRs. Requested/in-progress invalidation and push-triggered stale-green
 revocation are unchanged.
 
 When preparation finds expected workflows missing, running, or unsuccessful,
 it passes only that non-success assessment to finalization through trusted job
-outputs. Finalization rereads the PR/head snapshot. Pending results also check
+outputs. Finalization rereads the PR/head snapshot. Ordinary pending results also check
 external results; a prepared failure already blocks success and skips that scan,
 but does not repeat the workflow assessment. If workflows recover between
 steps, the next completion event or recovery sweep can publish success. This
