@@ -203,6 +203,9 @@ def run_attack(case):
             outcome = 'upstream_boundary'
         else:
             outcome = 'inconclusive'
+        # Bound the diagnostic so an unexpected 400 can be classified without
+        # logging the large dummy request or a full server response.
+        print(f'RESPONSE_PREFIX case={case} data={body_prefix[:256]!r}')
         print(
             f'ATTACK_RESULT case={case} status={status} outcome={outcome} elapsed_ms={int((time.monotonic() - started) * 1000)}'
         )
