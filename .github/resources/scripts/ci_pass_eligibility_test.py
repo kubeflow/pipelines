@@ -157,7 +157,7 @@ jobs:
       options.checkStatus || 'completed';
     const conclusion = status !== 'completed' ? null :
       published && options.drift === 'external-failure' ? 'failure' :
-      options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success';
+      options.checkConclusion || (options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success');
     return {data: {total_count: 1, check_runs: [{id: 700, name: 'DCO',
       head_sha: HEAD, app: {id: 1861, slug: 'dco'}, status, conclusion,
       started_at: '2026-09-07T11:00:00Z', completed_at: status === 'completed' ? '2026-09-07T12:00:00Z' : null,
@@ -260,6 +260,11 @@ github.paginate.iterator = async function* () {
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   if (options.labelBeforeFinal) pr.labels.push({name: 'ci-passed'});
   if (options.recoverBeforeFinal) options.conclusion = 'success';
+  if (options.beforeFinalStatus) {status = options.beforeFinalStatus; description = 'Concurrent CI failure';}
+  if (options.finishActiveBeforeFinal && cycle === 0) {
+    if (options.discoveredRunsByCycle) options.discoveredRunsByCycle[cycle] = [];
+    else options.discoveredRuns = [];
+  }
   if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
   if (options.unreadableBeforeFinal) options.pullFailure = true;
   try {

@@ -182,13 +182,16 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
 }
 
-async function publish(github, context, pr, state, description, provisional = false, expectedState = null, expectedId = null, updateLabels = true) {
+async function publish(github, context, pr, state, description, {
+  provisional = false, expectedState = null, expectedId = null, updateLabels = true,
+  requireStatus = false,
+} = {}) {
   let current;
   try {
     current = await currentStatus(github, context, pr.head.sha);
   } catch (error) {
     // A failed read must not prevent invalidating a previously green head.
-    if (state === 'success' || expectedId !== null) throw error;
+    if (state === 'success' || expectedId !== null || requireStatus) throw error;
   }
   // Explicit merged recovery must not overwrite a status changed by another
   // writer after verification. Ordinary reconciliation keeps its existing rules.
@@ -306,8 +309,13 @@ async function invalidateActiveWorkflow({github, context, pr}) {
       run.conclusion != null) {
     throw new Error('Starting workflow has invalid state; inspect CI Check and retry.');
   }
-  await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', true);
+  await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
   return true;
+}
+
+function successfulCompletion(context) {
+  return context.eventName === 'workflow_run' && context.payload.action === 'completed' &&
+    context.payload.workflow_run?.conclusion === 'success';
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
@@ -349,7 +357,8 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
-  await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
+  await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.',
+    {provisional: true, requireStatus: successfulCompletion(context)});
   if (pr.state !== 'open' || blocked(pr)) return;
   if (context.eventName === 'schedule') {
     let reasons = [];
@@ -364,16 +373,10 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
       return;
     }
   }
-  if (context.eventName === 'workflow_run' && context.payload.action === 'completed' &&
-      context.payload.workflow_run.conclusion === 'success') {
+  if (successfulCompletion(context)) {
     let active = false;
     try {
       active = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
-      // An earlier failure may concern an expected workflow that never
-      // registered. Only full policy assessment may reconsider that failure.
-      if (active && (await currentStatus(github, context, pr.head.sha))?.state === 'failure') {
-        active = false;
-      }
     } catch (error) {
       // An optimization failure must not bypass the normal fail-closed checks.
       active = false;
@@ -381,7 +384,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
     }
     if (active) {
       core.setOutput('ready', 'false');
-      core.setOutput('prepared_result', JSON.stringify({state: 'pending',
+      core.setOutput('prepared_result', JSON.stringify({state: 'pending', intermediate: true,
         reasons: ['CI workflows are still running; awaiting final completion.']}));
       return;
     }
@@ -405,6 +408,11 @@ async function finalize({github, context, core, number, head, before, pollPassed
     original = {...pr, head: {...pr.head, sha: head}};
     // Preserve the status on merge; closure without merge still invalidates below.
     if (pr.merged) return;
+    // The always-run finalizer must not turn an interrupted preparation or
+    // failed checker into pending and overwrite an already published failure.
+    if (successfulCompletion(context) && !pollPassed && !pollSkipped) {
+      throw new Error('Completion CI validation did not finish; inspect CI Check and retry.');
+    }
     let state = 'failure';
     let validatedBaseSha;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
@@ -419,6 +427,18 @@ async function finalize({github, context, core, number, head, before, pollPassed
             prepared.reasons.some(reason => typeof reason !== 'string' || !reason)) {
           throw new Error('Invalid prepared non-success result; inspect CI Check and retry.');
         }
+      }
+      if (prepared && Object.hasOwn(prepared, 'intermediate')) {
+        if (prepared.intermediate !== true || prepared.state !== 'pending' ||
+            !successfulCompletion(context)) {
+          throw new Error('Invalid intermediate CI result; inspect CI Check and retry.');
+        }
+        // This result cannot authorize green. Preserve any published failure;
+        // newly discovered external failures wait for final completion/recovery.
+        // Never reuse it for ordinary policy-pending results or later events.
+        await publish(github, context, pr, 'pending', prepared.reasons.join('; '),
+          {provisional: true, requireStatus: true});
+        return;
       }
       // A prior negative assessment can delay green, but can never authorize it.
       // A verified failure already wins over every check state. Pending results
@@ -529,7 +549,7 @@ async function resetRecoveryStatus(github, context, pr, status) {
     try {
       return await publish(github, context, pr, 'pending',
         'Merged recovery needs revalidation; rerun trusted recovery.',
-        false, status.state, status.id, false);
+        {expectedState: status.state, expectedId: status.id, updateLabels: false});
     } catch (error) {
       if (attempt === 2) throw new Error(`Recovery cleanup could not verify its status; rerun trusted recovery: ${error.message}`);
       await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
@@ -593,7 +613,7 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
   if (after.identity !== before) throw new Error('Merged recovery identity changed before publication.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;
   const written = await publish(github, context, after.pr, 'success',
-    successDescription(after.pr, workflows.baseSha), false, 'pending', null, false);
+    successDescription(after.pr, workflows.baseSha), {expectedState: 'pending', updateLabels: false});
   if (!written) return;
   // Publication is not atomic with GitHub's CI state. Recheck and revoke only
   // the exact status this attempt wrote, preserving another writer's update.
