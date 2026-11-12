@@ -35,10 +35,12 @@ spec:
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.namespace
         - name: POD_NAME
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.name
         securityContext:
           runAsUser: 1000
@@ -221,6 +223,7 @@ spec:
               items:
               - path: namespace
                 fieldRef:
+                  apiVersion: v1
                   fieldPath: metadata.namespace
       - name: s3-auth
         configMap:
