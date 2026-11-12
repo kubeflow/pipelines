@@ -56,7 +56,7 @@ require (
 	go.uber.org/zap v1.28.0
 	gocloud.dev v0.47.0
 	golang.org/x/net v0.62.0
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	// Pre-generated Go code (.pb.go files) for a subset of the .proto files found in
 	// googleapis/googleapis both /api and /rpc should be released relatively close to
 	// the googleapis proto files used for kfp-pipeline-spec see GOOGLEAPIS_COMMIT in api/Makefile
