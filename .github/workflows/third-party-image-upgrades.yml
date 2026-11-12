@@ -7,6 +7,8 @@ on:
       - 'manifests/kustomize/third-party/argo/**'
       - '.github/resources/scripts/third_party_upgrade_*.py'
       - '.github/workflows/third-party-image-upgrades.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
+      - '.github/actions/shared-ci-images/**'
       - 'backend/src/agent/credentialrotation/**'
       - 'backend/Dockerfile'
       - 'go.mod'
@@ -24,7 +26,14 @@ concurrency:
   group: third-party-image-upgrades-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  image-artifacts-ready:
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+
   compatibility:
+    needs: image-artifacts-ready
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -76,6 +85,7 @@ jobs:
       - name: Download the verified branch image containing the Go migrator
         uses: ./.github/actions/shared-ci-images
         with:
+          ready-state: ${{ needs.image-artifacts-ready.outputs.state }}
           architecture: amd64
           kind: images
           path: ${{ runner.temp }}/credential-images

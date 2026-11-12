@@ -242,7 +242,7 @@ jobs:
             image-summaries/${{ matrix.name }}.sarif
       - name: Publish verified release branch findings
         id: publish-summary
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@0911ee96d2d6c8def97122c36c5cadd93829a4b4 # v4
         with:
           sarif_file: qualified/image-summaries/${{ matrix.name }}.sarif
           category: release-2.18-image-${{ matrix.name }}-${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}
@@ -271,7 +271,7 @@ jobs:
       # redundant ARM category until GitHub has accepted the combined summary.
       - name: Retire redundant ARM alert category after summary publication
         if: hashFiles(format('qualified/image-summaries/{0}-retire-arm64.sarif', matrix.name)) != ''
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@0911ee96d2d6c8def97122c36c5cadd93829a4b4 # v4
         with:
           sarif_file: qualified/image-summaries/${{ matrix.name }}-retire-arm64.sarif
           category: release-2.18-image-${{ matrix.name }}-arm64

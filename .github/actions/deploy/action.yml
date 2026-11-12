@@ -2,6 +2,9 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  image_ready_state:
+    description: Validated state from this workflow's shared image readiness job
+    default: ''
   cluster_name:
     description: "Kind cluster name"
     default: 'kfp'
@@ -94,6 +97,7 @@ runs:
       if: steps.runtime-image-cache-files.outputs.ready != 'true'
       uses: ./.github/actions/shared-ci-images
       with:
+        ready-state: ${{ inputs.image_ready_state }}
         kind: runtime
         architecture: amd64
         layout: flat
@@ -134,6 +138,7 @@ runs:
     - name: Download shared branch images
       uses: ./.github/actions/shared-ci-images
       with:
+        ready-state: ${{ inputs.image_ready_state }}
         architecture: amd64
         layout: nested
         path: "${{ inputs.image_path }}"
