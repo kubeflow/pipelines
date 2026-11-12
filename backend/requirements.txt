@@ -78,7 +78,7 @@ python-dateutil==2.9.0.post0
     # via
     #   kfp-server-api
     #   kubernetes
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via
     #   kfp
     #   kubernetes
