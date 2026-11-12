@@ -172,6 +172,7 @@ for namespace in "$BENIGN_NAMESPACE" "$ATTACK_NAMESPACE"; do
 done
 
 printf '### Bounded API availability checks\n\n' >> "$SUMMARY_FILE"
+failures=0
 for case in report multipart zip; do
   benign_pod="audit-benign-${case}"
   attack_pod="audit-attack-${case}"
@@ -192,10 +193,11 @@ for case in report multipart zip; do
     echo "Benign client finished before the $case request began" >&2
     exit 1
   fi
+  attack_ok=true
   if ! attack_result="$(kubectl exec -n "$ATTACK_NAMESPACE" "$attack_pod" -c client -- \
     python3 /client/api-availability-client.py "$case")"; then
     echo "Attack request failed or did not reach a valid HTTP boundary: $attack_result" >&2
-    exit 1
+    attack_ok=false
   fi
   if [[ "$(kubectl get pod -n "$BENIGN_NAMESPACE" "$benign_pod" -o jsonpath='{.status.phase}')" != Running ]]; then
     echo "Benign client ended before the $case request finished; overlap is inconclusive" >&2
@@ -225,14 +227,21 @@ PY
   then
     echo "$attack_result" >&2
     echo "$benign_log" | tail -5 >&2
-    exit 1
+    failures=$((failures + 1))
   fi
   benign_result="$(printf '%s\n' "$benign_log" | tail -1)"
   printf '%s: %s; %s\n' "$case" "$attack_result" "$benign_result"
   printf -- '- `%s`: %s; %s\n' "$case" "$attack_result" "$benign_result" >> "$SUMMARY_FILE"
   if [[ "$before" != "$after" ]]; then
     echo "KFP API pod identity or restart count changed during $case: $before -> $after" >&2
-    exit 1
+    failures=$((failures + 1))
+  fi
+  if [[ "$attack_ok" != true ]]; then
+    failures=$((failures + 1))
   fi
   kubectl delete pod -n "$ATTACK_NAMESPACE" "$attack_pod" --wait=false >/dev/null
 done
+if (( failures > 0 )); then
+  echo "$failures availability check(s) failed or were inconclusive" >&2
+  exit 1
+fi
