@@ -127,6 +127,52 @@ class CompatibilityTest(unittest.TestCase):
         iam.list_users.assert_called_once_with()
         iam.close.assert_called_once_with()
 
+    def test_old_credentials_probes_close_plain_sdk_clients(self):
+
+        class ClientError(Exception):
+
+            def __init__(self, status):
+                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+
+        for accepted in (None, 's3', 'iam'):
+            with self.subTest(accepted=accepted):
+                s3 = Mock(spec=['head_bucket', 'close'])
+                iam = Mock(spec=['list_users', 'close'])
+                if accepted != 's3':
+                    s3.head_bucket.side_effect = ClientError(403)
+                if accepted != 'iam':
+                    iam.list_users.side_effect = ClientError(401)
+                with (
+                        patch.dict(
+                            sys.modules, {
+                                'botocore.exceptions':
+                                    SimpleNamespace(ClientError=ClientError),
+                            }),
+                        patch.object(
+                            compatibility,
+                            'forward',
+                            side_effect=lambda *args: nullcontext(
+                                'http://localhost')),
+                        patch.object(compatibility, 'client', return_value=s3),
+                        patch.object(
+                            compatibility, 'iam_client', return_value=iam),
+                ):
+                    if accepted is None:
+                        compatibility.verify_old_credentials_rejected(
+                            ('old', 'old-secret'), ('new', 'new-secret'),
+                            Path('.'))
+                    else:
+                        with self.assertRaisesRegex(AssertionError,
+                                                    'still accepted'):
+                            compatibility.verify_old_credentials_rejected(
+                                ('old', 'old-secret'), ('new', 'new-secret'),
+                                Path('.'))
+                s3.close.assert_called_once_with()
+                if accepted != 's3':
+                    iam.close.assert_called_once_with()
+                else:
+                    iam.close.assert_not_called()
+
     def test_secret_credentials_string_and_encoded_data(self):
         self.assertEqual(
             compatibility.secret_credentials({
