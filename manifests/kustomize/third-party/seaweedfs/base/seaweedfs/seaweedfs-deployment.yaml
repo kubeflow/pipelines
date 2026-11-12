@@ -25,16 +25,74 @@ spec:
           type: RuntimeDefault
         fsGroup: 1000
         fsGroupChangePolicy: "OnRootMismatch"
+      automountServiceAccountToken: false
+      initContainers:
+      - name: prepare-storage-credentials
+        image: ghcr.io/kubeflow/kfp-api-server:dummy
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/credential-rotation", "--mode=bootstrap"]
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+        volumeMounts:
+        - name: bootstrap-api-access
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
       containers:
       - name: seaweedfs
-        envFrom:
-        - secretRef:
-            name: mlpipeline-minio-artifact
+        # Explicit required keys prevent starting against an empty bootstrap Secret.
+        env:
+        - name: accesskey
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: accesskey
+        - name: secretkey
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: secretkey
+        # The separate IAM listener does not read -s3.config. Bootstrap both
+        # listeners with authentication before dynamic identities are registered.
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: accesskey
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-admin-credentials
+              key: secretkey
         image: ghcr.io/chrislusf/seaweedfs:4.50
         args:
         - "server"
         - "-dir=/data"
         - "-s3"
+        # An explicit empty static configuration enables authentication before
+        # postStart registers the dynamic identity, without masking tenant IAM.
+        - "-s3.config=/etc/seaweedfs-auth/s3-auth.json"
         - "-iam"
         - "-filer"
         - "-master.volumePreallocate=false"
@@ -78,7 +136,7 @@ spec:
 
                 # Configure admin user with retries (25s max)
                 for i in $(seq 1 5); do
-                  if echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell 2>&1; then
+                  if echo "s3.configure -user kubeflow-admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" | /usr/bin/weed shell >/dev/null 2>&1; then
                     break
                   fi
                   if [ "$i" -eq 5 ]; then
@@ -144,6 +202,9 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
+        - mountPath: /etc/seaweedfs-auth
+          name: s3-auth
+          readOnly: true
         - mountPath: /data
           name: data
         resources:
@@ -151,6 +212,28 @@ spec:
             cpu: 64m
             memory: 256Mi
       volumes:
+      # Only the short init process receives an API token; the storage server
+      # does not receive the bootstrap Role's permission to create Jobs.
+      - name: bootstrap-api-access
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: token
+              expirationSeconds: 3600
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+              - key: ca.crt
+                path: ca.crt
+          - downwardAPI:
+              items:
+              - path: namespace
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+      - name: s3-auth
+        configMap:
+          name: seaweedfs-s3-auth
       - name: data
         persistentVolumeClaim:
           claimName: seaweedfs-pvc

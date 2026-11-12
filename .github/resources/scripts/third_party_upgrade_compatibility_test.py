@@ -15,16 +15,171 @@
 import io
 import json
 import subprocess
+import sys
 import tempfile
 import unittest
+import urllib.error
 from contextlib import nullcontext
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import third_party_upgrade_compatibility as compatibility
 
 
 class CompatibilityTest(unittest.TestCase):
+    def test_fresh_bootstrap_closes_plain_sdk_clients(self):
+        class ClientError(Exception):
+            def __init__(self, response, operation):
+                self.response = response
+                super().__init__(operation)
+
+        authorized = Mock(spec=['list_users', 'close'])
+        invalid = Mock(spec=['list_users', 'close'])
+        invalid.list_users.side_effect = ClientError(
+            {
+                'Error': {'Code': 'AccessDenied'},
+                'ResponseMetadata': {'HTTPStatusCode': 403},
+            },
+            'ListUsers',
+        )
+        credentials = ('generated-key', 'generated-secret')
+        secret = {
+            'stringData': dict(zip(('accesskey', 'secretkey'), credentials))
+        }
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.dict(
+                sys.modules,
+                {
+                    'botocore.exceptions': SimpleNamespace(
+                        ClientError=ClientError
+                    ),
+                },
+            ),
+            patch.object(compatibility, 'rendered', return_value=[]),
+            patch.object(compatibility, 'apply'),
+            patch.object(compatibility, 'wait_ready'),
+            patch.object(
+                compatibility, 'kubectl', return_value=json.dumps(secret)
+            ),
+            patch.object(
+                compatibility,
+                'forward',
+                side_effect=lambda *args: nullcontext('http://localhost'),
+            ),
+            patch.object(compatibility, 'require_authentication_rejection'),
+            patch.object(
+                compatibility, 'iam_client', side_effect=[authorized, invalid]
+            ),
+            patch.object(compatibility, 'upgrade_store'),
+            patch.object(
+                compatibility,
+                'current_admin_credentials',
+                return_value=credentials,
+            ),
+            patch.object(compatibility, 'verify_manifest_reapply'),
+        ):
+            compatibility.verify_fresh_bootstrap(Path(directory))
+        authorized.list_users.assert_called_once_with()
+        authorized.close.assert_called_once_with()
+        invalid.close.assert_called_once_with()
+
+    def test_workload_drain_closes_plain_sdk_clients(self):
+        s3 = Mock(spec=['head_bucket', 'close'])
+        iam = Mock(spec=['list_users', 'close'])
+        state = {
+            'metadata': {
+                'annotations': {
+                    'pipelines.kubeflow.org/storage-credential-phase': 'DrainingWorkloads'
+                }
+            }
+        }
+
+        def kubectl(*args, **kwargs):
+            if args[:2] == ('get', 'secret'):
+                return json.dumps(state)
+            if args[:2] == ('get', 'pod'):
+                return json.dumps({'status': {'phase': 'Running'}})
+            return ''
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(
+                compatibility, 'storage_image', return_value='seaweedfs:test'
+            ),
+            patch.object(compatibility, 'apply'),
+            patch.object(compatibility, 'kubectl', side_effect=kubectl),
+            patch.object(
+                compatibility,
+                'forward',
+                side_effect=lambda *args: nullcontext('http://localhost'),
+            ),
+            patch.object(compatibility, 'client', return_value=s3),
+            patch.object(compatibility, 'iam_client', return_value=iam),
+            patch.object(compatibility, 'wait_migration_complete'),
+        ):
+            compatibility.verify_workload_drain(
+                [], ('minio', 'minio123'), Path(directory)
+            )
+        s3.head_bucket.assert_called_once_with(Bucket=compatibility.BUCKET)
+        s3.close.assert_called_once_with()
+        iam.list_users.assert_called_once_with()
+        iam.close.assert_called_once_with()
+
+    def test_old_credentials_probes_close_plain_sdk_clients(self):
+        class ClientError(Exception):
+            def __init__(self, status):
+                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+
+        for accepted in (None, 's3', 'iam'):
+            with self.subTest(accepted=accepted):
+                s3 = Mock(spec=['head_bucket', 'close'])
+                iam = Mock(spec=['list_users', 'close'])
+                if accepted != 's3':
+                    s3.head_bucket.side_effect = ClientError(403)
+                if accepted != 'iam':
+                    iam.list_users.side_effect = ClientError(401)
+                with (
+                    patch.dict(
+                        sys.modules,
+                        {
+                            'botocore.exceptions': SimpleNamespace(
+                                ClientError=ClientError
+                            ),
+                        },
+                    ),
+                    patch.object(
+                        compatibility,
+                        'forward',
+                        side_effect=lambda *args: nullcontext(
+                            'http://localhost'
+                        ),
+                    ),
+                    patch.object(compatibility, 'client', return_value=s3),
+                    patch.object(compatibility, 'iam_client', return_value=iam),
+                ):
+                    if accepted is None:
+                        compatibility.verify_old_credentials_rejected(
+                            ('old', 'old-secret'),
+                            ('new', 'new-secret'),
+                            Path('.'),
+                        )
+                    else:
+                        with self.assertRaisesRegex(
+                            AssertionError, 'still accepted'
+                        ):
+                            compatibility.verify_old_credentials_rejected(
+                                ('old', 'old-secret'),
+                                ('new', 'new-secret'),
+                                Path('.'),
+                            )
+                s3.close.assert_called_once_with()
+                if accepted != 's3':
+                    iam.close.assert_called_once_with()
+                else:
+                    iam.close.assert_not_called()
+
     def test_secret_credentials_string_and_encoded_data(self):
         self.assertEqual(
             compatibility.secret_credentials(
@@ -79,6 +234,7 @@ class CompatibilityTest(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch.object(compatibility, 'apply') as apply,
             patch.object(compatibility, 'wait_ready'),
+            patch.object(compatibility, 'wait_migration_complete'),
             patch.object(
                 compatibility,
                 'kubectl',
@@ -170,10 +326,19 @@ class CompatibilityTest(unittest.TestCase):
                 'seed_old_store',
                 return_value=(('user', 'key'), 'pvc'),
             ) as seed,
-            patch.object(compatibility, 'upgrade_store') as upgrade,
+            patch.object(compatibility, 'verify_workload_drain') as upgrade,
+            patch.object(compatibility, 'verify_manifest_reapply'),
             patch.object(compatibility, 'exercise_profile', return_value={}),
             patch.object(compatibility, 'verify_after_restart'),
             patch.object(compatibility, 'write_result') as result,
+            patch.object(
+                compatibility,
+                'current_admin_credentials',
+                return_value=('replacement', 'new-key'),
+            ),
+            patch.object(
+                compatibility, 'verify_old_credentials_rejected'
+            ) as rejected,
         ):
             compatibility.exercise(Path('evidence'), Path('baseline'))
         self.assertEqual(
@@ -182,10 +347,135 @@ class CompatibilityTest(unittest.TestCase):
             / compatibility.SEAWEED.relative_to(compatibility.ROOT),
         )
         self.assertEqual(seed.call_args.args[1], 'baseline:4.49')
-        upgrade.assert_called_once_with('candidate:4.50')
+        upgrade.assert_called_once_with(
+            store('candidate:4.50'), ('user', 'key'), Path('evidence')
+        )
+        self.assertEqual(seed.call_args.args[0], store('baseline:4.49'))
+        self.assertEqual(rejected.call_count, 2)
         result.assert_called_once_with(
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc'
         )
+
+    def test_migration_wait_does_not_treat_draining_as_completion(self):
+        def state(phase):
+            return json.dumps(
+                {
+                    'metadata': {
+                        'annotations': {
+                            'pipelines.kubeflow.org/storage-credential-phase': phase
+                        }
+                    }
+                }
+            )
+
+        with (
+            patch.object(
+                compatibility,
+                'kubectl',
+                side_effect=[
+                    state('DrainingWorkloads'),
+                    state('DefaultRevoked'),
+                    json.dumps({'items': [{'status': {'succeeded': 1}}]}),
+                ],
+            ) as get,
+            patch.object(compatibility.time, 'sleep') as sleep,
+        ):
+            compatibility.wait_migration_complete()
+        self.assertEqual(get.call_count, 3)
+        sleep.assert_called_once_with(2)
+
+    def test_iam_reachability_accepts_method_not_allowed(self):
+        process = Mock()
+        process.poll.return_value = None
+        unavailable_health = urllib.error.HTTPError(
+            'http://fixture/status', 405, 'Method Not Allowed', {}, None
+        )
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(
+                compatibility.subprocess, 'Popen', return_value=process
+            ),
+            patch.object(
+                compatibility.urllib.request,
+                'urlopen',
+                side_effect=unavailable_health,
+            ),
+            patch.object(compatibility.time, 'sleep') as sleep,
+        ):
+            with compatibility.forward(
+                'seaweedfs',
+                compatibility.IAM_LOCAL_PORT,
+                compatibility.IAM_PORT,
+                Path(directory),
+            ) as endpoint:
+                self.assertEqual(
+                    endpoint, f'http://127.0.0.1:{compatibility.IAM_LOCAL_PORT}'
+                )
+        sleep.assert_not_called()
+        process.terminate.assert_called_once()
+
+    def test_bootstrap_probe_requires_explicit_authentication_rejection(self):
+        for status in (401, 403, 404, 500):
+            error = urllib.error.HTTPError(
+                'http://fixture', status, 'fixture', {}, None
+            )
+            with (
+                self.subTest(status=status),
+                patch.object(
+                    compatibility.urllib.request, 'urlopen', side_effect=error
+                ),
+            ):
+                if status in (401, 403):
+                    compatibility.require_authentication_rejection(
+                        'http://fixture'
+                    )
+                else:
+                    with self.assertRaises(urllib.error.HTTPError):
+                        compatibility.require_authentication_rejection(
+                            'http://fixture'
+                        )
+        with patch.object(
+            compatibility.urllib.request, 'urlopen', return_value=nullcontext()
+        ):
+            with self.assertRaisesRegex(AssertionError, 'Unauthenticated'):
+                compatibility.require_authentication_rejection('http://fixture')
+
+    def test_manifest_reapply_preserves_both_runtime_secrets(self):
+        secret = json.dumps(
+            {'metadata': {'uid': 'same'}, 'data': {'key': 'value'}}
+        )
+        with (
+            patch.object(
+                compatibility, 'kubectl', return_value=secret
+            ) as kubectl,
+            patch.object(compatibility, 'apply') as apply,
+            patch.object(compatibility, 'wait_ready'),
+            patch.object(compatibility, 'wait_migration_complete'),
+        ):
+            compatibility.verify_manifest_reapply([])
+        apply.assert_called_once_with([])
+        self.assertEqual(kubectl.call_count, 7)
+        self.assertIn('--server-side', kubectl.call_args_list[4].args)
+
+    def test_manifest_reapply_detects_secret_replacement(self):
+        original = json.dumps(
+            {'metadata': {'uid': 'old'}, 'data': {'key': 'value'}}
+        )
+        replaced = json.dumps(
+            {'metadata': {'uid': 'new'}, 'data': {'key': 'value'}}
+        )
+        with (
+            patch.object(
+                compatibility,
+                'kubectl',
+                side_effect=[original, original, replaced, original],
+            ),
+            patch.object(compatibility, 'apply'),
+        ):
+            with self.assertRaisesRegex(
+                AssertionError, 'Client-side apply changed'
+            ):
+                compatibility.verify_manifest_reapply([])
 
     def test_ambiguous_baseline_image_fails(self):
         with self.assertRaisesRegex(ValueError, 'Expected one'):

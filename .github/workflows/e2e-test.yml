@@ -7,8 +7,6 @@ env:
   PYTHON_VERSION: "3.11"
   USER_NAMESPACE: "kubeflow-user-example-com"
   CA_CERT_PATH: ""
-  AWS_ACCESS_KEY_ID: 'minio'
-  AWS_SECRET_ACCESS_KEY: 'minio123'
   AWS_S3_BUCKET: 'mlpipeline'
   MLFLOW_TRACKING_URI: "https://localhost:8080/mlflow"
   MLFLOW_TRACKING_INSECURE_TLS: "true"
@@ -522,6 +520,17 @@ jobs:
           image_tag: latest
           image_registry: kind-registry:5000
           load_modelcar_fixture: 'true'
+
+      - name: Read generated storage credentials for MLflow fixtures
+        if: ${{ steps.deploy.outcome == 'success' }}
+        shell: bash
+        run: |
+          kubectl -n "$NAMESPACE" wait --for='jsonpath={.metadata.annotations.pipelines\.kubeflow\.org/storage-credential-phase}=DefaultRevoked' secret/seaweedfs-admin-credentials --timeout=600s
+          access_key=$(kubectl -n "$NAMESPACE" get secret mlpipeline-minio-artifact -o jsonpath='{.data.accesskey}' | base64 -d)
+          secret_key=$(kubectl -n "$NAMESPACE" get secret mlpipeline-minio-artifact -o jsonpath='{.data.secretkey}' | base64 -d)
+          echo "::add-mask::$access_key"
+          echo "::add-mask::$secret_key"
+          printf 'AWS_ACCESS_KEY_ID=%s\nAWS_SECRET_ACCESS_KEY=%s\n' "$access_key" "$secret_key" >> "$GITHUB_ENV"
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow

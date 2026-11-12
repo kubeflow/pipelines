@@ -389,8 +389,8 @@ class ReadinessWorkflowTest(unittest.TestCase):
                 '.github/workflows/shared-ci-images-ready.yml',
                 events['pull_request']['paths'],
             )
-        self.assertEqual(callers, 8)
-        self.assertEqual(consumers, 14)
+        self.assertEqual(callers, 9)
+        self.assertEqual(consumers, 15)
 
     def test_readiness_propagates_failure_and_consumers_keep_safe_default(self):
         workflow = yaml.safe_load(

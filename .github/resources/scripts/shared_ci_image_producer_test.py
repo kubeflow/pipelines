@@ -16,6 +16,7 @@ CONSUMERS = (
     'kfp-kubernetes-native-migration-tests.yaml',
     'kfp-sdk-client-tests.yml',
     'kfp-webhooks.yml',
+    'third-party-image-upgrades.yml',
     'arm64-presubmit.yml',
     'upgrade-test.yml',
 )
@@ -226,6 +227,11 @@ assert.deepEqual(calls, ['pulls/23', 'pulls/23/files?per_page=100', 'pulls/23'])
                 'pull_request',
                 '.github/workflows/arm64-presubmit.yml',
                 {'amd64': False, 'arm64': True},
+            ),
+            (
+                'pull_request',
+                '.github/workflows/third-party-image-upgrades.yml',
+                {'amd64': True, 'arm64': False},
             ),
             (
                 'pull_request',

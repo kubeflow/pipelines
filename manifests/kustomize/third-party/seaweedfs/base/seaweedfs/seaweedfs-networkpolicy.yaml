@@ -13,6 +13,7 @@ spec:
           - kubeflow-profile
     ports:
     - port: 8333
+      protocol: TCP
   - from:
     - namespaceSelector:
         matchExpressions:
@@ -24,14 +25,19 @@ spec:
     - podSelector: {}
     ports:
     - port: 8333
+      protocol: TCP
   # The same-namespace rule above covers only S3. Keep IAM access scoped to
-  # the profile controller instead of exposing port 8111 to every local pod.
+  # the profile controller and migration Job, not every local pod.
   - from:
     - podSelector:
         matchLabels:
           app: kubeflow-pipelines-profile-controller
+    - podSelector:
+        matchLabels:
+          app: seaweedfs-credential-rotation
     ports:
     - port: 8111
+      protocol: TCP
   podSelector:
     matchExpressions:
     - key: app

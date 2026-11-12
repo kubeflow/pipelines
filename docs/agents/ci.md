@@ -9,7 +9,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 `ci-images.yml` (`Shared CI Images`) is the application-image producer for the
 active integration workflows. It invokes `image-builds.yml` once per required
-architecture: seven AMD64 images shared by six workflows, and seven ARM64 images
+architecture: seven AMD64 images shared by seven workflows, and seven ARM64 images
 for the ARM smoke. Each consumer workflow calls `shared-ci-images-ready.yml`
 once before its deployment jobs. That job resolves the required runtime and
 application artifacts together and passes the exact immutable IDs and producer
@@ -405,7 +405,14 @@ advisory/package/location results.
 ## Third-party image upgrade checks
 
 `third-party-image-upgrades.yml` reads baseline images from the PR base commit
-(or the explicit manual baseline ref) and candidate images from the tested head.
+(or the explicit manual baseline ref) and candidate images from the tested source.
+Its compatibility job checks out the PR merge revision so it can consume the
+exact shared API-server image containing the Go credential migrator. The shared
+image action verifies source/attempt provenance before the harness loads the
+API-server archive into Kind; the test never substitutes a released API image
+that lacks the new binary. Keep this consumer in the shared architecture planner
+and trigger inventory. The Go migration tests and fresh-install/drain checks run
+alongside the storage upgrade contract.
 The Kind component check preserves S3 objects, lifecycle rules and profile-issued
 IAM credentials on the same PVC across a SeaweedFS upgrade and restart. It invokes
 the actual profile webhook without Metacontroller; it does not run an MLMD,
