@@ -141,6 +141,8 @@ and image scans and advisory triage. Removing default holds does not bypass merg
 requirements, suppress findings or replace release acceptance.
 
 Release 2.18 freezes `ml-metadata`: the active release pip schedule and release-local
-inventory ignore all direct MLMD version updates. Keep the other dependencies in
+inventory ignore all direct MLMD version updates. The active release Docker schedule
+also ignores `tfx-oss-public/ml_metadata_store_server`, including its Kubernetes
+manifest references. Keep the other dependencies in
 those projects scheduled. This does not remove MLMD from dependency resolution or
 waive advisory triage; any necessary MLMD change requires explicit review.

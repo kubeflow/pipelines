@@ -26,6 +26,7 @@ on:
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/arm64-presubmit.yml'
       - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
       - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'

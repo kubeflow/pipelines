@@ -36,7 +36,9 @@ def add_node_affinity(
     Args:
         task: Pipeline task.
         match_expressions: List of dicts for matchExpressions (keys: key, operator, values).
+            ``values`` must be a list of strings, e.g. ``['prod']``, not a plain string.
         match_fields: List of dicts for matchFields (keys: key, operator, values).
+            ``values`` must be a list of strings, e.g. ``['node-1']``, not a plain string.
         weight: If set, this affinity is preferred (K8s weight 1-100); otherwise required.
 
     Returns:
@@ -66,8 +68,8 @@ def add_node_affinity(
 
 
 def validate_node_affinity(node_affinity_json: dict):
-    """
-    Validates a Python dictionary against the Kubernetes V1NodeAffinity model.
+    """Validates a Python dictionary against the Kubernetes V1NodeAffinity
+    model.
 
     Args:
         node_affinity_json: A dictionary representing a Kubernetes NodeAffinity object.
@@ -93,8 +95,8 @@ def add_node_affinity_json(
     task: PipelineTask,
     node_affinity_json: Union[pipeline_channel.PipelineParameterChannel, dict],
 ) -> PipelineTask:
-    """Add a node affinity constraint to the task Pod's ``nodeAffinity``.
-    using a JSON struct or pipeline parameter.
+    """Add a node affinity constraint to the task Pod's ``nodeAffinity``. using
+    a JSON struct or pipeline parameter.
 
     This allows parameterized node affinity to be specified,
     matching the Kubernetes NodeAffinity schema:
@@ -147,8 +149,15 @@ def _add_affinity_terms(
                 f'Must be one of {sorted(valid_operators)}.'
             )
 
+        values = selector.get('values', [])
+        if isinstance(values, str):
+            raise TypeError(
+                f"'values' for key '{key}' in {term_kind} must be a list of "
+                f'strings, got str: {values!r}.'
+            )
+
         affinity_list.add(
             key=key,
             operator=operator,
-            values=selector.get('values', []),
+            values=values,
         )

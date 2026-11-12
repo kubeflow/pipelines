@@ -35,6 +35,8 @@ const options = JSON.parse(process.argv[2]);
 const root = process.argv[3];
 const HEAD = options.mergedRecovery || options.verifyRecovery ? 'a'.repeat(40) : 'head';
 const calls = [], outputs = {}, descriptions = [], targetUrls = [];
+const requestCounts = {pr: 0, pulls: 0, currentRun: 0, inventory: 0, timeline: 0,
+  files: 0, runs: 0, checks: 0, base: 0, associated: 0, statuses: 0, history: 0};
 const workflowName = options.workflowName || 'frontend.yml';
 let cycle = 0;
 let pr = {
@@ -50,8 +52,9 @@ if (options.oldHead) eventPR.head.sha = 'old-head';
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
   eventName: options.schedule ? 'schedule' : options.workflowRun ? 'workflow_run' : 'pull_request_target',
   payload: {pull_request: eventPR, action: options.action || 'opened',
-    workflow_run: {event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
-      head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'}}}};
+    workflow_run: {id: 42, run_attempt: options.runAttempt || 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
+      head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'},
+      ...options.eventRun}}};
 if (options.mergedRecovery) {
   context.eventName = 'workflow_dispatch';
   context.ref = options.dispatchRef || 'refs/heads/master';
@@ -72,7 +75,12 @@ let description = options.initialDescription;
 let statusTarget = options.initialTargetUrl;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
-methods.runs = async () => ({data: {total_count: 0, workflow_runs: []}});
+methods.runs = async () => {
+  requestCounts.runs++;
+  const records = options.discoveredRunsByCycle?.[cycle] || options.discoveredRuns || [];
+  if (options.discoveredRunsFailure) throw Error('Workflow runs unavailable');
+  return {data: {total_count: options.discoveredTotal ?? records.length, workflow_runs: records}};
+};
 methods.associated = {};
 const statusHistory = options.statusHistory || [];
 if (options.initialStatus) statusHistory.push({context: 'ci-passed',
@@ -87,6 +95,7 @@ const github = {graphql: async (query, variables) => {
     }
     return {repository};
   }
+  requestCounts.inventory++;
   calls.push(['base-workflows', variables]);
   if (options.inventoryFailure) throw Error('Workflow tree unavailable');
   const content = `name: Frontend
@@ -108,6 +117,7 @@ jobs:
   pulls: {listFiles: methods.files, list: methods.pulls,
     get: async request => {
       pullReads += 1;
+      requestCounts.pr++;
       if (options.pullFailure) throw Error('Pull read unavailable');
       if (options.finalizeReadFailure && pullReads === 2) throw Error('Pull read unavailable');
       if (request.pull_number === 100) return {data: {
@@ -122,19 +132,32 @@ jobs:
       }
       return {data: structuredClone(pr)};
     }},
-  actions: {listWorkflowRunsForRepo: methods.runs, getWorkflowRun: async ({run_id}) => ({data: {
-    id: run_id, path: '.github/workflows/ci-checks.yml', event: 'workflow_dispatch',
-    head_branch: 'master', repository: {full_name: 'kubeflow/pipelines'},
-    head_repository: {full_name: 'kubeflow/pipelines'}, status: 'completed',
-    conclusion: 'failure', ...options.priorRun,
-  }})},
+  actions: {listWorkflowRunsForRepo: methods.runs, getWorkflowRun: async ({run_id}) => {
+    requestCounts.currentRun++;
+    if (options.workflowRun && ['requested', 'in_progress'].includes(options.action)) {
+      if (options.startReadFailure) throw Error('Starting run unavailable');
+      const state = options.runStatus || 'in_progress';
+      return {data: {id: run_id, run_attempt: options.runAttempt || 1,
+        path: '.github/workflows/frontend.yml', event: 'pull_request',
+        head_sha: HEAD, head_branch: 'feature', repository: {full_name: 'kubeflow/pipelines'},
+        head_repository: {full_name: 'contributor/pipelines'}, status: state,
+        conclusion: state === 'completed' ? 'success' : null, ...options.startRun}};
+    }
+    return {data: {
+      id: run_id, path: '.github/workflows/ci-checks.yml', event: 'workflow_dispatch',
+      head_branch: 'master', repository: {full_name: 'kubeflow/pipelines'},
+      head_repository: {full_name: 'kubeflow/pipelines'}, status: 'completed',
+      conclusion: 'failure', ...options.priorRun,
+    }};
+  }},
   checks: {listForRef: async () => {
+    requestCounts.checks++;
     if (options.checkApiFailure || (published && options.postCheckFailure)) throw Error('Checks API unavailable');
     const status = published && options.drift === 'external-rerun' ? 'in_progress' :
       options.checkStatus || 'completed';
     const conclusion = status !== 'completed' ? null :
       published && options.drift === 'external-failure' ? 'failure' :
-      options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success';
+      options.checkConclusion || (options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success');
     return {data: {total_count: 1, check_runs: [{id: 700, name: 'DCO',
       head_sha: HEAD, app: {id: 1861, slug: 'dco'}, status, conclusion,
       started_at: '2026-09-07T11:00:00Z', completed_at: status === 'completed' ? '2026-09-07T12:00:00Z' : null,
@@ -184,20 +207,26 @@ jobs:
     }
     return {data: {id: statusId - (options.otherWriter && request.state === 'success' ? 1 : 0)}};
   }},
-  git: {getRef: async () => ({data: {object: {sha: baseTip}}})},
+  git: {getRef: async () => {
+    requestCounts.base++;
+    return {data: {object: {sha: baseTip}}};
+  }},
 }, paginate: async (method, params) => {
-  if (method === methods.statuses) return statusHistory;
-  if (method === methods.files) return [{filename: 'frontend/src/mlmd/Api.ts'}];
-  if (method === methods.pulls) return options.ambiguous ? [pr, {...pr, number: 8}] : [pr];
+  if (method === methods.statuses) {requestCounts.history++; return statusHistory;}
+  if (method === methods.files) {requestCounts.files++; return [{filename: 'frontend/src/mlmd/Api.ts'}];}
+  if (method === methods.pulls) {requestCounts.pulls++; return options.ambiguous ? [pr, {...pr, number: 8}] : [pr];}
   if (method === methods.timeline) {
+    requestCounts.timeline++;
     if (options.apiFailure) throw Error('API unavailable');
     return options.retarget ? [{event: 'base_ref_changed', created_at: '2026-09-07T12:00:00Z'}] : [];
   }
   if (method === methods.associated) {
+    requestCounts.associated++;
     if (options.associationFailure) throw Error('Associated PRs API unavailable');
     return [{number: 100, merge_commit_sha: baseTip}];
   }
   if (method === methods.runs) {
+    requestCounts.runs++;
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
     return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
@@ -210,9 +239,10 @@ jobs:
 }};
 github.paginate.iterator = async function* () {
   statusReads += 1;
+  requestCounts.statuses++;
   if (options.statusRace && statusReads === 4) status = options.statusRace;
   if (options.retryWriter && statusReads === 6) {statusId += 1; status = options.retryWriter;}
-  if (options.statusReadFailure || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
+  if (options.statusReadFailure || statusReads === options.statusReadFailureAt || (options.rollbackReadFailure && statusReads >= 5 && (options.rollbackReadFailure === 'always' || statusReads === 5))) throw Error('Status read unavailable');
   yield {data: {statuses: status ? [{id: statusId, context: 'ci-passed', state: status, description, target_url: statusTarget}] : []}};
 };
 (async () => {
@@ -220,21 +250,33 @@ github.paginate.iterator = async function* () {
   const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
   for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
   context.runId = 99 + cycle;
+  for (const key of Object.keys(outputs)) delete outputs[key];
   try {await (options.mergedRecovery ? (gate.prepareMergedRecovery || gate.prepare) : gate.prepare)({number: 7, head: options.wrongRecoveryHead ? 'f'.repeat(40) : HEAD, github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
+  if (options.beforeFinalDrift === 'head') pr.head.sha = 'new-head';
+  if (options.beforeFinalDrift === 'base') pr.base.ref = 'release';
+  if (options.beforeFinalDrift === 'base-sha') pr.base.sha = 'new-base';
+  if (options.beforeFinalDrift === 'hold') pr.labels = [{name: 'needs-ok-to-test'}];
+  if (options.beforeFinalDrift === 'closed') pr.state = 'closed';
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   if (options.labelBeforeFinal) pr.labels.push({name: 'ci-passed'});
   if (options.recoverBeforeFinal) options.conclusion = 'success';
+  if (options.beforeFinalStatus) {status = options.beforeFinalStatus; description = 'Concurrent CI failure';}
+  if (options.finishActiveBeforeFinal && cycle === 0) {
+    if (options.discoveredRunsByCycle) options.discoveredRunsByCycle[cycle] = [];
+    else options.discoveredRuns = [];
+  }
   if (options.mergeBeforeFinal) {pr.merged = true; pr.state = 'closed';}
   if (options.unreadableBeforeFinal) options.pullFailure = true;
   try {
     await (options.mergedRecovery ? (gate.finalizeMergedRecovery || gate.finalize) : gate.finalize)({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
+      preparedResult: options.preparedResultOverride ?? (!error ? outputs.prepared_result : ''),
       pollSkipped: outputs.ready === 'false' && !error,
       pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
   const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
-  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels}));
+  console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels, requestCounts}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run(
@@ -1114,14 +1156,12 @@ async function run(liveTip) {
         self.assertEqual(result['descriptions'], [reason[:140]])
         self.assertEqual(len(result['descriptions'][0]), 140)
 
-    def test_evidence_recovery_stays_pending_when_poller_was_skipped(self):
+    def test_negative_evidence_waits_for_next_reconciliation_to_recover(self):
         result = exercise({'conclusion': 'skipped', 'recoverBeforeFinal': True})
         self.assertEqual(result['outputs']['ready'], 'false')
-        self.assert_last_status(result, 'pending')
-        self.assertEqual(
-            result['descriptions'][-1],
-            'CI changed since initial assessment; awaiting check validation.',
-        )
+        self.assert_last_status(result, 'failure')
+        self.assertIn('completed/skipped', result['descriptions'][-1])
+        self.assert_last_status(exercise({'workflowRun': True}), 'success')
 
     def test_queued_recovery_invalidates_success_when_checks_change(self):
         result = exercise(
@@ -1488,7 +1528,7 @@ const statuses = {
   pending: {state: 'pending', description: 'some pending'},
   blocked: {state: 'success', description: successDesc(B1)},
 };
-const prs = FLIP === 'status-pagination'
+let prs = FLIP === 'status-pagination'
   ? [{number: 1, head: {sha: 'fresh'}, base: {ref: BRANCH, sha: B1}, labels: []}]
   : [
   {number: 1, head: {sha: 'stale'}, base: {ref: BRANCH, sha: B1}, labels: []},
@@ -1499,27 +1539,60 @@ const prs = FLIP === 'status-pagination'
   {number: 6, head: {sha: 'blocked'}, base: {ref: BRANCH, sha: B1},
     labels: [{name: 'needs-ok-to-test'}]},
 ];
+const hash = value => crypto.createHash('sha1').update(value).digest('hex');
+if (FLIP === 'many-failed') {
+  prs = Array.from({length: 122}, (_, i) => {
+    const name = `failed-${i}`;
+    statuses[name] = {state: 'failure', description: 'some failure'};
+    return {number: i + 1, head: {sha: name}, base: {ref: BRANCH, sha: B1}, labels: []};
+  });
+}
+const names = new Map(prs.map(pr => [hash(pr.head.sha), pr.head.sha]));
+for (const pr of prs) pr.head.sha = hash(pr.head.sha);
 const listCalls = [];
+const batchSizes = [];
+let statusReads = 0;
 const writes = [];
 const github = {
+  graphql: async (query, variables) => {
+    const repository = {nameWithOwner: 'kubeflow/pipelines'};
+    const heads = Object.entries(variables).filter(([key]) => key.startsWith('sha'));
+    batchSizes.push(heads.length);
+    for (const [key, oid] of heads) {
+      const status = statuses[names.get(oid)];
+      repository[`head${key.slice(3)}`] = {__typename: 'Commit',
+        oid: FLIP === 'malformed-batch' ? 'wrong-head' : oid,
+        status: {context: status ? {context: 'ci-passed',
+          state: status.state.toUpperCase(), description: status.description} : null}};
+    }
+    if (FLIP === 'fresh-after-batch') statuses.stale = {state: 'success', description: successDesc(TIP)};
+    if (FLIP === 'negative-after-batch') statuses.stale = {state: 'pending', description: 'Rerun started'};
+    return {repository};
+  },
   rest: {pulls: {list: {}},
     git: {getRef: async request => {refCalls.push(request.ref); return {data: {object: {sha: nextLiveTip()}}};}},
     repos: {
     getCombinedStatusForRef: async ({ref}) => ({
-      data: {statuses: statuses[ref] ?
-        [{context: 'ci-passed', ...statuses[ref]}] : []}}),
+      data: {statuses: statuses[names.get(ref)] ?
+        [{context: 'ci-passed', ...statuses[names.get(ref)]}] : []}}),
     createCommitStatus: async request => {writes.push(request);},
   }},
   paginate: async (method, params) => {listCalls.push(params); return prs;},
 };
 github.paginate.iterator = async function* (method, params) {
-  yield {data: {statuses: [{context: 'other', state: 'success'}]}};
-  if (FLIP === 'status-pagination') statusPaginationFlip = true;
+  if (FLIP === 'status-pagination') {
+    statusReads++;
+    yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+    statusPaginationFlip = true;
+  }
+  statusReads++;
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7, eventName: EVENT, ref: `refs/heads/${BRANCH}`};
 revokeStaleGreens({github, context, tip: TIP}).then(count => {
-  console.log(JSON.stringify({count, writes, listCalls, refCalls}));
+  console.log(JSON.stringify({count,
+    writes: writes.map(write => ({...write, sha: names.get(write.sha)})),
+    listCalls, refCalls, batchSizes, statusReads}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
 
@@ -1566,6 +1639,32 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
         self.assertEqual(actual['listCalls'][0]['base'], 'master')
         self.assertEqual(actual['listCalls'][0]['state'], 'open')
         self.assertEqual(actual['listCalls'][0]['per_page'], 100)
+
+    def test_push_revocation_batches_failed_heads_without_individual_reads(
+        self,
+    ):
+        actual = self._run_revoke('c' * 40, 'c' * 40, flip='many-failed')
+        self.assertEqual(actual['writes'], [])
+        self.assertEqual(actual['batchSizes'], [50, 50, 22])
+        self.assertEqual(actual['statusReads'], 0)
+        self.assertEqual(len(actual['refCalls']), 1)
+        self.assertEqual(len(actual['listCalls']), 1)
+
+    def test_push_revocation_rechecks_concurrent_fresh_or_negative_status(self):
+        for flip in ('fresh-after-batch', 'negative-after-batch'):
+            with self.subTest(flip=flip):
+                actual = self._run_revoke('c' * 40, 'c' * 40, flip=flip)
+                self.assertEqual(
+                    [w['sha'] for w in actual['writes']], ['legacy']
+                )
+                self.assertEqual(actual['statusReads'], 2)
+
+    def test_push_revocation_rejects_malformed_batch(self):
+        with self.assertRaises(subprocess.CalledProcessError) as raised:
+            self._run_revoke('c' * 40, 'c' * 40, flip='malformed-batch')
+        self.assertIn(
+            'Incomplete recovery commit response', raised.exception.stderr
+        )
 
     def test_push_revocation_bails_when_master_has_advanced(self):
         # A delayed job for an older push (tip=B1) must not revoke a green
