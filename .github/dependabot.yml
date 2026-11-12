@@ -270,6 +270,9 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # MLMD stays frozen on 2.18; image upgrades require explicit review.
+      - dependency-name: "tfx-oss-public/ml_metadata_store_server"
     groups:
       # The controller injects argoexec into workflow pods, so update the two
       # runtime images together when Dependabot finds a new release.

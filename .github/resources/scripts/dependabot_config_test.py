@@ -66,6 +66,19 @@ class DependabotConfigTest(unittest.TestCase):
                 {'dependency-name': 'ml-metadata'}, pip.get('ignore', [])
             )
 
+    def test_release_ml_metadata_image_updates_are_disabled(self):
+        docker = self.release_update('docker')
+        image = 'tfx-oss-public/ml_metadata_store_server'
+        rules = docker.get('ignore', [])
+        self.assertIn({'dependency-name': image}, rules)
+        for other_image in ('mysql', 'postgres', 'argoproj/argoexec'):
+            self.assertFalse(
+                any(
+                    fnmatchcase(other_image, rule['dependency-name'])
+                    for rule in rules
+                )
+            )
+
     def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
         docker = next(
             update
