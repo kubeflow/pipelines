@@ -1682,11 +1682,8 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to run fetching error", runId)
 	}
 	if run.ImportedFrom != "" {
-		if r.logArchive == nil {
-			return util.NewFailedPreconditionError(errors.New("log archive is not configured"),
-				"Run %s is imported history. Configure access to its archived logs to read them", runId)
-		}
-		return r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
+		return util.NewFailedPreconditionError(errors.New("imported run logs have no trusted local ownership binding"),
+			"Logs for imported historical run %s are unavailable through this installation. Use a separately authorized logging or storage system", runId)
 	}
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
@@ -1763,6 +1760,10 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 
 // Fetches execution logs from a archived pod logs.
 func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer) error {
+	if common.IsMultiUserMode() {
+		return util.NewFailedPreconditionError(errors.New("shared archived log ownership is not established"),
+			"Archived logs are unavailable in multi-user mode. Use a separately authorized logging or storage system")
+	}
 	if workflowManifest == "" {
 		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeID)
 	}

@@ -90,6 +90,13 @@ export function getPodLogsHandler(
     res.setHeader('Content-Disposition', 'attachment');
     res.type('text/plain');
 
+    // Namespace viewer permission does not authorize arbitrary pod logs or
+    // workflow-selected objects through shared UI credentials.
+    if (authEnabled) {
+      res.status(403).send('Multi-user pod logs require the run-authorized API server route');
+      return;
+    }
+
     if (!req.query.podname) {
       res.status(400).send('podname argument is required');
       return;
@@ -100,12 +107,6 @@ export function getPodLogsHandler(
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
     const podNamespace = decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
-
-    // In multi-user mode, namespace must be explicit so authz cannot be bypassed.
-    if (authEnabled && !podNamespace) {
-      res.status(422).send('podnamespace argument is required');
-      return;
-    }
 
     // Check access to namespace if podNamespace is provided
     if (podNamespace) {

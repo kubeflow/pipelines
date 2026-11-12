@@ -292,8 +292,8 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
   registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
-  /** Pod logs - conditionally stream through API server, otherwise directly from k8s and archive */
-  if (options.artifacts.streamLogsFromServerApi) {
+  /** Multi-user logs always use API run authorization and pod ownership checks. */
+  if (options.auth.enabled || options.artifacts.streamLogsFromServerApi) {
     app.all(
       ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
       hardenPodLogsProxyRequest,
