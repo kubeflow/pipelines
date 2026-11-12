@@ -16,10 +16,10 @@ from contextlib import nullcontext
 import io
 import json
 from pathlib import Path
-from types import SimpleNamespace
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
