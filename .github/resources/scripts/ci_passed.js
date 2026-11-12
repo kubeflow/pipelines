@@ -12,7 +12,7 @@
 'use strict';
 
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
-const {verifyCheckRuns} = require('./ci_check_runs');
+const {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
 
 function isDevelopmentBranch(ref) {
@@ -126,17 +126,21 @@ async function revokeStaleGreens({github, context, tip}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', base: branch, per_page: 100,
   });
+  const unblocked = prs.filter(pr => !blocked(pr));
+  const statuses = await readRecoveryStatuses({github, ...context.repo,
+    heads: unblocked.map(pr => pr.head.sha)});
   let revoked = 0;
-  for (const pr of prs) {
-    if (blocked(pr)) continue;
+  for (const pr of unblocked) {
+    const candidate = statuses.get(pr.head.sha);
+    if (candidate?.state !== 'success' || candidate.description === successDescription(pr, tip)) continue;
+    // Discovery never authorizes a write: a concurrent reconciler may already
+    // have replaced this stale green with a fresh success or a negative result.
     const status = await currentStatus(github, context, pr.head.sha);
+    if (status?.state !== 'success' || status.description === successDescription(pr, tip)) continue;
     // Revalidate AFTER reading the status: the combined-status lookup can
     // paginate, and the branch may advance mid-read publishing a fresher success.
     const {data: liveRef} = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
     if (liveRef.object.sha !== tip) return revoked;
-    // Never revoke a head without a ci-passed success.
-    if (status?.state !== 'success') continue;
-    if (status.description === successDescription(pr, tip)) continue;
     await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state: 'failure',
       description: `Base advanced; re-test against new ${branch}.`,
@@ -232,7 +236,7 @@ async function publish(github, context, pr, state, description, provisional = fa
 }
 
 async function freshAfter(github, context, pr) {
-  // Read durable history on EVERY reconciliation. A queued edited event may
+  // Read durable history for every workflow assessment. A queued edited event may
   // be replaced by another event; a label or rerun must not erase retargeting.
   const events = await github.paginate(github.rest.issues.listEventsForTimeline, {
     ...context.repo, issue_number: pr.number, per_page: 100,
@@ -279,6 +283,33 @@ async function evidence(github, context, pr, root) {
   return {...result, baseSha};
 }
 
+async function invalidateActiveWorkflow({github, context, pr}) {
+  const eventRun = context.payload.workflow_run;
+  if (!Number.isSafeInteger(eventRun.id) || eventRun.id <= 0 ||
+      !Number.isSafeInteger(eventRun.run_attempt) || eventRun.run_attempt <= 0) {
+    throw new Error('Starting workflow has invalid run identity; inspect CI Check and retry.');
+  }
+  const {data: run} = await github.rest.actions.getWorkflowRun({
+    ...context.repo, run_id: eventRun.id,
+  });
+  if (run.id !== eventRun.id || run.event !== 'pull_request' ||
+      run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      run.head_sha !== pr.head.sha || run.head_branch !== pr.head.ref ||
+      run.head_repository?.full_name !== pr.head.repo.full_name ||
+      !Number.isSafeInteger(run.run_attempt) || run.run_attempt < eventRun.run_attempt) {
+    throw new Error('Starting workflow identity changed or is incomplete; inspect CI Check and retry.');
+  }
+  // A delayed event can replace another run's invalidation in the writer queue.
+  // A completed triggering run therefore still needs head-wide verification.
+  if (run.status === 'completed') return false;
+  if (!['queued', 'requested', 'waiting', 'pending', 'in_progress'].includes(run.status) ||
+      run.conclusion != null) {
+    throw new Error('Starting workflow has invalid state; inspect CI Check and retry.');
+  }
+  await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', true);
+  return true;
+}
+
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
   let pr;
   try {
@@ -297,6 +328,22 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   // is skipped (it bails when number/head are unset) and cannot republish a
   // failure over the merged head.
   if (pr.merged) return;
+  if (context.eventName === 'workflow_run' &&
+      ['requested', 'in_progress'].includes(context.payload.action)) {
+    try {
+      if (await invalidateActiveWorkflow({github, context, pr})) return;
+    } catch (error) {
+      // Preserve a merge that completed while the run lookup was failing.
+      try {
+        if ((await readPR(github, context, pr.number)).merged) return;
+      } catch (_) {
+        // Unreadable evidence must still revoke any earlier success.
+      }
+      await publish(github, context, pr, 'failure',
+        'Cannot verify starting workflow; inspect CI Check and retry.');
+      throw error;
+    }
+  }
   // Set the identity before any further API operation so the always() step
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
@@ -304,12 +351,51 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.', true);
   if (pr.state !== 'open' || blocked(pr)) return;
+  if (context.eventName === 'schedule') {
+    let reasons = [];
+    try {
+      reasons = await workflowFailures({github, ...context.repo, sha: pr.head.sha});
+    } catch (error) {
+      core.info(`Cannot probe recovery workflow failures: ${error.message}`);
+    }
+    if (reasons.length) {
+      core.setOutput('ready', 'false');
+      core.setOutput('prepared_result', JSON.stringify({state: 'failure', reasons}));
+      return;
+    }
+  }
+  if (context.eventName === 'workflow_run' && context.payload.action === 'completed' &&
+      context.payload.workflow_run.conclusion === 'success') {
+    let active = false;
+    try {
+      active = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
+      // An earlier failure may concern an expected workflow that never
+      // registered. Only full policy assessment may reconsider that failure.
+      if (active && (await currentStatus(github, context, pr.head.sha))?.state === 'failure') {
+        active = false;
+      }
+    } catch (error) {
+      // An optimization failure must not bypass the normal fail-closed checks.
+      active = false;
+      core.info(`Cannot coalesce CI completion: ${error.message}`);
+    }
+    if (active) {
+      core.setOutput('ready', 'false');
+      core.setOutput('prepared_result', JSON.stringify({state: 'pending',
+        reasons: ['CI workflows are still running; awaiting final completion.']}));
+      return;
+    }
+  }
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));
   core.setOutput('ready', String(result.passed));
+  if (!result.passed) {
+    core.setOutput('prepared_result', JSON.stringify({state: result.state, reasons: result.reasons}));
+  }
 }
 
 async function finalize({github, context, core, number, head, before, pollPassed, pollSkipped = false,
+  preparedResult = '',
   root = process.env.GITHUB_WORKSPACE}) {
   if (!number || !head) return;
   let original = {number: Number(number), head: {sha: head}};
@@ -324,13 +410,26 @@ async function finalize({github, context, core, number, head, before, pollPassed
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
       'PR changed or is closed; complete current-head CI and retry.';
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
+      let prepared;
+      if (preparedResult !== '') {
+        prepared = JSON.parse(preparedResult);
+        if (!pollSkipped || pollPassed || !prepared ||
+            !['pending', 'failure'].includes(prepared.state) ||
+            !Array.isArray(prepared.reasons) || prepared.reasons.length === 0 ||
+            prepared.reasons.some(reason => typeof reason !== 'string' || !reason)) {
+          throw new Error('Invalid prepared non-success result; inspect CI Check and retry.');
+        }
+      }
+      // A prior negative assessment can delay green, but can never authorize it.
+      // A verified failure already wins over every check state. Pending results
+      // still require a fresh check scan so an external failure takes precedence.
       const [workflows, checks] = await Promise.all([
-        evidence(github, context, pr, root),
-        verifyCheckRuns({github, ...context.repo, sha: head}),
+        prepared || evidence(github, context, pr, root),
+        prepared?.state === 'failure' ? null : verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
       validatedBaseSha = workflows.baseSha;
       core.info(JSON.stringify({workflows, checks}));
-      const results = [workflows, checks];
+      const results = checks ? [workflows, checks] : [workflows];
       state = results.some(result => result.state === 'failure') ? 'failure' :
         results.some(result => result.state === 'pending') ? 'pending' : 'success';
       reason = results.filter(result => result.state === state)

@@ -19,6 +19,7 @@ on:
       - '.github/workflows/upgrade-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
       - '.github/actions/shared-ci-images/**'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
@@ -43,7 +44,15 @@ permissions:
   contents: read
 
 jobs:
+  image-artifacts-ready:
+    if: ${{ false }}
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/shared-ci-images-ready.yml
+
   upgrade-test:
+    needs: image-artifacts-ready
     # TODO(#14029): Remove this checked-in pause once the MLMD-to-native migration and startup gate are implemented.
     if: ${{ false }}
     runs-on: ubuntu-latest
@@ -139,6 +148,7 @@ jobs:
         if: ${{ steps.prepare-upgrade.outcome == 'success' }}
         id: deploy
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
