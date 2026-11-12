@@ -597,7 +597,7 @@ def verify_old_credentials_rejected(old, current, evidence):
         (IAM_LOCAL_PORT, IAM_PORT, iam_client, 'list_users', {}),
     ):
         with forward('seaweedfs', local, port, evidence) as endpoint:
-            with factory(endpoint, *old) as probe:
+            with closing(factory(endpoint, *old)) as probe:
                 try:
                     getattr(probe, method)(**arguments)
                 except ClientError as error:
