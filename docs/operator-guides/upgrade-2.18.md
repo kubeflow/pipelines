@@ -70,7 +70,8 @@ check; also verify the workloads and integrations below.
   a disabled schedule stays disabled. Check retained progress and concurrency
   behavior for those schedules.
 - Open the UI and test the viewers and storage paths you use: TensorBoard,
-  artifact previews/downloads, and archived logs after their original Pod is gone.
+  artifact previews/downloads, and live logs. Before testing historical logs,
+  review [log-access compatibility](#log-access-security-maintenance-changes).
   You do not need to enable unused features to verify the upgrade.
 - Test applicable custom service accounts, roles, storage integrations, and
   private-pipeline lookups. The [RBAC guide](rbac-migration-2.18.md) provides
@@ -253,6 +254,17 @@ Updating the server does not update installed SDKs, interpreters, or compiled
 component images. Generic container components that do not install the SDK acquire
 no Python requirement from the server upgrade.
 
+### SDK security maintenance changes
+
+Merged fixes for the next 2.18 maintenance SDK validate Google inverse-proxy
+endpoints before selecting ambient Google credentials and prevent component task
+outputs from being interpreted as Python code by the local orchestrator. Explicit
+credential providers retain precedence over automatic Google credentials. These
+fixes are not in SDK 2.18.0; upgrade `kfp` in notebook, development and automation
+environments when the containing SDK is released. Updating server images alone
+does not fix these clients. The evaluator change applies to local pipeline
+execution, not hosted API-server execution.
+
 ### Private pip mirrors
 
 Newly compiled lightweight components and component-image builds no longer infer
@@ -360,9 +372,33 @@ namespaces, then check the new Pod template before rollout status. Preserve cust
 Secret mounts and authentication through your own provisioning configuration.
 See the [custom-storage rollout procedure](https://github.com/kubeflow/pipelines/blob/release-2.18/manifests/kustomize/README.md#upgrade-example-custom-s3-storage).
 
-Archived logs use a separate path through the shared UI. Test an archived log after
-its original Pod is gone; a successful namespace artifact read does not verify the
-shared UI's network access or credentials.
+Historical log access has different authorization requirements from artifact
+reads. Review the following maintenance-change compatibility notes; a successful
+artifact download does not establish that archived logs remain accessible.
+
+## Log-access security maintenance changes
+
+The following changes are proposed for a subsequent 2.18 maintenance release;
+they are not included in 2.18.0. Check the containing release notes before rollout.
+
+In multi-user mode, the frontend sends log requests through the API server's
+`readLog` path. Each request must identify a run, and the API server verifies that
+the requested Pod belongs to that authorized run. Only the `main` container's logs
+are available through this path. Custom callers that request a Pod's logs without
+a run ID, or select another container, must use a separately authorized logging
+interface instead.
+
+Historical archive reads fail closed in multi-user mode: the frontend's archive
+fallback and the API server's archived-log reader are disabled. Once the original
+Pod is gone, retrieve old logs through a logging or storage system that authorizes
+the caller independently. Imported run histories cannot be used to read local
+shared archives in either multi-user or standalone installations. Standalone
+archive retrieval for native runs remains supported.
+
+Upgrade the frontend and API server together and roll out all replicas. Updating
+only one component does not establish the complete authorization boundary. Verify
+live logs for a representative native run and confirm that historical-log users
+have access to the separately authorized system before relying on it.
 
 ## Multi-user scheduling during the upgrade
 

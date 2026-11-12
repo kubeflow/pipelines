@@ -220,3 +220,20 @@ segments remain rejected. A tracked directory prefix may end in one `/` without
 changing the URI sent to metadata or storage. Inventory unusual historical keys
 and test their actual authenticated read path; standalone storage success does
 not establish authenticated compatibility.
+
+### Pod log access
+
+With `ENABLE_AUTHZ=true`, `/k8s/pod/logs` always uses the API server's run-log
+endpoint, even when `STREAM_LOGS_FROM_SERVER_API=false`. Requests must include
+`runid` and `podname`; the API checks `readLog` permission for the run and verifies
+that the pod belongs to it. `podnamespace` does not select the authorization
+scope. The endpoint returns the `main` container's logs; a custom
+`POD_LOG_CONTAINER_NAME` only applies to standalone direct reads.
+
+Upgrade the UI and API server together. Multi-user archive fallbacks are disabled
+because workflow and ConfigMap references do not establish object ownership.
+Use a separately authorized logging or storage system for historical logs.
+Imported run histories cannot read archives using the API server's local storage
+credentials, including in standalone mode. Standalone native runs retain their
+existing direct and archive behavior. Changing to standalone mode is not a
+multi-user compatibility workaround.

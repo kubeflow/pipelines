@@ -29,7 +29,7 @@ vi.mock('../workflow-helper.js', () => ({
 
 import { getPodLogsHandler } from './pod-logs.js';
 
-function makeHandler() {
+function makeHandler(authEnabled = false) {
   return getPodLogsHandler(
     {
       archiveArtifactory: 'minio',
@@ -44,7 +44,7 @@ function makeHandler() {
     },
     'main',
     vi.fn() as unknown as AuthorizeFn,
-    false,
+    authEnabled,
   );
 }
 
@@ -67,6 +67,21 @@ function makeResponse() {
 describe('getPodLogsHandler stream failures', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('rejects direct multi-user reads before Kubernetes or archive access', async () => {
+    const response = makeResponse();
+    const request = makeRequest();
+    request.query.podnamespace = 'tenant-a';
+    const logs = new PassThrough();
+    getPodLogsStream.mockResolvedValue(logs);
+    await makeHandler(true)(request, response, vi.fn());
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.send).toHaveBeenCalledWith(
+      'Multi-user pod logs require the run-authorized API server route',
+    );
+    expect(getPodLogsStream).not.toHaveBeenCalled();
+    logs.destroy();
   });
 
   it('serves pod logs as a plain-text attachment with MIME sniffing disabled', async () => {
