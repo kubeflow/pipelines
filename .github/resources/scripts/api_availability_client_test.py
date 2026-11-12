@@ -2,6 +2,7 @@
 
 import importlib.util
 import io
+import json
 import struct
 import unittest
 from contextlib import redirect_stdout
@@ -78,7 +79,11 @@ class AvailabilityClientTest(unittest.TestCase):
         path, body, content_type = request.call_args.args
         self.assertEqual(path, '/apis/v2/workflows')
         self.assertEqual(content_type, 'application/json')
-        self.assertTrue(body.startswith(b'"xxx'))
+        workflow = json.loads(body)
+        self.assertTrue(workflow.startswith('{"kind": "Workflow"'))
+        self.assertIn(
+            '"metadata": {"namespace": "kfp-audit-attacker"', workflow
+        )
         self.assertEqual(body.count(b'x'), 16 << 20)
 
     def test_attack_needs_handler_marker_or_explicit_boundary(self):
@@ -86,7 +91,7 @@ class AvailabilityClientTest(unittest.TestCase):
             with mock.patch.object(
                 CLIENT,
                 'report_request',
-                return_value=(400, b'Could not unmarshal workflow'),
+                return_value=(400, b'The workflow must have a name'),
             ):
                 self.assertEqual(CLIENT.run_attack('report'), 0)
             with mock.patch.object(

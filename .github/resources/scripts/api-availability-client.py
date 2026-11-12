@@ -38,8 +38,17 @@ def request_status(path, body, content_type):
 
 def report_request():
     # The HTTP annotation maps the body directly to the string workflow field.
-    # A valid outer JSON string carries invalid workflow JSON to the handler.
-    body = json.dumps('x' * (16 << 20)).encode('ascii')
+    # An ignored field makes parsing expensive without echoing the padding in
+    # the validation error, which would distort the response path.
+    workflow = json.dumps(
+        {
+            'kind': 'Workflow',
+            'apiVersion': 'argoproj.io/v1alpha1',
+            'metadata': {'namespace': ATTACK_NAMESPACE, 'uid': 'dummy'},
+            'padding': 'x' * (16 << 20),
+        }
+    )
+    body = json.dumps(workflow).encode('ascii')
     return request_status('/apis/v2/workflows', body, 'application/json')
 
 
@@ -191,7 +200,7 @@ def run_attack(case):
     try:
         status, body_prefix = attacks[case]()
         handler_marker = (
-            b'Could not unmarshal workflow'
+            b'The workflow must have a name'
             if case == 'report'
             else b'File size too large'
             if case == 'multipart'
