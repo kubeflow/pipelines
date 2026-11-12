@@ -1,0 +1,734 @@
+{
+  "apiVersion": "argoproj.io/v1alpha1",
+  "kind": "Workflow",
+  "metadata": {
+    "annotations": {
+      "pipelines.kubeflow.org/run_name": "mlmd-migration-218-metrics",
+      "workflows.argoproj.io/pod-name-format": "v2",
+      "workflows.argoproj.io/trace-id": "d2149ff69e927b6a39725b4140516156"
+    },
+    "labels": {
+      "pipeline/persistedFinalState": "true",
+      "pipeline/runid": "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+      "workflows.argoproj.io/completed": "true",
+      "workflows.argoproj.io/phase": "Succeeded"
+    },
+    "name": "output-metrics-59hc2",
+    "namespace": "kubeflow"
+  },
+  "spec": {
+    "arguments": {
+      "parameters": [
+        {
+          "name": "components-ab5b53a52a65c78da1d8dcfca19f7568d6844ad951c971baa75d318f6528cd97",
+          "value": "{\"executorLabel\":\"exec-output-metrics\",\"outputDefinitions\":{\"artifacts\":{\"metrics\":{\"artifactType\":{\"schemaTitle\":\"system.Metrics\",\"schemaVersion\":\"0.0.1\"}}}}}"
+        },
+        {
+          "name": "implementations-ab5b53a52a65c78da1d8dcfca19f7568d6844ad951c971baa75d318f6528cd97",
+          "value": "{\"args\":[\"--executor_input\",\"{{$}}\",\"--function_to_execute\",\"output_metrics\"],\"command\":[\"sh\",\"-c\",\"\\nif ! [ -x \\\"$(command -v pip)\\\" ]; then\\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\\nfi\\n\\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0' '--no-deps' 'typing-extensions\\u003e=3.7.4,\\u003c5; python_version\\u003c\\\"3.9\\\"' \\u0026\\u0026 \\\"$0\\\" \\\"$@\\\"\\n\",\"sh\",\"-ec\",\"program_path=$(mktemp -d)\\n\\nprintf \\\"%s\\\" \\\"$0\\\" \\u003e \\\"$program_path/ephemeral_component.py\\\"\\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \\\"$program_path/ephemeral_component.py\\\"                         \\\"$@\\\"\\n\",\"\\nimport kfp\\nfrom kfp import dsl\\nfrom kfp.dsl import *\\nfrom typing import *\\n\\ndef output_metrics(metrics: Output[Metrics]):\\n    \\\"\\\"\\\"Dummy component that outputs metrics with a random accuracy.\\\"\\\"\\\"\\n    import random\\n    result = random.randint(0, 100)\\n    metrics.log_metric('accuracy', result)\\n\\n\"],\"image\":\"python:3.11\"}"
+        },
+        {
+          "name": "components-root",
+          "value": "{\"dag\":{\"outputs\":{\"artifacts\":{\"metrics\":{\"artifactSelectors\":[{\"outputArtifactKey\":\"metrics\",\"producerSubtask\":\"output-metrics\"}]}}},\"tasks\":{\"output-metrics\":{\"cachingOptions\":{\"enableCache\":true},\"componentRef\":{\"name\":\"comp-output-metrics\"},\"taskInfo\":{\"name\":\"output-metrics\"}}}},\"outputDefinitions\":{\"artifacts\":{\"metrics\":{\"artifactType\":{\"schemaTitle\":\"system.Metrics\",\"schemaVersion\":\"0.0.1\"}}}}}"
+        }
+      ]
+    },
+    "entrypoint": "entrypoint",
+    "podMetadata": {
+      "annotations": {
+        "pipelines.kubeflow.org/v2_component": "true"
+      },
+      "labels": {
+        "pipeline/runid": "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+        "pipelines.kubeflow.org/v2_component": "true"
+      }
+    },
+    "securityContext": {
+      "runAsNonRoot": true,
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "serviceAccountName": "pipeline-runner",
+    "templateDefaults": {
+      "inputs": {},
+      "metadata": {},
+      "outputs": {},
+      "retryStrategy": {
+        "limit": "2",
+        "retryPolicy": "OnError"
+      }
+    },
+    "templates": [
+      {
+        "container": {
+          "args": [
+            "--type",
+            "CONTAINER",
+            "--pipeline_name",
+            "output-metrics",
+            "--run_id",
+            "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+            "--run_name",
+            "{{workflow.name}}",
+            "--run_display_name",
+            "mlmd-migration-218-metrics",
+            "--pipeline_job_create_time_utc",
+            "{{workflow.creationTimestamp}}",
+            "--dag_execution_id",
+            "{{inputs.parameters.parent-dag-id}}",
+            "--component",
+            "{{inputs.parameters.component}}",
+            "--task",
+            "{{inputs.parameters.task}}",
+            "--task_name",
+            "{{inputs.parameters.task-name}}",
+            "--container",
+            "{{inputs.parameters.container}}",
+            "--iteration_index",
+            "{{inputs.parameters.iteration-index}}",
+            "--cached_decision_path",
+            "{{outputs.parameters.cached-decision.path}}",
+            "--pod_spec_patch_path",
+            "{{outputs.parameters.pod-spec-patch.path}}",
+            "--condition_path",
+            "{{outputs.parameters.condition.path}}",
+            "--kubernetes_config",
+            "{{inputs.parameters.kubernetes-config}}",
+            "--http_proxy",
+            "",
+            "--https_proxy",
+            "",
+            "--no_proxy",
+            "",
+            "--ml_pipeline_server_address",
+            "ml-pipeline.kubeflow.svc.cluster.local",
+            "--ml_pipeline_server_port",
+            "8887",
+            "--mlmd_server_address",
+            "metadata-grpc-service.kubeflow.svc.cluster.local",
+            "--mlmd_server_port",
+            "8080",
+            "--cache_disabled=false",
+            "--log_level",
+            "1",
+            "--publish_logs",
+            "true",
+            "--ml_pipeline_tls_enabled=false",
+            "--metadata_tls_enabled=false",
+            "--ca_cert_path",
+            ""
+          ],
+          "command": [
+            "driver"
+          ],
+          "env": [
+            {
+              "name": "KFP_POD_NAME",
+              "valueFrom": {
+                "fieldRef": {
+                  "fieldPath": "metadata.name"
+                }
+              }
+            },
+            {
+              "name": "KFP_POD_UID",
+              "valueFrom": {
+                "fieldRef": {
+                  "fieldPath": "metadata.uid"
+                }
+              }
+            }
+          ],
+          "image": "ghcr.io/kubeflow/kfp-driver:2.18.0",
+          "name": "",
+          "resources": {
+            "limits": {
+              "cpu": "500m",
+              "memory": "512Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "64Mi"
+            }
+          },
+          "securityContext": {
+            "allowPrivilegeEscalation": false,
+            "capabilities": {
+              "drop": [
+                "ALL"
+              ]
+            },
+            "runAsNonRoot": true,
+            "seccompProfile": {
+              "type": "RuntimeDefault"
+            }
+          },
+          "terminationMessagePolicy": "FallbackToLogsOnError"
+        },
+        "inputs": {
+          "parameters": [
+            {
+              "name": "component"
+            },
+            {
+              "name": "task"
+            },
+            {
+              "name": "container"
+            },
+            {
+              "name": "task-name"
+            },
+            {
+              "name": "parent-dag-id"
+            },
+            {
+              "default": "-1",
+              "name": "iteration-index"
+            },
+            {
+              "default": "",
+              "name": "kubernetes-config"
+            }
+          ]
+        },
+        "metadata": {
+          "annotations": {
+            "pipelines.kubeflow.org/runtime-role": "driver",
+            "pipelines.kubeflow.org/v2_component": "true",
+            "sidecar.istio.io/inject": "false"
+          }
+        },
+        "name": "system-container-driver",
+        "outputs": {
+          "parameters": [
+            {
+              "name": "pod-spec-patch",
+              "valueFrom": {
+                "default": "",
+                "path": "/tmp/outputs/pod-spec-patch"
+              }
+            },
+            {
+              "default": "false",
+              "name": "cached-decision",
+              "valueFrom": {
+                "default": "false",
+                "path": "/tmp/outputs/cached-decision"
+              }
+            },
+            {
+              "name": "condition",
+              "valueFrom": {
+                "default": "true",
+                "path": "/tmp/outputs/condition"
+              }
+            }
+          ]
+        },
+        "securityContext": {
+          "runAsNonRoot": true,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        }
+      },
+      {
+        "dag": {
+          "tasks": [
+            {
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "pod-spec-patch",
+                    "value": "{{inputs.parameters.pod-spec-patch}}"
+                  }
+                ]
+              },
+              "name": "executor",
+              "template": "system-container-impl",
+              "when": "{{inputs.parameters.cached-decision}} != true"
+            }
+          ]
+        },
+        "inputs": {
+          "parameters": [
+            {
+              "name": "pod-spec-patch"
+            },
+            {
+              "default": "false",
+              "name": "cached-decision"
+            }
+          ]
+        },
+        "metadata": {
+          "annotations": {
+            "pipelines.kubeflow.org/v2_component": "true",
+            "sidecar.istio.io/inject": "false"
+          }
+        },
+        "name": "system-container-executor",
+        "outputs": {}
+      },
+      {
+        "container": {
+          "command": [
+            "should-be-overridden-during-runtime"
+          ],
+          "env": [
+            {
+              "name": "KFP_POD_NAME",
+              "valueFrom": {
+                "fieldRef": {
+                  "fieldPath": "metadata.name"
+                }
+              }
+            },
+            {
+              "name": "KFP_POD_UID",
+              "valueFrom": {
+                "fieldRef": {
+                  "fieldPath": "metadata.uid"
+                }
+              }
+            }
+          ],
+          "envFrom": [
+            {
+              "configMapRef": {
+                "name": "metadata-grpc-configmap",
+                "optional": true
+              }
+            }
+          ],
+          "image": "gcr.io/ml-pipeline/should-be-overridden-during-runtime",
+          "name": "",
+          "resources": {},
+          "securityContext": {
+            "allowPrivilegeEscalation": false,
+            "capabilities": {
+              "drop": [
+                "ALL"
+              ]
+            },
+            "seccompProfile": {
+              "type": "RuntimeDefault"
+            }
+          },
+          "terminationMessagePolicy": "FallbackToLogsOnError",
+          "volumeMounts": [
+            {
+              "mountPath": "/kfp-launcher",
+              "name": "kfp-launcher"
+            },
+            {
+              "mountPath": "/gcs",
+              "name": "gcs-scratch"
+            },
+            {
+              "mountPath": "/s3",
+              "name": "s3-scratch"
+            },
+            {
+              "mountPath": "/minio",
+              "name": "minio-scratch"
+            },
+            {
+              "mountPath": "/.local",
+              "name": "dot-local-scratch"
+            },
+            {
+              "mountPath": "/.cache",
+              "name": "dot-cache-scratch"
+            },
+            {
+              "mountPath": "/.config",
+              "name": "dot-config-scratch"
+            }
+          ]
+        },
+        "initContainers": [
+          {
+            "args": [
+              "--copy",
+              "/kfp-launcher/launch"
+            ],
+            "command": [
+              "launcher-v2"
+            ],
+            "image": "ghcr.io/kubeflow/kfp-launcher:2.18.0",
+            "name": "kfp-launcher",
+            "resources": {
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "requests": {
+                "cpu": "100m"
+              }
+            },
+            "securityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationMessagePolicy": "FallbackToLogsOnError",
+            "volumeMounts": [
+              {
+                "mountPath": "/kfp-launcher",
+                "name": "kfp-launcher"
+              }
+            ]
+          }
+        ],
+        "inputs": {
+          "parameters": [
+            {
+              "name": "pod-spec-patch"
+            }
+          ]
+        },
+        "metadata": {
+          "annotations": {
+            "pipelines.kubeflow.org/runtime-role": "launcher",
+            "pipelines.kubeflow.org/v2_component": "true",
+            "sidecar.istio.io/inject": "false"
+          }
+        },
+        "name": "system-container-impl",
+        "outputs": {},
+        "podSpecPatch": "{{inputs.parameters.pod-spec-patch}}",
+        "securityContext": {
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "volumes": [
+          {
+            "emptyDir": {},
+            "name": "kfp-launcher"
+          },
+          {
+            "emptyDir": {},
+            "name": "gcs-scratch"
+          },
+          {
+            "emptyDir": {},
+            "name": "s3-scratch"
+          },
+          {
+            "emptyDir": {},
+            "name": "minio-scratch"
+          },
+          {
+            "emptyDir": {},
+            "name": "dot-local-scratch"
+          },
+          {
+            "emptyDir": {},
+            "name": "dot-cache-scratch"
+          },
+          {
+            "emptyDir": {},
+            "name": "dot-config-scratch"
+          }
+        ]
+      },
+      {
+        "dag": {
+          "tasks": [
+            {
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "component",
+                    "value": "{{workflow.parameters.components-ab5b53a52a65c78da1d8dcfca19f7568d6844ad951c971baa75d318f6528cd97}}"
+                  },
+                  {
+                    "name": "task",
+                    "value": "{\"cachingOptions\":{\"enableCache\":true},\"componentRef\":{\"name\":\"comp-output-metrics\"},\"taskInfo\":{\"name\":\"output-metrics\"}}"
+                  },
+                  {
+                    "name": "container",
+                    "value": "{{workflow.parameters.implementations-ab5b53a52a65c78da1d8dcfca19f7568d6844ad951c971baa75d318f6528cd97}}"
+                  },
+                  {
+                    "name": "task-name",
+                    "value": "output-metrics"
+                  },
+                  {
+                    "name": "parent-dag-id",
+                    "value": "{{inputs.parameters.parent-dag-id}}"
+                  }
+                ]
+              },
+              "name": "output-metrics-driver",
+              "template": "system-container-driver"
+            },
+            {
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "pod-spec-patch",
+                    "value": "{{tasks.output-metrics-driver.outputs.parameters.pod-spec-patch}}"
+                  },
+                  {
+                    "default": "false",
+                    "name": "cached-decision",
+                    "value": "{{tasks.output-metrics-driver.outputs.parameters.cached-decision}}"
+                  }
+                ]
+              },
+              "depends": "output-metrics-driver.Succeeded",
+              "name": "output-metrics",
+              "template": "system-container-executor"
+            }
+          ]
+        },
+        "inputs": {
+          "parameters": [
+            {
+              "name": "parent-dag-id"
+            }
+          ]
+        },
+        "metadata": {
+          "annotations": {
+            "pipelines.kubeflow.org/v2_component": "true",
+            "sidecar.istio.io/inject": "false"
+          }
+        },
+        "name": "root",
+        "outputs": {}
+      },
+      {
+        "container": {
+          "args": [
+            "--type",
+            "{{inputs.parameters.driver-type}}",
+            "--pipeline_name",
+            "output-metrics",
+            "--run_id",
+            "be2ae7cc-da75-4cbb-bdb6-25145b26ae52",
+            "--run_name",
+            "{{workflow.name}}",
+            "--run_display_name",
+            "mlmd-migration-218-metrics",
+            "--pipeline_job_create_time_utc",
+            "{{workflow.creationTimestamp}}",
+            "--dag_execution_id",
+            "{{inputs.parameters.parent-dag-id}}",
+            "--component",
+            "{{inputs.parameters.component}}",
+            "--task",
+            "{{inputs.parameters.task}}",
+            "--task_name",
+            "{{inputs.parameters.task-name}}",
+            "--runtime_config",
+            "{{inputs.parameters.runtime-config}}",
+            "--iteration_index",
+            "{{inputs.parameters.iteration-index}}",
+            "--execution_id_path",
+            "{{outputs.parameters.execution-id.path}}",
+            "--iteration_count_path",
+            "{{outputs.parameters.iteration-count.path}}",
+            "--condition_path",
+            "{{outputs.parameters.condition.path}}",
+            "--http_proxy",
+            "",
+            "--https_proxy",
+            "",
+            "--no_proxy",
+            "",
+            "--ml_pipeline_server_address",
+            "ml-pipeline.kubeflow.svc.cluster.local",
+            "--ml_pipeline_server_port",
+            "8887",
+            "--mlmd_server_address",
+            "metadata-grpc-service.kubeflow.svc.cluster.local",
+            "--mlmd_server_port",
+            "8080",
+            "--cache_disabled=false",
+            "--log_level",
+            "1",
+            "--publish_logs",
+            "true",
+            "--ml_pipeline_tls_enabled=false",
+            "--metadata_tls_enabled=false",
+            "--ca_cert_path",
+            ""
+          ],
+          "command": [
+            "driver"
+          ],
+          "image": "ghcr.io/kubeflow/kfp-driver:2.18.0",
+          "name": "",
+          "resources": {
+            "limits": {
+              "cpu": "500m",
+              "memory": "512Mi"
+            },
+            "requests": {
+              "cpu": "100m",
+              "memory": "64Mi"
+            }
+          },
+          "securityContext": {
+            "allowPrivilegeEscalation": false,
+            "capabilities": {
+              "drop": [
+                "ALL"
+              ]
+            },
+            "runAsNonRoot": true,
+            "seccompProfile": {
+              "type": "RuntimeDefault"
+            }
+          },
+          "terminationMessagePolicy": "FallbackToLogsOnError"
+        },
+        "inputs": {
+          "parameters": [
+            {
+              "name": "component"
+            },
+            {
+              "default": "",
+              "name": "runtime-config"
+            },
+            {
+              "default": "",
+              "name": "task"
+            },
+            {
+              "default": "",
+              "name": "task-name"
+            },
+            {
+              "default": "0",
+              "name": "parent-dag-id"
+            },
+            {
+              "default": "-1",
+              "name": "iteration-index"
+            },
+            {
+              "default": "DAG",
+              "name": "driver-type"
+            }
+          ]
+        },
+        "metadata": {
+          "annotations": {
+            "pipelines.kubeflow.org/runtime-role": "driver",
+            "pipelines.kubeflow.org/v2_component": "true",
+            "sidecar.istio.io/inject": "false"
+          }
+        },
+        "name": "system-dag-driver",
+        "outputs": {
+          "parameters": [
+            {
+              "name": "execution-id",
+              "valueFrom": {
+                "path": "/tmp/outputs/execution-id"
+              }
+            },
+            {
+              "name": "iteration-count",
+              "valueFrom": {
+                "default": "0",
+                "path": "/tmp/outputs/iteration-count"
+              }
+            },
+            {
+              "name": "condition",
+              "valueFrom": {
+                "default": "true",
+                "path": "/tmp/outputs/condition"
+              }
+            }
+          ]
+        },
+        "securityContext": {
+          "runAsNonRoot": true,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        }
+      },
+      {
+        "dag": {
+          "tasks": [
+            {
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "component",
+                    "value": "{{workflow.parameters.components-root}}"
+                  },
+                  {
+                    "name": "runtime-config",
+                    "value": "{}"
+                  },
+                  {
+                    "name": "driver-type",
+                    "value": "ROOT_DAG"
+                  }
+                ]
+              },
+              "name": "root-driver",
+              "template": "system-dag-driver"
+            },
+            {
+              "arguments": {
+                "parameters": [
+                  {
+                    "name": "parent-dag-id",
+                    "value": "{{tasks.root-driver.outputs.parameters.execution-id}}"
+                  },
+                  {
+                    "name": "condition",
+                    "value": ""
+                  }
+                ]
+              },
+              "depends": "root-driver.Succeeded",
+              "name": "root",
+              "template": "root"
+            }
+          ]
+        },
+        "inputs": {},
+        "metadata": {
+          "annotations": {
+            "pipelines.kubeflow.org/v2_component": "true",
+            "sidecar.istio.io/inject": "false"
+          }
+        },
+        "name": "entrypoint",
+        "outputs": {}
+      }
+    ],
+    "ttlStrategy": {
+      "secondsAfterCompletion": 3600,
+      "secondsAfterFailure": 3600,
+      "secondsAfterSuccess": 3600
+    }
+  },
+  "status": {
+    "finishedAt": "2026-11-03T20:29:26Z",
+    "phase": "Succeeded",
+    "progress": "3/3",
+    "startedAt": "2026-11-03T20:28:46Z"
+  }
+}
