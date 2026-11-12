@@ -66,7 +66,7 @@ setuptools.setup(
         "docs": (
             [
                 "protobuf>=4.21.1,<5",
-                "grpcio-status<=1.47.0",
+                "grpcio-status<=1.85.1",
             ]
             + [
                 "commonmark==0.9.1",
