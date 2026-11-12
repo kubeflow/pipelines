@@ -139,7 +139,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "8a82e2b3a1e60bc860915c09ee7c886490feeda289897e7a5b26b6dbe363be5c",
+      "header_sha256": "950f23b950ce5c5fd0fc9be05398816a79434666a6f1ceb3eb11437b0a9eb15c",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -160,6 +160,8 @@
           ".github/resources/buildkitd.toml",
           ".github/resources/curl-retry/**",
           ".github/resources/scripts/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
           ".github/workflows/api-server-tests.yml",
           ".github/workflows/arm64-presubmit.yml",
           ".github/workflows/ci-images.yml",
@@ -879,7 +881,7 @@
     {
       "path": ".github/workflows/third-party-image-upgrades.yml",
       "name": "Third-party Image Upgrade Checks",
-      "header_sha256": "90a2de6f871baa25e960c1211755730b277c9c8b791a633cf86677165443f449",
+      "header_sha256": "aab7d1e8f0efb0e2fac48cce170e382deef17b4408ea9b7a850d59d61bfb0254",
       "pull_request": {
         "paths": [
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
@@ -889,6 +891,9 @@
           ".github/workflows/third-party-image-upgrades.yml",
           ".github/workflows/shared-ci-images-ready.yml",
           ".github/actions/shared-ci-images/**",
+          ".github/actions/download-artifact-with-retry/**",
+          ".github/resources/scripts/artifact-files.sh",
+          ".github/resources/scripts/ci-image-artifacts.sh",
           "backend/src/agent/credentialrotation/**",
           "backend/Dockerfile",
           "go.mod",

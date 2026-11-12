@@ -23,6 +23,8 @@ on:
       - '.github/resources/buildkitd.toml'
       - '.github/resources/curl-retry/**'
       - '.github/resources/scripts/**'
+      - '.github/resources/scripts/artifact-files.sh'
+      - '.github/resources/scripts/ci-image-artifacts.sh'
       - '.github/workflows/api-server-tests.yml'
       - '.github/workflows/arm64-presubmit.yml'
       - '.github/workflows/ci-images.yml'
