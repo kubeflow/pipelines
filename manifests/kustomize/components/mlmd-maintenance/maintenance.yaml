@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-maintenance
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: ml-pipeline-maintenance
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-maintenance
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: maintenance
+        image: ghcr.io/kubeflow/kfp-api-server:dummy
+        command: [/bin/mlmd-maintenance]
+        ports:
+        - name: http
+          containerPort: 8888
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-maintenance
+spec:
+  selector:
+    app: ml-pipeline-maintenance
+  ports:
+  - name: http
+    port: 8888
+    targetPort: http
