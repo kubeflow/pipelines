@@ -37,9 +37,9 @@ def request_status(path, body, content_type):
 
 
 def report_request():
-    # Invalid workflow JSON forces validation to finish before auth. Its outer
-    # JSON envelope is valid so the gateway forwards it to ReportWorkflow.
-    body = json.dumps({'workflow': 'x' * (16 << 20)}).encode('ascii')
+    # The HTTP annotation maps the body directly to the string workflow field.
+    # A valid outer JSON string carries invalid workflow JSON to the handler.
+    body = json.dumps('x' * (16 << 20)).encode('ascii')
     return request_status('/apis/v2/workflows', body, 'application/json')
 
 

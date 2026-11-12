@@ -78,7 +78,7 @@ class AvailabilityClientTest(unittest.TestCase):
         path, body, content_type = request.call_args.args
         self.assertEqual(path, '/apis/v2/workflows')
         self.assertEqual(content_type, 'application/json')
-        self.assertTrue(body.startswith(b'{"workflow": "xxx'))
+        self.assertTrue(body.startswith(b'"xxx'))
         self.assertEqual(body.count(b'x'), 16 << 20)
 
     def test_attack_needs_handler_marker_or_explicit_boundary(self):
