@@ -6,6 +6,7 @@
 - **Target:** staged work on master / 3.0, with graduation based on evidence;
   this document does not promise every optional read model in that release.
 - **Source baseline:** [master `8a79799a2`](https://github.com/kubeflow/pipelines/commit/8a79799a2f54a678b7535eb4697dfc6812a4bb66).
+  Boundary implementation rechecked on November 11 against [master `b5e247523`](https://github.com/kubeflow/pipelines/commit/b5e247523201027c2c0b05c3260f53bd0c89008b); intervening changes do not deliver these migrations.
 
 ## Contents
 
@@ -17,6 +18,7 @@
 - [Artifact content](#artifact-content-api-and-storage-authority)
 - [Operational APIs](#operational-apis-and-removal-of-ui-infrastructure-ownership)
 - [Metadata APIs](#metadata-api-changes-proposed-design-for-review)
+- [Implementation ownership and dependencies](#implementation-ownership-and-dependencies)
 - [Migration](#migration-strategy)
 - [Frontend](#frontend-considerations)
 - [KFP Local](#kfp-local-considerations)
@@ -152,16 +154,18 @@ inventory and links here for design detail.
 | Capability / delivery track | Existing surface | Proposed API change | Tracking |
 | --- | --- | --- | --- |
 | Artifact content — separation | Artifact metadata APIs; run/node/name `:read` JSON/base64; UI artifact routes | Add `ResolveArtifactContent` and authenticated raw read, preview, entry-list and archive operations; adapt legacy routes to the same backend authority. Add output-only run readability warnings. | [#14031](https://github.com/kubeflow/pipelines/issues/14031), [#14046](https://github.com/kubeflow/pipelines/issues/14046), [#14134](https://github.com/kubeflow/pipelines/issues/14134), [#14354](https://github.com/kubeflow/pipelines/issues/14354) |
-| Live/archived logs — separation | Backend run/node `/log`; UI `/k8s/pod/logs` | Add paginated log-source discovery and source-ID reads with authoritative task/attempt/UID/container identity. Preserve existing log authorization and archive behavior. | [#14668](https://github.com/kubeflow/pipelines/issues/14668), [#14032](https://github.com/kubeflow/pipelines/issues/14032), [#14981](https://github.com/kubeflow/pipelines/issues/14981) |
+| Live/archived logs — separation | Backend run/node `/log`; UI `/k8s/pod/logs` | Add paginated log-source discovery and source-ID reads with authoritative task/attempt/UID/container identity. Preserve existing log authorization and archive behavior. | [#15517](https://github.com/kubeflow/pipelines/issues/15517) after [#15516](https://github.com/kubeflow/pipelines/issues/15516); new history remains [#14981](https://github.com/kubeflow/pipelines/issues/14981) |
 | Run-wide logs — independent enhancement | Per-task log controls only | Add source-tagged aggregate stream and bounded asynchronous log archive APIs using the same discovery contract. | [#14986](https://github.com/kubeflow/pipelines/issues/14986), [#14987](https://github.com/kubeflow/pipelines/issues/14987) |
-| Diagnostics/events — separation | Native lifecycle fields; UI `/k8s/pod` and `/k8s/pod/events` | Extend structured/attempt diagnostic fields; add authorized task diagnostics and bounded event reads. | [#13192](https://github.com/kubeflow/pipelines/issues/13192), [#10740](https://github.com/kubeflow/pipelines/issues/10740); state reconciliation [#14989](https://github.com/kubeflow/pipelines/issues/14989) |
-| Viewer lifecycle — separation | UI `/apps/tensorboard` CRUD and signed proxy | Add backend viewer CRUD, approved profiles and session-open/proxy contracts, including artifact/experiment contexts without runs. | [#14668](https://github.com/kubeflow/pipelines/issues/14668), [#14391](https://github.com/kubeflow/pipelines/issues/14391) |
-| Bootstrap/configuration — separation | UI pod discovery, GKE metadata and signing initialization | Add `server_info` and namespace-aware `capabilities`; move signing/bootstrap to backend deployment and retain static UI configuration. | [#14668](https://github.com/kubeflow/pipelines/issues/14668), [#14391](https://github.com/kubeflow/pipelines/issues/14391) |
-| Attempt identity/lifecycle — shared correctness | `TaskPod` name/UID/type; runtime task writes; private retry claim token | Add authoritative namespace and accepted execution-attempt identity; fence stale writes and define legal terminal/retry transitions. These correctness slices can ship independently of snapshots. | [#14032](https://github.com/kubeflow/pipelines/issues/14032), [#14322](https://github.com/kubeflow/pipelines/issues/14322), [#14981](https://github.com/kubeflow/pipelines/issues/14981) |
+| Diagnostics/events — separation | Native lifecycle fields; UI `/k8s/pod` and `/k8s/pod/events` | Add ownership-checked diagnostics and bounded event reads preserving current fields; additional structured/per-attempt history is separately accepted. | [#13192](https://github.com/kubeflow/pipelines/issues/13192), [#10740](https://github.com/kubeflow/pipelines/issues/10740); state reconciliation [#14989](https://github.com/kubeflow/pipelines/issues/14989) |
+| Viewer lifecycle — separation | UI `/apps/tensorboard` CRUD and signed proxy | Add backend viewer CRUD, approved profiles and session-open/proxy contracts, including artifact/experiment contexts without runs. | [#15518](https://github.com/kubeflow/pipelines/issues/15518); adoption policy [#14391](https://github.com/kubeflow/pipelines/issues/14391) |
+| Bootstrap/configuration — separation | UI GKE metadata, health/configuration composition | Add `server_info` and namespace-aware `capabilities`; retain static UI configuration and health compatibility. Signing Job belongs to viewers; host-pod volume discovery belongs to artifacts. | [#15519](https://github.com/kubeflow/pipelines/issues/15519) |
+| Attempt identity/lifecycle — shared correctness | `TaskPod` name/UID/type; runtime task writes; private retry claim token | Add authoritative namespace and accepted execution-attempt identity; fence stale writes and define legal terminal/retry transitions. These correctness slices can ship independently of snapshots. | [#15516](https://github.com/kubeflow/pipelines/issues/15516); lifecycle coordination [#14322](https://github.com/kubeflow/pipelines/issues/14322), terminal guard [#14032](https://github.com/kubeflow/pipelines/issues/14032) |
 | Task read model — independent scale track | Full `GetTask`/`ListTasks`, sequential page drains | Add `ListTaskSummaries`/`ListTaskChanges`, revision-bound pagination, tombstones and selected-task detail reads. | [#14032](https://github.com/kubeflow/pipelines/issues/14032), [#14040](https://github.com/kubeflow/pipelines/issues/14040), [#14028](https://github.com/kubeflow/pipelines/issues/14028) |
-| Relationships — independent scale track | `ListArtifactTasks` selects one IO type | Add mutually exclusive repeated-type/direction selectors; separately design bounded lineage traversal. | [#14032](https://github.com/kubeflow/pipelines/issues/14032) |
+| Relationships — independent scale track | `ListArtifactTasks` selects one IO type | Add mutually exclusive repeated-type/direction selectors; decide or separately own bounded lineage traversal before closing. | [#15522](https://github.com/kubeflow/pipelines/issues/15522) |
 | Artifact grouping/task discovery — independent product track | Flat artifacts and run-scoped tasks | Reserve grouped artifact reads and namespace task search for product-approved schemas; trusted legacy-execution mapping is a distinct migration contract. | [#14041](https://github.com/kubeflow/pipelines/issues/14041), [#14301](https://github.com/kubeflow/pipelines/issues/14301), [#14029](https://github.com/kubeflow/pipelines/issues/14029) |
 | Existing API correctness/efficiency — separate fixes | Parent pipeline/version lookup; run-list version fan-out | Validate parent relationships; design a bounded metadata batch/projection. Neither requires waiting for UI infrastructure removal. | [#14920](https://github.com/kubeflow/pipelines/issues/14920), [#11346](https://github.com/kubeflow/pipelines/issues/11346) |
+| Frontend server/consumer cutover — separation | Node domain handlers, browser clients and existing API forwarding | Replace domain handlers with capability-aware adapters; preserve health/static/auth, uploads/specs/transfer and route denials. | [#15520](https://github.com/kubeflow/pipelines/issues/15520) |
+| Deployment retirement — separation | UI credentials/RBAC/SDKs; frontend image also used by artifact receivers and signing Job | Qualify all supported deployments with UI infrastructure access denied; relocate image consumers before package/permission removal. | [#15521](https://github.com/kubeflow/pipelines/issues/15521) |
 
 
 ### Shared identity, authorization and error contracts
@@ -176,7 +180,10 @@ resource
 and namespace UID; lookup verifies the requested relationship. An automatic task
 retry and a manually retried run are different dimensions. Imported history may
 have unknown identity or incomplete history; responses state that explicitly.
-Private reconciliation/fencing tokens are not user-visible attempt numbers.
+Private reconciliation/fencing tokens are not user-visible attempt numbers. The trusted
+backend/runtime boundary assigns or validates identities idempotently; ordinary task/metadata
+updates cannot mint attempts or rebind their ownership. Lost responses cannot allocate another
+accepted execution.
 
 Authenticate at the existing trusted ingress/API boundary. Preserve end-user
 identity across a thin UI transport, strip untrusted forwarded identity headers,
@@ -251,6 +258,54 @@ operations in the same API specification; do not force raw content into unary pr
 arrays or JSON/base64. API gateways must preserve streaming, disconnect cancellation and
 response headers.
 
+#### Existing route and deployment compatibility
+
+The content migration covers three distinct UI route families, including their non-root
+base-path aliases: `/artifacts/get`, `/artifacts/:source/:bucket/*`, and
+`/artifacts/{artifact_id}/preview`. Inventory their direct and namespace-proxy behavior before
+replacing them. Legacy download requests preserve original object bytes; preview requests may
+extract the first tar entry, and directory previews return a bounded summary. Existing
+S3-compatible directory downloads return tar.gz with the corresponding media type and filename.
+The new ZIP `:archive` representation is additive: compatibility adapters must not silently
+return ZIP, a typed preview envelope, or extracted bytes where an old client expects a different
+representation. Limits and denials remain explicit, and all adapters use backend-owned
+authorization and serving operations.
+
+Producer-generated Dataset/Model previews are a separate representation from truncating the
+parent object's content. Preserve the `_kfp_preview` descriptor's version 1 in-directory
+`_kfp_preview.json` layout and version 2 sibling `.kfp-preview.json` layout. The backend derives
+these fixed locations from the registered parent identity; it does not expose a general sibling
+selector or accept arbitrary preview paths. The descriptor is untrusted metadata, not permission
+to fetch bytes: the actual derived object still requires the current storage grant. Retain
+bounded UTF-8 preview reads, cancellation, unsupported/missing descriptor behavior, and the old
+preview response marker and JSON attachment through the legacy adapter. New clients may consume
+the declared producer-preview representation through the typed API. Resolve the disposition of
+existing GCS wildcard/multi-object reads explicitly, preserving a bounded compatibility
+operation or approving a documented client migration rather than silently changing their output.
+
+Volume access includes an infrastructure dependency that generic server-info cleanup must not
+overlook: `getVolumeArtifactsHandler` calls `serverInfo.getHostPod()` to discover mount roots
+before a contained filesystem read. Move supported standalone/namespace-isolated volume
+resolution into the trusted content-serving boundary, using explicit mount descriptors or
+backend-owned discovery. Continue denying direct central multi-user volume access; never turn a
+client-supplied mount name into permission to read an API or UI pod's filesystem. Remove the UI
+helper and token access only after these supported flows are qualified.
+
+The profile controller currently deploys namespace artifact receivers using
+`FRONTEND_IMAGE`/`FRONTEND_TAG`, the same frontend image lineage used by the UI. Before removing
+storage/Kubernetes dependencies from that image, migrate receiver deployments to the reviewed
+content-serving runtime or separate their required serving package/image. Shared image reuse
+does not make receiver credentials UI credentials, but it is a release dependency: pruning the
+image while old receivers still use its handlers breaks serving. Preserve namespace-local
+credentials, volume mounts, service routing and mixed-version compatibility during that
+transition; this does not mandate a new universal per-namespace deployment.
+
+Multipart pipeline/version uploads, pipeline-spec reads and transfer import/export already
+execute in the backend. Preserve their current `/apis/v2` and supported v2beta1/base-path
+routing, caller identity, streaming/cancellation and representations when replacing the thin
+transport. Upload boundaries and transfer archive bytes must pass through without JSON
+reencoding. No new upload/template storage API is introduced by this migration.
+
 #### Identity and resolution
 
 `ResolveArtifactContentRequest` has a `oneof` selector: `artifact_id`, or `historical_locator
@@ -310,7 +365,8 @@ Distinguish permanent operator action from retryable failure. Return validated s
 where useful, never credentials or signed query values. Once bytes are committed, abort on
 transfer failure; clients recognize incomplete framing rather than parsing an error as content.
 
-The proposed archive format is ZIP with generated collision-free safe member names and a final
+The new archive operation uses ZIP; legacy tar.gz adapters retain their format. ZIP uses
+generated collision-free safe member names and a final
 `.kfp/manifest.json` mapping members to authorized source/object identities and omissions. Treat
 names as data: exclude traversal, absolute paths, symlink entries and credentials. Preserve unusual
 object keys through safe names and manifest mappings instead of interpreting them as filesystem
@@ -362,9 +418,9 @@ Unless explicitly identified as existing, the routes below are proposed addition
 `/apis/v2`. Relative paths in this section use that prefix. The inventory is checked against
 master `8a79799a2f54a678b7535eb4697dfc6812a4bb66`. Issue
 [#14668](https://github.com/kubeflow/pipelines/issues/14668) owns the canonical migration
-inventory; [#14032](https://github.com/kubeflow/pipelines/issues/14032) owns attempt/snapshot
-identity, [#14981](https://github.com/kubeflow/pipelines/issues/14981) historical log
-references, [#13192](https://github.com/kubeflow/pipelines/issues/13192) structured diagnostics,
+inventory; [#15516](https://github.com/kubeflow/pipelines/issues/15516) owns accepted-attempt/executor identity and [#15517](https://github.com/kubeflow/pipelines/issues/15517) the base
+log-source API. [#14032](https://github.com/kubeflow/pipelines/issues/14032) owns snapshots,
+[#14981](https://github.com/kubeflow/pipelines/issues/14981) new historical log references, [#13192](https://github.com/kubeflow/pipelines/issues/13192) structured diagnostics,
 [#10740](https://github.com/kubeflow/pipelines/issues/10740) events, and
 [#14391](https://github.com/kubeflow/pipelines/issues/14391) viewer signing-key adoption.
 
@@ -408,10 +464,14 @@ availability/expiry. Live and archived copies of the same stream are not separat
 discovery, aggregation and archive export select one location per logical source and never count
 both as independent output. Absence of driver pods is normal. Discovery must not synthesize
 nonexistent pod streams. Identities come from the shared attempt model: automatic task retries
-and manual run retries are distinct. Persist source references before destructive retry cleanup;
-retain prior attempt identity and diagnostic history independently of object-store retention.
-Imported or pre-migration runs can report incomplete history; never equate unknown history with
-no attempts.
+and manual run retries are distinct. Minimum separation resolves current attempts and any
+already-retained historical sources using [#15516](https://github.com/kubeflow/pipelines/issues/15516). Explicitly report incomplete/unavailable
+history when references were never retained; do not fabricate sources or scan storage. New
+durable manual-retry reference retention is separately accepted in
+[#14981](https://github.com/kubeflow/pipelines/issues/14981), and expanded diagnostic history in
+[#13192](https://github.com/kubeflow/pipelines/issues/13192). When enabled, those features capture
+records before destructive reset and expose them through the same source contract. Their full
+history features do not block moving existing reads out of the UI.
 
 Add `GET /runs/{run_id}/log_sources/{source_id}:read` with validated `follow`, `tail_lines`,
 `since_time` and `max_bytes`. A source resolves its namespace, pod UID/container or archived
@@ -553,7 +613,7 @@ deleting adapters.
 
 This section proposes API shapes and consistency rules; it does not record an approved contract.
 It addresses [#14032](https://github.com/kubeflow/pipelines/issues/14032) and frontend adoption
-in [#14040](https://github.com/kubeflow/pipelines/issues/14040)/#14028. Snapshot optimization,
+in [#14040](https://github.com/kubeflow/pipelines/issues/14040)/[#14028](https://github.com/kubeflow/pipelines/issues/14028). Snapshot optimization,
 grouped artifacts, and cross-run discovery are independent of the first artifact-content
 migration under [#14031](https://github.com/kubeflow/pipelines/issues/14031). Removing UI
 storage credentials and Kubernetes access must not wait for the entire metadata performance
@@ -649,11 +709,21 @@ expose it as a human attempt number. Terminal task-write protection can ship sep
 [#15008](https://github.com/kubeflow/pipelines/pull/15008); snapshot storage must later preserve
 the same invariant.
 
+Before promising immutable terminal snapshots, distinguish execution terminality from task
+finalization. Ordinary stale runtime writes remain rejected. Either reconcile and commit task
+outcomes before sealing the final run snapshot, or expose an explicit finalization-pending state
+until bounded, current-attempt/UID-fenced reconciliation completes. The chosen contract must
+cover [#14989](https://github.com/kubeflow/pipelines/issues/14989)'s missing-final-report case and
+[#15008](https://github.com/kubeflow/pipelines/pull/15008)'s guard together; an immutable terminal
+snapshot cannot be advertised while permitted reconciliation can still change it. A focused
+guard or reconciliation fix can ship with its tested ordering/exception contract before the
+snapshot implementation; this does not allow arbitrary post-terminal rewrites.
+
 #### Pod identity and relationship additions
 
 Extend `TaskPod` additively with authoritative `namespace`, `run_attempt_id` and
 `task_attempt_id`; preserve name, UID, and role. The two opaque attempt fields have the same
-meaning as log-source fields and filters. Missing historical identities are explicit rather than
+meaning as log-source fields and filters, implemented in [#15516](https://github.com/kubeflow/pipelines/issues/15516). Missing historical identities are explicit rather than
 fabricated. Bind published identities to backend-verified run/task execution
 ownership, not caller-selected namespace/pod coordinates. Publish the regular launcher's
 executor identity before component execution, with an explicit failure/retry policy, and advance
@@ -699,6 +769,53 @@ database contention, response bytes, and cancellation. Gate snapshot adoption be
 detection; unsupported servers retain current bounded polling without fabricating revision
 guarantees.
 
+## Implementation ownership and dependencies
+
+The tracking issues below own implementation and retained validation, not just design
+discussion. GitHub native blocking edges represent whole-deliverable completion gates; partial
+contract/activation dependencies are explicit in the table so broad existing trackers remain
+actionable. The KEP remains draft: each capability needs reviewed schemas, RBAC, bounds,
+compatibility fixtures and evidence before production activation.
+
+```mermaid
+flowchart TD
+  I[Accepted attempt identity] --> L[Base log sources]
+  A[Artifact content] --> T[UI and Node transport cutover complete]
+  L --> T
+  E[Base diagnostics and events] --> T
+  V[Viewer API and signing Job] --> T
+  B[Bootstrap and capabilities] --> T
+  T --> R[Infrastructure retirement and qualification]
+  L --> G[Optional aggregate log view]
+  L --> Z[Optional log archive]
+```
+
+| Work / owner | Prerequisite and completion boundary |
+| --- | --- |
+| Accepted attempt identity and executor publication — [#15516](https://github.com/kubeflow/pipelines/issues/15516) | Coordinate the minimum contract with [#14322](https://github.com/kubeflow/pipelines/issues/14322)/[#14032](https://github.com/kubeflow/pipelines/issues/14032)/[#14989](https://github.com/kubeflow/pipelines/issues/14989); no wait for all lifecycle recovery or snapshots. |
+| Artifact authority/content — [#14031](https://github.com/kubeflow/pipelines/issues/14031) | Reviewed provider/canonical semantics from [#14046](https://github.com/kubeflow/pipelines/issues/14046)/[#14101](https://github.com/kubeflow/pipelines/issues/14101) for the affected slice; no runtime identity prerequisite. Includes preview formats, volumes and receiver deployment migration. |
+| Base log sources/reads — [#15517](https://github.com/kubeflow/pipelines/issues/15517) | Blocked by [#15516](https://github.com/kubeflow/pipelines/issues/15516); preserve existing archive behavior and [#15490](https://github.com/kubeflow/pipelines/issues/15490)'s JSON-log regression. New manual history [#14981](https://github.com/kubeflow/pipelines/issues/14981) remains independent. |
+| Diagnostics/events — [#10740](https://github.com/kubeflow/pipelines/issues/10740) | Own base authorized API and view migration; use available trusted run/task/UID evidence. [#13192](https://github.com/kubeflow/pipelines/issues/13192)'s extended history consumes shared identity at that slice, not as a blanket blocker for diagnostics. |
+| Viewer API/proxy/signing Job — [#15518](https://github.com/kubeflow/pipelines/issues/15518) | Reviewed [#14031](https://github.com/kubeflow/pipelines/issues/14031) source-authority slice and explicit [#14391](https://github.com/kubeflow/pipelines/issues/14391) adoption decision gate activation, not every artifact provider or optional automation alternative. |
+| Bootstrap/capability registry — [#15519](https://github.com/kubeflow/pipelines/issues/15519) | Can ship before features and advertise them unavailable. Each feature supplies its activation evidence; preserve health compatibility. |
+| Browser/Node transport cutover — [#15520](https://github.com/kubeflow/pipelines/issues/15520) | Complete only after [#14031](https://github.com/kubeflow/pipelines/issues/14031), [#15517](https://github.com/kubeflow/pipelines/issues/15517), [#10740](https://github.com/kubeflow/pipelines/issues/10740), [#15518](https://github.com/kubeflow/pipelines/issues/15518) and [#15519](https://github.com/kubeflow/pipelines/issues/15519). Land per-capability slices as available; no single giant cutover PR required. |
+| Infrastructure retirement — [#15521](https://github.com/kubeflow/pipelines/issues/15521) | Blocked by completed [#15520](https://github.com/kubeflow/pipelines/issues/15520); relocate namespace receivers and signing Job before pruning the frontend image. Denied-access E2E, overlays, upgrade/recovery and documentation close [#14668](https://github.com/kubeflow/pipelines/issues/14668)'s mandatory work. |
+| Aggregate logs/archive — [#14987](https://github.com/kubeflow/pipelines/issues/14987), [#14986](https://github.com/kubeflow/pipelines/issues/14986) | Each blocked by [#15517](https://github.com/kubeflow/pipelines/issues/15517); independent of each other and not required for separation. |
+| Task snapshots — [#14032](https://github.com/kubeflow/pipelines/issues/14032) | Snapshot activation consumes shared identity/finalization plus all-writer capture. Its terminal guard remains independently deliverable. |
+| Shared queries and snapshot adoption — [#14040](https://github.com/kubeflow/pipelines/issues/14040), [#14028](https://github.com/kubeflow/pipelines/issues/14028) | [#14040](https://github.com/kubeflow/pipelines/issues/14040) closes against current APIs; actual snapshot adoption belongs to [#14028](https://github.com/kubeflow/pipelines/issues/14028) after [#14032](https://github.com/kubeflow/pipelines/issues/14032) and shared queries. Other [#14028](https://github.com/kubeflow/pipelines/issues/14028) hardening remains independent. |
+| Relationships — [#15522](https://github.com/kubeflow/pipelines/issues/15522) | Independent selectors; explicitly decide or transfer retained bounded-lineage work before closure. No snapshot dependency. |
+| Grouping/discovery — [#14041](https://github.com/kubeflow/pipelines/issues/14041), [#14301](https://github.com/kubeflow/pipelines/issues/14301) | Independent product/API designs. Only legacy-link resolution consumes [#14029](https://github.com/kubeflow/pipelines/issues/14029)'s source-installation-scoped execution mapping; native search does not wait for historical import. |
+
+Existing correctness fixes ([#14354](https://github.com/kubeflow/pipelines/issues/14354) wording, [#14368](https://github.com/kubeflow/pipelines/issues/14368) streaming backpressure, [#14278](https://github.com/kubeflow/pipelines/issues/14278) preview
+truncation, [#14920](https://github.com/kubeflow/pipelines/issues/14920) parent validation, [#14989](https://github.com/kubeflow/pipelines/issues/14989) state reconciliation and [#15490](https://github.com/kubeflow/pipelines/issues/15490) archived JSON logs)
+remain independently shippable. Their regressions become migration fixtures where relevant;
+moving a handler does not excuse losing those requirements. [#14134](https://github.com/kubeflow/pipelines/issues/14134)'s YAML extraction can ship
+independently; removing its parser requires all supported artifact consumers to have migrated.
+Each backend owner also owns canonical schema/client generation, HTTP specs, per-request
+authorization, limits, compatibility and its data/resource retention and nonblocking migration
+tests. The final qualification issue checks the combined evidence, rather than leaving those
+implementation duties only in this document.
+
 ## Migration Strategy
 
 Use independent server capabilities and operator-controlled activation for each
@@ -712,11 +829,11 @@ not a frontend build assumption.
 | Stage | Deliverable and evidence required |
 | --- | --- |
 | 0: design/contract | Approve identity, RBAC, schemas, bounds and compatibility; capture current-route behavior in fixtures. |
-| 1: backend artifact slice | Deliver one complete authorized preview/download flow; pass real existing-root and tenant-isolation cases. Preserve legacy wire representations through adapters. |
-| 2: runtime reads | Deliver source discovery, log reads and diagnostics/events; validate imported history, retries, absent driver pods and cancellation. Archive/aggregation enhancements have independent acceptance. |
-| 3: viewer/bootstrap | Move lifecycle, source authorization, session proxy/signing and configuration discovery. Qualify old viewer URLs, signing-key adoption and browser entry paths. |
-| 4: UI cutover | Enable clients only for advertised capabilities; preserve successful data and actionable unsupported/error states. Old URLs forward into the same backend policy. |
-| 5: infrastructure removal | Demonstrate parity with UI Kubernetes/object-store access denied, then remove client libraries, credentials, RBAC/token mounts and storage-network access across supported overlays. |
+| Parallel lane: backend artifact slice | Deliver one complete authorized preview/download flow; pass real existing-root and tenant-isolation cases. Preserve legacy wire representations through adapters. |
+| Parallel lane: runtime reads | Deliver source discovery, log reads and diagnostics/events; validate imported history, retries, absent driver pods and cancellation. Archive/aggregation enhancements have independent acceptance. |
+| Parallel lane: viewer/bootstrap | Move lifecycle, source authorization, session proxy/signing and configuration discovery. Qualify old viewer URLs, signing-key adoption and browser entry paths. |
+| Per-capability cutover | Enable clients only for advertised capabilities; preserve successful data and actionable unsupported/error states. Old URLs forward into the same backend policy. |
+| Final infrastructure removal | Demonstrate parity with UI Kubernetes/object-store access denied, then remove client libraries, credentials, RBAC/token mounts and storage-network access across supported overlays. |
 | Parallel read-model track | Deliver identity/lifecycle correctness independently; ship query sharing against the current API independently, then adopt snapshots when available. Grouping/search/lineage designs remain separately accepted. |
 
 Start upgrade qualification from the actual populated 2.18 state, including its
@@ -751,6 +868,33 @@ replica coordination on populated MySQL and PostgreSQL. No blocking table-copy o
 whole-table startup backfill is an acceptable fallback.
 
 ## Frontend Considerations
+
+### Frontend server responsibility inventory
+
+This KEP explicitly includes the Node/Express `frontend/server`, its configuration and image
+consumers, as well as browser code. It does not require eliminating Node or replacing the UI
+framework. The intended residual server is static serving plus a thin authenticated transport.
+
+| Existing responsibility | Disposition and implementation owner |
+| --- | --- |
+| `server.ts`, `app.ts`, index/static handlers, base paths and HTTP shutdown | Keep presentation/transport lifecycle under [#15520](https://github.com/kubeflow/pipelines/issues/15520); starting or importing the UI must not initialize Kubernetes/storage clients. |
+| `helpers/auth.ts`, API forwarding and public route restrictions | Preserve trusted user context and backend-hop authentication; move domain authorization to backend operations. Keep workflow route denials and proxy tombstones, including legacy/base-path rewrites, under [#15520](https://github.com/kubeflow/pipelines/issues/15520). |
+| Existing multipart uploads, GetPipelineVersion specs and transfer import/export | Keep existing backend routes. Test multipart boundaries, cancellation and byte-preserving transfer bodies without JSON parse/reencoding under [#15520](https://github.com/kubeflow/pipelines/issues/15520); no new content-upload API is required. |
+| Artifact handlers, sidecar previews, ArtifactStore/GCS/AWS helpers, provider/launcher configuration, namespace service routing | Move content, authority, storage I/O and routing to [#14031](https://github.com/kubeflow/pipelines/issues/14031)/[#14046](https://github.com/kubeflow/pipelines/issues/14046); [#14134](https://github.com/kubeflow/pipelines/issues/14134) handles the residual parser. Keep rendering/compatible representations only. |
+| `helpers/server-info.ts:getHostPod` and volume mount discovery | Move to [#14031](https://github.com/kubeflow/pipelines/issues/14031)'s trusted volume resolver. It is not the proposed public server-info API and must not become a host-Pod/spec endpoint. |
+| `pod-logs.ts`, Workflow/archive lookup, `k8s-helper.ts` log functions | Move to [#15517](https://github.com/kubeflow/pipelines/issues/15517) and backend runtime/storage adapters; retire UI archive credentials and direct fallback. |
+| `pod-info.ts`, pod/event Kubernetes calls | Move to [#10740](https://github.com/kubeflow/pipelines/issues/10740)'s run/task-authorized APIs; retain existing warnings, with extended diagnostics/history in [#13192](https://github.com/kubeflow/pipelines/issues/13192). |
+| TensorBoard handlers, target resolution and signed HTTP/WebSocket proxy | Move to [#15518](https://github.com/kubeflow/pipelines/issues/15518); preserve supported contexts/customization and session isolation. |
+| `initialize-tensorboard-signing-key.ts`, `ui-signing-key/job.yaml` | Relocate this separate Job executable, frontend-image reference and scoped RBAC under [#15518](https://github.com/kubeflow/pipelines/issues/15518). It is not invoked by `server.ts`; package removal must account for it. |
+| Profile-controller namespace receivers using `FRONTEND_IMAGE` / `FRONTEND_TAG` | Migrate or separate their image/config/Secret/service-account ownership under [#14031](https://github.com/kubeflow/pipelines/issues/14031) before [#15521](https://github.com/kubeflow/pipelines/issues/15521) removes frontend packages. Central UI cleanup alone is insufficient. |
+| GKE metadata, backend build/mode/capabilities and health composition | Move discovery/backend facts to [#15519](https://github.com/kubeflow/pipelines/issues/15519); keep UI build/static config and compatible health behavior. Separate process liveness from backend readiness and optional feature availability. |
+| `configs.ts`, image dependencies, manifests and service accounts | Split settings by the owners above; remove obsolete UI config, credentials, token mounts, RBAC and direct storage egress under [#15521](https://github.com/kubeflow/pipelines/issues/15521) after parity. |
+
+Capture this inventory as executable route/configuration fixtures, including direct and
+namespace-proxy artifact modes, auth on/off deployment profiles, base paths, legacy aliases and
+frontend-image reuse. Optional backends being unavailable must not prevent static UI startup
+or trigger a fallback to UI infrastructure credentials.
+
 
 Generate typed control clients; provide a small transport wrapper for documented
 streaming/content endpoints. Pages render domain data rather than reconstructing
@@ -891,6 +1035,7 @@ security, compatibility or retention acceptance criteria.
 ## Implementation History
 
 - 2026-11-10: Initial draft and canonical API-change inventory linked from [#14668](https://github.com/kubeflow/pipelines/issues/14668).
+- 2026-11-11: Reviewed implementation coverage and dependency order; added frontend-server/image ownership, legacy artifact parity, focused delivery tickets and terminal-finalization semantics.
 - No implementation or release graduation is claimed by this proposal.
 
 ## Drawbacks
@@ -921,8 +1066,9 @@ These costs should be measured and delivered in independent slices.
 
 ## Related Work
 
-The API inventory maps work to existing issues rather than creating duplicate
-implementation trackers. See also [MLMD removal](../12147-mlmd-removal/README.md),
+The API inventory reuses existing owners and adds focused implementation tickets where the
+umbrella lacked them. Moved acceptance remains explicitly linked; no requirement is considered
+delivered merely by changing its tracker. See also [MLMD removal](../12147-mlmd-removal/README.md),
 [native pipeline storage](../11551-kubernetes-native-api/README.md),
 [pod lifecycle diagnostics](../12843-pod-lifecycle-failure/README.md), and
 [KFP Local](../15214-kfp-local/README.md). Their historical implementation claims
