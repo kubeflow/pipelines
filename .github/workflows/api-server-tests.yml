@@ -480,3 +480,9 @@ jobs:
           user_namespace: ${{ env.USER_NAMESPACE }}
           multi_user: ${{ matrix.multi_user }}
           report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_dbType=${{ matrix.db_type }}_shard=${{ matrix.test_shard }}"
+
+      # Run after Ginkgo to avoid unrelated traffic in this disposable cluster.
+      - name: Check API availability under bounded malformed requests
+        if: ${{ matrix.db_type == 'mysql' && matrix.cache_enabled == 'true' && (matrix.test_shard == 'A' || matrix.test_shard == 'all') && steps.test-run.outcome == 'success' }}
+        shell: bash
+        run: timeout 300s bash ./.github/resources/scripts/run-api-availability-check.sh
