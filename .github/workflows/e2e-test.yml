@@ -510,7 +510,7 @@ jobs:
         if: ${{ steps.deploy.outcome == 'success' }}
         shell: bash
         run: |
-          kubectl -n "$NAMESPACE" rollout status deployment/seaweedfs-credential-rotation --timeout=600s
+          kubectl -n "$NAMESPACE" wait --for='jsonpath={.metadata.annotations.pipelines\.kubeflow\.org/storage-credential-phase}=DefaultRevoked' secret/seaweedfs-admin-credentials --timeout=600s
           access_key=$(kubectl -n "$NAMESPACE" get secret mlpipeline-minio-artifact -o jsonpath='{.data.accesskey}' | base64 -d)
           secret_key=$(kubectl -n "$NAMESPACE" get secret mlpipeline-minio-artifact -o jsonpath='{.data.secretkey}' | base64 -d)
           echo "::add-mask::$access_key"
