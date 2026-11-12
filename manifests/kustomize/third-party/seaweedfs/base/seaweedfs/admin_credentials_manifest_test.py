@@ -103,6 +103,25 @@ class ManifestTest(unittest.TestCase):
                 any(item['name'] == 'bootstrap-api-access'
                     for item in container.get('volumeMounts', [])))
 
+    def test_atomic_apply_fields_include_api_defaults(self):
+        pod = self.resource('Deployment',
+                            'seaweedfs')['spec']['template']['spec']
+        init = next(item for item in pod['initContainers']
+                    if item['name'] == 'prepare-storage-credentials')
+        for variable in init['env']:
+            reference = variable.get('valueFrom', {}).get('fieldRef')
+            if reference:
+                self.assertEqual('v1', reference.get('apiVersion'))
+        volume = next(item for item in pod['volumes']
+                      if item['name'] == 'bootstrap-api-access')
+        for source in volume['projected']['sources']:
+            for item in source.get('downwardAPI', {}).get('items', []):
+                self.assertEqual('v1', item['fieldRef'].get('apiVersion'))
+        policy = self.resource('NetworkPolicy', 'seaweedfs')
+        for rule in policy['spec']['ingress']:
+            for port in rule.get('ports', []):
+                self.assertEqual('TCP', port.get('protocol'))
+
     def test_reconciler_has_no_cluster_role_or_pod_exec(self):
         role = self.resource('Role', 'seaweedfs-credential-rotation')
         for rule in role['rules']:
