@@ -98,6 +98,7 @@ class ManifestTest(unittest.TestCase):
             init['command'], ['/bin/credential-rotation', '--mode=bootstrap']
         )
         self.assertNotIn(':dummy', init['image'])
+        self.assertEqual('IfNotPresent', init.get('imagePullPolicy'))
         if os.environ.get('OPENSHIFT_RENDERED') == 'true':
             self.assertNotIn('runAsUser', init.get('securityContext', {}))
         else:
