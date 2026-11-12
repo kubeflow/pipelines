@@ -17,7 +17,8 @@ upgrade."""
 
 import argparse
 import base64
-from contextlib import closing, contextmanager
+from contextlib import closing
+from contextlib import contextmanager
 import copy
 import hashlib
 import json

@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 import shlex
 import unittest
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 TARGETS = (
@@ -25,6 +25,7 @@ TARGETS = (
 
 
 class StorageMigrationWaitTest(unittest.TestCase):
+
     def test_consumers_wait_for_durable_completion(self):
         for relative in TARGETS:
             with self.subTest(path=relative):
@@ -37,8 +38,8 @@ class StorageMigrationWaitTest(unittest.TestCase):
                 commands = [
                     shlex.split(line.strip())
                     for line in text.splitlines()
-                    if line.strip().startswith('kubectl ')
-                    and 'secret/seaweedfs-admin-credentials' in line
+                    if line.strip().startswith('kubectl ') and
+                    'secret/seaweedfs-admin-credentials' in line
                 ]
                 self.assertEqual(len(commands), 1)
                 args = commands[0]
@@ -51,11 +52,8 @@ class StorageMigrationWaitTest(unittest.TestCase):
                 )
                 # Completion must precede reading credentials or exposing storage.
                 wait_index = text.index('secret/seaweedfs-admin-credentials')
-                consumer = (
-                    'access_key=$(kubectl'
-                    if relative.endswith('.yml')
-                    else 'port-forward svc/seaweedfs'
-                )
+                consumer = ('access_key=$(kubectl' if relative.endswith('.yml')
+                            else 'port-forward svc/seaweedfs')
                 self.assertLess(wait_index, text.index(consumer))
 
 
