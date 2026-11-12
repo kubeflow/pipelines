@@ -425,3 +425,11 @@ completed failure/interruption outcome, then resets only that exact status to
 pending before checking evidence. A running owner fails explicitly, including a
 rerun of the same run ID. Newer writers are preserved. Do not proceed with release
 publication while cleanup is outstanding.
+
+### Default-branch migration checkpoint
+
+The separately reviewed documentation-only PR adding this checkpoint is intended
+as the first merge after the `master` to `main` rename. Its GitHub merged-PR record
+must identify `main` and the resulting branch tip before normal CI freshness
+validation can resume. Record the frozen base and reviewed head in that PR;
+this checkpoint does not itself authorize a bypass or establish successful CI.
