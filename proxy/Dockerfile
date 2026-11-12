@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the upstream agent from immutable source with patched, locked dependencies.
-FROM golang:1.27.3-bookworm@sha256:d9b6a1beb9474adc2a1ce842573639b44b2a0dd49b6669f51d3821baf9ec37c9 AS builder
+FROM golang:1.27.3-bookworm@sha256:dc0963f32053e4bc451d24d87e3892d42d01021b61f093e98eb95c0352bb84b0 AS builder
 ARG AGENT_COMMIT=6264998ae706281fd068e8f3eeb3cbd42046c5b6
 WORKDIR /src
 RUN git clone https://github.com/google/inverting-proxy.git . \
