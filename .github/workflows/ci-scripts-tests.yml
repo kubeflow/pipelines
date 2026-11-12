@@ -87,6 +87,7 @@ on:
       - 'backend/test/v2/resources/hello-world-with-returning-component.yaml'
       - 'test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py'
       - 'backend/Dockerfile'
+      - 'backend/src/apiserver/config/sample_config.json'
       - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'api/v2alpha1/python/generate_proto.py'
       - 'kubernetes_platform/python/generate_proto.py'
