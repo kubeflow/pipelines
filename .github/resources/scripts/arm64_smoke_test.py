@@ -193,6 +193,31 @@ class InventoryTests(unittest.TestCase):
             set(smoke.image_refs(self.directory, SHA, 'local')), smoke.IMAGES
         )
 
+    def test_local_bundled_provenance_is_not_an_image_definition(self):
+        for name, ci_name in smoke.CI_IMAGES.items():
+            self.write(
+                name,
+                image=name,
+                reference=f'kind-registry:5000/{ci_name}:ci',
+                platforms=['linux/arm64'],
+            )
+            (self.directory / f'{ci_name}-arm64.provenance.json').write_text(
+                json.dumps({'version': 2, 'image': ci_name})
+            )
+        self.assertEqual(
+            set(smoke.image_refs(self.directory, SHA, 'local')), smoke.IMAGES
+        )
+        (self.directory / 'kfp-driver.json').unlink()
+        with self.assertRaisesRegex(ValueError, 'Missing images'):
+            smoke.image_refs(self.directory, SHA, 'local')
+
+    def test_published_inventory_still_rejects_provenance_files(self):
+        (self.directory / 'apiserver-arm64.provenance.json').write_text(
+            json.dumps({'version': 2, 'image': 'apiserver'})
+        )
+        with self.assertRaisesRegex(ValueError, 'Unexpected'):
+            self.read()
+
     def test_overlay_maps_controls_and_runtime_refs(self):
         refs = self.read()
         spec = smoke.overlay_spec(

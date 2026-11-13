@@ -66,6 +66,9 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         self.assertEqual(action.count('uses: actions/download-artifact@'), 2)
         self.assertIn("steps.primary.outcome == 'failure'", action)
         self.assertIn('sleep "$RETRY_DELAY_SECONDS"', action)
+        self.assertEqual(
+            action.count('artifact-ids: ${{ inputs.artifact-ids }}'), 2
+        )
         self.assertIn('pattern: ${{ inputs.pattern }}', action)
         self.assertIn('merge-multiple: ${{ inputs.merge-multiple }}', action)
         self.assertIn('github-token: ${{ inputs.github-token }}', action)

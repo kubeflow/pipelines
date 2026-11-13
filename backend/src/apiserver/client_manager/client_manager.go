@@ -48,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/dbcreds"
+	"github.com/kubeflow/pipelines/backend/src/common/s3bucket"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"gorm.io/driver/mysql"
@@ -60,7 +61,6 @@ import (
 
 	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
-	"gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -1111,13 +1111,10 @@ func dropLegacyIndexesMySQL(db *gorm.DB) error {
 			if err != nil {
 				return fmt.Errorf("query pipeline_versions indices failed: %w", err)
 			}
-			has := false
+			has := rows.Next()
 			if err := rows.Err(); err != nil {
 				_ = rows.Close()
 				return fmt.Errorf("iterate pipeline_versions indices failed: %w", err)
-			}
-			if rows.Next() {
-				has = true
 			}
 			_ = rows.Close()
 			if has {
@@ -1606,7 +1603,7 @@ func openBucketWithRetry(ctx context.Context, config *blobStorageConfig, timeout
 			return err
 		}
 
-		bucket, err = s3blob.OpenBucketV2(ctx, s3Client, config.bucketName, nil)
+		bucket, err = s3bucket.Open(ctx, s3Client, config.bucketName, nil)
 		return err
 	}
 
@@ -1936,13 +1933,13 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
 	defer rows.Close()
 
 	// no row in run_details table has empty ExperimentUUID
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return err
+		}
 		return nil
 	}
 

@@ -1329,6 +1329,189 @@ class TestCompilePipeline(parameterized.TestCase):
             )
 
 
+class TestParallelForDictItemScoping(parameterized.TestCase):
+    """Fields of dict loop items used below other groups (#13273)."""
+
+    ITEMS = [
+        {'who': 'alice', 'greeting': 'hello alice'},
+        {'who': 'bob', 'greeting': 'hello bob'},
+    ]
+
+    @staticmethod
+    def _spec(pipeline_func) -> Dict[str, Any]:
+        return json_format.MessageToDict(pipeline_func.pipeline_spec)
+
+    @staticmethod
+    def _input_names(component: Dict[str, Any]) -> List[str]:
+        return sorted(
+            component.get('inputDefinitions', {}).get('parameters', {})
+        )
+
+    @staticmethod
+    def _named(entries: Dict[str, Any], prefix: str) -> List[Any]:
+        # Group ids come from a shared counter, so match by kind only.
+        return [
+            value
+            for name, value in sorted(entries.items())
+            if re.fullmatch(rf'{prefix}-\d+', name)
+        ]
+
+    def _only(self, entries: Dict[str, Any], prefix: str) -> Any:
+        matches = self._named(entries, prefix)
+        self.assertLen(matches, 1, f'expected one {prefix} in {list(entries)}')
+        return matches[0]
+
+    def _loop_item_input(self, spec: Dict[str, Any]) -> str:
+        loop = self._only(spec['components'], 'comp-for-loop')
+        (name,) = [
+            n
+            for n in self._input_names(loop)
+            if re.fullmatch(r'pipelinechannel--loop-item-param-\d+', n)
+        ]
+        return name
+
+    def test_field_used_inside_condition_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline(should_run: bool = True):
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(should_run == True):  # noqa: E712
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        condition = self._only(spec['components'], 'comp-condition')
+        self.assertIn(item_input, self._input_names(condition))
+        msg = condition['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(
+            msg,
+            {
+                'componentInputParameter': item_input,
+                'parameterExpressionSelector': 'parseJson(string_value)["greeting"]',
+            },
+        )
+        # The loop passes its whole item to the condition.
+        loop_dag = self._only(spec['components'], 'comp-for-loop')['dag']
+        condition_task = self._only(loop_dag['tasks'], 'condition')
+        self.assertEqual(
+            condition_task['inputs']['parameters'][item_input],
+            {'componentInputParameter': item_input},
+        )
+
+    def test_field_used_inside_nested_conditions_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline(a: bool = True, b: bool = True):
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(a == True):  # noqa: E712
+                    with dsl.If(b == True):  # noqa: E712
+                        show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        conditions = self._named(spec['components'], 'comp-condition')
+        self.assertLen(conditions, 2)
+        for component in conditions:
+            self.assertIn(item_input, self._input_names(component))
+        (outer,) = [c for c in conditions if 'show' not in c['dag']['tasks']]
+        inner_task = self._only(outer['dag']['tasks'], 'condition')
+        self.assertEqual(
+            inner_task['inputs']['parameters'][item_input],
+            {'componentInputParameter': item_input},
+        )
+
+    def test_condition_on_field_in_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.If(item.who == 'alice'):
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        item_input = self._loop_item_input(spec)
+        loop_dag = self._only(spec['components'], 'comp-for-loop')['dag']
+        condition_task = self._only(loop_dag['tasks'], 'condition')
+        self.assertEqual(
+            condition_task['inputs']['parameters'][f'{item_input}-subvar-who'],
+            {
+                'componentInputParameter': item_input,
+                'parameterExpressionSelector': 'parseJson(string_value)["who"]',
+            },
+        )
+        self.assertIn(
+            f"inputs.parameter_values['{item_input}-subvar-who']",
+            condition_task['triggerPolicy']['condition'],
+        )
+        condition = self._only(spec['components'], 'comp-condition')
+        msg = condition['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(msg['componentInputParameter'], item_input)
+
+    def test_field_does_not_leak_above_its_loop(self):
+        @dsl.component
+        def show(msg: str) -> str:
+            return msg
+
+        @dsl.component
+        def on_exit():
+            pass
+
+        @dsl.pipeline
+        def my_pipeline():
+            exit_task = on_exit()
+            with dsl.ExitHandler(exit_task):
+                with dsl.ParallelFor(items=self.ITEMS) as item:
+                    show(msg=item.greeting)
+
+        spec = self._spec(my_pipeline)
+        exit_handler = self._only(spec['components'], 'comp-exit-handler')
+        self.assertEqual(self._input_names(exit_handler), [])
+        exit_handler_task = self._only(
+            spec['root']['dag']['tasks'], 'exit-handler'
+        )
+        self.assertNotIn('inputs', exit_handler_task)
+
+    def test_outer_loop_field_used_in_inner_loop(self):
+        @dsl.component
+        def show(msg: str, n: int) -> str:
+            return f'{msg} {n}'
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ParallelFor(items=self.ITEMS) as item:
+                with dsl.ParallelFor(items=[1, 2]) as number:
+                    show(msg=item.greeting, n=number)
+
+        spec = self._spec(my_pipeline)
+        loops = self._named(spec['components'], 'comp-for-loop')
+        self.assertLen(loops, 2)
+        (outer,) = [c for c in loops if 'show' not in c['dag']['tasks']]
+        (inner,) = [c for c in loops if 'show' in c['dag']['tasks']]
+        (outer_item,) = [
+            n
+            for n in self._input_names(outer)
+            if re.fullmatch(r'pipelinechannel--loop-item-param-\d+', n)
+        ]
+        self.assertIn(outer_item, self._input_names(inner))
+        msg = inner['dag']['tasks']['show']['inputs']['parameters']['msg']
+        self.assertEqual(
+            msg,
+            {
+                'componentInputParameter': outer_item,
+                'parameterExpressionSelector': 'parseJson(string_value)["greeting"]',
+            },
+        )
+
+
 class TestCompilePipelineCaching(unittest.TestCase):
     def test_compile_pipeline_with_caching_enabled(self):
         """Test pipeline compilation with caching enabled."""
@@ -2018,6 +2201,67 @@ class TestSetRetryCompilation(unittest.TestCase):
         retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
         self.assertEqual(retry_policy.max_retry_count, 3)
         self.assertEqual(retry_policy.policy, _Policy.POLICY_ON_ERROR)
+
+    def test_set_retry_inside_parallel_for(self):
+        # #13897 / #12389: the retry policy belongs to the task inside the
+        # loop body, so each iteration retries independently.
+        @dsl.pipeline
+        def my_pipeline(workers: List[str] = ['A', 'B', 'C']):
+            with dsl.ParallelFor(workers) as worker:
+                hello_world(text=worker).set_retry(num_retries=20)
+
+        loop_components = [
+            component
+            for name, component in my_pipeline.pipeline_spec.components.items()
+            if name.startswith('comp-for-loop')
+        ]
+        self.assertEqual(len(loop_components), 1)
+        retry_policy = loop_components[0].dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 20)
+
+
+class TestBuiltinListOfStrCompilation(unittest.TestCase):
+    """#12036: builtin list[str] is accepted like typing.List[str]."""
+
+    def test_component_input(self):
+        @dsl.component
+        def print_list(input_list: list[str]):
+            for entry in input_list:
+                print(entry)
+
+        @dsl.pipeline
+        def my_pipeline():
+            print_list(input_list=['a', 'b', 'c'])
+
+        spec = my_pipeline.pipeline_spec
+        self.assertEqual(
+            spec.components['comp-print-list']
+            .input_definitions.parameters['input_list']
+            .parameter_type,
+            pipeline_spec_pb2.ParameterType.LIST,
+        )
+
+    def test_pipeline_input_with_default(self):
+        @dsl.component
+        def print_list(input_list: list[str]):
+            for entry in input_list:
+                print(entry)
+
+        @dsl.pipeline
+        def my_pipeline(input_list: list[str] = ['a', 'b', 'c']):
+            print_list(input_list=input_list)
+
+        root_input = (
+            my_pipeline.pipeline_spec.root.input_definitions.parameters[
+                'input_list'
+            ]
+        )
+        self.assertEqual(
+            root_input.parameter_type, pipeline_spec_pb2.ParameterType.LIST
+        )
+        self.assertEqual(
+            json_format.MessageToDict(root_input.default_value), ['a', 'b', 'c']
+        )
 
 
 from google.protobuf import json_format
@@ -7290,6 +7534,331 @@ class TestDslOneOf(unittest.TestCase):
                 with dsl.Else():
                     t4 = print_and_return(text='First flip was not heads!')
                 return dsl.OneOf(t3, t4.output)
+
+
+class TestComplexChannelTypesInFString(unittest.TestCase):
+    """Regression tests for #14479: PipelineChannels with complex types
+    (containing brackets, commas, @) embedded in an f-string must resolve
+    to a real runtime parameter reference and register a task dependency,
+    not leak the raw {{channel:...}} placeholder into the compiled spec."""
+
+    def test_list_str_type_in_fstring(self):
+
+        @dsl.component
+        def produce_list() -> List[str]:
+            return ['a', 'b']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-list-str-in-fstring')
+        def my_pipeline():
+            list_task = produce_list()
+            consume_string(s=f'Items: {list_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-list', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-list-Output']}}",
+        )
+
+    def test_dict_str_int_type_in_fstring(self):
+
+        @dsl.component
+        def produce_dict() -> Dict[str, int]:
+            return {'a': 1}
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-dict-str-int-in-fstring')
+        def my_pipeline():
+            dict_task = produce_dict()
+            consume_string(s=f'Items: {dict_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-dict', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-dict-Output']}}",
+        )
+
+    def test_builtin_list_and_dict_types_in_fstring(self):
+
+        @dsl.component
+        def produce_builtin_list() -> list:
+            return ['a', 'b']
+
+        @dsl.component
+        def produce_builtin_dict() -> dict:
+            return {'a': 1}
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-builtin-list-dict-in-fstring')
+        def my_pipeline():
+            list_task = produce_builtin_list()
+            dict_task = produce_builtin_dict()
+            consume_string(
+                s=f'List: {list_task.output}, Dict: {dict_task.output}'
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-builtin-list', list(task.dependent_tasks))
+        self.assertIn('produce-builtin-dict', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "List: {{$.inputs.parameters['pipelinechannel--produce-builtin-list-Output']}}, "
+            "Dict: {{$.inputs.parameters['pipelinechannel--produce-builtin-dict-Output']}}",
+        )
+
+    def test_nested_list_dict_type_in_fstring(self):
+
+        @dsl.component
+        def produce_nested() -> List[Dict[str, int]]:
+            return [{'a': 1}]
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-nested-type-in-fstring')
+        def my_pipeline():
+            nested_task = produce_nested()
+            consume_string(s=f'Items: {nested_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-nested', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-nested-Output']}}",
+        )
+
+    def test_nullable_union_type_in_fstring(self):
+
+        @dsl.component
+        def produce_nullable() -> list[str | None]:
+            return ['a', None]
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-nullable-union-in-fstring')
+        def my_pipeline():
+            nullable_task = produce_nullable()
+            consume_string(s=f'Items: {nullable_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-nullable', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-nullable-Output']}}",
+        )
+
+    def test_literal_type_in_fstring(self):
+
+        @dsl.component
+        def produce_literal() -> List[Literal['a', 'b']]:
+            return ['a']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-literal-type-in-fstring')
+        def my_pipeline():
+            literal_task = produce_literal()
+            consume_string(s=f'Items: {literal_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-literal', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-literal-Output']}}",
+        )
+
+    def test_mime_type_literal_with_slash_in_fstring(self):
+
+        @dsl.component
+        def produce_mime_types() -> List[
+            Literal['text/plain', 'application/json']
+        ]:
+            return ['text/plain', 'application/json']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-mime-type-literal-in-fstring')
+        def my_pipeline():
+            mime_task = produce_mime_types()
+            consume_string(s=f'Items: {mime_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-mime-types', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-mime-types-Output']}}",
+        )
+
+    def test_literal_containing_placeholder_terminator_in_fstring(self):
+
+        @dsl.component
+        def produce_delimiter() -> List[Literal[';}}']]:
+            return [';}}']
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-delimiter-literal-in-fstring')
+        def my_pipeline():
+            delimiter_task = produce_delimiter()
+            consume_string(s=f'Items: {delimiter_task.output}')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertIn('produce-delimiter', list(task.dependent_tasks))
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn('{{channel:', compiled_value)
+        self.assertNotIn(';}}', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "Items: {{$.inputs.parameters['pipelinechannel--produce-delimiter-Output']}}",
+        )
+
+    def test_adjacent_placeholders_with_delimiter_literal_in_fstring(self):
+
+        @dsl.component
+        def produce_delimiter() -> List[Literal[';}}']]:
+            return [';}}']
+
+        @dsl.component
+        def produce_plain() -> str:
+            return 'x'
+
+        @dsl.component
+        def consume_string(s: str) -> str:
+            return s
+
+        @dsl.pipeline(name='pipeline-with-adjacent-placeholders')
+        def my_pipeline():
+            delimiter_task = produce_delimiter()
+            plain_task = produce_plain()
+            consume_string(
+                s=f'A: {delimiter_task.output} B: {plain_task.output}'
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path
+            )
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        task = pipeline_spec.root.dag.tasks['consume-string']
+        self.assertCountEqual(
+            list(task.dependent_tasks), ['produce-delimiter', 'produce-plain']
+        )
+        compiled_value = task.inputs.parameters[
+            's'
+        ].runtime_value.constant.string_value
+        self.assertNotIn(';}}', compiled_value)
+        self.assertEqual(
+            compiled_value,
+            "A: {{$.inputs.parameters['pipelinechannel--produce-delimiter-Output']}} B: {{$.inputs.parameters['pipelinechannel--produce-plain-Output']}}",
+        )
 
 
 class TestPythonicArtifactAuthoring(unittest.TestCase):

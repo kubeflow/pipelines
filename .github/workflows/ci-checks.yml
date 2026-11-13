@@ -46,6 +46,7 @@ on:
       - 'Python Syntax'
       - 'KFP Readthedocs Release Readiness'
       - 'Runtime Base Images'
+      - 'Shared CI Images'
       - 'Third-party Image Upgrade Checks'
       - 'KFP SDK Docformatter Test'
       - 'Python Ruff Lint'
@@ -180,6 +181,7 @@ jobs:
           CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
           CI_POLL_PASSED: ${{ steps.poll.outcome == 'success' }}
           CI_POLL_SKIPPED: ${{ steps.poll.outcome == 'skipped' && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'false' }}
+          CI_PREPARED_RESULT: ${{ steps.prepare.outcome == 'success' && steps.prepare.outputs.prepared_result || '' }}
         with:
           script: |
             const {finalize} = require('./.github/resources/scripts/ci_passed.js');
@@ -188,7 +190,8 @@ jobs:
               head: process.env.CI_HEAD_SHA,
               before: process.env.CI_PR_SNAPSHOT,
               pollPassed: process.env.CI_POLL_PASSED === 'true',
-              pollSkipped: process.env.CI_POLL_SKIPPED === 'true'});
+              pollSkipped: process.env.CI_POLL_SKIPPED === 'true',
+              preparedResult: process.env.CI_PREPARED_RESULT});
 
   recover_merged_release:
     if: github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)

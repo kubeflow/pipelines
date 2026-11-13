@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .ci_images_client import REPO, WORKFLOW, _api, verify_run
 from .ci_security_runner import verify_security
-from .core import default_branch
+from .github_api import default_branch
 from .osv_image_scan import SCANNER, validate_report
 from .osv_reports import findings
 from .security import evaluate_policy

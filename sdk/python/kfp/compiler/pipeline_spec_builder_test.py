@@ -331,6 +331,152 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
         )
 
 
+class TestNestedPipelineExecutorCollisions(unittest.TestCase):
+    """Executor labels of an inner pipeline can collide with the outer ones
+    (`exec-comp`) and, once renamed, with each other (`exec-comp-2`).
+
+    Each task must keep its own container resources and platform config.
+    """
+
+    def _compile(self):
+        @dsl.component
+        def comp(msg: str) -> str:
+            return msg
+
+        @dsl.pipeline
+        def inner():
+            for i, name in enumerate(['a', 'b', 'c'], start=1):
+                task = comp(msg=name)
+                task.set_cpu_limit(str(i)).set_memory_limit(f'{i}G')
+                kubernetes.use_secret_as_env(
+                    task,
+                    secret_name=f'secret-{name}',
+                    secret_key_to_env={'key': f'{name.upper()}_ENV'},
+                )
+
+        @dsl.pipeline
+        def outer():
+            comp(msg='outer')
+            inner()
+            inner()
+
+        return inner, outer
+
+    def _leaf_tasks(self, pipeline):
+        spec = pipeline.pipeline_spec
+        executors = json_format.MessageToDict(spec.deployment_spec)['executors']
+        platform_executors = (
+            json_format.MessageToDict(pipeline.platform_spec)
+            .get('platforms', {})
+            .get('kubernetes', {})
+            .get('deploymentSpec', {})
+            .get('executors', {})
+        )
+        leaves = []
+
+        def walk(dag):
+            for task_spec in dag.tasks.values():
+                component = spec.components[task_spec.component_ref.name]
+                if component.dag.tasks:
+                    walk(component.dag)
+                    continue
+                label = component.executor_label
+                resources = executors[label]['container'].get('resources', {})
+                leaves.append(
+                    {
+                        'label': label,
+                        'msg': task_spec.inputs.parameters[
+                            'msg'
+                        ].runtime_value.constant.string_value,
+                        'cpu': resources.get('resourceCpuLimit'),
+                        'memory': resources.get('resourceMemoryLimit'),
+                        'platform': platform_executors.get(label),
+                    }
+                )
+
+        walk(spec.root.dag)
+        return leaves, set(executors), set(platform_executors)
+
+    def _expected_platform(self, name):
+        return {
+            'secretAsEnv': [
+                {
+                    'keyToEnv': [
+                        {'envVar': f'{name.upper()}_ENV', 'secretKey': 'key'}
+                    ],
+                    'optional': False,
+                    'secretName': f'secret-{name}',
+                    'secretNameParameter': {
+                        'runtimeValue': {'constant': f'secret-{name}'}
+                    },
+                }
+            ]
+        }
+
+    def _assert_tasks_keep_their_config(self, pipeline, num_tasks):
+        leaves, executor_labels, platform_labels = self._leaf_tasks(pipeline)
+        self.assertEqual(len(leaves), num_tasks)
+
+        labels = [leaf['label'] for leaf in leaves]
+        self.assertEqual(
+            len(set(labels)), len(labels), 'tasks share an executor'
+        )
+        self.assertEqual(executor_labels, set(labels), 'orphaned executors')
+
+        expected_platform_labels = set()
+        for leaf in leaves:
+            if leaf['msg'] == 'outer':
+                self.assertEqual(
+                    (leaf['cpu'], leaf['memory'], leaf['platform']),
+                    (None, None, None),
+                )
+                continue
+            i = 'abc'.index(leaf['msg']) + 1
+            self.assertEqual(
+                (leaf['cpu'], leaf['memory'], leaf['platform']),
+                (str(i), f'{i}G', self._expected_platform(leaf['msg'])),
+                f'wrong config for task {leaf["msg"]!r}',
+            )
+            expected_platform_labels.add(leaf['label'])
+        self.assertEqual(platform_labels, expected_platform_labels)
+
+    def test_tasks_keep_their_executor_config(self):
+        inner, outer = self._compile()
+        self._assert_tasks_keep_their_config(inner, num_tasks=3)
+        self._assert_tasks_keep_their_config(outer, num_tasks=7)
+
+    def test_renamed_labels_do_not_depend_on_map_order(self):
+        _, outer = self._compile()
+        leaves, _, _ = self._leaf_tasks(outer)
+        self.assertEqual(
+            sorted((leaf['msg'], leaf['label']) for leaf in leaves),
+            [
+                ('a', 'exec-comp-2'),
+                ('a', 'exec-comp-4'),
+                ('b', 'exec-comp-2-2'),
+                ('b', 'exec-comp-2-3'),
+                ('c', 'exec-comp-3'),
+                ('c', 'exec-comp-3-2'),
+                ('outer', 'exec-comp'),
+            ],
+        )
+
+    def test_repeated_compilation_is_stable(self):
+        inner, outer = self._compile()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            outputs = []
+            for i in range(3):
+                path = os.path.join(tmpdir, f'{i}.yaml')
+                compiler.Compiler().compile(outer, path)
+                with open(path) as f:
+                    outputs.append(f.read())
+        self.assertEqual(outputs[0], outputs[1])
+        self.assertEqual(outputs[0], outputs[2])
+        # Embedding must not mutate the inner pipeline's template.
+        self._assert_tasks_keep_their_config(inner, num_tasks=3)
+        self._assert_tasks_keep_their_config(outer, num_tasks=7)
+
+
 class TestPlatformConfigToPlatformSpec(unittest.TestCase):
     def test(self):
         platform_config = {
