@@ -318,6 +318,12 @@ function successfulCompletion(context) {
     context.payload.workflow_run?.conclusion === 'success';
 }
 
+function failedCompletion(context) {
+  return context.eventName === 'workflow_run' && context.payload.action === 'completed' &&
+    ['failure', 'cancelled', 'timed_out', 'action_required', 'stale', 'startup_failure']
+      .includes(context.payload.workflow_run?.conclusion);
+}
+
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
   let pr;
   try {
@@ -358,14 +364,16 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.',
-    {provisional: true, requireStatus: successfulCompletion(context)});
+    {provisional: true, requireStatus: successfulCompletion(context) || failedCompletion(context)});
   if (pr.state !== 'open' || blocked(pr)) return;
-  if (context.eventName === 'schedule') {
+  if (context.eventName === 'schedule' || failedCompletion(context)) {
+    // Only current, validated attempts establish failure; a delayed event alone
+    // cannot. Missing or unreadable failure evidence falls back to full checks.
     let reasons = [];
     try {
       reasons = await workflowFailures({github, ...context.repo, sha: pr.head.sha});
     } catch (error) {
-      core.info(`Cannot probe recovery workflow failures: ${error.message}`);
+      core.info(`Cannot probe current workflow failures: ${error.message}`);
     }
     if (reasons.length) {
       core.setOutput('ready', 'false');
@@ -410,7 +418,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     if (pr.merged) return;
     // The always-run finalizer must not turn an interrupted preparation or
     // failed checker into pending and overwrite an already published failure.
-    if (successfulCompletion(context) && !pollPassed && !pollSkipped) {
+    if ((successfulCompletion(context) || failedCompletion(context)) && !pollPassed && !pollSkipped) {
       throw new Error('Completion CI validation did not finish; inspect CI Check and retry.');
     }
     let state = 'failure';

@@ -42,5 +42,8 @@ jobs:
         with:
           script: |
             const {revokeStaleGreens} = require('./.github/resources/scripts/ci_passed.js');
-            const revoked = await revokeStaleGreens({github, context, tip: process.env.PUSH_TIP});
-            core.info(`Revoked ${revoked} stale ci-passed status(es).`);
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
+            return await withRequestAccounting({github, core, scope: 'revoke'}, async () => {
+              const revoked = await revokeStaleGreens({github, context, tip: process.env.PUSH_TIP});
+              core.info(`Revoked ${revoked} stale ci-passed status(es).`);
+            });
