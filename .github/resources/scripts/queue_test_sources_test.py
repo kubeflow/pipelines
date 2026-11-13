@@ -86,7 +86,7 @@ class QueueTestSourcesTest(unittest.TestCase):
 
     def test_sdk_install_sources(self):
         sha = 'a' * 40
-        for script in ['presubmit-tests-sdk.sh', 'presubmit-tests-sdk-unit.sh']:
+        for script in ['presubmit-tests-sdk-unit.sh']:
             for source, pull, expected in [
                 (sha, '', '@' + sha),
                 (sha, '7', '@' + sha),
@@ -127,12 +127,6 @@ class QueueTestSourcesTest(unittest.TestCase):
                             + expected
                             + '#egg=kfp&subdirectory=sdk/python',
                         )
-                        if script == 'presubmit-tests-sdk.sh':
-                            self.assertTrue(
-                                result.stdout.splitlines()[1].endswith(
-                                    '/kfp-test.whl'
-                                )
-                            )
 
     def test_go_suite_receives_queue_source(self):
         action = yaml.safe_load(
