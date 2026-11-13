@@ -66,7 +66,7 @@ setuptools.setup(
             "grpcio-status<=1.85.1",
         ] + [
             "commonmark==0.9.1",
-            "autodocsumm==0.2.9",
+            "autodocsumm==0.2.15",
             "sphinx>=5.0.2,<6.0.0",
             "sphinx-immaterial==0.9.0",
             "sphinx-rtd-theme==2.0.0",
