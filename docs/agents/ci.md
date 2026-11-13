@@ -492,7 +492,7 @@ Verify stale-green revocation, retargeted PRs, normal and Dependabot merges, rel
 dry runs, and scan attribution before reopening merges. Do not retire the legacy
 image tags as part of the Git branch rename.
 
-- Master merge-queue candidates run all master PR CI lanes via `merge_group`, ignoring PR path filters. CI Check uses a separate trusted `workflow_run` publisher for exact queue-SHA `ci-passed` evidence; see [ci-passed.md](ci-passed.md#master-merge-group-ci). Preserve nonpublishing queue image builds and immutable candidate refs in SDK/test downloads. Adding a master PR lane also requires a master merge-group trigger and inventory regeneration. GitHub/Tide activation is a separate coordinated change.
+- Merge-queue candidates for `master` and `main` run all PR CI lanes for their target branch via `merge_group`, ignoring PR path filters. CI Check uses a separate trusted `workflow_run` publisher for exact queue-SHA `ci-passed` evidence; see [ci-passed.md](ci-passed.md#development-branch-merge-group-ci). Preserve nonpublishing queue image builds and immutable candidate refs in SDK/test downloads. Adding a development-branch PR lane also requires a corresponding merge-group trigger and inventory regeneration. GitHub/Tide activation is a separate coordinated change.
 
 ### GitHub API efficiency
 

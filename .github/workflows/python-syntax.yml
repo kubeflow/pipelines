@@ -3,7 +3,7 @@ name: Python Syntax
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master]
+    branches: [master, main]
   pull_request:
     paths:
       - '**/*.py'

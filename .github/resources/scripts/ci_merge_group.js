@@ -16,33 +16,34 @@ const SHA = /^[0-9a-f]{40}$/;
 
 function candidate(context) {
   const run = context.payload.workflow_run;
+  const queue = /^gh-readonly-queue\/(master|main)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(run?.head_branch || '');
   if (context.eventName !== 'workflow_run' || run?.event !== 'merge_group' ||
       run.head_repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
-      !/^gh-readonly-queue\/master\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.test(run.head_branch || '') ||
+      !queue ||
       !SHA.test(run.head_sha || '')) return null;
-  return {head: run.head_sha, branch: run.head_branch};
+  return {head: run.head_sha, branch: run.head_branch, baseRef: queue[1]};
 }
 
 async function readRef(github, context, branch) {
   const {data} = await github.rest.git.getRef({...context.repo, ref: `heads/${branch}`});
   if (data.ref !== `refs/heads/${branch}` || data.object?.type !== 'commit' ||
-      !SHA.test(data.object.sha || '')) throw new Error('Invalid queue or master ref response');
+      !SHA.test(data.object.sha || '')) throw new Error('Invalid queue or base ref response');
   return data.object.sha;
 }
 
-function expectedWorkflows(inventory, workflowFiles) {
+function expectedWorkflows(inventory, workflowFiles, baseRef) {
   validateInventory(inventory, workflowFiles);
   const expected = [];
   for (const workflow of inventory.workflows) {
     const paused = workflow.path === '.github/workflows/upgrade-test.yml' &&
       workflow.disabled_for_migration === true;
-    let masterPR = false;
+    let basePR = false;
     if (workflow.pull_request !== null) {
       // Validate the entire PR trigger, but deliberately ignore path filters:
-      // the queue tests the combined candidate through every master lane.
-      applicable(workflow.pull_request, 'master', []);
+      // the queue tests the combined candidate through every lane for its target branch.
+      applicable(workflow.pull_request, baseRef, []);
       const {paths, 'paths-ignore': ignoredPaths, ...branches} = workflow.pull_request;
-      masterPR = applicable(branches, 'master', []);
+      basePR = applicable(branches, baseRef, []);
     }
     const trigger = workflow.merge_group;
     let queueLane = false;
@@ -54,10 +55,10 @@ function expectedWorkflows(inventory, workflowFiles) {
       const {types, ...branches} = trigger;
       if (types !== undefined && (!Array.isArray(types) || types.length !== 1 ||
           types[0] !== 'checks_requested')) throw new Error('Unsupported merge_group activity types');
-      queueLane = applicable(branches, 'master', []);
+      queueLane = applicable(branches, baseRef, []);
     }
     if (paused) continue;
-    if (masterPR && !queueLane) throw new Error(`Master CI lane lacks merge_group coverage: ${workflow.path}`);
+    if (basePR && !queueLane) throw new Error(`${baseRef} CI lane lacks merge_group coverage: ${workflow.path}`);
     if (queueLane) expected.push(workflow.path);
   }
   if (!expected.length) throw new Error('No expected merge_group workflows');
@@ -105,13 +106,13 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
   await publish('pending', 'Merge-group CI evidence is being revalidated.');
   try {
     if (await readRef(github, context, group.branch) !== group.head) return;
-    const base = await readRef(github, context, 'master');
+    const base = await readRef(github, context, group.baseRef);
     const inventory = await loadInventory({github, ...context.repo, root,
-      pullRequest: {base: {sha: base, ref: 'master', repo: {full_name:
+      pullRequest: {base: {sha: base, ref: group.baseRef, repo: {full_name:
         `${context.repo.owner}/${context.repo.repo}`}}}});
-    const expected = expectedWorkflows(inventory.inventory, inventory.workflowFiles);
+    const expected = expectedWorkflows(inventory.inventory, inventory.workflowFiles, group.baseRef);
     const current = async () => (await readRef(github, context, group.branch)) === group.head &&
-      (await readRef(github, context, 'master')) === base;
+      (await readRef(github, context, group.baseRef)) === base;
     let result = await evidence(github, context, group, expected);
     core.info(JSON.stringify({head: group.head, base, expected, ...result}));
     if (!result.passed) {
@@ -123,7 +124,7 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
     // carry over to another SHA or survive a detected rerun.
     result = await evidence(github, context, group, expected);
     if (!result.passed || !await current()) return;
-    await publish('success', 'All expected master merge-group workflows passed.');
+    await publish('success', `All expected ${group.baseRef} merge-group workflows passed.`);
     let queueHead;
     try {
       queueHead = await readRef(github, context, group.branch);
@@ -133,7 +134,7 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
       if (error.status === 404) return;
       throw error;
     }
-    if (queueHead !== group.head || await readRef(github, context, 'master') !== base ||
+    if (queueHead !== group.head || await readRef(github, context, group.baseRef) !== base ||
         !(await evidence(github, context, group, expected)).passed) {
       await publish('pending', 'Queue candidate or CI changed; waiting for current evidence.');
     }

@@ -3,7 +3,7 @@ name: Runtime Base Images
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master]
+    branches: [master, main]
   schedule:
     - cron: '17 0 * * *'
   workflow_dispatch: {}

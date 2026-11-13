@@ -2,7 +2,7 @@ name: Validate Generated Files
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master]
+    branches: [master, main]
   push:
     branches:
       - master

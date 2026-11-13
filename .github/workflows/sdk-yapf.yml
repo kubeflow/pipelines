@@ -4,7 +4,7 @@ name: Python Ruff Format
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master]
+    branches: [master, main]
   push:
     branches: [master, main]
 

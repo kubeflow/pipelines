@@ -252,7 +252,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.event == 'merge_group' &&
-      startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') &&
+      (startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') ||
+       startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/')) &&
       github.event.workflow_run.head_repository.full_name == github.repository
     concurrency:
       group: ci-passed-merge-group-${{ github.event.workflow_run.head_sha }}

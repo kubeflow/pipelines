@@ -426,25 +426,26 @@ pending before checking evidence. A running owner fails explicitly, including a
 rerun of the same run ID. Newer writers are preserved. Do not proceed with release
 publication while cleanup is outstanding.
 
-## Master merge-group CI
+## Development-branch merge-group CI
 
-The test workflows also accept `merge_group: checks_requested` for `master`.
-Queue candidates run every master PR test lane regardless of PR path filters;
-this covers the combined candidate without inferring files from one constituent
-PR. The checked-in upgrade-test pause remains the sole exception. The inventory
-records both PR and merge-group triggers, and the queue verifier rejects a master
-PR lane that lacks a corresponding queue trigger.
+The test workflows also accept `merge_group: checks_requested` for `master` and
+`main`. Queue candidates run every PR test lane for their target branch regardless
+of PR path filters; this covers the combined candidate without inferring files
+from one constituent PR. The checked-in upgrade-test pause remains the sole exception. The inventory
+records both PR and merge-group triggers, and the queue verifier rejects a
+target-branch PR lane that lacks a corresponding queue trigger.
 
 CI Check's separate `check_merge_group_status` job handles constituent
 `workflow_run` events. It checks out `github.workflow_sha`, the trusted publisher
 revision on the default branch, never the candidate. It reads workflow policy
-from an immutable snapshot of the upstream `master` ref as YAML data, checks
-`merge_group` workflow runs for the exact candidate SHA, repository and queue
-branch, and publishes `ci-passed` only onto that SHA. It rereads run attempts and
+from an immutable snapshot of the upstream target branch (`master` or `main`)
+as YAML data, checks `merge_group` workflow runs for the exact candidate SHA,
+repository and queue branch, and publishes `ci-passed` only onto that SHA. It rereads run attempts and
 refs before and after success. Missing or running lanes remain pending; failed,
 cancelled or skipped lanes cannot pass. Rebuilt/deleted candidates cannot lend
-their results to a new candidate. Changes to master during reconciliation leave
-success unconfirmed until a subsequent constituent event revalidates policy.
+their results to a new candidate. Changes to the target branch during
+reconciliation leave success unconfirmed until a subsequent constituent event
+revalidates policy.
 
 Queue reconciliation does not synchronize PR labels or replace PR admission,
 review, hold or external-check policy. DCO remains an independently required
@@ -459,7 +460,9 @@ This repository change does **not** enable a merge queue or alter GitHub/Tide
 settings. Before activation, verify the installed DCO app reports on queue SHAs,
 coordinate Tide and protection changes while preserving approval/hold policy,
 and exercise successful candidates, a failed lane, rebuilt groups and reruns on
-GitHub. Start with master only, squash merging and low build concurrency. Keep
+GitHub. Activate for the current development branch, with squash merging and low
+build concurrency. Supporting both names in CI does not migrate GitHub protection
+or Tide configuration during a rename; coordinate those settings separately. Keep
 release branches on their existing merge path. Queue runs build images without
 publishing them and use the queue SHA for test source downloads. Shared CI image
 production builds both architectures for queue candidates; producer and consumer

@@ -2,7 +2,7 @@ name: Third-party Image Upgrade Checks
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master]
+    branches: [master, main]
   pull_request:
     paths:
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**'

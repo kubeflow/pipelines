@@ -5,6 +5,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from itertools import product
 from pathlib import Path
 from unittest import mock
 
@@ -14,32 +15,34 @@ from shared_ci_images_test import FakeAPI, identity
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def queue_identity(run_id=10):
+def queue_identity(run_id=10, branch='master'):
     value = identity(run_id)
     value.update(
         event='merge_group',
         pr=None,
-        ref='refs/heads/gh-readonly-queue/master/pr-23-abcdef',
+        ref=f'refs/heads/gh-readonly-queue/{branch}/pr-23-abcdef',
     )
     value['merge_group'] = {
         'head_sha': value['source_sha'],
         'head_ref': value['ref'],
         'base_sha': 'c' * 40,
-        'base_ref': 'refs/heads/master',
+        'base_ref': f'refs/heads/{branch}',
     }
     return value
 
 
 class SharedQueueImagesTest(unittest.TestCase):
     def test_queue_images_resolve_and_verify_both_architectures(self):
-        for architecture in ['amd64', 'arm64']:
+        for branch, architecture in product(
+            ['master', 'main'], ['amd64', 'arm64']
+        ):
             with (
-                self.subTest(architecture=architecture),
+                self.subTest(branch=branch, architecture=architecture),
                 tempfile.TemporaryDirectory() as directory,
             ):
                 directory = Path(directory)
-                source = queue_identity()
-                consumer = queue_identity(20)
+                source = queue_identity(branch=branch)
+                consumer = queue_identity(20, branch=branch)
                 api = FakeAPI(source)
                 api.current_run['head_branch'] = source['ref'].removeprefix(
                     'refs/heads/'
@@ -74,6 +77,21 @@ class SharedQueueImagesTest(unittest.TestCase):
         other.pop('merge_group')
         with self.assertRaises(shared.InvalidEvidence):
             shared.same_source(other, source)
+
+    def test_queue_identity_rejects_cross_branch_and_release_refs(self):
+        for branch in ['master', 'main']:
+            for base in ['master', 'main', 'release-2.18']:
+                if branch == base:
+                    continue
+                with self.subTest(branch=branch, base=base):
+                    source = queue_identity(branch=branch)
+                    source['merge_group']['base_ref'] = f'refs/heads/{base}'
+                    with self.assertRaises(shared.InvalidEvidence):
+                        shared.validate_identity(source)
+        with self.assertRaises(shared.InvalidEvidence):
+            shared.validate_identity(queue_identity(branch='release-2.18'))
+        with self.assertRaises(shared.InvalidEvidence):
+            shared.same_source(queue_identity(), queue_identity(branch='main'))
 
     def test_event_and_checkout_must_match_queue_identity(self):
         source = queue_identity()
@@ -126,8 +144,10 @@ class SharedQueueImagesTest(unittest.TestCase):
                 """
 const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
 const assert = require('node:assert/strict');
-assert.deepEqual(architectures({workflows: []}, 'merge_group',
-  {merge_group: {base_ref: 'refs/heads/master'}}, []), {amd64: true, arm64: true});
+for (const branch of ['master', 'main']) {
+  assert.deepEqual(architectures({workflows: []}, 'merge_group',
+    {merge_group: {base_ref: `refs/heads/${branch}`}}, []), {amd64: true, arm64: true});
+}
 assert.throws(() => architectures({workflows: []}, 'merge_group',
   {merge_group: {base_ref: 'refs/heads/release-2.18'}}, []));
 """,

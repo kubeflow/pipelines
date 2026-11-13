@@ -10,8 +10,8 @@ const AMD64_CONSUMERS = new Set([
 
 function architectures(inventory, eventName, event, files) {
   if (eventName === 'merge_group') {
-    if (event.merge_group?.base_ref !== 'refs/heads/master') {
-      throw new Error('Shared queue images require master');
+    if (!['refs/heads/master', 'refs/heads/main'].includes(event.merge_group?.base_ref)) {
+      throw new Error('Shared queue images require master or main');
     }
     return {amd64: true, arm64: true};
   }

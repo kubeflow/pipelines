@@ -84,7 +84,7 @@ const github = {{
       const count = refCounts.get(options.ref) || 0;
       refCounts.set(options.ref, count + 1);
       const values = fixture.refs[options.ref] ||
-        [options.ref === 'heads/master' ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
+        [['heads/master', 'heads/main'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
       const sha = values[Math.min(count, values.length - 1)];
       if (sha === null) throw Object.assign(new Error('Ref not found'), {{status: 404}});
       return {{data: {{ref: 'refs/' + options.ref, object: {{type: 'commit', sha}}}}}};
@@ -152,6 +152,66 @@ class MergeGroupTest(unittest.TestCase):
             if request['route'] == 'runs':
                 self.assertEqual(request['options']['event'], 'merge_group')
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_each_queue_uses_its_own_base_policy_and_ref(self):
+        for base in ['master', 'main']:
+            with self.subTest(base=base):
+                branch = f'gh-readonly-queue/{base}/pr-7-abcdef'
+                run = good_run(head_branch=branch)
+                definition = lane(
+                    pull_request={'branches': [base]},
+                    merge_group={'branches': [base]},
+                )
+                result = reconcile(event=run, runs=[run], lanes=[definition])
+                self.assertTrue(result['writes'], result)
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
+                self.assertEqual(
+                    result['inventoryRequests'][0]['base']['ref'], base
+                )
+                self.assertEqual(
+                    result['inventoryRequests'][0]['base']['sha'], BASE
+                )
+                refs = [
+                    r['options']['ref']
+                    for r in result['requests']
+                    if r['route'] == 'ref'
+                ]
+                self.assertIn('heads/' + base, refs)
+                other = 'main' if base == 'master' else 'master'
+                self.assertNotIn('heads/' + other, refs)
+                for values in [[BASE, REBUILT], [BASE, BASE, REBUILT]]:
+                    changed = reconcile(
+                        event=run,
+                        runs=[run],
+                        lanes=[definition],
+                        refs={'heads/' + base: values},
+                    )
+                    self.assert_not_successful(changed)
+                missing = reconcile(
+                    event=run,
+                    runs=[run],
+                    lanes=[
+                        lane(
+                            pull_request={'branches': [base]},
+                            merge_group={'branches': [other]},
+                        )
+                    ],
+                )
+                self.assertEqual(
+                    missing['writes'][-1]['state'], 'failure', missing
+                )
+                wrong_branch = reconcile(
+                    event=run,
+                    runs=[
+                        good_run(
+                            head_branch=f'gh-readonly-queue/{other}/pr-7-abcdef'
+                        )
+                    ],
+                    lanes=[definition],
+                )
+                self.assert_not_successful(wrong_branch)
 
     def test_non_queue_events_do_not_publish(self):
         for changes in [
@@ -363,7 +423,8 @@ class MergeGroupTest(unittest.TestCase):
         self.assertIn(
             "github.event.workflow_run.event == 'merge_group'", job['if']
         )
-        self.assertIn('gh-readonly-queue/master/', job['if'])
+        for base in ['master', 'main']:
+            self.assertIn(f'gh-readonly-queue/{base}/', job['if'])
         self.assertIn(
             'github.event.workflow_run.head_sha', job['concurrency']['group']
         )
