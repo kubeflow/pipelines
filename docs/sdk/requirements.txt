@@ -1,7 +1,6 @@
-autodocsumm==0.2.9
+autodocsumm>=0.2.15,<1
 setuptools<81
-sphinx==5.0.2
-sphinx-click==4.3.0
-sphinx-immaterial==0.12.5
-sphinx-rtd-theme==1.0.0
-m2r2==0.3.2
+sphinx>=9.2.0,<10
+sphinx-click>=6.0.0,<7
+sphinx-immaterial>=0.13.5,<1
+m2r2>=0.3.4,<1

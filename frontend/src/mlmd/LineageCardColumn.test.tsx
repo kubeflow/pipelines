@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi, describe, expect, it, beforeEach, Mock } from 'vitest';
 import { Artifact, Execution } from '../third_party/mlmd';
 import { LineageCardColumn, LineageCardColumnProps, CardDetails } from './LineageCardColumn';

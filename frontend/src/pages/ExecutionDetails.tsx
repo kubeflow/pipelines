@@ -17,7 +17,7 @@
 import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Api, getArtifactTypes } from 'src/mlmd/library';
 import {

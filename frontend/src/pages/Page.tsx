@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { RouteComponentProps } from 'react-router';
+import { RouteComponentProps } from '../lib/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { BannerProps } from '../components/Banner';
 import { SnackbarProps } from '@mui/material/Snackbar';

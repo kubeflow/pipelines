@@ -28,7 +28,7 @@ import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Redirect } from '../lib/Router';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 

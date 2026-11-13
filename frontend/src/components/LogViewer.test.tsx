@@ -15,9 +15,10 @@
  */
 
 import * as React from 'react';
-import { act, render } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import LogViewer from './LogViewer';
+import { mockResizeObserver } from '../TestUtils';
 
 function renderRow(logLines: string[], index = 0): HTMLElement | null {
   const logViewer = new LogViewer({ logLines });
@@ -30,6 +31,20 @@ describe('LogViewer', () => {
   it('renders an empty container when no logs passed', () => {
     const { asFragment } = render(<LogViewer logLines={[]} />);
     expect(asFragment()).toMatchSnapshot();
+  });
+
+  it('renders measured rows using the current virtualized API', async () => {
+    mockResizeObserver(800, 600);
+    const bounds = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue(new DOMRect(0, 0, 800, 600));
+    try {
+      render(<LogViewer logLines={['measured first line', 'measured final line']} />);
+      expect(await screen.findByText('measured first line')).toBeInTheDocument();
+      expect(await screen.findByText('measured final line')).toBeInTheDocument();
+    } finally {
+      bounds.mockRestore();
+    }
   });
 
   it('renders one log line', () => {

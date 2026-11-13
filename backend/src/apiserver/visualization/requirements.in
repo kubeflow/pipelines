@@ -17,7 +17,7 @@ tensorflow-serving-api==2.20.0
 tornado==6.*
 protobuf>=6.31.1,<7
 werkzeug==3.1.9
-oauthlib>=4.0.0,<5
+oauthlib>=4.0.1,<5
 urllib3>=2.8.0,<3
 multidict>=6.9.1
 soupsieve>=2.9.0

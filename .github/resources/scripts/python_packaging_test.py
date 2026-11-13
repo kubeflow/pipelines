@@ -118,6 +118,84 @@ class PythonPackagingTest(unittest.TestCase):
                         fnmatch.fnmatchcase(changed, pattern)
                         for pattern in paths))
 
+    def test_google_api_core_keeps_python39_and_updates_newer_python(
+            self) -> None:
+        for path in ('sdk/python/requirements.in',
+                     'sdk/python/requirements.txt',
+                     'kubernetes_platform/python/requirements.txt'):
+            requirements = [
+                Requirement(line)
+                for line in (ROOT / path).read_text().splitlines()
+                if line.startswith('google-api-core')
+            ]
+            for version, expected in (('3.9', '2.30.3'), ('3.13', '2.44.0')):
+                with self.subTest(path=path, python=version):
+                    selected = [
+                        r for r in requirements
+                        if not r.marker or r.marker.evaluate({
+                            'python_version': version,
+                            'python_full_version': version + '.0'
+                        })
+                    ]
+                    self.assertEqual(len(selected), 1)
+                    self.assertIn(expected, selected[0].specifier)
+                    if version == '3.13':
+                        self.assertNotIn('2.28.1', selected[0].specifier)
+
+    def test_release_locks_cover_supported_python_and_windows(self) -> None:
+        for directory in ('sdk/python', 'kubernetes_platform/python'):
+            source = [
+                Requirement(line)
+                for line in (ROOT / directory /
+                             'requirements.in').read_text().splitlines()
+                if line and not line.startswith('#')
+            ]
+            lock = [
+                Requirement(line)
+                for line in (ROOT / directory /
+                             'requirements.txt').read_text().splitlines()
+                if line and not line.startswith(('#', ' '))
+            ]
+            for python in ('3.9', '3.13'):
+                for platform in ('linux', 'win32'):
+                    environment = {
+                        'python_version': python,
+                        'python_full_version': python + '.0',
+                        'sys_platform': platform
+                    }
+                    selected = {
+                        r.name.lower(): r
+                        for r in lock
+                        if not r.marker or r.marker.evaluate(environment)
+                    }
+                    with self.subTest(
+                            directory=directory, python=python,
+                            platform=platform):
+                        for requirement in source:
+                            if requirement.marker and not requirement.marker.evaluate(
+                                    environment):
+                                continue
+                            self.assertIn(requirement.name.lower(), selected)
+                            pinned = selected[requirement.name.lower()]
+                            version = next(iter(pinned.specifier)).version
+                            self.assertIn(version, requirement.specifier)
+                        if platform == 'win32':
+                            self.assertIn('colorama', selected)
+
+    def test_sphinx9_documentation_uses_python313(self) -> None:
+        for path in ('.readthedocs.yml',
+                     'kubernetes_platform/python/docs/.readthedocs.yml'):
+            config = yaml.safe_load((ROOT / path).read_text())
+            self.assertEqual(config['build']['tools']['python'], '3.13')
+        for name in ('docs.yml', 'readthedocs-builds.yml'):
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / name).read_text())
+            for job in workflow['jobs'].values():
+                for step in job.get('steps', []):
+                    if step.get('uses'
+                               ) == './.github/actions/setup-python-pip-cache':
+                        self.assertEqual(step['with']['python-version'], '3.13')
+
     def test_readthedocs_bounds_font_download_concurrency(self) -> None:
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/readthedocs-builds.yml').read_text())

@@ -22,7 +22,7 @@ import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { RouteComponentProps } from 'react-router-dom';
+import { RouteComponentProps } from '../lib/Router';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2, RunDetailsV2Params } from 'src/pages/RunDetailsV2';
 import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';

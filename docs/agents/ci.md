@@ -415,3 +415,5 @@ resolution: they may intentionally pin different versions. Check local path
 handling against Dependabot's preparer rather than requiring a full checkout
 for every isolated project. Keep the hosted post-merge check separate from these
 local resolver checks.
+
+- Regenerate `ai-analyzer.lock.yml` with gh-aw v1.2.1 (`gh aw compile ai-analyzer`) and commit `.github/aw/actions-lock.json`. Setup action and compiler versions must match. Actionlint v1.7.12 lacks the generated `concurrency.queue`, `copilot-requests`, `job.workflow_ref`, and job `cache-mode` fields; `.github/actionlint.yaml` limits exact diagnostic exceptions to this generated workflow. The analyzer version, telemetry isolation, and actionlint compatibility tests guard these contracts.

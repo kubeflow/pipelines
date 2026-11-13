@@ -17,7 +17,8 @@
 import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import { Link } from 'react-router';
+import { Redirect } from '../lib/Router';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import RunInputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';

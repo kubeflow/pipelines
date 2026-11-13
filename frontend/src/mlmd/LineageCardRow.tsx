@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { classes, cssRaw } from 'typestyle';
 import { LineageTypedResource } from './LineageTypes';
 import { getResourceDescription, getResourceName } from './Utils';

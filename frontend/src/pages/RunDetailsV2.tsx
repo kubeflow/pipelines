@@ -48,7 +48,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
-import { RouteComponentProps } from 'react-router-dom';
+import { RouteComponentProps } from '../lib/Router';
 import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './StatusV2';
 import DagCanvas from './v2/DagCanvas';

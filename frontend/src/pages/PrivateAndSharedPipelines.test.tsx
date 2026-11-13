@@ -25,7 +25,7 @@ import PrivateAndSharedPipelines, {
   PrivateAndSharedProps,
   PrivateAndSharedTab,
 } from './PrivateAndSharedPipelines';
-import { Router } from 'react-router-dom';
+import { Router } from '../lib/Router';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 function generateProps(): PrivateAndSharedProps {

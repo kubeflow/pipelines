@@ -15,7 +15,7 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { MockInstance } from 'vitest';
 import { Api } from 'src/mlmd/library';
 import {

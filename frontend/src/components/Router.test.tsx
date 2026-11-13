@@ -15,8 +15,8 @@
  */
 
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { Router as ReactRouter } from 'react-router';
-import { MemoryRouter } from 'react-router-dom';
+import { Router as ReactRouter } from '../lib/Router';
+import { MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
 import { Page } from '../pages/Page';

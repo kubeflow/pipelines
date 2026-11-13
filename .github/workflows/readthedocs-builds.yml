@@ -37,7 +37,7 @@ jobs:
       - name: Set up Python
         uses: ./.github/actions/setup-python-pip-cache
         with:
-          python-version: "3.10"
+          python-version: "3.13"
           cache-scope: readthedocs-builds
           cache-dependency-hash: ${{ hashFiles('docs/sdk/requirements.txt', 'sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 

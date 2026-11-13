@@ -19,7 +19,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { History } from 'history';
 import * as React from 'react';
 import { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import BusyButton from '../atoms/BusyButton';
 import { color, commonCss, dimension, fonts, fontsize, spacing } from '../Css';
@@ -114,7 +114,7 @@ const css = stylesheet({
 export interface ToolbarProps {
   actions: ToolbarActionMap;
   breadcrumbs: Breadcrumb[];
-  history?: History;
+  history?: Pick<History, 'push' | 'replace' | 'length' | 'goBack'>;
   pageTitle: string | React.JSX.Element;
   pageTitleTooltip?: string;
   topLevelToolbar?: boolean;
