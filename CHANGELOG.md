@@ -1,5 +1,95 @@
 Changelog
 
+## 2.18.1 (2026-11-13)
+
+### Bug Fixes
+
+- **sdk** backport ADC credential-selection fix to release-2.18 ([#15254](https://github.com/kubeflow/pipelines/pull/15254))
+- **sdk** backport safe local condition evaluation to 2.18 ([#15260](https://github.com/kubeflow/pipelines/pull/15260))
+- **backend** require namespaces for multi-user visualizations ([#15261](https://github.com/kubeflow/pipelines/pull/15261))
+- **sdk** prefer explicit credentials over automatic ADC ([#15262](https://github.com/kubeflow/pipelines/pull/15262))
+- **sdk** backport sub-pipeline condition compile fix to 2.18 ([#15267](https://github.com/kubeflow/pipelines/pull/15267))
+- **deps** unblock release Python dependency updates. Part of #14409 ([#15281](https://github.com/kubeflow/pipelines/pull/15281))
+- **deps** isolate release docs requirements from checkout paths ([#15283](https://github.com/kubeflow/pipelines/pull/15283))
+- **deps** freeze MLMD updates in release inventory ([#15296](https://github.com/kubeflow/pipelines/pull/15296))
+- **deps** use compatible release updater interpreters. Part of #14421 ([#15339](https://github.com/kubeflow/pipelines/pull/15339))
+- **deps** select Python versions recognized by hosted Dependabot ([#15343](https://github.com/kubeflow/pipelines/pull/15343))
+- **deps** align release pip inventory with bounded updater jobs ([#15356](https://github.com/kubeflow/pipelines/pull/15356))
+- **visualization** require run creation for Python generation ([#15289](https://github.com/kubeflow/pipelines/pull/15289))
+- **frontend** reject foreign canonical artifact namespaces
+- **apiserver** reject missing visualization requests
+- **apiserver** import visualization regression test helpers
+- **frontend** fail closed when artifact ownership lookup fails
+- **frontend** deny shared MLMD ingress in multi-user mode
+- **visualization** disable Python generation by default
+- **visualization** preserve disabled status through API interceptor
+- **backend** reject non-ASCII pipeline URL hosts
+- **backend** keep envFrom and limit creds to 443
+- **ci** bound release artifact waits under API throttling ([#15504](https://github.com/kubeflow/pipelines/pull/15504))
+- **ci** reduce artifact and gate request fanout on release 2.18 ([#15508](https://github.com/kubeflow/pipelines/pull/15508))
+- **deps** coordinate release dependency upgrades ([#15556](https://github.com/kubeflow/pipelines/pull/15556))
+- **security** update Go to 1.27.4 and patch Go dependencies on release-2.18 ([#15558](https://github.com/kubeflow/pipelines/pull/15558))
+### Documentation
+
+- simplify the 2.18 upgrade guide. Part of #14409 ([#15237](https://github.com/kubeflow/pipelines/pull/15237))
+### Features
+
+- **swf** backport scheduled workflow controller leader election to 2.18 ([#15399](https://github.com/kubeflow/pipelines/pull/15399))
+- **backend** add auth for pipeline URL fetches
+### Other
+
+- **deps** bump ipykernel in /backend/src/apiserver/visualization ([#15354](https://github.com/kubeflow/pipelines/pull/15354))
+- **deps** bump google-api-python-client ([#15353](https://github.com/kubeflow/pipelines/pull/15353))
+- **deps** bump gcsfs in /backend/src/apiserver/visualization ([#15352](https://github.com/kubeflow/pipelines/pull/15352))
+- **deps** bump bokeh in /backend/src/apiserver/visualization ([#15351](https://github.com/kubeflow/pipelines/pull/15351))
+- **deps** bump the go-minor-and-patch group across 3 directories with 17 updates ([#15340](https://github.com/kubeflow/pipelines/pull/15340))
+- **deps** bump envoyproxy/envoy in /third_party/metadata_envoy ([#15337](https://github.com/kubeflow/pipelines/pull/15337))
+- **deps** bump react-dropzone in /frontend ([#15331](https://github.com/kubeflow/pipelines/pull/15331))
+- **deps** bump proto3-json-serializer in /frontend ([#15325](https://github.com/kubeflow/pipelines/pull/15325))
+- **deps** bump markdown-to-jsx in /frontend ([#15320](https://github.com/kubeflow/pipelines/pull/15320))
+- **deps** bump http-proxy-middleware in /frontend ([#15319](https://github.com/kubeflow/pipelines/pull/15319))
+- **deps** bump debian in /proxy ([#15317](https://github.com/kubeflow/pipelines/pull/15317))
+- **deps** bump golang in /backend ([#15315](https://github.com/kubeflow/pipelines/pull/15315))
+- **deps** bump pyyaml in /test/kfp-kubernetes-native-migration-tests ([#15297](https://github.com/kubeflow/pipelines/pull/15297))
+- **deps** bump helm/kind-action in /.github/actions/create-cluster ([#15213](https://github.com/kubeflow/pipelines/pull/15213))
+- **deps** bump opendatahub-io/mlflow-operator/.github/actions/deploy ([#15207](https://github.com/kubeflow/pipelines/pull/15207))
+- **deps** bump protobuf in /backend ([#15367](https://github.com/kubeflow/pipelines/pull/15367))
+- **deps** bump kfp in /backend ([#15364](https://github.com/kubeflow/pipelines/pull/15364))
+- **deps** bump kubernetes in /.github/resources/scripts/kfp-readiness ([#15363](https://github.com/kubeflow/pipelines/pull/15363))
+- **deps** bump furo in /docs ([#15362](https://github.com/kubeflow/pipelines/pull/15362))
+- **deps** bump numpy in /.github/resources/postgresql-upgrade ([#15361](https://github.com/kubeflow/pipelines/pull/15361))
+- **deps** bump kfp in /test/kfp-kubernetes-native-migration-tests ([#15376](https://github.com/kubeflow/pipelines/pull/15376))
+- **deps** bump fire in /sdk/python ([#15369](https://github.com/kubeflow/pipelines/pull/15369))
+- **deps** bump autoprefixer in /frontend ([#15377](https://github.com/kubeflow/pipelines/pull/15377))
+- **deps** bump kubernetes in /backend/metadata_writer ([#15366](https://github.com/kubeflow/pipelines/pull/15366))
+- **deps** bump @tanstack/react-query in /frontend ([#15316](https://github.com/kubeflow/pipelines/pull/15316))
+- **deps** bump https://github.com/PyCQA/flake8 from 7.4.1 to 7.5.0 in the pre-commit-hooks group across 1 directory ([#15307](https://github.com/kubeflow/pipelines/pull/15307))
+- **deps** bump postgres in /manifests/kustomize/third-party/postgresql/base ([#15368](https://github.com/kubeflow/pipelines/pull/15368))
+- **visualization** expect generation disabled in stock deployments
+- **deps** bump github/codeql-action/upload-sarif in / ([#15461](https://github.com/kubeflow/pipelines/pull/15461))
+- **deps** bump alpine/k8s ([#15465](https://github.com/kubeflow/pipelines/pull/15465))
+- **deps** bump the go-minor-and-patch group across 2 directories with 9 updates ([#15469](https://github.com/kubeflow/pipelines/pull/15469))
+- **deps** bump alpine in /frontend/mock-backend/data/v1/template ([#15512](https://github.com/kubeflow/pipelines/pull/15512))
+- **deps** bump https://github.com/hadialqattan/pycln from v2.6.0 to 2.6.1 in the pre-commit-hooks group ([#15434](https://github.com/kubeflow/pipelines/pull/15434))
+- **deps** bump pyyaml in /backend ([#15447](https://github.com/kubeflow/pipelines/pull/15447))
+- **deps** bump helm/kind-action in / ([#15464](https://github.com/kubeflow/pipelines/pull/15464))
+- **deps** bump selenium/standalone-chromium in /test/frontend-integration-test ([#15470](https://github.com/kubeflow/pipelines/pull/15470))
+- **deps** bump oauthlib in /.github/resources/scripts/kfp-readiness ([#15437](https://github.com/kubeflow/pipelines/pull/15437))
+- **deps** bump pytest in /kubernetes_platform/python ([#15460](https://github.com/kubeflow/pipelines/pull/15460))
+- **deps** bump markdown-to-jsx in /frontend ([#15456](https://github.com/kubeflow/pipelines/pull/15456))
+- **deps** bump d3-dsv in /frontend ([#15453](https://github.com/kubeflow/pipelines/pull/15453))
+- **deps** bump @tanstack/react-query in /frontend ([#15451](https://github.com/kubeflow/pipelines/pull/15451))
+- **deps** bump opendatahub-io/mlflow-operator/.github/actions/deploy in / ([#15454](https://github.com/kubeflow/pipelines/pull/15454))
+- **deps** bump ipython in /backend/src/apiserver/visualization ([#15459](https://github.com/kubeflow/pipelines/pull/15459))
+- **deps** bump pyarrow in /samples/core/artifact_previews ([#15444](https://github.com/kubeflow/pipelines/pull/15444))
+- **deps** bump xgboost in /samples/core/artifact_previews ([#15534](https://github.com/kubeflow/pipelines/pull/15534))
+- **deps** bump kubernetes in /.github/resources/scripts/kfp-readiness ([#15527](https://github.com/kubeflow/pipelines/pull/15527))
+- **deps** bump kubernetes in /backend/metadata_writer ([#15528](https://github.com/kubeflow/pipelines/pull/15528))
+- **deps** bump golang.org/x/oauth2 ([#15537](https://github.com/kubeflow/pipelines/pull/15537))
+- **deps** bump debian in /proxy ([#15540](https://github.com/kubeflow/pipelines/pull/15540))
+- **deps** bump markdown-to-jsx in /frontend ([#15541](https://github.com/kubeflow/pipelines/pull/15541))
+- **deps** bump react-dropzone in /frontend ([#15542](https://github.com/kubeflow/pipelines/pull/15542))
+
 ## 2.18.0 (2026-10-27)
 
 See the [2.18 upgrade guide](docs/operator-guides/upgrade-2.18.md) for applicable

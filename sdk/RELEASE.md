@@ -8,6 +8,20 @@
 
 ## Bug fixes and other changes
 
+# 2.18.1
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+* backport sub-pipeline condition compile fix to 2.18 (#15267)
+* prefer explicit credentials over automatic ADC (#15262)
+* backport safe local condition evaluation to 2.18 (#15260)
+* backport ADC credential-selection fix to release-2.18 (#15254)
 # 2.18.0
 
 ## Features
