@@ -42,7 +42,7 @@
     "react-textarea-autosize": "^8.5.9",
     "react-virtualized": "^10.0.1",
     "react-virtualized-auto-sizer": "^2.0.4",
-    "recharts": "^3.7.0",
+    "recharts": "^3.10.1",
     "runtypes": "^6.3.0",
     "ts-proto": "^2.12.1",
     "typestyle": "^2.4.0",
