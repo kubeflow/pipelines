@@ -1951,5 +1951,8 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 		}
 		return uuid, nil
 	}
+	if err := rows.Err(); err != nil {
+		return "", util.NewInternalServerError(err, "Failed to check for existing run")
+	}
 	return "", nil
 }
