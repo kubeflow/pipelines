@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +23,7 @@ export default defineConfig({
     globals: true,
     css: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'scripts/**/*.{test,spec}.{js,cjs,mjs,ts}'],
+    exclude: [...configDefaults.exclude, 'scripts/ui-smoke-test/test/**'],
     environmentMatchGlobs: [['scripts/**/*.{test,spec}.{js,cjs,mjs,ts}', 'node']],
     server: {
       deps: {
