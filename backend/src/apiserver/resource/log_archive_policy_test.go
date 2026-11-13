@@ -115,7 +115,7 @@ func TestMultiUserArchiveUsesNativeIdentity(t *testing.T) {
 			err := manager.readRunLogFromArchive(context.Background(), manifest, "pod-a", &dst, identity)
 			if key == good || key == strings.Replace(good, "pod-a", "pod-b", 1) {
 				require.NoError(t, err)
-				require.Equal(t, "synthetic log", dst.String())
+				require.Equal(t, "synthetic log\n", dst.String())
 				require.Equal(t, []string{key}, objects.getFileReaderPaths)
 			} else {
 				require.Error(t, err)
@@ -128,7 +128,43 @@ func TestMultiUserArchiveUsesNativeIdentity(t *testing.T) {
 
 func TestArchiveHintsDoNotReplaceNativeIdentity(t *testing.T) {
 	identity := &RunLogArchiveContext{RunID: "run-a", Namespace: "tenant-a", WorkflowName: "workflow-a"}
-	addArchiveHints(identity, `{"metadata":{"namespace":"forged","name":"forged","creationTimestamp":"2026-11-12T12:00:00Z"},"status":{"artifactRepositoryRef":{"artifactRepository":{"s3":{"bucket":"foreign-bucket","endpoint":"foreign.example","insecure":true,"secretKeySecret":{"key":"not-returned"}}}},"nodes":{"pod-a":{"outputs":{"artifacts":[{"name":"main-logs","s3":{"key":"foreign-key"}}]}}}}`, "pod-a")
+	manifest := `{
+  "metadata": {
+    "namespace": "forged",
+    "name": "forged",
+    "creationTimestamp": "2026-11-12T12:00:00Z"
+  },
+  "status": {
+    "artifactRepositoryRef": {
+      "artifactRepository": {
+        "s3": {
+          "bucket": "foreign-bucket",
+          "endpoint": "foreign.example",
+          "insecure": true,
+          "secretKeySecret": {
+            "key": "not-returned"
+          }
+        }
+      }
+    },
+    "nodes": {
+      "pod-a": {
+        "outputs": {
+          "artifacts": [
+            {
+              "name": "main-logs",
+              "s3": {
+                "key": "foreign-key"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}`
+	require.True(t, json.Valid([]byte(manifest)))
+	addArchiveHints(identity, manifest, "pod-a")
 	require.Equal(t, "tenant-a", identity.Namespace)
 	require.Equal(t, "workflow-a", identity.WorkflowName)
 	require.Equal(t, "foreign-bucket", identity.ArchiveBucket)
@@ -159,7 +195,7 @@ func TestArchiveContextResolvesLegacyNamespace(t *testing.T) {
 			previous := viper.Get(common.MultiUserMode)
 			viper.Set(common.MultiUserMode, true)
 			t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
-			_, err := clients.DB().Exec(`UPDATE run_details SET Namespace = '', K8SName = 'workflow-a' WHERE UUID = ?`, run.UUID)
+			_, err := clients.DB().Exec(`UPDATE run_details SET Namespace = '', Name = 'workflow-a' WHERE UUID = ?`, run.UUID)
 			require.NoError(t, err)
 			_, err = clients.DB().Exec(`UPDATE experiments SET Namespace = '' WHERE UUID = ?`, run.ExperimentId)
 			require.NoError(t, err)

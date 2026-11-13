@@ -415,7 +415,7 @@ storage configuration. API streaming and archives serve the `main` container;
 A custom non-`main` container has no `main` archive fallback after its Pod is gone.
 The UI requires `ARGO_ARCHIVE_LOGS=true` and an archive bucket, as configured in
 the shipped deployment. Custom callers without a run ID must use a separately authorized logging system.
-See [frontend configuration](../../frontend/README.md#pod-log-access).
+See [frontend configuration](https://github.com/kubeflow/pipelines/blob/release-2.18/frontend/README.md#pod-log-access).
 
 ## Multi-user scheduling during the upgrade
 
