@@ -67,7 +67,7 @@ setuptools.setup(
         ] + [
             "commonmark==0.9.1",
             "autodocsumm==0.2.9",
-            "sphinx>=5.0.2,<6.0.0",
+            "sphinx>=5.0.2,<9.0.0",
             "sphinx-immaterial==0.9.0",
             "sphinx-rtd-theme==2.0.0",
             "m2r2==0.3.3.post2",
