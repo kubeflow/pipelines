@@ -15,6 +15,26 @@ const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_work
 const {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
 
+async function settleAll(promises) {
+  // Keep the request-accounting scope alive until sibling reads and their
+  // pagination finish, even after a rejection. Preserve Promise.all's first
+  // observed rejection rather than selecting an error by input position.
+  let failed = false;
+  let firstError;
+  const results = await Promise.all(promises.map(async promise => {
+    try {
+      return await promise;
+    } catch (error) {
+      if (!failed) {
+        failed = true;
+        firstError = error;
+      }
+    }
+  }));
+  if (failed) throw firstError;
+  return results;
+}
+
 function isDevelopmentBranch(ref) {
   return ref === 'master' || ref === 'main';
 }
@@ -261,7 +281,7 @@ async function evidence(github, context, pr, root) {
   // freshness check is scoped to the live base so release branches are
   // unchanged.
   const liveBase = isDevelopmentBranch(pr.base.ref);
-  const [inventory, cutoff] = await Promise.all([
+  const [inventory, cutoff] = await settleAll([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),
     freshAfter(github, context, pr),
   ]);
@@ -451,7 +471,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
       // A prior negative assessment can delay green, but can never authorize it.
       // A verified failure already wins over every check state. Pending results
       // still require a fresh check scan so an external failure takes precedence.
-      const [workflows, checks] = await Promise.all([
+      const [workflows, checks] = await settleAll([
         prepared || evidence(github, context, pr, root),
         prepared?.state === 'failure' ? null : verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
@@ -484,7 +504,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
         errorReason = 'PR changed during publication; rerun CI on the current head.';
         await publish(github, context, original, 'failure', errorReason);
       } else {
-        const results = await Promise.all([
+        const results = await settleAll([
           evidence(github, context, after, root),
           verifyCheckRuns({github, ...context.repo, sha: head}),
         ]);
@@ -609,7 +629,7 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
   const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
   if (identity !== before) throw new Error('Merged recovery identity changed.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;
-  const [workflows, checks] = await Promise.all([
+  const [workflows, checks] = await settleAll([
     evidence(github, context, pr, root),
     verifyCheckRuns({github, ...context.repo, sha: head}),
   ]);
@@ -628,7 +648,7 @@ async function finalizeMergedRecovery({github, context, core, number, head, befo
   try {
     const final = await mergedRecoveryBinding(github, context, number, head);
     if (final.identity !== before) throw new Error('Merged identity changed during publication.');
-    const results = await Promise.all([
+    const results = await settleAll([
       evidence(github, context, final.pr, root),
       verifyCheckRuns({github, ...context.repo, sha: head}),
     ]);

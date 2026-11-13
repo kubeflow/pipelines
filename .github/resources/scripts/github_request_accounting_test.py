@@ -158,6 +158,79 @@ const core = {info: line => summaries.push(JSON.parse(line))};
                                 'return await withRequestAccounting', script
                             )
 
+    def test_parallel_gate_evidence_drains_pagination_after_early_error(self):
+        result = self.exercise(r"""
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const {createRequire} = require('node:module');
+const {withRequestAccounting} = require(process.argv[1]);
+const gatePath = path.join(path.dirname(process.argv[1]), 'ci_passed.js');
+const gateRequire = createRequire(gatePath);
+async function exercise(timelineFailsFirst) {
+ let hook, release;
+ const summaries = [];
+ const delayed = new Promise(resolve => {release = resolve;});
+ const first = Object.assign(Error('first failure'), {response: {status: 403}});
+ const later = Object.assign(Error('later failure'), {response: {status: 500}});
+ const github = {hook: {wrap: (_, fn) => {hook = fn;}, remove: () => {hook = undefined;}},
+   rest: {issues: {listEventsForTimeline: 'timeline'}}};
+ const request = (url, operation) => hook ? hook(operation, {method: 'GET', url}) : operation();
+ let pagesFinished = false;
+ let pagination;
+ github.paginate = () => {
+   pagination = (async () => {
+     if (timelineFailsFirst) {
+       await request('/repos/o/r/issues/1/timeline', async () => {throw first;});
+     } else {
+       await request('/repos/o/r/issues/1/timeline?page=1', async () => {
+         await delayed;
+         return {status: 200};
+       });
+       await request('/repos/o/r/issues/1/timeline?page=2', async () => ({status: 200}));
+       pagesFinished = true;
+     }
+     return [];
+   })();
+   return pagination;
+ };
+ const sandbox = {module: {exports: {}}, process, require: name => {
+   if (name === './ci_expected_workflows') return {
+     loadBaseInventory: () => request('/graphql', async () => {
+       if (timelineFailsFirst) {await delayed; throw later;}
+       throw first;
+     }),
+     verifyExpectedWorkflows: () => {throw Error('Cannot validate failed inventory');},
+   };
+   return gateRequire(name);
+ }};
+ vm.runInNewContext(fs.readFileSync(gatePath, 'utf8') + '\nmodule.exports.testEvidence = evidence;', sandbox);
+ let settled = false;
+ const operation = withRequestAccounting({github, scope: 'prepare',
+   core: {info: line => summaries.push(JSON.parse(line))}},
+   () => sandbox.module.exports.testEvidence(github, {repo: {owner: 'o', repo: 'r'}},
+     {number: 1, base: {ref: 'release-2.18', sha: 'a'.repeat(40)}}, '/unused'));
+ const outcome = operation.then(() => {settled = true;}, error => {settled = true; return error;});
+ await new Promise(setImmediate);
+ const settledBeforeSibling = settled;
+ release();
+ const error = await outcome;
+ await pagination.catch(() => {});
+ return {settledBeforeSibling, preserved: error === first, summaries, pagesFinished, hookRemoved: !hook};
+}
+(async () => {
+ process.stdout.write(JSON.stringify({pagination: await exercise(false), errorOrder: await exercise(true)}));
+})().catch(error => {console.error(error); process.exitCode = 1;});
+""")
+        for scenario in result.values():
+            self.assertFalse(scenario['settledBeforeSibling'])
+            self.assertTrue(scenario['preserved'])
+            self.assertTrue(scenario['hookRemoved'])
+            self.assertEqual(len(scenario['summaries']), 1)
+        self.assertTrue(result['pagination']['pagesFinished'])
+        self.assertEqual(result['pagination']['summaries'][0]['requests'], 3)
+        self.assertEqual(result['errorOrder']['summaries'][0]['requests'], 2)
+
 
 if __name__ == '__main__':
     unittest.main()

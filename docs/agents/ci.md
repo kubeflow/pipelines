@@ -11,7 +11,9 @@ CI Check's preparation, finalization, recovery discovery and merged-release
 recovery steps, plus stale-status revocation, emit one JSON log record with
 `event: github_request_accounting` in their finalizer, including on errors. The
 Octokit request hook includes REST pagination, GraphQL and status/label writes
-made by that particular github-script client. `measurement` is
+made by that particular github-script client. Parallel gate reads settle all
+sibling reads and pagination before the summary is emitted, retaining the first
+observed rejection when any read fails. `measurement` is
 `octokit_request_hook`; `hook_available` distinguishes a client without hooks
 from a measured zero-request operation. It does not measure other Actions
 clients, including the allcheckspassed action, or transport retries hidden below
