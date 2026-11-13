@@ -1,0 +1,25 @@
+name: Queue token probe observer
+on:
+  pull_request:
+    branches: [codex/mq-token-probe-base]
+  merge_group:
+    types: [checks_requested]
+    branches: [codex/mq-token-probe-base]
+  push:
+    branches: [codex/mq-token-probe-base]
+permissions:
+  contents: read
+jobs:
+  probe:
+    name: queue-token-probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record event and candidate identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_REF: ${{ github.ref }}
+        run: |
+          printf 'event=%s sha=%s ref=%s\n' "$EVENT_NAME" "$COMMIT_SHA" "$COMMIT_REF"
+          jq '{action, merge_group, sender: .sender.login}' "$GITHUB_EVENT_PATH"

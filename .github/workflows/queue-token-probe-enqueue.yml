@@ -1,0 +1,37 @@
+name: Queue token probe enqueue
+on:
+  push:
+    branches: [codex/mq-token-probe-trigger]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  enqueue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enqueue with the built-in token
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR=$(gh api "repos/$REPO/pulls?state=open&base=codex%2Fmq-token-probe-base&head=kubeflow%3Acodex%2Fmq-token-probe-change" --jq 'if length == 1 then .[0].number else error("Expected exactly one test PR") end')
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]]
+          pr=$(gh api "repos/$REPO/pulls/$PR")
+          jq -e --arg repo "$REPO" '
+            .state == "open" and .draft == false and
+            .base.ref == "codex/mq-token-probe-base" and
+            .head.ref == "codex/mq-token-probe-change" and
+            .head.repo.full_name == $repo
+          ' <<< "$pr"
+          id=$(jq -r .node_id <<< "$pr")
+          head=$(jq -r .head.sha <<< "$pr")
+          gh api graphql -f id="$id" -f head="$head" -f query='
+            mutation($id:ID!, $head:GitObjectID!) {
+              enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
+                mergeQueueEntry { id position }
+              }
+            }' | tee enqueue-result.json
+          jq -e '.errors == null and .data.enqueuePullRequest.mergeQueueEntry.id != null' enqueue-result.json
