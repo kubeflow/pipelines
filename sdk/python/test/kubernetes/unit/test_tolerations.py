@@ -14,6 +14,7 @@
 
 import copy
 
+import pytest
 from google.protobuf import json_format
 from kfp import dsl, kubernetes
 
@@ -696,6 +697,104 @@ class TestTolerationsJSON:
                 }
             }
         }
+
+    @pytest.mark.parametrize('operator', ['Equal', 'Exists', 'Gt', 'Lt'])
+    def test_valid_operators(self, operator):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration(comp(), key='k', operator=operator)
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations[0]['operator'] == operator
+
+    @pytest.mark.parametrize(
+        'effect', ['NoExecute', 'NoSchedule', 'PreferNoSchedule']
+    )
+    def test_valid_effects(self, effect):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration(comp(), key='k', effect=effect)
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations[0]['effect'] == effect
+
+    @pytest.mark.parametrize('operator,effect', [(None, None), ('', '')])
+    def test_omitted_or_empty_operator_and_effect(self, operator, effect):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration(
+                comp(), key='k', operator=operator, effect=effect
+            )
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations == [{'key': 'k'}]
+
+    def test_invalid_operator_raises(self):
+        with pytest.raises(
+            ValueError, match="Invalid toleration operator 'Bad'"
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_toleration(comp(), key='k', operator='Bad')
+
+    def test_invalid_effect_raises(self):
+        with pytest.raises(ValueError, match="Invalid toleration effect 'Bad'"):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_toleration(comp(), key='k', effect='Bad')
+
+    @pytest.mark.parametrize(
+        'toleration_json',
+        [
+            {'key': 'k', 'operator': 'Bad'},
+            {'key': 'k', 'effect': 'Bad'},
+            [{'key': 'k', 'operator': 'Equal'}, {'key': 'k', 'effect': 'Bad'}],
+        ],
+    )
+    def test_add_toleration_json_static_invalid_raises(self, toleration_json):
+        with pytest.raises(ValueError, match='Invalid toleration'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_toleration_json(comp(), toleration_json)
+
+    def test_add_toleration_json_static_valid_gt(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration_json(
+                comp(),
+                {
+                    'key': 'k',
+                    'operator': 'Gt',
+                    'value': '5',
+                    'effect': 'NoSchedule',
+                },
+            )
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations[0]['operator'] == 'Gt'
 
 
 @dsl.component
