@@ -1,0 +1,16 @@
+{
+  "scenario": "legacy schema seed task joined to the pinned consumer MLMD execution",
+  "source_execution_id": 7,
+  "expected_native": {
+    "task_uuid": "ddbc9b11-76ef-587d-b748-b489fd09fe90",
+    "run_uuid": "11111111-1111-4111-8111-111111111111",
+    "namespace": "migration-fixture",
+    "pod_name": "consumer-pod",
+    "created_at_in_sec": 1700000000,
+    "started_in_sec": 1700000001,
+    "finished_in_sec": 1700000002,
+    "state": "SUCCEEDED",
+    "fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb",
+    "legacy_cache_fingerprint": "729ce242961b8c35d3a35e7623986c1b321b6801f7d68013758c7255d40b54eb"
+  }
+}

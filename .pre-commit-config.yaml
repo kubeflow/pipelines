@@ -1,4 +1,5 @@
-exclude: (^backend/api/(v2|v2beta1)/python_http_client/|^sdk/python/kfp/server_api/|^components/google-cloud/|_pb2\.py$)
+# Release capture Python files have manifest-pinned bytes.
+exclude: (^backend/api/(v2|v2beta1)/python_http_client/|^sdk/python/kfp/server_api/|^components/google-cloud/|^backend/src/apiserver/migration/mlmd/testdata/release_218/.*\.py$|_pb2\.py$)
 
 repos:
   # other fast helpful checks

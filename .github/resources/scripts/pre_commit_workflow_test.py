@@ -325,6 +325,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
             'sdk/python/kfp/server_api/api_client.py',
             'backend/api/v2/python_http_client/setup.py',
             'backend/api/v2beta1/python_http_client/setup.py',
+            'backend/src/apiserver/migration/mlmd/testdata/release_218/output_metrics.py',
         ):
             with self.subTest(excluded_file=path):
                 self.assertRegex(path, hook_exclude)
@@ -341,6 +342,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 'sdk/python/kfp/server_api',
                 '*_pb2.py',
                 'components/google-cloud',
+                'backend/src/apiserver/migration/mlmd/testdata/release_218/*.py',
             },
         )
         self.assertEqual(set(ruff['lint']['select']), {'F401', 'I', 'W605'})
