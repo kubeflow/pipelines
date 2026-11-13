@@ -17,11 +17,73 @@ import unittest
 from pathlib import Path
 
 import yaml
+from artifact_workflow_test_support import render
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class QueueTestSourcesTest(unittest.TestCase):
+    def test_workflow_sources_preserve_pr_fallback_and_queue_sha(self):
+        sha = 'a' * 40
+        cases = [
+            ('pull_request', 'refs/pull/7/merge', {}, ''),
+            ('push', 'refs/heads/master', {}, ''),
+            ('workflow_dispatch', 'refs/heads/master', {}, ''),
+            (
+                'merge_group',
+                'refs/heads/gh-readonly-queue/master/pr-7-test',
+                {'merge_group': {'head_sha': sha}},
+                sha,
+            ),
+            (
+                'workflow_dispatch',
+                'refs/heads/gh-readonly-queue/master/pr-7-test',
+                {},
+                sha,
+            ),
+            (
+                'workflow_dispatch',
+                'refs/heads/gh-readonly-queue/main/pr-7-test',
+                {},
+                sha,
+            ),
+        ]
+        count = 0
+        for filename in [
+            'kfp-sdk-tests.yml',
+            'kfp-sdk-unit-tests.yml',
+            'kfp-kubernetes-native-migration-tests.yaml',
+        ]:
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / filename).read_text()
+            )
+            for job in workflow['jobs'].values():
+                for step in job.get('steps', []):
+                    expression = step.get('env', {}).get('TEST_SOURCE_REF')
+                    if expression is None:
+                        continue
+                    count += 1
+                    for event, ref, payload, expected in cases:
+                        with self.subTest(
+                            workflow=filename,
+                            step=step.get('name'),
+                            event=event,
+                            ref=ref,
+                        ):
+                            actual = render(
+                                expression,
+                                {
+                                    'github': {
+                                        'event_name': event,
+                                        'ref': ref,
+                                        'sha': sha,
+                                        'event': payload,
+                                    }
+                                },
+                            )
+                            self.assertEqual(actual, expected)
+        self.assertEqual(count, 4)
+
     def test_sdk_install_sources(self):
         sha = 'a' * 40
         for script in ['presubmit-tests-sdk.sh', 'presubmit-tests-sdk-unit.sh']:
@@ -83,7 +145,10 @@ class QueueTestSourcesTest(unittest.TestCase):
         )
         self.assertEqual(
             step['env']['TEST_SOURCE_REF'],
-            "${{ github.event.merge_group.head_sha || 'master' }}",
+            '${{ github.event.merge_group.head_sha || '
+            "(github.event_name == 'workflow_dispatch' && "
+            "startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && "
+            "github.sha) || 'master' }}",
         )
         self.assertIn('-branchName="$TEST_SOURCE_REF"', step['run'])
 

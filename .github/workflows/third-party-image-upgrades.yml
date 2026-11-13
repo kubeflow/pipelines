@@ -12,6 +12,21 @@ on:
       - '.github/workflows/third-party-image-upgrades.yml'
   workflow_dispatch:
     inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
       baseline_ref:
         description: Baseline revision (blank uses the default branch)
         required: false
@@ -23,6 +38,16 @@ concurrency:
   group: third-party-image-upgrades-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   compatibility:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -33,7 +58,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
+          ref: ${{ (github.event.merge_group.base_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && inputs.queue_base_sha)) || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -85,7 +110,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
+          ref: ${{ (github.event.merge_group.base_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && inputs.queue_base_sha)) || github.event.pull_request.base.sha || inputs.baseline_ref || github.event.repository.default_branch }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7

@@ -311,7 +311,7 @@ runs:
         INPUT_DEPLOYMENT_NAME: ${{ inputs.deployment_name }}
         INPUT_DEFAULT_NAMESPACE: ${{ inputs.default_namespace }}
         INPUT_TEST_LABEL: ${{ inputs.test_label }}
-        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || 'master' }}
+        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || (github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha) || 'master' }}
         INPUT_USE_LEGACY_API_PREFIX: ${{ inputs.use_legacy_api_prefix }}
       run: |
         USE_PROXY=${{ inputs.proxy }}

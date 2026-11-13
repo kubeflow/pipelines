@@ -15,7 +15,7 @@ on:
   schedule:
     - cron: '7,22,37,52 * * * *'
   pull_request_target:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed, ready_for_review, converted_to_draft]
   workflow_run:
     # Explicit constituents prevent CI Check from recursively triggering itself.
     workflows:
@@ -169,7 +169,7 @@ jobs:
           ignore_superseded_runs: 'true'
           # Expected workflow completion is verified independently; these
           # exclusions cannot hide a failing constituent workflow.
-          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          checks_exclude: '^check_ci_status( \(.*\))?$,^queue_admission$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
           token: ${{ github.token }}
 
       - name: Reconcile status and informational label
@@ -233,7 +233,7 @@ jobs:
           poll: 'false'
           delay: '0'
           ignore_superseded_runs: 'true'
-          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          checks_exclude: '^check_ci_status( \(.*\))?$,^queue_admission$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
           token: ${{ github.token }}
       - if: steps.prepare.outputs.ready == 'true' && steps.poll.outcome == 'success'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
@@ -251,7 +251,7 @@ jobs:
   check_merge_group_status:
     if: >-
       github.event_name == 'workflow_run' &&
-      github.event.workflow_run.event == 'merge_group' &&
+      (github.event.workflow_run.event == 'merge_group' || github.event.workflow_run.event == 'workflow_dispatch') &&
       (startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') ||
        startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/')) &&
       github.event.workflow_run.head_repository.full_name == github.repository
@@ -264,6 +264,7 @@ jobs:
       actions: read
       contents: read
       statuses: write
+      pull-requests: read
     steps:
       - name: Check out the trusted publisher revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -283,3 +284,53 @@ jobs:
           script: |
             const {reconcile} = require('./.github/resources/scripts/ci_merge_group.js');
             await reconcile({github, context, core});
+
+  queue_admission:
+    # Each survivor checks all queue members plus the affected PR. Scheduled
+    # recovery sweeps all open PRs; replaced label events cannot strand holds.
+    needs: check_ci_status
+    if: >-
+      always() && !cancelled() && (
+      github.event_name == 'schedule' ||
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_run' && github.event.action == 'completed' &&
+       (github.event.workflow_run.event == 'pull_request' ||
+        github.event.workflow_run.event == 'merge_group' ||
+        (github.event.workflow_run.event == 'workflow_dispatch' &&
+         startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/')))))
+    concurrency:
+      group: merge-queue-admission
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - id: policy
+        name: Read inactive-by-default queue policy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {loadPolicy} = require('./.github/resources/scripts/merge_queue_policy');
+            core.setOutput('enabled', String(loadPolicy().enabled_branches.length > 0));
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        if: steps.policy.outputs.enabled == 'true'
+        with:
+          python-version: '3.11'
+      - name: Install trusted workflow parser dependencies
+        if: steps.policy.outputs.enabled == 'true'
+        run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Reconcile admission, candidate dispatch, and verified results
+        if: steps.policy.outputs.enabled == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
+            await reconcileQueue({github, context, core});
