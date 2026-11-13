@@ -311,6 +311,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in multi user mode 1`]
                     <a
                       aria-label="Name: mock-pipeline-name"
                       class="link_f3dwag7"
+                      data-discover="true"
                       data-mui-internal-clone-element="true"
                       href="/pipelines/details/run-pipeline-id"
                     >
@@ -399,6 +400,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in multi user mode 1`]
                     <a
                       aria-label="Name: mock-pipeline-name"
                       class="link_f3dwag7"
+                      data-discover="true"
                       data-mui-internal-clone-element="true"
                       href="/pipelines/details/run-pipeline-id"
                     >
@@ -819,6 +821,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in multi user mode 1`]
                   <a
                     aria-label="Name: mock-pipeline-name"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     href="/pipelines/details/run-pipeline-id"
                   >
@@ -907,6 +910,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in multi user mode 1`]
                   <a
                     aria-label="Name: mock-pipeline-name"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     href="/pipelines/details/run-pipeline-id"
                   >
@@ -1342,6 +1346,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in single user mode 1`
                   <a
                     aria-label="Name: mock-pipeline-name"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     href="/pipelines/details/run-pipeline-id"
                   >
@@ -1430,6 +1435,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in single user mode 1`
                   <a
                     aria-label="Name: mock-pipeline-name"
                     class="link_f3dwag7"
+                    data-discover="true"
                     data-mui-internal-clone-element="true"
                     href="/pipelines/details/run-pipeline-id"
                   >
@@ -1807,6 +1813,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in single user mode 1`
                 <a
                   aria-label="Name: mock-pipeline-name"
                   class="link_f3dwag7"
+                  data-discover="true"
                   data-mui-internal-clone-element="true"
                   href="/pipelines/details/run-pipeline-id"
                 >
@@ -1895,6 +1902,7 @@ exports[`PrivateAndSharedPipelines > it renders correctly in single user mode 1`
                 <a
                   aria-label="Name: mock-pipeline-name"
                   class="link_f3dwag7"
+                  data-discover="true"
                   data-mui-internal-clone-element="true"
                   href="/pipelines/details/run-pipeline-id"
                 >

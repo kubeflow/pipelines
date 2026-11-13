@@ -20,7 +20,7 @@
 import 'src/build/tailwind.output.css';
 import { act } from '@testing-library/react';
 import { QueryClient } from '@tanstack/react-query';
-import { match } from 'react-router';
+import { match } from './lib/Router';
 import { beforeEach, expect, MockInstance } from 'vitest';
 import { ToolbarActionConfig } from './components/Toolbar';
 import { Feature } from './features';

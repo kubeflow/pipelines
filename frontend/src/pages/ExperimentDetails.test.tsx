@@ -25,7 +25,7 @@ import { ButtonKeys } from 'src/lib/Buttons';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { Router } from 'react-router-dom';
+import { Router } from '../lib/Router';
 import { createMemoryHistory } from 'history';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';

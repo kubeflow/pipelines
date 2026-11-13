@@ -30,7 +30,7 @@ import {
 } from 'src/third_party/mlmd';
 import { Button, CircularProgress } from '@mui/material';
 import { useContext, useState } from 'react';
-import { Route, Switch } from 'react-router-dom';
+import { Route, Switch } from '../lib/Router';
 import { classes } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';

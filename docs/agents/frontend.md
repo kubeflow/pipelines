@@ -25,3 +25,5 @@ Use `npm run mock:api` with `npm start` for mock development, or `npm run start:
 When effect behavior changes, add or run a focused regression test for duplicate mutation success, refresh-preserved selections, retry recovery, or unexpected mount-time callbacks.
 
 Prettier uses single quotes, trailing commas, and a 100-character line width.
+
+React Router 8 exports browser components directly from `react-router`; do not add a second router through `react-router-dom`. Class pages receive their existing route props through `frontend/src/lib/Router.tsx`, which uses native matching/navigation and preserves ordered routes and query-only history updates. Its tests cover nested details, redirects, memory history and production hash navigation. React Virtualized 10 uses the separate `react-virtualized-auto-sizer` package and built-in public types. Regenerate the SDK viewer after changing its frontend dependencies.

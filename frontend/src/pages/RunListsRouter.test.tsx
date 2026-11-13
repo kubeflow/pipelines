@@ -22,7 +22,7 @@ import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { ApiExperiment } from 'src/apis/experiment';
 import { Apis } from 'src/lib/Apis';
 import * as Utils from 'src/lib/Utils';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { PredicateOp } from 'src/apis/filter';
 
 describe('RunListsRouter', () => {

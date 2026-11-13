@@ -64,7 +64,7 @@ import {
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Redirect } from '../lib/Router';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import { lineColors } from 'src/components/viewers/ROCCurve';
 import Hr from 'src/atoms/Hr';

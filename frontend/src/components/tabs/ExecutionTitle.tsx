@@ -15,7 +15,7 @@
  */
 
 import { Execution } from 'src/third_party/mlmd';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { commonCss } from 'src/Css';
 import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { RoutePageFactory } from '../Router';

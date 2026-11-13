@@ -42,7 +42,7 @@ jobs:
 
       - uses: ./.github/actions/setup-python-pip-cache
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache-scope: docs
           cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
 
@@ -72,7 +72,7 @@ jobs:
 
       - uses: ./.github/actions/setup-python-pip-cache
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache-scope: docs
           cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
 

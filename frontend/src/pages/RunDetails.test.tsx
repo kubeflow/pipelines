@@ -18,7 +18,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { createMemoryHistory } from 'history';
 import * as React from 'react';
-import { Router } from 'react-router-dom';
+import { Router } from '../lib/Router';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { ApiResourceType, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';

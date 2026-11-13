@@ -24,6 +24,7 @@ exports[`NewRun > arriving from pipeline details page > indicates that a pipelin
         >
           <a
             class="link_f3dwag7"
+            data-discover="true"
             href="/pipelines/details/?fromRun=some-mock-run-id"
           >
             [View pipeline]

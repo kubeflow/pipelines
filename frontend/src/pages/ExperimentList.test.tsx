@@ -30,7 +30,7 @@ import { RoutePage, QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import { range } from 'lodash';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 

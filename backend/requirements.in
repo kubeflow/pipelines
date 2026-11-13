@@ -1,6 +1,6 @@
 kfp==2.18.0
 requests>=2.33.0,<3
-oauthlib>=4.0.0,<5
+oauthlib>=4.0.1,<5
 urllib3>=2.8.0,<3
 
 # Keep this transitive TLS dependency above the GHSA-6q48-6c7w-9gw2 security floor.

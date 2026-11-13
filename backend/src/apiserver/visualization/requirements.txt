@@ -221,7 +221,7 @@ numpy==1.26.4
     #   scikit-learn
     #   scipy
     #   tensorflow
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
     #   -r requirements.in
     #   requests-oauthlib
@@ -334,6 +334,10 @@ scikit-learn==1.5.0
     # via -r requirements.in
 scipy==1.16.1
     # via scikit-learn
+setuptools==84.2.1
+    # via
+    #   -r requirements.in
+    #   tensorflow
 six==1.17.0
     # via
     #   astunparse

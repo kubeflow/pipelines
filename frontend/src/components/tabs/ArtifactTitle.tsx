@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { commonCss } from 'src/Css';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
 import { Artifact } from 'src/third_party/mlmd';
