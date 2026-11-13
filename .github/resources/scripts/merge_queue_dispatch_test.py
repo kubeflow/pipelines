@@ -145,7 +145,23 @@ const github = {{rest: {{
     return f.statuses;
   }}
   throw new Error('Unexpected API route: ' + route);
-}}, graphql:async () => {{
+}}, graphql:async query => {{
+  if (query.includes('query QueuePolicies')) {{
+    requests.push({{route:'policies'}});
+    const repository = {{nameWithOwner:'owner/repo'}};
+    for (const match of query.matchAll(/pr([0-9]+): pullRequest/g)) {{
+      const number = match[1];
+      const pr = reserved() && f.prAfterReservation ? f.prAfterReservation :
+        (f.prs ? f.prs[number] : next('pr',f.queuePRs));
+      repository['pr' + number] = {{id:pr.node_id, number:pr.number,
+        state:pr.state.toUpperCase(), isDraft:pr.draft, merged:pr.merged,
+        headRefOid:pr.head.sha, baseRefName:pr.base.ref,
+        baseRepository:{{nameWithOwner:pr.base.repo.full_name}},
+        author:{{__typename:pr.user.type, login:pr.user.login}},
+        labels:{{nodes:pr.labels,totalCount:pr.labels.length,pageInfo:{{hasNextPage:false}}}}}};
+    }}
+    return {{repository}};
+  }}
   requests.push({{route:'queue'}});
   if (f.queueError) throw new Error('Queue unavailable');
   return next('queue',f.queues);
@@ -282,6 +298,27 @@ class QueueRecoveryTest(unittest.TestCase):
 
 
 class QueueDispatchTest(unittest.TestCase):
+    def test_full_fanout_batches_member_policy_at_every_boundary(self):
+        members = [
+            entry(number=number, position=index + 1, headCommit={'oid': HEAD})
+            for index, number in enumerate(range(7, 27))
+        ]
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{index}.yml')
+                for index in range(32)
+            ],
+            queues=[queue(members)],
+            prs={str(number): pr(number=number) for number in range(7, 27)},
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(len(result['dispatches']), 32)
+        routes = [request['route'] for request in result['requests']]
+        # Initial validation plus both checks around each dispatch reservation.
+        self.assertEqual(routes.count('queue'), 65)
+        self.assertEqual(routes.count('policies'), 65)
+        self.assertEqual(routes.count('pr'), 0)
+
     def assert_never_publishes_success(self, result):
         self.assertFalse(
             any(status['state'] == 'success' for status in result['writes']),

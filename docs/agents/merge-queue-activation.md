@@ -43,7 +43,10 @@ The bridge rereads PR policy around admission and attempts dequeue when policy
 changes or admission becomes uncertain. It invalidates affected queue-candidate
 statuses before removal where possible; status-write failure does not suppress
 an independent dequeue attempt. Queue CI also rereads policy before and after
-publishing success. GitHub exposes queue entries rather than an authoritative
+publishing success. Each boundary fetches queue membership and all member policy fields in two
+fresh GraphQL requests, avoiding per-entry REST requests during dispatch fanout.
+These mutable snapshots are never cached between boundaries.
+GitHub exposes queue entries rather than an authoritative
 merge-group members connection, so validation conservatively checks all entries
 and requires the candidate SHA to appear as a current entry head. A held later
 entry can temporarily block an earlier candidate until removal. Incomplete,
@@ -95,7 +98,9 @@ Actions rerun after investigating. Exhausted registration retries require
 operator investigation rather than an unbounded dispatch loop.
 
 Successful enqueue also records `queue-admission-attempt` on the PR head,
-consuming a fingerprint of the PR workflow run IDs and attempt numbers. Recovery
+consuming the workflow-attempt fingerprint bound to the successful PR status.
+Admission compares current evidence with that verified fingerprint, so a running
+or failed retry cannot reuse an older green. Recovery
 cannot repeatedly re-enqueue the same green head after a failed or removed queue
 candidate. After investigating, deliberately rerun PR CI to obtain a fresh
 successful admission status before retrying admission. This is separate from

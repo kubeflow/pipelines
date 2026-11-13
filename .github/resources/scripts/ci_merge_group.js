@@ -92,13 +92,45 @@ function matchingRuns(runs, context, group, path) {
   return matching.sort((a, b) => attemptTime(b) - attemptTime(a) || b.id - a.id);
 }
 
+async function triggeringRun(github, context, group) {
+  const eventGroup = candidate(context);
+  if (!eventGroup || eventGroup.head !== group.head || eventGroup.branch !== group.branch) return null;
+  const event = context.payload.workflow_run;
+  if (!Number.isSafeInteger(event?.id) || event.id <= 0 ||
+      !Number.isSafeInteger(event.run_attempt) || event.run_attempt <= 0) {
+    throw new Error('Invalid triggering queue workflow identity');
+  }
+  const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: event.id});
+  if (invalidRunMetadata(run) || run.id !== event.id || run.run_attempt < event.run_attempt ||
+      run.event !== event.event || run.path !== event.path ||
+      run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      run.head_repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      run.head_sha !== group.head || run.head_branch !== group.branch) {
+    throw new Error('Triggering queue workflow identity changed or is incomplete');
+  }
+  return run;
+}
+
 async function evidence(github, context, group, expected, allowDispatch = false) {
   const runs = (await queueRuns(github, context, group))
     .filter(run => allowDispatch || run.event === 'merge_group');
+  const trigger = await triggeringRun(github, context, group);
   const reasons = [];
   let failed = false;
   for (const path of expected) {
     const run = matchingRuns(runs, context, group, path)[0];
+    // A workflow_run event can arrive before its newer attempt appears in the
+    // list endpoint. The direct lookup establishes a floor for that execution;
+    // repeated stale list reads must never restore its earlier green result.
+    if (trigger?.path === path && run &&
+        (run.id === trigger.id || matchingRuns([run, trigger], context, group, path)[0] === trigger)) {
+      if (run.id !== trigger.id || run.run_attempt < trigger.run_attempt ||
+          run.status !== trigger.status || run.conclusion !== trigger.conclusion) {
+        reasons.push(`${path}: awaiting current triggering workflow attempt`);
+        if (trigger.status === 'completed' && trigger.conclusion !== 'success') failed = true;
+        continue;
+      }
+    }
     if (!run) reasons.push(`${path}: expected workflow has not registered`);
     else if (run.status !== 'completed' || run.conclusion !== 'success') {
       reasons.push(`${path}: latest run is ${run.status}/${run.conclusion}`);
@@ -112,8 +144,6 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
   loadInventory = loadBaseInventory, group: requestedGroup}) {
   const group = requestedGroup || candidate(context);
   if (!group) return;
-  const allowDispatch = await queueEnabled({github, context, branch: group.baseRef, root});
-  if ((requestedGroup || context.payload.workflow_run?.event === 'workflow_dispatch') && !allowDispatch) return;
   const publish = async (state, description) => github.rest.repos.createCommitStatus({
     ...context.repo, sha: group.head, context: 'ci-passed', state,
     description: description.slice(0, 140),
@@ -121,8 +151,10 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
   });
   // The workflow_run publisher runs trusted default-branch code. The candidate
   // ref is only read through APIs; no candidate code or artifact is executed.
-  await publish('pending', 'Merge-group CI evidence is being revalidated.');
   try {
+    const allowDispatch = await queueEnabled({github, context, branch: group.baseRef, root});
+    if ((requestedGroup || context.payload.workflow_run?.event === 'workflow_dispatch') && !allowDispatch) return;
+    await publish('pending', 'Merge-group CI evidence is being revalidated.');
     if (await readRef(github, context, group.branch) !== group.head) return;
     const base = await readRef(github, context, group.baseRef);
     const inventory = await loadInventory({github, ...context.repo, root,

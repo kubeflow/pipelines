@@ -13,7 +13,11 @@
 
 import copy
 import itertools
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 import yaml
 from prepare_tide_merge_queue import prepare_config, prepare_queries
@@ -62,6 +66,69 @@ def eligible(queries, repository, branch, author, labels):
 
 
 class TideQueuePreparationTest(unittest.TestCase):
+    def test_cli_rejects_patch_paths_aliasing_input(self):
+        source = 'tide:\n  queries:\n  - repos: [kubeflow/pipelines]\n'
+        for alias in ['same', 'symlink', 'hardlink']:
+            with (
+                self.subTest(alias=alias),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                config = Path(directory) / 'config.yaml'
+                config.write_text(source)
+                output = (
+                    config
+                    if alias == 'same'
+                    else Path(directory) / 'queue.patch'
+                )
+                if alias == 'symlink':
+                    output.symlink_to(config)
+                elif alias == 'hardlink':
+                    output.hardlink_to(config)
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(
+                            Path(__file__).with_name(
+                                'prepare_tide_merge_queue.py'
+                            )
+                        ),
+                        str(config),
+                        '--patch',
+                        str(output),
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('must not alias', result.stderr)
+                self.assertEqual(config.read_text(), source)
+
+    def test_cli_writes_distinct_patch_without_changing_input(self):
+        source = 'tide:\n  queries:\n  - repos: [kubeflow/pipelines]\n'
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / 'config.yaml'
+            config.write_text(source)
+            output = Path(directory) / 'queue.patch'
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(
+                        Path(__file__).with_name('prepare_tide_merge_queue.py')
+                    ),
+                    str(config),
+                    '--patch',
+                    str(output),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(config.read_text(), source)
+            self.assertTrue(
+                output.read_text().startswith('--- a/prow/oss/config.yaml\n')
+            )
+            self.assertIn('+    excludedBranches:', output.read_text())
+
     def test_all_overlapping_development_routes_removed_and_other_policy_preserved(
         self,
     ):

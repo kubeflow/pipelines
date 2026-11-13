@@ -11,7 +11,7 @@
 
 'use strict';
 
-const {createHash} = require('node:crypto');
+const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
 const {loadPolicy, queueEnabled} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
@@ -81,6 +81,42 @@ async function readQueue(github, context, branch) {
   return entries.nodes;
 }
 
+async function readQueuePRs(github, context, entries) {
+  if (!entries.length) return [];
+  // One fresh snapshot per validation boundary, not one REST request per PR.
+  // Numbers were validated by readQueue before interpolation into field aliases.
+  const fields = entries.map(entry => `pr${entry.pullRequest.number}: pullRequest(number:${entry.pullRequest.number}) {
+    id number state isDraft merged headRefOid baseRefName
+    baseRepository { nameWithOwner }
+    author { __typename login }
+    labels(first:100) { totalCount pageInfo { hasNextPage } nodes { name } }
+  }`);
+  const response = await github.graphql(`query QueuePolicies($owner:String!, $repo:String!) {
+    repository(owner:$owner, name:$repo) { nameWithOwner ${fields.join('\n')} }
+  }`, context.repo);
+  const repo = response?.repository;
+  if (response?.errors !== undefined || repo?.nameWithOwner !== `${context.repo.owner}/${context.repo.repo}`) {
+    throw new Error('Incomplete queue policy snapshot');
+  }
+  return entries.map(entry => {
+    const pr = repo[`pr${entry.pullRequest.number}`];
+    const labels = pr?.labels;
+    if (pr?.number !== entry.pullRequest.number ||
+        !labels || !Array.isArray(labels.nodes) || labels.nodes.length > 100 ||
+        labels.totalCount !== labels.nodes.length || labels.pageInfo?.hasNextPage !== false ||
+        !['OPEN', 'CLOSED', 'MERGED'].includes(pr.state)) {
+      throw new Error('Incomplete queue PR policy');
+    }
+    const type = pr.author?.__typename;
+    const login = type === 'Bot' && pr.author.login && !pr.author.login.endsWith('[bot]') ?
+      `${pr.author.login}[bot]` : pr.author?.login;
+    return {node_id: pr.id, number: pr.number, state: pr.state.toLowerCase(),
+      draft: pr.isDraft, merged: pr.merged, head: {sha: pr.headRefOid},
+      base: {ref: pr.baseRefName, repo: {full_name: pr.baseRepository?.nameWithOwner}},
+      user: {login, type}, labels: labels.nodes};
+  });
+}
+
 async function inspectQueue({github, context, group, root}) {
   if (!await queueEnabled({github, context, branch: group.baseRef, root})) return null;
   const entries = await readQueue(github, context, group.baseRef);
@@ -92,8 +128,9 @@ async function inspectQueue({github, context, group, root}) {
   // GitHub exposes entries, not an authoritative group-members connection.
   // Conservatively require every queued PR to remain eligible. A held later
   // entry may temporarily block an earlier candidate until it is dequeued.
-  for (const entry of entries) {
-    const pr = await readPR(github, context, entry.pullRequest.number);
+  const policies = await readQueuePRs(github, context, entries);
+  for (const [index, entry] of entries.entries()) {
+    const pr = policies[index];
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, group.baseRef);
     if (reason || pr.head.sha !== entry.pullRequest.headRefOid) {
       throw new Error(`Queue PR #${entry.pullRequest.number}: ${reason || 'head changed'}`);
@@ -127,9 +164,8 @@ async function admissionPassed(github, context, pr) {
     }
     ids.add(run.id);
   }
-  const fingerprint = createHash('sha256').update(JSON.stringify(
-    runs.map(run => [run.id, run.run_attempt]).sort((a, b) => a[0] - b[0])
-  )).digest('hex');
+  const fingerprint = workflowAttempts(runs, pr.head.sha);
+  if (publishedAttempts(status, `${context.repo.owner}/${context.repo.repo}`) !== fingerprint) return null;
   const consumed = statuses.find(item => item.context === 'queue-admission-attempt');
   if (consumed?.description === `Admission ${pr.base.ref}; CI attempts ${fingerprint}.`) return null;
   return fingerprint;

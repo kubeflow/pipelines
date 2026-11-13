@@ -449,8 +449,10 @@ revision on the default branch, never the candidate. It reads workflow policy
 from an immutable snapshot of the upstream target branch (`master` or `main`)
 as YAML data, checks native `merge_group` and guarded `workflow_dispatch` runs
 for the exact candidate SHA, repository and queue branch, and publishes
-`ci-passed` only onto that SHA. It rereads run attempts and
-refs before and after success. Missing or running lanes remain pending; failed,
+`ci-passed` only onto that SHA. It validates the triggering run through the
+individual-run endpoint, rejecting an older attempt or conflicting identity even
+when workflow lists still show green. It rereads run attempts and refs before
+and after success. Queue-enforcement lookup failures revoke prior success. Missing or running lanes remain pending; failed,
 cancelled or skipped lanes cannot pass. Rebuilt/deleted candidates cannot lend
 their results to a new candidate. Changes to the target branch during
 reconciliation leave success unconfirmed until a subsequent constituent event
@@ -469,8 +471,10 @@ attempts when no run registers. Existing native or dispatched runs prevent
 duplicate dispatch, including failed/cancelled runs; those require an intentional
 Actions rerun. Receipts cannot satisfy required CI checks.
 Successful admission records a separate `queue-admission-attempt` receipt on the
-PR head, consuming a fingerprint of its workflow run IDs and attempt numbers. A failed or removed
-candidate cannot cause recovery to re-enqueue the same green head indefinitely;
+PR head, consuming the workflow-attempt fingerprint bound to the trusted
+publisher's successful status. Admission requires current workflow evidence to
+match that fingerprint; starting or failing a rerun cannot reuse an old green.
+A failed or removed candidate cannot cause recovery to re-enqueue the same green head indefinitely;
 a deliberate PR CI rerun must produce a fresh successful admission status.
 As with PR reconciliation, status writes are not atomic with Actions updates,
 and `workflow_run: requested` is not emitted for reruns. Validate rerun behavior

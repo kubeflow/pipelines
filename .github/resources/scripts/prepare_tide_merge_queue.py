@@ -187,6 +187,8 @@ def main():
         help='Output reviewable patch; input is never modified',
     )
     args = parser.parse_args()
+    if args.patch.exists() and args.patch.samefile(args.config):
+        parser.error('--patch must not alias the input configuration')
     source = args.config.read_text()
     prepared = prepare_config(source)
     args.patch.write_text(

@@ -91,7 +91,7 @@ const github = {graphql: async (query, variables) => {
     for (const [name, oid] of Object.entries(variables)) {
       if (name.startsWith('sha')) repository[`head${name.slice(3)}`] = {
         __typename: 'Commit', oid, status: {context: status ? {
-          context: 'ci-passed', state: status.toUpperCase(), description: description ?? null} : null}};
+          context: 'ci-passed', state: status.toUpperCase(), description: description ?? null, targetUrl: statusTarget ?? null} : null}};
     }
     return {repository};
   }
@@ -234,7 +234,7 @@ jobs:
     requestCounts.runs++;
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
-    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
+    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: published && options.drift === 'successful-rerun' ? 2 : 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
       head_repository: {full_name: 'contributor/pipelines'},
       status: options.runStatus || 'completed', conclusion: options.runStatus && options.runStatus !== 'completed' ? null : conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
@@ -265,7 +265,7 @@ github.paginate.iterator = async function* () {
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   if (options.labelBeforeFinal) pr.labels.push({name: 'ci-passed'});
   if (options.recoverBeforeFinal) options.conclusion = 'success';
-  if (options.beforeFinalStatus) {status = options.beforeFinalStatus; description = 'Concurrent CI failure';}
+  if (options.beforeFinalStatus) {status = options.beforeFinalStatus; description = options.beforeFinalDescription || 'Concurrent CI failure'; statusTarget = options.beforeFinalTarget;}
   if (options.finishActiveBeforeFinal && cycle === 0) {
     if (options.discoveredRunsByCycle) options.discoveredRunsByCycle[cycle] = [];
     else options.discoveredRuns = [];

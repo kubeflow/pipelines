@@ -130,6 +130,32 @@ const github = {paginate: async (route, parameters) => {
                 )
                 self.assertEqual(result['requestCounts']['inventory'], 3)
 
+    def test_success_binds_exact_workflow_attempts_and_rejects_later_successful_rerun(
+        self,
+    ):
+        result = self.exercise()
+        self.assertEqual(result['status'], 'success', result)
+        self.assertRegex(
+            result['targetUrls'][-1], r'#queue-attempts=[0-9a-f]{64}$'
+        )
+        updated = self.exercise(
+            runPatch={'run_attempt': 2},
+            beforeFinalStatus='success',
+            beforeFinalDescription=result['descriptions'][-1],
+            beforeFinalTarget=result['targetUrls'][-1],
+        )
+        self.assertIn(['status', 'success', 'head'], updated['calls'])
+        self.assertNotEqual(updated['targetUrls'][-1], result['targetUrls'][-1])
+        unchanged = self.exercise(
+            beforeFinalStatus='success',
+            beforeFinalDescription=result['descriptions'][-1],
+            beforeFinalTarget=result['targetUrls'][-1].replace('/99#', '/98#'),
+        )
+        self.assertNotIn(['status', 'success', 'head'], unchanged['calls'])
+        changed = self.exercise(drift='successful-rerun')
+        self.assertIn(['status', 'success', 'head'], changed['calls'])
+        self.assertEqual(changed['status'], 'pending', changed)
+
     def test_missing_or_unreadable_enforcement_never_passes(self):
         for options in [{'queueRules': []}, {'queueRulesFailure': True}]:
             with self.subTest(options=options):

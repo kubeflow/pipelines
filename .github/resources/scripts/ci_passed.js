@@ -11,6 +11,8 @@
 
 'use strict';
 
+const {publishedAttempts} = require('./ci_workflow_attempts');
+
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
@@ -100,7 +102,8 @@ async function recoveryCandidates({github, context, root = process.env.GITHUB_WO
       continue;
     }
     if (status?.state === 'success' &&
-        status.description === successDescription(pr, await baseRevision(github, context, pr), queueAdmission)) continue;
+        status.description === successDescription(pr, await baseRevision(github, context, pr), queueAdmission) &&
+        (!queueAdmission || publishedAttempts(status, `${context.repo.owner}/${context.repo.repo}`))) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -196,7 +199,7 @@ async function resolve(github, context, recovery) {
 
 async function publish(github, context, pr, state, description, {
   provisional = false, expectedState = null, expectedId = null, updateLabels = true,
-  requireStatus = false,
+  requireStatus = false, attemptFingerprint = null,
 } = {}) {
   let current;
   try {
@@ -215,11 +218,14 @@ async function publish(github, context, pr, state, description, {
   // move an earlier failure to pending when its rerun starts.
   const preserve = provisional && current && current.state !== 'success';
   const boundedDescription = description.slice(0, 140);
-  if (!preserve && (current?.state !== state || current.description !== boundedDescription)) {
+  const targetUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` +
+    (state === 'success' && attemptFingerprint ? `#queue-attempts=${attemptFingerprint}` : '');
+  if (!preserve && (current?.state !== state || current.description !== boundedDescription ||
+      (attemptFingerprint && publishedAttempts(current, `${context.repo.owner}/${context.repo.repo}`) !== attemptFingerprint))) {
     written = (await github.rest.repos.createCommitStatus({
       ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
       description: boundedDescription,
-      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+      target_url: targetUrl,
     })).data;
   }
   if (!updateLabels) return written;
@@ -279,7 +285,7 @@ async function evidence(github, context, pr, root) {
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),
     freshAfter(github, context, pr),
   ]);
-  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff};
+  const args = {github, ...context.repo, pullRequest: pr, baseSha, liveBase, ...inventory, freshAfter: cutoff, bindAttempts: queuedAdmission};
   let result = await verifyExpectedWorkflows(args);
   if (result.missing.length) {
     // The earliest publication on this SHA starts the registration grace.
@@ -430,6 +436,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     let state = 'failure';
     let validatedBaseSha;
     let validatedQueueAdmission = false;
+    let validatedAttempts;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
       'PR changed or is closed; complete current-head CI and retry.';
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
@@ -464,6 +471,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
       ]);
       validatedBaseSha = workflows.baseSha;
       validatedQueueAdmission = workflows.queueAdmission === true;
+      validatedAttempts = workflows.attempts;
       core.info(JSON.stringify({workflows, checks}));
       const results = checks ? [workflows, checks] : [workflows];
       state = results.some(result => result.state === 'failure') ? 'failure' :
@@ -481,7 +489,8 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? successDescription(pr, validatedBaseSha, validatedQueueAdmission) : reason);
+      state === 'success' ? successDescription(pr, validatedBaseSha, validatedQueueAdmission) : reason,
+      {attemptFingerprint: validatedQueueAdmission ? validatedAttempts : null});
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
@@ -498,6 +507,9 @@ async function finalize({github, context, core, number, head, before, pollPassed
         ]);
         const changed = results.find(result => result.state === 'failure') ||
           results.find(result => result.state === 'pending');
+        if (!changed && validatedQueueAdmission && results[0].attempts !== validatedAttempts) {
+          await publish(github, context, original, 'pending', 'CI workflow attempts changed during publication.');
+        }
         if (changed) {
           if (changed.state === 'failure') errorReason = changed.reasons.join('; ');
           await publish(github, context, original, changed.state, changed.reasons.join('; '));

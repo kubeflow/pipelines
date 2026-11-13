@@ -45,6 +45,7 @@ def good_run(**overrides):
         'head_sha': HEAD,
         'head_branch': BRANCH,
         'head_repository': {'full_name': 'owner/repo'},
+        'repository': {'full_name': 'owner/repo'},
         'status': 'completed',
         'conclusion': 'success',
         'created_at': '2026-11-01T12:00:00Z',
@@ -77,7 +78,7 @@ const gate = require({json.dumps(str(MODULE))});
 const fixture = {json.dumps(fixture)};
 const writes = [], requests = [], inventoryRequests = [], infos = [];
 const refCounts = new Map();
-let runCount = 0;
+let runCount = 0, triggerCount = 0;
 let queueCount = 0, prCount = 0;
 const github = {{
   rest: {{
@@ -92,7 +93,12 @@ const github = {{
       if (sha === null) throw Object.assign(new Error('Ref not found'), {{status: 404}});
       return {{data: {{ref: 'refs/' + options.ref, object: {{type: 'commit', sha}}}}}};
     }}}},
-    actions: {{listWorkflowRunsForRepo: 'runs'}},
+    actions: {{listWorkflowRunsForRepo: 'runs', getWorkflowRun: async options => {{
+      requests.push({{route: 'trigger', options}});
+      if (fixture.triggerError) throw new Error('Trigger API unavailable');
+      const snapshots = fixture.triggerSnapshots || [fixture.context.payload.workflow_run];
+      return {{data: snapshots[Math.min(triggerCount++, snapshots.length - 1)]}};
+    }}}},
     repos: {{createCommitStatus: async options => {{
       writes.push(options);
       return {{data: options}};
@@ -100,7 +106,10 @@ const github = {{
   }},
   paginate: async (route, options) => {{
     requests.push({{route, options}});
-    if (route.includes('/rules/branches/')) return [{{type: 'merge_queue'}}];
+    if (route.includes('/rules/branches/')) {{
+      if (fixture.rulesError) throw new Error('Rules API unavailable');
+      return fixture.rules || [{{type: 'merge_queue'}}];
+    }}
     if (route !== 'runs') throw new Error('Unexpected API route: ' + route);
     if (fixture.runsError) throw new Error('API unavailable');
     if (fixture.runSnapshots) {{
@@ -108,7 +117,23 @@ const github = {{
     }}
     return fixture.runs;
   }},
-  graphql: async () => fixture.queues[Math.min(queueCount++, fixture.queues.length - 1)],
+  graphql: async query => {{
+    if (query.includes('query QueuePolicies')) {{
+      const repository = {{nameWithOwner: 'owner/repo'}};
+      for (const match of query.matchAll(/pr([0-9]+): pullRequest/g)) {{
+        const pr = fixture.queuePRs[Math.min(prCount++, fixture.queuePRs.length - 1)];
+        repository['pr' + match[1]] = {{id: pr.node_id, number: pr.number,
+          state: pr.state.toUpperCase(), isDraft: pr.draft, merged: pr.merged,
+          headRefOid: pr.head.sha, baseRefName: pr.base.ref,
+          baseRepository: {{nameWithOwner: pr.base.repo.full_name}},
+          author: {{__typename: pr.user.type, login: pr.user.login}},
+          labels: {{nodes: pr.labels, totalCount: pr.labels.length,
+            pageInfo: {{hasNextPage: false}}}}}};
+      }}
+      return {{repository}};
+    }}
+    return fixture.queues[Math.min(queueCount++, fixture.queues.length - 1)];
+  }},
 }};
 const loadInventory = async options => {{
   inventoryRequests.push(options.pullRequest);
@@ -118,7 +143,7 @@ const loadInventory = async options => {{
 const core = {{info: value => infos.push(value), warning: value => infos.push(value),
   setOutput: () => {{}}, error: value => infos.push(value)}};
 gate.reconcile({{github, context: fixture.context, core, loadInventory,
-  root: fixture.policyRoot || {json.dumps(str(ROOT))}}})
+  root: fixture.policyRoot || {json.dumps(str(ROOT))}, group: fixture.group}})
   .then(result => console.log(JSON.stringify({{result, writes, requests, inventoryRequests, infos}})))
   .catch(error => console.log(JSON.stringify({{error: error.message, writes, requests, inventoryRequests, infos}})));
 """
@@ -181,6 +206,24 @@ class MergeGroupTest(unittest.TestCase):
                 queues=[queue([entry(headCommit={'oid': HEAD})])],
                 queuePRs=[pr()],
             )
+            recovery = reconcile(
+                runs=[dispatch],
+                **dict(
+                    options,
+                    context={
+                        'eventName': 'workflow_run',
+                        'repo': {'owner': 'owner', 'repo': 'repo'},
+                        'runId': 123,
+                        'payload': {
+                            'workflow_run': good_run(event='pull_request')
+                        },
+                    },
+                ),
+                group={'head': HEAD, 'branch': BRANCH, 'baseRef': 'master'},
+            )
+            self.assertEqual(
+                recovery['writes'][-1]['state'], 'success', recovery
+            )
             result = reconcile(runs=[dispatch], **options)
             self.assertTrue(
                 result['writes'],
@@ -199,6 +242,83 @@ class MergeGroupTest(unittest.TestCase):
                 self.assertEqual(
                     result['writes'][-1]['state'], 'failure', result
                 )
+
+    def test_triggering_rerun_cannot_reuse_stale_list_success(self):
+        for status, conclusion in [
+            ('in_progress', None),
+            ('completed', 'failure'),
+            ('completed', 'success'),
+        ]:
+            with self.subTest(status=status):
+                trigger = good_run(
+                    run_attempt=2, status=status, conclusion=conclusion
+                )
+                result = reconcile(event=trigger, runs=[good_run()])
+                self.assert_not_successful(result)
+                self.assertNotIn(
+                    'success', [write['state'] for write in result['writes']]
+                )
+        result = reconcile(
+            event=good_run(run_attempt=2),
+            runs=[good_run()],
+            triggerSnapshots=[good_run()],
+        )
+        self.assertIn('error', result)
+        self.assert_not_successful(result)
+
+    def test_delayed_event_does_not_override_a_newer_completed_execution(self):
+        older = good_run(
+            id=99,
+            conclusion='failure',
+            created_at='2026-11-01T11:00:00Z',
+            run_started_at='2026-11-01T11:00:00Z',
+        )
+        result = reconcile(event=older)
+        self.assertEqual(result['writes'][-1]['state'], 'success', result)
+
+    def test_trigger_attempt_is_rechecked_around_publication(self):
+        active = good_run(run_attempt=2, status='in_progress', conclusion=None)
+        for snapshots in [
+            [good_run(), active],
+            [good_run(), good_run(), active],
+        ]:
+            with self.subTest(snapshots=snapshots):
+                result = reconcile(triggerSnapshots=snapshots)
+                self.assert_not_successful(result)
+
+    def test_invalid_trigger_identity_and_lookup_errors_fail_closed(self):
+        for changes in [
+            {'id': 0},
+            {'run_attempt': 0},
+            {'head_sha': REBUILT},
+            {'event': 'pull_request'},
+            {'path': '.github/workflows/other.yml'},
+            {'repository': {'full_name': 'fork/repo'}},
+            {'head_repository': {'full_name': 'fork/repo'}},
+        ]:
+            with self.subTest(changes=changes):
+                result = reconcile(triggerSnapshots=[good_run(**changes)])
+                self.assertIn('error', result)
+                self.assert_not_successful(result)
+        result = reconcile(triggerError=True)
+        self.assertIn('error', result)
+        self.assert_not_successful(result)
+
+    def test_queue_policy_lookup_failure_invalidates_prior_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps({'version': 1, 'enabled_branches': ['master']})
+            )
+            for options in [{'rulesError': True}, {'rules': []}]:
+                with self.subTest(options=options):
+                    result = reconcile(policyRoot=directory, **options)
+                    self.assertIn('error', result)
+                    self.assertTrue(
+                        result['writes'], 'Prior success must be invalidated'
+                    )
+                    self.assert_not_successful(result)
 
     def test_enabled_queue_policy_blocks_or_revokes_unapproved_candidates(self):
         from merge_queue_admission_test import entry, pr, queue

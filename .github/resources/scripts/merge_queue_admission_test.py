@@ -12,6 +12,7 @@
 """Exercise queue admission and revocation against deterministic GitHub
 fixtures."""
 
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -24,6 +25,35 @@ HEAD = 'a' * 40
 BASE = 'b' * 40
 CANDIDATE = 'c' * 40
 OTHER = 'd' * 40
+
+
+def attempts_url(runs):
+    payload = sorted(
+        [
+            [r['id'], r['run_attempt'], r['status'], r['conclusion']]
+            for r in runs
+        ]
+    )
+    stamp = hashlib.sha256(
+        json.dumps(payload, separators=(',', ':')).encode()
+    ).hexdigest()
+    return (
+        f'https://github.com/owner/repo/actions/runs/42#queue-attempts={stamp}'
+    )
+
+
+def admitted_run(**overrides):
+    return {
+        'id': 100,
+        'run_attempt': 1,
+        'event': 'pull_request',
+        'head_sha': HEAD,
+        'status': 'completed',
+        'conclusion': 'success',
+        'created_at': '2026-11-13T12:00:00Z',
+        'run_started_at': '2026-11-13T12:00:00Z',
+        **overrides,
+    }
 
 
 def pr(number=7, branch='master', **overrides):
@@ -90,6 +120,7 @@ def run_case(method='reconcilePR', branch='master', **options):
                     'id': 10,
                     'context': 'ci-passed',
                     'state': 'success',
+                    'target_url': attempts_url([admitted_run()]),
                     'description': f'Queue admission {branch} CI passed; base policy '
                     + 'f' * 64
                     + '.',
@@ -101,6 +132,8 @@ def run_case(method='reconcilePR', branch='master', **options):
                 {
                     'id': 100,
                     'run_attempt': 1,
+                    'status': 'completed',
+                    'conclusion': 'success',
                     'event': 'pull_request',
                     'head_sha': HEAD,
                     'created_at': '2026-11-13T12:00:00Z',
@@ -161,6 +194,22 @@ const github = {{rest: {{
   }}
   if (query.includes('dequeuePullRequest')) {{
     writes.push({{route:'dequeue',options,query}}); return {{}};
+  }}
+  if (query.includes('query QueuePolicies')) {{
+    calls.push({{route:'policies',options,query}});
+    if (f.policyResponse) return f.policyResponse;
+    const repository = {{nameWithOwner:'owner/repo'}};
+    for (const match of query.matchAll(/pr([0-9]+): pullRequest/g)) {{
+      const number = match[1];
+      const pr = next('pr-' + number, f.prs[number]);
+      repository['pr' + number] = {{id:pr.node_id, number:pr.number,
+        state:pr.state.toUpperCase(), isDraft:pr.draft, merged:pr.merged,
+        headRefOid:pr.head.sha, baseRefName:pr.base.ref,
+        baseRepository:{{nameWithOwner:pr.base.repo.full_name}},
+        author:{{__typename:pr.user.type, login:pr.user.login}},
+        labels:{{nodes:pr.labels,totalCount:pr.labels.length,pageInfo:{{hasNextPage:false}}}}}};
+    }}
+    return {{repository}};
   }}
   calls.push({{route:'queue',options}});
   return next('queues',f.queues);
@@ -290,6 +339,7 @@ class QueueAdmissionTest(unittest.TestCase):
                     'id': 10,
                     'context': 'ci-passed',
                     'state': 'success',
+                    'target_url': attempts_url([admitted_run()]),
                     'description': 'Expected CI and all checks passed',
                 }
             ],
@@ -299,6 +349,7 @@ class QueueAdmissionTest(unittest.TestCase):
                     'id': 10,
                     'context': 'ci-passed',
                     'state': 'success',
+                    'target_url': attempts_url([admitted_run()]),
                     'description': 'Queue admission master CI passed; base policy '
                     + 'f' * 64
                     + '.',
@@ -320,6 +371,7 @@ class QueueAdmissionTest(unittest.TestCase):
                                 'id': 10,
                                 'context': 'ci-passed',
                                 'state': 'success',
+                                'target_url': attempts_url([admitted_run()]),
                                 'description': f'Queue admission {previous} CI passed; base policy '
                                 + 'f' * 64
                                 + '.',
@@ -370,6 +422,7 @@ class QueueAdmissionTest(unittest.TestCase):
                             'id': 10,
                             'context': 'ci-passed',
                             'state': 'success',
+                            'target_url': attempts_url([admitted_run()]),
                             'description': 'Queue admission master CI passed; base policy '
                             + 'f' * 64
                             + '.',
@@ -380,6 +433,7 @@ class QueueAdmissionTest(unittest.TestCase):
                             'id': 10,
                             'context': 'ci-passed',
                             'state': 'success',
+                            'target_url': attempts_url([admitted_run()]),
                             'description': 'Queue admission master CI passed; base policy '
                             + 'f' * 64
                             + '.',
@@ -422,6 +476,7 @@ class QueueAdmissionTest(unittest.TestCase):
             'id': 10,
             'context': 'ci-passed',
             'state': 'success',
+            'target_url': attempts_url([admitted_run()]),
             'description': 'Queue admission master CI passed; base policy '
             + 'f' * 64
             + '.',
@@ -435,6 +490,8 @@ class QueueAdmissionTest(unittest.TestCase):
         run = {
             'id': 100,
             'run_attempt': 1,
+            'status': 'completed',
+            'conclusion': 'success',
             'event': 'pull_request',
             'head_sha': HEAD,
             'created_at': '2026-11-13T12:00:00Z',
@@ -442,7 +499,17 @@ class QueueAdmissionTest(unittest.TestCase):
         }
         for changed_run in [dict(run, run_attempt=2), dict(run, id=101)]:
             rerun = run_case(
-                statuses=[[dict(passed, id=11), receipt]], runs=[[changed_run]]
+                statuses=[
+                    [
+                        dict(
+                            passed,
+                            id=11,
+                            target_url=attempts_url([changed_run]),
+                        ),
+                        receipt,
+                    ]
+                ],
+                runs=[[changed_run]],
             )
             self.assertNotIn('error', rerun)
             self.assertEqual(rerun['writes'][0]['route'], 'enqueue', rerun)
@@ -470,6 +537,41 @@ class QueueAdmissionTest(unittest.TestCase):
             result = run_case(runs=[[invalid]])
             self.assertIn('error', result)
             self.assertEqual(result['writes'], [])
+
+    def test_stale_green_does_not_admit_changed_workflow_attempts(self):
+        for run in [
+            admitted_run(run_attempt=2, status='in_progress', conclusion=None),
+            admitted_run(run_attempt=2, conclusion='failure'),
+            admitted_run(run_attempt=2),
+            admitted_run(id=101),
+        ]:
+            with self.subTest(run=run):
+                result = run_case(runs=[[run]])
+                self.assertNotIn('error', result)
+                self.assertEqual(result['writes'], [], result)
+
+    def test_admission_rejects_unbound_success(self):
+        for url in [
+            '',
+            'https://github.com/owner/repo/actions/runs/42',
+            attempts_url([admitted_run()]).replace('owner/repo', 'other/repo'),
+        ]:
+            result = run_case(
+                statuses=[
+                    [
+                        {
+                            'id': 10,
+                            'context': 'ci-passed',
+                            'state': 'success',
+                            'description': 'Queue admission master CI passed; base policy '
+                            + 'f' * 64
+                            + '.',
+                            'target_url': url,
+                        }
+                    ]
+                ]
+            )
+            self.assertEqual(result['writes'], [], result)
 
     def test_dequeue_uses_required_id_input_with_pr_node_id(self):
         for branch in ['master', 'main']:
@@ -603,6 +705,49 @@ class QueueAdmissionTest(unittest.TestCase):
                 result = run_case('readQueue', queues=[membership])
                 self.assertIn('error', result)
                 self.assertEqual(result['writes'], [])
+
+    def test_candidate_policy_reads_are_batched_and_complete(self):
+        entries = [entry(n, position=n - 6) for n in range(7, 107)]
+        result = run_case(
+            'inspectQueue',
+            queues=[queue(entries)],
+            prs={str(n): [pr(n)] for n in range(7, 107)},
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(sum(c['route'] == 'queue' for c in result['calls']), 1)
+        self.assertEqual(
+            sum(c['route'] == 'policies' for c in result['calls']), 1
+        )
+        self.assertEqual(sum(c['route'] == 'pr' for c in result['calls']), 0)
+        for response in [
+            {'repository': {'nameWithOwner': 'owner/repo'}},
+            {'repository': {'nameWithOwner': 'other/repo'}},
+            {'errors': [], 'repository': {'nameWithOwner': 'owner/repo'}},
+        ]:
+            invalid = run_case(
+                'inspectQueue',
+                queues=[queue([entry()])],
+                policyResponse=response,
+            )
+            self.assertIn('error', invalid)
+
+    def test_batched_policy_normalizes_graphql_dependabot_identity(self):
+        result = run_case(
+            'inspectQueue',
+            queues=[queue([entry()])],
+            prs={
+                '7': [
+                    pr(labels=[], user={'login': 'dependabot', 'type': 'Bot'})
+                ]
+            },
+        )
+        self.assertNotIn('error', result)
+        rejected = run_case(
+            'inspectQueue',
+            queues=[queue([entry()])],
+            prs={'7': [pr(labels=[], user={'login': 'other', 'type': 'Bot'})]},
+        )
+        self.assertIn('error', rejected)
 
     def test_candidate_requires_exact_membership_and_every_queued_pr_eligible(
         self,
