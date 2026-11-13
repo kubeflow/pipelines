@@ -28,6 +28,13 @@ import (
 
 const startupMigrationLockRetryPeriod = time.Second
 
+// startupMigrationLockWaitTimeout bounds how long a replica waits for another
+// replica's migrations. The API server's startup probe allows 60 seconds for
+// all of startup, including connecting to the database and the migration
+// checks that run after the lock is acquired, so the wait leaves the rest of
+// that budget for them.
+const startupMigrationLockWaitTimeout = 30 * time.Second
+
 // startupMigrationLockStatements are scoped to the current database (MySQL) or
 // database and schema (PostgreSQL), so installations sharing a server do not
 // wait on each other. The key differs from the retention index lock.

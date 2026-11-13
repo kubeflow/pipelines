@@ -550,7 +550,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	util.TerminateIfError(err)
 	dbDialect := sqldrv.NewDBDialect(driverName)
 
-	util.TerminateIfError(withStartupMigrationLock(db, dbDialect, initConnectionTimeout, func(lockedSession *gorm.DB) error {
+	util.TerminateIfError(withStartupMigrationLock(db, dbDialect, startupMigrationLockWaitTimeout, func(lockedSession *gorm.DB) error {
 		return runStartupMigrations(lockedSession, dbDialect)
 	}))
 
