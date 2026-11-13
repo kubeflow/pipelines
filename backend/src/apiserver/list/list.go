@@ -82,6 +82,12 @@ type token struct {
 
 	// Filter represents the filtering that should be applied in the query.
 	Filter *filter.Filter
+
+	// TagFilters holds tag EQUALS predicates. Callers strip them from Filter
+	// because they are applied through tag-table subqueries, so they are
+	// carried here to survive token-only pagination. omitempty keeps tokens
+	// without tag filters byte-identical to the previous layout.
+	TagFilters map[string]string `json:",omitempty"`
 }
 
 // identifierPattern matches valid SQL identifier names: start with a letter,
@@ -588,6 +594,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		KeyFieldPrefix:      listable.GetKeyFieldPrefix(),
 		IsDesc:              o.IsDesc,
 		Filter:              o.Filter,
+		TagFilters:          o.TagFilters,
 		ModelName:           o.ModelName,
 	}, nil
 }
