@@ -13,7 +13,7 @@
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.18.0",
     "@tanstack/react-query": "^5.107.1",
-    "@xyflow/react": "^12.12.0",
+    "@xyflow/react": "^12.12.1",
     "ace-builds": "^1.45.0",
     "d3-dsv": "^3.0.1",
     "dagre": "^0.8.5",
