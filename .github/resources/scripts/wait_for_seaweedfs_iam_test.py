@@ -20,12 +20,11 @@ import tempfile
 import time
 import unittest
 
-
 SCRIPT = Path(__file__).with_name('wait-for-seaweedfs-iam.sh')
 DEPLOY_SCRIPT = Path(__file__).with_name('deploy-kfp.sh')
 NETWORK_POLICY = (
-    Path(__file__).parents[3]
-    / 'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-networkpolicy.yaml'
+    Path(__file__).parents[3] /
+    'manifests/kustomize/third-party/seaweedfs/base/seaweedfs/seaweedfs-networkpolicy.yaml'
 )
 
 
@@ -45,8 +44,7 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
         deploy_script = DEPLOY_SCRIPT.read_text(encoding='utf-8')
 
         capture = deploy_script.index(
-            'conntrack-window.sh" capture "$IAM_CONNTRACK_BASELINE"'
-        )
+            'conntrack-window.sh" capture "$IAM_CONNTRACK_BASELINE"')
         iam_wait = deploy_script.index('wait-for-seaweedfs-iam.sh"')
         profile_creation = deploy_script.index('Creating KF Profile')
         report = deploy_script.rindex('report_iam_conntrack_window')
@@ -115,7 +113,7 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
         self.assertIn('was not reachable after 2s', result.stdout)
         self.assertLess(duration, 3.5)
 
-    def test_network_policy_allows_only_profile_controller_to_iam(self):
+    def test_network_policy_scopes_iam_to_profile_and_migration(self):
         policy = NETWORK_POLICY.read_text(encoding='utf-8')
 
         self.assertIn(
@@ -123,6 +121,9 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             '    - podSelector:\n'
             '        matchLabels:\n'
             '          app: kubeflow-pipelines-profile-controller\n'
+            '    - podSelector:\n'
+            '        matchLabels:\n'
+            '          app: seaweedfs-credential-rotation\n'
             '    ports:\n'
             '    - port: 8111\n',
             policy,
@@ -153,8 +154,7 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             environment['FAKE_PROBE_RESULTS'] = probe_results
             environment['FAKE_STATE_FILE'] = str(state_file)
             environment['SEAWEEDFS_IAM_WAIT_TIMEOUT_SECONDS'] = str(
-                timeout_seconds
-            )
+                timeout_seconds)
             environment['SEAWEEDFS_IAM_WAIT_INTERVAL_SECONDS'] = '1'
             result = subprocess.run(
                 ['bash', str(SCRIPT)],

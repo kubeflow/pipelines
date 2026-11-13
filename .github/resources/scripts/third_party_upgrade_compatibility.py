@@ -17,7 +17,9 @@ upgrade."""
 
 import argparse
 import base64
+from contextlib import closing
 from contextlib import contextmanager
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -34,9 +36,12 @@ PROFILE = (
     ROOT /
     'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller')
 CLUSTER = 'third-party-upgrade'
+CONTROLLER_IMAGE = None
 BUCKET = 'mlpipeline'
 S3_LOCAL_PORT = 18333
 S3_PORT = 8333
+IAM_LOCAL_PORT = 18111
+IAM_PORT = 8111
 PROFILE_LOCAL_PORT = 18080
 PROFILE_PORT = 8080
 ROLLOUT_TIMEOUT = '360s'
@@ -66,7 +71,18 @@ def kubectl(*args, data=None):
 
 
 def rendered(path):
-    return list(yaml.safe_load_all(run('kustomize', 'build', str(path))))
+    objects = list(yaml.safe_load_all(run('kustomize', 'build', str(path))))
+    if path == SEAWEED and CONTROLLER_IMAGE:
+        for obj in objects:
+            if (obj.get('kind') != 'Deployment' or
+                    obj['metadata']['name'] != 'seaweedfs'):
+                continue
+            for container in obj['spec']['template']['spec'].get(
+                    'initContainers', []):
+                if container['name'] == 'prepare-storage-credentials':
+                    container['image'] = CONTROLLER_IMAGE
+                    container['imagePullPolicy'] = 'IfNotPresent'
+    return objects
 
 
 def apply(objects):
@@ -110,6 +126,10 @@ def forward(deployment, local, remote, evidence):
                 try:
                     with urllib.request.urlopen(url + health, timeout=2):
                         break
+                except urllib.error.HTTPError:
+                    if remote == IAM_PORT:
+                        break  # IAM has no public health endpoint.
+                    time.sleep(1)
                 except OSError:
                     time.sleep(1)
             else:
@@ -154,6 +174,21 @@ def client(endpoint, access, secret):
             request_checksum_calculation='when_required',
             response_checksum_validation='when_required',
         ),
+    )
+
+
+def iam_client(endpoint, access, secret):
+    import boto3
+    from botocore.config import Config
+
+    return boto3.client(
+        'iam',
+        endpoint_url=endpoint,
+        aws_access_key_id=access,
+        aws_secret_access_key=secret,
+        region_name='us-east-1',
+        config=Config(
+            connect_timeout=5, read_timeout=10, retries={'max_attempts': 2}),
     )
 
 
@@ -226,11 +261,13 @@ def seed_old_store(storage, baseline_image, evidence):
         obj for obj in storage if obj.get('kind') == 'Secret' and
         obj.get('metadata', {}).get('name') == 'mlpipeline-minio-artifact'
     ]
-    if len(credentials) != 1:
-        raise ValueError(
-            'Expected exactly one rendered mlpipeline-minio-artifact Secret')
-    admin_credentials = secret_credentials(credentials[0])
-    deployment = next(obj for obj in storage if obj['kind'] == 'Deployment')
+    if len(credentials) > 1:
+        raise ValueError('Ambiguous legacy credential Secret')
+    admin_credentials = (
+        secret_credentials(credentials[0]) if credentials else None)
+    deployment = next(
+        obj for obj in storage if obj['kind'] == 'Deployment' and
+        obj.get('metadata', {}).get('name', 'seaweedfs') == 'seaweedfs')
     deployment['spec']['template']['spec']['containers'][0]['image'] = (
         baseline_image)
     apply([
@@ -255,6 +292,9 @@ def seed_old_store(storage, baseline_image, evidence):
     ])
     apply(storage)
     wait_ready('seaweedfs')
+    if admin_credentials is None:
+        wait_migration_complete()
+        admin_credentials = current_admin_credentials()
     (evidence / 'before-upgrade-pods.json').write_text(
         kubectl('get', 'pods', '-o', 'json'))
     pvc_uid = json.loads(kubectl('get', 'pvc', 'seaweedfs-pvc', '-o',
@@ -281,13 +321,297 @@ def seed_old_store(storage, baseline_image, evidence):
     return admin_credentials, pvc_uid
 
 
-def upgrade_store(target):
-    """Upgrade the deployed store while retaining its PVC."""
-    kubectl('set', 'image', 'deployment/seaweedfs', f'seaweedfs={target}')
+def current_admin_credentials():
+    return secret_credentials(
+        json.loads(
+            kubectl('get', 'secret', 'mlpipeline-minio-artifact', '-o',
+                    'json')))
+
+
+def upgrade_store(storage):
+    """Apply the actual candidate manifests, including credential migration."""
+    apply(storage)
     wait_ready('seaweedfs')
+    if any(
+            obj.get('kind') == 'Deployment' and
+            obj['metadata']['name'] == 'seaweedfs' and
+            obj['spec']['template']['spec'].get('initContainers')
+            for obj in storage):
+        wait_migration_complete()
 
 
-def exercise_profile(admin_credentials, evidence):
+def wait_migration_complete():
+    """Wait for revocation separately from controller readiness."""
+    deadline = time.monotonic() + 360
+    while time.monotonic() < deadline:
+        state = json.loads(
+            kubectl('get', 'secret', 'seaweedfs-admin-credentials', '-o',
+                    'json'))
+        if (state['metadata'].get(
+                'annotations',
+            {}).get('pipelines.kubeflow.org/storage-credential-phase') ==
+                'DefaultRevoked'):
+            jobs = json.loads(
+                kubectl(
+                    'get',
+                    'jobs',
+                    '-l',
+                    'app=seaweedfs-credential-rotation',
+                    '-o',
+                    'json',
+                ))['items']
+            if jobs and all(
+                    job.get('status', {}).get('succeeded', 0) == 1
+                    for job in jobs):
+                return
+        time.sleep(2)
+    raise AssertionError('Credential migration did not complete')
+
+
+def require_authentication_rejection(request):
+    """Require an explicit authentication rejection."""
+    try:
+        with urllib.request.urlopen(request, timeout=10):
+            pass
+    except urllib.error.HTTPError as error:
+        if error.code in (401, 403):
+            return
+        raise
+    raise AssertionError('Unauthenticated storage request succeeded')
+
+
+def verify_fresh_bootstrap(evidence):
+    """Probe listener authentication before any dynamic identity is seeded."""
+    from botocore.exceptions import ClientError
+
+    storage = rendered(SEAWEED)
+    unseeded = copy.deepcopy(storage)
+    for obj in unseeded:
+        if (obj['kind'] == 'Deployment' and
+                obj['metadata']['name'] == 'seaweedfs'):
+            container = obj['spec']['template']['spec']['containers'][0]
+            # Test-only: keep the PVC empty to expose initial listener auth.
+            container.pop('lifecycle')
+            container.pop('startupProbe')
+    apply([{
+        'apiVersion': 'v1',
+        'kind': 'Namespace',
+        'metadata': {
+            'name': 'kubeflow'
+        },
+    }])
+    apply(unseeded)
+    wait_ready('seaweedfs')
+    candidate = secret_credentials(
+        json.loads(
+            kubectl('get', 'secret', 'seaweedfs-admin-credentials', '-o',
+                    'json')))
+    with forward('seaweedfs', IAM_LOCAL_PORT, IAM_PORT, evidence) as endpoint:
+        require_authentication_rejection(
+            urllib.request.Request(
+                endpoint,
+                data=b'Action=ListUsers&Version=2010-05-08',
+            ))
+
+        with closing(iam_client(endpoint, *candidate)) as authorized:
+            authorized.list_users()
+        with closing(
+                iam_client(endpoint, 'invalid-bootstrap-key',
+                           'invalid-bootstrap-secret')) as invalid:
+            try:
+                invalid.list_users()
+            except ClientError as error:
+                if error.response.get('ResponseMetadata',
+                                      {}).get('HTTPStatusCode') not in (401,
+                                                                        403):
+                    raise
+            else:
+                raise AssertionError('Wrong-key IAM request succeeded')
+    with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
+        require_authentication_rejection(urllib.request.Request(endpoint))
+    # Restore the exact manifest and complete a real first-install migration.
+    upgrade_store(storage)
+    if current_admin_credentials() != candidate:
+        raise AssertionError(
+            'Fresh installation changed its prepared credential')
+    verify_manifest_reapply(storage)
+    (evidence / 'fresh-bootstrap.json').write_text(
+        json.dumps(
+            {
+                'result':
+                    'passed',
+                'checks': [
+                    'unsigned-iam-denied-before-registration',
+                    'wrong-key-iam-denied-before-registration',
+                    'generated-key-iam-accepted-before-registration',
+                    'unsigned-s3-denied-before-registration',
+                    'fresh-install-migration-complete',
+                ],
+            },
+            indent=2,
+        ) + '\n')
+    # This function runs only inside this script's disposable Kind cluster.
+    kubectl('delete', 'namespace', 'kubeflow', '--wait=true', '--timeout=180s')
+
+
+def verify_manifest_reapply(storage):
+    """Check that manifest reapply preserves runtime credentials."""
+    names = ('seaweedfs-admin-credentials', 'mlpipeline-minio-artifact')
+
+    def snapshot():
+        result = []
+        for name in names:
+            secret = json.loads(kubectl('get', 'secret', name, '-o', 'json'))
+            result.append((secret['metadata']['uid'], secret['data']))
+        return result
+
+    expected = snapshot()
+    apply(storage)
+    if snapshot() != expected:
+        raise AssertionError('Client-side apply changed runtime credentials')
+    kubectl(
+        'apply',
+        '--server-side',
+        '--field-manager=compatibility-gitops',
+        '-f',
+        '-',
+        data=yaml.safe_dump_all(storage),
+    )
+    if snapshot() != expected:
+        raise AssertionError('Server-side apply changed runtime credentials')
+    wait_migration_complete()
+
+
+def verify_workload_drain(storage, old, evidence):
+    """Verify revocation waits for a live pipeline pod."""
+    fingerprint = hashlib.sha256(('\0'.join(old)).encode()).hexdigest()
+    if (fingerprint !=
+            '0c9d72cb381b9afa7023c36f330317ee8783fc8becf72e2c0610688e9afb544d'):
+        upgrade_store(storage)  # Already migrated or custom credentials.
+        return
+    name = 'credential-drain-fixture'
+    apply([{
+        'apiVersion': 'v1',
+        'kind': 'Pod',
+        'metadata': {
+            'name': name,
+            'labels': {
+                'pipeline/runid': 'compatibility-drain'
+            },
+        },
+        'spec': {
+            'restartPolicy':
+                'Never',
+            'securityContext': {
+                'runAsNonRoot': True,
+                'runAsUser': 1000,
+                'seccompProfile': {
+                    'type': 'RuntimeDefault'
+                },
+            },
+            'containers': [{
+                'name': 'held-workload',
+                'image': storage_image(storage),
+                'command': ['/bin/sh', '-c', 'exec sleep 900'],
+                'securityContext': {
+                    'allowPrivilegeEscalation': False,
+                    'readOnlyRootFilesystem': True,
+                    'capabilities': {
+                        'drop': ['ALL']
+                    },
+                },
+                'resources': {
+                    'requests': {
+                        'cpu': '10m',
+                        'memory': '16Mi'
+                    },
+                    'limits': {
+                        'memory': '32Mi'
+                    },
+                },
+            }],
+        },
+    }])
+    kubectl('wait', '--for=condition=Ready', f'pod/{name}', '--timeout=120s')
+    apply(storage)
+    deadline = time.monotonic() + 300
+    while time.monotonic() < deadline:
+        state = json.loads(
+            kubectl('get', 'secret', 'seaweedfs-admin-credentials', '-o',
+                    'json'))
+        phase = (
+            state['metadata'].get(
+                'annotations',
+                {}).get('pipelines.kubeflow.org/storage-credential-phase'))
+        if phase == 'DefaultRevoked':
+            raise AssertionError(
+                'Credential revoked while pipeline fixture is still running')
+        if phase == 'DrainingWorkloads':
+            break
+        time.sleep(2)
+    else:
+        raise AssertionError('Migration did not reach the workload drain')
+    kubectl(
+        'wait',
+        'pod',
+        '-l',
+        'app=seaweedfs-credential-rotation',
+        '--for=condition=Ready',
+        '--timeout=120s',
+    )
+    if (json.loads(kubectl('get', 'pod', name, '-o', 'json'))['status']['phase']
+            != 'Running'):
+        raise AssertionError(
+            'Drain fixture stopped before credential verification')
+    with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
+        with closing(client(endpoint, *old)) as s3:
+            s3.head_bucket(Bucket=BUCKET)
+    with forward('seaweedfs', IAM_LOCAL_PORT, IAM_PORT, evidence) as endpoint:
+        with closing(iam_client(endpoint, *old)) as iam:
+            iam.list_users()
+    kubectl('delete', 'pod', name, '--wait=true', '--timeout=60s')
+    wait_migration_complete()
+    (evidence / 'workload-drain.json').write_text(
+        json.dumps(
+            {
+                'result':
+                    'passed',
+                'checks': [
+                    'live-pipeline-pod-blocks-revocation',
+                    'old-key-accepted-by-both-listeners-during-drain',
+                    'migration-completes-after-pod-termination',
+                ],
+            },
+            indent=2,
+        ) + '\n')
+
+
+def verify_old_credentials_rejected(old, current, evidence):
+    from botocore.exceptions import ClientError
+
+    if old == current:
+        return  # Operator-provided credentials are preserved.
+    for local, port, factory, method, arguments in (
+        (S3_LOCAL_PORT, S3_PORT, client, 'head_bucket', {
+            'Bucket': BUCKET
+        }),
+        (IAM_LOCAL_PORT, IAM_PORT, iam_client, 'list_users', {}),
+    ):
+        with forward('seaweedfs', local, port, evidence) as endpoint:
+            with closing(factory(endpoint, *old)) as probe:
+                try:
+                    getattr(probe, method)(**arguments)
+                except ClientError as error:
+                    if error.response.get('ResponseMetadata',
+                                          {}).get('HTTPStatusCode') in (401,
+                                                                        403):
+                        continue
+                    raise
+        raise AssertionError(
+            f'Pre-upgrade default credential still accepted on port {port}')
+
+
+def exercise_profile(admin_credentials, evidence, namespace='compat-user'):
     """Check retained data and issue reusable credentials through the
     webhook."""
     # The webhook is invoked directly; installing Metacontroller is unnecessary for this contract test.
@@ -305,8 +629,8 @@ def exercise_profile(admin_credentials, evidence):
                 PROFILE_PORT,
                 evidence,
         ) as webhook:
-            secret = sync_profile(webhook, 'compat-user')
-            repeated = sync_profile(webhook, 'compat-user', secret)
+            secret = sync_profile(webhook, namespace)
+            repeated = sync_profile(webhook, namespace, secret)
             if repeated['data'] != secret['data']:
                 raise AssertionError(
                     'Profile reconciliation replaced existing credentials')
@@ -316,10 +640,10 @@ def exercise_profile(admin_credentials, evidence):
         )
         user.put_object(
             Bucket=BUCKET,
-            Key='private-artifacts/compat-user/after-upgrade',
+            Key=f'private-artifacts/{namespace}/after-upgrade',
             Body=PAYLOAD,
         )
-        verify_payload(user, 'private-artifacts/compat-user/after-upgrade')
+        verify_payload(user, f'private-artifacts/{namespace}/after-upgrade')
         verify_state(s3)
     return secret
 
@@ -327,8 +651,32 @@ def exercise_profile(admin_credentials, evidence):
 def verify_after_restart(admin_credentials, secret, pvc_uid, evidence):
     """Require both credentials and data to survive a restart on the same
     PVC."""
+    before_jobs = json.loads(
+        kubectl(
+            'get',
+            'jobs',
+            '-l',
+            'app=seaweedfs-credential-rotation',
+            '-o',
+            'json',
+        ))['items']
+    before_uids = {job['metadata']['uid'] for job in before_jobs}
     kubectl('rollout', 'restart', 'deployment/seaweedfs')
     wait_ready('seaweedfs')
+    after_jobs = json.loads(
+        kubectl(
+            'get',
+            'jobs',
+            '-l',
+            'app=seaweedfs-credential-rotation',
+            '-o',
+            'json',
+        ))['items']
+    if {job['metadata']['uid'] for job in after_jobs} != before_uids:
+        raise AssertionError('Storage restart recreated a completed migration')
+    if any(job.get('status', {}).get('active', 0) for job in after_jobs):
+        raise AssertionError(
+            'Migration still consumes a running worker after completion')
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
         verify_state(client(endpoint, *admin_credentials))
         user = client(
@@ -368,6 +716,10 @@ def write_result(evidence, baseline_image, target, pvc_uid):
                     'restart-read',
                     'restart-credentials',
                     'same-pvc',
+                    'pre-upgrade-tenant-key-preserved',
+                    'post-upgrade-new-tenant-credentials',
+                    'client-and-server-side-reapply-preserves-runtime-secrets',
+                    'default-credential-rejected-after-restart',
                 ],
             },
             indent=2,
@@ -394,12 +746,19 @@ def exercise(evidence, baseline):
     """Validate a base-ref to candidate store upgrade and profile contract."""
     storage = rendered(SEAWEED)
     target = storage_image(storage)
-    baseline_image = storage_image(
-        rendered(baseline / SEAWEED.relative_to(ROOT)))
-    credentials, pvc_uid = seed_old_store(storage, baseline_image, evidence)
-    upgrade_store(target)
-    secret = exercise_profile(credentials, evidence)
+    baseline_storage = rendered(baseline / SEAWEED.relative_to(ROOT))
+    baseline_image = storage_image(baseline_storage)
+    old_credentials, pvc_uid = seed_old_store(baseline_storage, baseline_image,
+                                              evidence)
+    # Establish a tenant key and objects BEFORE rotation to prove preservation.
+    secret = exercise_profile(old_credentials, evidence)
+    verify_workload_drain(storage, old_credentials, evidence)
+    credentials = current_admin_credentials()
+    verify_manifest_reapply(storage)
+    exercise_profile(credentials, evidence, namespace='compat-after-upgrade')
+    verify_old_credentials_rejected(old_credentials, credentials, evidence)
     verify_after_restart(credentials, secret, pvc_uid, evidence)
+    verify_old_credentials_rejected(old_credentials, credentials, evidence)
     write_result(evidence, baseline_image, target, pvc_uid)
 
 
@@ -415,10 +774,14 @@ def delete_cluster():
 
 
 def main():
+    global CONTROLLER_IMAGE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--baseline', type=Path, required=True)
+    parser.add_argument('--controller-image-archive', type=Path, required=True)
+    parser.add_argument('--controller-image', required=True)
     args = parser.parse_args()
+    CONTROLLER_IMAGE = args.controller_image
     args.evidence.mkdir(parents=True, exist_ok=True)
     try:
         run(
@@ -432,6 +795,15 @@ def main():
             '--wait',
             '120s',
         )
+        run(
+            'kind',
+            'load',
+            'image-archive',
+            '--name',
+            CLUSTER,
+            str(args.controller_image_archive),
+        )
+        verify_fresh_bootstrap(args.evidence)
         exercise(args.evidence, args.baseline)
     finally:
         for name, command in {
@@ -445,6 +817,13 @@ def main():
                     'logs',
                     'deployment/seaweedfs',
                     '--all-containers=true',
+                ),
+                'credential-rotation.log': (
+                    'logs',
+                    '-l',
+                    'app=seaweedfs-credential-rotation',
+                    '--all-containers=true',
+                    '--prefix=true',
                 ),
                 'profile.log': (
                     'logs',

@@ -43,6 +43,12 @@ patches:
     target:
       group: apps
       kind: Deployment
+      name: seaweedfs
+      version: v1
+  - path: patches/remove-sc-init.json
+    target:
+      group: apps
+      kind: Deployment
       name: metadata-grpc-deployment
       version: v1
   - path: patches/remove-sc-init.json
