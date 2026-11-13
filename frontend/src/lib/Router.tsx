@@ -52,14 +52,26 @@ const HistoryContext = React.createContext<History | null>(null);
 const MatchContext = React.createContext<match | null>(null);
 
 function findMatch(path: RouteProps['path'], exact: boolean, pathname: string): match | null {
+  // matchPath expects decoded segments, but slashes inside a parameter must
+  // stay escaped until matching has established segment boundaries.
+  const decodedPathname = pathname
+    .split('/')
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment).replace(/\//g, '%2F');
+      } catch {
+        return segment;
+      }
+    })
+    .join('/');
   for (const pattern of Array.isArray(path) ? path : [path || '/']) {
-    const found = matchPath({ path: pattern, end: exact }, pathname);
+    const found = matchPath({ path: pattern, end: exact }, decodedPathname);
     if (found) {
       return {
         params: found.params,
         path: pattern,
         url: found.pathname,
-        isExact: found.pathname.replace(/\/$/, '') === pathname.replace(/\/$/, ''),
+        isExact: found.pathname.replace(/\/$/, '') === decodedPathname.replace(/\/$/, ''),
       };
     }
   }

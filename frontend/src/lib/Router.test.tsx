@@ -54,6 +54,29 @@ describe('class-page router boundary', () => {
     window.history.replaceState(null, '', '/');
   });
 
+  it.each([
+    ['/artifacts/%31', '1'],
+    ['/executions/%32', '2'],
+    ['/artifacts/a%2Fb', 'a/b'],
+    ['/artifacts/caf%C3%A9', 'café'],
+    ['/artifacts/bad%ZZ', 'bad%ZZ'],
+  ])('matches encoded HashRouter detail path %s', (pathname, id) => {
+    window.history.replaceState(null, '', `/#${pathname}`);
+    const view = render(
+      <HashRouter>
+        <Switch>
+          <Route path={['/artifacts/:id', '/executions/:id']} exact>
+            {({ match }) => <span data-testid='detail-id'>{match.params.id}</span>}
+          </Route>
+          <Route>missing</Route>
+        </Switch>
+      </HashRouter>,
+    );
+    expect(screen.getByTestId('detail-id').textContent).toBe(id);
+    view.unmount();
+    window.history.replaceState(null, '', '/');
+  });
+
   it('keeps ordered matching and nested artifact routes', () => {
     render(
       <MemoryRouter initialEntries={['/artifacts/123/lineage']}>
