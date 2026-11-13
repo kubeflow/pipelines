@@ -108,12 +108,23 @@ Successful completion events first inspect current workflow attempts. While anot
 constituent is active, a trusted intermediate result skips workflow-policy,
 changed-file, retarget-history and full check scans. Finalization still revalidates
 the PR/head/base snapshot and reads the current aggregate status before publication.
-It preserves an existing failure, including one published after preparation;
-unreadable status fails closed. This path can only revoke green or retain a
+It preserves failures observed by those status reads, including a failure
+published after preparation and visible to finalization; unreadable status fails
+closed. Status reads and writes are not atomic with the independently locked
+stale-green revoker: a failure written after a success read but before the pending
+write can still become pending. This existing race cannot publish green; the next
+completion or recovery reconciliation reassesses the current evidence. This path can only revoke green or retain a
 non-success status. Newly appearing external failures are assessed on the next
 full reconciliation rather than scanned during each intermediate completion.
-Failed completion events, malformed evidence and the final completion retain full
-workflow-policy and check assessment. If the last workflow finishes after the
+Failed/cancelled completion events probe the validated latest workflow attempts.
+A current failure (including timeout, action-required, stale or startup-failure)
+produces a failure-only prepared result, skipping policy and check scans. A delayed
+failure event superseded by a newer attempt cannot establish failure by itself:
+when no current failure is found, or the probe is unreadable/malformed, full
+assessment runs. Finalization still validates the fresh PR/head/base snapshot;
+recovery between preparation and finalization cannot authorize green. Interrupted
+preparation fails closed without replacing an existing failure with pending.
+Final successful completion retains full workflow-policy and check assessment. If the last workflow finishes after the
 active-run probe, the intermediate result remains non-green; a subsequent final
 completion event or scheduled recovery performs full validation. Scheduled
 recovery uses the failure-only probe described below. No positive evidence is

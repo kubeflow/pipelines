@@ -2,6 +2,7 @@
 """Publish and resolve immutable CI image sets using read-only GitHub APIs."""
 
 import argparse
+import contextlib
 import hashlib
 import io
 import json
@@ -39,6 +40,103 @@ class APIError(Exception):
     def __init__(self, message, retry_after=0):
         super().__init__(message)
         self.retry_after = retry_after
+
+
+class RequestAccounting:
+    """Measure gh invocations, not opaque redirects/retries inside gh."""
+
+    def __init__(self):
+        self.counts = {}
+        self.rates = {}
+
+    @contextlib.contextmanager
+    def observe(self, suffix):
+        observation = {'status': 'transport_error', 'headers': {}}
+        try:
+            yield observation
+        finally:
+            # Accounting cannot alter the result or original exception.
+            try:
+                path = suffix.split('?')[0]
+                category = 'other'
+                if re.fullmatch(
+                    r'actions/(runs/[^/]+/artifacts|artifacts(?:/.*)?)', path
+                ):
+                    category = 'artifacts'
+                elif re.fullmatch(
+                    r'actions/(runs(?:/[^/]+)?|workflows/[^/]+/runs)', path
+                ):
+                    category = 'workflow_runs'
+                key = (category, str(observation['status']))
+                self.counts[key] = self.counts.get(key, 0) + 1
+                headers = observation['headers']
+                values = {}
+                for field in ('limit', 'remaining', 'used', 'reset'):
+                    value = headers.get('x-ratelimit-' + field, '')
+                    if re.fullmatch(r'[0-9]{1,15}', value):
+                        values[field] = int(value)
+                if values:
+                    resource = headers.get('x-ratelimit-resource')
+                    if resource not in (
+                        'core',
+                        'graphql',
+                        'search',
+                        'code_search',
+                        'integration_manifest',
+                        'scim',
+                        'actions_runner_registration',
+                        'source_import',
+                    ):
+                        resource = 'other'
+                    previous = self.rates.get(resource, {})
+                    self.rates[resource] = {
+                        'observations': previous.get('observations', 0) + 1,
+                        'first': previous.get('first', values),
+                        'last': values,
+                    }
+            except Exception:
+                pass
+
+    def emit(self, command):
+        try:
+            print(
+                json.dumps(
+                    {
+                        'event': 'github_request_accounting',
+                        'version': 1,
+                        'scope': command
+                        if command
+                        in (
+                            'source',
+                            'record',
+                            'prepare',
+                            'import-ready',
+                            'resolve',
+                            'verify',
+                        )
+                        else 'other',
+                        'measurement': 'gh_api_invocations',
+                        'coverage': 'Each gh api invocation once; opaque redirects/retries inside gh and other Actions clients are excluded.',
+                        'requests': sum(self.counts.values()),
+                        'counts': [
+                            {
+                                'method': 'GET',
+                                'category': category,
+                                'status': status,
+                                'count': count,
+                            }
+                            for (category, status), count in sorted(
+                                self.counts.items()
+                            )
+                        ],
+                        'rate_limits': self.rates,
+                    },
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+            )
+        except Exception:
+            pass
 
 
 def require(condition, message):
@@ -301,6 +399,7 @@ class GitHub:
         self.polling = False
         self.pages = {}
         self.run_cache = {}
+        self.accounting = RequestAccounting()
 
     def request(self, suffix, pages=False, binary=False):
         if binary:
@@ -328,49 +427,55 @@ class GitHub:
         )
         if remaining <= 0:
             raise APIError('GitHub API wait deadline reached')
-        try:
-            result = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=min(90, remaining),
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired) as error:
-            raise APIError('GitHub API unavailable') from error
-        header, separator, body = result.stdout.partition(b'\r\n\r\n')
-        if not separator:
-            header, separator, body = result.stdout.partition(b'\n\n')
-        lines = header.decode('utf-8', errors='replace').splitlines()
-        valid_status = lines and re.match(
-            r'HTTP/[^ ]+ [0-9]{3}(?: |$)', lines[0]
-        )
-        if result.returncode and not valid_status:
-            raise APIError('GitHub API transport unavailable')
-        require(valid_status, 'Malformed API HTTP response')
-        status = int(lines[0].split()[1])
-        headers = {}
-        for line in lines[1:]:
-            name, colon, value = line.partition(':')
-            require(bool(colon), 'Malformed API HTTP header')
-            headers[name.lower()] = value.strip()
-        if status in (403, 429):
-            delay = 60
+        with self.accounting.observe(suffix) as observation:
             try:
-                if 'retry-after' in headers:
-                    delay = float(headers['retry-after'])
-                elif headers.get('x-ratelimit-remaining') == '0':
-                    delay = float(headers['x-ratelimit-reset']) - time.time()
-            except (ValueError, KeyError):
-                pass
-            delay = max(1, delay) if math.isfinite(delay) else 60
-            raise APIError('GitHub API rate limited', retry_after=delay)
-        if status == 304:
+                result = subprocess.run(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=min(90, remaining),
+                    check=False,
+                )
+            except (OSError, subprocess.TimeoutExpired) as error:
+                raise APIError('GitHub API unavailable') from error
+            header, separator, body = result.stdout.partition(b'\r\n\r\n')
+            if not separator:
+                header, separator, body = result.stdout.partition(b'\n\n')
+            lines = header.decode('utf-8', errors='replace').splitlines()
+            valid_status = lines and re.match(
+                r'HTTP/[^ ]+ [0-9]{3}(?: |$)', lines[0]
+            )
+            if result.returncode and not valid_status:
+                raise APIError('GitHub API transport unavailable')
+            require(valid_status, 'Malformed API HTTP response')
+            status = int(lines[0].split()[1])
+            observation['status'] = status
+            headers = observation['headers']
+            for line in lines[1:]:
+                name, colon, value = line.partition(':')
+                require(bool(colon), 'Malformed API HTTP header')
+                headers[name.lower()] = value.strip()
+            if status in (403, 429):
+                delay = 60
+                try:
+                    if 'retry-after' in headers:
+                        delay = float(headers['retry-after'])
+                    elif headers.get('x-ratelimit-remaining') == '0':
+                        delay = (
+                            float(headers['x-ratelimit-reset']) - time.time()
+                        )
+                except (ValueError, KeyError):
+                    pass
+                delay = max(1, delay) if math.isfinite(delay) else 60
+                raise APIError('GitHub API rate limited', retry_after=delay)
+            if status == 304:
+                return status, headers, body
+            if result.returncode or status != 200:
+                raise APIError(
+                    f'GitHub API request failed: {suffix.split("?")[0]}'
+                )
+            require(bool(separator), 'Missing API response body')
             return status, headers, body
-        if result.returncode or status != 200:
-            raise APIError(f'GitHub API request failed: {suffix.split("?")[0]}')
-        require(bool(separator), 'Missing API response body')
-        return status, headers, body
 
     def conditional_page(self, suffix):
         return self.page(suffix, cache=True)
@@ -1101,9 +1206,11 @@ def main():
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
     verifier.add_argument('--kind', choices=('runtime', 'images'))
     args = parser.parse_args()
+    accounting = RequestAccounting()
     try:
         identity = environment_identity()
         api = GitHub(identity['repository'])
+        api.accounting = accounting
         if args.command == 'source':
             write_json(args.output, identity)
         elif args.command == 'record':
@@ -1164,6 +1271,8 @@ def main():
     ) as error:
         print(f'::error::{error}', file=sys.stderr)
         return 1
+    finally:
+        accounting.emit(args.command)
     return 0
 
 

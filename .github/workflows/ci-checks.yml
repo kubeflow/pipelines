@@ -79,8 +79,10 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
             const {recoveryCandidates} = require('./.github/resources/scripts/ci_passed.js');
-            return await recoveryCandidates({github, context});
+            return await withRequestAccounting({github, core, scope: 'recovery'},
+              () => recoveryCandidates({github, context}));
 
   check_ci_status:
     name: check_ci_status
@@ -148,10 +150,12 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
             const {prepare} = require('./.github/resources/scripts/ci_passed.js');
-            await prepare({github, context, core, recovery: {
-              number: Number(process.env.CI_RECOVERY_NUMBER),
-              head: process.env.CI_RECOVERY_HEAD}});
+            return await withRequestAccounting({github, core, scope: 'prepare'},
+              () => prepare({github, context, core, recovery: {
+                number: Number(process.env.CI_RECOVERY_NUMBER),
+                head: process.env.CI_RECOVERY_HEAD}}));
 
       - name: Check all current CI results
         id: poll
@@ -184,14 +188,16 @@ jobs:
           CI_PREPARED_RESULT: ${{ steps.prepare.outcome == 'success' && steps.prepare.outputs.prepared_result || '' }}
         with:
           script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
             const {finalize} = require('./.github/resources/scripts/ci_passed.js');
-            await finalize({github, context, core,
-              number: process.env.CI_PR_NUMBER,
-              head: process.env.CI_HEAD_SHA,
-              before: process.env.CI_PR_SNAPSHOT,
-              pollPassed: process.env.CI_POLL_PASSED === 'true',
-              pollSkipped: process.env.CI_POLL_SKIPPED === 'true',
-              preparedResult: process.env.CI_PREPARED_RESULT});
+            return await withRequestAccounting({github, core, scope: 'finalize'},
+              () => finalize({github, context, core,
+                number: process.env.CI_PR_NUMBER,
+                head: process.env.CI_HEAD_SHA,
+                before: process.env.CI_PR_SNAPSHOT,
+                pollPassed: process.env.CI_POLL_PASSED === 'true',
+                pollSkipped: process.env.CI_POLL_SKIPPED === 'true',
+                preparedResult: process.env.CI_PREPARED_RESULT}));
 
   recover_merged_release:
     if: github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
@@ -222,9 +228,11 @@ jobs:
           RECOVERY_HEAD: ${{ inputs.head_sha }}
         with:
           script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
             const {prepareMergedRecovery} = require('./.github/resources/scripts/ci_passed.js');
-            await prepareMergedRecovery({github, context, core,
-              number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD});
+            return await withRequestAccounting({github, core, scope: 'merged_prepare'},
+              () => prepareMergedRecovery({github, context, core,
+                number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD}));
       - id: poll
         if: steps.prepare.outputs.ready == 'true'
         uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
@@ -243,10 +251,12 @@ jobs:
           RECOVERY_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
         with:
           script: |
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
             const {finalizeMergedRecovery} = require('./.github/resources/scripts/ci_passed.js');
-            await finalizeMergedRecovery({github, context, core,
-              number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD,
-              before: process.env.RECOVERY_SNAPSHOT, pollPassed: true});
+            return await withRequestAccounting({github, core, scope: 'merged_finalize'},
+              () => finalizeMergedRecovery({github, context, core,
+                number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD,
+                before: process.env.RECOVERY_SNAPSHOT, pollPassed: true}));
 
   check_merge_group_status:
     if: >-

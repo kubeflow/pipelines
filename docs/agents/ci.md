@@ -5,6 +5,41 @@ Legacy v2 integration migration is tracked in #14950. The legacy v2 workflow is 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.
 
 
+## API request accounting
+
+CI Check's preparation, finalization, recovery discovery and merged-release
+recovery steps, plus stale-status revocation, emit one JSON log record with
+`event: github_request_accounting` in their finalizer, including on errors. The
+Octokit request hook includes REST pagination, GraphQL and status/label writes
+made by that particular github-script client. Parallel gate reads settle all
+sibling reads and pagination before the summary is emitted, retaining the first
+observed rejection when any read fails. `measurement` is
+`octokit_request_hook`; `hook_available` distinguishes a client without hooks
+from a measured zero-request operation. It does not measure other Actions
+clients, including the allcheckspassed action, or transport retries hidden below
+the hook.
+
+The shared-image CLI emits the same event once per command on stderr, keeping
+its machine-readable outputs unchanged. Its `measurement: gh_api_invocations`
+counts each invocation of `gh api`, including individual pagination and
+conditional requests. Redirects and retries internal to gh, artifact download
+actions, and other processes are outside that boundary. An expired deadline
+that prevents launching gh does not count as a request.
+
+Both summaries contain `scope`, `requests`, and bounded `counts` grouped by
+method, endpoint category and observed status; missing HTTP responses use
+`transport_error`. `rate_limits` keeps the first/last available numeric
+`limit`, `remaining`, `used`, and `reset` headers per bounded resource category,
+plus its observation count. These are observed shared-pool snapshots, not
+requests attributable to this job. A 304 is still an observed request even when
+it does not consume primary quota. No URL, query, request/response body,
+credentials, repository name, or arbitrary header value is recorded. Accounting
+adds no API calls and preserves results and exceptions. These records support
+bounded comparisons; they are not a complete installation request ledger.
+
+Run `github_request_accounting_test.py` and
+`shared_ci_request_accounting_test.py` with the CI script tests.
+
 ## Shared CI image builds
 
 `ci-images.yml` (`Shared CI Images`) is the application-image producer for the
