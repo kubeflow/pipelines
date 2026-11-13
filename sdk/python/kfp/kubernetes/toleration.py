@@ -25,10 +25,26 @@ except ImportError:
     from typing_extensions import Literal
 
 
+_VALID_TOLERATION_OPERATORS = ('Equal', 'Exists', 'Gt', 'Lt')
+_VALID_TOLERATION_EFFECTS = ('NoExecute', 'NoSchedule', 'PreferNoSchedule')
+
+
+def _validate_toleration_field(name: str, value, valid_values: tuple):
+    # None and '' mean "omitted": Kubernetes defaults the operator to Equal
+    # and an empty effect matches all effects.
+    if value is None or value == '':
+        return
+    if value not in valid_values:
+        raise ValueError(
+            f'Invalid toleration {name} {value!r}. Must be one of: '
+            f'{", ".join(valid_values)} (or None/empty string to omit).'
+        )
+
+
 def add_toleration(
     task: PipelineTask,
     key: Optional[str] = None,
-    operator: Optional[Literal['Equal', 'Exists']] = None,
+    operator: Optional[Literal['Equal', 'Exists', 'Gt', 'Lt']] = None,
     value: Optional[str] = None,
     effect: Optional[
         Literal['NoExecute', 'NoSchedule', 'PreferNoSchedule']
@@ -46,9 +62,11 @@ def add_toleration(
             this combination means to match all values and all keys.
         operator:
             operator represents a key's relationship to the value. Valid
-            operators are "Exists" and "Equal". Defaults to "Equal". "Exists" is
-            equivalent to wildcard for value, so that a pod can tolerate all
-            taints of a particular category.
+            operators are "Exists", "Equal", "Gt" and "Lt". Defaults to
+            "Equal". "Exists" is equivalent to wildcard for value, so that a
+            pod can tolerate all taints of a particular category. "Gt" and
+            "Lt" are numeric comparisons and need a Kubernetes version that
+            supports them. Any other value raises ``ValueError``.
         value:
             value is the taint value the toleration matches to. If the operator
             is "Exists", the value should be empty, otherwise just a regular
@@ -56,7 +74,8 @@ def add_toleration(
         effect:
             effect indicates the taint effect to match. Empty means match all
             taint effects. When specified, allowed values are NoSchedule,
-            PreferNoSchedule and NoExecute.
+            PreferNoSchedule and NoExecute. Any other value raises
+            ``ValueError``.
         toleration_seconds:
             toleration_seconds represents the period of time the toleration
             (which must be of effect NoExecute, otherwise this field is ignored)
@@ -67,6 +86,11 @@ def add_toleration(
     Returns:
         Task object with added toleration.
     """
+
+    _validate_toleration_field(
+        'operator', operator, _VALID_TOLERATION_OPERATORS
+    )
+    _validate_toleration_field('effect', effect, _VALID_TOLERATION_EFFECTS)
 
     msg = common.get_existing_kubernetes_config_as_message(task)
     msg.tolerations.append(
