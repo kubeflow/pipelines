@@ -1175,11 +1175,19 @@
       "properties": {
         "pipeline_id": {
           "type": "string",
-          "description": "Input. Required. Unique ID of the parent pipeline."
+          "description": "Input. Unique ID of the parent pipeline. Required unless pipeline_name is set."
         },
         "pipeline_version_id": {
           "type": "string",
           "description": "Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used."
+        },
+        "pipeline_name": {
+          "type": "string",
+          "description": "Input. Optional. Name of the parent pipeline in the run's namespace, used\ninstead of pipeline_id. Not returned in responses."
+        },
+        "pipeline_version_name": {
+          "type": "string",
+          "description": "Input. Optional. Name of a version of the pipeline named by pipeline_name,\nused instead of pipeline_version_id. Not returned in responses."
         }
       },
       "description": "Reference to an existing pipeline version."

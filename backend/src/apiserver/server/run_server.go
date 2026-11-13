@@ -143,6 +143,9 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 	}
+	if err := resolvePipelineNameRef(ctx, s.resourceManager, &run.PipelineSpec, run.Namespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run due to an invalid pipeline reference")
+	}
 	if err := validateRecurringRunNamespace(s.resourceManager, run); err != nil {
 		return nil, util.Wrap(err, "Failed to create a run for the referenced recurring run")
 	}
