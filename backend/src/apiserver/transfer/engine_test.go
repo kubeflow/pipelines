@@ -125,6 +125,9 @@ func TestNamespaceExportIncludesEmptyExperimentsAndFullCatalog(t *testing.T) {
 
 func TestNamespaceImportPreviewApplyRepeat(t *testing.T) {
 	src := fixture(t, testDB(t))
+	const runtimeManifest = `{"apiVersion":"argoproj.io/v1alpha1","kind":"Workflow","metadata":{"name":"original-workflow","namespace":"team","labels":{"pipeline/runid":"run"}},"status":{"phase":"Succeeded","nodes":{"original-workflow-123":{"id":"original-workflow-123","name":"original-workflow.task","type":"Pod","phase":"Succeeded","outputs":{"artifacts":[{"name":"main-logs","s3":{"bucket":"logs","key":"private-artifacts/team/original-workflow/2026/11/12/original-workflow-123/main.log"}}]}}}}}`
+	require.True(t, json.Valid([]byte(runtimeManifest)))
+	require.NoError(t, src.DB.Model(&model.Run{}).Where("UUID = ?", "run").Updates(map[string]any{"Name": "original-workflow", "WorkflowRuntimeManifest": runtimeManifest}).Error)
 	require.NoError(t, create(src.DB, &model.RecurringRunState{JobUUID: "schedule", RequestKey: "source-tick", PipelineVersionID: "version", LastRunIndex: 50, Pending: true}))
 	data, err := src.Export(context.Background(), "team", ExportOptions{})
 	require.NoError(t, err)
@@ -146,6 +149,9 @@ func TestNamespaceImportPreviewApplyRepeat(t *testing.T) {
 	var run model.Run
 	require.NoError(t, dst.DB.First(&run, "UUID = ?", "run").Error)
 	require.NotNil(t, run.ImportedFrom)
+	require.Equal(t, "team", run.Namespace)
+	require.Equal(t, "original-workflow", run.K8SName)
+	require.Equal(t, runtimeManifest, string(run.WorkflowRuntimeManifest))
 	require.Equal(t, "local-schedule", run.RecurringRunId)
 	var job model.Job
 	require.NoError(t, dst.DB.First(&job, "UUID = ?", run.RecurringRunId).Error)

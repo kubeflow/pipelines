@@ -23,7 +23,7 @@ not complete end-user roles.
 | Create a run or recurring run referencing a private pipeline/version | `get` on `pipelines.pipelines.kubeflow.org` | Parent pipeline namespace | Use an experiment in the same namespace as the private pipeline. |
 | Read run logs | `readLog` on `runs.pipelines.kubeflow.org` | Run namespace | Add the custom verb to log-reader roles. |
 | View an existing TensorBoard | `get` on `viewers.kubeflow.org` | Viewer namespace | Retain read access for viewers. |
-| Create or delete TensorBoard | `create` or `delete` on `viewers.kubeflow.org` | Viewer namespace | Give these permissions only to users who should manage TensorBoard instances. |
+| Create or delete TensorBoard | `create` or `delete` on `viewers.kubeflow.org` | Viewer namespace | Viewer creation grants workload and identity selection; grant it only to trusted workload authors. |
 
 ## Make upload scope explicit
 
@@ -68,6 +68,14 @@ publishing permission in the API server's actual `POD_NAMESPACE` (commonly
 it does not request shared visibility. If `REQUIRE_NAMESPACE_FOR_PIPELINES` is
 true, omitted namespaces are rejected before this authorization check.
 
+Pipeline `create` permission grants namespace-wide publishing authority, including
+new versions of existing pipelines; it is not limited to creating new parent
+pipelines. Grant it only to trusted publishers. For SQL-backed storage, an
+execution that omits a version uses the newest Ready version, so publishing can
+change what subsequent unpinned executions run. Specify a version ID when stable
+execution contents are required. Updating an existing version's mutable metadata
+is a separate operation requiring `update`.
+
 ## Keep private references in their owning namespace
 
 A pipeline/version ID is not permission to use its contents. Creating a run or
@@ -92,6 +100,15 @@ The installed aggregated KFP view/edit roles already grant `runs` `readLog`.
 The view role grants `viewers` `get`, while the edit role adds `create` and `delete`.
 Check that the upgraded manifests and their aggregation labels are installed.
 Custom roles copied from older releases need explicit updates.
+
+**Viewer creation grants workload-creation authority.** A caller with
+`create` on `viewers.kubeflow.org` can supply a custom image and Pod template,
+including containers, volumes and a ServiceAccount in the Viewer namespace.
+The resulting workload can use that identity's permissions and the storage
+allowed by cluster admission policies. This applies to both UI requests and
+direct Viewer custom-resource creation. Do not grant it as a restricted
+TensorBoard-only permission to users who must not have those capabilities;
+`get` alone retains access to existing viewers without creating workloads.
 
 Here is an example of **additional** permissions for a user who may upload/read
 pipelines, read logs, and manage TensorBoard in `team-a`. Remove any rules or verbs

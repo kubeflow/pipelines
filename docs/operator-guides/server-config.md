@@ -797,3 +797,30 @@ warnings, restoring the associated security exposure. It does not disable
 existing authentication or namespace authorization. See the
 [scope, rollout, and migration instructions](scheduled-service-accounts.md#temporary-audit-mode-for-migration).
 Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow/pipelines/issues/14367)).
+
+## Archived log ownership
+
+Multi-user archived-log reads require run `readLog` authorization and an
+operator-owned namespace/workflow-partitioned storage layout.
+`KFP_LOG_ARCHIVE_KEY_FORMAT` configures that read policy on the UI and API server.
+The default is:
+
+```text
+private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}
+```
+
+The reader appends `/main.log`. Custom formats must retain namespace, workflow,
+and Pod placeholders as separate path segments. This setting does not change
+Argo's write format or migrate stored objects. General artifact endpoint
+allowlisting and tenant ConfigMaps cannot expand log ownership.
+
+The UI retains its configured archive store/bucket and requires
+`ARGO_ARCHIVE_LOGS=true` (enabled in the shipped deployment). Explicit API
+streaming uses the API server's archive storage configuration. Upgrade UI and API
+with the API first; verify a native historical run after Pod deletion and an
+imported run when using shared-storage transfer. Imported histories use the same
+configured archive policy and never access live destination Pods. Current
+`readLog` permission must cover the original workflow name in the destination
+namespace. Missing namespace/workflow scope and foreign paths remain denied.
+No re-import or log copying is required for qualifying histories. See the
+[full log compatibility guidance](https://github.com/kubeflow/pipelines/blob/release-2.18/frontend/README.md#pod-log-access).
