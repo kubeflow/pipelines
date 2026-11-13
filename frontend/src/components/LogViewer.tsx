@@ -18,8 +18,8 @@ import * as React from 'react';
 import {
   List,
   ListImperativeAPI,
-  RowRendererParams,
   OverscanIndicesGetter,
+  RowRendererParams,
 } from 'react-virtualized';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { fontsize, fonts } from '../Css';
@@ -109,15 +109,17 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     followNewLogs: true,
   };
 
-  private _rootRef = React.createRef<ListImperativeAPI>();
+  private _rootRef: ListImperativeAPI | null = null;
 
-  public componentDidMount(): void {
-    // Wait until the next frame to scroll to bottom, because doms haven't been
-    // rendered when running this.
-    setTimeout(() => {
+  private _scrollTop = 0;
+
+  private _setRootRef = (root: ListImperativeAPI | null): void => {
+    this._rootRef = root;
+    // AutoSizer measures asynchronously, so the list can mount after LogViewer.
+    if (this.state.followNewLogs) {
       this._scrollToEnd();
-    });
-  }
+    }
+  };
 
   public componentDidUpdate(): void {
     if (this.state.followNewLogs) {
@@ -129,16 +131,17 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     return (
       <AutoSizer
         renderProp={({ height, width }) =>
-          height !== undefined && width !== undefined ? (
+          !height || !width ? null : (
             <List
               id='logViewer'
+              initialScrollTop={this._scrollTop}
               containerStyle={listContainerStyleOverride}
               width={width}
               height={height}
               rowCount={this.props.logLines.length}
               rowHeight={15}
               className={css.root}
-              ref={this._rootRef}
+              ref={this._setRootRef}
               overscanIndicesGetter={overscanOnBothDirections}
               overscanRowCount={
                 400 /* make this large, so selecting maximum 400 lines is supported */
@@ -146,7 +149,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
               rowRenderer={this._rowRenderer.bind(this)}
               onScroll={this.handleScroll}
             />
-          ) : null
+          )
         }
       />
     );
@@ -157,6 +160,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
     scrollHeight: number;
     scrollTop: number;
   }) => {
+    this._scrollTop = info.scrollTop;
     const offsetTolerance = 20; // pixels
     const isScrolledToBottom =
       info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;
@@ -168,9 +172,9 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
   };
 
   private _scrollToEnd(): void {
-    const root = this._rootRef.current;
-    if (root) {
-      root.scrollToRow({ index: Math.max(0, this.props.logLines.length - 1) });
+    const root = this._rootRef;
+    if (root && this.props.logLines.length > 0) {
+      root.scrollToRow({ index: this.props.logLines.length - 1, align: 'end' });
     }
   }
 
