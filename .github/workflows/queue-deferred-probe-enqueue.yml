@@ -1,0 +1,42 @@
+name: Deferred auto-merge token probe
+on:
+  push:
+    branches: [codex/mq-deferred-probe-trigger]
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+jobs:
+  enqueue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enable deferred auto-merge then release the pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR=$(gh api "repos/$REPO/pulls?state=open&base=codex%2Fmq-deferred-probe-base&head=kubeflow%3Acodex%2Fmq-deferred-probe-change" --jq 'if length == 1 then .[0].number else error("Expected exactly one test PR") end')
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]]
+          pr=$(gh api "repos/$REPO/pulls/$PR")
+          jq -e --arg repo "$REPO" '
+            .state == "open" and .draft == false and
+            .base.ref == "codex/mq-deferred-probe-base" and
+            .head.ref == "codex/mq-deferred-probe-change" and
+            .head.repo.full_name == $repo
+          ' <<< "$pr"
+          id=$(jq -r .node_id <<< "$pr")
+          head=$(jq -r .head.sha <<< "$pr")
+          before=$(gh api graphql -f id="$id" -f query='query($id:ID!) { node(id:$id) { ... on PullRequest { autoMergeRequest { enabledAt } mergeQueueEntry { id } } } }')
+          echo "$before"
+          gh api "repos/$REPO/commits/$head/status" --jq '[.statuses[]|select(.context=="deferred-ready")|{state,context}]'
+          gh api graphql -f id="$id" -f query='mutation($id:ID!) {
+            enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:SQUASH}) {
+              pullRequest { number autoMergeRequest { enabledAt enabledBy { login } } mergeQueueEntry { id } }
+            }
+          }' | tee auto-merge-result.json
+          jq -e '.errors == null and .data.enablePullRequestAutoMerge.pullRequest.autoMergeRequest != null and .data.enablePullRequestAutoMerge.pullRequest.mergeQueueEntry == null' auto-merge-result.json
+          sleep 15
+          gh api "repos/$REPO/statuses/$head" --method POST -f state=success -f context=deferred-ready -f description='Released after GITHUB_TOKEN enabled deferred auto-merge'

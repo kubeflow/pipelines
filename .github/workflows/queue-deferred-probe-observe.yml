@@ -1,0 +1,33 @@
+name: Deferred auto-merge observer
+on:
+  pull_request:
+    branches: [codex/mq-deferred-probe-base]
+  merge_group:
+    types: [checks_requested]
+    branches: [codex/mq-deferred-probe-base]
+  push:
+    branches: [codex/mq-deferred-probe-base]
+permissions:
+  contents: read
+  statuses: write
+jobs:
+  probe:
+    name: queue-deferred-probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record event and candidate identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_REF: ${{ github.ref }}
+        run: |
+          printf 'event=%s sha=%s ref=%s\n' "$EVENT_NAME" "$COMMIT_SHA" "$COMMIT_REF"
+          jq '{action, merge_group, sender: .sender.login}' "$GITHUB_EVENT_PATH"
+      - name: Satisfy deferred gate on the queue candidate
+        if: github.event_name == 'merge_group'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: gh api "repos/$REPO/statuses/$COMMIT_SHA" --method POST -f state=success -f context=deferred-ready -f description='Merge-group observer ran'
