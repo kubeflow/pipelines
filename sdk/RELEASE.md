@@ -21,7 +21,29 @@
   driver, and the KFP backend from the same release as this SDK. Older backends
   reject pipelines containing the new DRA platform field.
 
+* `Client.run_pipeline`, `create_run_from_pipeline_func`,
+  `create_run_from_pipeline_package` and `create_recurring_run` accept a
+  `plugins_input` argument, keyed by plugin name, that is sent as the run's
+  `plugins_input`. Recurring runs pass it to every triggered run.
+
+* `Client.get_kfp_healthz` accepts `max_attempts` (default 5), and `Client`
+  accepts `healthz_max_attempts` for the health check it runs at startup when
+  no namespace is cached. Pass 1 to fail fast when the backend is unreachable,
+  or a larger value for slow clusters. The health check no longer sleeps after
+  its final failed attempt.
+
 ## Breaking changes
+
+* `PipelineTask.set_debug_pause` is now implemented by the KFP v2 launcher
+  instead of the Argo executor. It emits `KFP_DEBUG_PAUSE_*` environment
+  variables (renamed from `ARGO_DEBUG_PAUSE_*`), all of `before`, `after`,
+  and `on_error` now default to `False` so a bare `set_debug_pause()` call
+  raises `ValueError` (previously `after=True` was the default), and
+  `on_error` no longer requires `after=True`. Resuming a paused task is
+  done through the KFP API/UI rather than `kubectl exec`; Argo 3.5+ and
+  pod-exec RBAC are no longer required. Pause duration is bounded by the
+  `KFP_DEBUG_PAUSE_MAX_DURATION` environment variable (Go duration string,
+  default `1h`); set it via `set_env_variable` for longer sessions.
 
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
   a PlatformSpec document. Old `implementation: container:` component YAML is
@@ -58,6 +80,17 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+
+* Local execution passes whole numbers inside `List` and `Dict` parameters
+  and outputs as ints, as the remote backend does, instead of floats.
+
+* `dsl.ParallelFor` raises a `ValueError` naming the key when a dict item uses a key the loop
+  item reserves (`name`, `task_name`, `channel_type`, `full_name`, `pattern`, `task`,
+  `items_or_pipeline_channel`), instead of crashing or hanging during compilation.
+
+* Fields of `dsl.ParallelFor` dict items (for example `item.greeting`) can be used inside
+  `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
+  into an enclosing `dsl.ExitHandler`, which failed at runtime.
 
 # 2.15.2
 

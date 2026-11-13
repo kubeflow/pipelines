@@ -14,17 +14,26 @@
 # limitations under the License.
 """Deployment and generation wiring for the supported KFP API."""
 
+import importlib
 import os
 import re
-import runpy
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def release_command_builder():
+    """Import the releaser's version-bump command from this checkout."""
+    with mock.patch.object(sys, 'path', [str(ROOT / 'release'), *sys.path]):
+        commands = importlib.import_module('kfpr.commands')
+    return commands.release_version_bump_command
 
 
 class V2DeploymentContractTest(unittest.TestCase):
@@ -53,9 +62,7 @@ class V2DeploymentContractTest(unittest.TestCase):
                 self.assertNotIn('v1beta1', text)
 
     def test_release_generates_legacy_api_only_when_protos_exist(self):
-        release_command = runpy.run_path(str(ROOT / 'release/kfpr/core.py'))[
-            'release_version_bump_command'
-        ]
+        release_command = release_command_builder()
         for legacy_protos in (False, True):
             with (
                 self.subTest(legacy_protos=legacy_protos),
@@ -202,14 +209,44 @@ class V2DeploymentContractTest(unittest.TestCase):
         self.assertIn('constants.APIServerTests', specs)
         self.assertNotIn('config.UseLegacyAPIPrefix', specs)
 
-    def test_full_api_version_matrix_is_master_only(self):
+    def test_api_fixture_jobs_defer_port_forwarding(self):
+        workflow = yaml.safe_load(
+            (ROOT / '.github/workflows/api-server-tests.yml').read_text()
+        )
+        fixture_jobs = {
+            name: job
+            for name, job in workflow['jobs'].items()
+            if any(
+                step.get('uses') == './.github/actions/test-and-report'
+                for step in job.get('steps', [])
+            )
+        }
+        self.assertTrue(fixture_jobs)
+        for name, job in fixture_jobs.items():
+            with self.subTest(job=name):
+                deployments = [
+                    step
+                    for step in job['steps']
+                    if step.get('uses') == './.github/actions/deploy'
+                ]
+                self.assertTrue(deployments)
+                for deployment in deployments:
+                    self.assertEqual(
+                        deployment.get('with', {}).get('forward_port'),
+                        'false',
+                        'test-and-report must own the API port-forward '
+                        'after its fixture setup rolls the API pod',
+                    )
+
+    def test_full_api_version_matrix_is_default_branch_only(self):
         workflow = yaml.safe_load(
             (ROOT / '.github/workflows/api-server-tests.yml').read_text()
         )
         job = workflow['jobs']['api-test-versions']
         self.assertEqual(
             job['if'],
-            "${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}",
+            "${{ github.event_name == 'push' && github.ref == "
+            "format('refs/heads/{0}', github.event.repository.default_branch) }}",
         )
         self.assertEqual(
             job['strategy']['matrix']['api_version'], ['v2', 'v2beta1']

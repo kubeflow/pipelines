@@ -19,6 +19,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os/signal"
+	"syscall"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -136,7 +138,12 @@ func main() {
 func run() error {
 	flag.Parse()
 	providedFlags := collectProvidedFlags()
-	ctx := context.Background()
+	// Cancel on SIGTERM so deferred cleanup (e.g. clearing a parked debug
+	// pause) runs during the pod's termination grace period. The user
+	// process relies on Argo's emissary for signal delivery - canceling
+	// this context does not signal it.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
+	defer stop()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
 	err := flag.Set("v", *logLevel)

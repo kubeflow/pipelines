@@ -15,7 +15,7 @@ permissions: {}
 concurrency:
   group: >-
     release-2.18-image-scanning-${{ github.repository == 'kubeflow/pipelines' &&
-    (github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch') && (github.event_name != 'workflow_run' ||
+    (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.event_name == 'workflow_dispatch') && (github.event_name != 'workflow_run' ||
     (github.event.workflow_run.event == 'push' &&
     github.event.workflow_run.path == '.github/workflows/pre-commit.yml' &&
     github.event.workflow_run.head_branch == 'release-2.18' &&
@@ -31,7 +31,7 @@ jobs:
   inventory:
     if: >-
       github.repository == 'kubeflow/pipelines' &&
-      (github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch')
+      (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -201,7 +201,7 @@ jobs:
   upload:
     # Manual candidate runs validate complete artifacts without publishing
     # findings from unmerged workflow code into the release branch.
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     needs: [inventory, aggregate]
     permissions:
       contents: read
@@ -242,7 +242,7 @@ jobs:
             image-summaries/${{ matrix.name }}.sarif
       - name: Publish verified release branch findings
         id: publish-summary
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@3ea37a44b6e4e6847c46edae209410d258d548d1 # v4
         with:
           sarif_file: qualified/image-summaries/${{ matrix.name }}.sarif
           category: release-2.18-image-${{ matrix.name }}-${{ matrix.platform == 'linux/arm64' && 'arm64' || 'amd64' }}
@@ -271,7 +271,7 @@ jobs:
       # redundant ARM category until GitHub has accepted the combined summary.
       - name: Retire redundant ARM alert category after summary publication
         if: hashFiles(format('qualified/image-summaries/{0}-retire-arm64.sarif', matrix.name)) != ''
-        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        uses: github/codeql-action/upload-sarif@3ea37a44b6e4e6847c46edae209410d258d548d1 # v4
         with:
           sarif_file: qualified/image-summaries/${{ matrix.name }}-retire-arm64.sarif
           category: release-2.18-image-${{ matrix.name }}-arm64

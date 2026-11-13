@@ -47,6 +47,44 @@ def producer(number=2):
 
 
 class OsvMasterImagesTest(unittest.TestCase):
+    @mock.patch('osv_master_images.github_api')
+    def test_resolver_tracks_main_default_and_never_falls_back_to_master(
+        self, api
+    ):
+        selected = producer()
+        selected['head_branch'] = 'main'
+
+        def response(endpoint):
+            if endpoint == f'repos/{REPOSITORY}':
+                return {'default_branch': 'main'}
+            if '/runs?' in endpoint:
+                return {
+                    'workflow_runs': [
+                        selected if 'branch=main&' in endpoint else producer(1)
+                    ]
+                }
+            return selected if endpoint.endswith('/102') else producer(1)
+
+        api.side_effect = response
+        self.assertEqual(resolve_producer(REPOSITORY), selected)
+        self.assertIn('?branch=main&event=push', api.call_args_list[1].args[0])
+
+    @mock.patch('osv_master_images.github_api')
+    def test_resolver_rejects_old_branch_records_after_rename(self, api):
+        api.side_effect = [
+            {'default_branch': 'main'},
+            {'workflow_runs': [producer()]},
+        ]
+        with self.assertRaises(ValueError):
+            resolve_producer(REPOSITORY)
+
+    @mock.patch('osv_master_images.github_api')
+    def test_resolver_rejects_unsupported_default(self, api):
+        api.return_value = {'default_branch': 'feature'}
+        with self.assertRaises(ValueError):
+            resolve_producer(REPOSITORY)
+        api.assert_called_once_with('repos/kubeflow/pipelines')
+
     def test_selects_newest_producer_not_latest_completion(self):
         self.assertEqual(
             select_producer([producer(2), producer(1)], REPOSITORY), producer(2)
@@ -97,14 +135,18 @@ class OsvMasterImagesTest(unittest.TestCase):
     @mock.patch('osv_master_images.github_api')
     def test_resolver_rechecks_selected_attempt(self, api):
         selected = producer()
-        api.side_effect = [{'workflow_runs': [selected]}, selected]
+        api.side_effect = [
+            {'default_branch': 'master'},
+            {'workflow_runs': [selected]},
+            selected,
+        ]
         self.assertEqual(resolve_producer(REPOSITORY), selected)
         self.assertIn(
             'branch=master&event=push&status=success',
-            api.call_args_list[0].args[0],
+            api.call_args_list[1].args[0],
         )
         self.assertEqual(
-            api.call_args_list[1].args[0],
+            api.call_args_list[2].args[0],
             'repos/kubeflow/pipelines/actions/runs/102',
         )
 
@@ -112,7 +154,11 @@ class OsvMasterImagesTest(unittest.TestCase):
     def test_resolver_fails_if_attempt_changes_during_selection(self, api):
         current = producer()
         current['run_attempt'] = 2
-        api.side_effect = [{'workflow_runs': [producer()]}, current]
+        api.side_effect = [
+            {'default_branch': 'master'},
+            {'workflow_runs': [producer()]},
+            current,
+        ]
         with self.assertRaisesRegex(ValueError, 'Producer changed'):
             resolve_producer(REPOSITORY)
 
@@ -120,10 +166,14 @@ class OsvMasterImagesTest(unittest.TestCase):
     def test_late_completion_selects_latest_records_even_if_newer_wakeup_was_replaced(
         self, api
     ):
-        api.side_effect = [{'workflow_runs': [producer(2)]}, producer(2)]
+        api.side_effect = [
+            {'default_branch': 'master'},
+            {'workflow_runs': [producer(2)]},
+            producer(2),
+        ]
         self.assertEqual(resolve_producer(REPOSITORY, producer(1)), producer(2))
         self.assertEqual(
-            api.call_args_list[1].args[0],
+            api.call_args_list[2].args[0],
             'repos/kubeflow/pipelines/actions/runs/102',
         )
 

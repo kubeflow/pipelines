@@ -2,7 +2,7 @@ name: KFP e2e frontend tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
   pull_request:
     paths:
@@ -10,6 +10,9 @@ on:
       - 'uv.lock'
       - '.github/workflows/e2e-test-frontend.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-images.yml'
+      - '.github/workflows/shared-ci-images-ready.yml'
+      - '.github/actions/shared-ci-images/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/**'
@@ -29,11 +32,11 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  image-artifacts-ready:
     permissions:
       actions: read
       contents: read
-    uses: ./.github/workflows/image-builds.yml
+    uses: ./.github/workflows/shared-ci-images-ready.yml
 
   frontend-integration-dependency-checks:
     runs-on: ubuntu-latest
@@ -61,6 +64,7 @@ jobs:
         run: npm run test:dependencies
 
   frontend-integration-test:
+    needs: image-artifacts-ready
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -95,6 +99,7 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

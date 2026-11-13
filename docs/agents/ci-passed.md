@@ -3,32 +3,53 @@
 CI Check is the publisher of the `ci-passed` commit status and the only writer
 of `success` or `pending`. A separate push-triggered workflow
 (`ci-passed-stale-revoke.yml`) is a second writer that revokes a stale `success`
-to `failure` the moment `master` advances, before the scheduled sweep runs; it
+to `failure` the moment `master` or `main` advances, before the scheduled sweep runs; it
 narrows the stale-base window and does not close it (see the section below). The
 label with the same name is informational. Tide remains the merge authority;
 human PRs still require review. Automatic Dependabot creation holds have been
 removed; merging now relies on the required `ci-passed` status and the deployed
 Tide policy. Existing PR-specific holds remain separate maintainer decisions and
-are never removed by the publisher. Required `ci-passed` protection is intended
-for `master` only: older release branches do not publish this commit status.
+are never removed by the publisher. Required `ci-passed` protection is configured for the development default
+branch. The default-branch `workflow_run` publisher and scheduled recovery also
+assess release PRs using their own base workflow policy; release branch
+protection retains its separately configured required contexts. The publisher supports both `master` and `main`; external Tide
+and GitHub protection must cover `main` before renaming the default branch.
 
 ## Push-triggered stale revocation
 
-A push to `master` runs `ci-passed-stale-revoke.yml`, which flips a stale
+A push to `master` or `main` runs `ci-passed-stale-revoke.yml`, which flips a stale
 `ci-passed` success to `failure` as soon as the base advances instead of waiting
 up to 15 minutes for the scheduled sweep. It reuses the same freshness
 determination as recovery: a green is fresh only when its description still
 carries the stamp for the live base tip. This is mitigation, not a hard
 guarantee: the window between a base advance and the status write is narrowed
 but not closed, and merge-time freshness enforcement (a merge queue that checks
-its synthetic commit) is tracked separately. It resolves the live master tip and
+its synthetic commit) is tracked separately. It resolves the live triggering branch tip and
 skips revocation when the tip has already moved past the triggering push, so an
 out-of-order job does not overwrite a green stamped for a newer base. It runs only
 trusted base-branch code and writes only the commit status (`contents: read`,
 `pull-requests: read`, `statuses: write`); the scheduled sweep still reconciles
-the informational label.
+the informational label. Revocation concurrency is scoped by `github.ref`:
+a push to one development branch must not replace the other branch's pending
+run. `cancel-in-progress: false` preserves running jobs but does not prevent
+replacement of a pending job within the same group.
+Discovery batches current-head statuses and selects only stale successes for
+individual verification. Before revoking any candidate, it rereads that head's
+status and the live branch tip; a fresh success or a newer branch tip prevents
+the write. Non-green heads require no per-PR status or branch-tip reads.
+The discovery snapshot never authorizes success. As before, a concurrent
+publisher must validate its base before and after publishing green, and scheduled
+recovery catches missed revocations.
 
 ## Contract and enforcement
+
+`Shared CI Images` is an expected workflow whenever its PR path filters match.
+Its completion events wake CI Check; image consumers also fail if source,
+architecture, producer attempt or artifact checksums do not match. Keep the
+producer in the generated workflow inventory and completion subscription when
+changing the shared build topology. A successful consumer does not waive a
+failed producer or another required check.
+
 
 | Condition | Required behavior | Enforcement |
 | --- | --- | --- |
@@ -72,6 +93,45 @@ independently exclude that label on every merge path. Removing this veto require
 coordinated protection in every overlapping Tide query. The publisher never
 removes this label, `do-not-merge`, or `do-not-merge/hold`; reviews and merge policy
 remain independent requirements.
+
+## Event invalidation and non-success results
+
+Requested and in-progress workflow events share the normal head-scoped writer
+lock, but first read only the current PR and triggering run. A matching active
+run revokes an existing success without scanning workflow policy, retarget
+history, changed files, or other checks. Existing pending/failure statuses are
+preserved. Invalid or unreadable run identity fails closed. A completed
+triggering run falls through to full reconciliation: its delayed event may have
+replaced another run's invalidation or a PR retarget event in the writer queue.
+
+Successful completion events first inspect current workflow attempts. While another
+constituent is active, a trusted intermediate result skips workflow-policy,
+changed-file, retarget-history and full check scans. Finalization still revalidates
+the PR/head/base snapshot and reads the current aggregate status before publication.
+It preserves an existing failure, including one published after preparation;
+unreadable status fails closed. This path can only revoke green or retain a
+non-success status. Newly appearing external failures are assessed on the next
+full reconciliation rather than scanned during each intermediate completion.
+Failed completion events, malformed evidence and the final completion retain full
+workflow-policy and check assessment. If the last workflow finishes after the
+active-run probe, the intermediate result remains non-green; a subsequent final
+completion event or scheduled recovery performs full validation. Scheduled
+recovery uses the failure-only probe described below. No positive evidence is
+cached across events; all pre-publication and post-publication checks remain
+required for success.
+The default-branch publisher applies this behavior to both development and
+release PRs. Requested/in-progress invalidation and push-triggered stale-green
+revocation are unchanged.
+
+When preparation finds expected workflows missing, running, or unsuccessful,
+it passes only that non-success assessment to finalization through trusted job
+outputs. Finalization rereads the PR/head snapshot. Ordinary pending results also check
+external results; a prepared failure already blocks success and skips that scan,
+but does not repeat the workflow assessment. If workflows recover between
+steps, the next completion event or recovery sweep can publish success. This
+may delay green; a prepared result can never authorize it. Successful decisions
+still require the independent checker and fresh workflow/check evidence before
+and after publication.
 
 ## Expected workflow inventory
 
@@ -142,9 +202,18 @@ invalidation and do not allocate recovery runners.
 Each job holds the same SHA-scoped writer lock as event-driven reconciliation
 only while checking and publishing; no sleep or long poll holds that lock.
 A late external check such as DCO can therefore recover after the final
-constituent workflow event. Every sweep rechecks the explicit hold, head, retarget
-history, expected workflows, and discovered checks. Stale sweep entries do not
-write to newer heads; existing holds are never removed by the publisher.
+constituent workflow event. Every sweep rechecks the explicit hold and head.
+A validated failure in the latest non-publisher workflow run can establish a
+negative result without loading expected-workflow policy or scanning job checks.
+The probe validates the full run collection and selects the latest execution per
+workflow; malformed, incomplete or unavailable probe evidence falls back to the
+ordinary assessment. Pending or successful runs alone cannot take this shortcut:
+retarget history, missing expected workflows and all checks remain part of full
+assessment before success. A prepared failure also skips the redundant final
+check scan after the PR binding is reread, because it cannot authorize green.
+Once the failed workflow recovers, the next event or 15-minute sweep performs
+full assessment. Stale sweep entries do not write to newer heads; existing holds
+are never removed by the publisher.
 Preliminary invalidation preserves existing non-success on every event. The final
 assessment can replace an old failure with pending when a rerun starts. Status
 writes are deduplicated by state and the published 140-character explanation to
@@ -185,7 +254,7 @@ head SHA is associated with GitHub Actions. See the
 ## Missing base merge record
 
 The freshness check establishes when the base revision became reachable on
-`master` by reading the merged-PR record for that commit. A commit merged
+the PR's development base branch (`master` or `main`) by reading the merged-PR record for that commit. A commit merged
 through a pull request carries an authoritative `merged_at` timestamp. A direct
 push of a pre-existing commit has no merged PR, so its arrival cannot be
 established and the check fails closed to pending rather than passing stale
@@ -232,6 +301,63 @@ checks and the freshness validator intact; do not synthesize a successful
 branches to include that tip and trigger new CI executions. Rerunning executions
 created before the recovery merge does not establish freshness against the new
 base.
+
+## Controlled bootstrap after the default branch rename
+
+**The rename is not ready for normal merging until this bootstrap is complete.**
+Renaming `master` to `main` retargets open PRs, but the last base commit's
+historical merged PR still identifies `master`. The verifier deliberately rejects
+that record as proof of arrival on `main`; even newly successful CI remains
+pending with `no merged PR for base ...`. Do not treat another branch's merge
+record as trusted, synthesize a `ci-passed` success, or wait for the sweep to repair
+this. The sweep uses the same provenance requirement.
+
+Use one explicitly authorized bootstrap PR to establish a real merge record on
+`main`. This is a cutover operation, not an automatic exception in the validator:
+
+1. **Before renaming**, identify the maintainer authorized to perform one exceptional
+   PR merge with pending `ci-passed`, and verify the applicable repository and
+   organization rules permit that actor's narrowly scoped bypass. If that authority
+   is unavailable, stop before renaming; this preparation PR alone cannot complete
+   the migration. Do not disable required checks or grant broad bypass permissions.
+2. Freeze all normal merges, including every overlapping Tide query and Dependabot,
+   and drain publication jobs. Record the final `master` SHA `B`, its authoritative
+   merged PR, current rules/check app bindings, and the intended bootstrap reviewer.
+3. Rename through GitHub and verify `main` still points to `B`, the old historical
+   record still names `master`, and main protection/Tide requirements are active.
+   Keep normal merges frozen throughout the following steps.
+4. Open a minimal documentation-only bootstrap PR against `main`, based on `B`.
+   For example, record the branch migration checkpoint in the migration guide.
+   Review its exact diff and head SHA `H`; require DCO, the normal review/label
+   requirements, and all applicable constituent CI and external checks to pass on
+   fresh executions for `H` against `main`. Confirm `ci-passed` is pending solely
+   because `B` lacks a verified main merge record. Any other failure blocks the
+   bootstrap. An empty diff or a direct push is not a substitute for a merged PR.
+5. Record explicit authorization on that PR for **this PR, head `H`, and base `B`**.
+   Immediately re-read both SHAs and the evidence, then have the authorized actor
+   perform the one exceptional PR merge, pinning the reviewed head (for example,
+   `gh pr merge <number> --repo kubeflow/pipelines --squash --admin --match-head-commit <H>`
+   only where existing policy permits that actor's bypass). Abort if either SHA
+   changed, the pending reason changed, or the merge cannot be performed under
+   existing policy. This is not authorization to merge any other pending PR.
+6. Read the merged PR through GitHub's API. Require `merged: true`, upstream
+   repository identity, `base.ref: main`, a valid `merged_at`, and
+   `merge_commit_sha` equal to the current main tip `C`. Preserve these records
+   with the cutover evidence. A failed or ambiguous read keeps the freeze in place.
+7. Update subsequent PRs to include `C` and trigger **new** CI executions strictly
+   after the bootstrap merge and any retarget event. Rerunning an old execution is
+   insufficient. Verify CI Check produces success through the ordinary validator,
+   and that missing/failing CI, stale base evidence, and delayed revocation events
+   remain blocked. Verify both branch concurrency groups are independent.
+8. Reconfirm protections and resume Tide/normal merges only after the normal path
+   is proven. If bootstrap cannot be completed, retain the freeze and use the
+   coordinated rollback procedure; do not weaken the validator to recover.
+
+The regression `test_rename_requires_controlled_bootstrap_then_fresh_main_ci`
+models the transition: a historical master record passes on master and stays
+pending on main; a real main bootstrap record allows only strictly newer CI.
+GitHub documents [branch rename behavior](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/renaming-a-branch)
+and [pending-run replacement](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 
 ## Validation and coordinated rollout
 

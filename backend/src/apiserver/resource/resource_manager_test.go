@@ -2216,6 +2216,45 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
+func TestDeletePipeline_CascadeDeletesVersions(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	p := createPipelineV1("pipeline")
+	pnew, err := manager.CreatePipeline(p)
+	require.Nil(t, err)
+
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	require.True(t, ok)
+
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pv1 := createPipelineVersion(pnew.UUID, "version1", "", "", v2SpecHelloWorld, "", "")
+	_, err = manager.CreatePipelineVersion(pv1)
+	require.Nil(t, err)
+
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineIdThree, nil))
+	pv2 := createPipelineVersion(pnew.UUID, "version2", "", "", v2SpecHelloWorld, "", "")
+	_, err = manager.CreatePipelineVersion(pv2)
+	require.Nil(t, err)
+
+	err = manager.DeletePipeline(pnew.UUID, true)
+	require.Nil(t, err)
+
+	_, err = manager.GetPipeline(pnew.UUID)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = manager.GetPipelineVersion(FakeUUIDOne)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+
+	_, err = manager.GetPipelineVersion(DefaultFakePipelineIdThree)
+	require.NotNil(t, err)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRunV2(t)
 	expectedExperimentUUID := runDetail.ExperimentId
@@ -4120,6 +4159,15 @@ func (s *runStoreWithBeforeWorkflowUpdateHook) UpdateRunFromWorkflow(
 	)
 }
 
+// assertStateHistoryEndsWithSingleCancel checks that termination appended one
+// CANCELING entry and nothing else changed the history.
+func assertStateHistoryEndsWithSingleCancel(t *testing.T, before, after []*model.RuntimeStatus) {
+	t.Helper()
+	require.Len(t, after, len(before)+1)
+	assert.Equal(t, before, after[:len(before)])
+	assert.Equal(t, model.RuntimeStateCancelling, after[len(before)].State)
+}
+
 func TestReportWorkflowResource_DoesNotOverwriteConcurrentTermination(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
@@ -4153,7 +4201,7 @@ func TestReportWorkflowResource_DoesNotOverwriteConcurrentTermination(t *testing
 	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 	assert.Equal(t, "Terminating", persistedRun.Conditions)
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
-	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+	assertStateHistoryEndsWithSingleCancel(t, beforeTermination.StateHistory, persistedRun.StateHistory)
 
 	// Model a retry after the first request committed CANCELING but exited
 	// before patching the Workflow. The repeated termination must finish it.
@@ -4190,7 +4238,7 @@ func TestReportWorkflowResource_DoesNotOverwriteExistingCancellation(t *testing.
 	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 	assert.Equal(t, "Terminating", persistedRun.Conditions)
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
-	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+	assertStateHistoryEndsWithSingleCancel(t, beforeTermination.StateHistory, persistedRun.StateHistory)
 }
 
 func TestReportWorkflowResource_UsesLiveWorkflowState(t *testing.T) {

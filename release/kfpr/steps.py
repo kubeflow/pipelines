@@ -14,33 +14,40 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import qualification, rtd
-from .core import (
-    REPO,
-    ReleaseContext,
-    ReleaseMetadata,
-    confirm,
-    emphasize_prompt,
+from .commands import (
     image_workflow_command,
-    is_pending_merge_queue_check,
     kfp_kubernetes_docs_build_command,
     kfp_requirements_command,
     kubernetes_requirements_command,
-    parse_github_owner,
-    prompt_choice,
-    prompt_required,
     release_version_bump_command,
     sdk_workflow_command,
-    underline_links,
+)
+from .context import ReleaseContext
+from .dependency_pins import preserve_dependency_pins
+from .editorial import editorial_scaffold, validate_notes
+from .generated import restore_generated_sections
+from .github_api import (
+    REPO,
+    is_pending_merge_queue_check,
+    upstream_default_branch,
     wait_for_pr_merge,
     watch_latest_workflow_run,
     watch_pr_ci,
 )
-from .dependency_pins import preserve_dependency_pins
-from .editorial import editorial_scaffold, validate_notes
+from .inventory import build_inventory, release_scaffolding
+from .metadata import ReleaseMetadata
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
 from .previews import _write_atomic, has_conflicts, regenerate_preview
+from .prompts import (
+    confirm,
+    emphasize_prompt,
+    prompt_choice,
+    prompt_required,
+    underline_links,
+)
 from .ranges import ReleaseRange, commit_date, read_commits, resolve_range
+from .validation import parse_github_owner
 
 
 @dataclass(frozen=True)
@@ -174,7 +181,8 @@ def step_prepare_release_branch(context: ReleaseContext) -> None:
     """
     branch = context.metadata.release_branch
     source_branch = str(
-        context.state.answers.get('release_source_branch', 'master')
+        context.state.answers.get('release_source_branch')
+        or upstream_default_branch(context.runner, context.root)
     )
     context.runner.run(['git', 'checkout', source_branch], cwd=context.root)
     pull_if_upstream(context)
@@ -1361,6 +1369,25 @@ def _release_preview_path(context: ReleaseContext, tag: str) -> Path:
     return state_path.parent / f'{state_path.stem}-notes' / f'{tag}.md'
 
 
+def _editorial_evidence(
+    context: ReleaseContext, selected: ReleaseRange, product: str
+) -> str:
+    """Keep complete evidence beside each range-bound preview, outside
+    prose."""
+    inventory = build_inventory(context.root, selected, context.metadata.tag)
+    tag = context.metadata.sdk_tag if product == 'sdk' else context.metadata.tag
+    directory = _release_preview_path(context, tag).parent
+    directory.mkdir(parents=True, exist_ok=True)
+    path = (
+        directory
+        / f'{tag}.{selected.base_sha[:12]}.{selected.target_sha[:12]}.inventory.json'
+    )
+    if not path.exists():
+        path.write_text(json.dumps(inventory, indent=2) + '\n')
+    print(f'Complete release inventory: {path}')
+    return release_scaffolding(inventory, product)
+
+
 def regenerate_release_notes(context: ReleaseContext, product: str) -> bool:
     """Refresh an existing preview without publishing or changing
     checkpoints."""
@@ -1440,6 +1467,20 @@ def _release_notes_preview(
         raise ValueError(
             f'Release notes are empty: {path}. Edit them before retrying.'
         )
+    baseline = json.loads(provenance_path.read_text()).get(
+        'generated_notes', ''
+    )
+    restored = restore_generated_sections(path.read_text(), baseline)
+    if restored != path.read_text():
+        if context.runner.dry_run:
+            print(
+                '[dry-run] generated contributor and asset sections would be restored before publication.'
+            )
+        else:
+            _write_atomic(path, restored.encode('utf-8'))
+            print(
+                'Restored generated contributor and asset sections; editorial prose is unchanged.'
+            )
     return path
 
 
@@ -1503,12 +1544,17 @@ For changelog, see https://github.com/kubeflow/pipelines/blob/{metadata.sdk_tag}
 """
     changes = _generate_sdk_release_notes(context.root, selected)
     if changes:
-        notes += f"\n## What's Changed\n\n{changes}\n"
+        notes += f'\n<details>\n<summary>Commit reference for editors</summary>\n\n{changes}\n</details>\n'
     return (
-        editorial_scaffold()
+        re.sub(
+            r'(?ms)^## Installation\n.*?(?=^## |\Z)',
+            '',
+            editorial_scaffold('sdk'),
+        )
         + '## Installation\n\n'
         + notes
-        + f'\n**Full changelog:** {selected.compare_url}\n'
+        + f'\n**Full changelog:** {selected.compare_url}\n\n'
+        + _editorial_evidence(context, selected, 'sdk')
     )
 
 
@@ -1540,6 +1586,7 @@ def step_create_sdk_release(context: ReleaseContext) -> None:
         if choice == 'u':
             return
     selected = _notes_range(context, 'sdk', publishing=True)
+    _verify_release_target(context, metadata.sdk_tag, selected)
     notes_path = _release_notes_preview(
         context,
         metadata.sdk_tag,
@@ -1824,8 +1871,11 @@ def _backend_release_body(
             f'No backend release notes found after {selected.base_ref}. '
             'Check the previous release tag and commit history before retrying.'
         )
-    notes = f"""## What's Changed
+    notes = f"""<details>
+<summary>Commit reference for editors</summary>
+
 {changed}
+</details>
 
 **Full Changelog**: {selected.compare_url}
 """
@@ -1837,7 +1887,12 @@ Linux AMD64 and ARM64 are supported starting with KFP 3.0. Standard manifests us
 the container runtime selects the matching architecture. Pipeline component images must support
 the architecture of their execution nodes. See the [supported-platforms policy](https://github.com/kubeflow/pipelines/blob/{metadata.tag}/docs/operator-guides/supported-platforms.md).
 """
-    return editorial_scaffold() + notes
+    return (
+        editorial_scaffold('backend')
+        + notes
+        + '\n'
+        + _editorial_evidence(context, selected, 'backend')
+    )
 
 
 def step_create_backend_release(context: ReleaseContext) -> None:
@@ -1855,6 +1910,8 @@ def step_create_backend_release(context: ReleaseContext) -> None:
             )
 
     selected = _notes_range(context, 'backend', publishing=True)
+    if not context.runner.dry_run:
+        _verify_release_target(context, metadata.tag, selected)
     notes_path = _release_notes_preview(
         context,
         metadata.tag,
@@ -1887,7 +1944,7 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
 
 def step_sync_master(context: ReleaseContext) -> None:
-    """Sync release version to master branch.
+    """Sync release version to the upstream default branch.
 
     Args:
       context: Release context with runner, metadata, and root path.
@@ -1895,15 +1952,16 @@ def step_sync_master(context: ReleaseContext) -> None:
     qualification.require_qualification(context)
     if context.metadata.release_type == 'patch':
         print(
-            'Patch release: preserving master version and changelog; no sync required.'
+            'Patch release: preserving development version and changelog; no sync required.'
         )
         return
     _ensure_release_tag(context, context.metadata.tag)
     metadata = context.metadata
     root = context.root
-    branch = f'chore-release-{metadata.tag}-master'
+    development_branch = upstream_default_branch(context.runner, root)
+    branch = f'chore-release-{metadata.tag}-{development_branch}'
 
-    context.runner.run(['git', 'checkout', 'master'], cwd=root)
+    context.runner.run(['git', 'checkout', development_branch], cwd=root)
     context.runner.run(['git', 'pull', '--ff-only'], cwd=root)
     context.runner.run(['git', 'checkout', '-b', branch], cwd=root)
 
@@ -1935,7 +1993,7 @@ def step_sync_master(context: ReleaseContext) -> None:
             'commit',
             '-s',
             '-m',
-            f'chore(release): bump version to {metadata.tag} on master branch',
+            f'chore(release): bump version to {metadata.tag} on {development_branch} branch',
         ],
         cwd=root,
     )
@@ -1951,16 +2009,16 @@ def step_sync_master(context: ReleaseContext) -> None:
             '--repo',
             REPO,
             '--base',
-            'master',
+            development_branch,
             '--head',
             f'{owner}:{branch}',
             '--title',
-            f'chore(release): sync {metadata.tag} to master',
+            f'chore(release): sync {metadata.tag} to {development_branch}',
             '--body',
-            f'Syncs KFP {metadata.tag} release version files back to master.',
+            f'Syncs KFP {metadata.tag} release version files back to {development_branch}.',
         ]
     )
-    print(underline_links(f'Master sync PR: {pr_url}'))
+    print(underline_links(f'Development branch sync PR: {pr_url}'))
     watch_pr_ci(context.runner, pr_url)
     wait_for_pr_merge(context.runner, pr_url)
 
@@ -2022,7 +2080,7 @@ def build_steps(
         steps.append(
             Step(
                 'prepare-release-branch',
-                'Create release branch from master',
+                'Create release branch from the selected source',
                 'step_prepare_release_branch',
             )
         )
@@ -2091,7 +2149,7 @@ def build_steps(
                 ),
                 Step(
                     'sync-master',
-                    'Sync release version to master',
+                    'Sync release version to the default branch',
                     'step_sync_master',
                 ),
                 Step(

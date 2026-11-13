@@ -12,14 +12,12 @@ from pathlib import Path
 
 import yaml
 
-from .core import (
-    REPO,
-    CommandRunner,
-    ReleaseContext,
-    ReleaseMetadata,
-    ReleaseState,
-)
+from .context import ReleaseContext
+from .github_api import REPO, default_branch
+from .metadata import ReleaseMetadata
 from .qualification import _matrix_records
+from .runner import CommandRunner
+from .state import ReleaseState
 from .steps import _should_set_backend_latest
 from .workflow_runs import dispatch_and_watch, validate_run
 
@@ -209,7 +207,8 @@ def dispatch(version, dry_run=False):
         )
         return
     discover(version)
-    workflow_sha = api('commits/master')['sha']
+    workflow_ref = default_branch(api)
+    workflow_sha = api(f'commits/{workflow_ref}')['sha']
     if not re.fullmatch(r'[0-9a-f]{40}', workflow_sha):
         raise ValueError('Invalid upstream workflow SHA')
     request = uuid.uuid4().hex
@@ -217,6 +216,7 @@ def dispatch(version, dry_run=False):
     identity = {
         'workflow': f'.github/workflows/{WORKFLOW}',
         'workflow_sha': workflow_sha,
+        'workflow_ref': workflow_ref,
         'title': title,
     }
     final = dispatch_and_watch(
@@ -240,9 +240,11 @@ def main():
     if (
         os.environ.get('GITHUB_REPOSITORY') != REPO
         or os.environ.get('GITHUB_EVENT_NAME') != 'workflow_dispatch'
-        or os.environ.get('GITHUB_REF') != 'refs/heads/master'
+        or os.environ.get('GITHUB_REF') != f'refs/heads/{default_branch(api)}'
     ):
-        raise ValueError('Promotion must run in the upstream master workflow')
+        raise ValueError(
+            'Promotion must run in the upstream default-branch workflow'
+        )
     if args.command == 'discover':
         inventory = discover(os.environ['VERSION'])
         with open(os.environ['GITHUB_OUTPUT'], 'a') as output:

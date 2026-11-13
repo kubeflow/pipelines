@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# The archive is acquired by digest but retains only the version tag on import.
+# Derive that tag from the base image so CI does not maintain a second pin.
+replacements:
+  - source:
+      kind: Deployment
+      name: mysql
+      fieldPath: spec.template.spec.containers.[name=mysql].image
+      options:
+        delimiter: '@'
+        index: 0
+    targets:
+      - select:
+          kind: Deployment
+          name: mysql
+        fieldPaths:
+          - spec.template.spec.containers.[name=mysql].image
+
+patches:
+  - target:
+      kind: Deployment
+      name: mysql
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: mysql
+      spec:
+        template:
+          spec:
+            containers:
+              - name: mysql
+                imagePullPolicy: IfNotPresent

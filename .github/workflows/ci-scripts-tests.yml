@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
     paths:
       # The offline cache fixture image copies this SDK source tree.
@@ -155,6 +156,15 @@ jobs:
           kfpr.ci_qualification_client_test kfpr.qualification_test
           kfpr.qualification_exceptions_test kfpr.security_test
           kfpr.security_exceptions_test kfpr.third_party_test
+      - name: Run release automation tests
+        env:
+          PYTHONPATH: release
+        run: >-
+          python3 -m unittest kfpr.ci_images_client_test
+          kfpr.deployed_images_test kfpr.helper_checkout_test kfpr.latest_test
+          kfpr.local_images_test kfpr.packages_test
+          kfpr.patch_publication_test kfpr.promotion_dispatch_test
+          kfpr.promotion_test kfpr.sdk_publication_test kfpr.smoke_test
       - name: Run repo-local workflow script unit tests
         working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

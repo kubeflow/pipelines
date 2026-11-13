@@ -27,6 +27,7 @@ if [[ -z "$nodes" ]]; then
   exit 1
 fi
 node=${nodes%%$'\n'*}
+platform=$(runtime_image_platform "$cluster_name")
 # Deployment already verified this exact preloaded base. Export it back to the
 # host so preparing the fixture cannot introduce another registry dependency.
 build_context=$(mktemp -d)
@@ -38,8 +39,23 @@ cp backend/test/v2/resources/cache-image/Dockerfile "$build_context/Dockerfile"
 matrix=$(python .github/resources/scripts/prepare_cache_fixtures.py --image-matrix)
 while read -r base version image; do
   archive="$build_context/base.tar"
-  docker exec "$node" ctr --namespace=k8s.io images export --platform linux/amd64 - "docker.io/library/$base" > "$archive"
-  docker load --input "$archive"
+  # The transfer exporter can return before its asynchronous stdout copy
+  # finishes. Local export waits for every archive byte and reports write errors.
+  if ! docker exec "$node" ctr --namespace=k8s.io images export --local --platform "$platform" - "docker.io/library/$base" > "$archive"; then
+    echo "Failed to export preloaded image $base from $node; check containerd's error above." >&2
+    exit 1
+  fi
+  # A successful exporter must produce a complete tar with Docker's image
+  # manifest. Keep validation output separate from the binary archive.
+  if ! tar -tf "$archive" > "$build_context/archive-contents" || \
+    ! grep -qx 'manifest.json' "$build_context/archive-contents"; then
+    echo "Invalid or incomplete image archive for $base from $node; re-export the preloaded image." >&2
+    exit 1
+  fi
+  if ! docker load --input "$archive"; then
+    echo "Failed to load exported image $base into Docker; check the image archive and Docker's error above." >&2
+    exit 1
+  fi
   rm "$archive"
   mkdir -p "$build_context/wheels"
   python -m pip wheel --disable-pip-version-check --retries 3 --timeout 30 \
