@@ -277,6 +277,19 @@ func TestStartupMigrationLock_ConcurrentUpgrade(t *testing.T) {
 	})
 }
 
+// mysqlSessionDDLCount returns how many DDL statements the current MySQL
+// session has run.
+func mysqlSessionDDLCount(t *testing.T, session *gorm.DB) int64 {
+	t.Helper()
+	var count int64
+	require.NoError(t, session.Raw(`SELECT COALESCE(SUM(COUNT_STAR), 0)
+		FROM performance_schema.events_statements_summary_by_thread_by_event_name
+		WHERE THREAD_ID = PS_CURRENT_THREAD_ID() AND EVENT_NAME IN (
+			'statement/sql/alter_table', 'statement/sql/create_table', 'statement/sql/drop_table',
+			'statement/sql/create_index', 'statement/sql/drop_index')`).Scan(&count).Error)
+	return count
+}
+
 // A normal restart finds the schema current and leaves it unchanged.
 func TestStartupMigrationLock_ConcurrentRestartWithCurrentSchema(t *testing.T) {
 	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {
@@ -286,6 +299,19 @@ func TestStartupMigrationLock_ConcurrentRestartWithCurrentSchema(t *testing.T) {
 			assert.NoError(t, replicaError, "replica %d", index)
 		}
 		assert.Equal(t, before, schemaSnapshot(t, database))
+		if database.dialect.Name() != "mysql" {
+			return
+		}
+		// Every migration statement runs on the locked session, so that
+		// session's statement counters show any DDL.
+		require.NoError(t, withStartupMigrationLock(database.open(t), database.dialect, 0, func(lockedSession *gorm.DB) error {
+			ddlBefore := mysqlSessionDDLCount(t, lockedSession)
+			if migrationError := runStartupMigrations(lockedSession, database.dialect); migrationError != nil {
+				return migrationError
+			}
+			assert.Zero(t, mysqlSessionDDLCount(t, lockedSession)-ddlBefore, "a restart with a current schema must not run DDL")
+			return nil
+		}))
 	})
 }
 
