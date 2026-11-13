@@ -15,7 +15,7 @@
     "@tanstack/react-query": "^5.107.1",
     "@types/lodash.groupby": "^4.6.9",
     "@types/pako": "^3.0.0",
-    "@xyflow/react": "^12.12.0",
+    "@xyflow/react": "^12.12.1",
     "ace-builds": "^1.45.2",
     "d3-dsv": "^3.0.2",
     "dagre": "^0.8.5",
