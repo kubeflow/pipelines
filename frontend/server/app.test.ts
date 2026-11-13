@@ -679,6 +679,52 @@ describe('UIServer apis', () => {
     expect((call?.[1].headers as Headers).get('kubeflow-userid')).toBe('alice');
   });
 
+  it.each(['true', 'false'])(
+    'keeps imported requests on the context route without live Pod reads (auth=%s)',
+    async (authEnabled) => {
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: authEnabled,
+          STREAM_LOGS_FROM_SERVER_API: 'false',
+          ARGO_ARCHIVE_LOGS: 'true',
+          ML_PIPELINE_SERVICE_HOST: 'api.example',
+          ML_PIPELINE_SERVICE_PORT: '8888',
+        }),
+      );
+      const podRead = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      const logRead = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPodLog');
+      mockedFetch.mockClear();
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          runId: 'run-a',
+          namespace: 'team-a',
+          workflowName: 'workflow-a',
+          archiveOnly: true,
+          archiveKey: 'private-artifacts/team-b/workflow-a/2026/11/12/pod-a/main.log',
+        }),
+      });
+      try {
+        await requests(app.app)
+          .get('/k8s/pod/logs?runid=run-a&podname=pod-a')
+          .set('authorization', 'Bearer synthetic')
+          .expect(403);
+        const call = mockedFetch.mock.calls.find(([url]) =>
+          String(url).includes('archive_context=true'),
+        );
+        expect(call?.[0]).toBe(
+          'http://api.example:8888/apis/v1alpha1/runs/run-a/nodes/pod-a/log?archive_context=true',
+        );
+        expect((call?.[1].headers as Headers).get('authorization')).toBe('Bearer synthetic');
+        expect(podRead).not.toHaveBeenCalled();
+        expect(logRead).not.toHaveBeenCalled();
+      } finally {
+        podRead.mockRestore();
+        logRead.mockRestore();
+      }
+    },
+  );
+
   describe('/k8s/pod/logs with authorization enabled', () => {
     let apiServer: Server;
     const upstreamRequests: Array<{ path: string; user?: string; token?: string }> = [];

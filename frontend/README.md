@@ -225,13 +225,13 @@ not establish authenticated compatibility.
 
 With `ENABLE_AUTHZ=true`, `/k8s/pod/logs` requires `runid` and `podname`.
 The UI forwards the caller's identity to the API server for `readLog`
-authorization and native run identity. The run's persisted namespace selects the
+authorization and persisted run scope. The run's persisted namespace selects the
 scope; `podnamespace` cannot redirect the read. Live Pods must carry that run's
 `pipeline/runid` label before their logs are read.
 
 Standard native historical logs remain accessible after Pod/Workflow garbage
 collection. The UI retains its configured storage adapter and credentials, but
-checks archive hints against the operator-configured store, bucket, and native
+checks archive hints against the operator-configured store, bucket, and authorized
 namespace/workflow path. Tenant Workflow status and ConfigMaps cannot change
 that authorization policy. No data copy or per-run migration is required.
 
@@ -252,10 +252,21 @@ by allowlisting an endpoint; use a separately authorized logging/storage system
 for those objects. This setting validates reads; it does not change Argo's write
 configuration or move existing objects.
 
-Upgrade the UI and API server together and roll out all replicas. Verify both a
-live native run and an archived run whose Pod has been deleted. Imported histories
-and native histories lacking persisted namespace/workflow identity fail closed.
-Imported histories cannot read local archives even in standalone mode.
+Roll out the API server before the UI, then complete both rollouts. Verify a live
+native run, an archived run whose Pod has been deleted, and an imported run if
+using namespace transfer. Imported histories can read shared archives under the
+same configured store/bucket and namespace/workflow policy, including standalone.
+They never look up live destination Pods or Workflows. Importing metadata does
+not grant `readLog`: current authorization must cover the original workflow name
+in the destination namespace. A forged name cannot authorize a different path.
+
+No log copy or re-import is required for histories retaining those fields. Missing
+namespace/workflow scope and foreign archive locations fail closed. Run-specific
+standalone UI requests also consult API context to distinguish imports; explicit
+native contexts retain the existing direct reader, and standalone calls without
+a run ID retain their legacy behavior. API errors cannot trigger an unchecked
+fallback. Shared namespace names must represent the same tenant/data authority
+across installations; sharing a bucket alone does not establish that authority.
 
 `STREAM_LOGS_FROM_SERVER_API=true` still selects API streaming and requires the
 API server's archive storage configuration for historical logs; otherwise the UI

@@ -382,8 +382,8 @@ The following changes are proposed for a subsequent 2.18 maintenance release;
 they are not included in 2.18.0. Check the containing release notes before rollout.
 
 In multi-user mode, each log request must include a run ID and Pod/node name.
-The API server checks the caller's `readLog` permission and supplies the native
-run identity. Live Pods must belong to that run; caller-provided namespace values
+The API server checks the caller's `readLog` permission and supplies the persisted
+run scope. Live Pods must belong to that run; caller-provided namespace values
 cannot redirect the request.
 
 **Standard native historical logs remain supported after Pod/Workflow garbage
@@ -401,12 +401,15 @@ write configuration. An old layout lacking namespace/workflow partitions needs a
 separately authorized logging/storage interface; general endpoint allowlisting
 or tenant ConfigMap changes cannot authorize it.
 
-Imported histories and native records missing persisted namespace/workflow
-identity cannot establish local archive ownership and fail closed. Imported
-histories cannot read local shared archives even in standalone mode. Native
-standalone archive reads remain supported. No stored logs are deleted.
+Imported histories retain archive access when the destination shares the configured
+store/bucket and original namespace/workflow layout. Current `readLog` permission
+must cover that workflow name in the destination namespace. Imported histories
+never access live destination Pods or Workflows, including standalone mode.
+Missing scope or foreign archive locations remain denied. No re-import or log
+copy is needed for qualifying histories; no stored logs are deleted. See the
+[shared-storage migration guidance](../user-guides/data-transfer.md#historical-logs-on-shared-storage).
 
-Upgrade the UI and API server together and roll out all replicas. Verify one live
+Roll out the API server first, then the UI, and complete both rollouts. Verify one live
 native run and one historical run whose Pod has been deleted. The default UI path
 keeps its storage adapter after API authorization; explicitly enabling
 `STREAM_LOGS_FROM_SERVER_API` uses API streaming and requires the API's archive

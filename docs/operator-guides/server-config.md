@@ -800,7 +800,7 @@ Audit mode is planned for removal in 3.0.0 ([#14367](https://github.com/kubeflow
 
 ## Archived log ownership
 
-Multi-user archived-log reads require native run `readLog` authorization and an
+Multi-user archived-log reads require run `readLog` authorization and an
 operator-owned namespace/workflow-partitioned storage layout.
 `KFP_LOG_ARCHIVE_KEY_FORMAT` configures that read policy on the UI and API server.
 The default is:
@@ -817,6 +817,10 @@ allowlisting and tenant ConfigMaps cannot expand log ownership.
 The UI retains its configured archive store/bucket and requires
 `ARGO_ARCHIVE_LOGS=true` (enabled in the shipped deployment). Explicit API
 streaming uses the API server's archive storage configuration. Upgrade UI and API
-together; verify a native historical run after Pod deletion. Imported histories
-and records without native namespace/workflow identity fail closed. See the
+with the API first; verify a native historical run after Pod deletion and an
+imported run when using shared-storage transfer. Imported histories use the same
+configured archive policy and never access live destination Pods. Current
+`readLog` permission must cover the original workflow name in the destination
+namespace. Missing namespace/workflow scope and foreign paths remain denied.
+No re-import or log copying is required for qualifying histories. See the
 [full log compatibility guidance](https://github.com/kubeflow/pipelines/blob/release-2.18/frontend/README.md#pod-log-access).
