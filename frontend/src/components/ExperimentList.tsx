@@ -17,7 +17,8 @@
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
 import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
+import { RouteComponentProps } from '../lib/Router';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,

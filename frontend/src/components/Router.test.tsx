@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
-import { Router as ReactRouter } from 'react-router';
-import { MemoryRouter } from 'react-router-dom';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Router as ReactRouter } from '../lib/Router';
+import { HashRouter, MemoryRouter } from 'react-router';
 import { createMemoryHistory } from 'history';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
 import { Page } from '../pages/Page';
@@ -71,6 +71,55 @@ describe('Router', () => {
       history.push('/pear');
     });
     await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
+  });
+
+  it('preserves form and toolbar state across HashRouter query changes', async () => {
+    class FormPage extends Page<{}, { value: string }> {
+      public state = { value: '' };
+      public getInitialToolbarState(): ToolbarProps {
+        return { pageTitle: 'Initial form', actions: {}, breadcrumbs: [] };
+      }
+      public async refresh() {}
+      public render() {
+        return (
+          <>
+            <input
+              aria-label='draft name'
+              value={this.state.value}
+              onChange={(event) => this.setState({ value: event.target.value })}
+            />
+            <button onClick={() => this.props.updateToolbar({ pageTitle: 'Edited form' })}>
+              edit toolbar
+            </button>
+            <button onClick={() => this.props.history.push({ search: '?experiment=1' })}>
+              select experiment
+            </button>
+            <button onClick={() => this.props.history.replace({ search: '?experiment=2' })}>
+              replace experiment
+            </button>
+            <button onClick={() => this.props.history.push('/form/second')}>next form</button>
+          </>
+        );
+      }
+    }
+    window.history.replaceState(null, '', '/#/form/first');
+    const view = render(
+      <HashRouter>
+        <Router configs={[{ path: '/form/:id', Component: FormPage }]} />
+      </HashRouter>,
+    );
+    fireEvent.change(screen.getByLabelText('draft name'), { target: { value: 'Unsaved run' } });
+    fireEvent.click(screen.getByText('edit toolbar'));
+    for (const button of ['select experiment', 'replace experiment']) {
+      fireEvent.click(screen.getByText(button));
+      expect(screen.getByLabelText('draft name')).toHaveValue('Unsaved run');
+      expect(screen.getByTestId('page-title')).toHaveTextContent('Edited form');
+    }
+    fireEvent.click(screen.getByText('next form'));
+    await waitFor(() => expect(screen.getByLabelText('draft name')).toHaveValue(''));
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Initial form');
+    view.unmount();
+    window.history.replaceState(null, '', '/');
   });
 
   it('only accepts same-app return paths', () => {

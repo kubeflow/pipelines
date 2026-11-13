@@ -49,7 +49,7 @@ import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import {

@@ -26,7 +26,7 @@ export default defineConfig({
     environmentMatchGlobs: [['scripts/**/*.{test,spec}.{js,cjs,mjs,ts}', 'node']],
     server: {
       deps: {
-        inline: ['@xyflow/react', '@xyflow/system'],
+        inline: ['@xyflow/react', '@xyflow/system', 'react-virtualized'],
       },
     },
     coverage: {

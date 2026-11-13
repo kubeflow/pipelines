@@ -17,7 +17,7 @@
 import { retryScheduleHandoff } from 'src/lib/ScheduleHandoff';
 import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
 import { classes, stylesheet } from 'typestyle';

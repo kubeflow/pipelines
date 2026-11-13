@@ -16,7 +16,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
 import { KeyValue } from 'src/lib/StaticGraphParser';

@@ -24,3 +24,5 @@ Never edit generated files. Update their source and regenerate them.
 - On SELinux hosts, protoc generation can require temporarily setting SELinux to permissive mode.
 
 - Both Python HTTP clients override dependency requirements, package metadata and README templates to preserve the release Python minimum. Regenerate both API versions after changing these templates; never patch only the generated outputs.
+
+- Release SDK and Kubernetes Python locks are universal: compile with `--python-version 3.9 --universal` as recorded in the file header. Preserve Python-version and platform markers. Google API Core 2.30.3 supports Python 3.9; 2.44 requires Python 3.10, so both source and lock files select versions by interpreter. Documentation uses Python 3.13 for Sphinx 9 independently of the SDK's Python 3.9 minimum.

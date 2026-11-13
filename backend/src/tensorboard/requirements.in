@@ -3,3 +3,7 @@
 tensorboard==2.21.0
 boto3==1.43.118
 gcsfs==2026.10.1
+
+# Retain runtime dependencies in the hashed image lock across compiler upgrades.
+setuptools>=84.2.1
+oauthlib>=4.0.1,<5

@@ -33,12 +33,11 @@ loader.exec_module(version)
 
 # Get the long descriptions including link to RELEASE notes from README files.
 with open("README.md") as fp:
-  _GCPC_LONG_DESCRIPTION = fp.read()
+    _GCPC_LONG_DESCRIPTION = fp.read()
 
 yaml_data = glob.glob(relative_data_path + "/**/*.yaml", recursive=True)
 json_data = glob.glob(
-    relative_data_path + "/**/automl/**/*.json", recursive=True
-)
+    relative_data_path + "/**/automl/**/*.json", recursive=True)
 setuptools.setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
@@ -46,8 +45,7 @@ setuptools.setup(
         "This SDK enables a set of First Party (Google owned) pipeline"
         " components that allow users to take their experience from Vertex AI"
         " SDK and other Google Cloud services and create a corresponding"
-        " pipeline using KFP or Managed Pipelines."
-    ),
+        " pipeline using KFP or Managed Pipelines."),
     long_description=_GCPC_LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     url="https://github.com/kubeflow/pipelines/tree/master/components/google-cloud",
@@ -63,21 +61,18 @@ setuptools.setup(
         # first list of deps solves a readthedocs dependency resolution error
         # related to protobuf
         # second list of deps are true dependencies for building the site
-        "docs": (
-            [
-                "protobuf>=4.21.1,<5",
-                "grpcio-status<=1.47.0",
-            ]
-            + [
-                "commonmark==0.9.1",
-                "autodocsumm==0.2.9",
-                "sphinx>=5.0.2,<6.0.0",
-                "sphinx-immaterial==0.9.0",
-                "sphinx-rtd-theme==2.0.0",
-                "m2r2==0.3.3.post2",
-                "sphinx-notfound-page==0.8.3",
-            ]
-        ),
+        "docs": ([
+            "protobuf>=4.21.1,<7",
+            "grpcio-status<=1.85.1",
+        ] + [
+            "commonmark==0.9.1",
+            "autodocsumm==0.2.9",
+            "sphinx>=5.0.2,<6.0.0",
+            "sphinx-immaterial==0.9.0",
+            "sphinx-rtd-theme==2.0.0",
+            "m2r2==0.3.3.post2",
+            "sphinx-notfound-page==0.8.3",
+        ]),
     },
     include_package_data=True,
     python_requires=">=3.8.0",
@@ -86,16 +81,15 @@ setuptools.setup(
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
         "kfp>=2.6.0,<3.0.0",
-        "google-cloud-aiplatform>=1.14.0,<2",
+        "google-cloud-aiplatform>=1.14.0,<3",
         "Jinja2>=3.1.2,<4",
     ],
     project_urls={
         "User Documentation": (
             "https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction"
         ),
-        "Reference Documentation": (
-            "https://google-cloud-pipeline-components.readthedocs.io/"
-        ),
+        "Reference Documentation":
+            ("https://google-cloud-pipeline-components.readthedocs.io/"),
         "Source": (
             "https://github.com/kubeflow/pipelines/tree/master/components/google-cloud"
         ),

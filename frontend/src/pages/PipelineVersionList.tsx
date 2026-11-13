@@ -17,7 +17,8 @@
 import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
 import * as React from 'react';
 import { throwIfPaginationRestartRequired } from 'src/lib/Pagination';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router';
+import { RouteComponentProps } from '../lib/Router';
 import {
   V2beta1PipelineVersion,
   V2beta1ListPipelineVersionsResponse,

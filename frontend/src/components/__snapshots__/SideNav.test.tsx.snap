@@ -16,6 +16,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -97,6 +98,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -175,6 +177,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -215,6 +218,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -255,6 +259,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -307,6 +312,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -533,6 +539,7 @@ exports[`SideNav > populates the display build information using the default pro
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -614,6 +621,7 @@ exports[`SideNav > populates the display build information using the default pro
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -692,6 +700,7 @@ exports[`SideNav > populates the display build information using the default pro
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -732,6 +741,7 @@ exports[`SideNav > populates the display build information using the default pro
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -772,6 +782,7 @@ exports[`SideNav > populates the display build information using the default pro
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -824,6 +835,7 @@ exports[`SideNav > populates the display build information using the default pro
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -1033,6 +1045,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -1114,6 +1127,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -1192,6 +1206,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -1232,6 +1247,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -1272,6 +1288,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -1324,6 +1341,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -1533,6 +1551,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -1614,6 +1633,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -1692,6 +1712,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -1732,6 +1753,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -1772,6 +1794,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -1824,6 +1847,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -2033,6 +2057,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -2114,6 +2139,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -2192,6 +2218,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -2232,6 +2259,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -2272,6 +2300,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -2324,6 +2353,7 @@ exports[`SideNav > renders collapsed state 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -2533,6 +2563,7 @@ exports[`SideNav > renders expanded state 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -2614,6 +2645,7 @@ exports[`SideNav > renders expanded state 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -2692,6 +2724,7 @@ exports[`SideNav > renders expanded state 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -2732,6 +2765,7 @@ exports[`SideNav > renders expanded state 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -2772,6 +2806,7 @@ exports[`SideNav > renders expanded state 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -2824,6 +2859,7 @@ exports[`SideNav > renders expanded state 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -3033,6 +3069,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -3114,6 +3151,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -3192,6 +3230,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -3232,6 +3271,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -3272,6 +3312,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -3324,6 +3365,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -3533,6 +3575,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -3614,6 +3657,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -3692,6 +3736,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -3732,6 +3777,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -3772,6 +3818,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -3824,6 +3871,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -4033,6 +4081,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -4114,6 +4163,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -4192,6 +4242,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -4232,6 +4283,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -4272,6 +4324,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -4324,6 +4377,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -4533,6 +4587,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -4614,6 +4669,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -4692,6 +4748,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -4732,6 +4789,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -4772,6 +4830,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -4824,6 +4883,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -5033,6 +5093,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -5114,6 +5175,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -5192,6 +5254,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -5232,6 +5295,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -5272,6 +5336,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -5324,6 +5389,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -5533,6 +5599,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -5614,6 +5681,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -5692,6 +5760,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -5732,6 +5801,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -5772,6 +5842,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -5824,6 +5895,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -6033,6 +6105,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -6114,6 +6187,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -6192,6 +6266,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -6232,6 +6307,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -6272,6 +6348,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -6324,6 +6401,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -6533,6 +6611,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -6614,6 +6693,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -6692,6 +6772,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -6732,6 +6813,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -6772,6 +6854,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -6824,6 +6907,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -7033,6 +7117,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -7114,6 +7199,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -7192,6 +7278,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -7232,6 +7319,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -7272,6 +7360,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -7324,6 +7413,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -7533,6 +7623,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -7614,6 +7705,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -7692,6 +7784,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -7732,6 +7825,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -7772,6 +7866,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -7824,6 +7919,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"
@@ -8033,6 +8129,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <a
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/pipelines"
         id="pipelinesBtn"
@@ -8114,6 +8211,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <a
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/experiments"
         id="experimentsBtn"
@@ -8192,6 +8290,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <a
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/runs"
         id="runsBtn"
@@ -8232,6 +8331,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <a
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/recurringruns"
         id="recurringRunsBtn"
@@ -8272,6 +8372,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <a
         aria-label="Artifacts List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/artifacts"
         id="artifactsBtn"
@@ -8324,6 +8425,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
       <a
         aria-label="Executions List"
         class="unstyled_f1ikaigl"
+        data-discover="true"
         data-mui-internal-clone-element="true"
         href="/executions"
         id="executionsBtn"

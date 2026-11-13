@@ -16,7 +16,8 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryHistory } from 'history';
-import { MemoryRouter, Route, Router } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
+import { Route, Router } from '../lib/Router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, Mock } from 'vitest';
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';

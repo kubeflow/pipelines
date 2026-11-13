@@ -47,7 +47,7 @@ multidict==7.2.1
     # via
     #   aiohttp
     #   yarl
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
     #   -r requirements.in
     #   kubernetes

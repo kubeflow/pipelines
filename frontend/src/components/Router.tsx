@@ -16,7 +16,7 @@
 
 import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Redirect, Route, Switch } from '../lib/Router';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -249,7 +249,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => <RoutedPage key={props.location.pathname} route={route} />}
             />
           );
         })}

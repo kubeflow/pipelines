@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { Apis } from 'src/lib/Apis';
 import TestUtils, { expectErrors } from 'src/TestUtils';

@@ -18,7 +18,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import * as React from 'react';
 import * as JsYaml from 'js-yaml';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
 import { ApiJob } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
