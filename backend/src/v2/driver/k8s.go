@@ -1552,6 +1552,16 @@ func makeVolumeMountPatch(
 
 		resolvedPvcName, err := resolver.ResolveInputParameterStr(opts, pvcNameParameter, inputParams)
 		if err != nil {
+			if errors.Is(err, resolver.ErrResolvedParameterNull) {
+				// The resolver also reports a parent input that was never passed as null, so
+				// only skip the mount when the enclosing DAG declares the input as optional.
+				inputName := pvcNameParameter.GetComponentInputParameter()
+				if isOptionalParentInput(opts, inputName) {
+					continue
+				}
+				return nil, nil, fmt.Errorf(
+					"failed to resolve pvc name: pvc name input %q resolved to null but is not an optional input", inputName)
+			}
 			return nil, nil, fmt.Errorf("failed to resolve pvc name: %w", err)
 		}
 		pvcName := resolvedPvcName.GetStringValue()
@@ -1575,4 +1585,18 @@ func makeVolumeMountPatch(
 		volumes = append(volumes, volume)
 	}
 	return volumeMounts, volumes, nil
+}
+
+// isOptionalParentInput reports whether the DAG containing the current task declares
+// inputName as an optional input parameter. opts.ScopePath ends with the current task.
+func isOptionalParentInput(opts common.Options, inputName string) bool {
+	path := opts.ScopePath.StringPath()
+	if inputName == "" || len(path) < 2 {
+		return false
+	}
+	parent, err := opts.ScopePath.WithDotNotation(util.StringPathToDotNotation(path[:len(path)-1]))
+	if err != nil {
+		return false
+	}
+	return parent.GetLast().GetComponentSpec().GetInputDefinitions().GetParameters()[inputName].GetIsOptional()
 }

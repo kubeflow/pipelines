@@ -1,0 +1,263 @@
+# PIPELINE DEFINITION
+# Name: optional-pvc-name
+# Inputs:
+#    optional_pvc_name: str
+#    optional_secret_name: str
+#    required_pvc_name: str
+components:
+  comp-nested:
+    dag:
+      tasks:
+        noop:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-noop-5
+          taskInfo:
+            name: noop
+    inputDefinitions:
+      parameters:
+        child_pvc_name:
+          isOptional: true
+          parameterType: STRING
+  comp-noop:
+    executorLabel: exec-noop
+  comp-noop-2:
+    executorLabel: exec-noop-2
+  comp-noop-3:
+    executorLabel: exec-noop-3
+  comp-noop-4:
+    executorLabel: exec-noop-4
+  comp-noop-5:
+    executorLabel: exec-noop-5
+deploymentSpec:
+  executors:
+    exec-noop:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - noop
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef noop():\n    print('ok')\n\n"
+        image: python:3.11
+    exec-noop-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - noop
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef noop():\n    print('ok')\n\n"
+        image: python:3.11
+    exec-noop-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - noop
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef noop():\n    print('ok')\n\n"
+        image: python:3.11
+    exec-noop-4:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - noop
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef noop():\n    print('ok')\n\n"
+        image: python:3.11
+    exec-noop-5:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - noop
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef noop():\n    print('ok')\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: optional-pvc-name
+root:
+  dag:
+    tasks:
+      nested:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-nested
+        inputs:
+          parameters:
+            child_pvc_name:
+              componentInputParameter: optional_pvc_name
+        taskInfo:
+          name: nested
+      noop:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-noop
+        taskInfo:
+          name: noop
+      noop-2:
+        cachingOptions: {}
+        componentRef:
+          name: comp-noop-2
+        taskInfo:
+          name: noop-2
+      noop-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-noop-3
+        taskInfo:
+          name: noop-3
+      noop-4:
+        cachingOptions: {}
+        componentRef:
+          name: comp-noop-4
+        taskInfo:
+          name: noop-4
+  inputDefinitions:
+    parameters:
+      optional_pvc_name:
+        isOptional: true
+        parameterType: STRING
+      optional_secret_name:
+        isOptional: true
+        parameterType: STRING
+      required_pvc_name:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-noop:
+          pvcMount:
+          - componentInputParameter: optional_pvc_name
+            mountPath: /mnt/pvc
+            pvcNameParameter:
+              componentInputParameter: optional_pvc_name
+        exec-noop-2:
+          pvcMount:
+          - componentInputParameter: optional_pvc_name
+            mountPath: /mnt/pvc
+            pvcNameParameter:
+              componentInputParameter: optional_pvc_name
+        exec-noop-3:
+          pvcMount:
+          - componentInputParameter: required_pvc_name
+            mountPath: /mnt/pvc
+            pvcNameParameter:
+              componentInputParameter: required_pvc_name
+        exec-noop-4:
+          secretAsVolume:
+          - mountPath: /mnt/secret
+            optional: true
+            secretNameParameter:
+              componentInputParameter: optional_secret_name
+        exec-noop-5:
+          pvcMount:
+          - componentInputParameter: child_pvc_name
+            mountPath: /mnt/pvc
+            pvcNameParameter:
+              componentInputParameter: child_pvc_name
