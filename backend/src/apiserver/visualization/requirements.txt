@@ -68,7 +68,7 @@ google-api-core[grpc]==2.32.0
     #   google-cloud-core
     #   google-cloud-storage
     #   google-cloud-storage-control
-google-api-python-client==2.201.0
+google-api-python-client==2.202.0
     # via -r requirements.in
 google-auth==2.40.3
     # via
@@ -334,10 +334,6 @@ scikit-learn==1.5.0
     # via -r requirements.in
 scipy==1.16.1
     # via scikit-learn
-setuptools==84.2.1
-    # via
-    #   -r requirements.in
-    #   tensorflow
 six==1.17.0
     # via
     #   astunparse
