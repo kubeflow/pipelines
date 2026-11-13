@@ -61,15 +61,16 @@ func TestJOSERejectsUnsafeEmbeddedRSAKeys(t *testing.T) {
 			// verifying a signature; this fixture intentionally has no valid signature.
 			token := base64.RawURLEncoding.EncodeToString(header) + ".e30.c2lnbmF0dXJl"
 			_, err = jose.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256})
-			if tc.wantKeyError {
+			switch {
+			case tc.wantKeyError:
 				if !errors.Is(err, jose.ErrUnsupportedKeyType) {
 					t.Fatalf("want early unsupported RSA modulus rejection, got %v", err)
 				}
-			} else if tc.wantError == "" {
+			case tc.wantError == "":
 				if err != nil {
 					t.Fatalf("parse bounded public key: %v", err)
 				}
-			} else if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+			case err == nil || !strings.Contains(err.Error(), tc.wantError):
 				t.Fatalf("want early rejection %q, got %v", tc.wantError, err)
 			}
 		})
