@@ -11,6 +11,8 @@
 
 'use strict';
 
+const {createHash} = require('node:crypto');
+const {invalidRunMetadata} = require('./ci_expected_workflows');
 const {loadPolicy, queueEnabled} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
@@ -109,8 +111,28 @@ async function admissionPassed(github, context, pr) {
     ...context.repo, ref: pr.head.sha, per_page: 100,
   });
   const status = statuses.find(status => status.context === 'ci-passed');
-  return ['master', 'main'].includes(pr.base.ref) && status?.state === 'success' &&
-    new RegExp(`^Queue admission ${pr.base.ref} CI passed; base policy [0-9a-f]{64}\\.$`).test(status.description || '');
+  if (!(['master', 'main'].includes(pr.base.ref) && status?.state === 'success' &&
+    Number.isSafeInteger(status.id) && status.id > 0 && new RegExp(`^Queue admission ${pr.base.ref} CI passed; base policy [0-9a-f]{64}\\.$`).test(status.description || ''))) return null;
+  const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+    ...context.repo, event: 'pull_request', head_sha: pr.head.sha, per_page: 100,
+  });
+  if (!Array.isArray(runs) || !runs.length || runs.length >= 1000) {
+    throw new Error('Incomplete admission workflow history');
+  }
+  const ids = new Set();
+  for (const run of runs) {
+    if (invalidRunMetadata(run) || run.event !== 'pull_request' ||
+        run.head_sha !== pr.head.sha || ids.has(run.id)) {
+      throw new Error('Invalid admission workflow attempt');
+    }
+    ids.add(run.id);
+  }
+  const fingerprint = createHash('sha256').update(JSON.stringify(
+    runs.map(run => [run.id, run.run_attempt]).sort((a, b) => a[0] - b[0])
+  )).digest('hex');
+  const consumed = statuses.find(item => item.context === 'queue-admission-attempt');
+  if (consumed?.description === `Admission ${pr.base.ref}; CI attempts ${fingerprint}.`) return null;
+  return fingerprint;
 }
 
 async function invalidateQueue(github, context, entries) {
@@ -128,7 +150,7 @@ async function dequeue(github, pr) {
   }`, {id: pr.node_id});
 }
 
-async function reconcilePR({github, mutationGithub = github, context, number, branch, root}) {
+async function reconcilePR({github, context, number, branch, root}) {
   if (!await queueEnabled({github, context, branch, root})) return;
   let entries = await readQueue(github, context, branch);
   const entry = entries.find(entry => entry.pullRequest.number === number);
@@ -139,29 +161,38 @@ async function reconcilePR({github, mutationGithub = github, context, number, br
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, branch);
     if (entry && (reason || entry.pullRequest.headRefOid !== pr.head.sha)) {
       await invalidateQueue(github, context, entries);
-      await dequeue(mutationGithub, pr);
+      await dequeue(github, pr);
       return;
     }
-    if (entry || reason || !await admissionPassed(github, context, pr)) return;
+    if (entry || reason) return;
+    const admission = await admissionPassed(github, context, pr);
+    if (!admission) return;
     const before = snapshot(pr);
     pr = await readPR(github, context, number);
-    if (snapshot(pr) !== before || !await admissionPassed(github, context, pr)) return;
+    if (snapshot(pr) !== before || await admissionPassed(github, context, pr) !== admission) return;
     if (!await queueEnabled({github, context, branch, root})) return;
     // No direct-merge or auto-merge fallback. GitHub enforces its other required
     // checks, including DCO, and atomically rejects a changed PR head.
     enqueueAttempted = true;
-    await mutationGithub.graphql(`mutation($id:ID!, $head:GitObjectID!) {
+    await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
         mergeQueueEntry { id }
       }
     }`, {id: pr.node_id, head: pr.head.sha});
     const after = await readPR(github, context, number);
     if (after.merged === true) return;
-    if (snapshot(after) !== before || !await admissionPassed(github, context, after) ||
+    if (snapshot(after) !== before || await admissionPassed(github, context, after) !== admission ||
         !await queueEnabled({github, context, branch, root})) {
       entries = await readQueue(github, context, branch);
       await invalidateQueue(github, context, entries);
-      await dequeue(mutationGithub, after);
+      await dequeue(github, after);
+    } else {
+      // A failed/removed candidate must not silently cycle through fresh queue
+      // SHAs forever. A new PR workflow attempt changes the fingerprint
+      // and permits another admission; base-policy restamps cannot retry it.
+      await github.rest.repos.createCommitStatus({...context.repo, sha: pr.head.sha,
+        context: 'queue-admission-attempt', state: 'pending',
+        description: `Admission ${branch}; CI attempts ${admission}.`});
     }
   } catch (error) {
     // An enqueue may have succeeded even if its response was lost. Refresh the
@@ -183,7 +214,7 @@ async function reconcilePR({github, mutationGithub = github, context, number, br
       try { await invalidateQueue(github, context, entries); }
       catch (statusError) { errors.push(statusError); }
       if (pr) {
-        try { await dequeue(mutationGithub, pr); }
+        try { await dequeue(github, pr); }
         catch (dequeueError) { errors.push(dequeueError); }
       }
     }
@@ -216,10 +247,10 @@ async function eventTargets(github, context) {
     pr.head.repo?.full_name === run.head_repository.full_name).map(pr => pr.number);
 }
 
-async function sweep({github, mutationGithub = github, context, root, core}) {
+async function sweep({github, context, root, core, queueOnly = false}) {
   const branches = loadPolicy(root).enabled_branches;
   if (!branches.length) return;
-  const targets = await eventTargets(github, context);
+  const targets = queueOnly ? [] : await eventTargets(github, context);
   const failures = [];
   for (const branch of branches) {
     if (!await queueEnabled({github, context, branch, root})) continue;
@@ -233,7 +264,7 @@ async function sweep({github, mutationGithub = github, context, root, core}) {
     }
     for (const number of numbers) {
       try {
-        await reconcilePR({github, mutationGithub, context, number, branch, root});
+        await reconcilePR({github, context, number, branch, root});
       } catch (error) {
         failures.push(`#${number}: ${error.message}`);
       }

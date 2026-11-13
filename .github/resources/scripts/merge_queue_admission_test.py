@@ -86,11 +86,24 @@ def run_case(method='reconcilePR', branch='master', **options):
         'statuses': [
             [
                 {
+                    'id': 10,
                     'context': 'ci-passed',
                     'state': 'success',
                     'description': f'Queue admission {branch} CI passed; base policy '
                     + 'f' * 64
                     + '.',
+                }
+            ]
+        ],
+        'runs': [
+            [
+                {
+                    'id': 100,
+                    'run_attempt': 1,
+                    'event': 'pull_request',
+                    'head_sha': HEAD,
+                    'created_at': '2026-11-13T12:00:00Z',
+                    'run_started_at': '2026-11-13T12:00:00Z',
                 }
             ]
         ],
@@ -122,6 +135,7 @@ function next(name, values) {{
   return value;
 }}
 const github = {{rest: {{
+  actions: {{listWorkflowRunsForRepo:'runs'}},
   pulls: {{list:'pulls', get: async options => {{
     calls.push({{route:'pr', options}});
     return {{data:next('pr-' + options.pull_number, f.prs[String(options.pull_number)])}};
@@ -133,6 +147,7 @@ const github = {{rest: {{
   }}}},
 }}, paginate: async (route, options) => {{
   calls.push({{route,options}});
+  if (route === 'runs') return next('runs',f.runs);
   if (route === 'statuses') return next('statuses',f.statuses);
   if (route === 'pulls') return f.listed;
   if (route.includes('/rules/branches/')) return next('rules',f.rules);
@@ -149,13 +164,7 @@ const github = {{rest: {{
   calls.push({{route:'queue',options}});
   return next('queues',f.queues);
 }}}};
-const mutationGithub = f.separateMutationClient ? {{graphql:async (query,options) => {{
-  if (!query.includes('mutation(')) throw new Error('App client must only mutate queue');
-  const before = writes.length;
-  try {{ return await github.graphql(query, options); }}
-  finally {{ for (const write of writes.slice(before)) write.client = 'app'; }}
-}}}} : github;
-const args = {{github, mutationGithub, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload}},
+const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload}},
   root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
   group:{{baseRef:f.branch,head:f.candidate || {json.dumps(CANDIDATE)}}},
   core:{{info:()=>{{}}}}}};
@@ -188,7 +197,8 @@ class QueueAdmissionTest(unittest.TestCase):
                 result = run_case(branch=branch)
                 self.assertNotIn('error', result)
                 self.assertEqual(
-                    [write['route'] for write in result['writes']], ['enqueue']
+                    [write['route'] for write in result['writes']],
+                    ['enqueue', 'status'],
                 )
                 enqueue = result['writes'][0]
                 self.assertEqual(
@@ -273,17 +283,19 @@ class QueueAdmissionTest(unittest.TestCase):
     def test_current_queue_policy_stamp_is_required_on_head(self):
         for statuses in [
             [],
-            [{'context': 'ci-passed', 'state': 'pending'}],
+            [{'id': 10, 'context': 'ci-passed', 'state': 'pending'}],
             [
                 {
+                    'id': 10,
                     'context': 'ci-passed',
                     'state': 'success',
                     'description': 'Expected CI and all checks passed',
                 }
             ],
             [
-                {'context': 'ci-passed', 'state': 'failure'},
+                {'id': 10, 'context': 'ci-passed', 'state': 'failure'},
                 {
+                    'id': 10,
                     'context': 'ci-passed',
                     'state': 'success',
                     'description': 'Queue admission master CI passed; base policy '
@@ -304,6 +316,7 @@ class QueueAdmissionTest(unittest.TestCase):
                     statuses=[
                         [
                             {
+                                'id': 10,
                                 'context': 'ci-passed',
                                 'state': 'success',
                                 'description': f'Queue admission {previous} CI passed; base policy '
@@ -353,6 +366,7 @@ class QueueAdmissionTest(unittest.TestCase):
                 'statuses': [
                     [
                         {
+                            'id': 10,
                             'context': 'ci-passed',
                             'state': 'success',
                             'description': 'Queue admission master CI passed; base policy '
@@ -362,6 +376,7 @@ class QueueAdmissionTest(unittest.TestCase):
                     ],
                     [
                         {
+                            'id': 10,
                             'context': 'ci-passed',
                             'state': 'success',
                             'description': 'Queue admission master CI passed; base policy '
@@ -392,21 +407,68 @@ class QueueAdmissionTest(unittest.TestCase):
                     result,
                 )
 
-    def test_queue_mutations_use_app_but_statuses_keep_actions_identity(self):
-        for method in ['reconcilePR', 'sweep']:
-            result = run_case(
-                method,
-                separateMutationClient=True,
-                prs={'7': [pr(labels=[])]},
-                queues=[queue([entry()])],
+    def test_admission_consumes_current_ci_evidence_without_another_token(self):
+        result = run_case()
+        self.assertNotIn('error', result)
+        receipt = result['writes'][-1]['options']
+        self.assertEqual(receipt['sha'], HEAD)
+        self.assertEqual(receipt['context'], 'queue-admission-attempt')
+        self.assertRegex(
+            receipt['description'],
+            r'^Admission master; CI attempts [a-f0-9]{64}\.$',
+        )
+        passed = {
+            'id': 10,
+            'context': 'ci-passed',
+            'state': 'success',
+            'description': 'Queue admission master CI passed; base policy '
+            + 'f' * 64
+            + '.',
+        }
+        # GitHub removed a failed candidate: a sweep must not create an endless
+        # stream of new queue SHAs using the same original green PR evidence.
+        consumed = run_case(statuses=[[receipt, passed]])
+        self.assertEqual(consumed['writes'], [], consumed)
+        restamped = run_case(statuses=[[dict(passed, id=11), receipt]])
+        self.assertEqual(restamped['writes'], [], restamped)
+        run = {
+            'id': 100,
+            'run_attempt': 1,
+            'event': 'pull_request',
+            'head_sha': HEAD,
+            'created_at': '2026-11-13T12:00:00Z',
+            'run_started_at': '2026-11-13T12:00:00Z',
+        }
+        for changed_run in [dict(run, run_attempt=2), dict(run, id=101)]:
+            rerun = run_case(
+                statuses=[[dict(passed, id=11), receipt]], runs=[[changed_run]]
             )
-            self.assertNotIn('error', result)
-            self.assertEqual(result['writes'][0]['route'], 'status')
-            self.assertNotIn('client', result['writes'][0])
-            self.assertEqual(result['writes'][1]['client'], 'app')
-        result = run_case(separateMutationClient=True)
-        self.assertEqual(result['writes'][0]['route'], 'enqueue')
-        self.assertEqual(result['writes'][0]['client'], 'app')
+            self.assertNotIn('error', rerun)
+            self.assertEqual(rerun['writes'][0]['route'], 'enqueue', rerun)
+            self.assertNotEqual(
+                rerun['writes'][-1]['options']['description'],
+                receipt['description'],
+            )
+        changed = run_case(runs=[[run], [dict(run, run_attempt=2)]])
+        self.assertEqual(changed['writes'], [], changed)
+        changed_after = run_case(
+            runs=[[run], [run], [dict(run, run_attempt=2)]],
+            queues=[queue(), queue([entry()])],
+        )
+        self.assertEqual(
+            [w['route'] for w in changed_after['writes']],
+            ['enqueue', 'status', 'dequeue'],
+            changed_after,
+        )
+        for invalid in [
+            dict(run, run_attempt=0),
+            dict(run, head_sha='b' * 40),
+            dict(run, event='workflow_dispatch'),
+            dict(run, created_at=None),
+        ]:
+            result = run_case(runs=[[invalid]])
+            self.assertIn('error', result)
+            self.assertEqual(result['writes'], [])
 
     def test_dequeue_uses_required_id_input_with_pr_node_id(self):
         for branch in ['master', 'main']:

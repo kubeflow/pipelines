@@ -13,12 +13,13 @@
 
 const {applicable, validateInventory, invalidRunMetadata, loadBaseInventory} = require('./ci_expected_workflows');
 const {inspectQueue} = require('./merge_queue_admission');
+const {queueEnabled} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 
 function candidate(context) {
   const run = context.payload.workflow_run;
   const queue = /^gh-readonly-queue\/(master|main)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(run?.head_branch || '');
-  if (context.eventName !== 'workflow_run' || run?.event !== 'merge_group' ||
+  if (context.eventName !== 'workflow_run' || !['merge_group', 'workflow_dispatch'].includes(run?.event) ||
       run.head_repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
       !queue ||
       !SHA.test(run.head_sha || '')) return null;
@@ -66,24 +67,38 @@ function expectedWorkflows(inventory, workflowFiles, baseRef) {
   return expected;
 }
 
-async function evidence(github, context, group, expected) {
-  const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
-    ...context.repo, event: 'merge_group', head_sha: group.head, per_page: 100,
-  });
-  if (!Array.isArray(runs) || runs.length >= 1000) throw new Error('Incomplete queue workflow history');
+async function queueRuns(github, context, group) {
+  const runs = [];
+  for (const event of ['merge_group', 'workflow_dispatch']) {
+    const page = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+      ...context.repo, event, head_sha: group.head, per_page: 100,
+    });
+    if (!Array.isArray(page) || page.length >= 1000) throw new Error('Incomplete queue workflow history');
+    runs.push(...page);
+  }
+  return runs;
+}
+
+function matchingRuns(runs, context, group, path) {
+  const matching = runs.filter(run => run.path === path &&
+    ['merge_group', 'workflow_dispatch'].includes(run.event) &&
+    run.head_sha === group.head && run.head_branch === group.branch &&
+    run.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`);
+  for (const run of matching) {
+    const invalid = invalidRunMetadata(run);
+    if (invalid) throw new Error(`Invalid queue workflow attempt ${invalid}`);
+  }
+  const attemptTime = run => Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at) || 0);
+  return matching.sort((a, b) => attemptTime(b) - attemptTime(a) || b.id - a.id);
+}
+
+async function evidence(github, context, group, expected, allowDispatch = false) {
+  const runs = (await queueRuns(github, context, group))
+    .filter(run => allowDispatch || run.event === 'merge_group');
   const reasons = [];
   let failed = false;
   for (const path of expected) {
-    const matching = runs.filter(run => run.path === path && run.event === 'merge_group' &&
-      run.head_sha === group.head && run.head_branch === group.branch &&
-      run.head_repository?.full_name === `${context.repo.owner}/${context.repo.repo}`);
-    for (const run of matching) {
-      const invalid = invalidRunMetadata(run);
-      if (invalid) throw new Error(`Invalid queue workflow attempt ${invalid}`);
-    }
-    const attemptTime = run => Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at) || 0);
-    matching.sort((a, b) => attemptTime(b) - attemptTime(a) || b.id - a.id);
-    const run = matching[0];
+    const run = matchingRuns(runs, context, group, path)[0];
     if (!run) reasons.push(`${path}: expected workflow has not registered`);
     else if (run.status !== 'completed' || run.conclusion !== 'success') {
       reasons.push(`${path}: latest run is ${run.status}/${run.conclusion}`);
@@ -94,9 +109,11 @@ async function evidence(github, context, group, expected) {
 }
 
 async function reconcile({github, context, core, root = process.env.GITHUB_WORKSPACE,
-  loadInventory = loadBaseInventory}) {
-  const group = candidate(context);
+  loadInventory = loadBaseInventory, group: requestedGroup}) {
+  const group = requestedGroup || candidate(context);
   if (!group) return;
+  const allowDispatch = await queueEnabled({github, context, branch: group.baseRef, root});
+  if ((requestedGroup || context.payload.workflow_run?.event === 'workflow_dispatch') && !allowDispatch) return;
   const publish = async (state, description) => github.rest.repos.createCommitStatus({
     ...context.repo, sha: group.head, context: 'ci-passed', state,
     description: description.slice(0, 140),
@@ -116,7 +133,7 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
     const current = async () => (await readRef(github, context, group.branch)) === group.head &&
       (await readRef(github, context, group.baseRef)) === base &&
       (await inspectQueue({github, context, group, root})) === policy;
-    let result = await evidence(github, context, group, expected);
+    let result = await evidence(github, context, group, expected, allowDispatch);
     core.info(JSON.stringify({head: group.head, base, expected, ...result}));
     if (!result.passed) {
       if (result.failed) await publish('failure', result.reasons.join('; '));
@@ -125,7 +142,7 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
     // Reread current attempts and refs immediately before and after publishing.
     // Status writes and queue rebuilds are not atomic; stale evidence must not
     // carry over to another SHA or survive a detected rerun.
-    result = await evidence(github, context, group, expected);
+    result = await evidence(github, context, group, expected, allowDispatch);
     if (!result.passed || !await current()) return;
     await publish('success', `All expected ${group.baseRef} merge-group workflows passed.`);
     let queueHead;
@@ -138,7 +155,7 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
       throw error;
     }
     if (queueHead !== group.head || await readRef(github, context, group.baseRef) !== base ||
-        !(await evidence(github, context, group, expected)).passed ||
+        !(await evidence(github, context, group, expected, allowDispatch)).passed ||
         (await inspectQueue({github, context, group, root})) !== policy) {
       await publish('pending', 'Queue candidate or CI changed; waiting for current evidence.');
     }
@@ -148,4 +165,4 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
   }
 }
 
-module.exports = {candidate, expectedWorkflows, evidence, reconcile};
+module.exports = {candidate, readRef, expectedWorkflows, queueRuns, matchingRuns, evidence, reconcile};

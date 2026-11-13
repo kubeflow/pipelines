@@ -83,7 +83,10 @@ class QueueTestSourcesTest(unittest.TestCase):
         )
         self.assertEqual(
             step['env']['TEST_SOURCE_REF'],
-            "${{ github.event.merge_group.head_sha || 'master' }}",
+            '${{ github.event.merge_group.head_sha || '
+            "(github.event_name == 'workflow_dispatch' && "
+            "startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && "
+            "github.sha) || 'master' }}",
         )
         self.assertIn('-branchName="$TEST_SOURCE_REF"', step['run'])
 

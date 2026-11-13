@@ -51,7 +51,10 @@ WRITE_PERMISSIONS = {
         'check_ci_status': {'pull-requests', 'statuses'},
         'recover_merged_release': {'statuses'},
         'check_merge_group_status': {'statuses'},
-        'queue_admission': {'statuses'},
+        'queue_admission': {'contents', 'pull-requests', 'actions', 'statuses'},
+    },
+    'merge-queue-recovery.yml': {
+        'queue_recovery': {'contents', 'pull-requests', 'actions', 'statuses'},
     },
     'ci-health-report.yml': {
         'report': {'issues'},

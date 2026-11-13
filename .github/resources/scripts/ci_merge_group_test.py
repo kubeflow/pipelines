@@ -156,8 +156,49 @@ class MergeGroupTest(unittest.TestCase):
             self.assertEqual(request['base']['repo']['full_name'], 'owner/repo')
         for request in result['requests']:
             if request['route'] == 'runs':
-                self.assertEqual(request['options']['event'], 'merge_group')
+                self.assertIn(
+                    request['options']['event'],
+                    ['merge_group', 'workflow_dispatch'],
+                )
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_dispatch_evidence_requires_enabled_queue_and_latest_attempt(self):
+        from merge_queue_admission_test import entry, pr, queue
+
+        dispatch = good_run(event='workflow_dispatch')
+        self.assertEqual(
+            reconcile(event=dispatch, runs=[dispatch])['writes'], []
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps({'version': 1, 'enabled_branches': ['master']})
+            )
+            options = dict(
+                policyRoot=directory,
+                event=dispatch,
+                queues=[queue([entry(headCommit={'oid': HEAD})])],
+                queuePRs=[pr()],
+            )
+            result = reconcile(runs=[dispatch], **options)
+            self.assertTrue(
+                result['writes'],
+                'Enabled dispatch must publish candidate status',
+            )
+            self.assertEqual(result['writes'][-1]['state'], 'success', result)
+            for later_event in ['merge_group', 'workflow_dispatch']:
+                newer = good_run(
+                    id=101,
+                    event=later_event,
+                    created_at='2026-11-01T12:01:00Z',
+                    run_started_at='2026-11-01T12:01:00Z',
+                    conclusion='failure',
+                )
+                result = reconcile(runs=[dispatch, newer], **options)
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'failure', result
+                )
 
     def test_enabled_queue_policy_blocks_or_revokes_unapproved_candidates(self):
         from merge_queue_admission_test import entry, pr, queue

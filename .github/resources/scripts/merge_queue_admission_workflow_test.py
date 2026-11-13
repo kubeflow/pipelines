@@ -29,7 +29,7 @@ class AdmissionWorkflowTest(unittest.TestCase):
         )
         cls.job = cls.workflow['jobs']['queue_admission']
 
-    def test_default_policy_does_not_create_app_token_or_run_admission(self):
+    def test_default_policy_disables_admission_and_dispatch(self):
         policy = json.loads(
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
@@ -38,47 +38,48 @@ class AdmissionWorkflowTest(unittest.TestCase):
         self.assertEqual(steps[0]['with']['ref'], '${{ github.workflow_sha }}')
         self.assertEqual(steps[0]['with']['persist-credentials'], 'false')
         self.assertEqual(steps[1]['id'], 'policy')
-        self.assertIn(
-            'loadPolicy().enabled_branches.length > 0',
-            steps[1]['with']['script'],
-        )
-        self.assertEqual(
-            steps[2]['if'], "steps.policy.outputs.enabled == 'true'"
-        )
-        self.assertEqual(
-            steps[3]['if'],
-            "always() && !cancelled() && steps.policy.outputs.enabled == 'true'",
-        )
+        for step in steps[2:]:
+            self.assertEqual(
+                step['if'], "steps.policy.outputs.enabled == 'true'"
+            )
+        self.assertNotIn('secrets.', json.dumps(self.job))
+        self.assertNotIn('create-github-app-token', json.dumps(self.job))
 
-    def test_app_only_mutates_queue_and_actions_retains_status_binding(self):
+    def test_builtin_token_owns_queue_dispatch_and_status_publication(self):
         self.assertEqual(
             self.job['permissions'],
-            {'contents': 'read', 'pull-requests': 'read', 'statuses': 'write'},
-        )
-        app = self.job['steps'][2]
-        self.assertEqual(app['with']['owner'], '${{ github.repository_owner }}')
-        self.assertEqual(
-            app['with']['repositories'], '${{ github.event.repository.name }}'
-        )
-        self.assertEqual(
             {
-                key: value
-                for key, value in app['with'].items()
-                if key.startswith('permission-')
-            },
-            {
-                'permission-contents': 'write',
-                'permission-pull-requests': 'write',
+                'contents': 'write',
+                'pull-requests': 'write',
+                'actions': 'write',
+                'statuses': 'write',
             },
         )
-        script = self.job['steps'][3]['with']['script']
-        self.assertIn('mutationGithub', script)
+        script = self.job['steps'][-1]['with']['script']
+        self.assertIn('await reconcileQueue({github, context, core})', script)
+        self.assertNotIn('authorization', script)
+        publisher = self.workflow['jobs']['check_merge_group_status']
         self.assertIn(
-            'if (!process.env.QUEUE_APP_TOKEN) throw new Error', script
+            "github.event.workflow_run.event == 'workflow_dispatch'",
+            publisher['if'],
         )
-        self.assertIn(
-            'await sweep({github, mutationGithub, context, core})', script
+        self.assertIn("'gh-readonly-queue/master/'", publisher['if'])
+        self.assertIn("'gh-readonly-queue/main/'", publisher['if'])
+
+    def test_scheduled_recovery_shares_serial_writer_and_needs_no_event(self):
+        recovery = yaml.load(
+            (ROOT / '.github/workflows/merge-queue-recovery.yml').read_text(),
+            Loader=yaml.BaseLoader,
         )
+        self.assertEqual(recovery['on']['schedule'], [{'cron': '*/5 * * * *'}])
+        job = recovery['jobs']['queue_recovery']
+        self.assertEqual(job['concurrency'], self.job['concurrency'])
+        self.assertNotIn('needs', job)
+        self.assertEqual(job['permissions'], self.job['permissions'])
+        self.assertEqual(
+            job['steps'][0]['with']['ref'], '${{ github.workflow_sha }}'
+        )
+        self.assertIn('queueOnly: true', job['steps'][-1]['with']['script'])
 
     def test_revocation_events_and_sweep_do_not_deadlock_ci(self):
         events = self.workflow['on']['pull_request_target']['types']

@@ -14,7 +14,23 @@ on:
       - master
       - main
       - 'release-*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -29,9 +45,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   build-tools-check:
     name: Check tools images (${{ matrix.arch }})
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group' || startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
     strategy:
       fail-fast: false
       matrix:
@@ -57,7 +83,7 @@ jobs:
   build-tools:
     name: Build tools images (${{ matrix.arch }})
     if: >-
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/'))) &&
       (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) ||
        (github.ref_name != 'master' && github.ref_name != 'main'))
     strategy:
@@ -158,7 +184,7 @@ jobs:
     name: Publish verified tooling indexes
     needs: [build-tools, compare-generated]
     if: >-
-      !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      !cancelled() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/'))) &&
       needs.build-tools.result == 'success' && needs.compare-generated.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15

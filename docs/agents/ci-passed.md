@@ -429,29 +429,49 @@ publication while cleanup is outstanding.
 ## Development-branch merge-group CI
 
 The test workflows also accept `merge_group: checks_requested` for `master` and
-`main`. Queue candidates run every PR test lane for their target branch regardless
+`main`. The trusted builtin-token controller also explicitly dispatches missing
+CI workflows on native queue refs because enqueueing with `GITHUB_TOKEN` does not
+reliably start `merge_group` Actions CI. No additional App or PAT is required.
+Queue candidates run every PR test lane for their target branch regardless
 of PR path filters; this covers the combined candidate without inferring files
 from one constituent PR. The checked-in upgrade-test pause remains the sole exception. The inventory
 records both PR and merge-group triggers, and the queue verifier rejects a
-target-branch PR lane that lacks a corresponding queue trigger.
+target-branch PR lane that lacks a corresponding queue trigger or guarded dispatch
+support. A dispatch on `refs/heads/gh-readonly-queue/` always selects queue mode,
+even without inputs. Its required guard validates `queue_head_sha`, plain
+`queue_base_ref` (`master` or `main`), and `queue_base_sha` against the actual queue
+ref, run SHA, and live base. Missing or inconsistent inputs fail; ordinary manual
+filters cannot narrow queue CI coverage.
 
 CI Check's separate `check_merge_group_status` job handles constituent
 `workflow_run` events. It checks out `github.workflow_sha`, the trusted publisher
 revision on the default branch, never the candidate. It reads workflow policy
 from an immutable snapshot of the upstream target branch (`master` or `main`)
-as YAML data, checks `merge_group` workflow runs for the exact candidate SHA,
-repository and queue branch, and publishes `ci-passed` only onto that SHA. It rereads run attempts and
+as YAML data, checks native `merge_group` and guarded `workflow_dispatch` runs
+for the exact candidate SHA, repository and queue branch, and publishes
+`ci-passed` only onto that SHA. It rereads run attempts and
 refs before and after success. Missing or running lanes remain pending; failed,
 cancelled or skipped lanes cannot pass. Rebuilt/deleted candidates cannot lend
 their results to a new candidate. Changes to the target branch during
 reconciliation leave success unconfirmed until a subsequent constituent event
-revalidates policy.
+or scheduled recovery revalidates policy.
 
 Queue reconciliation does not synchronize PR labels or replace PR admission,
 review, hold or external-check policy. DCO remains an independently required
 GitHub check; the queue aggregator evaluates expected test workflows rather than
 waiting for external checks that may arrive after the final workflow event.
 The existing PR publisher and scheduled PR recovery retain their behavior.
+Separate recovery scheduled every five minutes also discovers newly built queue
+candidates, dispatches missing lanes, and reconciles queue statuses. Scheduling
+can be delayed. Dispatch receipts reserve each candidate/workflow attempt before
+the API call, allow 120 seconds for run registration, and cap dispatch at three
+attempts when no run registers. Existing native or dispatched runs prevent
+duplicate dispatch, including failed/cancelled runs; those require an intentional
+Actions rerun. Receipts cannot satisfy required CI checks.
+Successful admission records a separate `queue-admission-attempt` receipt on the
+PR head, consuming a fingerprint of its workflow run IDs and attempt numbers. A failed or removed
+candidate cannot cause recovery to re-enqueue the same green head indefinitely;
+a deliberate PR CI rerun must produce a fresh successful admission status.
 As with PR reconciliation, status writes are not atomic with Actions updates,
 and `workflow_run: requested` is not emitted for reruns. Validate rerun behavior
 against the deployed queue before enabling it.
@@ -459,14 +479,18 @@ against the deployed queue before enabling it.
 This repository change does **not** enable a merge queue or alter GitHub/Tide
 settings. Before activation, verify the installed DCO app reports on queue SHAs,
 coordinate Tide and protection changes while preserving approval/hold policy,
-and exercise successful candidates, a failed lane, rebuilt groups and reruns on
-GitHub. Activate for the current development branch, with squash merging and low
-build concurrency. Supporting both names in CI does not migrate GitHub protection
+and complete a full-inventory smoke test, multi-PR queue test, failing/cancelled
+lane and explicit-rerun tests, rebuilt groups, held/revoked-approval candidates,
+and missed-event recovery on GitHub. [Experiment PR #15565](https://github.com/kubeflow/pipelines/pull/15565)
+proved builtin-token dispatch and verified status publication can drive a native
+queue merge; it did not establish production readiness for those cases. Activate
+for the current development branch, with squash merging and low build concurrency. Supporting both names in CI does not migrate GitHub protection
 or Tide configuration during a rename; coordinate those settings separately. Keep
 release branches on their existing merge path. Queue runs build images without
 publishing them and use the queue SHA for test source downloads. Shared CI image
 production builds both architectures for queue candidates; producer and consumer
-provenance must agree on the exact queue ref, candidate SHA and base identity.
+provenance must agree on the exact queue ref, candidate SHA and base identity,
+including when native and dispatched runs reuse each other's artifacts.
 
 Queue admission preparation and the reviewed external Tide patch are described in
 [merge-queue-activation.md](merge-queue-activation.md). The checked-in admission

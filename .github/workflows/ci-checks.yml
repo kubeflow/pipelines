@@ -251,7 +251,7 @@ jobs:
   check_merge_group_status:
     if: >-
       github.event_name == 'workflow_run' &&
-      github.event.workflow_run.event == 'merge_group' &&
+      (github.event.workflow_run.event == 'merge_group' || github.event.workflow_run.event == 'workflow_dispatch') &&
       (startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/master/') ||
        startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/main/')) &&
       github.event.workflow_run.head_repository.full_name == github.repository
@@ -294,15 +294,19 @@ jobs:
       github.event_name == 'schedule' ||
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'workflow_run' && github.event.action == 'completed' &&
-       github.event.workflow_run.event == 'pull_request'))
+       (github.event.workflow_run.event == 'pull_request' ||
+        github.event.workflow_run.event == 'merge_group' ||
+        (github.event.workflow_run.event == 'workflow_dispatch' &&
+         startsWith(github.event.workflow_run.head_branch, 'gh-readonly-queue/')))))
     concurrency:
       group: merge-queue-admission
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
-      pull-requests: read
+      contents: write
+      pull-requests: write
+      actions: write
       statuses: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -316,30 +320,17 @@ jobs:
           script: |
             const {loadPolicy} = require('./.github/resources/scripts/merge_queue_policy');
             core.setOutput('enabled', String(loadPolicy().enabled_branches.length > 0));
-      - id: app
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         if: steps.policy.outputs.enabled == 'true'
-        # App mutations can trigger merge_group workflows; the built-in token
-        # remains the ci-passed writer to preserve its required app binding.
-        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
-          app-id: ${{ vars.MERGE_QUEUE_APP_ID }}
-          private-key: ${{ secrets.MERGE_QUEUE_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-pull-requests: write
-      - name: Reconcile Prow approval policy with GitHub queue admission
-        # Still revoke held candidates if App token creation failed.
-        if: always() && !cancelled() && steps.policy.outputs.enabled == 'true'
+          python-version: '3.11'
+      - name: Install trusted workflow parser dependencies
+        if: steps.policy.outputs.enabled == 'true'
+        run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Reconcile admission, candidate dispatch, and verified results
+        if: steps.policy.outputs.enabled == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        env:
-          QUEUE_APP_TOKEN: ${{ steps.app.outputs.token }}
         with:
           script: |
-            const {sweep} = require('./.github/resources/scripts/merge_queue_admission');
-            const mutationGithub = {graphql: (query, variables) => {
-              if (!process.env.QUEUE_APP_TOKEN) throw new Error('Queue App token unavailable; no mutation attempted.');
-              return github.graphql(query, {
-                ...variables, headers: {authorization: `token ${process.env.QUEUE_APP_TOKEN}`}});
-            }};
-            await sweep({github, mutationGithub, context, core});
+            const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
+            await reconcileQueue({github, context, core});

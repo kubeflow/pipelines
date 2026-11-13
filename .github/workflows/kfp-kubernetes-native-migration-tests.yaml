@@ -1,6 +1,23 @@
 name: KFP Kubernetes Native Migration Tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
   merge_group:
     types: [checks_requested]
     branches: [master, main]
@@ -33,6 +50,16 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   image-artifacts-ready:
     permissions:
       actions: read
@@ -99,7 +126,7 @@ jobs:
         id: run-db-mode-tests
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
-          TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha }}
+          TEST_SOURCE_REF: ${{ (github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha)) }}
           REPO_NAME: ${{ github.repository }}
           KFP_ENDPOINT: "http://localhost:8888"
         run: uv run pytest ./test/kfp-kubernetes-native-migration-tests/kfp_db_mode_migration_tests.py -v
@@ -183,7 +210,7 @@ jobs:
         id: run-k8s-mode-tests
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
-          TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha }}
+          TEST_SOURCE_REF: ${{ (github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha)) }}
           REPO_NAME: ${{ github.repository }}
           KFP_ENDPOINT: "http://localhost:8888"
         run: uv run pytest ./test/kfp-kubernetes-native-migration-tests/kfp_k8s_mode_migration_tests.py -v
