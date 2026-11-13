@@ -44,6 +44,7 @@ def good_run(**overrides):
         'head_sha': HEAD,
         'head_branch': BRANCH,
         'head_repository': {'full_name': 'owner/repo'},
+        'repository': {'full_name': 'owner/repo'},
         'status': 'completed',
         'conclusion': 'success',
         'created_at': '2026-11-01T12:00:00Z',
@@ -76,7 +77,7 @@ const gate = require({json.dumps(str(MODULE))});
 const fixture = {json.dumps(fixture)};
 const writes = [], requests = [], inventoryRequests = [], infos = [];
 const refCounts = new Map();
-let runCount = 0;
+let runCount = 0, triggerCount = 0;
 const github = {{
   rest: {{
     git: {{getRef: async options => {{
@@ -89,7 +90,12 @@ const github = {{
       if (sha === null) throw Object.assign(new Error('Ref not found'), {{status: 404}});
       return {{data: {{ref: 'refs/' + options.ref, object: {{type: 'commit', sha}}}}}};
     }}}},
-    actions: {{listWorkflowRunsForRepo: 'runs'}},
+    actions: {{listWorkflowRunsForRepo: 'runs', getWorkflowRun: async options => {{
+      requests.push({{route: 'trigger', options}});
+      if (fixture.triggerError) throw new Error('Trigger API unavailable');
+      const snapshots = fixture.triggerSnapshots || [fixture.context.payload.workflow_run];
+      return {{data: snapshots[Math.min(triggerCount++, snapshots.length - 1)]}};
+    }}}},
     repos: {{createCommitStatus: async options => {{
       writes.push(options);
       return {{data: options}};
@@ -152,6 +158,67 @@ class MergeGroupTest(unittest.TestCase):
             if request['route'] == 'runs':
                 self.assertEqual(request['options']['event'], 'merge_group')
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_triggering_rerun_cannot_reuse_stale_list_success(self):
+        for status, conclusion in [
+            ('in_progress', None),
+            ('completed', 'failure'),
+            ('completed', 'success'),
+        ]:
+            with self.subTest(status=status):
+                trigger = good_run(
+                    run_attempt=2, status=status, conclusion=conclusion
+                )
+                result = reconcile(event=trigger, runs=[good_run()])
+                self.assert_not_successful(result)
+                self.assertNotIn(
+                    'success', [write['state'] for write in result['writes']]
+                )
+        result = reconcile(
+            event=good_run(run_attempt=2),
+            runs=[good_run()],
+            triggerSnapshots=[good_run()],
+        )
+        self.assertIn('error', result)
+        self.assert_not_successful(result)
+
+    def test_delayed_event_does_not_override_a_newer_completed_execution(self):
+        older = good_run(
+            id=99,
+            conclusion='failure',
+            created_at='2026-11-01T11:00:00Z',
+            run_started_at='2026-11-01T11:00:00Z',
+        )
+        result = reconcile(event=older)
+        self.assertEqual(result['writes'][-1]['state'], 'success', result)
+
+    def test_trigger_attempt_is_rechecked_around_publication(self):
+        active = good_run(run_attempt=2, status='in_progress', conclusion=None)
+        for snapshots in [
+            [good_run(), active],
+            [good_run(), good_run(), active],
+        ]:
+            with self.subTest(snapshots=snapshots):
+                result = reconcile(triggerSnapshots=snapshots)
+                self.assert_not_successful(result)
+
+    def test_invalid_trigger_identity_and_lookup_errors_fail_closed(self):
+        for changes in [
+            {'id': 0},
+            {'run_attempt': 0},
+            {'head_sha': REBUILT},
+            {'event': 'pull_request'},
+            {'path': '.github/workflows/other.yml'},
+            {'repository': {'full_name': 'fork/repo'}},
+            {'head_repository': {'full_name': 'fork/repo'}},
+        ]:
+            with self.subTest(changes=changes):
+                result = reconcile(triggerSnapshots=[good_run(**changes)])
+                self.assertIn('error', result)
+                self.assert_not_successful(result)
+        result = reconcile(triggerError=True)
+        self.assertIn('error', result)
+        self.assert_not_successful(result)
 
     def test_each_queue_uses_its_own_base_policy_and_ref(self):
         for base in ['master', 'main']:

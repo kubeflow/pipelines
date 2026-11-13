@@ -65,11 +65,31 @@ function expectedWorkflows(inventory, workflowFiles, baseRef) {
   return expected;
 }
 
+async function triggeringRun(github, context, group) {
+  const eventGroup = candidate(context);
+  if (!eventGroup || eventGroup.head !== group.head || eventGroup.branch !== group.branch) return null;
+  const event = context.payload.workflow_run;
+  if (!Number.isSafeInteger(event?.id) || event.id <= 0 ||
+      !Number.isSafeInteger(event.run_attempt) || event.run_attempt <= 0) {
+    throw new Error('Invalid triggering queue workflow identity');
+  }
+  const {data: run} = await github.rest.actions.getWorkflowRun({...context.repo, run_id: event.id});
+  if (invalidRunMetadata(run) || run.id !== event.id || run.run_attempt < event.run_attempt ||
+      run.event !== event.event || run.path !== event.path ||
+      run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      run.head_repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      run.head_sha !== group.head || run.head_branch !== group.branch) {
+    throw new Error('Triggering queue workflow identity changed or is incomplete');
+  }
+  return run;
+}
+
 async function evidence(github, context, group, expected) {
   const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
     ...context.repo, event: 'merge_group', head_sha: group.head, per_page: 100,
   });
   if (!Array.isArray(runs) || runs.length >= 1000) throw new Error('Incomplete queue workflow history');
+  const trigger = await triggeringRun(github, context, group);
   const reasons = [];
   let failed = false;
   for (const path of expected) {
@@ -83,6 +103,19 @@ async function evidence(github, context, group, expected) {
     const attemptTime = run => Math.max(Date.parse(run.created_at), Date.parse(run.run_started_at) || 0);
     matching.sort((a, b) => attemptTime(b) - attemptTime(a) || b.id - a.id);
     const run = matching[0];
+    // A workflow_run event can arrive before its newer attempt appears in the
+    // list endpoint. The direct lookup establishes a floor for that execution;
+    // repeated stale list reads must never restore its earlier green result.
+    if (trigger?.path === path && run &&
+        (run.id === trigger.id || attemptTime(trigger) > attemptTime(run) ||
+         (attemptTime(trigger) === attemptTime(run) && trigger.id > run.id))) {
+      if (run.id !== trigger.id || run.run_attempt < trigger.run_attempt ||
+          run.status !== trigger.status || run.conclusion !== trigger.conclusion) {
+        reasons.push(`${path}: awaiting current triggering workflow attempt`);
+        if (trigger.status === 'completed' && trigger.conclusion !== 'success') failed = true;
+        continue;
+      }
+    }
     if (!run) reasons.push(`${path}: expected workflow has not registered`);
     else if (run.status !== 'completed' || run.conclusion !== 'success') {
       reasons.push(`${path}: latest run is ${run.status}/${run.conclusion}`);
