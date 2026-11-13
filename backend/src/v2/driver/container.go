@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -281,15 +282,29 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		// Start by getting the names of the PVCs that need to be mounted.
 		var pvcNames []string
 		if opts.KubernetesExecutorConfig != nil && opts.KubernetesExecutorConfig.GetPvcMount() != nil {
-			_, volumes, err := makeVolumeMountPatch(
+			volumeMounts, _, err := makeVolumeMountPatch(
 				opts, opts.KubernetesExecutorConfig.GetPvcMount(),
 				inputParams)
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract volume mount info while generating fingerprint: %w", err)
 			}
 
-			for _, volume := range volumes {
-				pvcNames = append(pvcNames, volume.Name)
+			for _, volumeMount := range volumeMounts {
+				// A subPath selects different data on the same PVC, so it is part
+				// of the cache identity. Volume names must be DNS labels, so a PVC
+				// name containing "/" can never run; rejecting it keeps
+				// "<name>/<subPath>" unambiguous. A mount without subPath keeps
+				// its existing fingerprint.
+				if strings.Contains(volumeMount.Name, "/") {
+					return execution, fmt.Errorf(
+						"failed to generate fingerprint: invalid PVC name %q: use a Kubernetes PVC name without \"/\"",
+						volumeMount.Name)
+				}
+				pvcIdentity := volumeMount.Name
+				if volumeMount.SubPath != "" {
+					pvcIdentity += "/" + volumeMount.SubPath
+				}
+				pvcNames = append(pvcNames, pvcIdentity)
 			}
 		}
 

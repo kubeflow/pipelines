@@ -1,5 +1,6 @@
 """Typer CLI for Kubeflow Pipelines release automation."""
 
+import json
 import subprocess
 from enum import Enum
 from pathlib import Path
@@ -7,21 +8,16 @@ from typing import Optional
 
 import typer
 
-from .core import (
-    STATE_FILE,
-    CommandRunner,
-    ReleaseContext,
-    ReleaseMetadata,
-    ReleaseState,
-    collect_context,
-    doctor_errors,
-    emphasize_prompt,
-    normalize_fork_remote,
-    validate_answers,
-    validate_state,
-    watch_latest_workflow_run,
-)
+from .context import ReleaseContext, collect_context
 from .editorial import validate_notes
+from .github_api import watch_latest_workflow_run
+from .inventory import build_inventory, review_warnings, write_bundle
+from .metadata import ReleaseMetadata
+from .preflight import doctor_errors
+from .prompts import emphasize_prompt
+from .ranges import resolve_range
+from .runner import CommandRunner
+from .state import STATE_FILE, ReleaseState
 from .steps import (
     STEP_HANDLERS,
     Step,
@@ -29,6 +25,11 @@ from .steps import (
     manual_checklist,
     regenerate_release_notes,
     run_steps,
+)
+from .validation import (
+    normalize_fork_remote,
+    validate_answers,
+    validate_state,
 )
 
 HELP_OPTION_NAMES = ['-h', '--help']
@@ -58,6 +59,24 @@ def _load_state(path: Path) -> ReleaseState:
     return ReleaseState.load(path)
 
 
+def _load_state_for_update(path: Path) -> ReleaseState:
+    """Load a checkpoint that a command will change, refusing invalid files.
+
+    Saving a checkpoint that could not be read would replace the
+    operator's file, so stop before any prompt or release step runs.
+    """
+    state = _load_state(path)
+    if state.load_errors:
+        for error in state.load_errors:
+            typer.echo(error)
+        typer.echo(
+            f'Fix {path} or delete it with '
+            f'`kfpr clear --state-file {path}` before continuing.'
+        )
+        raise typer.Exit(1)
+    return state
+
+
 def _set_answer(state: ReleaseState, key: str, value: object | None) -> None:
     if value is not None:
         state.answers[key] = value
@@ -85,7 +104,7 @@ def _context(
     security_exceptions: Optional[Path] = None,
     image_qualification: Optional[str] = None,
 ) -> ReleaseContext:
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     _set_answer(state, 'release_type', release_type)
     _set_answer(state, 'version', version)
     _set_answer(
@@ -182,6 +201,8 @@ def _all_steps() -> list[Step]:
 def _state_steps(
     state: ReleaseState,
 ) -> tuple[list[Step], ReleaseMetadata | None, list[str]]:
+    if state.load_errors:
+        return [], None, validate_state(state)
     metadata, errors = validate_answers(state.answers)
     if metadata is None:
         return [], None, errors
@@ -321,7 +342,7 @@ def run(
     if ctx.invoked_subcommand is not None:
         return
     if state_file.exists() and not force:
-        _print_state_status(_load_state(state_file))
+        _print_state_status(_load_state_for_update(state_file))
         if not typer.confirm(
             emphasize_prompt('Continue from this checkpoint?')
         ):
@@ -371,10 +392,78 @@ def promote_latest(
 
 
 @app.command(
+    'prepare-editorial',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
+def prepare_editorial(
+    version: str = typer.Option(
+        ..., help='Release version, without sdk- prefix.'
+    ),
+    base: str = typer.Option(
+        ..., help='Explicit previous release tag or commit.'
+    ),
+    target: str = typer.Option(..., help='Exact release target ref.'),
+    output: Path = typer.Option(
+        ..., help='New directory for evidence and document templates.'
+    ),
+) -> None:
+    """Create an offline editorial inventory and backend/SDK/upgrade
+    templates."""
+    try:
+        root = Path(
+            subprocess.check_output(
+                ['git', 'rev-parse', '--show-toplevel'], text=True
+            ).strip()
+        )
+        selected = resolve_range(root, base, target)
+        inventory = build_inventory(root, selected, version)
+        write_bundle(root, inventory, output)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        raise typer.BadParameter(str(error)) from error
+    for warning in review_warnings(inventory):
+        typer.echo(f'Warning: {warning}')
+    typer.echo(
+        f'Editorial bundle: {output}. Review inventory.json, then use render-editorial.'
+    )
+
+
+@app.command(
+    'render-editorial',
+    context_settings={'help_option_names': HELP_OPTION_NAMES},
+)
+def render_editorial(
+    inventory_path: Path = typer.Argument(..., help='Reviewed inventory.json.'),
+    output: Path = typer.Option(
+        ..., help='New output directory; existing drafts are never overwritten.'
+    ),
+) -> None:
+    """Render reviewed benefits and shared facts without publishing or changing
+    state."""
+    try:
+        root = Path(
+            subprocess.check_output(
+                ['git', 'rev-parse', '--show-toplevel'], text=True
+            ).strip()
+        )
+        inventory = json.loads(inventory_path.read_text(encoding='utf-8'))
+        write_bundle(root, inventory, output)
+    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+        raise typer.BadParameter(str(error)) from error
+    for warning in review_warnings(inventory):
+        typer.echo(f'Warning: {warning}')
+    typer.echo(
+        f'Review rendered documents in {output}; this command does not publish them.'
+    )
+
+
+@app.command(
     'validate-notes', context_settings={'help_option_names': HELP_OPTION_NAMES}
 )
 def validate_notes_command(
     path: Path = typer.Argument(..., help='Markdown release notes to review.'),
+    product: Optional[str] = typer.Option(
+        None, help='Optional backend, sdk, or upgrade editorial checks.'
+    ),
 ) -> None:
     """Report advisory editorial warnings without changing release notes."""
     try:
@@ -383,7 +472,10 @@ def validate_notes_command(
         raise typer.BadParameter(
             f'Cannot read release notes: {error}', param_hint='PATH'
         ) from error
-    warnings = validate_notes(notes)
+    try:
+        warnings = validate_notes(notes, product=product)
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint='--product') from error
     if warnings:
         for warning in warnings:
             typer.echo(f'Warning: {warning}')
@@ -524,7 +616,7 @@ def next_command(
     ),
 ) -> None:
     """Run the next incomplete checkpoint step."""
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     steps, _, errors = _state_steps(state)
     if errors:
         for error in errors:
@@ -599,7 +691,7 @@ def done_command(
     """Mark one release step complete in the checkpoint."""
     if step_id not in STEP_HANDLERS:
         raise typer.BadParameter(f'unknown step: {step_id}')
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     state.mark_done(step_id)
     state.save()
     typer.echo(f'marked done: {step_id}')
@@ -617,7 +709,7 @@ def reset_step_command(
     """Remove one release step from the completed checkpoint list."""
     if step_id not in STEP_HANDLERS:
         raise typer.BadParameter(f'unknown step: {step_id}')
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     state.reset_step(step_id)
     state.save()
     typer.echo(f'reset step: {step_id}')
@@ -631,7 +723,7 @@ def goto_command(
     ),
 ) -> None:
     """Mark all steps before STEP_ID complete so the flow resumes there."""
-    state = _load_state(state_file)
+    state = _load_state_for_update(state_file)
     steps, _, errors = _state_steps(state)
     if errors:
         for error in errors:

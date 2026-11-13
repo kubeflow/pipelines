@@ -200,6 +200,9 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 			Payload:       model.LargeText(payload),
 		})
 	}
+	if err := r.Err(); err != nil {
+		return nil, err
+	}
 	return references, nil
 }
 

@@ -11,6 +11,9 @@ on:
       - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
       - ".github/actions/setup-python/**"
       - ".github/workflows/image-builds.yml"
+      - ".github/workflows/ci-images.yml"
+      - '.github/workflows/shared-ci-images-ready.yml'
+      - ".github/actions/shared-ci-images/**"
       - ".github/actions/deploy/**"
       - ".github/actions/download-artifact-with-retry/**"
       - ".github/resources/**"
@@ -27,13 +30,14 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  image-artifacts-ready:
     permissions:
       actions: read
       contents: read
-    uses: ./.github/workflows/image-builds.yml
+    uses: ./.github/workflows/shared-ci-images-ready.yml
 
   kfp-kubernetes-native-migration-tests:
+    needs: image-artifacts-ready
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -65,6 +69,7 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
+          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000

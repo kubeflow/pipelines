@@ -3,7 +3,7 @@
 import re
 import time
 
-from .core import REPO
+from .github_api import REPO
 
 
 def validate_run(data, identity, completed=True):

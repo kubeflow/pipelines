@@ -240,6 +240,9 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 		}
 		artifactTasks = append(artifactTasks, artifactTask)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return artifactTasks, nil
 }
 
