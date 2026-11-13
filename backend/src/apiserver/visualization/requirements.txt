@@ -221,7 +221,7 @@ numpy==1.26.4
     #   scikit-learn
     #   scipy
     #   tensorflow
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
     #   -r requirements.in
     #   requests-oauthlib

@@ -20,7 +20,7 @@ attrs==23.2.0
     #   ml-metadata
 certifi==2026.10.23
     # via
-    #   -r requirements.in
+    #   -r metadata_writer/requirements.in
     #   kubernetes
     #   requests
 charset-normalizer==3.4.9
@@ -38,18 +38,18 @@ idna==3.18
     #   requests
     #   yarl
 kubernetes==37.0.2
-    # via -r requirements.in
+    # via -r metadata_writer/requirements.in
 lru-dict==1.4.1
-    # via -r requirements.in
+    # via -r metadata_writer/requirements.in
 ml-metadata==1.21.0
-    # via -r requirements.in
+    # via -r metadata_writer/requirements.in
 multidict==7.2.1
     # via
     #   aiohttp
     #   yarl
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
-    #   -r requirements.in
+    #   -r metadata_writer/requirements.in
     #   kubernetes
     #   requests-oauthlib
 propcache==0.5.4
@@ -58,7 +58,7 @@ propcache==0.5.4
     #   yarl
 protobuf==6.33.6
     # via
-    #   -r requirements.in
+    #   -r metadata_writer/requirements.in
     #   ml-metadata
 pydantic==2.14.2
     # via kubernetes
@@ -68,11 +68,11 @@ python-dateutil==4.0.0
     # via kubernetes
 pyyaml==6.0.3
     # via
-    #   -r requirements.in
+    #   -r metadata_writer/requirements.in
     #   kubernetes
 requests==2.34.2
     # via
-    #   -r requirements.in
+    #   -r metadata_writer/requirements.in
     #   kubernetes
     #   requests-oauthlib
 requests-oauthlib==2.0.0
@@ -94,7 +94,7 @@ tzdata==2026.6
     # via python-dateutil
 urllib3==2.8.0
     # via
-    #   -r requirements.in
+    #   -r metadata_writer/requirements.in
     #   kubernetes
     #   requests
 websocket-client==1.9.0
