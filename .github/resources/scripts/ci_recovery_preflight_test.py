@@ -25,7 +25,7 @@ const sha = 'b'.repeat(40), created = '2026-01-01T00:00:00Z';
 const counts = {pulls:0, runs:0, base:0, arrival:0, merged:0, graphql:0};
 const prs = Array.from({length:options.count || 1},(_,i)=>({number:i+1,state:'open',
  head:{sha:(i+1).toString(16).padStart(40,'0'),ref:'feature',repo:{full_name:'fork/r'}},
- base:{sha,ref:options.branch || 'master',repo:{full_name:'o/r'}},labels:[]}));
+ base:{sha,ref:options.branch || 'master',repo:{full_name:'o/r'}},labels:options.labels || []}));
 const content = `name: Required\non:\n  pull_request:\n    branches: [master, main, release-*]\n${options.filtered ? '    paths: [sdk/**]\n' : ''}jobs:\n  test:\n    runs-on: ubuntu-latest\n`;
 const runsFor = head => {
  if(options.kind==='missing' || !options.kind)return [];
@@ -136,6 +136,19 @@ class RecoveryPreflightTest(unittest.TestCase):
         for options in ({'status': 'SUCCESS'}, {'absent': True}):
             with self.subTest(options=options):
                 result = exercise(options)
+                self.assertEqual(len(result['candidates']), 1)
+                self.assertEqual(result['counts']['runs'], 0)
+
+    def test_stale_green_label_gets_full_reconciliation(self):
+        for status in ('FAILURE', 'PENDING'):
+            with self.subTest(status=status):
+                result = exercise(
+                    {
+                        'kind': 'stale',
+                        'status': status,
+                        'labels': [{'name': 'ci-passed'}],
+                    }
+                )
                 self.assertEqual(len(result['candidates']), 1)
                 self.assertEqual(result['counts']['runs'], 0)
 

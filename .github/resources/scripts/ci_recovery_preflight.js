@@ -58,6 +58,9 @@ function recoveryPreflight({github, context, root}) {
   }
   return async (pr, status, queueAdmission) => {
     if (!['failure', 'pending'].includes(status?.state)) return false;
+    // A prior status write may have succeeded before label removal failed.
+    // Preserve full reconciliation so an informational green cannot linger.
+    if (pr.labels?.some(label => label.name === 'ci-passed')) return false;
     try {
       if (!SHA.test(pr.head?.sha || '') || !pr.head?.ref || !pr.head.repo?.full_name ||
           pr.base?.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) return false;
