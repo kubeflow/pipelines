@@ -2,7 +2,7 @@
 pyarrow==26.0.1
 xgboost==3.4.1
 scikit-learn==1.7.2
-pandas==3.0.6
+pandas==3.1.1
 polars==2.0.0
 torch==2.14.1+cpu; sys_platform == "linux"
 torch==2.14.1; sys_platform != "linux"
