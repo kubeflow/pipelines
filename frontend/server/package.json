@@ -11,7 +11,7 @@
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "form-data": "^4.0.6",
-    "google-auth-library": "^9.15.1",
+    "google-auth-library": "^11.3.3",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^4.2.1",
     "js-yaml": "^5.5.0",
@@ -26,11 +26,11 @@
     "@types/supertest": "^2.0.8",
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
-    "@vitest/coverage-v8": "^5.0.5",
+    "@vitest/coverage-v8": "^5.1.0",
     "prettier": "^3.9.10",
     "supertest": "^4.0.2",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "path-to-regexp": "0.1.13",
@@ -46,9 +46,6 @@
     "xmlbuilder": "15.1.1",
     "@kubernetes/client-node": {
       "js-yaml": "^4.3.2"
-    },
-    "gaxios": {
-      "uuid": "^11.1.1"
     }
   },
   "scripts": {

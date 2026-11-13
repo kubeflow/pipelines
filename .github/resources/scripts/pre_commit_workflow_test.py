@@ -385,7 +385,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 commands = [
                     step.get('run')
                     for job in workflow['jobs'].values()
-                    for step in job['steps']
+                    for step in job.get('steps', [])
                 ]
                 self.assertIn(command, commands)
 

@@ -152,6 +152,21 @@ def matches(pattern, value):
     return isinstance(value, str) and re.fullmatch(pattern, value) is not None
 
 
+def queue_identity(value):
+    return isinstance(value, dict) and (
+        value.get('event') == 'merge_group'
+        or str(value.get('ref', '')).startswith('refs/heads/gh-readonly-queue/')
+    )
+
+
+def source_events(identity):
+    if queue_identity(identity):
+        return ('merge_group', 'workflow_dispatch')
+    if identity['event'] == 'workflow_dispatch':
+        return ('push', 'workflow_dispatch')
+    return (identity['event'],)
+
+
 def validate_identity(value):
     fields = {
         'version',
@@ -164,7 +179,7 @@ def validate_identity(value):
         'run_attempt',
         'pr',
     }
-    if isinstance(value, dict) and value.get('event') == 'merge_group':
+    if queue_identity(value):
         fields.add('merge_group')
     require(
         isinstance(value, dict) and set(value) == fields, 'Malformed identity'
@@ -185,7 +200,11 @@ def validate_identity(value):
     )
     require(matches('refs/.+', value['ref']), 'Invalid ref')
     pr = value['pr']
-    if value['event'] == 'merge_group':
+    if queue_identity(value):
+        require(
+            value['event'] in ('merge_group', 'workflow_dispatch'),
+            'Unsupported queue event',
+        )
         group = value['merge_group']
         require(
             isinstance(group, dict)
@@ -273,6 +292,19 @@ def environment_identity(environ=None, checkout=True):
             key: group[key]
             for key in ('head_sha', 'head_ref', 'base_sha', 'base_ref')
         }
+    if value['event'] == 'workflow_dispatch':
+        inputs = event.get('inputs') or {}
+        require(isinstance(inputs, dict), 'Malformed dispatch inputs')
+        if queue_identity(value) or any(
+            inputs.get(key)
+            for key in ('queue_head_sha', 'queue_base_ref', 'queue_base_sha')
+        ):
+            value['merge_group'] = {
+                'head_sha': inputs.get('queue_head_sha'),
+                'head_ref': value['ref'],
+                'base_sha': inputs.get('queue_base_sha'),
+                'base_ref': f'refs/heads/{inputs.get("queue_base_ref", "")}',
+            }
     validate_identity(value)
     if checkout:
         actual = subprocess.check_output(
@@ -295,11 +327,7 @@ def same_source(producer, consumer):
         producer.get('merge_group') == consumer.get('merge_group'),
         'Producer merge group mismatch',
     )
-    events = (
-        ('push', 'workflow_dispatch')
-        if consumer['event'] == 'workflow_dispatch'
-        else (consumer['event'],)
-    )
+    events = source_events(consumer)
     require(producer['event'] in events, 'Producer event mismatch')
 
 
@@ -335,7 +363,7 @@ def validate_run(run, identity, *, check_conclusion=True):
         == (pr['head_repository'] if pr else identity['repository']),
         'Producer head repository mismatch',
     )
-    if identity['event'] == 'merge_group':
+    if queue_identity(identity):
         require(
             run.get('head_branch')
             == identity['ref'].removeprefix('refs/heads/'),
@@ -758,11 +786,7 @@ def write_json(path, value):
 def candidate_runs(runs, consumer):
     result = []
     pr = consumer['pr']
-    events = (
-        ('push', 'workflow_dispatch')
-        if consumer['event'] == 'workflow_dispatch'
-        else (consumer['event'],)
-    )
+    events = source_events(consumer)
     for run in runs:
         require(isinstance(run, dict), 'Malformed producer run')
         if run.get('event') not in events or run.get('head_sha') != (
@@ -781,6 +805,10 @@ def candidate_runs(runs, consumer):
         if head.get('id') != (
             pr['head_repository_id'] if pr else consumer['repository_id']
         ):
+            continue
+        if queue_identity(consumer) and run.get('head_branch') != consumer[
+            'ref'
+        ].removeprefix('refs/heads/'):
             continue
         require(
             positive(run.get('id')) and positive(run.get('run_attempt')),

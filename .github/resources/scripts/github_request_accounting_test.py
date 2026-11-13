@@ -237,7 +237,8 @@ async function exercise(timelineFailsFirst) {
  const operation = withRequestAccounting({github, scope: 'prepare',
    core: {info: line => summaries.push(JSON.parse(line))}},
    () => sandbox.module.exports.testEvidence(github, {repo: {owner: 'o', repo: 'r'}},
-     {number: 1, base: {ref: 'release-2.18', sha: 'a'.repeat(40)}}, '/unused'));
+     {number: 1, base: {ref: 'release-2.18', sha: 'a'.repeat(40)}},
+     path.resolve(path.dirname(gatePath), '../../..')));
  const outcome = operation.then(() => {settled = true;}, error => {settled = true; return error;});
  await new Promise(setImmediate);
  const settledBeforeSibling = settled;

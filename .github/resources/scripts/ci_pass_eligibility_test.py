@@ -91,7 +91,7 @@ const github = {graphql: async (query, variables) => {
     for (const [name, oid] of Object.entries(variables)) {
       if (name.startsWith('sha')) repository[`head${name.slice(3)}`] = {
         __typename: 'Commit', oid, status: {context: status ? {
-          context: 'ci-passed', state: status.toUpperCase(), description: description ?? null} : null}};
+          context: 'ci-passed', state: status.toUpperCase(), description: description ?? null, targetUrl: statusTarget ?? null} : null}};
     }
     return {repository};
   }
@@ -212,6 +212,11 @@ jobs:
     return {data: {object: {sha: baseTip}}};
   }},
 }, paginate: async (method, params) => {
+  if (method === 'GET /repos/{owner}/{repo}/rules/branches/{branch}') {
+    calls.push(['queue-rules', params.branch]);
+    if (options.queueRulesFailure) throw Error('Queue rules unavailable');
+    return published && options.queueRemovedAfterSuccess ? [] : (options.queueRules || []);
+  }
   if (method === methods.statuses) {requestCounts.history++; return statusHistory;}
   if (method === methods.files) {requestCounts.files++; return [{filename: 'frontend/src/mlmd/Api.ts'}];}
   if (method === methods.pulls) {requestCounts.pulls++; return options.ambiguous ? [pr, {...pr, number: 8}] : [pr];}
@@ -229,7 +234,7 @@ jobs:
     requestCounts.runs++;
     if (options.missing) return [];
     const conclusion = published && options.drift === 'rerun' ? 'cancelled' : (options.conclusions?.[cycle] || options.conclusion || 'success');
-    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
+    return [{path: `.github/workflows/${workflowName}`, id: 42, run_attempt: published && options.drift === 'successful-rerun' ? 2 : 1, event: 'pull_request', head_sha: HEAD, head_branch: 'feature',
       head_repository: {full_name: 'contributor/pipelines'},
       status: options.runStatus || 'completed', conclusion: options.runStatus && options.runStatus !== 'completed' ? null : conclusion,
       created_at: options.fresh ? '2026-09-07T12:01:00Z' : '2026-09-07T11:00:00Z',
@@ -247,7 +252,7 @@ github.paginate.iterator = async function* () {
 };
 (async () => {
   let error;
-  const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
+  const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
   for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
   context.runId = 99 + cycle;
   for (const key of Object.keys(outputs)) delete outputs[key];
@@ -260,7 +265,7 @@ github.paginate.iterator = async function* () {
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   if (options.labelBeforeFinal) pr.labels.push({name: 'ci-passed'});
   if (options.recoverBeforeFinal) options.conclusion = 'success';
-  if (options.beforeFinalStatus) {status = options.beforeFinalStatus; description = 'Concurrent CI failure';}
+  if (options.beforeFinalStatus) {status = options.beforeFinalStatus; description = options.beforeFinalDescription || 'Concurrent CI failure'; statusTarget = options.beforeFinalTarget;}
   if (options.finishActiveBeforeFinal && cycle === 0) {
     if (options.discoveredRunsByCycle) options.discoveredRunsByCycle[cycle] = [];
     else options.discoveredRuns = [];
@@ -275,7 +280,7 @@ github.paginate.iterator = async function* () {
       pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
-  const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
+  const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
   console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels, requestCounts}));
 })().catch(e => {console.error(e); process.exit(1);});
 """

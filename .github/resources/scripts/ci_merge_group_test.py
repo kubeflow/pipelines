@@ -13,6 +13,7 @@
 
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -78,8 +79,10 @@ const fixture = {json.dumps(fixture)};
 const writes = [], requests = [], inventoryRequests = [], infos = [];
 const refCounts = new Map();
 let runCount = 0, triggerCount = 0;
+let queueCount = 0, prCount = 0;
 const github = {{
   rest: {{
+    pulls: {{get: async () => ({{data: fixture.queuePRs[Math.min(prCount++, fixture.queuePRs.length - 1)]}})}},
     git: {{getRef: async options => {{
       requests.push({{route: 'ref', options}});
       const count = refCounts.get(options.ref) || 0;
@@ -103,12 +106,33 @@ const github = {{
   }},
   paginate: async (route, options) => {{
     requests.push({{route, options}});
+    if (route.includes('/rules/branches/')) {{
+      if (fixture.rulesError) throw new Error('Rules API unavailable');
+      return fixture.rules || [{{type: 'merge_queue'}}];
+    }}
     if (route !== 'runs') throw new Error('Unexpected API route: ' + route);
     if (fixture.runsError) throw new Error('API unavailable');
     if (fixture.runSnapshots) {{
       return fixture.runSnapshots[Math.min(runCount++, fixture.runSnapshots.length - 1)];
     }}
     return fixture.runs;
+  }},
+  graphql: async query => {{
+    if (query.includes('query QueuePolicies')) {{
+      const repository = {{nameWithOwner: 'owner/repo'}};
+      for (const match of query.matchAll(/pr([0-9]+): pullRequest/g)) {{
+        const pr = fixture.queuePRs[Math.min(prCount++, fixture.queuePRs.length - 1)];
+        repository['pr' + match[1]] = {{id: pr.node_id, number: pr.number,
+          state: pr.state.toUpperCase(), isDraft: pr.draft, merged: pr.merged,
+          headRefOid: pr.head.sha, baseRefName: pr.base.ref,
+          baseRepository: {{nameWithOwner: pr.base.repo.full_name}},
+          author: {{__typename: pr.user.type, login: pr.user.login}},
+          labels: {{nodes: pr.labels, totalCount: pr.labels.length,
+            pageInfo: {{hasNextPage: false}}}}}};
+      }}
+      return {{repository}};
+    }}
+    return fixture.queues[Math.min(queueCount++, fixture.queues.length - 1)];
   }},
 }};
 const loadInventory = async options => {{
@@ -118,7 +142,8 @@ const loadInventory = async options => {{
 }};
 const core = {{info: value => infos.push(value), warning: value => infos.push(value),
   setOutput: () => {{}}, error: value => infos.push(value)}};
-gate.reconcile({{github, context: fixture.context, core, loadInventory, root: {json.dumps(str(ROOT))}}})
+gate.reconcile({{github, context: fixture.context, core, loadInventory,
+  root: fixture.policyRoot || {json.dumps(str(ROOT))}, group: fixture.group}})
   .then(result => console.log(JSON.stringify({{result, writes, requests, inventoryRequests, infos}})))
   .catch(error => console.log(JSON.stringify({{error: error.message, writes, requests, inventoryRequests, infos}})));
 """
@@ -156,8 +181,67 @@ class MergeGroupTest(unittest.TestCase):
             self.assertEqual(request['base']['repo']['full_name'], 'owner/repo')
         for request in result['requests']:
             if request['route'] == 'runs':
-                self.assertEqual(request['options']['event'], 'merge_group')
+                self.assertIn(
+                    request['options']['event'],
+                    ['merge_group', 'workflow_dispatch'],
+                )
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_dispatch_evidence_requires_enabled_queue_and_latest_attempt(self):
+        from merge_queue_admission_test import entry, pr, queue
+
+        dispatch = good_run(event='workflow_dispatch')
+        self.assertEqual(
+            reconcile(event=dispatch, runs=[dispatch])['writes'], []
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps({'version': 1, 'enabled_branches': ['master']})
+            )
+            options = dict(
+                policyRoot=directory,
+                event=dispatch,
+                queues=[queue([entry(headCommit={'oid': HEAD})])],
+                queuePRs=[pr()],
+            )
+            recovery = reconcile(
+                runs=[dispatch],
+                **dict(
+                    options,
+                    context={
+                        'eventName': 'workflow_run',
+                        'repo': {'owner': 'owner', 'repo': 'repo'},
+                        'runId': 123,
+                        'payload': {
+                            'workflow_run': good_run(event='pull_request')
+                        },
+                    },
+                ),
+                group={'head': HEAD, 'branch': BRANCH, 'baseRef': 'master'},
+            )
+            self.assertEqual(
+                recovery['writes'][-1]['state'], 'success', recovery
+            )
+            result = reconcile(runs=[dispatch], **options)
+            self.assertTrue(
+                result['writes'],
+                'Enabled dispatch must publish candidate status',
+            )
+            self.assertEqual(result['writes'][-1]['state'], 'success', result)
+            for later_event in ['merge_group', 'workflow_dispatch']:
+                newer = good_run(
+                    id=101,
+                    event=later_event,
+                    created_at='2026-11-01T12:01:00Z',
+                    run_started_at='2026-11-01T12:01:00Z',
+                    conclusion='failure',
+                )
+                result = reconcile(runs=[dispatch, newer], **options)
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'failure', result
+                )
 
     def test_triggering_rerun_cannot_reuse_stale_list_success(self):
         for status, conclusion in [
@@ -219,6 +303,72 @@ class MergeGroupTest(unittest.TestCase):
         result = reconcile(triggerError=True)
         self.assertIn('error', result)
         self.assert_not_successful(result)
+
+    def test_queue_policy_lookup_failure_invalidates_prior_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps({'version': 1, 'enabled_branches': ['master']})
+            )
+            for options in [{'rulesError': True}, {'rules': []}]:
+                with self.subTest(options=options):
+                    result = reconcile(policyRoot=directory, **options)
+                    self.assertIn('error', result)
+                    self.assertTrue(
+                        result['writes'], 'Prior success must be invalidated'
+                    )
+                    self.assert_not_successful(result)
+
+    def test_enabled_queue_policy_blocks_or_revokes_unapproved_candidates(self):
+        from merge_queue_admission_test import entry, pr, queue
+
+        for branch in ['master', 'main']:
+            with (
+                self.subTest(branch=branch),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                policy = Path(directory) / '.github/merge-queue-policy.json'
+                policy.parent.mkdir()
+                policy.write_text(
+                    json.dumps({'version': 1, 'enabled_branches': [branch]})
+                )
+                run = good_run(
+                    head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef'
+                )
+                member = entry(branch=branch, headCommit={'oid': HEAD})
+                eligible = pr(branch=branch)
+                held = pr(branch=branch, labels=[{'name': 'do-not-merge/hold'}])
+                options = dict(
+                    policyRoot=directory,
+                    event=run,
+                    runs=[run],
+                    lanes=[
+                        lane(
+                            pull_request={'branches': [branch]},
+                            merge_group={'branches': [branch]},
+                        )
+                    ],
+                    queues=[queue([member])],
+                )
+                result = reconcile(**options, queuePRs=[eligible])
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
+                for snapshots in [
+                    [held],
+                    [eligible, held],
+                    [eligible, eligible, held],
+                ]:
+                    result = reconcile(**options, queuePRs=snapshots)
+                    self.assertEqual(
+                        result['writes'][-1]['state'], 'failure', result
+                    )
+                changed = dict(options, queues=[queue([member]), queue([])])
+                result = reconcile(**changed, queuePRs=[eligible])
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'failure', result
+                )
 
     def test_each_queue_uses_its_own_base_policy_and_ref(self):
         for base in ['master', 'main']:
@@ -498,7 +648,12 @@ class MergeGroupTest(unittest.TestCase):
         self.assertEqual(job['concurrency']['cancel-in-progress'], 'false')
         self.assertEqual(
             job['permissions'],
-            {'actions': 'read', 'contents': 'read', 'statuses': 'write'},
+            {
+                'actions': 'read',
+                'contents': 'read',
+                'statuses': 'write',
+                'pull-requests': 'read',
+            },
         )
         checkouts = [
             step

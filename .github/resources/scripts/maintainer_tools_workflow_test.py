@@ -177,6 +177,8 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
 
     def test_checkouts_do_not_leave_git_credentials(self):
         for job in self.jobs.values():
+            if 'uses' in job:
+                continue  # Reusable guard has no source checkout.
             checkout = self.step_using(job, 'actions/checkout')
             self.assertIs(checkout['with']['persist-credentials'], False)
 

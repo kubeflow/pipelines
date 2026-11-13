@@ -25,6 +25,7 @@ from pathlib import Path
 
 import verify_migrated_specs
 import yaml
+from artifact_workflow_test_support import evaluate, render
 
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = ROOT / '.github/workflows/api-server-tests.yml'
@@ -46,7 +47,7 @@ def render_references(value, context):
     def substitute(match):
         expression = match.group(1).strip()
         if not re.fullmatch(r'[\w-]+(?:\.[\w-]+)+', expression):
-            raise AssertionError(f'Unsupported expression: {expression}')
+            return render(match.group(0), context)
         result = context
         for key in expression.split('.'):
             result = result.get(key, '') if isinstance(result, dict) else ''
@@ -68,21 +69,22 @@ class ApiMultiUserShardsTest(unittest.TestCase):
             'backend/test/constants/**', workflow['on']['pull_request']['paths']
         )
 
-    def matrix_rows(self, event):
+    def matrix_rows(self, event, ref='refs/heads/master'):
         matrix = self.job['strategy']['matrix']
         self.assertIn('test_shard', matrix)
-        # Match the two literal dispatch branches, without pretending to
-        # implement the GitHub Actions expression language.
-        branches = re.fullmatch(
-            r"\$\{\{ fromJSON\(github\.event_name == 'workflow_dispatch' && "
-            r"'([^']+)' \|\| '([^']+)'\) \}\}",
-            matrix['test_shard'],
+        expression = re.fullmatch(
+            r'\$\{\{ fromJSON\((.*)\) \}\}', matrix['test_shard']
         )
-        self.assertIsNotNone(branches)
+        self.assertIsNotNone(expression)
         shard_values = json.loads(
-            branches.group(1 if event == 'workflow_dispatch' else 2)
+            evaluate(
+                expression.group(1),
+                {'github': {'event_name': event, 'ref': ref}},
+            )
         )
-        if event == 'workflow_dispatch':
+        if event == 'workflow_dispatch' and not ref.startswith(
+            'refs/heads/gh-readonly-queue/'
+        ):
             self.assertEqual(shard_values, ['all'])
         axes = {
             key: shard_values if key == 'test_shard' else value
@@ -161,13 +163,13 @@ class ApiMultiUserShardsTest(unittest.TestCase):
                     ]
                     self.assertEqual(len(names), len(set(names)), names)
 
-    def configure(self, row, event, inputs):
+    def configure(self, row, event, inputs, ref='refs/heads/master'):
         step = next(
             step for step in self.job['steps'] if step.get('id') == 'configure'
         )
         context = {
             'matrix': row,
-            'github': {'event_name': event},
+            'github': {'event_name': event, 'ref': ref},
             'env': self.workflow['env'],
             'inputs': inputs,
         }
@@ -293,23 +295,62 @@ class ApiMultiUserShardsTest(unittest.TestCase):
             '${{ steps.configure.outputs.NAMESPACE }}',
         )
 
+    def test_queue_dispatch_retains_automatic_shards_and_filters(self):
+        inputs = {
+            'test_label': 'DO_NOT_APPLY',
+            'number_of_parallel_tests': '99',
+            'namespace': 'DO_NOT_APPLY',
+        }
+        for branch in ['master', 'main']:
+            ref = f'refs/heads/gh-readonly-queue/{branch}/pr-7-candidate'
+            self.assertEqual(
+                self.matrix_rows('workflow_dispatch', ref),
+                self.matrix_rows('pull_request'),
+            )
+            for row in self.matrix_rows('workflow_dispatch', ref):
+                self.assertEqual(
+                    self.configure(row, 'workflow_dispatch', inputs, ref),
+                    self.configure(row, 'pull_request', inputs),
+                )
+
     def test_fixture_and_schedule_ownership_remain_on_cached_b(self):
         steps = self.job['steps']
         run = next(step for step in steps if step.get('id') == 'test-run')
-        self.assertEqual(
-            run['with']['prepare_cache_fixtures'],
-            "${{ matrix.cache_enabled == 'true' && (github.event_name == "
-            "'workflow_dispatch' || matrix.test_shard == 'B') }}",
-        )
         schedule = next(
             step for step in steps if step.get('id') == 'schedule-account'
         )
-        self.assertEqual(
-            schedule['if'],
-            "${{ steps.deploy.outcome == 'success' && github.event_name != "
-            "'workflow_dispatch' && matrix.cache_enabled == 'true' && "
-            "matrix.test_shard == 'B' }}",
-        )
+        for event, ref in [
+            ('pull_request', 'refs/pull/7/merge'),
+            ('workflow_dispatch', 'refs/heads/master'),
+            (
+                'workflow_dispatch',
+                'refs/heads/gh-readonly-queue/master/pr-7-candidate',
+            ),
+        ]:
+            manual = (
+                event == 'workflow_dispatch' and 'gh-readonly-queue/' not in ref
+            )
+            for cache, shard, deployed in product(
+                ['true', 'false'],
+                ['A', 'B', 'C', 'all'],
+                ['success', 'failure'],
+            ):
+                context = {
+                    'github': {'event_name': event, 'ref': ref},
+                    'matrix': {'cache_enabled': cache, 'test_shard': shard},
+                    'steps': {'deploy': {'outcome': deployed}},
+                }
+                self.assertEqual(
+                    evaluate(run['with']['prepare_cache_fixtures'], context),
+                    cache == 'true' and (manual or shard == 'B'),
+                )
+                self.assertEqual(
+                    evaluate(schedule['if'], context),
+                    deployed == 'success'
+                    and not manual
+                    and cache == 'true'
+                    and shard == 'B',
+                )
         self.assertEqual(
             run['with']['required_service_account_specs'],
             "${{ steps.schedule-account.outcome == 'success' }}",

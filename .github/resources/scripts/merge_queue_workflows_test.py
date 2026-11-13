@@ -193,6 +193,8 @@ class MergeQueueWorkflowsTest(unittest.TestCase):
 
     def test_third_party_upgrades_compare_immutable_queue_base(self):
         for job in workflow('third-party-image-upgrades.yml')['jobs'].values():
+            if 'steps' not in job:
+                continue
             step = next(
                 step
                 for step in job['steps']
