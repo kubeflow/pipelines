@@ -43,12 +43,41 @@ func NormalizeLifecycleMessage(message string, state string) string {
 	if terminalSuccessStates[state] {
 		return ""
 	}
-	// Argo records "Error (exit code N)" for normal non-zero exits; these are user-script
-	// failures, not infrastructure lifecycle events.
-	if strings.HasPrefix(message, "Error (exit code ") {
+	if isUserScriptExit(message) {
 		return ""
 	}
 	return message
+}
+
+const (
+	userExitMessagePrefix = "Error (exit code "
+	// mainContainerName is the container that runs the user's code. Argo's own containers
+	// (wait, init) report through the same pod, so their failures are not user-script failures.
+	mainContainerName = "main"
+)
+
+// isUserScriptExit reports whether message is Argo's record of a non-zero exit from the user's
+// code: "Error (exit code N)", optionally prefixed with the container name and followed by its log
+// output, e.g. "main: Error (exit code 1): <logs>". Those are user-script failures, not
+// infrastructure lifecycle events. The same text from another container, such as
+// "wait: Error (exit code 1)" when the wait sidecar cannot write its task result, is a real
+// diagnostic and is kept.
+func isUserScriptExit(message string) bool {
+	container, rest := splitContainerPrefix(message)
+	if container != "" && container != mainContainerName {
+		return false
+	}
+	return strings.HasPrefix(rest, userExitMessagePrefix)
+}
+
+// splitContainerPrefix splits a leading "<container>: " off an Argo node message. It returns an
+// empty container name when the message has no such prefix.
+func splitContainerPrefix(message string) (container, rest string) {
+	name, after, ok := strings.Cut(message, ": ")
+	if !ok || name == "" || strings.ContainsAny(name, " \t\n") {
+		return "", message
+	}
+	return name, after
 }
 
 // ResolveNodeLifecycleMessages propagates executor-pod messages up to parent task nodes.

@@ -40,6 +40,13 @@ func TestNormalizeLifecycleMessage(t *testing.T) {
 		{"running node kept", "ImagePullBackOff", "Running", "ImagePullBackOff"},
 		{"user exit code 1 filtered", "Error (exit code 1)", "Failed", ""},
 		{"user exit code 137 filtered", "Error (exit code 137)", "Failed", ""},
+		{"user exit code with container prefix filtered", "main: Error (exit code 1)", "Failed", ""},
+		{"user exit code with container prefix and logs filtered", "main: Error (exit code 1): Traceback (most recent call last):\n  File \"x.py\", line 8", "Failed", ""},
+		{"oom with container prefix kept", "main: OOMKilled (exit code 137)", "Failed", "main: OOMKilled (exit code 137)"},
+		{"wait container exit kept", "wait: Error (exit code 1)", "Failed", "wait: Error (exit code 1)"},
+		{"wait container exit with detail kept", "wait: Error (exit code 1): workflowtaskresults.argoproj.io is forbidden", "Failed", "wait: Error (exit code 1): workflowtaskresults.argoproj.io is forbidden"},
+		{"init container exit kept", "init: Error (exit code 1)", "Failed", "init: Error (exit code 1)"},
+		{"image pull with reason prefix kept", "ImagePullBackOff: Back-off pulling image \"bad\"", "Pending", "ImagePullBackOff: Back-off pulling image \"bad\""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
