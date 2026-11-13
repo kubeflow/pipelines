@@ -87,6 +87,34 @@ const original = Object.assign(Error('secret-body'), {
         self.assertEqual(summary['rate_limits']['core']['observations'], 1)
         self.assertNotIn('secret', json.dumps(result))
 
+    def test_branch_refs_and_attempt_jobs_have_specific_categories(self):
+        result = self.exercise(r"""
+const {withRequestAccounting} = require(process.argv[1]);
+let hook;
+const summaries = [];
+const github = {hook: {wrap: (_, fn) => {hook = fn;}, remove: () => {}}};
+(async () => {
+ await withRequestAccounting({github, scope: 'finalize',
+  core: {info: line => summaries.push(JSON.parse(line))}}, async () => {
+  for (const url of [
+   '/repos/o/r/git/ref/heads/master',
+   '/repos/o/r/git/refs/heads/release-2.18',
+   '/repos/o/r/branches/master',
+   '/repos/o/r/actions/runs/42/jobs',
+   '/repos/o/r/actions/runs/42/attempts/2/jobs?page=1',
+   '/repos/o/r/actions/runs/42/attempts/2/jobs?page=2',
+   '/repos/o/r/actions/runs/42/attempts/2',
+  ]) await hook(async () => ({status: 200}), {method: 'GET', url});
+ });
+ process.stdout.write(JSON.stringify(summaries[0]));
+})();
+""")
+        self.assertEqual(result['requests'], 7)
+        self.assertEqual(
+            {item['category']: item['count'] for item in result['counts']},
+            {'branches': 3, 'run_jobs': 3, 'workflow_runs': 1},
+        )
+
     def test_transport_errors_and_logging_errors_preserve_original_error(self):
         result = self.exercise(r"""
 const {withRequestAccounting} = require(process.argv[1]);

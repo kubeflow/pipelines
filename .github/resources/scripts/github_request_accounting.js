@@ -23,7 +23,7 @@ function category(url) {
   if (path === '/graphql') return 'graphql';
   const repo = path.replace(/^\/repos\/[^/]+\/[^/]+/, '');
   if (/^\/actions\/(runs(?:\/[^/]+)?\/artifacts|artifacts)(?:\/|$)/.test(repo)) return 'artifacts';
-  if (/^\/actions\/runs\/[^/]+\/jobs(?:\/|$)/.test(repo)) return 'run_jobs';
+  if (/^\/actions\/runs\/[^/]+(?:\/attempts\/[^/]+)?\/jobs(?:\/|$)/.test(repo)) return 'run_jobs';
   if (/^\/actions\/(runs|workflows\/[^/]+\/runs)(?:\/|$)/.test(repo)) return 'workflow_runs';
   if (/^\/actions\/workflows(?:\/|$)/.test(repo)) return 'workflow_definitions';
   if (/^\/commits\/[^/]+\/check-runs$/.test(repo)) return 'check_runs';
@@ -33,7 +33,7 @@ function category(url) {
   if (/^\/issues\/[^/]+\/labels(?:\/|$)/.test(repo)) return 'issue_labels';
   if (/^\/issues\/[^/]+\/timeline$/.test(repo)) return 'issue_timeline';
   if (/^\/contents(?:\/|$)/.test(repo)) return 'contents';
-  if (/^\/(branches|git\/refs)(?:\/|$)/.test(repo)) return 'branches';
+  if (/^\/(branches|git\/refs?)(?:\/|$)/.test(repo)) return 'branches';
   return 'other';
 }
 
