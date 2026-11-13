@@ -254,6 +254,10 @@ func TestImportedArchiveOnlyLogs(t *testing.T) {
 				require.True(t, json.Valid([]byte(manifest)))
 				_, err := clients.DB().Exec(`UPDATE run_details SET ImportedFrom = ?, Namespace = ?, Name = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`, "source-installation", "tenant-a", name, manifest, run.UUID)
 				require.NoError(t, err)
+				// The legacy fixture also stores a namespace resource reference.
+				// Remove it so the persisted column defines this test's scope.
+				_, err = clients.DB().Exec(`DELETE FROM resource_references WHERE ResourceUUID = ? AND ReferenceType = ?`, run.UUID, model.NamespaceResourceType)
+				require.NoError(t, err)
 				if scenario == "empty namespace" {
 					priorNamespace := viper.Get(common.PodNamespace)
 					viper.Set(common.PodNamespace, "tenant-a")

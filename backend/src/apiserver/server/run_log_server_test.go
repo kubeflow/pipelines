@@ -263,6 +263,10 @@ func TestImportedLogContextUsesExactNamedPermission(t *testing.T) {
 			defer clients.Close()
 			_, err := clients.DB().Exec(`UPDATE run_details SET ImportedFrom = ?, Namespace = ?, Name = ? WHERE UUID = ?`, "submitted-source", scope.namespace, scope.name, run.UUID)
 			assert.NoError(t, err)
+			// Remove the fixture's legacy namespace reference so it cannot
+			// override the namespace column set for this permission case.
+			_, err = clients.DB().Exec(`DELETE FROM resource_references WHERE ResourceUUID = ? AND ReferenceType = ?`, run.UUID, model.NamespaceResourceType)
+			assert.NoError(t, err)
 			sar := &importedLogNamedSAR{}
 			clients.SubjectAccessReviewClientFake = sar
 			server := NewRunLogServer(resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false}))
