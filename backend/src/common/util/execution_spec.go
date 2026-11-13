@@ -113,6 +113,9 @@ type ExecutionSpec interface {
 	// whole data structure is replaced with new one
 	SetSpecParameters(newParams SpecParameters)
 
+	// SetSpecParameter sets one argument value while preserving other arguments.
+	SetSpecParameter(name, value string)
+
 	// Create an ExecutionSpec for retry, also return a list of
 	// failed pods in the existing ExecutionSpec
 	GenerateRetryExecution() (ExecutionSpec, []string, error)

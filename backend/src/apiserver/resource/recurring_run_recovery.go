@@ -27,6 +27,17 @@ import (
 // selected for this execution rather than resolving the schedule's latest again.
 func (r *ResourceManager) recurringRunReportPipelineSpec(job *model.Job, execution util.ExecutionSpec, runID string) (model.PipelineSpec, error) {
 	source := job.PipelineSpec
+	if !common.IsMultiUserMode() {
+		if _, apiCreated := execution.ExecutionObjectMeta().Annotations[recurringRunPipelineVersionAnnotation]; apiCreated {
+			config, err := recurringRunRuntimeConfigSnapshot(execution)
+			if err != nil {
+				return model.PipelineSpec{}, err
+			}
+			if config != nil {
+				source.RuntimeConfig = *config
+			}
+		}
+	}
 	// Inline schedules already retain their source in the authorized job.
 	if source.PipelineId == "" && source.PipelineVersionId == "" {
 		return source, nil
