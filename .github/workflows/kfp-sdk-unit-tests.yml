@@ -84,7 +84,7 @@ jobs:
         SETUP_ENV: false
         REPO_NAME: ${{ github.repository }}
         PULL_NUMBER: ${{ github.event.pull_request.number }}
-        TEST_SOURCE_REF: ${{ (github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha)) }}
+        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha) || '' }}
         JUNIT_XML: "sdk-unit.xml"
       run: |
         ./test/presubmit-tests-sdk-unit.sh

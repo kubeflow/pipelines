@@ -37,8 +37,8 @@ class ApiNativeShardsTest(unittest.TestCase):
             s for s in self.job['steps'] if s.get('id') == 'test-run'
         )
 
-    def matrix_rows(self, event):
-        return multi_user.ApiMultiUserShardsTest.matrix_rows(self, event)
+    def matrix_rows(self, event, ref='refs/heads/master'):
+        return multi_user.ApiMultiUserShardsTest.matrix_rows(self, event, ref)
 
     def test_all_native_configurations_keep_both_automatic_shards(self):
         configurations = list(
@@ -72,11 +72,11 @@ class ApiNativeShardsTest(unittest.TestCase):
                     self.assertEqual(row['pipeline_store'], 'kubernetes')
         self.assertFalse(self.job['strategy']['fail-fast'])
 
-    def configure(self, row, event):
+    def configure(self, row, event, ref='refs/heads/master'):
         step = next(s for s in self.job['steps'] if s.get('id') == 'configure')
         context = {
             'matrix': row,
-            'github': {'event_name': event},
+            'github': {'event_name': event, 'ref': ref},
             'env': self.workflow['env'],
             'inputs': {
                 'test_label': 'DO_NOT_APPLY',
@@ -138,6 +138,19 @@ class ApiNativeShardsTest(unittest.TestCase):
             '${{ env.NUMBER_OF_PARALLEL_NODES }}',
         )
         self.assertEqual(self.workflow['env']['NUMBER_OF_PARALLEL_NODES'], 5)
+
+    def test_queue_dispatch_retains_automatic_shards_and_filters(self):
+        for branch in ['master', 'main']:
+            ref = f'refs/heads/gh-readonly-queue/{branch}/pr-7-candidate'
+            self.assertEqual(
+                self.matrix_rows('workflow_dispatch', ref),
+                self.matrix_rows('pull_request'),
+            )
+            for row in self.matrix_rows('workflow_dispatch', ref):
+                self.assertEqual(
+                    self.configure(row, 'workflow_dispatch', ref),
+                    self.configure(row, 'pull_request'),
+                )
 
     def test_fixtures_and_required_migration_follow_the_complement(self):
         expected = "${{ matrix.test_shard != 'A' }}"

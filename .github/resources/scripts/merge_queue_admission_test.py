@@ -9,7 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Exercise queue admission and revocation against deterministic GitHub fixtures."""
+"""Exercise queue admission and revocation against deterministic GitHub
+fixtures."""
 
 import json
 import subprocess
