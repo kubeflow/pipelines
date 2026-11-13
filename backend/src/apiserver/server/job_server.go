@@ -63,7 +63,7 @@ var (
 		Help: "The total number of EnableJob requests",
 	})
 
-	// TODO(jingzhang36): error count and success count.
+	// Note: Request success and error counts per method are tracked via gRPC middleware metrics (grpc_server_handled_total). See api-server-metrics.md.
 
 	jobCount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "job_server_job_count",
