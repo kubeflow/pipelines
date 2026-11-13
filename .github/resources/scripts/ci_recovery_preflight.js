@@ -57,7 +57,10 @@ function recoveryPreflight({github, context, root}) {
     return bases.get(key);
   }
   return async (pr, status, queueAdmission) => {
-    if (!['failure', 'pending'].includes(status?.state)) return false;
+    // Pending heads need full reconciliation for registration deadlines and
+    // failures in path-filtered lanes or external checks. Only an existing
+    // failure can remain untouched when a required blocker is still present.
+    if (status?.state !== 'failure') return false;
     // A prior status write may have succeeded before label removal failed.
     // Preserve full reconciliation so an informational green cannot linger.
     if (pr.labels?.some(label => label.name === 'ci-passed')) return false;
@@ -78,13 +81,7 @@ function recoveryPreflight({github, context, root}) {
         const matching = runs.filter(run => run.path === path);
         if (matching.length > 1) return false;
         const run = matching[0];
-        // Keep the pending-to-failure registration deadline and failed-run
-        // transitions in the full publisher. Only existing failures can stay
-        // failed cheaply on missing or unsuccessful required lanes.
-        if (!run || run.conclusion !== 'success') {
-          if (status.state === 'failure') return true;
-          return false;
-        }
+        if (!run || run.conclusion !== 'success') return true;
         if (arrivedAt !== null && Date.parse(run.created_at) <= arrivedAt) stale = true;
       }
       return stale;

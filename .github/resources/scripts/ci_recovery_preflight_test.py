@@ -62,7 +62,10 @@ const github={rest:{pulls:{list:listPulls,get:async()=>{counts.merged++;return {
  return {repository:{nameWithOwner:'o/r',object:{__typename:'Tree',entries:[{name:'required.yml',type:'blob',mode:33188,
   object:{__typename:'Blob',text:content,byteSize:Buffer.byteLength(content),isBinary:false,isTruncated:false}},
   ...(options.secondLane ? [{name:'another.yml',type:'blob',mode:33188,object:{__typename:'Blob',
-    text:content,byteSize:Buffer.byteLength(content),isBinary:false,isTruncated:false}}]:[])]}}};
+    text:content,byteSize:Buffer.byteLength(content),isBinary:false,isTruncated:false}}]:[]),
+  ...(options.filteredLane ? (()=>{const filtered=content.replace('jobs:', '    paths: [sdk/**]\njobs:');
+    return [{name:'sdk.yml',type:'blob',mode:33188,object:{__typename:'Blob',text:filtered,
+      byteSize:Buffer.byteLength(filtered),isBinary:false,isTruncated:false}}];})():[])]}}};
 }};
 recoveryCandidates({github,context:{repo:{owner:'o',repo:'r'},runId:99},root:process.argv[3]})
  .then(candidates=>console.log(JSON.stringify({candidates,counts})))
@@ -98,13 +101,24 @@ class RecoveryPreflightTest(unittest.TestCase):
     def test_missing_pending_lane_still_reconciles_registration_deadline(self):
         self.assertEqual(len(exercise({'status': 'PENDING'})['candidates']), 1)
 
-    def test_stale_required_lane_keeps_non_green_pending(self):
-        for status in ('FAILURE', 'PENDING'):
-            with self.subTest(status=status):
-                self.assertEqual(
-                    exercise({'kind': 'stale', 'status': status})['candidates'],
-                    [],
-                )
+    def test_stale_pending_lane_keeps_filtered_registration_deadline(self):
+        # sdk.yml is required for SDK changes but is absent from the run list.
+        # A stale unconditional lane cannot suppress its registration deadline.
+        result = exercise(
+            {'kind': 'stale', 'status': 'PENDING', 'filteredLane': True}
+        )
+        self.assertEqual(len(result['candidates']), 1)
+        self.assertEqual(result['counts']['runs'], 0)
+
+    def test_stale_required_lane_keeps_existing_failure(self):
+        self.assertEqual(exercise({'kind': 'stale'})['candidates'], [])
+
+    def test_pending_heads_always_receive_full_reconciliation(self):
+        for kind in ('missing', 'stale', 'failed', 'fresh', 'active'):
+            with self.subTest(kind=kind):
+                result = exercise({'kind': kind, 'status': 'PENDING'})
+                self.assertEqual(len(result['candidates']), 1)
+                self.assertEqual(result['counts']['runs'], 0)
 
     def test_failed_required_lane_does_not_spawn_full_assessment(self):
         self.assertEqual(exercise({'kind': 'failed'})['candidates'], [])
