@@ -30,6 +30,9 @@ func cloneTransfer(t *testing.T, b *NamespaceBundle) *NamespaceBundle {
 func namespaceFixture(t *testing.T, source *gorm.DB) *NamespaceBundle {
 	t.Helper()
 	fixture(t, source)
+	const runtimeManifest = `{"apiVersion":"argoproj.io/v1alpha1","kind":"Workflow","metadata":{"name":"old-workflow","namespace":"team","labels":{"pipeline/runid":"run"}},"status":{"phase":"Succeeded","nodes":{"old-workflow-123":{"id":"old-workflow-123","name":"old-workflow.task","type":"Pod","phase":"Succeeded","outputs":{"artifacts":[{"name":"main-logs","s3":{"bucket":"logs","key":"private-artifacts/team/old-workflow/2026/11/12/old-workflow-123/main.log"}}]}}}}}`
+	require.True(t, json.Valid([]byte(runtimeManifest)))
+	require.NoError(t, source.Model(&model.Run{}).Where(clause.Eq{Column: "UUID", Value: "run"}).Update("WorkflowRuntimeManifest", runtimeManifest).Error)
 	require.NoError(t, source.Model(&model.Task{}).Where(clause.Eq{Column: "UUID", Value: "a-child"}).Update("LogicalKey", "source-logical-key").Error)
 	create(t, source, &model.Experiment{UUID: "empty", Name: "empty", Namespace: "team"})
 	create(t, source, &model.PipelineVersion{UUID: "unused", Name: "unused", PipelineId: "pipeline", PipelineSpec: `{"pipelineInfo":{"name":"unused"}}`})
@@ -83,6 +86,9 @@ func exerciseNamespaceTransfer(t *testing.T, source, dest *gorm.DB) {
 	require.NoError(t, dest.Take(&run).Error)
 	require.NotEqual(t, "run", run.UUID)
 	require.Equal(t, b.Source, run.ImportedFrom)
+	require.Equal(t, b.Entries[0].Run.Namespace, run.Namespace)
+	require.Equal(t, b.Entries[0].Run.K8SName, run.K8SName)
+	require.Equal(t, b.Entries[0].Run.WorkflowRuntimeManifest, run.WorkflowRuntimeManifest)
 	var links []model.ArtifactTask
 	require.NoError(t, dest.Find(&links).Error)
 	require.Len(t, links, 1)

@@ -38,7 +38,10 @@ const options = {
   accessKey: 'synthetic',
   secretKey: 'synthetic',
 };
-const reader = (containerName = 'main') =>
+const reader = (
+  containerName = 'main',
+  nativeStandaloneReader?: (req: Request) => Promise<PassThrough>,
+) =>
   createAuthorizedPodLogsReader(
     'http://api.example',
     'apis/v2',
@@ -61,6 +64,7 @@ const reader = (containerName = 'main') =>
       },
     },
     containerName,
+    nativeStandaloneReader,
   );
 const request = () =>
   ({
@@ -82,6 +86,126 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('authorized pod logs', () => {
+  it('retains native standalone readers only after an explicit matching native context', async () => {
+    api.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        runId: 'run-a',
+        namespace: '',
+        workflowName: '',
+        archiveOnly: false,
+      }),
+    });
+    const native = new PassThrough();
+    native.end('NATIVE_STANDALONE_LOG');
+    const fallback = vi.fn().mockResolvedValue(native);
+    const req = request();
+    const stream = await reader('main', fallback)(req);
+    let content = '';
+    for await (const chunk of stream) content += chunk.toString();
+    expect(content).toBe('NATIVE_STANDALONE_LOG');
+    expect(fallback).toHaveBeenCalledWith(req);
+    expect(api).toHaveBeenCalled();
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getObjectStream).not.toHaveBeenCalled();
+  });
+
+  it('reads standalone imported archives without invoking the native callback', async () => {
+    api.mockResolvedValue({ ok: true, json: async () => ({ ...context, archiveOnly: true }) });
+    const fallback = vi.fn();
+    const stream = await reader('main', fallback)(request());
+    let content = '';
+    for await (const chunk of stream) content += chunk.toString();
+    expect(content).toBe('SYNTHETIC_HISTORICAL_LOG\n');
+    expect(fallback).not.toHaveBeenCalled();
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getAuthorizedPodLogs).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { ...context },
+    { ...context, runId: 'different-run', archiveOnly: false },
+    { ...context, archiveOnly: 'false' },
+  ])('does not restore standalone fallback for an invalid context %j', async (body) => {
+    api.mockResolvedValue({ ok: true, json: async () => body });
+    const fallback = vi.fn();
+    await expect(reader('main', fallback)(request())).rejects.toThrow();
+    expect(fallback).not.toHaveBeenCalled();
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getObjectStream).not.toHaveBeenCalled();
+  });
+
+  it('does not restore standalone fallback after API authorization failure', async () => {
+    api.mockResolvedValue({ ok: false, status: 403 });
+    const fallback = vi.fn();
+    await expect(reader('main', fallback)(request())).rejects.toMatchObject({ statusCode: 403 });
+    expect(fallback).not.toHaveBeenCalled();
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getObjectStream).not.toHaveBeenCalled();
+  });
+
+  it('reads imported archives without touching a colliding live Pod', async () => {
+    api.mockResolvedValue({ ok: true, json: async () => ({ ...context, archiveOnly: true }) });
+    vi.mocked(getPodForLogAuthorization).mockResolvedValue({
+      metadata: {
+        namespace: 'team-a',
+        labels: { 'pipeline/runid': 'run-a' },
+      },
+    });
+    vi.mocked(getAuthorizedPodLogs).mockResolvedValue('UNRELATED_LIVE_POD_LOG');
+    const stream = await reader()(request());
+    let content = '';
+    for await (const chunk of stream) content += chunk.toString();
+    expect(content).toBe('SYNTHETIC_HISTORICAL_LOG\n');
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getAuthorizedPodLogs).not.toHaveBeenCalled();
+    expect(getObjectStream).toHaveBeenCalledWith(
+      expect.objectContaining({ key: context.archiveKey }),
+    );
+  });
+
+  it.each([
+    { archiveKey: context.archiveKey.replace('/team-a/', '/team-b/') },
+    { archiveKey: context.archiveKey.replace('/workflow-a/', '/workflow-b/') },
+    { archiveBucket: 'foreign-bucket' },
+    { archiveEndpoint: 'foreign.example:9000', archiveInsecure: true },
+    { namespace: '' },
+    { workflowName: '' },
+  ])('denies imported storage or identity mismatch %j before any I/O', async (override) => {
+    api.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...context, archiveOnly: true, ...override }),
+    });
+    await expect(reader()(request())).rejects.toMatchObject({ statusCode: 403 });
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getAuthorizedPodLogs).not.toHaveBeenCalled();
+    expect(createS3ArtifactStore).not.toHaveBeenCalled();
+    expect(getObjectStream).not.toHaveBeenCalled();
+  });
+
+  it.each(['true', 1, null, {}])('rejects invalid archiveOnly flag %j', async (archiveOnly) => {
+    api.mockResolvedValue({ ok: true, json: async () => ({ ...context, archiveOnly }) });
+    await expect(reader()(request())).rejects.toMatchObject({ statusCode: 502 });
+    expect(getPodForLogAuthorization).not.toHaveBeenCalled();
+    expect(getObjectStream).not.toHaveBeenCalled();
+  });
+
+  it('retains live behavior for an explicit false archiveOnly flag', async () => {
+    api.mockResolvedValue({ ok: true, json: async () => ({ ...context, archiveOnly: false }) });
+    vi.mocked(getPodForLogAuthorization).mockResolvedValue({
+      metadata: {
+        namespace: 'team-a',
+        labels: { 'pipeline/runid': 'run-a' },
+      },
+    });
+    vi.mocked(getAuthorizedPodLogs).mockResolvedValue('NATIVE_LIVE_LOG');
+    const stream = await reader()(request());
+    let content = '';
+    for await (const chunk of stream) content += chunk.toString();
+    expect(content).toBe('NATIVE_LIVE_LOG');
+    expect(getObjectStream).not.toHaveBeenCalled();
+  });
+
   it('authorizes historical logs with original credentials and operator store configuration', async () => {
     const stream = await reader()(request());
     let content = '';

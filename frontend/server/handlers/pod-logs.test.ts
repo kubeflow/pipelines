@@ -91,6 +91,15 @@ describe('getPodLogsHandler stream failures', () => {
     logs.destroy();
   });
 
+  it('requires API context for standalone run-specific requests instead of falling back', async () => {
+    const req = makeRequest();
+    req.query.runid = 'imported-run';
+    const response = makeResponse();
+    await makeHandler(false)(req, response, vi.fn());
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(getPodLogsStream).not.toHaveBeenCalled();
+  });
+
   it('serves pod logs as a plain-text attachment with MIME sniffing disabled', async () => {
     const logs = new PassThrough();
     getPodLogsStream.mockResolvedValue(logs);

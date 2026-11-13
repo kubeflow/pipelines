@@ -75,7 +75,7 @@ func TestArchiveNativeContextValidation(t *testing.T) {
 		imported, allowed         bool
 	}{
 		{"native", "tenant-a", "workflow-a", false, true},
-		{"imported", "tenant-a", "workflow-a", true, false},
+		{"imported", "tenant-a", "workflow-a", true, true},
 		{"invalid namespace", "tenant/a", "workflow-a", false, false},
 		{"missing workflow", "tenant-a", "", false, false},
 		{"invalid workflow", "tenant-a", "../workflow", false, false},
@@ -88,7 +88,7 @@ func TestArchiveNativeContextValidation(t *testing.T) {
 			identity, err := manager.runLogArchiveContext(run)
 			if tc.allowed {
 				require.NoError(t, err)
-				require.Equal(t, &RunLogArchiveContext{RunID: "run-a", Namespace: "tenant-a", WorkflowName: "workflow-a"}, identity)
+				require.Equal(t, &RunLogArchiveContext{RunID: "run-a", Namespace: "tenant-a", WorkflowName: "workflow-a", ArchiveOnly: tc.imported}, identity)
 			} else {
 				require.Error(t, err)
 			}
@@ -226,4 +226,85 @@ func TestArchiveContextResolvesLegacyNamespace(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Imported runs retain their original storage scope but have no local execution.
+func TestImportedArchiveOnlyLogs(t *testing.T) {
+	for _, multiUser := range []bool{false, true} {
+		for _, scenario := range []string{"standard", "foreign namespace", "foreign workflow", "missing workflow", "empty namespace", "unconfigured"} {
+			t.Run(fmt.Sprintf("multiUser=%v/%s", multiUser, scenario), func(t *testing.T) {
+				clients, manager, run := initWithOneTimeRun(t)
+				defer clients.Close()
+				previous := viper.Get(common.MultiUserMode)
+				viper.Set(common.MultiUserMode, multiUser)
+				t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+				t.Setenv("KFP_LOG_ARCHIVE_KEY_FORMAT", "")
+				key := "private-artifacts/tenant-a/workflow-a/2026/11/12/pod-a/main.log"
+				name := "workflow-a"
+				switch scenario {
+				case "foreign namespace":
+					key = strings.Replace(key, "tenant-a", "tenant-b", 1)
+				case "foreign workflow":
+					key = strings.Replace(key, "workflow-a", "workflow-b", 1)
+				case "missing workflow":
+					name = ""
+				}
+				manifest := fmt.Sprintf(`{"metadata":{"name":"untrusted-name","namespace":"untrusted-namespace"},"status":{"nodes":{"pod-a":{"outputs":{"artifacts":[{"name":"main-logs","s3":{"key":%q}}]}}}}}`, key)
+				require.True(t, json.Valid([]byte(manifest)))
+				_, err := clients.DB().Exec(`UPDATE run_details SET ImportedFrom = ?, Namespace = ?, Name = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`, "source-installation", "tenant-a", name, manifest, run.UUID)
+				require.NoError(t, err)
+				if scenario == "empty namespace" {
+					priorNamespace := viper.Get(common.PodNamespace)
+					viper.Set(common.PodNamespace, "tenant-a")
+					t.Cleanup(func() { viper.Set(common.PodNamespace, priorNamespace) })
+					_, err = clients.DB().Exec(`UPDATE run_details SET Namespace = '' WHERE UUID = ?`, run.UUID)
+					require.NoError(t, err)
+					_, err = clients.DB().Exec(`UPDATE experiments SET Namespace = '' WHERE UUID = ?`, run.ExperimentId)
+					require.NoError(t, err)
+					_, err = clients.DB().Exec(`DELETE FROM resource_references WHERE (ResourceUUID = ? OR ResourceUUID = ?) AND ReferenceType = ?`, run.UUID, run.ExperimentId, model.NamespaceResourceType)
+					require.NoError(t, err)
+				}
+				// A local Pod collision cannot be consulted, even with follow=true.
+				manager.k8sCoreClient = nil
+				manager.execClient = nil
+				manager.logArchive = archive.NewLogArchive("/logs", "main.log")
+				if scenario == "unconfigured" {
+					manager.logArchive = nil
+				}
+				objects := &readerOnlyObjectStore{files: map[string][]byte{key: []byte("IMPORTED_SHARED_STORAGE_LOG\n")}}
+				manager.objectStore = objects
+				var dst bytes.Buffer
+				err = manager.ReadLog(context.Background(), run.UUID, "pod-a", true, &dst)
+				if scenario == "standard" || (scenario == "empty namespace" && !multiUser) {
+					require.NoError(t, err)
+					require.Equal(t, "IMPORTED_SHARED_STORAGE_LOG\n", dst.String())
+					require.Equal(t, []string{key}, objects.getFileReaderPaths)
+					scope, err := manager.GetRunLogArchiveContext(run.UUID, "pod-a")
+					require.NoError(t, err)
+					require.True(t, scope.ArchiveOnly)
+					require.Equal(t, "workflow-a", scope.WorkflowName)
+				} else {
+					require.Error(t, err)
+					require.Empty(t, dst.String())
+					require.Empty(t, objects.getFileReaderPaths)
+				}
+			})
+		}
+	}
+}
+
+func TestStandaloneNativeLogContextRetainsLegacyReader(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, false)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	_, err := clients.DB().Exec(`UPDATE run_details SET Namespace = '', Name = '' WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+	manager.k8sCoreClient = nil
+	scope, err := manager.GetRunLogArchiveContext(run.UUID, "pod-a")
+	require.NoError(t, err)
+	require.False(t, scope.ArchiveOnly)
+	require.Equal(t, run.UUID, scope.RunID)
+	require.Empty(t, scope.WorkflowName)
 }

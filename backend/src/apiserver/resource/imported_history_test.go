@@ -159,7 +159,6 @@ func TestImportedHistoryLogsRejectLocalArchive(t *testing.T) {
 			err := manager.ReadLog(context.Background(), store.run.UUID, "node-id", true, &dst)
 			require.Error(t, err)
 			assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
-			assert.Contains(t, err.Error(), "separately authorized")
 			assert.Empty(t, dst.String())
 			assert.Empty(t, objects.getFileReaderPaths)
 		})

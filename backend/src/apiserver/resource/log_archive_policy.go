@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -26,12 +27,14 @@ import (
 
 const defaultLogArchiveKeyFormat = "private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
 
-// RunLogArchiveContext contains native database identity and untrusted archive hints.
+// RunLogArchiveContext contains authorized run scope and untrusted archive hints.
 // Callers must authorize readLog before exposing or using this context.
 type RunLogArchiveContext struct {
 	RunID        string `json:"runId"`
 	Namespace    string `json:"namespace"`
 	WorkflowName string `json:"workflowName"`
+	// Imported history must never select live resources in the destination cluster.
+	ArchiveOnly bool `json:"archiveOnly"`
 	// These optional hints come from historical status and are NOT authorized
 	// storage locations. Consumers must apply their operator-owned storage policy.
 	ArchiveKey                string `json:"archiveKey,omitempty"`
@@ -41,12 +44,17 @@ type RunLogArchiveContext struct {
 	WorkflowCreationTimestamp string `json:"workflowCreationTimestamp,omitempty"`
 }
 
-// GetRunLogArchiveContext resolves native run scope and optional archive hints.
+// GetRunLogArchiveContext resolves persisted run scope and optional archive hints.
 // The caller must authorize readLog for runID before using the result.
 func (r *ResourceManager) GetRunLogArchiveContext(runID, nodeID string) (*RunLogArchiveContext, error) {
 	run, err := r.GetRun(runID)
 	if err != nil {
 		return nil, err
+	}
+	// Standalone native requests keep the existing direct reader. Only the
+	// explicit provenance flag is needed; legacy rows can lack a namespace.
+	if !common.IsMultiUserMode() && run.ImportedFrom == "" {
+		return &RunLogArchiveContext{RunID: run.UUID, Namespace: run.Namespace, WorkflowName: run.K8SName}, nil
 	}
 	identity, err := r.runLogArchiveContext(run)
 	if err != nil {
@@ -60,9 +68,6 @@ func (r *ResourceManager) GetRunLogArchiveContext(runID, nodeID string) (*RunLog
 }
 
 func (r *ResourceManager) runLogArchiveContext(run *model.Run) (*RunLogArchiveContext, error) {
-	if run.ImportedFrom != "" {
-		return nil, util.NewFailedPreconditionError(fmt.Errorf("imported history has no local archive binding"), "Use a separately authorized logging or storage system for imported run logs")
-	}
 	namespace := run.Namespace
 	if r.IsEmptyNamespace(namespace) {
 		var err error
@@ -71,17 +76,23 @@ func (r *ResourceManager) runLogArchiveContext(run *model.Run) (*RunLogArchiveCo
 			return nil, err
 		}
 	}
-	if len(kvalidation.IsDNS1123Label(namespace)) != 0 || len(kvalidation.IsDNS1123Subdomain(run.K8SName)) != 0 {
-		return nil, util.NewFailedPreconditionError(fmt.Errorf("native run namespace or workflow name is missing or invalid"), "Archived logs require a valid persisted namespace and workflow name")
+	// Standalone transfer requires the source runtime namespace to match the
+	// destination configuration. Legacy standalone rows can store an empty
+	// logical namespace; use that operator-owned runtime scope, never metadata.
+	if r.IsEmptyNamespace(namespace) && !common.IsMultiUserMode() {
+		namespace = common.GetPodNamespace()
 	}
-	return &RunLogArchiveContext{RunID: run.UUID, Namespace: namespace, WorkflowName: run.K8SName}, nil
+	if len(kvalidation.IsDNS1123Label(namespace)) != 0 || len(kvalidation.IsDNS1123Subdomain(run.K8SName)) != 0 {
+		return nil, util.NewFailedPreconditionError(fmt.Errorf("run namespace or workflow name is missing or invalid"), "Archived logs require a valid persisted namespace and workflow name")
+	}
+	return &RunLogArchiveContext{RunID: run.UUID, Namespace: namespace, WorkflowName: run.K8SName, ArchiveOnly: run.ImportedFrom != ""}, nil
 }
 
 // authorizeArchiveKey interprets only an operator-owned format. Tenant history
 // nominates a key, but cannot expand the namespace/name scope authorized by SAR.
 func authorizeArchiveKey(key, pod string, identity *RunLogArchiveContext) error {
 	deny := func() error {
-		return util.NewFailedPreconditionError(fmt.Errorf("archive key is outside the configured native run scope"), "Archived log location is not authorized for this run")
+		return util.NewFailedPreconditionError(fmt.Errorf("archive key is outside the configured run scope"), "Archived log location is not authorized for this run")
 	}
 	if identity == nil || len(kvalidation.IsDNS1123Label(identity.Namespace)) != 0 || len(kvalidation.IsDNS1123Subdomain(identity.WorkflowName)) != 0 || len(kvalidation.IsDNS1123Subdomain(pod)) != 0 {
 		return deny()

@@ -93,13 +93,21 @@ export function getPodLogsHandler(
   );
 
   const authorizedReader =
-    authEnabled && apiServerAddress && apiPrefix
+    apiServerAddress && apiPrefix
       ? createAuthorizedPodLogsReader(
           apiServerAddress,
           apiPrefix,
           argoOptions,
           artifactsOptions,
           podLogContainerName,
+          authEnabled
+            ? undefined
+            : (req) =>
+                getPodLogsStream(
+                  decodeURIComponent(req.query.podname as string),
+                  decodeURIComponent((req.query.createdat as string) || ''),
+                  decodeURIComponent((req.query.podnamespace as string) || '') || undefined,
+                ),
         )
       : undefined;
 
@@ -112,19 +120,22 @@ export function getPodLogsHandler(
       res.status(400).send('podname argument is required');
       return;
     }
-    const podName = authEnabled
+    const requiresContext = authEnabled || req.query.runid !== undefined;
+    const podName = requiresContext
       ? String(req.query.podname)
       : decodeURIComponent(req.query.podname as string);
-    const createdAt = authEnabled ? '' : decodeURIComponent((req.query.createdat as string) || '');
+    const createdAt = requiresContext
+      ? ''
+      : decodeURIComponent((req.query.createdat as string) || '');
 
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
-    const podNamespace = authEnabled
+    const podNamespace = requiresContext
       ? undefined
       : decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
 
     // Check access to namespace if podNamespace is provided
-    if (!authEnabled && podNamespace) {
+    if (!requiresContext && podNamespace) {
       try {
         const authError = await authorizeFn(
           {
@@ -146,12 +157,13 @@ export function getPodLogsHandler(
     }
 
     try {
-      if (authEnabled && !authorizedReader) {
+      if (requiresContext && !authorizedReader) {
         throw new PodLogAccessError(503, 'Run log authorization is not configured');
       }
-      const stream = authorizedReader
-        ? await authorizedReader(req)
-        : await getPodLogsStream(podName, createdAt, podNamespace);
+      const stream =
+        requiresContext && authorizedReader
+          ? await authorizedReader(req)
+          : await getPodLogsStream(podName, createdAt, podNamespace);
       if (res.destroyed || res.writableEnded) {
         stream.destroy();
         return;

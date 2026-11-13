@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +33,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -286,13 +288,15 @@ func TestRunLogArchiveContextAuthorized(t *testing.T) {
 	assert.Equal(t, run.UUID, identity.RunID)
 	assert.Equal(t, run.Namespace, identity.Namespace)
 	assert.Equal(t, run.K8SName, identity.WorkflowName)
-	// Imported histories must not produce a local archive authorization context.
+	// Imported histories receive the same authorized scope, but archive-only access.
 	_, err := clients.DB().Exec("UPDATE run_details SET ImportedFrom = ? WHERE UUID = ?", "foreign-installation", run.UUID)
 	assert.NoError(t, err)
 	response = httptest.NewRecorder()
 	server.ReadRunLog(response, req)
-	assert.Equal(t, http.StatusForbidden, response.Code)
-	assert.NotContains(t, response.Body.String(), "workflowName")
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.NoError(t, json.Unmarshal(response.Body.Bytes(), &identity))
+	assert.True(t, identity.ArchiveOnly)
+	assert.Equal(t, run.K8SName, identity.WorkflowName)
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	server = NewRunLogServer(resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false}))
 	response = httptest.NewRecorder()
@@ -300,4 +304,59 @@ func TestRunLogArchiveContextAuthorized(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, response.Code)
 	assert.NotContains(t, response.Body.String(), "workflowName")
 	assert.Contains(t, response.Body.String(), "Failed to authorize the request")
+}
+
+type importedLogNamedSAR struct {
+	requests []*authzv1.ResourceAttributes
+}
+
+func (s *importedLogNamedSAR) Create(_ context.Context, request *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	attributes := request.Spec.ResourceAttributes
+	s.requests = append(s.requests, attributes)
+	allowed := attributes != nil && attributes.Namespace == "tenant-a" && attributes.Name == "allowed-workflow" && attributes.Resource == "runs" && attributes.Verb == common.RbacResourceVerbReadLog
+	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{Allowed: allowed}}, nil
+}
+
+func TestImportedLogContextUsesExactNamedPermission(t *testing.T) {
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	for _, scope := range []struct {
+		namespace, name string
+		allowed         bool
+	}{
+		{"tenant-a", "allowed-workflow", true},
+		{"tenant-a", "other-workflow", false},
+		{"tenant-b", "allowed-workflow", false},
+	} {
+		t.Run(scope.namespace+"/"+scope.name, func(t *testing.T) {
+			clients, _, run := initWithOneTimeRun(t)
+			defer clients.Close()
+			_, err := clients.DB().Exec(`UPDATE run_details SET ImportedFrom = ?, Namespace = ?, Name = ? WHERE UUID = ?`, "submitted-source", scope.namespace, scope.name, run.UUID)
+			assert.NoError(t, err)
+			sar := &importedLogNamedSAR{}
+			clients.SubjectAccessReviewClientFake = sar
+			server := NewRunLogServer(resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false}))
+			req := httptest.NewRequest("GET", "/log?archive_context=true", nil)
+			req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
+			req = mux.SetURLVars(req, map[string]string{RunKey: run.UUID, NodeKey: "pod-a"})
+			response := httptest.NewRecorder()
+			server.ReadRunLog(response, req)
+			if scope.allowed {
+				assert.Equal(t, http.StatusOK, response.Code)
+				var result resource.RunLogArchiveContext
+				assert.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+				assert.True(t, result.ArchiveOnly)
+				assert.Equal(t, scope.namespace, result.Namespace)
+				assert.Equal(t, scope.name, result.WorkflowName)
+			} else {
+				assert.Equal(t, http.StatusForbidden, response.Code)
+				assert.NotContains(t, response.Body.String(), "archiveOnly")
+			}
+			if assert.Len(t, sar.requests, 1) {
+				assert.Equal(t, scope.namespace, sar.requests[0].Namespace)
+				assert.Equal(t, scope.name, sar.requests[0].Name)
+			}
+		})
+	}
 }

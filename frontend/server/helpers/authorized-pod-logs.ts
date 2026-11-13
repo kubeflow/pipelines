@@ -10,7 +10,7 @@
 // limitations under the License.
 
 import type { Request } from 'express';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import type { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
 import { getAuthorizedPodLogs, getPodForLogAuthorization } from '../k8s-helper.js';
 import {
@@ -26,6 +26,7 @@ import {
 } from './log-archive-policy.js';
 
 interface ArchiveContext extends LogArchiveContext {
+  archiveOnly?: boolean;
   archiveKey?: string;
   archiveBucket?: string;
   archiveEndpoint?: string;
@@ -59,6 +60,7 @@ export function createAuthorizedPodLogsReader(
   argo: ArgoConfigs,
   artifacts: { minio: MinioConfigs; aws: AWSConfigs },
   containerName = 'main',
+  nativeStandaloneReader?: (req: Request) => Promise<Readable>,
 ) {
   return async (req: Request) => {
     const runId = req.query.runid;
@@ -108,37 +110,52 @@ export function createAuthorizedPodLogsReader(
     if (
       typeof context.runId !== 'string' ||
       typeof context.namespace !== 'string' ||
-      typeof context.workflowName !== 'string'
+      typeof context.workflowName !== 'string' ||
+      (context.archiveOnly !== undefined && typeof context.archiveOnly !== 'boolean')
     ) {
       throw new PodLogAccessError(502, 'Invalid run log context response');
+    }
+    if (context.runId !== runId) {
+      throw new PodLogAccessError(403, 'Run log context does not match the requested run');
+    }
+    if (nativeStandaloneReader) {
+      if (context.archiveOnly === false) return nativeStandaloneReader(req);
+      if (context.archiveOnly !== true) {
+        throw new PodLogAccessError(
+          502,
+          'Run log context must identify native or imported history',
+        );
+      }
     }
     const identityProbe = `private-artifacts/${context.namespace}/${context.workflowName}/2000/01/01/${podName}/main.log`;
     if (
       context.runId !== runId ||
       !validateLogArchiveKey(identityProbe, podName, context, DEFAULT_LOG_ARCHIVE_KEY_FORMAT)
     ) {
-      throw new PodLogAccessError(403, 'Run log context is missing a valid native identity');
+      throw new PodLogAccessError(403, 'Run log context is missing a valid run identity');
     }
-    try {
-      const pod = await getPodForLogAuthorization(podName, context.namespace);
-      if (
-        pod.metadata?.namespace !== context.namespace ||
-        pod.metadata?.labels?.['pipeline/runid'] !== runId
-      ) {
-        throw new PodLogAccessError(403, 'Pod does not belong to the authorized run');
+    if (!context.archiveOnly) {
+      try {
+        const pod = await getPodForLogAuthorization(podName, context.namespace);
+        if (
+          pod.metadata?.namespace !== context.namespace ||
+          pod.metadata?.labels?.['pipeline/runid'] !== runId
+        ) {
+          throw new PodLogAccessError(403, 'Pod does not belong to the authorized run');
+        }
+        const stream = new PassThrough();
+        stream.end(await getAuthorizedPodLogs(podName, context.namespace, containerName));
+        return stream;
+      } catch (error) {
+        if (errorStatus(error) !== 404) throw error;
       }
-      const stream = new PassThrough();
-      stream.end(await getAuthorizedPodLogs(podName, context.namespace, containerName));
-      return stream;
-    } catch (error) {
-      if (errorStatus(error) !== 404) throw error;
     }
 
     if (containerName !== 'main') {
       throw new PodLogAccessError(404, 'Only main container logs have a supported archive layout');
     }
     if (!argo.archiveLogs || !argo.archiveBucketName) {
-      throw new PodLogAccessError(404, 'Pod is gone and log archives are not configured');
+      throw new PodLogAccessError(404, 'Log archives are not configured');
     }
     const options = argo.archiveArtifactory === 'minio' ? artifacts.minio : artifacts.aws;
     const origins = [
