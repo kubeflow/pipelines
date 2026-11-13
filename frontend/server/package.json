@@ -30,7 +30,7 @@
     "prettier": "^3.9.10",
     "supertest": "^4.0.2",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "path-to-regexp": "0.1.13",
