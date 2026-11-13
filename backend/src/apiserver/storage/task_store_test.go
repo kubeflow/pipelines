@@ -1910,3 +1910,399 @@ func TestListTasks_SortByStartTimeAndRunIdPaginates(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateTaskWithRetryFence_StaleGenerationRejected(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	_, err := db.Exec("UPDATE run_details SET RetryGeneration = 2 WHERE UUID = 'run-1'")
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "fence-task-1",
+		Fingerprint: "fp-fence-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, 1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	updated, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, 2)
+	require.NoError(t, err)
+	assert.NotNil(t, updated)
+}
+
+func TestUpdateTaskWithRetryFence_RetiredPodUIDRejected(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-gen0",
+		Uid:  "uid-retired-123",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "retire-task-1",
+		Fingerprint: "fp-retire-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	err = taskStore.ResetTasksForRetry([]string{task.UUID})
+	require.NoError(t, err)
+
+	incomingPods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-gen0",
+		Uid:  "uid-retired-123",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		Pods:  incomingPods,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+	assert.Contains(t, userErr.Error(), "retired pod")
+}
+
+func TestUpdateTaskWithRetryFence_IntraAttemptTerminalProtection(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "terminal-task-1",
+		Fingerprint: "fp-term-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+	})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok = err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
+
+func TestUpdateTaskWithRetryFence_RetryGapProtection(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	pods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-1",
+		Uid:  "uid-1",
+		Type: apiv2.PipelineTask_EXECUTOR,
+	}})
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "gap-task-1",
+		Fingerprint: "fp-gap-1",
+		Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        pods,
+	})
+	require.NoError(t, err)
+
+	err = taskStore.ResetTasksForRetry([]string{task.UUID})
+	require.NoError(t, err)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:          task.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		FinishedInSec: 100,
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+	assert.Contains(t, userErr.Error(), "waiting for retry pod to register")
+
+	// Establishing the new attempt in RUNNING state with active pod succeeds and clears the gap.
+	activePods, err := model.ProtoSliceToJSONSlice([]*apiv2.PipelineTask_TaskPod{{
+		Name: "pod-2",
+		Uid:  "uid-2",
+		Type: apiv2.PipelineTask_DRIVER,
+	}})
+	require.NoError(t, err)
+	registered, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:  activePods,
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), registered.State)
+
+	// Subsequent terminal update (e.g. CACHED or SUCCEEDED) carrying the active pod identity is now accepted.
+	cached, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:          task.UUID,
+		State:         model.TaskStatus(apiv2.PipelineTask_CACHED),
+		FinishedInSec: 100,
+		Pods:          activePods,
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_CACHED), cached.State)
+}
+
+func TestUpdateTaskWithRetryFence_ConcurrentRetryRace(t *testing.T) {
+	db, taskStore, runStore := initializeTaskStore()
+	defer db.Close()
+
+	_, err := db.Exec("UPDATE run_details SET State = 'Failed', Conditions = 'Failed', FinishedAtInSec = 10 WHERE UUID = 'run-1'")
+	require.NoError(t, err)
+
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "race-task-1",
+		Fingerprint: "fp-race-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	})
+	require.NoError(t, err)
+
+	_, _, _, claimGen, err := runStore.ClaimRunForRetry("run-1", false)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), claimGen)
+
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+	}, 0)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	// Inspect final persisted task and run state
+	persistedTask, err := taskStore.GetTask(task.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_RUNNING), persistedTask.State)
+	assert.Equal(t, int64(0), persistedTask.FinishedInSec)
+	assert.Empty(t, persistedTask.Pods)
+	assert.NotEmpty(t, persistedTask.StateHistory)
+
+	run, err := runStore.GetRun("run-1", false)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), run.RetryGeneration)
+}
+
+func TestUpdateTaskWithRetryFence_AutomaticExecutorRetry_RecoversFromFailedToSucceeded(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	driverPod := createTaskPod("task-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("task-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "retry-task",
+		Fingerprint: "fp-retry-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	})
+	require.NoError(t, err)
+
+	// Attempt 2 executor pod succeeds under the same run RetryGeneration (automatic task retry)
+	exec2Pod := createTaskPod("task-exec-2", "exec-uid-2", apiv2.PipelineTask_EXECUTOR)
+	updated, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod, exec2Pod),
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), updated.State)
+	assert.Len(t, updated.Pods, 3)
+}
+
+func TestUpdateTaskWithRetryFence_DelayedCallbackFromOlderExecutorAttempt_Rejected(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	driverPod := createTaskPod("task-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("task-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	exec2Pod := createTaskPod("task-exec-2", "exec-uid-2", apiv2.PipelineTask_EXECUTOR)
+
+	// Task has already progressed to attempt 2
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "retry-task",
+		Fingerprint: "fp-retry-2",
+		State:       model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:        createTaskPodsAsJSONSlice(driverPod, exec1Pod, exec2Pod),
+	})
+	require.NoError(t, err)
+
+	// Delayed callback arriving from attempt 1 (only carries attempt 1 executor)
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
+
+func TestUpdateTaskWithRetryFence_SameAttempt_CannotOverwriteFailedWithSucceeded(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	driverPod := createTaskPod("task-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("task-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	task, err := taskStore.CreateTask(&model.Task{
+		Namespace:   "ns1",
+		RunUUID:     "run-1",
+		Name:        "failed-task",
+		Fingerprint: "fp-failed-1",
+		State:       model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Pods:        createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	})
+	require.NoError(t, err)
+
+	// Attempting to overwrite FAILED with SUCCEEDED without advancing executor attempt
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+
+	// Attempting to regress FAILED to RUNNING within same attempt
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  task.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_RUNNING),
+		Pods:  createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok = err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
+
+func TestUpdateTaskWithRetryFence_StructuralParentRecovery_AfterChildRetrySuccess(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	// 1. Create parent DAG task that initially failed
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	parentDag, err := taskStore.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "parent-dag",
+		State:     model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Type:      model.TaskType(apiv2.PipelineTask_DAG),
+		Pods:      model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// 2. Create child task associated with parentDag (succeeded after retry)
+	driverPod := createTaskPod("child-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("child-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	exec2Pod := createTaskPod("child-exec-2", "exec-uid-2", apiv2.PipelineTask_EXECUTOR)
+	parentUUID := parentDag.UUID
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	childTask, err := taskStore.CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        "run-1",
+		Name:           "child-task",
+		ParentTaskUUID: &parentUUID,
+		State:          model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		Pods:           createTaskPodsAsJSONSlice(driverPod, exec1Pod, exec2Pod),
+	})
+	require.NoError(t, err)
+	_ = childTask
+
+	// 3. Ordinary callback (expectedRetryGeneration = -1) recovers parent DAG from FAILED to SUCCEEDED
+	updatedParent, err := taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  parentDag.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.NoError(t, err)
+	assert.Equal(t, model.TaskStatus(apiv2.PipelineTask_SUCCEEDED), updatedParent.State)
+}
+
+func TestUpdateTaskWithRetryFence_StructuralParentRecovery_RejectedWhileChildStillFailed(t *testing.T) {
+	db, taskStore, _ := initializeTaskStore()
+	defer db.Close()
+
+	// 1. Create parent DAG task that is FAILED
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil)
+	parentDag, err := taskStore.CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   "run-1",
+		Name:      "parent-dag",
+		State:     model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Type:      model.TaskType(apiv2.PipelineTask_DAG),
+		Pods:      model.JSONSlice{},
+	})
+	require.NoError(t, err)
+
+	// 2. Create child task associated with parentDag that is still FAILED
+	driverPod := createTaskPod("child-driver", "driver-uid-1", apiv2.PipelineTask_DRIVER)
+	exec1Pod := createTaskPod("child-exec-1", "exec-uid-1", apiv2.PipelineTask_EXECUTOR)
+	parentUUID := parentDag.UUID
+	taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil)
+	_, err = taskStore.CreateTask(&model.Task{
+		Namespace:      "ns1",
+		RunUUID:        "run-1",
+		Name:           "child-task",
+		ParentTaskUUID: &parentUUID,
+		State:          model.TaskStatus(apiv2.PipelineTask_FAILED),
+		Type:           model.TaskType(apiv2.PipelineTask_RUNTIME),
+		Pods:           createTaskPodsAsJSONSlice(driverPod, exec1Pod),
+	})
+	require.NoError(t, err)
+
+	// 3. Attempting to update parent DAG to SUCCEEDED while a child is still FAILED must be rejected
+	_, err = taskStore.UpdateTaskWithRetryFence(&model.Task{
+		UUID:  parentDag.UUID,
+		State: model.TaskStatus(apiv2.PipelineTask_SUCCEEDED),
+	}, -1)
+	require.Error(t, err)
+	userErr, ok := err.(*util.UserError)
+	require.True(t, ok)
+	assert.Equal(t, codes.Aborted, userErr.ExternalStatusCode())
+}
