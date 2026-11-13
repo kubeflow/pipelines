@@ -76,9 +76,9 @@ describe('getPodLogsHandler stream failures', () => {
     const logs = new PassThrough();
     getPodLogsStream.mockResolvedValue(logs);
     await makeHandler(true)(request, response, vi.fn());
-    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.status).toHaveBeenCalledWith(503);
     expect(response.send).toHaveBeenCalledWith(
-      'Multi-user pod logs require the run-authorized API server route',
+      expect.stringContaining('Run log authorization is not configured'),
     );
     expect(getPodLogsStream).not.toHaveBeenCalled();
     logs.destroy();

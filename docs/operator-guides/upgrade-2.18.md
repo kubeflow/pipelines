@@ -381,24 +381,41 @@ artifact download does not establish that archived logs remain accessible.
 The following changes are proposed for a subsequent 2.18 maintenance release;
 they are not included in 2.18.0. Check the containing release notes before rollout.
 
-In multi-user mode, the frontend sends log requests through the API server's
-`readLog` path. Each request must identify a run, and the API server verifies that
-the requested Pod belongs to that authorized run. Only the `main` container's logs
-are available through this path. Custom callers that request a Pod's logs without
-a run ID, or select another container, must use a separately authorized logging
-interface instead.
+In multi-user mode, each log request must include a run ID and Pod/node name.
+The API server checks the caller's `readLog` permission and supplies the native
+run identity. Live Pods must belong to that run; caller-provided namespace values
+cannot redirect the request.
 
-Historical archive reads fail closed in multi-user mode: the frontend's archive
-fallback and the API server's archived-log reader are disabled. Once the original
-Pod is gone, retrieve old logs through a logging or storage system that authorizes
-the caller independently. Imported run histories cannot be used to read local
-shared archives in either multi-user or standalone installations. Standalone
-archive retrieval for native runs remains supported.
+**Standard native historical logs remain supported after Pod/Workflow garbage
+collection.** Archive reads are limited to the configured store/bucket and the
+persisted run's namespace/workflow path. Existing records and the shipped archive
+layout provide that scope; no archive copy or per-run migration is required.
+Workflow status can locate an archive but cannot authorize a foreign object.
 
-Upgrade the frontend and API server together and roll out all replicas. Updating
-only one component does not establish the complete authorization boundary. Verify
-live logs for a representative native run and confirm that historical-log users
-have access to the separately authorized system before relying on it.
+For custom storage, configure `KFP_LOG_ARCHIVE_KEY_FORMAT` consistently on the UI
+and API server to match the actual stored layout. The default is
+`private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}`,
+with `/main.log` appended by the reader. Namespace, workflow name, and Pod name
+must be separate path segments. This read policy does not change Argo's archive
+write configuration. An old layout lacking namespace/workflow partitions needs a
+separately authorized logging/storage interface; general endpoint allowlisting
+or tenant ConfigMap changes cannot authorize it.
+
+Imported histories and native records missing persisted namespace/workflow
+identity cannot establish local archive ownership and fail closed. Imported
+histories cannot read local shared archives even in standalone mode. Native
+standalone archive reads remain supported. No stored logs are deleted.
+
+Upgrade the UI and API server together and roll out all replicas. Verify one live
+native run and one historical run whose Pod has been deleted. The default UI path
+keeps its storage adapter after API authorization; explicitly enabling
+`STREAM_LOGS_FROM_SERVER_API` uses API streaming and requires the API's archive
+storage configuration. API streaming and archives serve the `main` container;
+`POD_LOG_CONTAINER_NAME` continues to apply to live logs on the UI's direct path.
+A custom non-`main` container has no `main` archive fallback after its Pod is gone.
+The UI requires `ARGO_ARCHIVE_LOGS=true` and an archive bucket, as configured in
+the shipped deployment. Custom callers without a run ID must use a separately authorized logging system.
+See [frontend configuration](../../frontend/README.md#pod-log-access).
 
 ## Multi-user scheduling during the upgrade
 

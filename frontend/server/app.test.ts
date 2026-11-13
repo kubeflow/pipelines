@@ -653,6 +653,32 @@ describe('UIServer apis', () => {
     });
   });
 
+  it('authorizes the default multi-user log reader through the canonical log-context route', async () => {
+    app = new UIServer(
+      loadConfigs(argv, {
+        ENABLE_AUTHZ: 'true',
+        STREAM_LOGS_FROM_SERVER_API: 'false',
+        ML_PIPELINE_SERVICE_HOST: 'api.example',
+        ML_PIPELINE_SERVICE_PORT: '8888',
+      }),
+    );
+    mockedFetch.mockClear();
+    mockedFetch.mockResolvedValue({ ok: false, status: 403 });
+    await requests(app.app)
+      .get('/k8s/pod/logs?runid=run-a&podname=pod-a')
+      .set('authorization', 'Bearer synthetic')
+      .set('kubeflow-userid', 'alice')
+      .expect(403);
+    const call = mockedFetch.mock.calls.find(([url]) =>
+      String(url).includes('archive_context=true'),
+    );
+    expect(call?.[0]).toBe(
+      'http://api.example:8888/apis/v1alpha1/runs/run-a/nodes/pod-a/log?archive_context=true',
+    );
+    expect((call?.[1].headers as Headers).get('authorization')).toBe('Bearer synthetic');
+    expect((call?.[1].headers as Headers).get('kubeflow-userid')).toBe('alice');
+  });
+
   describe('/k8s/pod/logs with authorization enabled', () => {
     let apiServer: Server;
     const upstreamRequests: Array<{ path: string; user?: string; token?: string }> = [];
@@ -677,7 +703,7 @@ describe('UIServer apis', () => {
       app = new UIServer(
         loadConfigs(argv, {
           ENABLE_AUTHZ: 'true',
-          STREAM_LOGS_FROM_SERVER_API: 'false',
+          STREAM_LOGS_FROM_SERVER_API: 'true',
           ML_PIPELINE_SERVICE_PORT: `${address.port}`,
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),

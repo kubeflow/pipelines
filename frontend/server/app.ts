@@ -284,8 +284,8 @@ function createUIServer(options: UIConfigs) {
   registerHandler(app.post, '/apps/tensorboard', tensorboardCreateHandler);
   registerTensorboardProxy(app, basePath, options.viewer.tensorboard, authorizeFn);
 
-  /** Multi-user logs always use API run authorization and pod ownership checks. */
-  if (options.auth.enabled || options.artifacts.streamLogsFromServerApi) {
+  /** Both log paths authorize the run; direct archive reads also enforce storage ownership. */
+  if (options.artifacts.streamLogsFromServerApi) {
     app.all(
       ['/k8s/pod/logs', `${basePath}/k8s/pod/logs`],
       hardenPodLogsProxyRequest,
@@ -328,6 +328,8 @@ function createUIServer(options: UIConfigs) {
         options.pod.logContainerName,
         authorizeFn,
         options.auth.enabled,
+        apiServerAddress,
+        'apis/v1alpha1',
       ),
     );
   }

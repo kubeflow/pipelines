@@ -223,17 +223,47 @@ not establish authenticated compatibility.
 
 ### Pod log access
 
-With `ENABLE_AUTHZ=true`, `/k8s/pod/logs` always uses the API server's run-log
-endpoint, even when `STREAM_LOGS_FROM_SERVER_API=false`. Requests must include
-`runid` and `podname`; the API checks `readLog` permission for the run and verifies
-that the pod belongs to it. `podnamespace` does not select the authorization
-scope. The endpoint returns the `main` container's logs; a custom
-`POD_LOG_CONTAINER_NAME` only applies to standalone direct reads.
+With `ENABLE_AUTHZ=true`, `/k8s/pod/logs` requires `runid` and `podname`.
+The UI forwards the caller's identity to the API server for `readLog`
+authorization and native run identity. The run's persisted namespace selects the
+scope; `podnamespace` cannot redirect the read. Live Pods must carry that run's
+`pipeline/runid` label before their logs are read.
 
-Upgrade the UI and API server together. Multi-user archive fallbacks are disabled
-because workflow and ConfigMap references do not establish object ownership.
-Use a separately authorized logging or storage system for historical logs.
-Imported run histories cannot read archives using the API server's local storage
-credentials, including in standalone mode. Standalone native runs retain their
-existing direct and archive behavior. Changing to standalone mode is not a
-multi-user compatibility workaround.
+Standard native historical logs remain accessible after Pod/Workflow garbage
+collection. The UI retains its configured storage adapter and credentials, but
+checks archive hints against the operator-configured store, bucket, and native
+namespace/workflow path. Tenant Workflow status and ConfigMaps cannot change
+that authorization policy. No data copy or per-run migration is required.
+
+`KFP_LOG_ARCHIVE_KEY_FORMAT` configures the authorized archive layout on both the
+UI and API server. Its default matches the shipped Argo layout:
+
+```text
+private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}
+```
+
+The reader appends `/main.log`. Custom formats must include namespace, workflow
+name, and Pod name as separate path segments. Optional date segments locate old
+objects; they are not required to match the run's SQL creation timestamp. Retained
+history can locate retry-child Pod logs within the authorized workflow path.
+Configure the format consistently on both components and match the actual stored
+layout. Layouts without namespace/workflow partitions cannot be enabled simply
+by allowlisting an endpoint; use a separately authorized logging/storage system
+for those objects. This setting validates reads; it does not change Argo's write
+configuration or move existing objects.
+
+Upgrade the UI and API server together and roll out all replicas. Verify both a
+live native run and an archived run whose Pod has been deleted. Imported histories
+and native histories lacking persisted namespace/workflow identity fail closed.
+Imported histories cannot read local archives even in standalone mode.
+
+`STREAM_LOGS_FROM_SERVER_API=true` still selects API streaming and requires the
+API server's archive storage configuration for historical logs; otherwise the UI
+uses its existing adapter after API authorization. API streaming and archives
+serve the `main` container. `POD_LOG_CONTAINER_NAME` continues to select the live
+container on the UI's direct path. When a custom non-`main` container is selected,
+a missing Pod does not fall back to the `main` archive. Authenticated UI archive
+reads require `ARGO_ARCHIVE_LOGS=true` and the configured archive bucket; the
+shipped deployment already enables this.
+Standalone native runs retain their existing direct/archive behavior. Changing
+to standalone mode is not a multi-user compatibility workaround.

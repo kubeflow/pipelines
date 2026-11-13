@@ -1637,7 +1637,14 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	}
 	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
-		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
+		var identity *RunLogArchiveContext
+		if common.IsMultiUserMode() {
+			identity, err = r.runLogArchiveContext(run)
+			if err != nil {
+				return err
+			}
+		}
+		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst, identity)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
@@ -1688,10 +1695,13 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 }
 
 // Fetches execution logs from a archived pod logs.
-func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer, identities ...*RunLogArchiveContext) error {
+	var identity *RunLogArchiveContext
 	if common.IsMultiUserMode() {
-		return util.NewFailedPreconditionError(errors.New("shared archived log ownership is not established"),
-			"Archived logs are unavailable in multi-user mode. Use a separately authorized logging or storage system")
+		if len(identities) != 1 || identities[0] == nil {
+			return util.NewFailedPreconditionError(errors.New("native run identity is required"), "Archived logs require an authorized native run")
+		}
+		identity = identities[0]
 	}
 	if workflowManifest == "" {
 		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeID)
@@ -1708,6 +1718,12 @@ func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowMan
 			return err
 		}
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeID)
+	}
+
+	if identity != nil {
+		if err := authorizeArchiveKey(logPath, nodeID, identity); err != nil {
+			return err
+		}
 	}
 
 	logReader, err := r.objectStore.GetFileReader(ctx, logPath)
