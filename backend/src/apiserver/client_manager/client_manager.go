@@ -911,7 +911,7 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	if initializePipelineVersions {
 		initPipelineVersionsFromPipelines(db)
 	}
-	err := backfillExperimentIDToRunTable(db)
+	err := backfillExperimentIDToRunTable(db, dialect)
 	if err != nil {
 		return fmt.Errorf("failed to backfill experiment UUID in run_details table: %s", err)
 	}
@@ -1939,11 +1939,14 @@ func backfillPipelineIDFromVersionSQL(dialect sqldrv.DBDialect, table string) st
 	)
 }
 
-func backfillExperimentIDToRunTable(db *gorm.DB) error {
+func backfillExperimentIDToRunTable(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	// check if there is any row in the run table has experiment ID being empty.
 	// Statements go through db, not db.DB(): db is bound to the connection that
-	// holds the startup migration lock.
-	rows, err := db.Raw("SELECT \"ExperimentUUID\" FROM run_details WHERE \"ExperimentUUID\" = '' LIMIT 1").Rows()
+	// holds the startup migration lock. Double quotes would be a string literal
+	// on MySQL, and the check would never find a row.
+	quote := dialect.QuoteIdentifier
+	rows, err := db.Raw(fmt.Sprintf(
+		"SELECT %s FROM run_details WHERE %s = '' LIMIT 1", quote("ExperimentUUID"), quote("ExperimentUUID"))).Rows()
 	if err != nil {
 		return err
 	}

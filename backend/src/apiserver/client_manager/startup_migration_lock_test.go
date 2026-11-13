@@ -360,7 +360,9 @@ func TestStartupMigrationLock_LegacyExperimentBackfillRunsOnLockedSession(t *tes
 	forEachMigrationLockEngine(t, func(t *testing.T, database migrationLockDatabase) {
 		replica := database.open(t)
 		require.NoError(t, runStartupMigrations(replica, database.dialect))
-		lockError := withStartupMigrationLock(replica, database.dialect, 0, backfillExperimentIDToRunTable)
+		lockError := withStartupMigrationLock(replica, database.dialect, 0, func(lockedSession *gorm.DB) error {
+			return backfillExperimentIDToRunTable(lockedSession, database.dialect)
+		})
 		assert.NoError(t, lockError)
 	})
 }
