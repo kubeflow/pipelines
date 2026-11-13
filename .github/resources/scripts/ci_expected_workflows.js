@@ -479,4 +479,4 @@ function loadLocalInventory(root) {
 }
 
 module.exports = {globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
-  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, triggerHeader};
+  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, baseArrivedAt, triggerHeader};

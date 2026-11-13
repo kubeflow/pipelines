@@ -128,9 +128,9 @@ function selectLatestWorkflowRuns(runs, sha) {
   return {bySuite, latestRuns, failures};
 }
 
-async function currentWorkflowRuns({github, owner, repo, sha}) {
+async function currentWorkflowRuns({github, owner, repo, sha, event}) {
   const runs = await readPages(options => github.rest.actions.listWorkflowRunsForRepo(options),
-    'workflow_runs', {owner, repo, head_sha: sha});
+    'workflow_runs', {owner, repo, head_sha: sha, ...(event ? {event} : {})});
   const {latestRuns, failures} = selectLatestWorkflowRuns(runs, sha);
   if (failures.length) throw new Error(failures.join('; '));
   return [...latestRuns.values()].filter(run => run.path !== OWN_WORKFLOW_PATH);
@@ -257,4 +257,4 @@ async function verifyCheckRuns({github, owner, repo, sha}) {
   return {state: failures.length ? 'failure' : pending.length ? 'pending' : 'success', reasons};
 }
 
-module.exports = {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns};
+module.exports = {currentWorkflowRuns, hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns};

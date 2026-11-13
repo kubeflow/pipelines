@@ -16,6 +16,7 @@ const {publishedAttempts} = require('./ci_workflow_attempts');
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
+const {recoveryPreflight} = require('./ci_recovery_preflight');
 const {queueEnabled} = require('./merge_queue_policy');
 
 async function settleAll(promises) {
@@ -108,6 +109,7 @@ async function recoveryCandidates({github, context, root = process.env.GITHUB_WO
   const statuses = await readRecoveryStatuses({github, ...context.repo,
     heads: unblockedPRs.map(pr => pr.head.sha)});
   const candidates = [];
+  const remainsBlocked = recoveryPreflight({github, context, root});
   for (const pr of unblockedPRs) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
@@ -124,6 +126,7 @@ async function recoveryCandidates({github, context, root = process.env.GITHUB_WO
     if (status?.state === 'success' &&
         status.description === successDescription(pr, await baseRevision(github, context, pr), queueAdmission) &&
         (!queueAdmission || publishedAttempts(status, `${context.repo.owner}/${context.repo.repo}`))) continue;
+    if (await remainsBlocked(pr, status, queueAdmission)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
