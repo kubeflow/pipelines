@@ -29,6 +29,7 @@ see the [DCO sign-off guide](https://github.com/kubeflow/community/tree/master/d
 :hidden:
 
 Pipeline Anatomy <anatomy>
+Architecture diagrams <architecture/index>
 Platform validation and releases <platform-validation>
 Frontend qualification reliability <frontend-qualification-reliability>
 ```
