@@ -408,6 +408,30 @@ class QueueAdmissionTest(unittest.TestCase):
         self.assertEqual(result['writes'][0]['route'], 'enqueue')
         self.assertEqual(result['writes'][0]['client'], 'app')
 
+    def test_dequeue_uses_required_id_input_with_pr_node_id(self):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                result = run_case(
+                    branch=branch,
+                    prs={'7': [pr(branch=branch, labels=[])]},
+                    queues=[queue([entry(branch=branch)])],
+                )
+                self.assertNotIn('error', result)
+                dequeues = [
+                    write
+                    for write in result['writes']
+                    if write['route'] == 'dequeue'
+                ]
+                self.assertEqual(len(dequeues), 1, result)
+                self.assertEqual(dequeues[0]['options'], {'id': 'PR_7'})
+                # DequeuePullRequestInput requires id, unlike enqueue's
+                # pullRequestId. The live API rejects the latter on dequeue.
+                self.assertRegex(
+                    dequeues[0]['query'],
+                    r'dequeuePullRequest\s*\(\s*input\s*:\s*'
+                    r'\{\s*id\s*:\s*\$id\s*\}',
+                )
+
     def test_queued_pr_revocation_covers_labels_head_retarget_and_closed(self):
         for changed in [
             pr(labels=[]),

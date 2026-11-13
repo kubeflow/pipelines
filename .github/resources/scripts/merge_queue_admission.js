@@ -124,7 +124,7 @@ async function invalidateQueue(github, context, entries) {
 
 async function dequeue(github, pr) {
   await github.graphql(`mutation($id:ID!) {
-    dequeuePullRequest(input:{pullRequestId:$id}) { clientMutationId }
+    dequeuePullRequest(input:{id:$id}) { clientMutationId }
   }`, {id: pr.node_id});
 }
 
