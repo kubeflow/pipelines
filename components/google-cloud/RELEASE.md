@@ -3,6 +3,7 @@
 * Remove deprecated Wide and Deep Tabular Workflow pipeline.
 * Remove deprecated TabNet Tabular Workflow pipeline.
 * Dynamically set default boot disk type in CustomJob component for Vertex Pipelines based on machine type.
+* Allow `google-cloud-aiplatform` 2.x (`>=1.14.0,<3`), so GCPC can be installed alongside the latest Vertex AI SDK. 1.x remains supported.
 
 ## Release 2.22.0
 
