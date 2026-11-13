@@ -13,6 +13,10 @@
 // limitations under the License.
 import { Handler } from 'express';
 import {
+  createAuthorizedPodLogsReader,
+  PodLogAccessError,
+} from '../helpers/authorized-pod-logs.js';
+import {
   createPodLogsArtifactReadRequest,
   composePodLogsStreamHandler,
   getPodLogsStreamFromK8s,
@@ -25,7 +29,8 @@ import { AuthorizeFn } from '../helpers/auth.js';
 import { getArtifactStoreOrigin } from '../artifact-store.js';
 
 /**
- * Returns a handler which attempts to retrieve the logs for the specific pod,
+ * Multi-user reads authorize native run identity through the API and constrain archive keys.
+ * Standalone reads retain the existing fallback order for the specific pod,
  * in the following order:
  * - retrieve with k8s api
  * - retrieve log archive location from argo workflow status, and retrieve artifact directly
@@ -45,6 +50,8 @@ export function getPodLogsHandler(
   podLogContainerName: string,
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
+  apiServerAddress?: string,
+  apiPrefix?: string,
 ): Handler {
   const {
     archiveLogs,
@@ -85,31 +92,39 @@ export function getPodLogsHandler(
       : getPodLogsStreamFromWorkflow,
   );
 
+  const authorizedReader =
+    authEnabled && apiServerAddress && apiPrefix
+      ? createAuthorizedPodLogsReader(
+          apiServerAddress,
+          apiPrefix,
+          argoOptions,
+          artifactsOptions,
+          podLogContainerName,
+        )
+      : undefined;
+
   return async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Disposition', 'attachment');
     res.type('text/plain');
 
-    // Namespace viewer permission does not authorize arbitrary pod logs or
-    // workflow-selected objects through shared UI credentials.
-    if (authEnabled) {
-      res.status(403).send('Multi-user pod logs require the run-authorized API server route');
-      return;
-    }
-
     if (!req.query.podname) {
       res.status(400).send('podname argument is required');
       return;
     }
-    const podName = decodeURIComponent(req.query.podname as string);
-    const createdAt = decodeURIComponent((req.query.createdat as string) || '');
+    const podName = authEnabled
+      ? String(req.query.podname)
+      : decodeURIComponent(req.query.podname as string);
+    const createdAt = authEnabled ? '' : decodeURIComponent((req.query.createdat as string) || '');
 
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
-    const podNamespace = decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
+    const podNamespace = authEnabled
+      ? undefined
+      : decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
 
     // Check access to namespace if podNamespace is provided
-    if (podNamespace) {
+    if (!authEnabled && podNamespace) {
       try {
         const authError = await authorizeFn(
           {
@@ -131,7 +146,12 @@ export function getPodLogsHandler(
     }
 
     try {
-      const stream = await getPodLogsStream(podName, createdAt, podNamespace);
+      if (authEnabled && !authorizedReader) {
+        throw new PodLogAccessError(503, 'Run log authorization is not configured');
+      }
+      const stream = authorizedReader
+        ? await authorizedReader(req)
+        : await getPodLogsStream(podName, createdAt, podNamespace);
       if (res.destroyed || res.writableEnded) {
         stream.destroy();
         return;
@@ -160,7 +180,9 @@ export function getPodLogsHandler(
         ) {
           res.status(404).send('pod not found');
         } else {
-          res.status(500).send('Could not get main container logs: ' + err);
+          res
+            .status(err instanceof PodLogAccessError ? err.statusCode : 500)
+            .send('Could not get main container logs: ' + err);
         }
       };
       const finishOnce = () => {
@@ -196,7 +218,9 @@ export function getPodLogsHandler(
       }
       stream.pipe(res, { end: false });
     } catch (err) {
-      res.status(500).send('Could not get main container logs: ' + err);
+      res
+        .status(err instanceof PodLogAccessError ? err.statusCode : 500)
+        .send('Could not get main container logs: ' + err);
     }
   };
 }

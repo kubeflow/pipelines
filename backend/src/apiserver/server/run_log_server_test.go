@@ -266,3 +266,38 @@ func TestReadRunLog_ForwardsFollowQueryToPodLogs(t *testing.T) {
 		})
 	}
 }
+
+func TestRunLogArchiveContextAuthorized(t *testing.T) {
+	previous := viper.Get(common.MultiUserMode)
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, previous) })
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := NewRunLogServer(manager)
+	req := httptest.NewRequest("GET", "/log?archive_context=true", nil)
+	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
+	req = mux.SetURLVars(req, map[string]string{RunKey: run.UUID, NodeKey: "nonexistent-pod"})
+	response := httptest.NewRecorder()
+	server.ReadRunLog(response, req)
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Equal(t, "no-store", response.Header().Get("Cache-Control"))
+	var identity resource.RunLogArchiveContext
+	assert.NoError(t, json.Unmarshal(response.Body.Bytes(), &identity))
+	assert.Equal(t, run.UUID, identity.RunID)
+	assert.Equal(t, run.Namespace, identity.Namespace)
+	assert.Equal(t, run.K8SName, identity.WorkflowName)
+	// Imported histories must not produce a local archive authorization context.
+	_, err := clients.DB().Exec("UPDATE run_details SET ImportedFrom = ? WHERE UUID = ?", "foreign-installation", run.UUID)
+	assert.NoError(t, err)
+	response = httptest.NewRecorder()
+	server.ReadRunLog(response, req)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.NotContains(t, response.Body.String(), "workflowName")
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	server = NewRunLogServer(resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false}))
+	response = httptest.NewRecorder()
+	server.ReadRunLog(response, req)
+	assert.Equal(t, http.StatusForbidden, response.Code)
+	assert.NotContains(t, response.Body.String(), "workflowName")
+	assert.Contains(t, response.Body.String(), "Failed to authorize the request")
+}
