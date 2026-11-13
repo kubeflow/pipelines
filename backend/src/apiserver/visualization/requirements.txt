@@ -137,7 +137,7 @@ ipython==9.18.1
     #   ipykernel
 ipython-pygments-lexers==1.1.1
     # via ipython
-itables==0.1.0
+itables==2.9.1
     # via -r requirements.in
 jedi==0.19.2
     # via ipython
@@ -217,7 +217,6 @@ numpy==1.26.4
     #   h5py
     #   keras
     #   ml-dtypes
-    #   pandas
     #   scikit-learn
     #   scipy
     #   tensorflow
@@ -237,8 +236,6 @@ packaging==25.0
     #   nbconvert
     #   tensorflow
     #   wheel
-pandas==2.3.2
-    # via itables
 pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.5
@@ -298,11 +295,7 @@ pygments==2.20.0
 pyparsing==3.2.3
     # via httplib2
 python-dateutil==2.9.0.post0
-    # via
-    #   jupyter-client
-    #   pandas
-pytz==2025.2
-    # via pandas
+    # via jupyter-client
 pyyaml==6.0.3
     # via bokeh
 pyzmq==27.1.0
@@ -334,10 +327,6 @@ scikit-learn==1.5.0
     # via -r requirements.in
 scipy==1.16.1
     # via scikit-learn
-setuptools==84.2.1
-    # via
-    #   -r requirements.in
-    #   tensorflow
 six==1.17.0
     # via
     #   astunparse
@@ -389,8 +378,6 @@ typing-extensions==4.15.0
     #   optree
     #   referencing
     #   tensorflow
-tzdata==2025.2
-    # via pandas
 uritemplate==3.0.1
     # via google-api-python-client
 urllib3==2.8.0
