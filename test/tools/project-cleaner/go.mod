@@ -5,7 +5,7 @@ go 1.27.0
 toolchain go1.27.3
 
 require (
-	cloud.google.com/go/compute v1.74.1
+	cloud.google.com/go/compute v1.75.0
 	google.golang.org/api v0.311.0
 	gopkg.in/yaml.v2 v2.4.0
 )
