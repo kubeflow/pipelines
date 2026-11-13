@@ -41,8 +41,15 @@ def hello_pipeline(recipient: str = 'World!') -> str:
 ```
 
 You can also enable or disable caching for all components in a pipeline by
-setting the argument `caching` when submitting a pipeline for execution.
+setting the argument `enable_caching` when submitting a pipeline for execution.
 This will override the caching settings for all components in the pipeline.
+
+> **Note**: The SDK applies this override client-side by rewriting the
+> pipeline spec that is sent with the request, so it only takes effect when you
+> submit a package or a pipeline function. It is ignored when a run or
+> recurring run is created from an uploaded pipeline (`pipeline_id` /
+> `version_id`). See [#14253](https://github.com/kubeflow/pipelines/issues/14253)
+> for server-side support.
 
 ```python
 from kfp.client import Client
