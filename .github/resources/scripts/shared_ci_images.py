@@ -114,7 +114,12 @@ def validate_identity(value):
             'Malformed merge group identity',
         )
         require(
-            group['base_ref'] in ('refs/heads/master', 'refs/heads/main'),
+            group['base_ref']
+            in (
+                'refs/heads/master',
+                'refs/heads/main',
+                'refs/heads/codex-mq-integration-20261113',
+            ),
             'Expected master or main queue',
         )
         base_branch = group['base_ref'].removeprefix('refs/heads/')

@@ -30,7 +30,7 @@ jobs:
         with:
           script: |
             const sha = /^[0-9a-f]{40}$/;
-            const match = /^refs\/heads\/gh-readonly-queue\/(master|main)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(context.ref);
+            const match = /^refs\/heads\/gh-readonly-queue\/(master|main|codex-mq-integration-20261113)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(context.ref);
             const {QUEUE_HEAD_SHA: head, QUEUE_BASE_REF: branch, QUEUE_BASE_SHA: base} = process.env;
             if (context.eventName !== 'workflow_dispatch' || !match ||
                 !sha.test(head || '') || head !== context.sha || branch !== match[1] ||
