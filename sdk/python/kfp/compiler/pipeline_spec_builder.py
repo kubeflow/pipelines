@@ -197,39 +197,24 @@ def build_task_spec_for_task(
             ].component_input_artifact = component_input_artifact
 
         elif isinstance(input_value, for_loop.LoopArgumentVariable):
-            subvar_input_name = (
+            component_input_parameter = (
                 compiler_utils.additional_input_name_for_pipeline_channel(
-                    input_value
+                    input_value.loop_argument
                 )
             )
-            if subvar_input_name in parent_component_inputs.parameters:
-                pipeline_task_spec.inputs.parameters[
-                    input_name
-                ].component_input_parameter = subvar_input_name
-            elif input_value.full_name in parent_component_inputs.parameters:
-                pipeline_task_spec.inputs.parameters[
-                    input_name
-                ].component_input_parameter = input_value.full_name
-            else:
-                component_input_parameter = (
-                    compiler_utils.additional_input_name_for_pipeline_channel(
-                        input_value.loop_argument
-                    )
-                )
-                assert (
-                    component_input_parameter
-                    in parent_component_inputs.parameters
-                ), (
-                    f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
-                )
-                pipeline_task_spec.inputs.parameters[
-                    input_name
-                ].component_input_parameter = component_input_parameter
-                pipeline_task_spec.inputs.parameters[
-                    input_name
-                ].parameter_expression_selector = (
-                    f'parseJson(string_value)["{input_value.subvar_name}"]'
-                )
+            assert (
+                component_input_parameter in parent_component_inputs.parameters
+            ), (
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
+            )
+            pipeline_task_spec.inputs.parameters[
+                input_name
+            ].component_input_parameter = component_input_parameter
+            pipeline_task_spec.inputs.parameters[
+                input_name
+            ].parameter_expression_selector = (
+                f'parseJson(string_value)["{input_value.subvar_name}"]'
+            )
         elif isinstance(
             input_value, pipeline_channel.PipelineArtifactChannel
         ) or (
