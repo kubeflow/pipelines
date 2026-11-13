@@ -3262,6 +3262,116 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	assert.NotEmpty(t, preservedSucceededTask.OutputParameters)
 }
 
+func TestRetryRun_ReplayedArtifactWriteAfterCleanupIsStaleAttempt(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+	runDetail, err := manager.CreateRun(context.Background(), &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig:        model.RuntimeConfig{Parameters: `{"text":"world"}`},
+		},
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+	failedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	failedWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+	failedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	failedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	failedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
+	}
+	syncWorkflowReportWithFakeCluster(t, store, failedWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), failedWorkflow)
+	require.NoError(t, err)
+
+	createTask := func(name string, state apiv2.PipelineTask_TaskState) *model.Task {
+		task, err := store.TaskStore().CreateTask(&model.Task{
+			Namespace:   "ns1",
+			RunUUID:     runDetail.UUID,
+			Name:        name,
+			ScopePath:   "root." + name,
+			Type:        model.TaskType(apiv2.PipelineTask_RUNTIME),
+			State:       model.TaskStatus(state),
+			Fingerprint: "fp-" + name,
+			TypeAttrs:   model.JSONData{},
+		})
+		require.NoError(t, err)
+		return task
+	}
+	failedTask := createTask("failed-task", apiv2.PipelineTask_FAILED)
+	succeededTask := createTask("succeeded-task", apiv2.PipelineTask_SUCCEEDED)
+
+	newArtifact := func(name string) *model.Artifact {
+		return &model.Artifact{
+			Namespace: "ns1",
+			Type:      model.ArtifactType(apiv2.Artifact_Artifact),
+			URI:       util.StringPointer("s3://bucket/" + name),
+			Name:      name,
+		}
+	}
+	newLink := func(task *model.Task, key string) *model.ArtifactTask {
+		producer, err := model.ProtoMessageToJSONData(&apiv2.IOProducer{TaskName: task.Name})
+		require.NoError(t, err)
+		return &model.ArtifactTask{
+			TaskID:      task.UUID,
+			RunUUID:     runDetail.UUID,
+			Type:        model.IOType(apiv2.IOType_OUTPUT),
+			Producer:    producer,
+			ArtifactKey: key,
+		}
+	}
+	countRows := func(query string, args ...any) int {
+		var count int
+		require.NoError(t, store.DB().QueryRow(query, args...).Scan(&count))
+		return count
+	}
+	requireCode := func(err error, code codes.Code) {
+		require.Error(t, err)
+		var userErr *util.UserError
+		require.True(t, errors.As(err, &userErr), "expected *util.UserError, got %T: %v", err, err)
+		assert.Equal(t, code, userErr.ExternalStatusCode(), "unexpected status for error: %v", err)
+	}
+
+	staleArtifact, _, err := manager.CreateArtifactWithTask(newArtifact("stale-model"), newLink(failedTask, "model"), "operation-failed-attempt")
+	require.NoError(t, err)
+	siblingArtifact, siblingLink, err := manager.CreateArtifactWithTask(newArtifact("sibling-model"), newLink(succeededTask, "model"), "operation-sibling")
+	require.NoError(t, err)
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	require.Equal(t, 0, countRows("SELECT count(*) FROM artifact_tasks WHERE TaskID = ?", failedTask.UUID))
+
+	_, _, err = manager.CreateArtifactWithTask(newArtifact("stale-model"), newLink(failedTask, "model"), "operation-failed-attempt")
+	requireCode(err, codes.FailedPrecondition)
+	assert.Equal(t, 0, countRows("SELECT count(*) FROM artifact_tasks WHERE TaskID = ?", failedTask.UUID),
+		"a stale replay must not restore the old attempt's output link")
+
+	replayedSibling, replayedSiblingLink, err := manager.CreateArtifactWithTask(newArtifact("sibling-model"), newLink(succeededTask, "model"), "operation-sibling")
+	require.NoError(t, err)
+	assert.Equal(t, siblingArtifact.UUID, replayedSibling.UUID)
+	assert.Equal(t, siblingLink.UUID, replayedSiblingLink.UUID)
+
+	newAttemptArtifact, _, err := manager.CreateArtifactWithTask(newArtifact("new-model"), newLink(failedTask, "model"), "operation-new-attempt")
+	require.NoError(t, err)
+	assert.NotEqual(t, staleArtifact.UUID, newAttemptArtifact.UUID)
+	assert.Equal(t, 1, countRows("SELECT count(*) FROM artifact_tasks WHERE TaskID = ?", failedTask.UUID))
+
+	artifactsBeforeBatch := countRows("SELECT count(*) FROM artifacts")
+	_, _, err = manager.CreateArtifactsWithTasks(
+		[]*model.Artifact{newArtifact("batch-model"), newArtifact("stale-model")},
+		[]*model.ArtifactTask{newLink(failedTask, "batch"), newLink(failedTask, "model")},
+		[]string{"operation-batch", "operation-failed-attempt"},
+	)
+	requireCode(err, codes.FailedPrecondition)
+	assert.Equal(t, artifactsBeforeBatch, countRows("SELECT count(*) FROM artifacts"), "the batch must roll back as a whole")
+	assert.Equal(t, 1, countRows("SELECT count(*) FROM artifact_tasks WHERE TaskID = ?", failedTask.UUID))
+}
+
 func TestRetryRun_RunNotExist(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
