@@ -1,0 +1,57 @@
+name: Queue dispatch candidate observer
+on:
+  pull_request:
+    branches: [codex/mq-dispatch-probe-base]
+  merge_group:
+    types: [checks_requested]
+    branches: [codex/mq-dispatch-probe-base]
+  push:
+    branches: [codex/mq-dispatch-probe-base]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        required: true
+        type: string
+      pr:
+        required: true
+        type: string
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  probe:
+    name: queue-dispatch-probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify dispatched candidate identity
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EXPECTED: ${{ inputs.expected_sha }}
+          PR: ${{ inputs.pr }}
+          ACTUAL: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED" =~ ^[a-f0-9]{40}$ && "$EXPECTED" == "$ACTUAL" ]]
+          [[ "$REF" == refs/heads/gh-readonly-queue/codex/mq-dispatch-probe-base/* ]]
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]]
+          current=$(gh api graphql -F number="$PR" -f query='query($number:Int!) { repository(owner:"kubeflow",name:"pipelines") { pullRequest(number:$number) { baseRefName mergeQueueEntry { headCommit { oid } } } } }')
+          jq -e --arg sha "$EXPECTED" '.data.repository.pullRequest | .baseRefName=="codex/mq-dispatch-probe-base" and .mergeQueueEntry.headCommit.oid==$sha' <<< "$current"
+          echo "Verified live queue candidate $ACTUAL"
+      - name: Record event and verify harmless test content
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          printf 'event=%s sha=%s ref=%s\n' "$EVENT" "$SHA" "$REF"
+          if [[ "$EVENT" != push ]]; then
+            gh api "repos/$REPO/contents/probe.txt?ref=$SHA" --jq .content | base64 --decode > probe.txt
+            test "$(cat probe.txt)" = 'Harmless queue test change.'
+          fi

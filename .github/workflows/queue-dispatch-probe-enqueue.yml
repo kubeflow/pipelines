@@ -1,0 +1,49 @@
+name: Queue explicit dispatch probe
+on:
+  push:
+    branches: [codex/mq-dispatch-probe-trigger]
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+jobs:
+  enqueue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enqueue with the built-in token
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR=$(gh api "repos/$REPO/pulls?state=open&base=codex%2Fmq-dispatch-probe-base&head=kubeflow%3Acodex%2Fmq-dispatch-probe-change" --jq 'if length == 1 then .[0].number else error("Expected exactly one test PR") end')
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]]
+          pr=$(gh api "repos/$REPO/pulls/$PR")
+          jq -e --arg repo "$REPO" '
+            .state == "open" and .draft == false and
+            .base.ref == "codex/mq-dispatch-probe-base" and
+            .head.ref == "codex/mq-dispatch-probe-change" and
+            .head.repo.full_name == $repo
+          ' <<< "$pr"
+          id=$(jq -r .node_id <<< "$pr")
+          head=$(jq -r .head.sha <<< "$pr")
+          gh api graphql -f id="$id" -f head="$head" -f query='
+            mutation($id:ID!, $head:GitObjectID!) {
+              enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
+                mergeQueueEntry { id position }
+              }
+            }' | tee enqueue-result.json
+          jq -e '.errors == null and .data.enqueuePullRequest.mergeQueueEntry.id != null' enqueue-result.json
+          for attempt in $(seq 1 60); do
+            candidate=$(gh api graphql -f id="$id" -f query='query($id:ID!) { node(id:$id) { ... on PullRequest { mergeQueueEntry { headCommit { oid } } } } }' --jq '.data.node.mergeQueueEntry.headCommit.oid // empty')
+            if [[ "$candidate" =~ ^[a-f0-9]{40}$ ]]; then break; fi
+            sleep 2
+          done
+          [[ "$candidate" =~ ^[a-f0-9]{40}$ ]]
+          refs=$(gh api "repos/$REPO/git/matching-refs/heads/gh-readonly-queue/codex/mq-dispatch-probe-base/")
+          ref=$(jq -er --arg sha "$candidate" '[.[] | select(.object.sha==$sha)] | if length==1 then .[0].ref else error("Expected one candidate ref") end' <<< "$refs")
+          echo "Dispatch candidate=$candidate ref=$ref PR=$PR"
+          jq -n --arg ref "${ref#refs/heads/}" --arg sha "$candidate" --arg pr "$PR" '{ref:$ref,inputs:{expected_sha:$sha,pr:$pr}}' > dispatch.json
+          gh api "repos/$REPO/actions/workflows/ci-scripts-tests.yml/dispatches" --method POST --input dispatch.json
