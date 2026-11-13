@@ -105,12 +105,13 @@
     {
       "path": ".github/workflows/build-tools-images.yml",
       "name": "Build tools images",
-      "header_sha256": "259550a7b717c2fa2a4e933a25e64db312562164cec31e499eb3b5a26ffe864b",
+      "header_sha256": "5c977e138fe443eb45cd102e853e8a1cafe39ba04499beb8be49a3abe520603d",
       "pull_request": {
         "branches": [
           "master",
           "main",
-          "release-*"
+          "release-*",
+          "codex-mq-integration-rerun-20261113"
         ]
       },
       "merge_group": {
@@ -566,11 +567,12 @@
     {
       "path": ".github/workflows/frontend.yml",
       "name": "Frontend Tests",
-      "header_sha256": "b20b9b594c143f1b47d0f38fec62cc068cb815462705b31cd6df5afdb8f9d0e4",
+      "header_sha256": "8bbee50c579067c7d4a595ca4c2d987c63b52a5a68a2ea1ebdc74d4d400e7392",
       "pull_request": {
         "branches": [
           "master",
-          "main"
+          "main",
+          "codex-mq-integration-rerun-20261113"
         ],
         "paths": [
           "frontend/**",
@@ -887,11 +889,12 @@
     {
       "path": ".github/workflows/pre-commit.yml",
       "name": "pre-commit",
-      "header_sha256": "7b861248e2c5013565dc93546e8813b2e4516b655952634db2999d30ee9c29bd",
+      "header_sha256": "fa1c325616a6b5cd753ea746e4b022de8d7f7514534bc8da5c2256bdf9f2417c",
       "pull_request": {
         "branches": [
           "master",
-          "main"
+          "main",
+          "codex-mq-integration-rerun-20261113"
         ]
       },
       "merge_group": {

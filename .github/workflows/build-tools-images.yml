@@ -14,6 +14,7 @@ on:
       - master
       - main
       - 'release-*'
+      - codex-mq-integration-rerun-20261113
   workflow_dispatch:
     inputs:
       queue_head_sha:

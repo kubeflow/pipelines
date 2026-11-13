@@ -29,6 +29,7 @@ on:
     branches:
       - master
       - main
+      - codex-mq-integration-rerun-20261113
     paths:
       - 'frontend/**'
       - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
