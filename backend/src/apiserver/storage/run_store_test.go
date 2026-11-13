@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -3349,7 +3350,34 @@ func TestListRuns_SortByExperimentIdAndRecurringRunIdPaginates(t *testing.T) {
 	}
 }
 
-// SQLite evaluates this overflow while advancing rows, after Query succeeds.
+func TestRunStorePropagatesSQLiteQueryError(t *testing.T) {
+	db, dbDialect, store := initializeRunStore()
+	defer db.Close()
+	columns := dialect.QuoteAll(dbDialect.QuoteIdentifier, runColumns)
+	columns[0] = "abs(-9223372036854775808) AS UUID"
+	_, err := db.Exec("ALTER TABLE run_details RENAME TO source_run_details")
+	require.NoError(t, err)
+	_, err = db.Exec("CREATE VIEW run_details AS SELECT " + strings.Join(columns, ", ") + " FROM source_run_details")
+	require.NoError(t, err)
+	t.Run("GetRun", func(t *testing.T) {
+		run, err := store.GetRun("1")
+		require.ErrorContains(t, err, "integer overflow")
+		require.Nil(t, run)
+		require.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	})
+	t.Run("ListRuns", func(t *testing.T) {
+		opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
+		require.NoError(t, err)
+		runs, total, token, err := store.ListRuns(&model.FilterContext{}, opts)
+		require.ErrorContains(t, err, "integer overflow")
+		require.Nil(t, runs)
+		require.Zero(t, total)
+		require.Empty(t, token)
+		require.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	})
+}
+
+// Keep first-row error coverage independent of SQLite's eager query execution.
 func TestScanRowsToRuns_IterationError(t *testing.T) {
 	db, _, store := initializeRunStore()
 	defer db.Close()
@@ -3357,8 +3385,15 @@ func TestScanRowsToRuns_IterationError(t *testing.T) {
 	valid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
 	columns[0] = "abs(-9223372036854775808)"
 	invalid := "SELECT " + strings.Join(columns, ", ") + " FROM run_details WHERE UUID = '1'"
+	t.Run("before first row", func(t *testing.T) {
+		streamErr := errors.New("simulated row iteration failure")
+		rows := queryRunIterationErrorRows(t, streamErr)
+		runs, err := store.scanRowsToRuns(rows)
+		require.ErrorIs(t, rows.Err(), streamErr)
+		require.ErrorIs(t, err, streamErr)
+		require.Nil(t, runs, "incomplete query results must not be returned as successful runs")
+	})
 	for _, tc := range []struct{ name, query string }{
-		{"before first row", invalid},
 		{"after valid row", valid + " UNION ALL " + invalid},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

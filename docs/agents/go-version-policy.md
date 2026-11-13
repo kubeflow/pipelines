@@ -15,6 +15,7 @@ All tracked Go modules are managed. The current set is:
 - `kubernetes_platform/go.mod`
 - `test/tools/project-cleaner/go.mod`
 - `third_party/ml-metadata/go.mod`
+- `proxy/agent.go.mod` (the locked upstream proxy module copied into its build)
 
 The managed Go builder images are the single builder `FROM` instructions in:
 
