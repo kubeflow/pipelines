@@ -81,6 +81,11 @@
 
 ## Bug fixes and other changes
 
+* `pip_trusted_hosts` on `@dsl.component` and `kfp component build` now adds
+  `--trusted-host` to the generated `pip install` commands even when
+  `pip_index_urls` is not set, for example when the index is configured in the
+  base image's `pip.conf`. Previously the trusted hosts were silently dropped.
+
 * Local execution passes whole numbers inside `List` and `Dict` parameters
   and outputs as ints, as the remote backend does, instead of floats.
 
