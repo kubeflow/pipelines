@@ -9,6 +9,12 @@ const AMD64_CONSUMERS = new Set([
 ]);
 
 function architectures(inventory, eventName, event, files) {
+  if (eventName === 'merge_group') {
+    if (!['refs/heads/master', 'refs/heads/main'].includes(event.merge_group?.base_ref)) {
+      throw new Error('Shared queue images require master or main');
+    }
+    return {amd64: true, arm64: true};
+  }
   if (eventName === 'push') return {amd64: true, arm64: false};
   if (eventName === 'workflow_dispatch') return {amd64: true, arm64: true};
   if (eventName !== 'pull_request') throw new Error(`Unsupported event: ${eventName}`);

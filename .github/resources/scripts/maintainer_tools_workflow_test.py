@@ -110,7 +110,12 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
             self.build['permissions'], {'contents': 'read', 'packages': 'write'}
         )
         self.assertEqual(self.publish['permissions'], self.build['permissions'])
-        for event in ('pull_request', 'push', 'workflow_dispatch'):
+        for event in (
+            'pull_request',
+            'merge_group',
+            'push',
+            'workflow_dispatch',
+        ):
             with self.subTest(event=event):
                 context = {
                     'github': {
@@ -124,7 +129,7 @@ class MaintainerToolsWorkflowTest(unittest.TestCase):
                         'compare-generated': {'result': 'success'},
                     },
                 }
-                is_pr = event == 'pull_request'
+                is_pr = event in ('pull_request', 'merge_group')
                 self.assertEqual(evaluate(self.check['if'], context), is_pr)
                 self.assertEqual(evaluate(self.build['if'], context), not is_pr)
                 self.assertEqual(
