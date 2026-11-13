@@ -495,6 +495,10 @@
           "type": "string",
           "description": "The Task that is associated with the creation of this artifact."
         },
+        "operation_id": {
+          "type": "string",
+          "description": "Optional. A caller-generated operation ID used to make artifact creation\nidempotent across RPC retries. The same operation ID is scoped to the\nnamespace, run, and task."
+        },
         "producer_key": {
           "type": "string",
           "description": "The outgoing parameter name of this Artifact within this task's component spec.\nFor example:\ndef preprocess(my_output: dsl.Outputs[dsl.Artifact]):\n  ...\nhere the producer_key == \"my_output\"\nNote that IOProducer.task_name is the same as task_name."

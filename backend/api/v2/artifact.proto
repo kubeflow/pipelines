@@ -153,6 +153,10 @@ message CreateArtifactRequest {
   // The Task that is associated with the creation of this artifact.
   string task_id = 3;
 
+  // Optional. A caller-generated operation ID used to make artifact creation
+  // idempotent across RPC retries. The same operation ID is scoped to the
+  // namespace, run, and task.
+  string operation_id = 4;
   // The outgoing parameter name of this Artifact within this task's component spec.
   // For example:
   // def preprocess(my_output: dsl.Outputs[dsl.Artifact]):
