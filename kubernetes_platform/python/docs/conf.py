@@ -147,13 +147,6 @@ html_theme_options = {
         },
         {
             'version':
-                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.18/',
-            'title':
-                '2.18',
-            'aliases': [],
-        },
-        {
-            'version':
                 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.15.2/',
             'title':
                 '2.15.2',
