@@ -17,6 +17,7 @@ package auth_test
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"strings"
 	"testing"
@@ -28,13 +29,15 @@ import (
 // depending on timing or performing expensive RSA private-key validation.
 func TestJOSERejectsUnsafeEmbeddedRSAKeys(t *testing.T) {
 	for _, tc := range []struct {
-		name      string
-		bits      uint
-		private   bool
-		wantError string
+		name         string
+		bits         uint
+		private      bool
+		wantError    string
+		wantKeyError bool
 	}{
 		{name: "public key", bits: 2048},
-		{name: "oversized modulus", bits: 4097, wantError: "modulus too large"},
+		{name: "public key at modulus limit", bits: 4096},
+		{name: "oversized modulus", bits: 4097, wantKeyError: true},
 		{name: "private parameters", bits: 2048, private: true, wantError: "JWK contains private parameters"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -58,7 +61,11 @@ func TestJOSERejectsUnsafeEmbeddedRSAKeys(t *testing.T) {
 			// verifying a signature; this fixture intentionally has no valid signature.
 			token := base64.RawURLEncoding.EncodeToString(header) + ".e30.c2lnbmF0dXJl"
 			_, err = jose.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256})
-			if tc.wantError == "" {
+			if tc.wantKeyError {
+				if !errors.Is(err, jose.ErrUnsupportedKeyType) {
+					t.Fatalf("want early unsupported RSA modulus rejection, got %v", err)
+				}
+			} else if tc.wantError == "" {
 				if err != nil {
 					t.Fatalf("parse bounded public key: %v", err)
 				}
