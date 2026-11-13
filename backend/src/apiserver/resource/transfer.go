@@ -526,42 +526,67 @@ func (r *ResourceManager) normalizeTransferReferences(b *history.NamespaceBundle
 	for _, v := range b.Versions {
 		versions[v.UUID] = true
 	}
-	normalize := func(s *model.PipelineSpec) error {
-		missing := false
+	// In multi-user mode the catalog holds only the namespace's own pipelines.
+	// Shared pipelines have no namespace and every namespace can run them, so a
+	// reference to one is kept as history the same way as a deleted pipeline:
+	// the link is dropped and the retained inline definition stays. A reference
+	// to a pipeline owned by another namespace is still rejected.
+	shared := func(p *model.Pipeline) bool {
+		return common.IsMultiUserMode() && r.IsEmptyNamespace(p.Namespace)
+	}
+	normalize := func(s *model.PipelineSpec, owner string) error {
+		missing, sharedName := false, ""
 		if s.PipelineId != "" && !pipelines[s.PipelineId] {
-			_, err := r.pipelineStore.GetPipeline(s.PipelineId)
+			p, err := r.pipelineStore.GetPipeline(s.PipelineId)
 			if !util.IsUserErrorCodeMatch(err, codes.NotFound) {
 				if err != nil {
 					return err
 				}
-				return transferPrecondition("A referenced pipeline is outside the selected catalog; check namespace ownership and retry")
+				if !shared(p) {
+					return transferPrecondition("%s references pipeline %q outside the selected catalog; it belongs to another namespace", owner, p.Name)
+				}
+				sharedName = p.Name
 			}
 			missing = true
 			s.PipelineId = ""
 		}
 		if s.PipelineVersionId != "" && !versions[s.PipelineVersionId] {
-			_, err := r.pipelineStore.GetPipelineVersion(s.PipelineVersionId)
+			v, err := r.pipelineStore.GetPipelineVersion(s.PipelineVersionId)
 			if !util.IsUserErrorCodeMatch(err, codes.NotFound) {
 				if err != nil {
 					return err
 				}
-				return transferPrecondition("A referenced pipeline version is outside the selected catalog; check namespace ownership and retry")
+				parent, err := r.pipelineStore.GetPipeline(v.PipelineId)
+				if err != nil {
+					return err
+				}
+				if !shared(parent) {
+					return transferPrecondition("%s references pipeline version %q outside the selected catalog; it belongs to another namespace", owner, v.Name)
+				}
+				if sharedName == "" {
+					sharedName = v.Name
+				}
 			}
 			missing = true
 			s.PipelineVersionId = ""
 		}
 		if missing && s.PipelineSpecManifest == "" {
-			return transferPrecondition("A deleted pipeline definition has no retained inline specification")
+			if sharedName != "" {
+				return transferPrecondition("%s follows the latest version of shared pipeline %q, which is not part of this namespace's catalog. Pin it to a pipeline version, or recreate it from a pipeline in this namespace, and export again", owner, sharedName)
+			}
+			return transferPrecondition("%s references a deleted pipeline definition and has no retained inline specification", owner)
 		}
 		return nil
 	}
 	for i := range b.Entries {
-		if err := normalize(&b.Entries[i].Run.PipelineSpec); err != nil {
+		run := &b.Entries[i].Run
+		if err := normalize(&run.PipelineSpec, fmt.Sprintf("Run %q (%s)", run.DisplayName, run.UUID)); err != nil {
 			return err
 		}
 	}
 	for i := range b.Schedules {
-		if err := normalize(&b.Schedules[i].PipelineSpec); err != nil {
+		job := &b.Schedules[i]
+		if err := normalize(&job.PipelineSpec, fmt.Sprintf("Recurring run %q (%s)", job.DisplayName, job.UUID)); err != nil {
 			return err
 		}
 	}
