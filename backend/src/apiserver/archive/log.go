@@ -288,8 +288,9 @@ func (a *LogArchive) CopyLogFromArchiveReader(logReader io.Reader, dst io.Writer
 			continue
 		}
 		var err error
-		// Probe with a *string log field so raw JSON application logs lacking a
-		// string "log" key (or literal null) are not misread as empty RunLogEntries.
+		// Probe with a *string log field so Docker JSON log wrappers are detected,
+		// and preserve valid non-wrapper JSON lines before attempting text-prefix parsers
+		// (e.g. CRI-O / K8s) so embedded CRI-like text is not misparsed.
 		var entry struct {
 			Log       *string   `json:"log"`
 			Timestamp time.Time `json:"timestamp,omitempty"`
@@ -302,6 +303,8 @@ func (a *LogArchive) CopyLogFromArchiveReader(logReader io.Reader, dst io.Writer
 			} else {
 				_, err = fmt.Fprintln(dst, *entry.Log)
 			}
+		} else if json.Valid(bytes) {
+			err = writeLogLn(dst, bytes, nil, opts)
 		} else if result := crioLogPrefixExp.FindSubmatch(bytes); len(result) == 4 {
 			err = writeLogLn(dst, result[3], result[1], opts)
 		} else if result := k8sLogPrefixExp.FindSubmatch(bytes); len(result) == 3 {

@@ -408,6 +408,18 @@ func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
 			expected: "null\n{}\n",
 		},
 		{
+			name:     "valid non-wrapper JSON with embedded CRI-like text in text format",
+			input:    "{\"message\":\"process stderr F failed\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "{\"message\":\"process stderr F failed\"}\n",
+		},
+		{
+			name:     "valid non-wrapper JSON with embedded CRI-like text in text format with timestamps",
+			input:    "{\"message\":\"process stderr F failed\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "{\"message\":\"process stderr F failed\"}\n",
+		},
+		{
 			name:     "null and non-string log fields preserved in text format",
 			input:    "{\"log\":null}\n{\"timestamp\":\"2020-08-31T15:00:00Z\",\"log\":null}\n{\"log\":123}\n{\"log\":true}\n{\"log\":{}}\n{\"log\":[\"a\"]}\n",
 			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
@@ -436,6 +448,7 @@ func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
 			input: strings.Join([]string{
 				`{"timestamp":"2020-08-31T15:00:00Z","log":"wrapper line"}`,
 				`{"epoch":1,"loss":0.25}`,
+				`{"message":"process stderr F failed"}`,
 				`{}`,
 				`null`,
 				`{"log":null}`,
@@ -448,6 +461,7 @@ func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
 			expected: strings.Join([]string{
 				`2020-08-31T15:00:00Z wrapper line`,
 				`{"epoch":1,"loss":0.25}`,
+				`{"message":"process stderr F failed"}`,
 				`{}`,
 				`null`,
 				`{"log":null}`,
@@ -472,6 +486,7 @@ func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
 	jsonFallbackLines := []string{
 		`{"epoch":1,"loss":0.25}`,
 		`{"timestamp":"2020-08-31T15:00:00Z","msg":"Model saved"}`,
+		`{"message":"process stderr F failed"}`,
 		`{}`,
 		`null`,
 		`{"log":null}`,
@@ -502,6 +517,7 @@ func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
 			`{"timestamp":"2020-08-31T15:00:00Z","log":"wrapper line"}`,
 			`{"log":""}`,
 			`{"epoch":1,"loss":0.25}`,
+			`{"message":"process stderr F failed"}`,
 			`{}`,
 			`null`,
 			`{"log":null}`,
@@ -519,6 +535,7 @@ func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
 			{Timestamp: logTs0, Log: "wrapper line"},
 			{Log: ""},
 			{Log: `{"epoch":1,"loss":0.25}`},
+			{Log: `{"message":"process stderr F failed"}`},
 			{Log: `{}`},
 			{Log: `null`},
 			{Log: `{"log":null}`},
