@@ -1,9 +1,9 @@
-FROM golang:1.27.3-alpine@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS builder
+FROM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS builder
 
 RUN apk add --no-cache git
 WORKDIR /src
 # Keep real tag metadata so Go identifies the module version, not (devel).
-# Patch x/net and x/text for security fixes; the go.mod changes yield +dirty.
+# Patch Go dependencies for security fixes; the go.mod changes yield +dirty.
 ARG KUBERNETES_VERSION=v1.37.1
 ARG KUBERNETES_TAG_OBJECT=d2b770f4c94636a992534a8d3156b6b2d8e82ac3
 ARG KUBERNETES_COMMIT=f78e722310e50bcaca9276be22276d9e91d91308
@@ -15,7 +15,7 @@ RUN kubernetes_version="${KUBERNETES_VERSION#v}" \
     && kubernetes_major="${kubernetes_version%%.*}" \
     && kubernetes_minor="${kubernetes_version#*.}" \
     && kubernetes_minor="${kubernetes_minor%%.*}" \
-    && go get golang.org/x/net@v0.62.0 golang.org/x/text@v0.43.0 \
+    && go get golang.org/x/net@v0.62.0 golang.org/x/crypto@v0.59.0 golang.org/x/text@v0.44.0 \
     && go build -trimpath -buildvcs=true -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=${KUBERNETES_VERSION} -X k8s.io/component-base/version.gitMajor=${kubernetes_major} -X k8s.io/component-base/version.gitMinor=${kubernetes_minor} -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl \
     && go version -m /out/kubectl > /out/kubectl.buildinfo \
     && cat /out/kubectl.buildinfo \

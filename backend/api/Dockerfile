@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.27.3@sha256:2920bb124f1a2e12a1d39f0cab756ae0068441ee1da7655dec7f5e374944095b AS generator
+FROM golang:1.27.4@sha256:5e8afd493a7124a8586e134d9b532731161d4b9becf9dee5a5956b107426f93d AS generator
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
@@ -66,11 +66,9 @@ RUN git init /googleapis && \
     git remote add origin https://github.com/googleapis/googleapis.git && \
     git fetch --depth 1 origin ${GOOGLEAPIS_COMMIT} && \
     git checkout FETCH_HEAD
-# Download go-swagger binary.
-RUN set -eu; \
-    go_swagger_version="$(cd /tmp/api-generator-tools && go mod edit -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
-    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
-    chmod +x /usr/bin/swagger
+# Build Swagger with the canonical compiler and the locked security patches.
+RUN cd /tmp/api-generator-tools && \
+    GOBIN=/usr/bin go install -mod=readonly github.com/go-swagger/go-swagger/cmd/swagger
 
 # Use uv for Python builds: pip bundles dependencies independently of upgrades
 # to the installed setuptools and HTTP libraries.

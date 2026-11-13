@@ -165,6 +165,19 @@ class GoVersionUpdaterTest(unittest.TestCase):
                 with self.assertRaises(updater.PolicyError):
                     updater._parse_exact_version(invalid)
 
+    def test_alternate_proxy_module_is_updated_and_checked(self):
+        fixture = RepositoryFixture(self)
+        proxy = Path('proxy/agent.go.mod')
+        fixture.write(proxy, 'module example.com/proxy\n\ngo 1.25.0\n')
+        fixture.commit()
+        changed = fixture.update('1.27.1', lambda tag: NEW_DIGESTS[tag])
+        self.assertIn(proxy, changed)
+        self.assertIn('toolchain go1.27.1', fixture.read(proxy))
+        fixture.check()
+        fixture.write(proxy, 'module example.com/proxy\n\ngo 1.25.0\n')
+        with self.assertRaises(updater.PolicyError):
+            fixture.check()
+
     def test_render_module_sets_and_removes_toolchain(self):
         fixture = RepositoryFixture(self)
         original = fixture.read(Path('go.mod'))

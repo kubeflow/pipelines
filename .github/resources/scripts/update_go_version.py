@@ -177,7 +177,9 @@ def _tracked_paths(repo_root: Path) -> Set[Path]:
 
 
 def _module_paths(tracked_paths: Iterable[Path]) -> List[Path]:
-    paths = sorted(path for path in tracked_paths if path.name == 'go.mod')
+    paths = sorted(
+        path for path in tracked_paths
+        if path.name == 'go.mod' or path == Path('proxy/agent.go.mod'))
     if Path('go.mod') not in paths:
         raise PolicyError('the tracked root go.mod is required')
     return paths
