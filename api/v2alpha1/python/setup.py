@@ -18,7 +18,7 @@ from typing import List
 import setuptools
 
 NAME = 'kfp-pipeline-spec'
-VERSION = '2.18.0'
+VERSION = '2.18.1'
 
 
 def get_requirements(requirements_file: str) -> List[str]:
