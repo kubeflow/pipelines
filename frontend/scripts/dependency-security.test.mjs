@@ -17,12 +17,12 @@ import { readFileSync } from 'node:fs';
 import { satisfies } from 'semver';
 import { expect, it } from 'vitest';
 
-it('patches every selector parser, including nested Tailwind/PostCSS copies', () => {
+it('rejects vulnerable selector parsers if a dependency reintroduces them', () => {
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
   const parsers = Object.entries(lock.packages).filter(([path]) =>
     path.endsWith('/postcss-selector-parser'),
   );
-  expect(parsers.length).toBeGreaterThan(0);
+  // Tailwind 4 removes this dependency; any future copies must stay patched.
   for (const [path, dependency] of parsers) {
     expect(satisfies(dependency.version, '>=7.1.6'), `${path}@${dependency.version}`).toBe(true);
   }
