@@ -3262,3 +3262,65 @@ func TestToApiRecurringRunPluginsInput(t *testing.T) {
 		assert.Nil(t, got.PluginsInput)
 	})
 }
+
+// enable_caching has three states, and unset must stay distinct from false
+// through every conversion, including a runtime config with no parameters
+// and no pipeline root.
+func TestEnableCachingRoundTrip(t *testing.T) {
+	for _, enableCaching := range []*bool{nil, proto.Bool(false), proto.Bool(true)} {
+		name := "unset"
+		if enableCaching != nil {
+			name = fmt.Sprint(*enableCaching)
+		}
+		t.Run(name, func(t *testing.T) {
+			var runtimeConfig *apiv2.RuntimeConfig
+			if enableCaching != nil {
+				runtimeConfig = &apiv2.RuntimeConfig{EnableCaching: proto.Bool(*enableCaching)}
+			}
+
+			modelRun, err := toModelRun(&apiv2.Run{
+				DisplayName:   "run",
+				RuntimeConfig: runtimeConfig,
+				PipelineSource: &apiv2.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2.PipelineVersionReference{PipelineId: "p1", PipelineVersionId: "v1"},
+				},
+			})
+			require.NoError(t, err)
+			assert.Equal(t, enableCaching, modelRun.EnableCaching)
+			assert.True(t, proto.Equal(runtimeConfig, toAPIRun(modelRun).GetRuntimeConfig()), "run: %v", toAPIRun(modelRun).GetRuntimeConfig())
+
+			modelJob, err := toModelJob(&apiv2.RecurringRun{
+				DisplayName:    "job",
+				MaxConcurrency: 1,
+				Mode:           apiv2.RecurringRun_ENABLE,
+				RuntimeConfig:  runtimeConfig,
+				Trigger: &apiv2.Trigger{Trigger: &apiv2.Trigger_PeriodicSchedule{
+					PeriodicSchedule: &apiv2.PeriodicSchedule{IntervalSecond: 60},
+				}},
+				PipelineSource: &apiv2.RecurringRun_PipelineVersionReference{
+					PipelineVersionReference: &apiv2.PipelineVersionReference{PipelineId: "p1"},
+				},
+			})
+			require.NoError(t, err)
+			assert.Equal(t, enableCaching, modelJob.EnableCaching)
+			assert.True(t, proto.Equal(runtimeConfig, toAPIRecurringRun(modelJob).GetRuntimeConfig()), "recurring run: %v", toAPIRecurringRun(modelJob).GetRuntimeConfig())
+		})
+	}
+}
+
+func TestEnableCachingKeptWithParameters(t *testing.T) {
+	apiConfig := toAPIRuntimeConfig(model.RuntimeConfig{
+		Parameters:    `{"text":"world"}`,
+		PipelineRoot:  "gs://root",
+		EnableCaching: proto.Bool(false),
+	})
+	require.NotNil(t, apiConfig)
+	require.NotNil(t, apiConfig.EnableCaching)
+	assert.False(t, apiConfig.GetEnableCaching())
+	assert.Equal(t, "world", apiConfig.GetParameters()["text"].GetStringValue())
+
+	modelConfig, err := toModelRuntimeConfig(apiConfig)
+	require.NoError(t, err)
+	require.NotNil(t, modelConfig.EnableCaching)
+	assert.False(t, *modelConfig.EnableCaching)
+}

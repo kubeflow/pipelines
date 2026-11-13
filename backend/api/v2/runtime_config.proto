@@ -18,6 +18,7 @@ option go_package = "github.com/kubeflow/pipelines/backend/api/v2/go_client";
 package kubeflow.pipelines.backend.api.v2;
 
 import "google/protobuf/struct.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
 // The runtime config.
 message RuntimeConfig {
@@ -30,4 +31,15 @@ message RuntimeConfig {
   // generate the paths of output artifacts.
   // Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
   string pipeline_root = 2;
+
+  // Overrides caching for every task in the run, including tasks in nested
+  // DAGs. When unset, each task keeps the caching setting it was compiled
+  // with. When true, caching is still disabled if the deployment disables it.
+  // For recurring runs, the setting applies to every triggered run.
+  optional bool enable_caching = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    extensions: {
+      key: "x-nullable"
+      value: {bool_value: true}
+    }
+  }];
 }

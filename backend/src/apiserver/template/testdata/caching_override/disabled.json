@@ -1,0 +1,422 @@
+{
+  "pipeline_info": {
+    "name": "nested-caching"
+  },
+  "sdk_version": "kfp-2.17.0",
+  "schema_version": "2.1.0",
+  "deployment_spec": {
+    "executors": {
+      "exec-step-3": {
+        "container": {
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef step(x: int) -> int:\n    return x\n\n"
+          ],
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "step"
+          ],
+          "image": "python:3.11-slim"
+        }
+      },
+      "exec-step": {
+        "container": {
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef step(x: int) -> int:\n    return x\n\n"
+          ],
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "step"
+          ],
+          "image": "python:3.11-slim"
+        }
+      },
+      "exec-step-2": {
+        "container": {
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef step(x: int) -> int:\n    return x\n\n"
+          ],
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "step"
+          ],
+          "image": "python:3.11-slim"
+        }
+      },
+      "exec-cleanup": {
+        "container": {
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef cleanup():\n    pass\n\n"
+          ],
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "cleanup"
+          ],
+          "image": "python:3.11-slim"
+        }
+      }
+    }
+  },
+  "components": {
+    "comp-step-3": {
+      "input_definitions": {
+        "parameters": {
+          "x": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "output_definitions": {
+        "parameters": {
+          "Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "executor_label": "exec-step-3"
+    },
+    "comp-condition-2": {
+      "input_definitions": {
+        "parameters": {
+          "pipelinechannel--step-Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "dag": {
+        "tasks": {
+          "for-loop-4": {
+            "task_info": {
+              "name": "for-loop-4"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelinechannel--step-Output": {
+                  "component_input_parameter": "pipelinechannel--step-Output"
+                }
+              }
+            },
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-for-loop-4"
+            },
+            "parameter_iterator": {
+              "items": {
+                "raw": "[1, 2, 3]"
+              },
+              "item_input": "pipelinechannel--loop-item-param-3"
+            }
+          }
+        }
+      }
+    },
+    "comp-step-2": {
+      "input_definitions": {
+        "parameters": {
+          "x": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "output_definitions": {
+        "parameters": {
+          "Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "executor_label": "exec-step-2"
+    },
+    "comp-exit-handler-1": {
+      "input_definitions": {
+        "parameters": {
+          "pipelinechannel--n": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "dag": {
+        "tasks": {
+          "step": {
+            "task_info": {
+              "name": "step"
+            },
+            "inputs": {
+              "parameters": {
+                "x": {
+                  "component_input_parameter": "pipelinechannel--n"
+                }
+              }
+            },
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-step"
+            }
+          },
+          "condition-2": {
+            "task_info": {
+              "name": "condition-2"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelinechannel--step-Output": {
+                  "task_output_parameter": {
+                    "producer_task": "step",
+                    "output_parameter_key": "Output"
+                  }
+                }
+              }
+            },
+            "dependent_tasks": [
+              "step"
+            ],
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-condition-2"
+            },
+            "trigger_policy": {
+              "condition": "int(inputs.parameter_values['pipelinechannel--step-Output']) > 0"
+            }
+          },
+          "inner-2": {
+            "task_info": {
+              "name": "inner-2"
+            },
+            "inputs": {
+              "parameters": {
+                "x": {
+                  "component_input_parameter": "pipelinechannel--n"
+                }
+              }
+            },
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-inner-2"
+            }
+          }
+        }
+      }
+    },
+    "comp-inner": {
+      "input_definitions": {
+        "parameters": {
+          "x": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "output_definitions": {
+        "parameters": {
+          "Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "dag": {
+        "tasks": {
+          "step": {
+            "task_info": {
+              "name": "step"
+            },
+            "inputs": {
+              "parameters": {
+                "x": {
+                  "component_input_parameter": "x"
+                }
+              }
+            },
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-step-3"
+            }
+          }
+        },
+        "outputs": {
+          "parameters": {
+            "Output": {
+              "value_from_parameter": {
+                "producer_subtask": "step",
+                "output_parameter_key": "Output"
+              }
+            }
+          }
+        }
+      }
+    },
+    "comp-step": {
+      "input_definitions": {
+        "parameters": {
+          "x": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "output_definitions": {
+        "parameters": {
+          "Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "executor_label": "exec-step"
+    },
+    "comp-for-loop-4": {
+      "input_definitions": {
+        "parameters": {
+          "pipelinechannel--step-Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          },
+          "pipelinechannel--loop-item-param-3": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "dag": {
+        "tasks": {
+          "inner": {
+            "task_info": {
+              "name": "inner"
+            },
+            "inputs": {
+              "parameters": {
+                "x": {
+                  "component_input_parameter": "pipelinechannel--loop-item-param-3"
+                }
+              }
+            },
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-inner"
+            }
+          }
+        }
+      }
+    },
+    "comp-cleanup": {
+      "executor_label": "exec-cleanup"
+    },
+    "comp-inner-2": {
+      "input_definitions": {
+        "parameters": {
+          "x": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "output_definitions": {
+        "parameters": {
+          "Output": {
+            "parameter_type": "NUMBER_INTEGER"
+          }
+        }
+      },
+      "dag": {
+        "tasks": {
+          "step": {
+            "task_info": {
+              "name": "step"
+            },
+            "inputs": {
+              "parameters": {
+                "x": {
+                  "component_input_parameter": "x"
+                }
+              }
+            },
+            "caching_options": {},
+            "component_ref": {
+              "name": "comp-step-2"
+            }
+          }
+        },
+        "outputs": {
+          "parameters": {
+            "Output": {
+              "value_from_parameter": {
+                "producer_subtask": "step",
+                "output_parameter_key": "Output"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "root": {
+    "input_definitions": {
+      "parameters": {
+        "n": {
+          "parameter_type": "NUMBER_INTEGER",
+          "default_value": 1.0,
+          "is_optional": true
+        }
+      }
+    },
+    "dag": {
+      "tasks": {
+        "exit-handler-1": {
+          "task_info": {
+            "name": "exit-handler-1"
+          },
+          "inputs": {
+            "parameters": {
+              "pipelinechannel--n": {
+                "component_input_parameter": "n"
+              }
+            }
+          },
+          "caching_options": {},
+          "component_ref": {
+            "name": "comp-exit-handler-1"
+          }
+        },
+        "cleanup": {
+          "task_info": {
+            "name": "cleanup"
+          },
+          "dependent_tasks": [
+            "exit-handler-1"
+          ],
+          "caching_options": {},
+          "component_ref": {
+            "name": "comp-cleanup"
+          },
+          "trigger_policy": {
+            "strategy": "ALL_UPSTREAM_TASKS_COMPLETED"
+          }
+        }
+      }
+    }
+  }
+}

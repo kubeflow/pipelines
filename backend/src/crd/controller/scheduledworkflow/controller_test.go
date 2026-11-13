@@ -197,6 +197,31 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *test
 	assert.Equal(t, int64(100), request.Run.ScheduledAt.GetSeconds())
 }
 
+// The recurring run's enable_caching override is sent with every run, and
+// an unset override stays unset rather than becoming false.
+func TestSubmitNewWorkflowIfNotAlreadySubmitted_EnableCaching(t *testing.T) {
+	for _, enableCaching := range []*bool{nil, commonutil.BoolPointer(false), commonutil.BoolPointer(true)} {
+		runClient := &fakeRunClient{}
+		controller := &Controller{
+			workflowClient: client.NewWorkflowClient(&fakeExecutionClient{}, &fakeExecutionInformer{}),
+			runClient:      runClient,
+		}
+		swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+			ObjectMeta: metav1.ObjectMeta{Name: "scheduled-workflow", Namespace: "ns1", UID: "scheduled-workflow-uid"},
+			Spec: swfapi.ScheduledWorkflowSpec{
+				PipelineId: "pipeline-id",
+				Workflow:   &swfapi.WorkflowResource{EnableCaching: enableCaching},
+			},
+		})
+
+		_, _, _, err := controller.submitNewWorkflowIfNotAlreadySubmitted(context.Background(), swf, 100, 200)
+
+		require.NoError(t, err)
+		require.NotNil(t, runClient.createRunRequest)
+		assert.Equal(t, enableCaching, runClient.createRunRequest.Run.GetRuntimeConfig().EnableCaching)
+	}
+}
+
 // fakeRunClient captures the CreateRun request the controller sends. The
 // embedded interface satisfies the rest of RunServiceClient, so a method the
 // controller is not expected to call panics instead of silently succeeding.

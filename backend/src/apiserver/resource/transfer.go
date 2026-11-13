@@ -426,7 +426,9 @@ func (r *ResourceManager) transferScheduleWorkflow(ctx context.Context, plan *hi
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid schedule parameters")
 		}
-		swf.Spec.Workflow = &scheduledworkflow.WorkflowResource{Parameters: parameters, PipelineRoot: string(job.PipelineRoot)}
+		swf.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+			Parameters: parameters, PipelineRoot: string(job.PipelineRoot), EnableCaching: job.EnableCaching,
+		}
 		// Catalog rows may not exist yet, so take the names from the archive.
 		for _, p := range plan.Bundle.Pipelines {
 			if p.UUID == job.PipelineId {

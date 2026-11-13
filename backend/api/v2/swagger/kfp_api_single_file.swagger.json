@@ -3250,6 +3250,11 @@
         "pipeline_root": {
           "type": "string",
           "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts.\nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+        },
+        "enable_caching": {
+          "type": "boolean",
+          "description": "Overrides caching for every task in the run, including tasks in nested\nDAGs. When unset, each task keeps the caching setting it was compiled\nwith. When true, caching is still disabled if the deployment disables it.\nFor recurring runs, the setting applies to every triggered run.",
+          "x-nullable": true
         }
       },
       "description": "The runtime config."

@@ -341,7 +341,7 @@ func TestStoragePropagatesRowsErr(t *testing.T) {
 			"CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec", "Cron",
 			"PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
 			"PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters",
-			"Conditions", "RuntimeParameters", "PipelineRoot", "ExperimentUUID",
+			"Conditions", "RuntimeParameters", "PipelineRoot", "EnableCaching", "ExperimentUUID",
 			"PipelineVersionId", "PluginsInput", "refs",
 		},
 		[]driver.Value{
@@ -350,7 +350,7 @@ func TestStoragePropagatesRowsErr(t *testing.T) {
 			nil, nil, nil,
 			nil, nil, nil,
 			"p-1", "pname", "", "", "[]",
-			"", nil, nil, nil,
+			"", nil, nil, nil, nil,
 			nil, nil, nil,
 		},
 		func(rows *sql.Rows) (int, error) {

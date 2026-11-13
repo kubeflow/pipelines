@@ -528,6 +528,7 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		return nil, util.NewInvalidInputError("Failed to convert API runtime config to its internal representation. Input cannot be nil")
 	}
 	var params, root string
+	var enableCaching *bool
 	switch obj := obj.(type) {
 	case *apiv2.RuntimeConfig:
 		apiRuntimeConfigV2 := obj
@@ -537,6 +538,11 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		}
 		params = p
 		root = apiRuntimeConfigV2.GetPipelineRoot()
+		// The request may omit runtime_config, so the pointer can be nil.
+		if apiRuntimeConfigV2 != nil && apiRuntimeConfigV2.EnableCaching != nil {
+			value := apiRuntimeConfigV2.GetEnableCaching()
+			enableCaching = &value
+		}
 	case *pipelinespec.PipelineJob_RuntimeConfig:
 		specRuntimeConfig := obj
 		p, err := toModelParameters(specRuntimeConfig.GetParameterValues())
@@ -549,8 +555,9 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		return nil, util.NewUnknownApiVersionError("RuntimeConfig", obj)
 	}
 	return &model.RuntimeConfig{
-		Parameters:   model.LargeText(params),
-		PipelineRoot: model.LargeText(root),
+		Parameters:    model.LargeText(params),
+		PipelineRoot:  model.LargeText(root),
+		EnableCaching: enableCaching,
 	}, nil
 }
 
@@ -559,6 +566,10 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 // Note: returns nil if a parsing error occurs.
 func toAPIRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2.RuntimeConfig {
 	apiRuntimeConfig := apiv2.RuntimeConfig{}
+	if modelRuntime.EnableCaching != nil {
+		value := *modelRuntime.EnableCaching
+		apiRuntimeConfig.EnableCaching = &value
+	}
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return &apiRuntimeConfig
 	}
@@ -702,8 +713,9 @@ func toModelRun(apiRunV2 *apiv2.Run) (*model.Run, error) {
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
 			Parameters:           model.LargeText(specParams),
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   model.LargeText(cfgParams),
-				PipelineRoot: model.LargeText(pipelineRoot),
+				Parameters:    model.LargeText(cfgParams),
+				PipelineRoot:  model.LargeText(pipelineRoot),
+				EnableCaching: cfg.EnableCaching,
 			},
 		},
 		RunDetails: model.RunDetails{
@@ -752,7 +764,7 @@ func toAPIRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	if runtimeConfig != nil && len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
 		if params := toMapProtoStructParameters(string(r.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
-		} else {
+		} else if runtimeConfig.EnableCaching == nil {
 			runtimeConfig = nil
 		}
 	}
@@ -1030,8 +1042,9 @@ func toModelJob(apiJob *apiv2.RecurringRun) (*model.Job, error) {
 			WorkflowSpecManifest: model.LargeText(workflowSpec),
 			Parameters:           model.LargeText(specParams),
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   model.LargeText(cfgParams),
-				PipelineRoot: model.LargeText(pipelineRoot),
+				Parameters:    model.LargeText(cfgParams),
+				PipelineRoot:  model.LargeText(pipelineRoot),
+				EnableCaching: cfg.EnableCaching,
 			},
 		},
 	}, nil
@@ -1080,10 +1093,10 @@ func toAPIRecurringRun(j *model.Job) *apiv2.RecurringRun {
 			Error:          util.ToRpcStatus(util.NewInternalServerError(util.NewInvalidInputError("Runtime config was not parsed correctly"), "Failed to convert recurring run's internal representation to its API counterpart")),
 		}
 	}
-	if runtimeConfig == nil || (len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0) {
+	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
 		if params := toMapProtoStructParameters(string(j.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
-		} else {
+		} else if runtimeConfig.EnableCaching == nil {
 			runtimeConfig = nil
 		}
 	}
