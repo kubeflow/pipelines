@@ -49,6 +49,36 @@ class TestPythonMinimum(unittest.TestCase):
             )
         self.assertTrue(namespace['TYPE_CHECK'])
 
+    def test_runtime_import_needs_no_dependencies_without_kfp_runtime_env(self):
+        with (
+            mock.patch.object(sys, 'version_info', (3, 11, 0)),
+            mock.patch.dict('os.environ', {}, clear=True),
+        ):
+            namespace = runpy.run_path(
+                str(Path(__file__).with_name('__init__.py')),
+                init_globals={'__path__': []},
+            )
+        self.assertTrue(namespace['TYPE_CHECK'])
+
+    def test_lazy_modules_present_in_dir(self):
+        import kfp
+
+        for mod in ['Client', 'dsl', 'compiler', 'components']:
+            self.assertIn(mod, dir(kfp))
+
+    def test_dsl_runtime_import_needs_no_compiler_dependencies(self):
+        from kfp.dsl import Artifact, Dataset, Input, Output
+        from kfp.dsl.executor import Executor
+
+        self.assertIsNotNone(Artifact)
+        self.assertIsNotNone(Executor)
+
+    def test_dsl_dir_contains_lazy_compile_time_symbols(self):
+        from kfp import dsl
+
+        for symbol in ['component', 'pipeline', 'Condition', 'ParallelFor']:
+            self.assertIn(symbol, dir(dsl))
+
 
 if __name__ == '__main__':
     unittest.main()

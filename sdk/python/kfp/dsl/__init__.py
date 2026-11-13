@@ -300,16 +300,15 @@ Example:
         artifact_consumer(model=producer_task.output)
 """
 
-# compile-time only dependencies
-if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
     from kfp.dsl.component_decorator import component
     from kfp.dsl.component_task_config import (
         TaskConfigField,
         TaskConfigPassthrough,
     )
     from kfp.dsl.container_component_decorator import container_component
-
-    # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
     from kfp.dsl.notebook_component_decorator import notebook_component
@@ -332,29 +331,60 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         ParallelFor,
     )
 
-    __all__.extend(
-        [
-            'component',
-            'container_component',
-            'pipeline',
-            'importer',
-            'ContainerSpec',
-            'Condition',
-            'If',
-            'Elif',
-            'Else',
-            'OneOf',
-            'ExitHandler',
-            'ParallelFor',
-            'Collected',
-            'IfPresentPlaceholder',
-            'ConcatPlaceholder',
-            'PipelineTask',
-            'PipelineConfig',
-            'WorkspaceConfig',
-            'KubernetesWorkspaceConfig',
-            'TaskConfigField',
-            'TaskConfigPassthrough',
-            'notebook_component',
-        ]
-    )
+_LAZY_COMPILE_TIME_SYMBOLS = {
+    'component': ('kfp.dsl.component_decorator', 'component'),
+    'TaskConfigField': ('kfp.dsl.component_task_config', 'TaskConfigField'),
+    'TaskConfigPassthrough': (
+        'kfp.dsl.component_task_config',
+        'TaskConfigPassthrough',
+    ),
+    'container_component': (
+        'kfp.dsl.container_component_decorator',
+        'container_component',
+    ),
+    'Collected': ('kfp.dsl.for_loop', 'Collected'),
+    'importer': ('kfp.dsl.importer_node', 'importer'),
+    'notebook_component': (
+        'kfp.dsl.notebook_component_decorator',
+        'notebook_component',
+    ),
+    'OneOf': ('kfp.dsl.pipeline_channel', 'OneOf'),
+    'KubernetesWorkspaceConfig': (
+        'kfp.dsl.pipeline_config',
+        'KubernetesWorkspaceConfig',
+    ),
+    'PipelineConfig': ('kfp.dsl.pipeline_config', 'PipelineConfig'),
+    'WorkspaceConfig': ('kfp.dsl.pipeline_config', 'WorkspaceConfig'),
+    'pipeline': ('kfp.dsl.pipeline_context', 'pipeline'),
+    'PipelineTask': ('kfp.dsl.pipeline_task', 'PipelineTask'),
+    'ConcatPlaceholder': ('kfp.dsl.placeholders', 'ConcatPlaceholder'),
+    'IfPresentPlaceholder': (
+        'kfp.dsl.placeholders',
+        'IfPresentPlaceholder',
+    ),
+    'ContainerSpec': ('kfp.dsl.structures', 'ContainerSpec'),
+    'Condition': ('kfp.dsl.tasks_group', 'Condition'),
+    'Elif': ('kfp.dsl.tasks_group', 'Elif'),
+    'Else': ('kfp.dsl.tasks_group', 'Else'),
+    'ExitHandler': ('kfp.dsl.tasks_group', 'ExitHandler'),
+    'If': ('kfp.dsl.tasks_group', 'If'),
+    'ParallelFor': ('kfp.dsl.tasks_group', 'ParallelFor'),
+}
+
+__all__.extend(list(_LAZY_COMPILE_TIME_SYMBOLS.keys()))
+
+
+def __getattr__(name: str):
+    if name in _LAZY_COMPILE_TIME_SYMBOLS:
+        module_name, attr_name = _LAZY_COMPILE_TIME_SYMBOLS[name]
+        import importlib
+
+        mod = importlib.import_module(module_name)
+        val = getattr(mod, attr_name)
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
+def __dir__():
+    return sorted(list(globals().keys()) + __all__)

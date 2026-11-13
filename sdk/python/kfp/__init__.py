@@ -27,11 +27,31 @@ if sys.version_info < (3, 11):
 
 TYPE_CHECK = True
 
-import os
+from typing import TYPE_CHECKING
 
-# compile-time only dependencies
-if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
-    # make `from kfp import components` and `from kfp import dsl` valid;
-    # related to namespace packaging issue
-    from kfp import components, dsl
+if TYPE_CHECKING:
+    from kfp import compiler, components, dsl
     from kfp.client import Client
+
+_LAZY_MODULES = {
+    'Client': ('kfp.client', 'Client'),
+    'components': ('kfp.components', None),
+    'compiler': ('kfp.compiler', None),
+    'dsl': ('kfp.dsl', None),
+}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_MODULES:
+        module_name, attr_name = _LAZY_MODULES[name]
+        import importlib
+
+        mod = importlib.import_module(module_name)
+        val = getattr(mod, attr_name) if attr_name else mod
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
+def __dir__():
+    return sorted(list(globals().keys()) + list(_LAZY_MODULES.keys()))

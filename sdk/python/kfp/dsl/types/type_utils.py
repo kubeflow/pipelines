@@ -29,7 +29,6 @@ except ImportError:  # pragma: no cover
 
 import warnings
 
-import kfp
 from kfp.dsl import task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types, type_annotations
@@ -382,12 +381,16 @@ class TypeCheckManager:
         Returns:
             TypeCheckManager: Returns itself.
         """
+        import kfp
+
         self._prev = kfp.TYPE_CHECK
         kfp.TYPE_CHECK = self._enable
         return self
 
     def __exit__(self, *unused_args) -> None:
         """Restore type check mode to its previous state."""
+        import kfp
+
         kfp.TYPE_CHECK = self._prev
 
 
