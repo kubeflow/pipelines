@@ -1,7 +1,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 pyarrow==26.0.1
 xgboost==3.4.1
-scikit-learn==1.7.2
+scikit-learn==1.9.1
 pandas==3.0.6
 polars==2.0.0
 torch==2.14.1+cpu; sys_platform == "linux"
