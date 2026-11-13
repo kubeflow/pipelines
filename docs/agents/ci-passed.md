@@ -467,3 +467,7 @@ release branches on their existing merge path. Queue runs build images without
 publishing them and use the queue SHA for test source downloads. Shared CI image
 production builds both architectures for queue candidates; producer and consumer
 provenance must agree on the exact queue ref, candidate SHA and base identity.
+
+Queue admission preparation and the reviewed external Tide patch are described in
+[merge-queue-activation.md](merge-queue-activation.md). The checked-in admission
+policy defaults to disabled, preserving existing PR freshness and revocation.

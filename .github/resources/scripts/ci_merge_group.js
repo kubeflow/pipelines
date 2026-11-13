@@ -12,6 +12,7 @@
 'use strict';
 
 const {applicable, validateInventory, invalidRunMetadata, loadBaseInventory} = require('./ci_expected_workflows');
+const {inspectQueue} = require('./merge_queue_admission');
 const SHA = /^[0-9a-f]{40}$/;
 
 function candidate(context) {
@@ -111,8 +112,10 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
       pullRequest: {base: {sha: base, ref: group.baseRef, repo: {full_name:
         `${context.repo.owner}/${context.repo.repo}`}}}});
     const expected = expectedWorkflows(inventory.inventory, inventory.workflowFiles, group.baseRef);
+    const policy = await inspectQueue({github, context, group, root});
     const current = async () => (await readRef(github, context, group.branch)) === group.head &&
-      (await readRef(github, context, group.baseRef)) === base;
+      (await readRef(github, context, group.baseRef)) === base &&
+      (await inspectQueue({github, context, group, root})) === policy;
     let result = await evidence(github, context, group, expected);
     core.info(JSON.stringify({head: group.head, base, expected, ...result}));
     if (!result.passed) {
@@ -135,7 +138,8 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
       throw error;
     }
     if (queueHead !== group.head || await readRef(github, context, group.baseRef) !== base ||
-        !(await evidence(github, context, group, expected)).passed) {
+        !(await evidence(github, context, group, expected)).passed ||
+        (await inspectQueue({github, context, group, root})) !== policy) {
       await publish('pending', 'Queue candidate or CI changed; waiting for current evidence.');
     }
   } catch (error) {

@@ -174,7 +174,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "9f5d917c871716338adb117a3f084b482f8d2b35d8e71346fa7bb3cf0fa4f6d8",
+      "header_sha256": "8fb4f61d8dae2946b0707aee9cd556c783893eb420985cad29353f083b3437b5",
       "pull_request": null,
       "merge_group": null
     },
@@ -272,10 +272,12 @@
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
       "name": "CI Scripts Tests",
-      "header_sha256": "058db78d6302c61f3cd13795da95d5ec14182434a9e3138a4ec5f39780229c36",
+      "header_sha256": "e3675bd106b9588c91d08c1b12d64155a8d246b68ebeb6bf5539e467395203dd",
       "pull_request": {
         "paths": [
           ".github/dependabot.yml",
+          ".github/merge-queue-policy.json",
+          "docs/agents/merge-queue-tide.patch",
           "**/go.mod",
           "backend/api/hack/uv.sh",
           "**/package.json",

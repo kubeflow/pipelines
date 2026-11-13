@@ -15,7 +15,7 @@ on:
   schedule:
     - cron: '7,22,37,52 * * * *'
   pull_request_target:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed, ready_for_review, converted_to_draft]
   workflow_run:
     # Explicit constituents prevent CI Check from recursively triggering itself.
     workflows:
@@ -169,7 +169,7 @@ jobs:
           ignore_superseded_runs: 'true'
           # Expected workflow completion is verified independently; these
           # exclusions cannot hide a failing constituent workflow.
-          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          checks_exclude: '^check_ci_status( \(.*\))?$,^queue_admission$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
           token: ${{ github.token }}
 
       - name: Reconcile status and informational label
@@ -233,7 +233,7 @@ jobs:
           poll: 'false'
           delay: '0'
           ignore_superseded_runs: 'true'
-          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          checks_exclude: '^check_ci_status( \(.*\))?$,^queue_admission$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
           token: ${{ github.token }}
       - if: steps.prepare.outputs.ready == 'true' && steps.poll.outcome == 'success'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
@@ -264,6 +264,7 @@ jobs:
       actions: read
       contents: read
       statuses: write
+      pull-requests: read
     steps:
       - name: Check out the trusted publisher revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -283,3 +284,62 @@ jobs:
           script: |
             const {reconcile} = require('./.github/resources/scripts/ci_merge_group.js');
             await reconcile({github, context, core});
+
+  queue_admission:
+    # Each survivor checks all queue members plus the affected PR. Scheduled
+    # recovery sweeps all open PRs; replaced label events cannot strand holds.
+    needs: check_ci_status
+    if: >-
+      always() && !cancelled() && (
+      github.event_name == 'schedule' ||
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'workflow_run' && github.event.action == 'completed' &&
+       github.event.workflow_run.event == 'pull_request'))
+    concurrency:
+      group: merge-queue-admission
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - id: policy
+        name: Read inactive-by-default queue policy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {loadPolicy} = require('./.github/resources/scripts/merge_queue_policy');
+            core.setOutput('enabled', String(loadPolicy().enabled_branches.length > 0));
+      - id: app
+        if: steps.policy.outputs.enabled == 'true'
+        # App mutations can trigger merge_group workflows; the built-in token
+        # remains the ci-passed writer to preserve its required app binding.
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.MERGE_QUEUE_APP_ID }}
+          private-key: ${{ secrets.MERGE_QUEUE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Reconcile Prow approval policy with GitHub queue admission
+        # Still revoke held candidates if App token creation failed.
+        if: always() && !cancelled() && steps.policy.outputs.enabled == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          QUEUE_APP_TOKEN: ${{ steps.app.outputs.token }}
+        with:
+          script: |
+            const {sweep} = require('./.github/resources/scripts/merge_queue_admission');
+            const mutationGithub = {graphql: (query, variables) => {
+              if (!process.env.QUEUE_APP_TOKEN) throw new Error('Queue App token unavailable; no mutation attempted.');
+              return github.graphql(query, {
+                ...variables, headers: {authorization: `token ${process.env.QUEUE_APP_TOKEN}`}});
+            }};
+            await sweep({github, mutationGithub, context, core});

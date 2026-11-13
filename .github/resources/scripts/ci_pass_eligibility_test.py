@@ -212,6 +212,11 @@ jobs:
     return {data: {object: {sha: baseTip}}};
   }},
 }, paginate: async (method, params) => {
+  if (method === 'GET /repos/{owner}/{repo}/rules/branches/{branch}') {
+    calls.push(['queue-rules', params.branch]);
+    if (options.queueRulesFailure) throw Error('Queue rules unavailable');
+    return published && options.queueRemovedAfterSuccess ? [] : (options.queueRules || []);
+  }
   if (method === methods.statuses) {requestCounts.history++; return statusHistory;}
   if (method === methods.files) {requestCounts.files++; return [{filename: 'frontend/src/mlmd/Api.ts'}];}
   if (method === methods.pulls) {requestCounts.pulls++; return options.ambiguous ? [pr, {...pr, number: 8}] : [pr];}
@@ -247,7 +252,7 @@ github.paginate.iterator = async function* () {
 };
 (async () => {
   let error;
-  const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
+  const recoveryBefore = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
   for (cycle = 0; cycle < (options.cycles || 1); cycle++) {
   context.runId = 99 + cycle;
   for (const key of Object.keys(outputs)) delete outputs[key];
@@ -275,7 +280,7 @@ github.paginate.iterator = async function* () {
       pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
   }
-  const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context}) : null;
+  const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
   console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels, requestCounts}));
 })().catch(e => {console.error(e); process.exit(1);});
 """

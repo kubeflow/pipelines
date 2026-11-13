@@ -14,7 +14,7 @@
 
 'use strict';
 
-const EXCLUDED = /^(?:check_ci_status(?: \(.*\))?|Cleanup artifacts|Upload results|Agent|Prepare)$/;
+const EXCLUDED = /^(?:check_ci_status(?: \(.*\))?|queue_admission|Cleanup artifacts|Upload results|Agent|Prepare)$/;
 const OWN_WORKFLOW_PATH = '.github/workflows/ci-checks.yml';
 const ACTIVE = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 const UNSTARTED = new Set(['queued', 'waiting', 'requested', 'pending']);

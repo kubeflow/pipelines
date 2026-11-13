@@ -14,6 +14,7 @@
 const {verifyExpectedWorkflows, loadBaseInventory} = require('./ci_expected_workflows');
 const {hasActiveWorkflowRuns, workflowFailures, verifyCheckRuns} = require('./ci_check_runs');
 const {readRecoveryStatuses} = require('./ci_recovery_statuses');
+const {queueEnabled} = require('./merge_queue_policy');
 
 function isDevelopmentBranch(ref) {
   return ref === 'master' || ref === 'main';
@@ -70,14 +71,14 @@ function basePolicyStamp(baseRef, baseSha) {
     .update(JSON.stringify([baseRef, baseSha])).digest('hex');
 }
 
-function successDescription(pr, baseSha) {
+function successDescription(pr, baseSha, queueAdmission = false) {
   // Legacy statuses and statuses from another base must be reconsidered by
   // recovery. baseSha is the single validated revision resolved by the caller.
   const stamp = basePolicyStamp(pr.base.ref, baseSha);
-  return `Expected CI and all checks passed; base policy ${stamp}.`;
+  return `${queueAdmission ? `Queue admission ${pr.base.ref} CI passed` : 'Expected CI and all checks passed'}; base policy ${stamp}.`;
 }
 
-async function recoveryCandidates({github, context}) {
+async function recoveryCandidates({github, context, root = process.env.GITHUB_WORKSPACE}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
   });
@@ -89,15 +90,24 @@ async function recoveryCandidates({github, context}) {
     // Revisit green heads when their trusted base policy changes, including
     // statuses published before base-policy stamps were introduced.
     const status = statuses.get(pr.head.sha);
+    let queueAdmission;
+    try {
+      queueAdmission = await queueEnabled({github, context, branch: pr.base.ref, root});
+    } catch (_) {
+      // Reconciliation invalidates green and fails closed when enforcement is
+      // missing or unreadable; discovery must not strand a prior queue green.
+      candidates.push({number: pr.number, head: pr.head.sha});
+      continue;
+    }
     if (status?.state === 'success' &&
-        status.description === successDescription(pr, await baseRevision(github, context, pr))) continue;
+        status.description === successDescription(pr, await baseRevision(github, context, pr), queueAdmission)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
   return candidates;
 }
 
-async function revokeStaleGreens({github, context, tip}) {
+async function revokeStaleGreens({github, context, tip, root = process.env.GITHUB_WORKSPACE}) {
   // Push-triggered revocation narrows the stale-green merge window (#14762): the
   // moment a development branch advances, a ci-passed success stamped against
   // any prior base revision is revoked instead of waiting for the next scheduled sweep.
@@ -113,6 +123,8 @@ async function revokeStaleGreens({github, context, tip}) {
       !isDevelopmentBranch(branch)) {
     throw new Error('Stale revocation requires a push to master or main');
   }
+  // Queue candidates own base freshness only after the queue is enforced.
+  if (await queueEnabled({github, context, branch, root})) return 0;
   // Only the most recent push may revoke. Push jobs can execute out of order:
   // the branch may advance B then C, CI Check publish a success stamped for C, and
   // a delayed B job would otherwise treat that valid C green as stale and
@@ -259,8 +271,10 @@ async function evidence(github, context, pr, root) {
   // Development branch tips advance behind the publisher's back; release
   // branches keep their frozen base.sha behavior (see baseRevision). The
   // freshness check is scoped to the live base so release branches are
-  // unchanged.
-  const liveBase = isDevelopmentBranch(pr.base.ref);
+  // unchanged. An enforced queue validates the combined candidate instead;
+  // admission still checks current-head CI, trusted policy, and retarget history.
+  const queuedAdmission = await queueEnabled({github, context, branch: pr.base.ref, root});
+  const liveBase = isDevelopmentBranch(pr.base.ref) && !queuedAdmission;
   const [inventory, cutoff] = await Promise.all([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),
     freshAfter(github, context, pr),
@@ -283,7 +297,7 @@ async function evidence(github, context, pr, root) {
       result = await verifyExpectedWorkflows({...args, registrationStartedAt: new Date(start).toISOString()});
     }
   }
-  return {...result, baseSha};
+  return {...result, baseSha, queueAdmission: queuedAdmission};
 }
 
 async function invalidateActiveWorkflow({github, context, pr}) {
@@ -415,6 +429,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     let state = 'failure';
     let validatedBaseSha;
+    let validatedQueueAdmission = false;
     let reason = blocked(pr) ? 'PR is held by needs-ok-to-test; obtain maintainer approval.' :
       'PR changed or is closed; complete current-head CI and retry.';
     if (pr.head.sha === head && pr.state === 'open' && snapshot(pr) === before && !blocked(pr)) {
@@ -448,6 +463,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
         prepared?.state === 'failure' ? null : verifyCheckRuns({github, ...context.repo, sha: head}),
       ]);
       validatedBaseSha = workflows.baseSha;
+      validatedQueueAdmission = workflows.queueAdmission === true;
       core.info(JSON.stringify({workflows, checks}));
       const results = checks ? [workflows, checks] : [workflows];
       state = results.some(result => result.state === 'failure') ? 'failure' :
@@ -465,7 +481,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
     }
     if (state === 'failure') errorReason = reason;
     await publish(github, context, original, state,
-      state === 'success' ? successDescription(pr, validatedBaseSha) : reason);
+      state === 'success' ? successDescription(pr, validatedBaseSha, validatedQueueAdmission) : reason);
     // Status/label writes are not atomic with PR or CI changes. Revalidate
     // external checks as well as workflow evidence after publishing green.
     if (state === 'success') {
