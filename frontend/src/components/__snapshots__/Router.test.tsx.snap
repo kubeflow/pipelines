@@ -34,7 +34,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <div
                   class="alignItems"
@@ -116,7 +116,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <div
                   class="alignItems"
@@ -195,7 +195,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <svg
                   aria-hidden="true"
@@ -236,7 +236,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <svg
                   aria-hidden="true"
@@ -277,7 +277,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <svg
                   aria-hidden="true"
@@ -330,7 +330,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <svg
                   aria-hidden="true"
@@ -379,7 +379,7 @@ exports[`Router > initial render 1`] = `
               type="button"
             >
               <div
-                class="flex flex-row flex-shrink-0"
+                class="flex flex-row shrink-0"
               >
                 <img
                   alt="Github"

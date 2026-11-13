@@ -27,7 +27,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -109,7 +109,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -188,7 +188,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -229,7 +229,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -270,7 +270,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -323,7 +323,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -372,7 +372,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -510,7 +510,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -592,7 +592,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -671,7 +671,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -712,7 +712,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -753,7 +753,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -806,7 +806,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -855,7 +855,7 @@ exports[`SideNav > populates the display build information using the default pro
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -976,7 +976,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -1058,7 +1058,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -1137,7 +1137,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1178,7 +1178,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1219,7 +1219,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1272,7 +1272,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1321,7 +1321,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -1442,7 +1442,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -1524,7 +1524,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -1603,7 +1603,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1644,7 +1644,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1685,7 +1685,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1738,7 +1738,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -1787,7 +1787,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -1908,7 +1908,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -1990,7 +1990,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -2069,7 +2069,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2110,7 +2110,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2151,7 +2151,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2204,7 +2204,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2253,7 +2253,7 @@ exports[`SideNav > renders collapsed state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -2374,7 +2374,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -2456,7 +2456,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -2535,7 +2535,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2576,7 +2576,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2617,7 +2617,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2670,7 +2670,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -2719,7 +2719,7 @@ exports[`SideNav > renders expanded state 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -2840,7 +2840,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -2922,7 +2922,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -3001,7 +3001,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3042,7 +3042,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3083,7 +3083,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3136,7 +3136,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3185,7 +3185,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -3306,7 +3306,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -3388,7 +3388,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -3467,7 +3467,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3508,7 +3508,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3549,7 +3549,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3602,7 +3602,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3651,7 +3651,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -3772,7 +3772,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -3854,7 +3854,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -3933,7 +3933,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -3974,7 +3974,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4015,7 +4015,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4068,7 +4068,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4117,7 +4117,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -4238,7 +4238,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -4320,7 +4320,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -4399,7 +4399,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4440,7 +4440,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4481,7 +4481,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4534,7 +4534,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4583,7 +4583,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -4704,7 +4704,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -4786,7 +4786,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -4865,7 +4865,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4906,7 +4906,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -4947,7 +4947,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5000,7 +5000,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5049,7 +5049,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -5170,7 +5170,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -5252,7 +5252,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -5331,7 +5331,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5372,7 +5372,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5413,7 +5413,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5466,7 +5466,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5515,7 +5515,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -5636,7 +5636,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -5718,7 +5718,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -5797,7 +5797,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5838,7 +5838,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5879,7 +5879,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5932,7 +5932,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -5981,7 +5981,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -6102,7 +6102,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -6184,7 +6184,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -6263,7 +6263,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6304,7 +6304,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6345,7 +6345,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6398,7 +6398,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6447,7 +6447,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -6568,7 +6568,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -6650,7 +6650,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -6729,7 +6729,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6770,7 +6770,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6811,7 +6811,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6864,7 +6864,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -6913,7 +6913,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -7034,7 +7034,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -7116,7 +7116,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -7195,7 +7195,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7236,7 +7236,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7277,7 +7277,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7330,7 +7330,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7379,7 +7379,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
@@ -7500,7 +7500,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -7582,7 +7582,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <div
               class="alignItems"
@@ -7661,7 +7661,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7702,7 +7702,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7743,7 +7743,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7794,7 +7794,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7847,7 +7847,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <svg
               aria-hidden="true"
@@ -7896,7 +7896,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
           type="button"
         >
           <div
-            class="flex flex-row flex-shrink-0"
+            class="flex flex-row shrink-0"
           >
             <img
               alt="Github"
