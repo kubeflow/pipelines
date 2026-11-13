@@ -10,18 +10,13 @@
 
 # 2.18.1
 
-## Features
-
-## Breaking changes
-
-## Deprecations
-
 ## Bug fixes and other changes
 
-* backport sub-pipeline condition compile fix to 2.18 (#15267)
-* prefer explicit credentials over automatic ADC (#15262)
-* backport safe local condition evaluation to 2.18 (#15260)
-* backport ADC credential-selection fix to release-2.18 (#15254)
+- Fix compilation when both a pipeline and a nested pipeline component use `dsl.If`; recompile affected pipelines ([#15267](https://github.com/kubeflow/pipelines/pull/15267)).
+- Evaluate local conditions without executing task-output text as Python code ([#15260](https://github.com/kubeflow/pipelines/pull/15260)).
+- Validate HTTPS authority before automatic Google Application Default Credentials selection, preserve credential provenance during refresh, and bound polling authentication-refresh retries. Explicit credentials take precedence over automatic ADC ([#15254](https://github.com/kubeflow/pipelines/pull/15254), [#15262](https://github.com/kubeflow/pipelines/pull/15262)).
+- Refresh dependencies while retaining Python 3.9 compatibility through interpreter-specific dependency selections. Older Python dependency branches retain known security limitations; these changes do not establish that all findings are resolved.
+
 # 2.18.0
 
 ## Features
