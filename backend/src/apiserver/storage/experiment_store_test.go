@@ -15,9 +15,11 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 
@@ -924,5 +926,129 @@ func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
 				}
 			})
 		})
+	}
+}
+
+type settableClock struct{ sec int64 }
+
+func (c *settableClock) Now() time.Time { return time.Unix(c.sec, 0).UTC() }
+
+// Regression: runs archived through ArchiveExperiment must get ArchivedAtInSec,
+// otherwise the GC delete pass falls back to FinishedAtInSec and removes old
+// runs right after their experiment is archived, ignoring
+// ARCHIVED_RUNS_RETENTION_TIME.
+func TestArchiveExperiment_StampsArchivedAtForRetention(t *testing.T) {
+	db, d := NewFakeDBOrFatal()
+	defer db.Close()
+	testArchiveExperimentRetention(t, db, d)
+}
+
+// Runs the same scenario on the MySQL and PostgreSQL databases that backend
+// CI supplies through KFP_RECURRING_{MYSQL,POSTGRES}_TEST_DSN; skips locally
+// when the DSN is not set.
+func TestArchiveExperiment_StampsArchivedAtForRetentionProductionDatabases(t *testing.T) {
+	for _, driver := range []string{"mysql", "pgx"} {
+		t.Run(driver, func(t *testing.T) {
+			dbs, d := recurringIntegrationDatabases(t, driver)
+			testArchiveExperimentRetention(t, dbs[0], d)
+		})
+	}
+}
+
+func testArchiveExperimentRetention(t *testing.T, db *sql.DB, d dialect.DBDialect) {
+	const (
+		day       = int64(24 * 60 * 60)
+		retention = 30 * day
+		today     = 1000 * day
+	)
+	clock := &settableClock{sec: today - 10*day}
+	var expStore *ExperimentStore
+	for id, name := range map[string]string{fakeID: "exp", fakeIDTwo: "other"} {
+		s, err := NewExperimentStore(db, clock, util.NewFakeUUIDGeneratorOrFatal(id, nil), d)
+		require.NoError(t, err)
+		_, err = s.CreateExperiment(&model.Experiment{Name: name, Namespace: "ns"})
+		require.NoError(t, err)
+		if id == fakeID {
+			expStore = s
+		}
+	}
+	runStore := NewRunStore(db, clock, d)
+	// Every finished run finished long ago, so the legacy FinishedAtInSec
+	// fallback treats it as expired the moment it is archived.
+	runs := map[string]string{
+		"archived-earlier":      fakeID, // archived on its own 10 days before the experiment
+		"by-experiment-uuid-1":  fakeID,
+		"by-experiment-uuid-2":  fakeID,
+		"by-resource-reference": "", // v1 run linked only through resource_references
+		"still-running":         fakeID,
+		"archived-individually": fakeIDTwo,
+		"unrelated":             fakeIDTwo,
+	}
+	for id, expID := range runs {
+		details := model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100,
+			State:           model.RuntimeStateSucceeded,
+			Conditions:      string(model.RuntimeStateSucceededV1),
+		}
+		if id == "still-running" {
+			details = model.RunDetails{CreatedAtInSec: 1, State: model.RuntimeStateRunning, Conditions: string(model.RuntimeStateRunningV1)}
+		}
+		_, err := runStore.CreateRun(&model.Run{
+			UUID: id, K8SName: id, DisplayName: id, Namespace: "ns",
+			ExperimentId: expID, StorageState: model.StorageStateAvailable,
+			RunDetails: details,
+		})
+		require.NoError(t, err)
+	}
+	tx, err := db.Begin()
+	require.NoError(t, err)
+	require.NoError(t, NewResourceReferenceStore(db, nil, d).CreateResourceReferences(tx, []*model.ResourceReference{{
+		ResourceUUID: "by-resource-reference", ResourceType: model.RunResourceType,
+		ReferenceUUID: fakeID, ReferenceName: "exp", ReferenceType: model.ExperimentResourceType,
+		Relationship: model.OwnerRelationship,
+	}}))
+	require.NoError(t, tx.Commit())
+
+	require.NoError(t, runStore.ArchiveRun("archived-earlier"))
+	clock.sec = today
+	require.NoError(t, runStore.ArchiveRun("archived-individually"))
+	require.NoError(t, expStore.ArchiveExperiment(fakeID))
+	clock.sec = today + day
+	require.NoError(t, expStore.ArchiveExperiment(fakeID)) // repeated archival must not move timestamps
+
+	wantArchivedAt := map[string]int64{
+		"archived-earlier":      today - 10*day,
+		"by-experiment-uuid-1":  today,
+		"by-experiment-uuid-2":  today,
+		"by-resource-reference": today,
+		"still-running":         today, // stamped, but GC never deletes an unfinished run
+		"archived-individually": today,
+		"unrelated":             0,
+	}
+	for id, want := range wantArchivedAt {
+		run, err := runStore.GetRun(id, false)
+		require.NoError(t, err)
+		assert.Equal(t, want, run.ArchivedAtInSec, "ArchivedAtInSec of %s", id)
+	}
+
+	deletedSoFar := map[string]bool{}
+	for _, step := range []struct {
+		now     int64
+		deletes []string
+	}{
+		{today + day, nil}, // GC right after archival: nothing is past the window
+		{today + retention - 5*day, []string{"archived-earlier"}},
+		{today + retention + day, []string{"by-experiment-uuid-1", "by-experiment-uuid-2", "by-resource-reference", "archived-individually"}},
+	} {
+		_, err := runStore.DeleteExpiredArchivedRuns(step.now-retention, 100)
+		require.NoError(t, err)
+		for _, id := range step.deletes {
+			deletedSoFar[id] = true
+		}
+		for id := range runs {
+			_, err := runStore.GetRun(id, false)
+			assert.Equal(t, deletedSoFar[id], err != nil, "GC at day %+d after archival: %s deleted=%v", (step.now-today)/day, id, err != nil)
+		}
 	}
 }

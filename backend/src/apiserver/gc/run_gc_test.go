@@ -24,6 +24,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -638,4 +640,47 @@ func TestLeaderLifecycle_SecondCallbackWaitsForFirstToDrain(t *testing.T) {
 	}()
 	requireSignal(t, thirdDone, "third callback did not run after the first drained")
 	assert.Equal(t, int32(2), runLoopStarts.Load())
+}
+
+// Regression: archiving an experiment must start the archived-run retention
+// window, so a collection pass right after archival keeps the experiment's
+// old runs and only deletes them once ARCHIVED_RUNS_RETENTION_TIME elapses.
+func TestCollect_KeepsExperimentArchivedRunsForRetentionWindow(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	viper.Set(common.ArchivedRunsRetentionTime, "720h")
+
+	const expID = "123e4567-e89b-12d3-a456-426655440000"
+	archivedAt := int64(1_000_000_000)
+	db, d := storage.NewFakeDBOrFatal()
+	defer db.Close()
+	clock := util.NewFakeTime(time.Unix(archivedAt, 0))
+	expStore, err := storage.NewExperimentStore(db, clock, util.NewFakeUUIDGeneratorOrFatal(expID, nil), d)
+	require.NoError(t, err)
+	_, err = expStore.CreateExperiment(&model.Experiment{Name: "exp", Namespace: "ns"})
+	require.NoError(t, err)
+	runStore := storage.NewRunStore(db, clock, d)
+	_, err = runStore.CreateRun(&model.Run{
+		UUID: "old-run", K8SName: "old-run", DisplayName: "old-run", Namespace: "ns",
+		ExperimentId: expID, StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100, // finished long before the experiment was archived
+			State:           model.RuntimeStateSucceeded,
+			Conditions:      string(model.RuntimeStateSucceededV1),
+		},
+	})
+	require.NoError(t, err)
+	require.NoError(t, expStore.ArchiveExperiment(expID))
+
+	now := archivedAt + 60*60
+	gc := &RunGarbageCollector{runStore: runStore, nowFunc: func() int64 { return now }}
+	gc.collect(context.Background())
+	_, err = runStore.GetRun("old-run", false)
+	assert.NoError(t, err, "run deleted one hour after its experiment was archived, inside the 720h retention window")
+
+	now = archivedAt + 721*60*60
+	gc.collect(context.Background())
+	_, err = runStore.GetRun("old-run", false)
+	assert.Error(t, err, "run must be deleted once the retention window has elapsed")
 }
