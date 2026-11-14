@@ -18,7 +18,7 @@
         "check_response_timeout_minutes": 120,
         "grouping_strategy": "ALLGREEN",
         "max_entries_to_build": 5,
-        "max_entries_to_merge": 2,
+        "max_entries_to_merge": 5,
         "merge_method": "SQUASH",
         "min_entries_to_merge": 1,
         "min_entries_to_merge_wait_minutes": 1

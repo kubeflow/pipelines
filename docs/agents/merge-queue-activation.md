@@ -183,12 +183,15 @@ reviewed artifacts. Do not blindly replay a saved protection snapshot.
 
 - [merge-queue-ruleset.json](merge-queue-ruleset.json) is a proposed repository
   ruleset scoped to `~DEFAULT_BRANCH`, with no bypass actors. It requires
-  squash/ALLGREEN queue merging, at most five building and two merging entries,
+  squash/ALLGREEN queue merging, at most five building and five merging entries,
   a 120-minute check timeout, and `ci-passed` (Actions App 15368) plus DCO (1861).
   Five concurrent candidate builds follow the CI arrival-rate analysis and the
   seven-PR integration replay, which verified the five-candidate cap and slot
-  replacement. This is separate from the two-entry merge limit and the
-  controller's four concurrent workflow dispatch operations. Monitor shared API
+  replacement. The maximum merge group is five PRs, with a minimum of one: a
+  ready PR need not wait for a partner. Merge limits apply after checks pass;
+  they do not combine candidate CI builds. ALLGREEN still requires every
+  candidate's checks to pass. Build concurrency and merge limits are separate
+  from the controller's four concurrent workflow dispatch operations. Monitor shared API
   quota and candidate latency after activation; the replay does not establish
   installation-wide hourly API headroom.
 - [merge-queue-required-checks.json](merge-queue-required-checks.json) is a narrow
