@@ -32,6 +32,7 @@ async function dispatchGroup({github, context, group, core, root,
   if (await readRef(github, context, group.branch) !== group.head) return;
   const base = await readRef(github, context, group.baseRef);
   const policy = await inspectQueue({github, context, group, root});
+  if (policy === null) throw new Error('Queue policy disabled before dispatch validation.');
   const inventory = await loadInventory({github, ...context.repo, root,
     pullRequest: {base: {sha: base, ref: group.baseRef,
       repo: {full_name: `${context.repo.owner}/${context.repo.repo}`}}}});
