@@ -1,7 +1,7 @@
 bokeh==3.9.2
 gcsfs>=2026.10.1
-google-api-python-client==2.201.*
-itables==0.1.0
+google-api-python-client==2.202.*
+itables==2.9.1
 ipykernel==7.1.0
 ipython==9.18.1
 Jinja2>=3.1.2,<4
@@ -9,6 +9,7 @@ jupyter-client==8.6.3
 markupsafe>=2.1.1
 nbconvert==7.17.2
 nbformat==5.10.4
+pandas==2.3.2
 pyarrow==23.0.1
 scikit-learn==1.5.0
 tensorflow==2.21.0

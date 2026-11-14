@@ -14,17 +14,14 @@
 
 # gcsfs is required for pandas GCS integration.
 import gcsfs
+from itables import init_notebook_mode
 from itables import show
-# itables is requires as importing it changes the way pandas DataFrames are
-# rendered.
-import itables.interactive
-from itables.javascript import load_datatables
 import itables.options as opts
 import pandas as pd
 from tensorflow.python.lib.io import file_io
 
 # Forcefully load required JavaScript and CSS for datatables.
-load_datatables()
+init_notebook_mode(all_interactive=False, connected=False)
 
 # Remove maxByte limit to prevent issues where entire table cannot be rendered
 # due to size of data.
