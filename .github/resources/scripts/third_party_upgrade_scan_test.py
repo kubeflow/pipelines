@@ -109,6 +109,97 @@ class ImageUpgradeScanTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     scan.image_reference(checkout, target)
 
+    def test_profile_runtime_is_built_from_checkout_not_pulled(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary)
+            context = (
+                checkout / Path(scan.TARGETS['profile-controller'][0]).parent
+            )
+            context.mkdir(parents=True)
+            (context / 'Dockerfile').write_text('FROM python:3.13-slim\n')
+            (context / 'requirements.txt').write_text('botocore==1.43.29\n')
+            sha = 'c' * 40
+            with (
+                mock.patch.object(scan.subprocess, 'run') as build,
+                mock.patch.object(
+                    scan.subprocess,
+                    'check_output',
+                    side_effect=[
+                        (context / 'Dockerfile').read_bytes(),
+                        (context / 'requirements.txt').read_bytes(),
+                    ],
+                ),
+            ):
+                receipt = scan.build_profile_image(
+                    checkout,
+                    'ghcr.io/kubeflow/kfp-profile-controller:master',
+                    sha,
+                )
+            command = build.call_args.args[0]
+            self.assertEqual(command[-1], str(context))
+            self.assertIn('--load', command)
+            self.assertIn('linux/amd64', command)
+            self.assertIn(f'org.opencontainers.image.revision={sha}', command)
+            self.assertEqual(
+                receipt['image'], f'kfp-profile-controller:compat-{sha}'
+            )
+            self.assertEqual(
+                set(receipt['recipe_sha256']),
+                {'Dockerfile', 'requirements.txt'},
+            )
+            self.assertTrue(
+                all(
+                    len(value) == 64
+                    for value in receipt['recipe_sha256'].values()
+                )
+            )
+
+    def test_dirty_profile_recipe_cannot_claim_committed_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            checkout = Path(temporary)
+            context = (
+                checkout / Path(scan.TARGETS['profile-controller'][0]).parent
+            )
+            context.mkdir(parents=True)
+            (context / 'Dockerfile').write_text('FROM changed\n')
+            with (
+                mock.patch.object(
+                    scan.subprocess,
+                    'check_output',
+                    return_value=b'FROM original\n',
+                ),
+                mock.patch.object(scan.subprocess, 'run') as build,
+            ):
+                with self.assertRaisesRegex(
+                    ValueError, 'differs from source SHA'
+                ):
+                    scan.build_profile_image(
+                        checkout,
+                        'ghcr.io/kubeflow/kfp-profile-controller:master',
+                        'c' * 40,
+                    )
+                build.assert_not_called()
+
+    def test_profile_runtime_missing_recipe_does_not_fall_back_to_registry(
+        self,
+    ):
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            mock.patch.object(scan.subprocess, 'run') as build,
+        ):
+            with self.assertRaises(FileNotFoundError):
+                scan.build_profile_image(
+                    Path(temporary),
+                    'ghcr.io/kubeflow/kfp-profile-controller:master',
+                    'c' * 40,
+                )
+            build.assert_not_called()
+            self.assertIsNone(
+                scan.build_profile_image(
+                    Path(temporary), 'docker.io/alpine/k8s:1.37.2', 'c' * 40
+                )
+            )
+
     @unittest.skipUnless(
         importlib.util.find_spec('kfpr'),
         'Requires release tooling on PYTHONPATH',
@@ -197,6 +288,67 @@ class ImageUpgradeScanTest(unittest.TestCase):
                     mock.call(envelopes[1], image_id, 'sarif'),
                 ],
             )
+
+    @unittest.skipUnless(
+        importlib.util.find_spec('kfpr'),
+        'Requires release tooling on PYTHONPATH',
+    )
+    def test_built_profile_scan_records_source_and_scans_immutable_id(self):
+        image_id = 'sha256:' + 'a' * 64
+        sha = 'c' * 40
+        build = {
+            'source_sha': sha,
+            'image': f'kfp-profile-controller:compat-{sha}',
+            'recipe_sha256': {
+                'Dockerfile': 'd' * 64,
+                'requirements.txt': 'e' * 64,
+            },
+        }
+        metadata = [
+            {
+                'Id': image_id,
+                'Os': 'linux',
+                'Architecture': 'amd64',
+                'RepoDigests': [],
+                'Config': {
+                    'Labels': {'org.opencontainers.image.revision': sha}
+                },
+            }
+        ]
+
+        def scanner(actual, platform, output, report_format):
+            self.assertEqual(actual, image_id)
+            (output / 'scan.json').write_text(
+                json.dumps({'format': report_format, 'report': report([])})
+            )
+
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            mock.patch.object(
+                scan,
+                'image_reference',
+                return_value='ghcr.io/kubeflow/kfp-profile-controller:master',
+            ),
+            mock.patch.object(
+                scan, 'build_profile_image', return_value=build
+            ) as build_image,
+            mock.patch.object(
+                scan.subprocess,
+                'check_output',
+                side_effect=[sha, json.dumps(metadata)],
+            ),
+            mock.patch.object(scan.subprocess, 'run') as pull,
+            mock.patch('kfpr.osv_image_scan.scan_image', side_effect=scanner),
+            mock.patch('kfpr.osv_image_scan.validate_report'),
+        ):
+            subject, _ = scan.capture(
+                Path(temporary), 'profile-controller', Path(temporary) / 'out'
+            )
+            self.assertEqual(subject['build'], build)
+            self.assertEqual(subject['image_id'], image_id)
+            self.assertEqual(subject['repo_digests'], [])
+            build_image.assert_called_once()
+            pull.assert_not_called()
 
     @unittest.skipUnless(
         importlib.util.find_spec('kfpr'),

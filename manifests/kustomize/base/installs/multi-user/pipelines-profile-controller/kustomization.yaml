@@ -17,3 +17,6 @@ labels:
 - includeSelectors: true
   pairs:
     app: kubeflow-pipelines-profile-controller
+images:
+- name: ghcr.io/kubeflow/kfp-profile-controller
+  newTag: master
