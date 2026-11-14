@@ -28,7 +28,7 @@ const versions = [
   [join(dirname(minioRequire.resolve('stream-json')), '../package.json'), '3.7.0'],
   [
     join(dirname(createRequire(queryStringPath).resolve('decode-uri-component')), 'package.json'),
-    '0.5.0',
+    '0.5.1',
   ],
 ];
 for (const [file, expected] of versions) {

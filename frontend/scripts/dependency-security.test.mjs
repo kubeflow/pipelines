@@ -31,19 +31,26 @@ const scopes = {
     qs: '>=6.16.1 <7',
   },
   '../../test/frontend-integration-test/package-lock.json': {
+    'fast-xml-parser': '>=5.12.0 <6',
     undici: '>=6.29.1 <7 || >=7.30.1 <8',
     'serialize-javascript': '>=7.1.3 <8',
+    glob: '<9 || >=14.0.2 <15',
+    minimatch: '<9 || >=11.0.1 <12',
   },
   '../package-lock.json': {
     ...tooling,
     qs: '>=6.16.1 <7',
     storybook: '>=10.6.2 <11',
+    glob: '<9 || >=14.0.2 <15',
+    minimatch: '<9 || >=11.0.1 <12',
     zod: '>=4.6.6 <5',
   },
   '../server/package-lock.json': {
     ...tooling,
     'body-parser': '>=2.4.0 <3',
-    'follow-redirects': '>=1.16.1 <2',
+    'follow-redirects': '>=1.16.2 <2',
+    'fast-xml-parser': '>=5.12.0 <6',
+    'decode-uri-component': '>=0.5.1 <0.6',
     'stream-json': '>=3.7.0 <4',
   },
 };

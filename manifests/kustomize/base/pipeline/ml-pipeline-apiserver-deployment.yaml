@@ -125,7 +125,6 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: autoUpdatePipelineDefaultVersion
-
             - name: CRON_SCHEDULE_TIMEZONE
               valueFrom:
                 configMapKeyRef:
@@ -227,9 +226,9 @@ spec:
                   name: mlpipeline-minio-artifact
                   key: secretkey
             - name: V2_DRIVER_IMAGE
-              value: ghcr.io/kubeflow/kfp-driver:2.18.0
+              value: ghcr.io/kubeflow/kfp-driver:2.18.1
             - name: V2_LAUNCHER_IMAGE
-              value: ghcr.io/kubeflow/kfp-launcher:2.18.0
+              value: ghcr.io/kubeflow/kfp-launcher:2.18.1
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"

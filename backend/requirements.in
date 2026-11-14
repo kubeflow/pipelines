@@ -7,3 +7,6 @@ urllib3>=2.8.0,<3
 # 2026.10.19 retains the compromised emSign root removal while restoring unaffected
 # roots removed in 2026.10.18, preserving trust for unaffected certificate chains.
 certifi>=2026.10.19
+
+# Patched ASN.1 decoder used by authentication dependencies.
+pyasn1>=0.6.5

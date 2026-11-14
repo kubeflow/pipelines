@@ -29,7 +29,7 @@ RUN GO111MODULE=on go mod download
 RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflows/v4 > /tmp/argo-version
 
 COPY . .
-RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/apiserver ./backend/src/apiserver
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.11-slim AS compiler

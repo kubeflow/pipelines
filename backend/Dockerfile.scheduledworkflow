@@ -33,7 +33,7 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/controller ./backend/src/crd/controller/scheduledworkflow
 
 FROM alpine:3.21
 
