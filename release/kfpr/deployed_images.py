@@ -20,6 +20,119 @@ SOURCE_PATHS = (
     'backend/src/cache/server/mutation.go',
 )
 CACHE_CONSUMER = SOURCE_PATHS[6]
+ISTIO_OVERLAY = 'manifests/kustomize/third-party/istio/install'
+ISTIO_INPUTS = (
+    ISTIO_OVERLAY + '/kustomization.yaml',
+    ISTIO_OVERLAY + '/injector-values.json',
+)
+ISTIO_REPOSITORIES = {
+    'docker.io/istio/install-cni',
+    'docker.io/istio/pilot',
+    'docker.io/istio/proxyv2',
+}
+
+
+def _local_istio(sources, sha):
+    """Validate the bounded local image patch and its injection settings."""
+    overlay = yaml.safe_load(sources[ISTIO_INPUTS[0]])
+    expected = (
+        'https://github.com/kubeflow/community-distribution/'
+        + PREREQUISITES['istio']
+        + '?ref='
+        + sha
+    )
+    if overlay.get('resources') != [expected]:
+        raise ValueError('Istio overlay must use the pinned prerequisite base')
+    images = overlay.get('images', [])
+    if (
+        len(images) != 3
+        or {i.get('name') for i in images} != ISTIO_REPOSITORIES
+        or any(set(i) != {'name', 'newTag'} for i in images)
+    ):
+        raise ValueError(
+            'Istio overlay requires exactly the three runtime image overrides'
+        )
+    versions = {i['newTag'] for i in images}
+    if len(versions) != 1 or not re.fullmatch(
+        r'1\.31\.[0-9]+', next(iter(versions))
+    ):
+        raise ValueError(
+            'Istio patch images must share the compatible 1.31 version'
+        )
+    version = next(iter(versions))
+    values = json.loads(sources[ISTIO_INPUTS[1]])
+    if (
+        values.get('global', {}).get('tag') != version
+        or values['global'].get('hub') != 'docker.io/istio'
+    ):
+        raise ValueError(
+            'Istio injected sidecar version differs from runtime images'
+        )
+    if overlay.get('configMapGenerator') != [
+        {
+            'name': 'istio-sidecar-injector',
+            'namespace': 'istio-system',
+            'behavior': 'merge',
+            'files': ['values=injector-values.json'],
+        }
+    ]:
+        raise ValueError('Istio injector must consume the retained values file')
+    patches = overlay.get('patches', [])
+    target = {
+        'version': 'v1',
+        'kind': 'ConfigMap',
+        'name': 'istio-cni-config',
+        'namespace': 'kube-system',
+    }
+    if (
+        len(patches) != 1
+        or patches[0].get('target') != target
+        or yaml.safe_load(patches[0].get('patch', ''))
+        != [
+            {
+                'op': 'replace',
+                'path': '/data/CURRENT_AGENT_VERSION',
+                'value': version,
+            }
+        ]
+    ):
+        raise ValueError('Istio CNI version differs from runtime images')
+    return version, values
+
+
+def _validate_istio_render(sources, rendered, sha):
+    version, values = _local_istio(sources, sha)
+    images = {
+        image
+        for image in extract_images(rendered)
+        if repository_name(image) in ISTIO_REPOSITORIES
+    }
+    if images != {name + ':' + version for name in ISTIO_REPOSITORIES}:
+        raise ValueError(
+            'Rendered Istio images differ from the retained overlay'
+        )
+    maps = {
+        d['metadata']['name']: d
+        for d in yaml.safe_load_all(rendered)
+        if d and d.get('kind') == 'ConfigMap'
+    }
+    if (
+        json.loads(
+            maps.get('istio-sidecar-injector', {})
+            .get('data', {})
+            .get('values', '{}')
+        )
+        != values
+        or maps.get('istio-cni-config', {})
+        .get('data', {})
+        .get('CURRENT_AGENT_VERSION')
+        != version
+    ):
+        raise ValueError(
+            'Rendered Istio injection or CNI settings differ from retained inputs'
+        )
+
+
 LEGACY = 'manifests/kustomize/base/metadata/overlays/'
 PREREQUISITES = {
     'istio': 'common/istio/istio-install/base',
@@ -126,7 +239,11 @@ def _pins(sources):
         'cert-manager version',
     )
     installer = sources[SOURCE_PATHS[1]]
-    for path in PREREQUISITES.values():
+    local_istio = 'kubectl apply -k "' + ISTIO_OVERLAY + '"' in installer
+    for name, path in PREREQUISITES.items():
+        if name == 'istio' and local_istio:
+            _local_istio(sources, sha)
+            continue
         expected = (
             'https://github.com/kubeflow/community-distribution/'
             + path
@@ -146,7 +263,9 @@ def _pins(sources):
         )
     return {
         **{
-            name: 'https://github.com/kubeflow/community-distribution/'
+            name: ISTIO_OVERLAY
+            if name == 'istio' and local_istio
+            else 'https://github.com/kubeflow/community-distribution/'
             + path
             + '?ref='
             + sha
@@ -181,6 +300,10 @@ def capture(source, kustomize, output):
         path: (source / path).read_text() if (source / path).is_file() else None
         for path in SOURCE_PATHS[1:]
     }
+    if 'kubectl apply -k "' + ISTIO_OVERLAY + '"' in sources[SOURCE_PATHS[1]]:
+        sources.update(
+            {path: (source / path).read_text() for path in ISTIO_INPUTS}
+        )
     profiles = profile_paths(source)
     kustomizations = {
         str(path.relative_to(source)): path.read_text()
@@ -216,7 +339,13 @@ def capture(source, kustomize, output):
                     renders['prerequisite/' + name] = response.read().decode()
             else:
                 renders['prerequisite/' + name] = subprocess.check_output(
-                    [str(kustomize), 'build', url], text=True, timeout=300
+                    [
+                        str(kustomize),
+                        'build',
+                        str(source / url) if url == ISTIO_OVERLAY else url,
+                    ],
+                    text=True,
+                    timeout=300,
                 )
     finally:
         # Failed collection retains completed renders without qualifying them.
@@ -266,7 +395,12 @@ def discover(output):
         raise ValueError(
             'Profile catalog differs from source kustomizations; collect fresh inventory'
         )
-    if set(sources) != set(SOURCE_PATHS[1:]):
+    expected_sources = set(SOURCE_PATHS[1:])
+    if 'kubectl apply -k "' + ISTIO_OVERLAY + '"' in sources.get(
+        SOURCE_PATHS[1], ''
+    ):
+        expected_sources.update(ISTIO_INPUTS)
+    if set(sources) != expected_sources:
         raise ValueError(
             'Missing or unexpected inventory source; collect complete inputs or update the parser for the new source layout'
         )
@@ -285,6 +419,13 @@ def discover(output):
         raise ValueError(
             'Incomplete inventory renders; collect every profile and prerequisite'
         )
+    if pins['istio'] == ISTIO_OVERLAY:
+        sha = _match(
+            r'^KUBEFLOW_MANIFESTS_SHA=[\"\']([0-9a-f]{40})[\"\']',
+            sources[SOURCE_PATHS[1]],
+            'prerequisite commit',
+        )
+        _validate_istio_render(sources, renders['prerequisite/istio'], sha)
     targets = {}
 
     def add(image, scope, profile, role=None):
