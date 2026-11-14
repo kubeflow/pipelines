@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Exercise Dockerfile download selection without downloading or building."""
+"""Exercise Dockerfile tool installation without downloading or building."""
 
 import os
 import subprocess
@@ -27,8 +27,8 @@ curl() { printf '%s\\n' "$@"; return "${CURL_EXIT_CODE:-0}"; }
 chmod() { :; }
 tar() { echo extracted; }
 rm() { :; }
-cd() { :; }
-go() { :; }
+cd() { printf 'module=%s\\n' "$1"; }
+go() { printf 'GOBIN=%s\\n' "$GOBIN"; printf '%s\\n' "$@"; return "${GO_EXIT_CODE:-0}"; }
 jq() { echo v0.36.4; }
 """
 
@@ -43,7 +43,9 @@ def run_instruction(path, marker):
 
 
 class ToolImageArchitectureTest(unittest.TestCase):
-    def run_download(self, path, marker, architecture, curl_exit_code=0):
+    def run_build_instruction(
+        self, path, marker, architecture, curl_exit_code=0, go_exit_code=0
+    ):
         return subprocess.run(
             ['sh', '-c', STUBS + run_instruction(path, marker)],
             env={
@@ -51,6 +53,7 @@ class ToolImageArchitectureTest(unittest.TestCase):
                 'TARGETARCH': architecture,
                 'PROTOC_VERSION': '31.1',
                 'CURL_EXIT_CODE': str(curl_exit_code),
+                'GO_EXIT_CODE': str(go_exit_code),
             },
             capture_output=True,
             text=True,
@@ -69,21 +72,43 @@ class ToolImageArchitectureTest(unittest.TestCase):
                     'protocolbuffers/protobuf/releases/download/v31.1/'
                     f'protoc-31.1-linux-{protoc_arch}.zip',
                 ),
-                (
-                    API_DOCKERFILE,
-                    'swagger_linux_',
-                    'go-swagger/go-swagger/releases/download/v0.36.4/'
-                    f'swagger_linux_{arch}',
-                ),
             )
             for path, marker, asset in downloads:
                 with self.subTest(architecture=arch, marker=marker):
-                    result = self.run_download(path, marker, arch)
+                    result = self.run_build_instruction(path, marker, arch)
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn(
                         'https://github.com/' + asset,
                         result.stdout.splitlines(),
                     )
+
+    def test_builds_swagger_from_locked_module_for_each_architecture(self):
+        package = 'github.com/go-swagger/go-swagger/cmd/swagger'
+        for arch in ('amd64', 'arm64'):
+            with self.subTest(architecture=arch):
+                result = self.run_build_instruction(
+                    API_DOCKERFILE, package, arch
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(
+                    result.stdout.splitlines(),
+                    [
+                        'module=/tmp/api-generator-tools',
+                        'GOBIN=/usr/bin',
+                        'install',
+                        '-mod=readonly',
+                        package,
+                    ],
+                )
+
+    def test_swagger_build_failure_fails_build_instruction(self):
+        result = self.run_build_instruction(
+            API_DOCKERFILE,
+            'github.com/go-swagger/go-swagger/cmd/swagger',
+            'arm64',
+            go_exit_code=42,
+        )
+        self.assertEqual(result.returncode, 42, result.stderr)
 
     def test_rejects_unsupported_architectures_before_download(self):
         for path, marker in (
@@ -92,13 +117,13 @@ class ToolImageArchitectureTest(unittest.TestCase):
         ):
             for arch in ('', 's390x', 'arm'):
                 with self.subTest(path=path, marker=marker, architecture=arch):
-                    result = self.run_download(path, marker, arch)
+                    result = self.run_build_instruction(path, marker, arch)
                     self.assertNotEqual(result.returncode, 0)
                     self.assertIn('Unsupported TARGETARCH:', result.stderr)
                     self.assertEqual(result.stdout, '')
 
     def test_download_failure_fails_build_instruction(self):
-        result = self.run_download(
+        result = self.run_build_instruction(
             API_DOCKERFILE, 'protoc_arch=', 'arm64', curl_exit_code=22
         )
         self.assertEqual(result.returncode, 22, result.stderr)

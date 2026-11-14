@@ -55,7 +55,7 @@ constraint-dependencies = [
 lint = [
   "docformatter==1.7.7",
   "pylint==4.1.3",
-  "ruff==0.17.3",
+  "ruff==0.17.4",
 ]
 
 # Testing tools
@@ -69,12 +69,12 @@ test = [
   "kubernetes",
   "nbformat",
   "pip",
-  "pydantic>=2.14.2",
+  "pydantic>=2.14.3",
   # pytest 9.0.3 contains the tmpdir handling fix.
   "pytest>=9.2.0",
   "pytest-cov>=7.1.0",
   "pytest-mock",
-  "pytest-randomly>=5.0.0",
+  "pytest-randomly>=5.1.0",
   "pytest-xdist>=3.8.0",
   "setuptools",
   "wheel",
@@ -97,7 +97,7 @@ docs = [
   "m2r2",
   "sphinx>=7.2.0,<8.0.0",
   "sphinx-click",
-  "sphinx-immaterial>=0.13.9,<1",
+  "sphinx-immaterial>=0.13.11,<1",
   "sphinx-rtd-theme",
   "furo>=2024.8.6",
   "myst-parser>=3.0.0,<4.0.0",

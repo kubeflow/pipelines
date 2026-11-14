@@ -6,11 +6,29 @@ env:
   PYTHON_VERSION: "3.11"
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main]
   push:
     branches: [master, main]
 
   workflow_dispatch:
     inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
       test_label:
         description: "Test label that you want to filter on and run"
         default: 'ApiServerTests'
@@ -49,6 +67,16 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   compiler-tests:
     runs-on: ubuntu-latest
     name: Workflow Compiler Tests
@@ -66,7 +94,7 @@ jobs:
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
         run: |
           TEST_LABEL=${{ env.TESTS_LABEL }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             TEST_LABEL=$DISPATCH_TEST_LABEL
           fi
           echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"

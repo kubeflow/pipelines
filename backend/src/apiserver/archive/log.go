@@ -288,15 +288,23 @@ func (a *LogArchive) CopyLogFromArchiveReader(logReader io.Reader, dst io.Writer
 			continue
 		}
 		var err error
-		var entry RunLogEntry
-		if json.Unmarshal(bytes, &entry) == nil {
+		// Probe with a *string log field so Docker JSON log wrappers are detected,
+		// and preserve valid non-wrapper JSON lines before attempting text-prefix parsers
+		// (e.g. CRI-O / K8s) so embedded CRI-like text is not misparsed.
+		var entry struct {
+			Log       *string   `json:"log"`
+			Timestamp time.Time `json:"timestamp,omitempty"`
+		}
+		if json.Unmarshal(bytes, &entry) == nil && entry.Log != nil {
 			if opts.LogFormat == LogFormatJSON {
 				err = writeBytesLn(dst, bytes)
 			} else if opts.Timestamps && !entry.Timestamp.IsZero() {
-				_, err = fmt.Fprintf(dst, "%s %s\n", entry.Timestamp.Format(time.RFC3339), entry.Log)
+				_, err = fmt.Fprintf(dst, "%s %s\n", entry.Timestamp.Format(time.RFC3339), *entry.Log)
 			} else {
-				_, err = fmt.Fprintln(dst, entry.Log)
+				_, err = fmt.Fprintln(dst, *entry.Log)
 			}
+		} else if json.Valid(bytes) {
+			err = writeLogLn(dst, bytes, nil, opts)
 		} else if result := crioLogPrefixExp.FindSubmatch(bytes); len(result) == 4 {
 			err = writeLogLn(dst, result[3], result[1], opts)
 		} else if result := k8sLogPrefixExp.FindSubmatch(bytes); len(result) == 3 {

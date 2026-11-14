@@ -1,6 +1,9 @@
 name: Shared CI Images
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main]
   push:
     branches: [master, main]
   pull_request:
@@ -65,6 +68,22 @@ on:
       - '!**/*.md'
       - '!**/OWNERS'
   workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -75,6 +94,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   source:
     runs-on: ubuntu-latest
     timeout-minutes: 5

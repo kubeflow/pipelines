@@ -67,6 +67,7 @@ class SdkRuntimeTest(unittest.TestCase):
         failure: str = '',
         wheel_count: int = 1,
         pull_number: str = '',
+        source_ref: str = '',
     ) -> subprocess.CompletedProcess[str]:
         """Run the entrypoint and verify its temporary build is removed."""
         self.log.write_text('')
@@ -83,6 +84,7 @@ class SdkRuntimeTest(unittest.TestCase):
                 'SETUP_ENV': 'false',
                 'REPO_NAME': 'kubeflow/pipelines',
                 'PULL_NUMBER': pull_number,
+                'TEST_SOURCE_REF': source_ref,
                 'PYTEST_PARALLEL_WORKERS': '2',
             },
             capture_output=True,
@@ -97,21 +99,22 @@ class SdkRuntimeTest(unittest.TestCase):
         self.assertFalse(self.output.exists())
         return result
 
-    def test_runtime_wheel_preserves_docker_source_and_coverage(self) -> None:
-        """Keep both test phases on PRs and pushes to master."""
-        for pull_number in ('', '42'):
-            with self.subTest(pull_number=pull_number):
-                result = self.run_presubmit(pull_number=pull_number)
+    def test_all_phases_install_the_single_checkout_wheel(self) -> None:
+        """Avoid repeated Git clones/builds without changing test coverage."""
+        for pull_number, source_ref in [('', ''), ('42', ''), ('', 'a' * 40)]:
+            with self.subTest(pull_number=pull_number, source_ref=source_ref):
+                result = self.run_presubmit(
+                    pull_number=pull_number, source_ref=source_ref
+                )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(
                     [command['phase'] for command in self.commands],
                     ['build', 'suite', 'runtime'],
                 )
-                source = 'git+https://github.com/kubeflow/pipelines'
-                if pull_number:
-                    source += f'@refs/pull/{pull_number}/merge'
-                source += '#egg=kfp&subdirectory=sdk/python'
-                self.assertEqual(self.commands[1]['package'], source)
+                self.assertEqual(
+                    self.commands[1]['package'],
+                    str(self.output / 'kfp-0-py3-none-any.whl'),
+                )
                 self.assertIn(
                     '--ignore=sdk/python/test/runtime', self.commands[1]['args']
                 )

@@ -153,6 +153,9 @@ def add_toleration_json(
 
 
 def _add_dict_toleration(task: PipelineTask, toleration: dict):
+    # Accepts camelCase keys (e.g. tolerationSeconds) and returns a new dict
+    # so the caller's input is not mutated.
+    toleration = common.deserialize_dict_to_k8s_model_keys(toleration)
     add_toleration(
         task,
         key=toleration.get('key'),

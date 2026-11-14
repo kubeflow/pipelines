@@ -14,6 +14,8 @@
 
 'use strict';
 
+const {workflowAttempts} = require('./ci_workflow_attempts');
+
 // Only these trusted publisher jobs use this runner-local cache. Never restore it
 // from Actions artifacts/caches or populate it with PR-executed code. Mutable PR,
 // timeline, PR file lists and workflow-run evidence must be fetched at every boundary.
@@ -217,7 +219,7 @@ async function baseArrivedAt({github, owner, repo, baseSha, baseRef}) {
 }
 
 async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSha, liveBase, inventory,
-  workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now()}) {
+  workflowFiles, freshAfter = null, registrationStartedAt = null, now = Date.now(), bindAttempts = false}) {
   validateInventory(inventory, workflowFiles);
   const cutoff = freshAfter === null ? null : Date.parse(freshAfter);
   if (cutoff !== null && !Number.isFinite(cutoff)) throw new Error('Invalid CI freshness cutoff');
@@ -356,7 +358,8 @@ async function verifyExpectedWorkflows({github, owner, repo, pullRequest, baseSh
     }
   }
   const state = failures.length ? 'failure' : pending.length ? 'pending' : 'success';
-  return {state, passed: state === 'success', reasons: [...failures, ...pending],
+  const attempts = bindAttempts && state === 'success' ? workflowAttempts(runs, pullRequest.head.sha) : undefined;
+  return {state, passed: state === 'success', reasons: [...failures, ...pending], attempts,
     expected: expected.map(workflow => workflow.path), disabled, missing, documentation};
 }
 
@@ -475,5 +478,5 @@ function loadLocalInventory(root) {
   return {inventory, workflowFiles};
 }
 
-module.exports = {globRegex, matchesPatterns, applicable, validateInventory,
-  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, triggerHeader};
+module.exports = {globRegex, matchesPatterns, applicable, validateInventory, invalidRunMetadata,
+  verifyExpectedWorkflows, loadLocalInventory, loadBaseInventory, baseArrivedAt, triggerHeader};

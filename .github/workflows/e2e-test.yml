@@ -14,6 +14,9 @@ env:
   MLFLOW_TRACKING_INSECURE_TLS: "true"
 
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main]
   push:
     branches: [master, main]
 
@@ -57,6 +60,21 @@ on:
 
   workflow_dispatch:
     inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
       test_label:
         description: "Test label that you want to filter on and run"
         default: 'ApiServerTests'
@@ -81,6 +99,16 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   image-artifacts-ready:
     permissions:
       actions: read
@@ -101,7 +129,7 @@ jobs:
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
-        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
+        test_label: ${{ fromJSON((github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) && '["E2ECritical", "E2EEssential", "E2EParallelNested"]' || '["E2ECriticalShardA", "E2ECriticalShardB", "E2EEssential", "E2EParallelNested"]') }}
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.33.12"
@@ -266,7 +294,7 @@ jobs:
           fi
 
           # Explicit dispatch inputs take precedence over automatic lane caps.
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE
@@ -347,7 +375,7 @@ jobs:
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         db_type: ["mysql", "pgx"]
-        test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        test_label: ${{ fromJSON((github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
         exclude:
           # PostgreSQL has no cache-disabled multi-user overlay.
           - db_type: "pgx"
@@ -405,7 +433,7 @@ jobs:
           if [ "$TEST_LABEL" == "E2ECriticalShardA" ] || [ "$TEST_LABEL" == "E2ECriticalShardB" ]; then
             TEST_LABEL="E2ECritical && $TEST_LABEL"
           fi
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE
@@ -588,7 +616,7 @@ jobs:
           NUMBER_OF_NODES=2
           TEST_LABEL=${{ matrix.test_label }}
           NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
             NUMBER_OF_NODES=$DISPATCH_NUMBER_OF_NODES
             TEST_LABEL=$DISPATCH_TEST_LABEL
             NAMESPACE=$DISPATCH_NAMESPACE

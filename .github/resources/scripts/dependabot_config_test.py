@@ -698,6 +698,19 @@ class DependabotConfigTest(unittest.TestCase):
                     )
                     self.assertEqual(matching_group, expected_group)
 
+    def test_typescript_updates_stay_within_parser_support(self):
+        updates = yaml.safe_load(self.config)['updates']
+        npm_updates = [
+            update for update in updates if update['package-ecosystem'] == 'npm'
+        ]
+        self.assertEqual(len(npm_updates), 2)
+        for update in npm_updates:
+            with self.subTest(branch=update.get('target-branch', 'master')):
+                self.assertIn(
+                    {'dependency-name': 'typescript', 'versions': ['>=6.1']},
+                    update.get('ignore', []),
+                )
+
     def test_frontend_typescript_eslint_versions_match(self):
         frontend = REPOSITORY_ROOT / 'frontend'
         manifest = json.loads((frontend / 'package.json').read_text())

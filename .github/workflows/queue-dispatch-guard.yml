@@ -1,0 +1,43 @@
+name: Validate queue dispatch
+
+on:
+  workflow_call:
+    inputs:
+      queue_head_sha:
+        required: true
+        type: string
+      queue_base_ref:
+        required: true
+        type: string
+      queue_base_sha:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate exact queue dispatch identity
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          QUEUE_HEAD_SHA: ${{ inputs.queue_head_sha }}
+          QUEUE_BASE_REF: ${{ inputs.queue_base_ref }}
+          QUEUE_BASE_SHA: ${{ inputs.queue_base_sha }}
+        with:
+          script: |
+            const sha = /^[0-9a-f]{40}$/;
+            const match = /^refs\/heads\/gh-readonly-queue\/(master|main)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/.exec(context.ref);
+            const {QUEUE_HEAD_SHA: head, QUEUE_BASE_REF: branch, QUEUE_BASE_SHA: base} = process.env;
+            if (context.eventName !== 'workflow_dispatch' || !match ||
+                !sha.test(head || '') || head !== context.sha || branch !== match[1] ||
+                !sha.test(base || '')) throw new Error('Invalid merge queue dispatch identity');
+            for (const [ref, expected] of [[context.ref, head], [`refs/heads/${branch}`, base]]) {
+              const {data} = await github.rest.git.getRef({...context.repo, ref: ref.slice('refs/'.length)});
+              if (data.ref !== ref || data.object?.type !== 'commit' || data.object.sha !== expected) {
+                throw new Error('Queue candidate or base changed before dispatch validation');
+              }
+            }

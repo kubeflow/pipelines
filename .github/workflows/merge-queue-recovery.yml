@@ -1,0 +1,47 @@
+# Trusted default-branch recovery; never executes candidate code or artifacts.
+name: Merge Queue Recovery
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+permissions:
+  contents: read
+jobs:
+  queue_recovery:
+    # Each survivor checks all queue members plus the affected PR. Scheduled
+    # recovery sweeps all open PRs; replaced label events cannot strand holds.
+    concurrency:
+      group: merge-queue-admission
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - id: policy
+        name: Read inactive-by-default queue policy
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {loadPolicy} = require('./.github/resources/scripts/merge_queue_policy');
+            core.setOutput('enabled', String(loadPolicy().enabled_branches.length > 0));
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        if: steps.policy.outputs.enabled == 'true'
+        with:
+          python-version: '3.11'
+      - name: Install trusted workflow parser dependencies
+        if: steps.policy.outputs.enabled == 'true'
+        run: python -m pip install -r .github/scripts/requirements.txt
+      - name: Reconcile admission, candidate dispatch, and verified results
+        if: steps.policy.outputs.enabled == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
+            await reconcileQueue({github, context, core, queueOnly: true});

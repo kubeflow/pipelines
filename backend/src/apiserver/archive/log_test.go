@@ -379,3 +379,179 @@ func TestCopyLogFromArchive_FromCriOTextToTextWithTimestamp(t *testing.T) {
 	line = scanner.Text()
 	assert.Equal(t, "2020-08-31T15:00:02.260657206Z [ERROR] Unable to connect", line)
 }
+
+func TestCopyLogFromArchive_PreservesNonWrapperJSONLogs(t *testing.T) {
+	logArchive := initLogArchive()
+
+	textTests := []struct {
+		name     string
+		input    string
+		opts     ExtractLogOptions
+		expected string
+	}{
+		{
+			name:     "raw JSON metrics line in text format",
+			input:    "{\"epoch\":1,\"loss\":0.25}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "{\"epoch\":1,\"loss\":0.25}\n",
+		},
+		{
+			name:     "JSON log with timestamp and msg in text format with timestamps",
+			input:    "{\"timestamp\":\"2020-08-31T15:00:00Z\",\"msg\":\"Model saved\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "{\"timestamp\":\"2020-08-31T15:00:00Z\",\"msg\":\"Model saved\"}\n",
+		},
+		{
+			name:     "literal null and empty object in text format",
+			input:    "null\n{}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "null\n{}\n",
+		},
+		{
+			name:     "valid non-wrapper JSON with embedded CRI-like text in text format",
+			input:    "{\"message\":\"process stderr F failed\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "{\"message\":\"process stderr F failed\"}\n",
+		},
+		{
+			name:     "valid non-wrapper JSON with embedded CRI-like text in text format with timestamps",
+			input:    "{\"message\":\"process stderr F failed\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "{\"message\":\"process stderr F failed\"}\n",
+		},
+		{
+			name:     "null and non-string log fields preserved in text format",
+			input:    "{\"log\":null}\n{\"timestamp\":\"2020-08-31T15:00:00Z\",\"log\":null}\n{\"log\":123}\n{\"log\":true}\n{\"log\":{}}\n{\"log\":[\"a\"]}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "{\"log\":null}\n{\"timestamp\":\"2020-08-31T15:00:00Z\",\"log\":null}\n{\"log\":123}\n{\"log\":true}\n{\"log\":{}}\n{\"log\":[\"a\"]}\n",
+		},
+		{
+			name:     "Docker wrapper JSON with extra fields unwrapped in text format",
+			input:    "{\"log\":\"hello world\",\"stream\":\"stdout\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: false},
+			expected: "hello world\n",
+		},
+		{
+			name:     "Docker wrapper JSON with timestamp unwrapped in text format with timestamps",
+			input:    "{\"timestamp\":\"2020-08-31T15:00:00Z\",\"log\":\"hello world\",\"stream\":\"stdout\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "2020-08-31T15:00:00Z hello world\n",
+		},
+		{
+			name:     "Docker wrapper JSON with intentional empty log preserved",
+			input:    "{\"log\":\"\"}\n{\"timestamp\":\"2020-08-31T15:00:00Z\",\"log\":\"\"}\n",
+			opts:     ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: "\n2020-08-31T15:00:00Z \n",
+		},
+		{
+			name: "mixed wrapper, non-wrapper JSON, raw text, and CRI-O lines in text format",
+			input: strings.Join([]string{
+				`{"timestamp":"2020-08-31T15:00:00Z","log":"wrapper line"}`,
+				`{"epoch":1,"loss":0.25}`,
+				`{"message":"process stderr F failed"}`,
+				`{}`,
+				`null`,
+				`{"log":null}`,
+				`{"log":123}`,
+				`{"log":""}`,
+				`plain text line`,
+				`2020-08-31T15:00:02.260657206Z stderr F crio line`,
+			}, "\n") + "\n",
+			opts: ExtractLogOptions{LogFormat: LogFormatText, Timestamps: true},
+			expected: strings.Join([]string{
+				`2020-08-31T15:00:00Z wrapper line`,
+				`{"epoch":1,"loss":0.25}`,
+				`{"message":"process stderr F failed"}`,
+				`{}`,
+				`null`,
+				`{"log":null}`,
+				`{"log":123}`,
+				``,
+				`plain text line`,
+				`2020-08-31T15:00:02.260657206Z crio line`,
+			}, "\n") + "\n",
+		},
+	}
+
+	for _, tc := range textTests {
+		t.Run(tc.name, func(t *testing.T) {
+			var dst bytes.Buffer
+			src := compressInput(t, tc.input)
+			err := logArchive.CopyLogFromArchive(src, &dst, tc.opts)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, dst.String())
+		})
+	}
+
+	jsonFallbackLines := []string{
+		`{"epoch":1,"loss":0.25}`,
+		`{"timestamp":"2020-08-31T15:00:00Z","msg":"Model saved"}`,
+		`{"message":"process stderr F failed"}`,
+		`{}`,
+		`null`,
+		`{"log":null}`,
+		`{"timestamp":"2020-08-31T15:00:00Z","log":null}`,
+		`{"log":123}`,
+		`{"log":true}`,
+		`{"log":{}}`,
+		`{"log":["a"]}`,
+	}
+
+	for _, rawLine := range jsonFallbackLines {
+		t.Run("JSON format wraps non-wrapper line "+rawLine, func(t *testing.T) {
+			var dst bytes.Buffer
+			src := compressInput(t, rawLine+"\n")
+			err := logArchive.CopyLogFromArchive(src, &dst, ExtractLogOptions{LogFormat: LogFormatJSON})
+			require.NoError(t, err)
+
+			var entry RunLogEntry
+			err = json.Unmarshal(bytes.TrimSpace(dst.Bytes()), &entry)
+			require.NoError(t, err)
+			assert.True(t, entry.Timestamp.IsZero())
+			assert.Equal(t, rawLine, entry.Log)
+		})
+	}
+
+	t.Run("mixed wrapper, empty string wrapper, non-wrapper JSON, raw text, and CRI-O lines in JSON format", func(t *testing.T) {
+		input := strings.Join([]string{
+			`{"timestamp":"2020-08-31T15:00:00Z","log":"wrapper line"}`,
+			`{"log":""}`,
+			`{"epoch":1,"loss":0.25}`,
+			`{"message":"process stderr F failed"}`,
+			`{}`,
+			`null`,
+			`{"log":null}`,
+			`{"log":123}`,
+			`plain text line`,
+			`2020-08-31T15:00:02.260657206Z stderr F crio line`,
+		}, "\n") + "\n"
+
+		var dst bytes.Buffer
+		src := compressInput(t, input)
+		err := logArchive.CopyLogFromArchive(src, &dst, ExtractLogOptions{LogFormat: LogFormatJSON})
+		require.NoError(t, err)
+
+		expectedEntries := []RunLogEntry{
+			{Timestamp: logTs0, Log: "wrapper line"},
+			{Log: ""},
+			{Log: `{"epoch":1,"loss":0.25}`},
+			{Log: `{"message":"process stderr F failed"}`},
+			{Log: `{}`},
+			{Log: `null`},
+			{Log: `{"log":null}`},
+			{Log: `{"log":123}`},
+			{Log: "plain text line"},
+			{Timestamp: logTs1, Log: "crio line"},
+		}
+
+		scanner := bufio.NewScanner(&dst)
+		var gotEntries []RunLogEntry
+		for scanner.Scan() {
+			var entry RunLogEntry
+			require.NoError(t, json.Unmarshal(scanner.Bytes(), &entry))
+			gotEntries = append(gotEntries, entry)
+		}
+		require.NoError(t, scanner.Err())
+		assert.Equal(t, expectedEntries, gotEntries)
+	})
+}
