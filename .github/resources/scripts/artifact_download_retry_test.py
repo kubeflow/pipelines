@@ -149,7 +149,6 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
                 encoding='utf-8').strip()
 
         self.assertTrue({
-            'docker.io/library/mysql:8.4',
             f'quay.io/argoproj/workflow-controller:{compatibility_version}',
             f'quay.io/argoproj/argoexec:{compatibility_version}',
             f'quay.io/argoproj/workflow-controller:{current_version}',
@@ -203,6 +202,14 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
         self.assertIn(canonical_image, runtime_images())
         # A pinned tag with no override uses Kubernetes' IfNotPresent default.
         self.assertNotIn('imagePullPolicy: Always', deployment)
+
+    def test_alpine_preload_matches_deployment_helpers(self):
+        manifest = REPOSITORY_ROOT / ('manifests/kustomize/base/pipeline/'
+                                      'ml-pipeline-apiserver-deployment.yaml')
+        images = re.findall(r'^\s*image:\s*(docker.io/alpine:[^\s]+)',
+                            manifest.read_text(), re.MULTILINE)
+        self.assertTrue(images)
+        self.assertTrue(set(images).issubset(runtime_images()))
 
     def test_fixture_changes_run_ci_script_tests(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
