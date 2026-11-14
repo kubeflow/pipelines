@@ -108,6 +108,8 @@ func (d *RunPluginDispatcherImpl) PluginsRegistered() bool { return true }
 // OnBeforeRunCreation parses plugin input, resolves namespace-level plugin config,
 // and creates the parent run and injects env vars
 // into the execution for each registered handler. On success it writes run.PluginsOutput.
+// A runtime env injection failure is returned so run creation fails; outputs of
+// handlers that already ran stay in run.PluginsOutput for cleanup.
 func (d *RunPluginDispatcherImpl) OnBeforeRunCreation(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec) error {
 	if d == nil || run == nil || executionSpec == nil {
 		return fmt.Errorf("dispatcher, run, and executionSpec must be non-nil")
@@ -133,7 +135,7 @@ func (d *RunPluginDispatcherImpl) OnBeforeRunCreation(ctx context.Context, run *
 		return fmt.Errorf("failed to retrieve launcher namespace plugin configs for run %q: %v", run.RunID, err)
 	}
 	for _, handler := range d.handlers {
-		func(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec, handler RunPluginHandler) {
+		if err := func(ctx context.Context, run *PendingRun, executionSpec util.ExecutionSpec, handler RunPluginHandler) error {
 			input := pluginInputs[handler.Name()]
 
 			launcherNamespacePluginCfgStr := launcherNamespacePluginCfgs[handler.Name()]
@@ -145,10 +147,10 @@ func (d *RunPluginDispatcherImpl) OnBeforeRunCreation(ctx context.Context, run *
 				if outputErr := SetPendingRunPluginOutput(run, handler.Name(), pluginOutput); outputErr != nil {
 					glog.Warningf("Failed to persist %s plugin output for run %q: %v", handler.Name(), run.RunID, outputErr)
 				}
-				return
+				return nil
 			}
 			if resolvedRunPluginCfg == nil {
-				return
+				return nil
 			}
 			// Size the context to several per-call timeouts so the idempotent create
 			// retries in the client can fit within the budget, while still honoring
@@ -161,17 +163,20 @@ func (d *RunPluginDispatcherImpl) OnBeforeRunCreation(ctx context.Context, run *
 				glog.Warningf("%s OnBeforeRunCreation failed for run %q (run creation will continue): %v", handler.Name(), run.RunID, pluginErr)
 			}
 			if pluginOutput == nil {
-				return
+				return nil
 			}
 			if err := SetPendingRunPluginOutput(run, handler.Name(), pluginOutput); err != nil {
 				glog.Warningf("failed to persist %s plugin output for run %q: %v", handler.Name(), run.RunID, err)
 			}
 			if len(pluginRuntimeEnv) != 0 {
 				if err := InjectPluginRuntimeEnv(executionSpec, pluginRuntimeEnv); err != nil {
-					glog.Warningf("Failed to inject %s runtime env for run %q: %v", handler.Name(), run.RunID, err)
+					return fmt.Errorf("failed to inject %s runtime env for run %q: %w", handler.Name(), run.RunID, err)
 				}
 			}
-		}(ctx, run, executionSpec, handler)
+			return nil
+		}(ctx, run, executionSpec, handler); err != nil {
+			return err
+		}
 	}
 	return nil
 }

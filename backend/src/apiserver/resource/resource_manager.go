@@ -878,24 +878,27 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		PipelineVersionID: run.PipelineSpec.PipelineVersionId, //nolint:staticcheck // QF1008
 		PluginsInput:      (*string)(run.PluginsInputString),
 	}
-	if err := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec); err != nil {
-		return nil, err
-	}
-	// Copy plugin output back to the model.
-	if pendingRun.PluginsOutput != nil {
-		lt := model.LargeText(*pendingRun.PluginsOutput)
-		run.PluginsOutputString = &lt
-	}
-
 	runPersisted := false
 
+	// Registered before OnBeforeRunCreation so plugin resources created before a
+	// failure in that call are cleaned up too.
 	defer func() {
-		if !runPersisted {
+		if !runPersisted && run.PluginsOutputString != nil {
 			if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
 				r.pluginDispatcher.OnRunEnd(ctx, pr)
 			}
 		}
 	}()
+
+	pluginErr := r.pluginDispatcher.OnBeforeRunCreation(ctx, pendingRun, executionSpec)
+	// Copy plugin output back to the model, also on failure, so cleanup sees it.
+	if pendingRun.PluginsOutput != nil {
+		lt := model.LargeText(*pendingRun.PluginsOutput)
+		run.PluginsOutputString = &lt
+	}
+	if pluginErr != nil {
+		return nil, pluginErr
+	}
 
 	if r.pluginDispatcher.PluginsRegistered() {
 		if err := r.authorizeExecutionServiceAccounts(ctx, executionSpec, allowCompilerPodSpecPatch, k8sNamespace, "create_run_after_plugins"); err != nil {

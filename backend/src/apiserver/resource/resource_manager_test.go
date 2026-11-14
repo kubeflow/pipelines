@@ -8729,6 +8729,79 @@ func TestCreateRun_ServiceAccountSAR_PluginMutationUnauthorized_CleansUpPlugins(
 	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
 }
 
+// runtimeEnvFailingDispatcher records plugin output for a created parent and
+// then fails, like a dispatcher whose runtime env injection failed.
+type runtimeEnvFailingDispatcher struct {
+	apiserverPlugins.NoOpDispatcher
+	output    *apiv2.PluginOutput
+	err       error
+	endedRuns []*apiserverPlugins.PersistedRun
+}
+
+func (runtimeEnvFailingDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+func (d *runtimeEnvFailingDispatcher) OnBeforeRunCreation(_ context.Context, run *apiserverPlugins.PendingRun, _ util.ExecutionSpec) error {
+	if d.output != nil {
+		if err := apiserverPlugins.SetPendingRunPluginOutput(run, apiservermlflow.PluginName, d.output); err != nil {
+			return err
+		}
+	}
+	return d.err
+}
+
+func (d *runtimeEnvFailingDispatcher) OnRunEnd(_ context.Context, run *apiserverPlugins.PersistedRun) bool {
+	d.endedRuns = append(d.endedRuns, run)
+	return true
+}
+
+func TestCreateRun_PluginRuntimeEnvInjectionFailure_CleansUpPlugins(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	dispatcher := &runtimeEnvFailingDispatcher{
+		output: apiservermlflow.SuccessfulPluginOutput("exp-1", "experiment", "parent-run-1", "https://mlflow.example/runs/parent-run-1"),
+		err:    fmt.Errorf("failed to inject MLflow runtime env for run %q: template %q has invalid runtime_args; recompile the pipeline", "run", "driver-plugin"),
+	}
+	manager.pluginDispatcher = dispatcher
+
+	run := &model.Run{
+		DisplayName:  "run1",
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+		ExperimentId: experiment.UUID,
+	}
+	_, err := manager.CreateRun(context.Background(), run)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to inject MLflow runtime env")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount(), "no Workflow should be created when runtime env injection fails")
+	require.NotEmpty(t, run.UUID)
+	_, err = manager.GetRun(run.UUID)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "a rejected run should not be persisted")
+	require.Len(t, dispatcher.endedRuns, 1, "plugin resources created before the failure must be cleaned up")
+	assert.Equal(t, run.UUID, dispatcher.endedRuns[0].RunID)
+	assert.True(t, proto.Equal(dispatcher.output, dispatcher.endedRuns[0].PluginsOutput[apiservermlflow.PluginName]), "cleanup must receive the output identifying the plugin resources")
+}
+
+func TestCreateRun_PluginInputValidationFailure_SkipsPluginCleanup(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	dispatcher := &runtimeEnvFailingDispatcher{
+		err: util.NewBadRequestError(fmt.Errorf("invalid input"), "Failed to create a run due to invalid MLflow plugin input"),
+	}
+	manager.pluginDispatcher = dispatcher
+
+	run := &model.Run{
+		DisplayName:  "run1",
+		PipelineSpec: model.PipelineSpec{PipelineSpecManifest: model.LargeText(v2SpecHelloWorld), RuntimeConfig: model.RuntimeConfig{Parameters: `{"text":"world"}`}},
+		ExperimentId: experiment.UUID,
+	}
+	_, err := manager.CreateRun(context.Background(), run)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid MLflow plugin input")
+	assert.Zero(t, store.ExecClientFake.GetWorkflowCount())
+	assert.Empty(t, dispatcher.endedRuns, "nothing was created, so there is nothing to clean up")
+}
+
 func TestCreateJob_ServiceAccountSAR_TemplateSA_Unauthorized_NoScheduledWorkflowCreated(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
