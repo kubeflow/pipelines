@@ -65,8 +65,10 @@ def add_toleration(
             operators are "Exists", "Equal", "Gt" and "Lt". Defaults to
             "Equal". "Exists" is equivalent to wildcard for value, so that a
             pod can tolerate all taints of a particular category. "Gt" and
-            "Lt" are numeric comparisons and need a Kubernetes version that
-            supports them. Any other value raises ``ValueError``.
+            "Lt" are numeric comparisons and require Kubernetes v1.35+ with
+            the ``TaintTolerationComparisonOperators`` feature gate enabled;
+            without it they compile but are rejected at pod creation. Any
+            other value raises ``ValueError``.
         value:
             value is the taint value the toleration matches to. If the operator
             is "Exists", the value should be empty, otherwise just a regular
