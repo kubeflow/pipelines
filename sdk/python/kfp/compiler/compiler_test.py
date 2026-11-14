@@ -6610,6 +6610,36 @@ class TestConditionLogic(parameterized.TestCase):
             lambda t: t['str'].output == True,
             "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == 'true'",
         ),
+        (
+            'str_chan_equals_int_literal',
+            lambda t: t['str'].output == 1,
+            "inputs.parameter_values['pipelinechannel--flip-coin-Output'] == '1'",
+        ),
+        (
+            'int_chan_equals_str_literal',
+            lambda t: t['int'].output == '1',
+            "string(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == '1'",
+        ),
+        (
+            'str_literal_equals_int_chan_reflected',
+            lambda t: '1' == t['int'].output,
+            "string(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == '1'",
+        ),
+        (
+            'float_chan_equals_str_literal',
+            lambda t: t['float'].output == '1.5',
+            "string(inputs.parameter_values['pipelinechannel--return-float-Output']) == '1.5'",
+        ),
+        (
+            'bool_chan_equals_str_literal',
+            lambda t: t['bool'].output == 'true',
+            "string(inputs.parameter_values['pipelinechannel--return-bool-Output']) == 'true'",
+        ),
+        (
+            'int_chan_equals_str_chan',
+            lambda t: t['int'].output == t['str'].output,
+            "string(int(inputs.parameter_values['pipelinechannel--return-1-Output'])) == inputs.parameter_values['pipelinechannel--flip-coin-Output']",
+        ),
     )
     def test_condition_guard_cases(self, condition_fn, expected):
         self.assertEqual(self._compile_condition(condition_fn), expected)

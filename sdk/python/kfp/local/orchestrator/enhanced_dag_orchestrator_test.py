@@ -20,6 +20,7 @@ import unittest
 from kfp.compiler import pipeline_spec_builder
 from kfp.dsl import pipeline_channel
 from kfp.local import io
+from kfp.local.orchestrator import enhanced_dag_orchestrator
 from kfp.local.orchestrator.enhanced_dag_orchestrator import ConditionEvaluator
 
 
@@ -188,6 +189,56 @@ class ConditionEvaluatorTest(unittest.TestCase):
                 self.store.put_task_output('producer', 'Output', value + 'x')
                 self.assertFalse(
                     ConditionEvaluator.evaluate_condition(condition, self.store)
+                )
+
+    def test_compiler_numeric_and_bool_channels_compare_with_strings(self):
+        # The compiler converts these channels with string(), as the backend's
+        # CEL does: whole floats lose ".0" and booleans are lowercase.
+        for channel_type, output, matching, other in (
+            ('Integer', 5, '5', '6'),
+            ('Double', 2.5, '2.5', '2.50'),
+            ('Double', 5.0, '5', '5.0'),
+            ('Boolean', True, 'true', 'True'),
+        ):
+            with self.subTest(channel_type=channel_type, output=output):
+                channel = pipeline_channel.PipelineParameterChannel(
+                    name='Output',
+                    channel_type=channel_type,
+                    task_name='producer',
+                )
+                self.store.put_task_output('producer', 'Output', output)
+                for value, expected in ((matching, True), (other, False)):
+                    condition = pipeline_spec_builder._single_binary_operation_to_cel_condition(
+                        pipeline_channel.ConditionOperation(
+                            '==', channel, value
+                        )
+                    )
+                    self.assertEqual(
+                        ConditionEvaluator.evaluate_condition(
+                            condition, self.store
+                        ),
+                        expected,
+                        condition,
+                    )
+
+    def test_cel_string_formats_floats_like_the_backend(self):
+        # Expected values come from the backend's CEL string() (cel-go v0.30.0).
+        for value, expected in (
+            (5.0, '5'),
+            (-3.0, '-3'),
+            (2.5, '2.5'),
+            (0.1, '0.1'),
+            (1 / 3, '0.3333333333333333'),
+            (123456.0, '123456'),
+            (1234567.0, '1.234567e+06'),
+            (1e6, '1e+06'),
+            (1e21, '1e+21'),
+            (0.0001, '0.0001'),
+            (1e-05, '1e-05'),
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    enhanced_dag_orchestrator._cel_string(value), expected
                 )
 
     def test_large_numeric_conversion_fails_closed(self):
