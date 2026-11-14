@@ -154,7 +154,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 			Image:                    c.launcherImage,
 			Command:                  c.launcherCommand,
 			Args:                     args,
-			Env:                      append(commonEnvs, mlPipelineAPIClientEnvVars()...),
+			Env:                      append(append(commonEnvs, mlPipelineAPIClientEnvVars()...), runtimeRPCRetryEnvVars()...),
 			Resources:                driverResources,
 			VolumeMounts:             volumeMounts,
 		},

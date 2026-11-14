@@ -69,54 +69,88 @@ type API interface {
 // It is a thin wrapper delegating to the generated gRPC clients.
 
 type clientAdapter struct {
-	c *apiclient.Client
+	c           *apiclient.Client
+	retryPolicy RetryPolicy
+	retryEnv    retryEnv
 }
 
-// New wraps the apiclient.Client into an API interface.
+// New wraps the apiclient.Client into an API interface using the default retry policy.
 func New(c *apiclient.Client) API {
-	return &clientAdapter{c: c}
+	return NewWithRetryPolicy(c, defaultRetryPolicy)
+}
+
+// NewWithRetryPolicy wraps the apiclient.Client using the provided retry policy.
+func NewWithRetryPolicy(c *apiclient.Client, policy RetryPolicy) API {
+	return newWithRetryEnv(c, policy, defaultRetryEnv)
+}
+
+// newWithRetryEnv lets tests replace the backoff sleep and jitter of reads.
+func newWithRetryEnv(c *apiclient.Client, policy RetryPolicy, env retryEnv) API {
+	return &clientAdapter{c: c, retryPolicy: policy, retryEnv: env}
 }
 
 // Implement API by forwarding calls to typed clients.
 
 func (k *clientAdapter) GetRun(ctx context.Context, req *gc.GetRunRequest) (*gc.Run, error) {
-	return k.c.Run.GetRun(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "GetRun", k.retryPolicy, func(callCtx context.Context) (*gc.Run, error) {
+		return k.c.Run.GetRun(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) ListRuns(ctx context.Context, req *gc.ListRunsRequest) (*gc.ListRunsResponse, error) {
-	return k.c.Run.ListRuns(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "ListRuns", k.retryPolicy, func(callCtx context.Context) (*gc.ListRunsResponse, error) {
+		return k.c.Run.ListRuns(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateTask(ctx context.Context, req *gc.CreateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.CreateTask(ctx, req)
+	return boundedWrite(ctx, "CreateTask", k.retryPolicy, func(callCtx context.Context) (*gc.PipelineTask, error) {
+		return k.c.Run.CreateTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) UpdateTask(ctx context.Context, req *gc.UpdateTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.UpdateTask(ctx, req)
+	return boundedWrite(ctx, "UpdateTask", k.retryPolicy, func(callCtx context.Context) (*gc.PipelineTask, error) {
+		return k.c.Run.UpdateTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) UpdateTasksBulk(ctx context.Context, req *gc.UpdateTasksBulkRequest) (*gc.UpdateTasksBulkResponse, error) {
-	return k.c.Run.UpdateTasksBulk(ctx, req)
+	return boundedWrite(ctx, "UpdateTasksBulk", k.retryPolicy, func(callCtx context.Context) (*gc.UpdateTasksBulkResponse, error) {
+		return k.c.Run.UpdateTasksBulk(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) GetTask(ctx context.Context, req *gc.GetTaskRequest) (*gc.PipelineTask, error) {
-	return k.c.Run.GetTask(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "GetTask", k.retryPolicy, func(callCtx context.Context) (*gc.PipelineTask, error) {
+		return k.c.Run.GetTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) ListTasks(ctx context.Context, req *gc.ListTasksRequest) (*gc.ListTasksResponse, error) {
-	return k.c.Run.ListTasks(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "ListTasks", k.retryPolicy, func(callCtx context.Context) (*gc.ListTasksResponse, error) {
+		return k.c.Run.ListTasks(callCtx, req)
+	})
 }
 
+// FindCachedTask is mapped to HTTP POST but only looks up a cached task, so it
+// is retried like the other reads.
 func (k *clientAdapter) FindCachedTask(ctx context.Context, req *gc.FindCachedTaskRequest) (*gc.FindCachedTaskResponse, error) {
-	return k.c.Run.FindCachedTask(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "FindCachedTask", k.retryPolicy, func(callCtx context.Context) (*gc.FindCachedTaskResponse, error) {
+		return k.c.Run.FindCachedTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateArtifact(ctx context.Context, req *gc.CreateArtifactRequest) (*gc.Artifact, error) {
-	return k.c.Artifact.CreateArtifact(ctx, req)
+	return boundedWrite(ctx, "CreateArtifact", k.retryPolicy, func(callCtx context.Context) (*gc.Artifact, error) {
+		return k.c.Artifact.CreateArtifact(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateArtifactsBulk(ctx context.Context, req *gc.CreateArtifactsBulkRequest) (*gc.CreateArtifactsBulkResponse, error) {
-	return k.c.Artifact.CreateArtifactsBulk(ctx, req)
+	return boundedWrite(ctx, "CreateArtifactsBulk", k.retryPolicy, func(callCtx context.Context) (*gc.CreateArtifactsBulkResponse, error) {
+		return k.c.Artifact.CreateArtifactsBulk(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace string) ([]*gc.Artifact, error) {
@@ -138,12 +172,14 @@ func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace s
 		return nil, fmt.Errorf("failed to marshal filter: %v", err)
 	}
 
-	artifactsResponse, err := k.c.Artifact.ListArtifacts(ctx, &gc.ListArtifactRequest{
-		Namespace: namespace,
-		Filter:    string(filterJSON),
-		// Large enough for typical URI match cardinality; server URI fast path
-		// ignores pagination and returns the full equality result set.
-		PageSize: 1000,
+	artifactsResponse, err := retryReadWithEnv(ctx, k.retryEnv, "ListArtifacts", k.retryPolicy, func(callCtx context.Context) (*gc.ListArtifactResponse, error) {
+		return k.c.Artifact.ListArtifacts(callCtx, &gc.ListArtifactRequest{
+			Namespace: namespace,
+			Filter:    string(filterJSON),
+			// Large enough for typical URI match cardinality; server URI fast path
+			// ignores pagination and returns the full equality result set.
+			PageSize: 1000,
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -152,19 +188,27 @@ func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace s
 }
 
 func (k *clientAdapter) ListArtifactTasks(ctx context.Context, req *gc.ListArtifactTasksRequest) (*gc.ListArtifactTasksResponse, error) {
-	return k.c.Artifact.ListArtifactTasks(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "ListArtifactTasks", k.retryPolicy, func(callCtx context.Context) (*gc.ListArtifactTasksResponse, error) {
+		return k.c.Artifact.ListArtifactTasks(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateArtifactTask(ctx context.Context, req *gc.CreateArtifactTaskRequest) (*gc.ArtifactTask, error) {
-	return k.c.Artifact.CreateArtifactTask(ctx, req)
+	return boundedWrite(ctx, "CreateArtifactTask", k.retryPolicy, func(callCtx context.Context) (*gc.ArtifactTask, error) {
+		return k.c.Artifact.CreateArtifactTask(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) CreateArtifactTasks(ctx context.Context, req *gc.CreateArtifactTasksBulkRequest) (*gc.CreateArtifactTasksBulkResponse, error) {
-	return k.c.Artifact.CreateArtifactTasksBulk(ctx, req)
+	return boundedWrite(ctx, "CreateArtifactTasks", k.retryPolicy, func(callCtx context.Context) (*gc.CreateArtifactTasksBulkResponse, error) {
+		return k.c.Artifact.CreateArtifactTasksBulk(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) GetPipelineVersion(ctx context.Context, req *gc.GetPipelineVersionRequest) (*gc.PipelineVersion, error) {
-	return k.c.Pipeline.GetPipelineVersion(ctx, req)
+	return retryReadWithEnv(ctx, k.retryEnv, "GetPipelineVersion", k.retryPolicy, func(callCtx context.Context) (*gc.PipelineVersion, error) {
+		return k.c.Pipeline.GetPipelineVersion(callCtx, req)
+	})
 }
 
 func (k *clientAdapter) FetchPipelineSpecFromRun(ctx context.Context, run *gc.Run) (*structpb.Struct, error) {
