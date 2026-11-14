@@ -33,11 +33,15 @@ const scopes = {
   '../../test/frontend-integration-test/package-lock.json': {
     undici: '>=6.29.1 <7 || >=7.30.1 <8',
     'serialize-javascript': '>=7.1.3 <8',
+    glob: '<9 || >=14.0.2 <15',
+    minimatch: '<9 || >=11.0.1 <12',
   },
   '../package-lock.json': {
     ...tooling,
     qs: '>=6.16.1 <7',
     storybook: '>=10.6.2 <11',
+    glob: '<9 || >=14.0.2 <15',
+    minimatch: '<9 || >=11.0.1 <12',
     zod: '>=4.6.6 <5',
   },
   '../server/package-lock.json': {

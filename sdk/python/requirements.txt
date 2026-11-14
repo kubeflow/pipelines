@@ -57,7 +57,7 @@ kfp-server-api==2.18.1
     # via -r requirements.in
 kubernetes==30.1.0
     # via -r requirements.in
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
     #   -r requirements.in
     #   kubernetes
@@ -73,8 +73,9 @@ protobuf==6.33.6
     #   googleapis-common-protos
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.4
+pyasn1==0.6.5
     # via
+    #   -r requirements.in
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.4.2
