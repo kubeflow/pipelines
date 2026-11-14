@@ -437,8 +437,6 @@ func (s *ArtifactTaskStore) GetArtifactTask(id string) (*model.ArtifactTask, err
 }
 
 func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
 	if len(taskIDs) == 0 {
 		return nil
 	}
@@ -448,23 +446,99 @@ func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string)
 		model.IOType(apiv2.IOType_ONE_OF_OUTPUT),
 		model.IOType(apiv2.IOType_TASK_FINAL_STATUS_OUTPUT),
 	}
-	sql, args, err := qb.
-		Delete(q(artifactTaskTableName)).
+	return s.deleteArtifactTasksByTaskIDs(taskIDs, outputLinkTypes, "output")
+}
+
+// deleteArtifactTasksByTaskIDs deletes links of the given types in one
+// transaction that first locks the owning run rows. Replayed artifact writes
+// lock the run before the artifact and link rows, so this keeps a consistent
+// lock order (run, then links) and avoids index-order deadlocks on MySQL.
+func (s *ArtifactTaskStore) deleteArtifactTasksByTaskIDs(taskIDs []string, linkTypes []model.IOType, kind string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start transaction to delete %s artifact-tasks", kind)
+	}
+	defer tx.Rollback()
+
+	runSQL, runArgs, err := qb.
+		Select(q("RunUUID")).
+		Distinct().
+		From(q(artifactTaskTableName)).
 		Where(sq.Eq{q("TaskID"): taskIDs}).
-		Where(sq.Eq{q("Type"): outputLinkTypes}).
+		Where(sq.Eq{q("Type"): linkTypes}).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create query to delete output artifact-tasks: %v", err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to read runs of %s artifact-tasks: %v", kind, err.Error())
 	}
-	if _, err := s.db.Exec(sql, args...); err != nil {
-		return util.NewInternalServerError(err, "Failed to delete output artifact-tasks: %v", err.Error())
+	rows, err := tx.Query(runSQL, runArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to read runs of %s artifact-tasks: %v", kind, err.Error())
+	}
+	var runUUIDs []string
+	for rows.Next() {
+		var runUUID string
+		if err := rows.Scan(&runUUID); err != nil {
+			rows.Close()
+			return util.NewInternalServerError(err, "Failed to scan run of %s artifact-tasks: %v", kind, err.Error())
+		}
+		runUUIDs = append(runUUIDs, runUUID)
+	}
+	rowsErr := rows.Err()
+	rows.Close()
+	if rowsErr != nil {
+		return util.NewInternalServerError(rowsErr, "Failed to read runs of %s artifact-tasks: %v", kind, rowsErr.Error())
+	}
+	if len(runUUIDs) == 0 {
+		return nil
+	}
+
+	lockSQL, lockArgs, err := qb.
+		Select(q("UUID")).
+		From(q("run_details")).
+		Where(sq.Eq{q("UUID"): runUUIDs}).
+		OrderBy(q("UUID")).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to lock runs of %s artifact-tasks: %v", kind, err.Error())
+	}
+	lockRows, err := tx.Query(s.dbDialect.SelectForUpdate(lockSQL), lockArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to lock runs of %s artifact-tasks: %v", kind, err.Error())
+	}
+	for lockRows.Next() {
+		var lockedRunUUID string
+		if err := lockRows.Scan(&lockedRunUUID); err != nil {
+			lockRows.Close()
+			return util.NewInternalServerError(err, "Failed to scan locked run of %s artifact-tasks: %v", kind, err.Error())
+		}
+	}
+	lockErr := lockRows.Err()
+	lockRows.Close()
+	if lockErr != nil {
+		return util.NewInternalServerError(lockErr, "Failed to lock runs of %s artifact-tasks: %v", kind, lockErr.Error())
+	}
+
+	deleteSQL, deleteArgs, err := qb.
+		Delete(q(artifactTaskTableName)).
+		Where(sq.Eq{q("TaskID"): taskIDs}).
+		Where(sq.Eq{q("Type"): linkTypes}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete %s artifact-tasks: %v", kind, err.Error())
+	}
+	if _, err := tx.Exec(deleteSQL, deleteArgs...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete %s artifact-tasks: %v", kind, err.Error())
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit deletion of %s artifact-tasks: %v", kind, err.Error())
 	}
 	return nil
 }
 
 func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
 	if len(taskIDs) == 0 {
 		return nil
 	}
@@ -477,16 +551,5 @@ func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) 
 		model.IOType(apiv2.IOType_ITERATOR_INPUT_RAW),
 		model.IOType(apiv2.IOType_COMPONENT_DEFAULT_INPUT),
 	}
-	sql, args, err := qb.
-		Delete(q(artifactTaskTableName)).
-		Where(sq.Eq{q("TaskID"): taskIDs}).
-		Where(sq.Eq{q("Type"): inputLinkTypes}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create query to delete input artifact-tasks: %v", err.Error())
-	}
-	if _, err := s.db.Exec(sql, args...); err != nil {
-		return util.NewInternalServerError(err, "Failed to delete input artifact-tasks: %v", err.Error())
-	}
-	return nil
+	return s.deleteArtifactTasksByTaskIDs(taskIDs, inputLinkTypes, "input")
 }

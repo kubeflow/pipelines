@@ -127,11 +127,19 @@ func TestImportedHistoryRejectsArtifactTaskWrites(t *testing.T) {
 			case "bulk links":
 				_, err = manager.CreateArtifactTasks([]*model.ArtifactTask{link})
 			case "artifact":
-				_, _, err = manager.CreateArtifactWithTask(&model.Artifact{}, link)
+				_, _, err = manager.CreateArtifactWithTask(
+					&model.Artifact{},
+					link,
+					"",
+				)
 			case "reused artifact":
 				_, _, err = manager.FindOrCreateArtifactWithTask(&model.Artifact{}, link)
 			case "bulk artifacts":
-				_, _, err = manager.CreateArtifactsWithTasks([]*model.Artifact{{}}, []*model.ArtifactTask{link})
+				_, _, err = manager.CreateArtifactsWithTasks(
+					[]*model.Artifact{},
+					[]*model.ArtifactTask{link},
+					[]string{""},
+				)
 			}
 			require.Error(t, err)
 			assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
