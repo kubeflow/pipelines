@@ -21,6 +21,7 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "frontend"
   "metadata-writer"
   "viewer-crd-controller"
+  "profile-controller"
   "visualization-server"
   "cache-deployer"
   "cache-server"

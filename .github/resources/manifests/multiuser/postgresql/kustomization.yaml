@@ -19,6 +19,9 @@ configMapGenerator:
       - postgresExtraParams={"sslmode":"disable"}
 
 images:
+  - name: ghcr.io/kubeflow/kfp-profile-controller
+    newName: kind-registry:5000/profile-controller
+    newTag: ci
   - name: ghcr.io/kubeflow/kfp-api-server
     newName: kind-registry:5000/apiserver
     newTag: latest

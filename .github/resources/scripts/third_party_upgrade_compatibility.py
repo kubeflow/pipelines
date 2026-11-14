@@ -26,6 +26,8 @@ import sys
 import time
 import urllib.request
 
+from third_party_upgrade_scan import build_profile_image
+from third_party_upgrade_scan import image_reference
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -294,6 +296,24 @@ def exercise_profile(admin_credentials, evidence):
     profile = [
         obj for obj in rendered(PROFILE) if obj['kind'] != 'DecoratorController'
     ]
+    reference = image_reference(ROOT, 'profile-controller')
+    sha = run('git', '-C', str(ROOT), 'rev-parse', 'HEAD').strip()
+    build = build_profile_image(ROOT, reference, sha)
+    if build:
+        run('kind', 'load', 'docker-image', '--name', CLUSTER, build['image'])
+        deployment = next(
+            obj for obj in profile if obj['kind'] == 'Deployment' and
+            obj['metadata']['name'] == 'kubeflow-pipelines-profile-controller')
+        container = next(
+            item
+            for item in deployment['spec']['template']['spec']['containers']
+            if item['name'] == 'profile-controller')
+        container['image'] = build['image']
+        container['imagePullPolicy'] = 'Never'
+        image = json.loads(run('docker', 'image', 'inspect', build['image']))[0]
+        build['image_id'] = image['Id']
+        (evidence /
+         'profile-runtime.json').write_text(json.dumps(build, indent=2) + '\n')
     apply(profile)
     wait_ready('kubeflow-pipelines-profile-controller')
     with forward('seaweedfs', S3_LOCAL_PORT, S3_PORT, evidence) as endpoint:
@@ -321,6 +341,19 @@ def exercise_profile(admin_credentials, evidence):
         )
         verify_payload(user, 'private-artifacts/compat-user/after-upgrade')
         verify_state(s3)
+    kubectl('rollout', 'restart',
+            'deployment/kubeflow-pipelines-profile-controller')
+    wait_ready('kubeflow-pipelines-profile-controller')
+    with forward(
+            'kubeflow-pipelines-profile-controller',
+            PROFILE_LOCAL_PORT,
+            PROFILE_PORT,
+            evidence,
+    ) as webhook:
+        if (sync_profile(webhook, 'compat-user', secret)['data']
+                != secret['data']):
+            raise AssertionError(
+                'Profile restart replaced existing credentials')
     return secret
 
 
@@ -364,6 +397,7 @@ def write_result(evidence, baseline_image, target, pvc_uid):
                     'profile-health',
                     'profile-iam-credentials',
                     'profile-idempotence',
+                    'profile-restart-credentials',
                     'new-image-write',
                     'restart-read',
                     'restart-credentials',

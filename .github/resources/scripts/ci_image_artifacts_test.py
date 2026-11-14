@@ -31,6 +31,31 @@ CI_SCRIPTS_WORKFLOW = ROOT / '.github' / 'workflows' / 'ci-scripts-tests.yml'
 
 class CiImageArtifactsTest(unittest.TestCase):
 
+    def test_profile_runtime_has_both_publication_architectures(self):
+        context = 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller'
+        for line in ('master', 'release'):
+            jobs = yaml.safe_load(
+                (ROOT / '.github/workflows' /
+                 f'image-builds-{line}.yml').read_text())['jobs']
+            matrix = jobs[f'build-images-for-{line}']['strategy']['matrix']
+            profile = [
+                item for item in matrix['image']
+                if item['name'] == 'kfp-profile-controller'
+            ]
+            self.assertEqual(profile, [{
+                'name': 'kfp-profile-controller',
+                'dockerfile': context + '/Dockerfile',
+                'context': context
+            }])
+            self.assertEqual({item['platform'] for item in matrix['arch']},
+                             {'linux/amd64', 'linux/arm64'})
+            self.assertFalse(
+                any(item['image']['name'] == 'kfp-profile-controller'
+                    for item in matrix.get('exclude', [])))
+            self.assertIn(
+                {'image': 'kfp-profile-controller'},
+                jobs['create-manifests']['strategy']['matrix']['component'])
+
     def test_artifact_list_matches_image_build_matrix(self):
         result = subprocess.run(
             [
