@@ -25,8 +25,8 @@ generatorOptions:
 images:
 - name: postgres
   newName: postgres
-  newTag: 14.24-alpine3.23
-  digest: sha256:836ff0855bffedade962df0e09ddcb897cc398d2283f1f45d0776cc40f203f37
+  newTag: 14.25-alpine3.23
+  digest: sha256:abe3efc5218a8fcd8f9160de2d6d945ccd150afc8409d37611b82be3c395e46d
 
 replacements:
 - source:
