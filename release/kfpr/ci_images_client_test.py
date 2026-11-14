@@ -22,6 +22,24 @@ INVENTORY = [{'name': 'kfp-api-server', 'platform': 'linux/amd64'}]
 
 
 class CIImagesClientTest(unittest.TestCase):
+    def test_api_constructs_repository_and_nested_endpoints(self):
+        context = SimpleNamespace(root=Path('/tmp'), runner=Mock())
+        context.runner.capture.return_value = '{"default_branch": "master"}'
+        self.assertEqual(
+            client.default_branch(
+                lambda endpoint: client._api(context, endpoint)
+            ),
+            'master',
+        )
+        context.runner.capture.assert_called_once_with(
+            ['gh', 'api', 'repos/kubeflow/pipelines'], cwd=context.root
+        )
+        client._api(context, 'actions/runs/123')
+        context.runner.capture.assert_called_with(
+            ['gh', 'api', 'repos/kubeflow/pipelines/actions/runs/123'],
+            cwd=context.root,
+        )
+
     def identity(self):
         return {
             'repository': client.REPO,
@@ -305,7 +323,7 @@ class CIImagesClientTest(unittest.TestCase):
         def capture(command, **kwargs):
             endpoint = command[-1]
             calls.append(endpoint)
-            if endpoint == 'repos/kubeflow/pipelines/':
+            if endpoint == 'repos/kubeflow/pipelines':
                 return json.dumps(
                     {'default_branch': getattr(self, 'branch', 'master')}
                 )

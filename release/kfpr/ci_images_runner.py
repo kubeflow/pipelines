@@ -13,12 +13,25 @@ import re
 import shutil
 import subprocess
 import tarfile
+import tempfile
 from pathlib import Path
 
-from . import osv_image_scan
+from . import go_build_provenance, osv_image_scan
 from .security import _trivy_findings
 
 TRIVY = {'name': 'trivy', 'version': '0.76.0'}
+
+# These images compile the KFP main module. Unknown KFP-bearing images fail
+# binary verification until their build also receives a clean Git context.
+KFP_GO_IMAGES = {
+    'kfp-api-server',
+    'kfp-cache-server',
+    'kfp-driver',
+    'kfp-launcher',
+    'kfp-persistence-agent',
+    'kfp-scheduled-workflow-controller',
+    'kfp-viewer-crd-controller',
+}
 
 
 def scanner_identity(scanner: str) -> dict:
@@ -168,7 +181,30 @@ def lane(
         'passed': False,
     }
     try:
-        _logged(command + [record['context']], output / 'build.log', source)
+        if name in KFP_GO_IMAGES:
+            if record['context'] != '.':
+                raise ValueError(
+                    'KFP Go images require the repository-root context'
+                )
+            with tempfile.TemporaryDirectory(
+                prefix='kfpr-source-'
+            ) as temporary:
+                prepared = go_build_provenance.prepare_context(
+                    source,
+                    release['source_sha'],
+                    record['dockerfile'],
+                    Path(temporary) / 'build',
+                )
+                command[command.index('--file') + 1] = str(
+                    prepared['dockerfile']
+                )
+                _logged(
+                    command + [str(prepared['context'])],
+                    output / 'build.log',
+                    prepared['context'],
+                )
+        else:
+            _logged(command + [record['context']], output / 'build.log', source)
         image_id = subprocess.check_output(
             ['docker', 'image', 'inspect', '--format', '{{.Id}}', tag],
             cwd=source,
@@ -224,6 +260,37 @@ def lane(
                     env=environment,
                     stderr=errors,
                     check=True,
+                )
+        if scanner == 'osv-json':
+            report = json.loads(scan.read_text())['report']
+            paths = go_build_provenance.scan_binaries(report)
+            if name in KFP_GO_IMAGES and not paths:
+                raise ValueError('OSV omitted the expected KFP Go binary')
+            if paths:
+                source_info = go_build_provenance.source_identity(
+                    source, release['source_sha']
+                )
+                proof = go_build_provenance.collect(
+                    image_id,
+                    platform,
+                    release['source_sha'],
+                    source_info['source_time'],
+                    list(paths),
+                    output,
+                )
+                go_build_provenance.verify_scan(
+                    proof,
+                    report,
+                    image_id,
+                    platform,
+                    release['source_sha'],
+                    source_info['source_time'],
+                )
+                evidence.update(
+                    go_provenance_file='go-provenance.json',
+                    go_provenance_sha256=hashlib.sha256(
+                        (output / 'go-provenance.json').read_bytes()
+                    ).hexdigest(),
                 )
         evidence.update(
             scan_file='scan.json',
@@ -312,6 +379,47 @@ def aggregate(
                 'scan_sha256': digest,
             }
         )
+        if scanner == 'osv-json':
+            report = json.loads(scan.read_text())['report']
+            paths = go_build_provenance.scan_binaries(report)
+            if pair[0] in KFP_GO_IMAGES and not paths:
+                raise ValueError('OSV omitted the expected KFP Go binary')
+            if paths:
+                if (
+                    lane_report.get('go_provenance_file')
+                    != 'go-provenance.json'
+                ):
+                    raise ValueError('Missing KFP binary provenance')
+                proof_path = path.parent / 'go-provenance.json'
+                if proof_path.is_symlink():
+                    raise ValueError('Symlink binary provenance is not allowed')
+                proof_bytes = proof_path.read_bytes()
+                proof_digest = hashlib.sha256(proof_bytes).hexdigest()
+                if proof_digest != lane_report.get('go_provenance_sha256'):
+                    raise ValueError('KFP binary provenance checksum mismatch')
+                source_info = go_build_provenance.source_identity(
+                    source, release['source_sha']
+                )
+                go_build_provenance.verify_scan(
+                    json.loads(proof_bytes),
+                    report,
+                    image_id,
+                    pair[1],
+                    release['source_sha'],
+                    source_info['source_time'],
+                )
+                proof_name = (
+                    f'provenance/{pair[0]}-{pair[1].split("/")[1]}.json'
+                )
+                proof_destination = output / proof_name
+                proof_destination.parent.mkdir(parents=True, exist_ok=True)
+                proof_destination.write_bytes(proof_bytes)
+                images[-1].update(
+                    go_provenance_file=proof_name,
+                    go_provenance_sha256=proof_digest,
+                )
+            elif any(key.startswith('go_provenance_') for key in lane_report):
+                raise ValueError('Unexpected KFP binary provenance')
         seen.add(pair)
     if seen != expected:
         raise ValueError(
