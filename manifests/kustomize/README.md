@@ -3,6 +3,16 @@
 Kubeflow Pipelines can be installed standalone and as part of the [community distribution](https://github.com/kubeflow/community-distribution).
 [Installation Options for Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 
+## Legacy Google Cloud Console Application integration
+
+On `master`, KFP no longer installs the legacy Application controller or the
+KFP `app.k8s.io` Application. GCP deployment support, Cloud SQL configuration,
+and the KFP UI/API remain available. Existing installations must follow the
+[Application controller retirement guide](../../docs/operator-guides/application-controller-retirement.md)
+before upgrading, especially when using GitOps pruning. The shared Application
+CRD and existing workload selector labels are retained for compatibility.
+This retirement is not backported to 2.18.1.
+
 ## Multi-user profile-controller ingress
 
 KFP's multi-user manifests include a component-scoped NetworkPolicy for the
