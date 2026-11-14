@@ -25,16 +25,19 @@ this guide doesn't change the default manifests.
 ### API server installs and upgrades
 
 Every API server replica checks and migrates the database schema when it starts.
-These startup migrations are [not coordinated across replicas](https://github.com/kubeflow/pipelines/blob/ab274d0347eff91695fd74f24d68c18a6b8e22b6/backend/src/apiserver/client_manager/client_manager.go#L1358-L1364),
-so avoid starting several API server replicas at the same time against a schema
-that needs changes:
+Replicas take a database lock for this, so only one migrates at a time. The others
+wait up to 30 seconds, then find the schema current and start. A replica still
+waiting after 30 seconds exits with an error that names the lock, and Kubernetes
+restarts it, so a long migration can show restarts on the waiting replicas.
 
-- For a fresh install or an upgrade that changes the schema, run the API server with
-  one replica until it is ready, then scale it up.
-- If you keep several replicas during an upgrade, use a rollout that starts one new
-  Pod at a time, such as a `RollingUpdate` strategy with `maxSurge: 1` and
-  `maxUnavailable: 0`. The default strategy (`maxSurge` and `maxUnavailable` of 25%)
-  only does this for up to three replicas.
+API server versions without this lock do not take it. During an upgrade from such a
+version, or a rollback to one, an old replica that restarts migrates without the
+lock. For those upgrades, avoid starting several API server replicas at the same
+time against a schema that needs changes:
+
+- Run the API server with one replica until it is ready, then scale it up.
+- Or use a rollout that starts one new Pod at a time, such as a `RollingUpdate`
+  strategy with `maxSurge: 1` and `maxUnavailable: 0`.
 
 During a rolling upgrade, old and new API server replicas run at the same time. For
 the steps that keep recurring runs consistent, see
