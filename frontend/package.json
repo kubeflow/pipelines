@@ -120,7 +120,7 @@
     "@types/react-dom": "^19",
     "@typescript-eslint/eslint-plugin": "8.72.2",
     "@typescript-eslint/parser": "8.72.2",
-    "@vitejs/plugin-react": "^6.1.2",
+    "@vitejs/plugin-react": "^6.3.0",
     "@vitest/coverage-v8": "^5.1.0",
     "autoprefixer": "^10.6.2",
     "browserslist": "4.29.5",
