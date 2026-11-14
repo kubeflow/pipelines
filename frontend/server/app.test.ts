@@ -750,47 +750,149 @@ describe('UIServer apis', () => {
     });
   });
 
+  it('authorizes the default multi-user log reader through the canonical log-context route', async () => {
+    app = new UIServer(
+      loadConfigs(argv, {
+        ENABLE_AUTHZ: 'true',
+        STREAM_LOGS_FROM_SERVER_API: 'false',
+        ML_PIPELINE_SERVICE_HOST: 'api.example',
+        ML_PIPELINE_SERVICE_PORT: '8888',
+      }),
+    );
+    mockedFetch.mockClear();
+    mockedFetch.mockResolvedValue({ ok: false, status: 403 });
+    await requests(app.app)
+      .get('/k8s/pod/logs?runid=run-a&podname=pod-a')
+      .set('authorization', 'Bearer synthetic')
+      .set('kubeflow-userid', 'alice')
+      .expect(403);
+    const call = mockedFetch.mock.calls.find(([url]) =>
+      String(url).includes('archive_context=true'),
+    );
+    expect(call?.[0]).toBe(
+      'http://api.example:8888/apis/v2/runs/run-a/nodes/pod-a/log?archive_context=true',
+    );
+    expect((call?.[1].headers as Headers).get('authorization')).toBe('Bearer synthetic');
+    expect((call?.[1].headers as Headers).get('kubeflow-userid')).toBe('alice');
+  });
+
+  it.each(['true', 'false'])(
+    'keeps imported requests on the context route without live Pod reads (auth=%s)',
+    async (authEnabled) => {
+      app = new UIServer(
+        loadConfigs(argv, {
+          ENABLE_AUTHZ: authEnabled,
+          STREAM_LOGS_FROM_SERVER_API: 'false',
+          ARGO_ARCHIVE_LOGS: 'true',
+          ML_PIPELINE_SERVICE_HOST: 'api.example',
+          ML_PIPELINE_SERVICE_PORT: '8888',
+        }),
+      );
+      const podRead = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      const logRead = vi.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPodLog');
+      mockedFetch.mockClear();
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          runId: 'run-a',
+          namespace: 'team-a',
+          workflowName: 'workflow-a',
+          archiveOnly: true,
+          archiveKey: 'private-artifacts/team-b/workflow-a/2026/11/12/pod-a/main.log',
+        }),
+      });
+      try {
+        await requests(app.app)
+          .get('/k8s/pod/logs?runid=run-a&podname=pod-a')
+          .set('authorization', 'Bearer synthetic')
+          .expect(403);
+        const call = mockedFetch.mock.calls.find(([url]) =>
+          String(url).includes('archive_context=true'),
+        );
+        expect(call?.[0]).toBe(
+          'http://api.example:8888/apis/v2/runs/run-a/nodes/pod-a/log?archive_context=true',
+        );
+        expect((call?.[1].headers as Headers).get('authorization')).toBe('Bearer synthetic');
+        expect(podRead).not.toHaveBeenCalled();
+        expect(logRead).not.toHaveBeenCalled();
+      } finally {
+        podRead.mockRestore();
+        logRead.mockRestore();
+      }
+    },
+  );
+
   describe('/k8s/pod/logs with authorization enabled', () => {
-    let authServer: Server;
-    const authPort = 3004;
+    let apiServer: Server;
+    const upstreamRequests: Array<{ path: string; user?: string; token?: string }> = [];
+    let upstreamStatus = 200;
 
     beforeEach(async () => {
-      authServer = await new Promise<Server>((resolve) => {
-        const server = express()
-          .get('/apis/v2/auth', (_, res) => {
-            res.status(401).send('Unauthorized');
-          })
-          .listen(authPort, () => resolve(server));
-      });
-
+      upstreamRequests.length = 0;
+      upstreamStatus = 200;
+      apiServer = express()
+        .all('/*', (req, res) => {
+          upstreamRequests.push({
+            path: req.originalUrl,
+            user: req.get('kubeflow-userid'),
+            token: req.get('authorization'),
+          });
+          res.status(upstreamStatus).send('run log response');
+        })
+        .listen(0);
+      await waitForListening(apiServer);
+      const address = apiServer.address();
+      if (!address || typeof address === 'string') throw new Error('Expected TCP port');
       app = new UIServer(
         loadConfigs(argv, {
           ENABLE_AUTHZ: 'true',
-          ML_PIPELINE_SERVICE_PORT: `${authPort}`,
+          STREAM_LOGS_FROM_SERVER_API: 'true',
+          ML_PIPELINE_SERVICE_PORT: `${address.port}`,
           ML_PIPELINE_SERVICE_HOST: 'localhost',
         }),
       );
     });
 
     afterEach(async () => {
-      if (authServer) {
-        await new Promise<void>((resolve) => authServer.close(() => resolve()));
+      if (apiServer) {
+        await new Promise<void>((resolve) => apiServer.close(() => resolve()));
       }
     });
 
-    it('responds with 403 when authorization is rejected', async () => {
-      const authRequest = requests(app.app);
-      await authRequest
-        .get('/k8s/pod/logs?podname=test-pod&podnamespace=test-ns')
-        .expect(403, 'Access denied to namespace');
-    });
+    it.each([
+      [200, '/k8s/pod/logs'],
+      [403, '/k8s/pod/logs'],
+      [500, '/k8s/pod/logs'],
+      [200, '/pipeline/k8s/pod/logs'],
+      [403, '/pipeline/k8s/pod/logs'],
+      [500, '/pipeline/k8s/pod/logs'],
+    ] as const)(
+      'preserves API status %s through %s without a direct fallback',
+      async (status, route) => {
+        upstreamStatus = status;
+        const response = await requests(app.app)
+          .get(`${route}?runid=run-a&podname=pod-a&podnamespace=ignored`)
+          .set('kubeflow-userid', 'tenant-a@example.com')
+          .set('authorization', 'Bearer synthetic-test-token')
+          .expect(status);
+        expect(response.text).toBe('run log response');
+        expect(upstreamRequests).toEqual([
+          {
+            path: '/apis/v2/runs/run-a/nodes/pod-a/log',
+            user: 'tenant-a@example.com',
+            token: 'Bearer synthetic-test-token',
+          },
+        ]);
+      },
+    );
 
-    it('asks for podnamespace if not provided when authorization is enabled', async () => {
-      const authRequest = requests(app.app);
-      await authRequest
-        .get('/k8s/pod/logs?podname=test-pod')
-        .expect(422, 'podnamespace argument is required');
-    });
+    it.each(['podname=pod-a', 'runid=..&podname=pod-a', 'runid=a&runid=b&podname=pod-a'])(
+      'rejects missing or ambiguous run identity before upstream access: %s',
+      async (query) => {
+        await requests(app.app).get(`/k8s/pod/logs?${query}`).expect(400);
+        expect(upstreamRequests).toEqual([]);
+      },
+    );
   });
 
   describe('/apis/v2/', () => {

@@ -145,27 +145,22 @@ func TestImportedHistoryDeleteDoesNotAccessKubernetes(t *testing.T) {
 	assert.True(t, store.deleted)
 }
 
-func TestImportedHistoryLogsUseOnlyArchive(t *testing.T) {
+func TestImportedHistoryLogsRejectLocalArchive(t *testing.T) {
 	for _, configured := range []bool{false, true} {
 		t.Run(map[bool]string{false: "unconfigured", true: "configured"}[configured], func(t *testing.T) {
 			manager, store := newImportedHistoryManager()
-			store.run.WorkflowRuntimeManifest = model.LargeText(testWorkflow.ToStringForStore())
+			store.run.WorkflowRuntimeManifest = model.LargeText(foreignLogManifest)
+			objects := &readerOnlyObjectStore{files: map[string][]byte{"tenant-b/private/main.log": []byte("SYNTHETIC_FOREIGN_LOG\n")}}
+			manager.objectStore = objects
 			if configured {
 				manager.logArchive = archive.NewLogArchive("/logs", "main.log")
-				key, err := manager.logArchive.GetLogObjectKey(testWorkflow, "node-id")
-				require.NoError(t, err)
-				manager.objectStore = &readerOnlyObjectStore{files: map[string][]byte{key: []byte("old log\n")}}
 			}
 			var dst bytes.Buffer
 			err := manager.ReadLog(context.Background(), store.run.UUID, "node-id", true, &dst)
-			if configured {
-				require.NoError(t, err)
-				assert.Equal(t, "old log\n", dst.String())
-			} else {
-				require.Error(t, err)
-				assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
-				assert.Empty(t, dst.String())
-			}
+			require.Error(t, err)
+			assert.True(t, util.IsUserErrorCodeMatch(err, codes.FailedPrecondition), "%v", err)
+			assert.Empty(t, dst.String())
+			assert.Empty(t, objects.getFileReaderPaths)
 		})
 	}
 }
