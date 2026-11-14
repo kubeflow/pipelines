@@ -336,6 +336,20 @@ Candidate scanning never reads or updates a release checkpoint, sets
 publication approval. After the PR merges, qualify the exact merged commit
 through the normal release flow below.
 
+### Go binary provenance
+
+Qualification builds KFP Go images from clean snapshots of the requested Git
+commit. Go derives their real commit-based module version automatically; the
+candidate is never stamped as a published release. OSV then evaluates that
+version normally, with no ignore list or post-scan filtering.
+
+Each KFP image retains a checksummed `provenance/` record containing the actual
+binary's SHA256 and standard Go build information. Verification requires the
+source revision and timestamp, a clean tree, matching platform, and agreement
+between the binary's module version and the raw OSV inventory. Missing or
+mismatched provenance fails closed. Older source branches must adopt
+package-path Go builds before using this qualification path.
+
 ## Qualification and publication gates
 
 Preparation creates the version PR without creating or pushing release tags.

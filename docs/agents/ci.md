@@ -540,3 +540,21 @@ image tags as part of the Git branch rename.
 - Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.
 
 - Merge-queue admission is inactive unless `.github/merge-queue-policy.json` explicitly enables a development branch and GitHub reports an active `merge_queue` ruleset rule. Admission, explicit queue CI dispatch, and `ci-passed` writes use builtin `GITHUB_TOKEN`; no additional App or PAT is required. Recovery runs every five minutes, subject to GitHub scheduling delays. Per-candidate/workflow dispatch receipts allow 120 seconds for run registration and at most three dispatch attempts; registered failed/cancelled runs require an intentional rerun. A successful enqueue consumes the workflow snapshot fingerprint attached to the trusted PR success in `queue-admission-attempt`, preventing automatic re-enqueue loops after candidate failure/removal. Current run IDs, attempts, states and conclusions must match the published fingerprint; only a fresh verified success permits admission after a rerun. Preserve Prow approval and hold policy, current-head CI/retarget verification, and queue-candidate rechecks. See [activation and offline Tide patch](merge-queue-activation.md). Run `ci_merge_queue_policy_test.py`, `merge_queue_admission_test.py`, `merge_queue_admission_workflow_test.py`, `ci_merge_group_test.py`, `merge_queue_dispatch_test.py`, `merge_queue_dispatch_workflows_test.py`, and `prepare_tide_merge_queue_test.py` when changing this boundary.
+
+### Native Go provenance in release qualification
+
+The seven KFP Go image lanes build a clean, detached snapshot of the requested
+commit with sanitized Git metadata. An external, byte-identical Dockerfile and
+its empty Dockerfile-specific ignore file preserve the tracked tree and Git
+objects without copying the caller's credentials, hooks, or untracked files.
+Package-path builds let Go derive the real main-module pseudo-version from the
+commit; do not stamp a released version or disable VCS metadata to clear CVEs.
+
+After OSV scans the immutable image, the trusted Go build-info reader extracts
+its actual KFP executables from a stopped container without running them. It
+checks native module version, full revision, timestamp, clean state, ELF and Go
+architecture, and binary SHA256. Both aggregate and client verification bind
+this evidence to the exact source, image, and raw scanner package inventory.
+Missing, dirty, mismatched, or inconsistent provenance fails collection. Raw
+OSV findings and security-policy semantics remain unchanged. The hosted
+`go_build_provenance_test` suite guards these boundaries.

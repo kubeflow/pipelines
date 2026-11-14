@@ -15,3 +15,6 @@ kfpr = "kfpr.cli:app"
 [build-system]
 requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+kfpr = ["read_go_buildinfo.go"]

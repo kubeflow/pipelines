@@ -96,6 +96,11 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r tooling/.github/scripts/requirements.txt
+      - name: Select the trusted Go provenance reader toolchain
+        run: |
+          cp tooling/go.mod go.mod
+          cp tooling/go.sum go.sum
+      - uses: ./tooling/.github/actions/setup-go
       - name: Install checksum-pinned OSV-Scanner
         uses: ./tooling/.github/actions/setup-osv-scanner
         with:
