@@ -118,6 +118,7 @@ jobs:
     get: async request => {
       pullReads += 1;
       requestCounts.pr++;
+      if (options.statusDuringPRRead && pullReads === 1) status = options.statusDuringPRRead;
       if (options.pullFailure) throw Error('Pull read unavailable');
       if (options.finalizeReadFailure && pullReads === 2) throw Error('Pull read unavailable');
       if (request.pull_number === 100) return {data: {
@@ -134,9 +135,11 @@ jobs:
     }},
   actions: {listWorkflowRunsForRepo: methods.runs, getWorkflowRun: async ({run_id}) => {
     requestCounts.currentRun++;
+    if (options.statusDuringStartRead) status = options.statusDuringStartRead;
+    if (options.headDuringStartRead) pr.head.sha = options.headDuringStartRead;
     if (options.workflowRun && ['requested', 'in_progress'].includes(options.action)) {
       if (options.startReadFailure) throw Error('Starting run unavailable');
-      const state = options.runStatus || 'in_progress';
+      const state = options.startStatesByCycle?.[cycle] || options.runStatus || 'in_progress';
       return {data: {id: run_id, run_attempt: options.runAttempt || 1,
         path: '.github/workflows/frontend.yml', event: 'pull_request',
         head_sha: HEAD, head_branch: 'feature', repository: {full_name: 'kubeflow/pipelines'},
@@ -219,7 +222,12 @@ jobs:
   }
   if (method === methods.statuses) {requestCounts.history++; return statusHistory;}
   if (method === methods.files) {requestCounts.files++; return [{filename: 'frontend/src/mlmd/Api.ts'}];}
-  if (method === methods.pulls) {requestCounts.pulls++; return options.ambiguous ? [pr, {...pr, number: 8}] : [pr];}
+  if (method === methods.pulls) {
+    requestCounts.pulls++;
+    const listed = structuredClone(pr);
+    if (options.missingListedLabels) delete listed.labels;
+    return options.ambiguous ? [listed, {...listed, number: 8}] : [listed];
+  }
   if (method === methods.timeline) {
     requestCounts.timeline++;
     if (options.apiFailure) throw Error('API unavailable');

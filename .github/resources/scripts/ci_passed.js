@@ -189,7 +189,7 @@ async function revokeStaleGreens({github, context, tip, root = process.env.GITHU
   return revoked;
 }
 
-async function resolve(github, context, recovery) {
+async function resolve(github, context, recovery, {allowListedWorkflowPR = false} = {}) {
   if (context.eventName === 'schedule') {
     if (!Number.isSafeInteger(recovery?.number) || recovery.number <= 0 || !recovery.head) {
       throw new Error('Scheduled recovery requires a PR number and head SHA');
@@ -215,6 +215,7 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name);
   if (matches.length === 0) return null;
   if (matches.length !== 1) throw new Error('Workflow head must identify exactly one open PR');
+  if (allowListedWorkflowPR) return matches[0];
   const pr = await readPR(github, context, matches[0].number);
   return pr.head.sha === run.head_sha &&
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
@@ -329,7 +330,7 @@ async function evidence(github, context, pr, root) {
   return {...result, baseSha, queueAdmission: queuedAdmission};
 }
 
-async function invalidateActiveWorkflow({github, context, pr}) {
+async function readStartingWorkflow({github, context}) {
   const eventRun = context.payload.workflow_run;
   if (!Number.isSafeInteger(eventRun.id) || eventRun.id <= 0 ||
       !Number.isSafeInteger(eventRun.run_attempt) || eventRun.run_attempt <= 0) {
@@ -338,6 +339,11 @@ async function invalidateActiveWorkflow({github, context, pr}) {
   const {data: run} = await github.rest.actions.getWorkflowRun({
     ...context.repo, run_id: eventRun.id,
   });
+  return run;
+}
+
+function validateStartingWorkflow(run, context, pr) {
+  const eventRun = context.payload.workflow_run;
   if (run.id !== eventRun.id || run.event !== 'pull_request' ||
       run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
       run.head_sha !== pr.head.sha || run.head_branch !== pr.head.ref ||
@@ -352,7 +358,6 @@ async function invalidateActiveWorkflow({github, context, pr}) {
       run.conclusion != null) {
     throw new Error('Starting workflow has invalid state; inspect CI Check and retry.');
   }
-  await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
   return true;
 }
 
@@ -368,9 +373,11 @@ function failedCompletion(context) {
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
+  const starting = context.eventName === 'workflow_run' &&
+    ['requested', 'in_progress'].includes(context.payload.action);
   let pr;
   try {
-    pr = await resolve(github, context, recovery);
+    pr = await resolve(github, context, recovery, {allowListedWorkflowPR: starting});
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
     if (sha && context.payload.pull_request?.merged !== true) await github.rest.repos.createCommitStatus({
@@ -385,14 +392,36 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   // is skipped (it bails when number/head are unset) and cannot republish a
   // failure over the merged head.
   if (pr.merged) return;
-  if (context.eventName === 'workflow_run' &&
-      ['requested', 'in_progress'].includes(context.payload.action)) {
+  if (starting) {
+    const matchesEventHead = candidate =>
+      candidate.head.sha === context.payload.workflow_run.head_sha &&
+      candidate.head.repo?.full_name === context.payload.workflow_run.head_repository.full_name;
     try {
-      if (await invalidateActiveWorkflow({github, context, pr})) return;
+      const run = await readStartingWorkflow({github, context});
+      const active = validateStartingWorkflow(run, context, pr);
+      if (active && pr.state === 'open' && Array.isArray(pr.labels) &&
+          !pr.labels.some(label => label.name === 'ci-passed')) {
+        // The list snapshot can authorize only this read-only no-op. Keep the
+        // live run lookup: a delayed start may displace its completion event.
+        try {
+          if ((await currentStatus(github, context, pr.head.sha))?.state === 'pending') return;
+        } catch (_) { /* An optional probe failure falls back to normal publication. */ }
+      }
+      const fresh = await readPR(github, context, pr.number);
+      if (fresh.merged || !matchesEventHead(fresh)) return;
+      pr = fresh;
+      // Never let the list snapshot authorize a write or full validation.
+      // Rebind the same live run response to the authoritative PR snapshot.
+      if (validateStartingWorkflow(run, context, pr)) {
+        await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
+        return;
+      }
     } catch (error) {
-      // Preserve a merge that completed while the run lookup was failing.
+      // Preserve a merge/head change that completed while the lookup failed.
       try {
-        if ((await readPR(github, context, pr.number)).merged) return;
+        const fresh = await readPR(github, context, pr.number);
+        if (fresh.merged || !matchesEventHead(fresh)) return;
+        pr = fresh;
       } catch (_) {
         // Unreadable evidence must still revoke any earlier success.
       }
