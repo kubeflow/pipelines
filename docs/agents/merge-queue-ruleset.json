@@ -1,12 +1,12 @@
 {
-  "name": "Pipelines master merge queue",
+  "name": "Pipelines default branch merge queue",
   "target": "branch",
   "enforcement": "active",
   "bypass_actors": [],
   "conditions": {
     "ref_name": {
       "include": [
-        "refs/heads/master"
+        "~DEFAULT_BRANCH"
       ],
       "exclude": []
     }

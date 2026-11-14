@@ -21,15 +21,30 @@ function loadPolicy(root = DEFAULT_ROOT) {
   if (!policy || Array.isArray(policy) || policy.version !== 1 ||
       Object.keys(policy).some(key => !['version', 'enabled_branches'].includes(key)) ||
       !Array.isArray(policy.enabled_branches) ||
-      policy.enabled_branches.some(branch => !['master', 'main'].includes(branch)) ||
-      new Set(policy.enabled_branches).size !== policy.enabled_branches.length) {
-    throw new Error('Invalid merge queue policy; enable only master or main with policy version 1.');
+      policy.enabled_branches.some(branch => !['master', 'main', '~DEFAULT_BRANCH'].includes(branch)) ||
+      new Set(policy.enabled_branches).size !== policy.enabled_branches.length ||
+      (policy.enabled_branches.includes('~DEFAULT_BRANCH') && policy.enabled_branches.length !== 1)) {
+    throw new Error('Invalid merge queue policy; use master/main or the exclusive ~DEFAULT_BRANCH selector with policy version 1.');
   }
   return policy;
 }
 
+async function enabledBranches({github, context, root}) {
+  const branches = loadPolicy(root).enabled_branches;
+  if (!branches.includes('~DEFAULT_BRANCH')) return branches;
+  // Read trusted repository metadata at every boundary, never PR payload data
+  // or a cached default: a rename can occur between admission and publication.
+  const {data} = await github.rest.repos.get({...context.repo});
+  if (data?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+      !['master', 'main'].includes(data?.default_branch)) {
+    throw new Error('Cannot resolve merge queue default branch to trusted master or main.');
+  }
+  return [data.default_branch];
+}
+
 async function queueEnabled({github, context, branch, root}) {
-  if (!loadPolicy(root).enabled_branches.includes(branch)) return false;
+  if (!['master', 'main'].includes(branch)) return false;
+  if (!(await enabledBranches({github, context, root})).includes(branch)) return false;
   // This endpoint returns rules from active rulesets applicable to this branch,
   // including organization rules. A configured but unenforced queue is insufficient.
   const rules = await github.paginate('GET /repos/{owner}/{repo}/rules/branches/{branch}', {
@@ -41,4 +56,4 @@ async function queueEnabled({github, context, branch, root}) {
   return true;
 }
 
-module.exports = {loadPolicy, queueEnabled};
+module.exports = {loadPolicy, enabledBranches, queueEnabled};

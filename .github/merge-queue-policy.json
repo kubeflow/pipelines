@@ -1,6 +1,6 @@
 {
   "version": 1,
   "enabled_branches": [
-    "master"
+    "~DEFAULT_BRANCH"
   ]
 }

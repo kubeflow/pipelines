@@ -174,7 +174,11 @@ const github = {{rest: {{
     calls.push({{route:'pr', options}});
     return {{data:next('pr-' + options.pull_number, f.prs[String(options.pull_number)])}};
   }}}},
-  repos: {{listCommitStatusesForRef:'statuses', createCommitStatus: async options => {{
+  repos: {{get: async options => {{
+    calls.push({{route:'repository',options}});
+    if (f.repositoryError) throw new Error('Repository unavailable');
+    return {{data:{{full_name:'owner/repo',default_branch:f.defaultBranch || f.branch}}}};
+  }}, listCommitStatusesForRef:'statuses', createCommitStatus: async options => {{
     writes.push({{route:'status', options}});
     if (f.statusWriteError) throw new Error('Status write failed');
     return {{data: options}};
@@ -240,6 +244,43 @@ class QueueAdmissionTest(unittest.TestCase):
             result = run_case(method, enabled=[])
             self.assertEqual(result['writes'], [], result)
             self.assertEqual(result['calls'], [], result)
+
+    def test_default_selector_sweep_enqueues_only_resolved_branch(self):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                result = run_case(
+                    'sweep', branch=branch, enabled=['~DEFAULT_BRANCH']
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(
+                    [w['route'] for w in result['writes']],
+                    ['enqueue', 'status'],
+                )
+                queue_reads = [
+                    c for c in result['calls'] if c['route'] == 'queue'
+                ]
+                self.assertTrue(queue_reads)
+                self.assertTrue(
+                    all(c['options']['branch'] == branch for c in queue_reads)
+                )
+                reads = [
+                    c
+                    for c in result['calls']
+                    if '/rules/branches/' in c['route']
+                ]
+                self.assertTrue(
+                    all(c['options']['branch'] == branch for c in reads)
+                )
+
+    def test_default_selector_sweep_fails_before_mutation_when_metadata_unavailable(
+        self,
+    ):
+        result = run_case(
+            'sweep', enabled=['~DEFAULT_BRANCH'], repositoryError=True
+        )
+        self.assertIn('Repository unavailable', result['error'])
+        self.assertEqual(result['writes'], [])
+        self.assertEqual([c['route'] for c in result['calls']], ['repository'])
 
     def test_approved_pr_enqueues_exact_head_for_either_branch(self):
         for branch in ['master', 'main']:

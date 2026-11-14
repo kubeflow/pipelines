@@ -127,7 +127,11 @@ const github = {{rest: {{
     if (f.dispatchError) throw new Error('Dispatch response lost');
     return {{status:204}};
   }}}},
-  repos: {{listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
+  repos: {{get: async options => {{
+    requests.push({{route:'repository',options}});
+    if (f.repositoryError) throw new Error('Repository unavailable');
+    return {{data:{{full_name:'owner/repo',default_branch:f.defaultBranch || f.branch}}}};
+  }}, listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
     writes.push(options); operations.push({{route:'status',options}});
     if (f.statusWriteError) throw new Error('Status write failed');
     return {{data:{{...options,created_at:{json.dumps(NOW)}}}}};
@@ -185,6 +189,34 @@ gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owne
 
 
 class QueueRecoveryTest(unittest.TestCase):
+    def test_default_selector_dispatches_resolved_candidate_for_either_name(
+        self,
+    ):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                result = dispatch(
+                    method='dispatchCandidates',
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                )
+                self.assertNotIn('error', result)
+                self.assertTrue(result['dispatches'])
+                for call in result['dispatches']:
+                    self.assertTrue(
+                        call['ref'].startswith(f'gh-readonly-queue/{branch}/')
+                    )
+                    self.assertEqual(call['inputs']['queue_base_ref'], branch)
+
+    def test_default_selector_metadata_failure_never_dispatches(self):
+        result = dispatch(
+            method='dispatchCandidates',
+            enabled=['~DEFAULT_BRANCH'],
+            repositoryError=True,
+        )
+        self.assertIn('Repository unavailable', result['error'])
+        self.assertEqual(result['dispatches'], [])
+        self.assertEqual(result['writes'], [])
+
     def test_scheduled_recovery_publishes_completed_ci_without_workflow_run(
         self,
     ):
