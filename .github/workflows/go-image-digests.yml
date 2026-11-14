@@ -1,55 +1,34 @@
-name: Go Builder Image Digests
-
+name: MQ cap fixture go-image-digests
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [codex-mq-cap-opt-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main]
-  pull_request:
-    paths:
-      - '.github/resources/scripts/update_go_version.py'
-      - '.github/workflows/go-image-digests.yml'
-      - 'docs/agents/go-version-policy.md'
-      - '**/Dockerfile*'
-      - '**/Containerfile*'
-
+        required: true
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  verify:
-    name: Verify Go versions in pinned builder images
+  fixture:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup-go
-      - run: python3 .github/resources/scripts/update_go_version.py --check-image-digests
+      - name: Verify isolated queue identity
+        env:
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
+        run: |
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-opt-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-opt-20261114|refs/heads/codex-mq-cap-opt-20261114) ;; *) exit 1;; esac
+          sleep 2

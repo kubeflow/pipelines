@@ -1,136 +1,34 @@
-name: pre-commit
-
+name: MQ cap fixture pre-commit
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [codex-mq-cap-opt-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main]
-  push:
-    branches:
-      - master
-      - main
-  pull_request:
-    branches:
-      - master
-      - main
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
+        required: true
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  pre-commit:
+  fixture:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      SKIP: no-commit-to-branch
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: '3.13'
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: '0.13.4'
-      - uses: ./.github/actions/setup-go
-      - name: Check repository Go version policy
-        run: make check-go-version
-
-      - name: Configure pre-commit range
-        id: pre-commit-range
-        shell: bash
+      - name: Verify isolated queue identity
         env:
-          EVENT_BASE_SHA: ${{ (github.event.merge_group.base_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && inputs.queue_base_sha)) || github.event.pull_request.base.sha || github.event.before }}
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
         run: |
-          set -euo pipefail
-
-          base_sha="${EVENT_BASE_SHA}"
-          if [[ -z "${base_sha}" ]] ||
-              ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
-            echo "::error::Unable to resolve the event base commit"
-            exit 1
-          fi
-
-          config_changed=true
-          if git diff --quiet "${base_sha}" HEAD -- .pre-commit-config.yaml .golangci.yaml pyproject.toml uv.lock; then
-            config_changed=false
-          fi
-
-          # Configuration smoke tests include frontend/package.json even on Python-only changes.
-          viewer_required="${config_changed}"
-          if ! git diff --quiet "${base_sha}" HEAD -- frontend sdk/python/kfp/cli/viewer_assets .github/workflows/pre-commit.yml; then
-            viewer_required=true
-          fi
-          {
-            echo "viewer-required=${viewer_required}"
-            echo "base-sha=${base_sha}"
-            echo "config-changed=${config_changed}"
-          } >> "${GITHUB_OUTPUT}"
-          echo "PRE_COMMIT_FROM_REF=${base_sha}" >> "${GITHUB_ENV}"
-
-      - name: Set up Node.js for viewer assets
-        if: steps.pre-commit-range.outputs.viewer-required == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: frontend/.nvmrc
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install viewer build dependencies
-        if: steps.pre-commit-range.outputs.viewer-required == 'true'
-        working-directory: frontend
-        run: |
-          npm install --global "$(node -p 'require("./package.json").packageManager')"
-          npm ci
-
-      - name: Run pre-commit on changed files
-        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
-        with:
-          extra_args: --from-ref ${{ steps.pre-commit-range.outputs.base-sha }} --to-ref HEAD
-
-      - name: Smoke-test applicable hooks after configuration changes
-        if: steps.pre-commit-range.outputs.config-changed == 'true'
-        run: >-
-          pre-commit run
-          --show-diff-on-failure
-          --color=always
-          --files
-          .pre-commit-config.yaml
-          .github/workflows/pre-commit.yml
-          .golangci.yaml
-          frontend/package.json
-          .github/resources/scripts/update_go_version.py
-          sdk/python/kfp/cli/__init__.py
-          sdk/python/kfp/dsl/structures.py
-          backend/src/common/types.go
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-opt-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-opt-20261114|refs/heads/codex-mq-cap-opt-20261114) ;; *) exit 1;; esac
+          sleep 600

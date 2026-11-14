@@ -1,45 +1,10 @@
-# This workflow warns and then closes issues and PRs that have had no activity for a specified amount of time.
-#
-# You can adjust the behavior by modifying this file.
-# For more information, see:
-# https://github.com/actions/stale
-name: Mark stale issues and pull requests
-
+name: MQ cap inert stale
 on:
-  schedule:
-  - cron: '39 7 * * *'
-
+  workflow_dispatch:
 permissions: {}
-
 jobs:
-  stale:
-    if: ${{ github.repository == 'kubeflow/pipelines' }}
+  inert:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      pull-requests: write
-
     steps:
-    - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        days-before-stale: 120
-        days-before-close: 60
-        stale-issue-message: >
-          This issue has been automatically marked as stale because it has not had
-          recent activity. It will be closed if no further activity occurs. Thank you
-          for your contributions.
-        close-issue-message: >
-          This issue has been automatically closed because it has not had recent
-          activity. Please comment "/reopen" to reopen it.
-        stale-issue-label: lifecycle/stale
-        exempt-issue-labels: lifecycle/frozen
-        stale-pr-label: lifecycle/stale
-        exempt-pr-labels: lifecycle/frozen
-        stale-pr-message: "This pull request has been automatically marked as stale because it has not had recent activity. It will be closed if no further activity occurs. Thank you for your contributions. \n"
-        # The message that will be added as a comment to the pull requests
-        # when the stale workflow closes it automatically after being stale for too long.
-        close-pr-message: "This pull request has been automatically closed because it has not had recent  activity.You can reopen the PR if you want. \n"
-
-        # Learn more about operations: https://github.com/actions/stale#operations-per-run.
-        operations-per-run: 200
+      - run: 'true'
