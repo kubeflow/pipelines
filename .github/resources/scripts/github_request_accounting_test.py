@@ -186,6 +186,53 @@ const core = {info: line => summaries.push(JSON.parse(line))};
                                 'return await withRequestAccounting', script
                             )
 
+    def test_queue_controllers_account_for_success_and_failure(self):
+        for filename, job_name, scope in (
+            ('ci-checks.yml', 'check_merge_group_status', 'merge_group'),
+            ('ci-checks.yml', 'queue_admission', 'queue_admission'),
+            ('merge-queue-recovery.yml', 'queue_recovery', 'queue_recovery'),
+        ):
+            workflow = yaml.safe_load(
+                (ROOT / '.github/workflows' / filename).read_text()
+            )
+            script = workflow['jobs'][job_name]['steps'][-1]['with']['script']
+            for fails in (False, True):
+                with self.subTest(job=job_name, fails=fails):
+                    result = self.exercise(
+                        r"""
+const vm = require('node:vm');
+const accounting = require(process.argv[1]);
+let hook, calls = 0;
+const records = [];
+const failure = Error('controller failure');
+const github = {hook: {wrap: (_, fn) => {hook = fn;}, remove: () => {hook = null;}}};
+const core = {info: line => records.push(JSON.parse(line))};
+const operation = async () => {
+  calls++;
+  const request = async () => ({status: 200});
+  if (hook) await hook(request, {method: 'GET', url: '/repos/o/r/pulls/1'});
+  else await request();
+  if (FAILS) throw failure;
+};
+const execute = vm.runInNewContext('(async () => {\n' + SCRIPT + '\n})', {
+  github, context: {repo: {owner: 'o', repo: 'r'}}, core,
+  require: name => name.endsWith('github_request_accounting') ? accounting :
+    {reconcile: operation, reconcileQueue: operation},
+});
+(async () => {
+  let preserved = false;
+  try {await execute();} catch (error) {preserved = error === failure;}
+  process.stdout.write(JSON.stringify({calls, records, preserved, removed: !hook}));
+})();
+""".replace('FAILS', json.dumps(fails)).replace('SCRIPT', json.dumps(script))
+                    )
+                    self.assertEqual(result['calls'], 1)
+                    self.assertEqual(result['preserved'], fails)
+                    self.assertTrue(result['removed'])
+                    self.assertEqual(len(result['records']), 1)
+                    self.assertEqual(result['records'][0]['scope'], scope)
+                    self.assertEqual(result['records'][0]['requests'], 1)
+
     def test_parallel_gate_evidence_drains_pagination_after_early_error(self):
         result = self.exercise(r"""
 const fs = require('node:fs');

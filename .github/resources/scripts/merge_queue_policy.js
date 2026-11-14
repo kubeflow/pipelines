@@ -45,6 +45,11 @@ async function enabledBranches({github, context, root}) {
 async function queueEnabled({github, context, branch, root}) {
   if (!['master', 'main'].includes(branch)) return false;
   if (!(await enabledBranches({github, context, root})).includes(branch)) return false;
+  await requireQueueRule({github, context, branch});
+  return true;
+}
+
+async function requireQueueRule({github, context, branch}) {
   // This endpoint returns rules from active rulesets applicable to this branch,
   // including organization rules. A configured but unenforced queue is insufficient.
   const rules = await github.paginate('GET /repos/{owner}/{repo}/rules/branches/{branch}', {
@@ -53,7 +58,6 @@ async function queueEnabled({github, context, branch, root}) {
   if (!Array.isArray(rules) || !rules.some(rule => rule?.type === 'merge_queue')) {
     throw new Error(`Merge queue policy requires an enforced merge_queue rule for ${branch}.`);
   }
-  return true;
 }
 
-module.exports = {loadPolicy, enabledBranches, queueEnabled};
+module.exports = {loadPolicy, enabledBranches, queueEnabled, requireQueueRule};

@@ -199,6 +199,10 @@ const github = {{rest: {{
   if (query.includes('dequeuePullRequest')) {{
     writes.push({{route:'dequeue',options,query}}); return {{}};
   }}
+  if (query.includes('query DispatchSnapshot')) {{
+    calls.push({{route:'dispatch-snapshot',options,query}});
+    return next('dispatch-snapshot', f.dispatchSnapshots);
+  }}
   if (query.includes('query QueuePolicies')) {{
     calls.push({{route:'policies',options,query}});
     if (f.policyResponse) return f.policyResponse;
@@ -220,7 +224,7 @@ const github = {{rest: {{
 }}}};
 const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.eventName,payload:f.payload}},
   root:{json.dumps(str(root))}, number:f.number, branch:f.branch,
-  group:{{baseRef:f.branch,head:f.candidate || {json.dumps(CANDIDATE)}}},
+  group:{{baseRef:f.branch,branch:'gh-readonly-queue/' + f.branch + '/pr-7-test',head:f.candidate || {json.dumps(CANDIDATE)}}},
   core:{{info:()=>{{}}}}}};
 (async () => {{
   try {{
@@ -238,7 +242,215 @@ const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.
         return json.loads(result.stdout)
 
 
+def dispatch_snapshot(branch='master', entries=None, prs=None, **overrides):
+    entries = [entry(branch=branch)] if entries is None else entries
+    prs = {7: pr(branch=branch)} if prs is None else prs
+    response = queue(entries)
+    repo = response['repository']
+    repo.update(
+        {
+            'defaultBranchRef': {'name': branch},
+            'candidateRef': {
+                'target': {'__typename': 'Commit', 'oid': CANDIDATE}
+            },
+            'baseRef': {'target': {'__typename': 'Commit', 'oid': BASE}},
+            **overrides,
+        }
+    )
+    for member in entries:
+        p = prs[member['pullRequest']['number']]
+        member['pullRequest'] = {
+            'id': p['node_id'],
+            'number': p['number'],
+            'state': p['state'].upper(),
+            'isDraft': p['draft'],
+            'merged': p['merged'],
+            'headRefOid': p['head']['sha'],
+            'baseRefName': p['base']['ref'],
+            'baseRepository': {'nameWithOwner': p['base']['repo']['full_name']},
+            'author': {
+                '__typename': p['user']['type'],
+                'login': p['user']['login'],
+            },
+            'labels': {
+                'nodes': p['labels'],
+                'totalCount': len(p['labels']),
+                'pageInfo': {'hasNextPage': False},
+            },
+        }
+    return response
+
+
 class QueueAdmissionTest(unittest.TestCase):
+    def test_healthy_queue_sweep_reads_members_once(self):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                members = [
+                    entry(n, branch=branch, position=i + 1)
+                    for i, n in enumerate(range(7, 14))
+                ]
+                result = run_case(
+                    'sweep',
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                    eventName='workflow_run',
+                    payload={'workflow_run': {'event': 'workflow_dispatch'}},
+                    queues=[queue(members)],
+                    prs={str(n): [pr(n, branch=branch)] for n in range(7, 14)},
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(result['writes'], [])
+                routes = [call['route'] for call in result['calls']]
+                self.assertEqual(routes.count('queue'), 1, result)
+                self.assertEqual(routes.count('policies'), 1, result)
+                self.assertEqual(routes.count('pr'), 0, result)
+                self.assertEqual(routes.count('repository'), 2, result)
+
+    def test_sweep_rechecks_invalid_member_before_dequeue(self):
+        result = run_case(
+            'sweep',
+            eventName='workflow_run',
+            payload={'workflow_run': {'event': 'workflow_dispatch'}},
+            queues=[queue([entry()])],
+            prs={'7': [pr(labels=[]), pr()]},
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(result['writes'], [])
+        self.assertEqual([c['route'] for c in result['calls']].count('pr'), 1)
+
+    def test_sweep_incomplete_batched_policy_revokes_candidates(self):
+        result = run_case(
+            'sweep',
+            eventName='workflow_run',
+            payload={'workflow_run': {'event': 'workflow_dispatch'}},
+            queues=[queue([entry()])],
+            policyResponse={'repository': {}},
+        )
+        self.assertIn('Incomplete queue policy', result['error'])
+        self.assertEqual([w['route'] for w in result['writes']], ['status'])
+        self.assertEqual(result['writes'][0]['options']['state'], 'failure')
+
+    def test_dispatch_snapshot_matches_existing_policy_with_two_requests(self):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                result = run_case(
+                    'inspectDispatchSnapshot',
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                    dispatchSnapshots=[dispatch_snapshot(branch)],
+                )
+                old = run_case(
+                    'inspectQueue',
+                    branch=branch,
+                    queues=[queue([entry(branch=branch)])],
+                )
+                self.assertNotIn('error', result)
+                self.assertEqual(
+                    result['result'],
+                    {'head': CANDIDATE, 'base': BASE, 'policy': old['result']},
+                )
+                self.assertEqual(len(result['calls']), 2, result)
+                self.assertEqual(
+                    result['calls'][0]['route'], 'dispatch-snapshot'
+                )
+                self.assertIn('/rules/branches/', result['calls'][1]['route'])
+
+    def test_dispatch_snapshot_default_rename_and_disabled_policy_fail_closed(
+        self,
+    ):
+        result = run_case(
+            'inspectDispatchSnapshot',
+            enabled=['~DEFAULT_BRANCH'],
+            dispatchSnapshots=[
+                dispatch_snapshot(defaultBranchRef={'name': 'main'})
+            ],
+        )
+        self.assertIsNone(result['result'])
+        self.assertEqual(len(result['calls']), 1)
+        disabled = run_case('inspectDispatchSnapshot', enabled=[])
+        self.assertIsNone(disabled['result'])
+        self.assertEqual(disabled['calls'], [])
+        for name in ['', 'release-2.18']:
+            bad = run_case(
+                'inspectDispatchSnapshot',
+                enabled=['~DEFAULT_BRANCH'],
+                dispatchSnapshots=[
+                    dispatch_snapshot(defaultBranchRef={'name': name})
+                ],
+            )
+            self.assertIn('Cannot resolve', bad['error'])
+
+    def test_dispatch_snapshot_rejects_incomplete_data_and_holds(self):
+        fixtures = []
+        for key in ['candidateRef', 'baseRef']:
+            fixtures.extend(
+                [
+                    dispatch_snapshot(**{key: None}),
+                    dispatch_snapshot(
+                        **{key: {'target': {'__typename': 'Tag', 'oid': BASE}}}
+                    ),
+                ]
+            )
+        missing = dispatch_snapshot()
+        missing['repository']['mergeQueue']['entries']['pageInfo'][
+            'hasNextPage'
+        ] = True
+        fixtures.append(missing)
+        missing = dispatch_snapshot()
+        missing['repository']['mergeQueue']['entries']['nodes'][0][
+            'pullRequest'
+        ]['labels']['pageInfo']['hasNextPage'] = True
+        fixtures.append(missing)
+        fixtures.append(dispatch_snapshot(prs={7: pr(labels=[])}))
+        missing = dispatch_snapshot()
+        missing['errors'] = [{'message': 'partial response'}]
+        fixtures.append(missing)
+        for fixture in fixtures:
+            with self.subTest(fixture=fixture):
+                result = run_case(
+                    'inspectDispatchSnapshot', dispatchSnapshots=[fixture]
+                )
+                self.assertIn('error', result)
+                self.assertEqual(result['writes'], [])
+        result = run_case(
+            'inspectDispatchSnapshot',
+            dispatchSnapshots=[dispatch_snapshot()],
+            rules=[[]],
+        )
+        self.assertIn('enforced merge_queue rule', result['error'])
+
+    def test_dispatch_snapshot_member_head_change_changes_fingerprint(self):
+        before = run_case(
+            'inspectDispatchSnapshot', dispatchSnapshots=[dispatch_snapshot()]
+        )
+        after = run_case(
+            'inspectDispatchSnapshot',
+            dispatchSnapshots=[
+                dispatch_snapshot(prs={7: pr(head={'sha': OTHER})})
+            ],
+        )
+        self.assertNotIn('error', after)
+        self.assertNotEqual(
+            before['result']['policy'], after['result']['policy']
+        )
+
+    def test_dispatch_snapshot_reports_changed_refs_for_caller_comparison(self):
+        for key, returned in [('candidateRef', 'head'), ('baseRef', 'base')]:
+            result = run_case(
+                'inspectDispatchSnapshot',
+                dispatchSnapshots=[
+                    dispatch_snapshot(
+                        **{
+                            key: {
+                                'target': {'__typename': 'Commit', 'oid': OTHER}
+                            }
+                        }
+                    )
+                ],
+            )
+            self.assertNotIn('error', result)
+            self.assertEqual(result['result'][returned], OTHER)
+
     def test_disabled_policy_does_not_read_or_write_github(self):
         for method in ['sweep', 'reconcilePR', 'inspectQueue']:
             result = run_case(method, enabled=[])

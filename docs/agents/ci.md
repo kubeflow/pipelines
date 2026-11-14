@@ -13,7 +13,10 @@ CI Check's preparation, finalization, recovery discovery and merged-release
 recovery steps, plus stale-status revocation, emit one JSON log record with
 `event: github_request_accounting` in their finalizer, including on errors. The
 Octokit request hook includes REST pagination, GraphQL and status/label writes
-made by that particular github-script client. Parallel gate reads settle all
+made by that particular github-script client. Merge-group publication, queue
+admission/dispatch, and scheduled queue recovery also emit these summaries with
+the scopes `merge_group`, `queue_admission`, and `queue_recovery`. Parallel gate
+reads settle all
 sibling reads and pagination before the summary is emitted, retaining the first
 observed rejection when any read fails. `measurement` is
 `octokit_request_hook`; `hook_available` distinguishes a client without hooks
@@ -589,6 +592,17 @@ image tags as part of the Git branch rename.
 - Image-artifact readiness revalidates every REST page using ETags in a temporary per-wait cache. Only complete successful responses are returned; a 304 requires an exact-URL prior response. This reduces primary quota consumption, not HTTP request count or secondary-limit pressure. Preserve the configured polling cadence, producer/grace handling, and parallel image-build/cluster preparation.
 
 - Merge-queue admission is inactive unless `.github/merge-queue-policy.json` explicitly enables a development branch and GitHub reports an active `merge_queue` ruleset rule. Admission, explicit queue CI dispatch, and `ci-passed` writes use builtin `GITHUB_TOKEN`; no additional App or PAT is required. Recovery runs every five minutes, subject to GitHub scheduling delays. Per-candidate/workflow dispatch receipts allow 120 seconds for run registration and at most three dispatch attempts; registered failed/cancelled runs require an intentional rerun. A successful enqueue consumes the workflow snapshot fingerprint attached to the trusted PR success in `queue-admission-attempt`, preventing automatic re-enqueue loops after candidate failure/removal. Current run IDs, attempts, states and conclusions must match the published fingerprint; only a fresh verified success permits admission after a rerun. Preserve Prow approval and hold policy, current-head CI/retarget verification, and queue-candidate rechecks. See [activation and offline Tide patch](merge-queue-activation.md). Run `ci_merge_queue_policy_test.py`, `merge_queue_admission_test.py`, `merge_queue_admission_workflow_test.py`, `ci_merge_group_test.py`, `merge_queue_dispatch_test.py`, `merge_queue_dispatch_workflows_test.py`, and `prepare_tide_merge_queue_test.py` when changing this boundary.
+
+Queue dispatch reads candidate/base refs, the current default branch, queue
+membership, and approval policy together through a fresh GraphQL snapshot, then
+checks the active queue rule. Each workflow repeats this validation before its
+reservation and before dispatch; mutable policy and refs are never cached.
+At most four workflow operations run concurrently within the serialized queue
+writer, and every started operation settles before the controller returns or
+emits its request-accounting summary. Healthy queued PRs share one policy read
+per sweep; invalid members retain the fresh recheck and dequeue path. Preserve
+the read-budget, bounded-concurrency, sibling-draining, and policy-race tests
+when changing this controller.
 
 ### Native Go provenance in release qualification
 
