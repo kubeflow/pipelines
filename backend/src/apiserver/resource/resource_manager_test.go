@@ -4203,12 +4203,25 @@ func TestReportWorkflowResource_DoesNotOverwriteConcurrentTermination(t *testing
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
 	assertStateHistoryEndsWithSingleCancel(t, beforeTermination.StateHistory, persistedRun.StateHistory)
 
-	// Model a retry after the first request committed CANCELING but exited
-	// before patching the Workflow. The repeated termination must finish it.
-	require.NoError(t, manager.TerminateRun(ctx, run.UUID))
 	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(run.Namespace, run.K8SName)
 	require.NoError(t, err)
-	assert.True(t, isTerminated)
+	assert.True(t, isTerminated, "a rejected report re-terminates the Workflow of a canceling run")
+	require.NoError(t, manager.TerminateRun(ctx, run.UUID))
+}
+
+func TestTerminateRun_RetryPatchesWorkflowOfUnpatchedCancelingRun(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	require.NoError(t, manager.runStore.TerminateRun(run.UUID))
+	live, err := store.ExecClientFake.Execution(run.Namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.False(t, live.IsTerminating())
+
+	require.NoError(t, manager.TerminateRun(context.Background(), run.UUID))
+
+	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(run.Namespace, run.K8SName)
+	require.NoError(t, err)
+	assert.True(t, isTerminated, "a repeated TerminateRun patches a Workflow the first attempt missed")
 }
 
 func TestReportWorkflowResource_DoesNotOverwriteExistingCancellation(t *testing.T) {
@@ -4239,6 +4252,312 @@ func TestReportWorkflowResource_DoesNotOverwriteExistingCancellation(t *testing.
 	assert.Equal(t, "Terminating", persistedRun.Conditions)
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
 	assertStateHistoryEndsWithSingleCancel(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(run.Namespace, run.K8SName)
+	require.NoError(t, err)
+	assert.True(t, isTerminated, "a stale RUNNING report re-terminates the canceling run's Workflow")
+}
+
+func TestReportWorkflowResource_CancelingRunWithUnpatchedWorkflowIsReterminated(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	require.NoError(t, manager.runStore.TerminateRun(run.UUID))
+	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NotEmpty(t, live.ExecutionObjectMeta().UID)
+	assert.Equal(t, storedWorkflowUID(t, run), live.ExecutionObjectMeta().UID)
+	require.NotEmpty(t, live.Version())
+	require.False(t, live.IsTerminating())
+	_, err = manager.ReportWorkflowResource(ctx, util.NewWorkflow(live.(*util.Workflow).DeepCopy()))
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	after, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.True(t, after.IsTerminating(), "report path should re-issue the termination patch")
+}
+
+// setWorkflowPhase stores phase on the run's live Workflow, as Argo does.
+func setWorkflowPhase(t *testing.T, store *FakeClientManager, run *model.Run, phase v1alpha1.WorkflowPhase) util.ExecutionSpec {
+	t.Helper()
+	ctx := context.Background()
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	live, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow := live.(*util.Workflow)
+	workflow.Status.Phase = phase
+	if phase == v1alpha1.WorkflowFailed {
+		workflow.Status.FinishedAt = v1.Now()
+	}
+	updated, err := workflowClient.Update(ctx, workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	return updated
+}
+
+func runtimeStates(history []*model.RuntimeStatus) []model.RuntimeState {
+	states := make([]model.RuntimeState, 0, len(history))
+	for _, status := range history {
+		states = append(states, status.State)
+	}
+	return states
+}
+
+func TestReportWorkflowResource_ReterminatedRunEndsLikeANormalCancel(t *testing.T) {
+	ctx := context.Background()
+
+	// A normal cancel: TerminateRun commits CANCELING and patches the Workflow.
+	normalStore, normalManager, normalRun := initWithOneTimeRun(t)
+	defer normalStore.Close()
+	setWorkflowPhase(t, normalStore, normalRun, v1alpha1.WorkflowRunning)
+	require.NoError(t, normalManager.TerminateRun(ctx, normalRun.UUID))
+	_, err := normalManager.ReportWorkflowResource(ctx, setWorkflowPhase(t, normalStore, normalRun, v1alpha1.WorkflowFailed))
+	require.NoError(t, err)
+	normalFinal, err := normalManager.GetRun(normalRun.UUID)
+	require.NoError(t, err)
+
+	// A crash after CANCELING was committed but before the Workflow was patched.
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	running := setWorkflowPhase(t, store, run, v1alpha1.WorkflowRunning)
+	require.NoError(t, manager.runStore.TerminateRun(run.UUID))
+	_, err = manager.ReportWorkflowResource(ctx, running)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(run.Namespace, run.K8SName)
+	require.NoError(t, err)
+	require.True(t, isTerminated, "the running report re-terminates the Workflow")
+	_, err = manager.ReportWorkflowResource(ctx, setWorkflowPhase(t, store, run, v1alpha1.WorkflowFailed))
+	require.NoError(t, err)
+	final, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+
+	assert.Equal(t, normalFinal.State, final.State, "a re-terminated run ends in the same state as a normal cancel")
+	assert.Equal(t, runtimeStates(normalFinal.StateHistory), runtimeStates(final.StateHistory))
+}
+
+func TestReportWorkflowResource_LostReterminateResponseIsNotRepatched(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	setWorkflowPhase(t, store, run, v1alpha1.WorkflowRunning)
+	rec := &recordingWorkflowClient{
+		ExecutionInterface: store.ExecClientFake.Execution(run.Namespace),
+		lostResponse:       fmt.Errorf("connection reset after the patch was applied"),
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: rec}
+	require.NoError(t, manager.runStore.TerminateRun(run.UUID))
+
+	live, err := rec.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, live)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	// The patch was applied even though its response was lost, so the next
+	// report sees a terminating Workflow, agrees with CANCELING and succeeds.
+	live, err = rec.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.True(t, live.IsTerminating())
+	_, err = manager.ReportWorkflowResource(ctx, live)
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, rec.patchCalls, "an applied patch is not sent again")
+	persistedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(run.Namespace, run.K8SName)
+	require.NoError(t, err)
+	assert.True(t, isTerminated)
+}
+
+type recordingWorkflowClient struct {
+	util.ExecutionInterface
+	patchCalls  int
+	lastPatch   []byte
+	beforePatch func()
+	// beforeEveryPatch runs before every patch, after beforePatch.
+	beforeEveryPatch func()
+	getError         error
+	// lostResponse is returned once after a patch was applied, like a
+	// response lost after the API server committed it.
+	lostResponse error
+}
+
+func (c *recordingWorkflowClient) Get(ctx context.Context, name string, opts v1.GetOptions) (util.ExecutionSpec, error) {
+	if c.getError != nil {
+		return nil, c.getError
+	}
+	return c.ExecutionInterface.Get(ctx, name, opts)
+}
+
+func (c *recordingWorkflowClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (util.ExecutionSpec, error) {
+	c.patchCalls++
+	c.lastPatch = append([]byte(nil), data...)
+	if hook := c.beforePatch; hook != nil {
+		c.beforePatch = nil
+		hook()
+	}
+	if c.beforeEveryPatch != nil {
+		c.beforeEveryPatch()
+	}
+	patched, err := c.ExecutionInterface.Patch(ctx, name, pt, data, opts, subresources...)
+	if err == nil && c.lostResponse != nil {
+		err, c.lostResponse = c.lostResponse, nil
+		return nil, err
+	}
+	return patched, err
+}
+
+func TestReterminateCancelingWorkflow(t *testing.T) {
+	ctx := context.Background()
+	zero := int64(0)
+	mutateLive := func(t *testing.T, base util.ExecutionInterface, name string, mutate func(*util.Workflow)) {
+		t.Helper()
+		cur, err := base.Get(ctx, name, v1.GetOptions{})
+		require.NoError(t, err)
+		wf := util.NewWorkflow(cur.(*util.Workflow).DeepCopy())
+		mutate(wf)
+		_, err = base.Update(ctx, wf, v1.UpdateOptions{})
+		require.NoError(t, err)
+	}
+	type prepareFn func(t *testing.T, base util.ExecutionInterface, rec *recordingWorkflowClient, run *model.Run, id *storedWorkflowIdentity)
+	cases := []struct {
+		name          string
+		prepare       prepareFn
+		wantPatches   int
+		wantApplied   bool // workflow is terminating at the end
+		wantNotFound  bool
+		wantLastPatch bool // the last patch is the merge patch built from the read workflow
+	}{
+		{name: "patches a canceling run with matching identity", wantPatches: 1, wantApplied: true, wantLastPatch: true},
+		{name: "empty stored UID", wantPatches: 0,
+			prepare: func(t *testing.T, _ util.ExecutionInterface, _ *recordingWorkflowClient, _ *model.Run, id *storedWorkflowIdentity) {
+				id.uid = ""
+			}},
+		{name: "different stored UID with same name and namespace", wantPatches: 0,
+			prepare: func(t *testing.T, _ util.ExecutionInterface, _ *recordingWorkflowClient, _ *model.Run, id *storedWorkflowIdentity) {
+				id.uid = "other-uid"
+			}},
+		{name: "empty stored name and namespace fall back to the report", wantPatches: 1, wantApplied: true,
+			prepare: func(t *testing.T, _ util.ExecutionInterface, _ *recordingWorkflowClient, _ *model.Run, id *storedWorkflowIdentity) {
+				id.name, id.namespace = "", ""
+			}},
+		{name: "fallback does not bypass the UID check", wantPatches: 0,
+			prepare: func(t *testing.T, _ util.ExecutionInterface, _ *recordingWorkflowClient, _ *model.Run, id *storedWorkflowIdentity) {
+				id.name, id.namespace, id.uid = "", "", "other-uid"
+			}},
+		{name: "run not canceling", wantPatches: 0,
+			prepare: func(t *testing.T, _ util.ExecutionInterface, _ *recordingWorkflowClient, run *model.Run, _ *storedWorkflowIdentity) {
+				run.State = model.RuntimeStateRunning
+			}},
+		{
+			name:        "missing generation annotation on positive generation",
+			wantPatches: 0,
+			prepare: func(
+				t *testing.T,
+				base util.ExecutionInterface,
+				_ *recordingWorkflowClient,
+				run *model.Run,
+				_ *storedWorkflowIdentity,
+			) {
+				run.RetryGeneration = 1
+				mutateLive(t, base, run.K8SName, func(wf *util.Workflow) {
+					delete(
+						wf.ExecutionObjectMeta().Annotations,
+						util.AnnotationKeyRetryGeneration,
+					)
+				})
+			},
+		},
+		{
+			name:        "different retry generation",
+			wantPatches: 0,
+			prepare: func(
+				t *testing.T,
+				base util.ExecutionInterface,
+				_ *recordingWorkflowClient,
+				run *model.Run,
+				_ *storedWorkflowIdentity,
+			) {
+				run.RetryGeneration = 1
+				mutateLive(t, base, run.K8SName, func(wf *util.Workflow) {
+					if wf.ExecutionObjectMeta().Annotations == nil {
+						wf.ExecutionObjectMeta().Annotations = map[string]string{}
+					}
+					wf.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration] = "2"
+				})
+			},
+		},
+		{name: "already terminating", wantPatches: 0, wantApplied: true,
+			prepare: func(t *testing.T, base util.ExecutionInterface, _ *recordingWorkflowClient, run *model.Run, _ *storedWorkflowIdentity) {
+				mutateLive(t, base, run.K8SName, func(wf *util.Workflow) { wf.Spec.ActiveDeadlineSeconds = &zero })
+			}},
+		{name: "final state", wantPatches: 0,
+			prepare: func(t *testing.T, base util.ExecutionInterface, _ *recordingWorkflowClient, run *model.Run, _ *storedWorkflowIdentity) {
+				mutateLive(t, base, run.K8SName, func(wf *util.Workflow) { wf.Status.Phase = v1alpha1.WorkflowSucceeded })
+			}},
+		{name: "workflow not found", wantPatches: 0, wantNotFound: true,
+			prepare: func(t *testing.T, base util.ExecutionInterface, _ *recordingWorkflowClient, run *model.Run, _ *storedWorkflowIdentity) {
+				require.NoError(t, base.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+			}},
+		{name: "transient get error", wantPatches: 0,
+			prepare: func(t *testing.T, _ util.ExecutionInterface, rec *recordingWorkflowClient, _ *model.Run, _ *storedWorkflowIdentity) {
+				rec.getError = errors.New("boom")
+			}},
+		{name: "a conflicting status update is retried with the new resourceVersion", wantPatches: 2, wantApplied: true,
+			prepare: func(t *testing.T, base util.ExecutionInterface, rec *recordingWorkflowClient, run *model.Run, _ *storedWorkflowIdentity) {
+				rec.beforePatch = func() {
+					mutateLive(t, base, run.K8SName, func(wf *util.Workflow) { wf.SetAnnotations("test/touched", "1") })
+				}
+			}},
+		{name: "repeated conflicts stop after the attempt limit", wantPatches: reterminateConflictAttempts, wantApplied: false,
+			prepare: func(t *testing.T, base util.ExecutionInterface, rec *recordingWorkflowClient, run *model.Run, _ *storedWorkflowIdentity) {
+				rec.beforeEveryPatch = func() {
+					mutateLive(t, base, run.K8SName, func(wf *util.Workflow) { wf.SetAnnotations("test/touched", wf.Version()) })
+				}
+			}},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			store, manager, run := initWithOneTimeRun(t)
+			defer store.Close()
+			base := store.ExecClientFake.Execution("ns1")
+			rec := &recordingWorkflowClient{ExecutionInterface: base}
+			manager.execClient = &retryWorkflowExecClient{workflowClient: rec}
+
+			live, err := base.Get(ctx, run.K8SName, v1.GetOptions{})
+			require.NoError(t, err)
+			versionAtRead := live.Version()
+			reported := util.NewWorkflow(live.(*util.Workflow).DeepCopy())
+			identity, err := manager.storedWorkflowIdentityForRun(run)
+			require.NoError(t, err)
+			require.NotEmpty(t, identity.uid, "fixture must have a stored UID")
+			run.State = model.RuntimeStateCancelling
+
+			if c.prepare != nil {
+				c.prepare(t, base, rec, run, &identity)
+			}
+			manager.reterminateCancelingWorkflow(ctx, run, identity, reported)
+
+			assert.Equal(t, c.wantPatches, rec.patchCalls)
+
+			after, getErr := base.Get(ctx, run.K8SName, v1.GetOptions{})
+			if c.wantNotFound {
+				require.Error(t, getErr)
+				require.True(t, apierrors.IsNotFound(getErr))
+			} else {
+				require.NoError(t, getErr)
+				assert.Equal(t, c.wantApplied, after.IsTerminating())
+			}
+			if c.wantLastPatch {
+				assert.JSONEq(t, fmt.Sprintf(
+					`{"metadata":{"uid":%q,"resourceVersion":%q},"spec":{"activeDeadlineSeconds":0}}`,
+					identity.uid, versionAtRead), string(rec.lastPatch))
+			}
+		})
+	}
 }
 
 func TestReportWorkflowResource_UsesLiveWorkflowState(t *testing.T) {
