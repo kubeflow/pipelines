@@ -297,6 +297,45 @@ checkpoints from the previous candidate. Reverify merge/CI and requalify. A
 published tag is immutable: selecting a different candidate after publication
 requires a new release version, not a forced tag update.
 
+## Scan an open release candidate before merge
+
+Use the current upstream `kfpr` to build and scan an open version PR without
+publishing images, packages or tags:
+
+```bash
+kfpr scan-candidate --pr 15618 --expected-head FULL_40_CHARACTER_HEAD_SHA \
+  --version 2.18.1 --output-dir /tmp/kfp-2.18.1-candidate
+```
+
+The PR must belong to `kubeflow/pipelines` and target the version's release
+branch. Both backend and SDK scopes are enabled by default; select
+`--no-include-sdk` or `--no-include-backend` when appropriate. The command reads
+the immutable PR head's image matrix and Python support metadata, dispatches
+the trusted upstream read-only qualification workflow, and verifies complete
+source, wheel, image and third-party evidence. The source is fetched into an
+isolated bare Git repository; the caller's checkout is not switched or edited.
+
+Choose an empty evidence directory for each new candidate. `candidate.json`
+records PR identity and outcome; `ci/request.json` binds the exact workflow,
+request, run and attempt. Raw reports and failed-run diagnostics are retained.
+After interruption, repeat the same command with `--resume` to watch or
+recollect the recorded attempt without dispatching another build. A rerun of
+that GitHub Actions run changes its attempt and is rejected; start a new scan
+instead. If dispatch was interrupted before a run ID was recorded, inspect
+Actions before starting another request.
+
+Exit status 0 means complete evidence with no fixable findings under
+`zero-fixable`; status 1 means complete evidence with blocking findings; status
+2 means invalid identity or incomplete collection/coverage. No exception file
+is accepted. `policy.json` preserves all findings, including unfixed residuals.
+The PR head, base and source repository are rechecked after collection; changed
+identity marks the record stale, even if the scans otherwise passed.
+
+Candidate scanning never reads or updates a release checkpoint, sets
+`release_sha`, or completes `qualify-release`. It is triage evidence, not
+publication approval. After the PR merges, qualify the exact merged commit
+through the normal release flow below.
+
 ## Qualification and publication gates
 
 Preparation creates the version PR without creating or pushing release tags.

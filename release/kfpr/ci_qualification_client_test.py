@@ -296,13 +296,25 @@ class DispatchPolicyTest(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
 
     def fake_api(self, context, endpoint):
+        if endpoint.startswith('actions/runs/'):
+            return {
+                'id': 123,
+                'path': client.WORKFLOW,
+                'event': 'workflow_dispatch',
+                'head_sha': self.identity['workflow_sha'],
+                'display_title': self.identity['title'],
+                'run_attempt': 2,
+                'head_branch': self.identity['workflow_ref'],
+                'repository': {'full_name': client.REPO},
+                **self.final,
+            }
         if endpoint == '':
             return {'default_branch': getattr(self, 'branch', 'master')}
         if endpoint == 'commits/' + getattr(self, 'branch', 'master'):
             return {'sha': 'b' * 40}
         return {'type': 'file', 'path': client.WORKFLOW}
 
-    def fake_dispatch(self, api, run, identity, inputs):
+    def fake_dispatch(self, api, run, identity, inputs, **kwargs):
         self.inputs = inputs
         identity.update(run_id='123', run_attempt=2)
         self.identity = identity
@@ -429,6 +441,111 @@ class DispatchPolicyTest(unittest.TestCase):
             self.qualify()
         self.verify.assert_not_called()
         self.assertFalse((self.output / 'security.json').exists())
+
+    def test_resume_recollects_same_attempt_without_dispatch_or_release_state(
+        self,
+    ):
+        self.qualify()
+        del self.context.state
+        self.dispatch.reset_mock()
+        result = client.collect_ci(
+            self.context,
+            'a' * 40,
+            [],
+            ['3.10', '3.13'],
+            self.output,
+            resume=True,
+        )
+        self.dispatch.assert_not_called()
+        self.assertEqual(result['run']['run_attempt'], 2)
+        self.assertEqual(self.read.call_count, 2)
+
+    def test_resume_rejects_changed_live_attempt_before_download(self):
+        self.qualify()
+        original_api = self.fake_api
+
+        def changed(context, endpoint):
+            data = original_api(context, endpoint)
+            if endpoint.startswith('actions/runs/'):
+                data['run_attempt'] = 3
+            return data
+
+        self.api.side_effect = changed
+        self.context.runner.run.reset_mock()
+        with self.assertRaisesRegex(ValueError, 'provenance changed'):
+            client.collect_ci(
+                self.context,
+                'a' * 40,
+                [],
+                ['3.10', '3.13'],
+                self.output,
+                resume=True,
+            )
+        self.context.runner.run.assert_not_called()
+
+    def test_request_identity_survives_interrupted_watch(self):
+        def interrupted(api, run, identity, inputs, **kwargs):
+            identity.update(run_id='123', run_attempt=2)
+            raise KeyboardInterrupt()
+
+        self.dispatch.side_effect = interrupted
+        with self.assertRaises(KeyboardInterrupt):
+            self.qualify()
+        identity = json.loads((self.output / 'request.json').read_text())
+        self.assertEqual(identity['run_id'], '123')
+        self.assertEqual(identity['run_attempt'], 2)
+        self.read.assert_not_called()
+
+    def test_validated_identity_is_persisted_before_watch(self):
+        from .workflow_runs import dispatch_and_watch
+
+        self.dispatch.side_effect = dispatch_and_watch
+        original_api = self.fake_api
+
+        def api(context, endpoint):
+            if endpoint.startswith('actions/workflows/'):
+                self.identity = json.loads(
+                    (self.output / 'request.json').read_text()
+                )
+                return {
+                    'workflow_runs': [original_api(context, 'actions/runs/123')]
+                }
+            return original_api(context, endpoint)
+
+        def run(command, **kwargs):
+            if command[:3] == ['gh', 'run', 'watch']:
+                saved = json.loads((self.output / 'request.json').read_text())
+                self.assertEqual(saved['run_id'], '123')
+                self.assertEqual(saved['run_attempt'], 2)
+                raise KeyboardInterrupt()
+
+        self.api.side_effect = api
+        self.context.runner.run.side_effect = run
+        with self.assertRaises(KeyboardInterrupt):
+            self.qualify()
+        self.context.runner.run.side_effect = None
+        self.dispatch.reset_mock()
+        client.collect_ci(
+            self.context,
+            'a' * 40,
+            [],
+            ['3.10', '3.13'],
+            self.output,
+            resume=True,
+        )
+        self.dispatch.assert_not_called()
+
+    def test_resume_scope_or_source_tampering_is_rejected(self):
+        self.qualify()
+        with self.assertRaisesRegex(ValueError, 'different source or scope'):
+            client.collect_ci(
+                self.context,
+                'b' * 40,
+                [],
+                ['3.10', '3.13'],
+                self.output,
+                resume=True,
+            )
 
 
 if __name__ == '__main__':
