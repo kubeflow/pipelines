@@ -114,7 +114,7 @@ kind-cluster-agnostic:
     fi
 	# Deploy cluster resources required by KFP
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
-	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	kubectl wait --for condition=established --timeout=1m crd/workflows.argoproj.io
 	# Deploy KFP
 	@if [ "${TLS_ENABLED}" = "true" ]; then \
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls; \
@@ -151,7 +151,7 @@ dev-kind-cluster:
 		$(MAKE) install-cert-manager; \
 	fi
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
-	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	kubectl wait --for condition=established --timeout=1m crd/workflows.argoproj.io
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind$(KUSTOMIZE_ENV_SUFFIX)
 	@if [ "$(WEBHOOK_PROXY_ENABLED)" = "true" ]; then \
 		kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml; \

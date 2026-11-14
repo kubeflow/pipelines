@@ -82,10 +82,11 @@ class ApplicationRetirementTests(unittest.TestCase):
                 if overlay in ('env/gcp', 'sample'):
                     self.assertIn(('Deployment', 'cloudsqlproxy'), identities)
 
-    def test_shared_application_crd_is_retained(self):
+    def test_fresh_install_does_not_install_application_crd(self):
         for overlay in (
             'cluster-scoped-resources',
             'env/cert-manager/cluster-scoped-resources',
+            'sample/cluster-scoped-resources',
         ):
             with self.subTest(overlay=overlay):
                 rendered = subprocess.run(
@@ -99,13 +100,23 @@ class ApplicationRetirementTests(unittest.TestCase):
                     check=True,
                     timeout=120,
                 ).stdout
+                resources = [
+                    item for item in yaml.safe_load_all(rendered) if item
+                ]
                 self.assertTrue(
+                    any(
+                        item['kind'] == 'CustomResourceDefinition'
+                        and item['metadata']['name'] == 'workflows.argoproj.io'
+                        for item in resources
+                    )
+                )
+                self.assertFalse(
                     any(
                         item
                         and item['kind'] == 'CustomResourceDefinition'
                         and item['metadata']['name']
                         == 'applications.app.k8s.io'
-                        for item in yaml.safe_load_all(rendered)
+                        for item in resources
                     )
                 )
 

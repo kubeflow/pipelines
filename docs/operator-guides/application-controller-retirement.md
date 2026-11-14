@@ -2,7 +2,9 @@
 
 KFP's `master` manifests no longer deploy
 `gcr.io/ml-pipeline/application-crd-controller:20231101` or the KFP
-`app.k8s.io/v1beta1` Application. This affects `env/gcp`, `env/dev`,
+`app.k8s.io/v1beta1` Application, and no longer install the shared
+`applications.app.k8s.io` CRD from either cluster-scoped installation entrypoint.
+The controller retirement affects `env/gcp`, `env/dev`,
 `env/dev/postgresql`, `env/cert-manager/dev`, and overlays inheriting them,
 including `sample`. This change is not backported to 2.18.1.
 
@@ -16,8 +18,9 @@ resources through your deployment tooling instead.
 
 Custom overlays must remove imports of `base/application` and
 `third-party/application`, and replacements targeting `kind: Application`.
-Keep any existing workload selector labels. The separate
-`third-party/application/cluster-scoped` path remains available.
+Also remove imports of `third-party/application/cluster-scoped`; its definition
+is removed from master. Keep any existing workload selector labels. Other
+applications that need the CRD must manage it independently of KFP.
 
 Fresh installations need no migration. Existing installations require the
 procedure below: applying manifests does not delete resources omitted from the
@@ -29,7 +32,58 @@ Perform this migration before applying or pruning the new manifests. First
 pause GitOps reconciliation, automated pruning, and any installer that could
 recreate the old controller or Application. Do not run `kubectl delete -k`
 against the old profile. Do not delete `applications.app.k8s.io`: the cluster-wide
-CRD is retained because other applications can use it.
+CRD must be preserved in the live cluster because other applications can use it.
+Complete the prune-protection steps below **before changing the tracked revision**,
+even if your KFP profile never deployed the Application controller. Standard
+cluster-scoped installs previously installed this CRD too.
+
+### Protect the existing shared CRD first
+
+Removing a CRD from Git does not delete it with ordinary `kubectl apply`, but
+GitOps pruning or `kubectl apply --prune` can. Deleting this CRD deletes its
+Application objects across namespaces; recreating the definition does not
+restore them. Do not rely on `--cascade=orphan` on the CRD to preserve its custom
+resources.
+
+While reconciliation is paused:
+
+1. Inventory `kubectl get applications.app.k8s.io --all-namespaces` and record
+   the CRD UID with `kubectl get crd applications.app.k8s.io -o jsonpath='{.metadata.uid}'`.
+   If the CRD is absent, no CRD migration is needed.
+2. Protect the **live CRD** in the tool that owns it. Persist the protection in
+   your existing deployment configuration before removing its manifest, or
+   arrange a deliberate handoff to a separately managed platform resource.
+   Verify the protection reached the live object; do not rely solely on a local
+   edit or a patch that reconciliation could overwrite.
+
+   - **Argo CD:** merge `Prune=false,Delete=false` into the CRD's
+     `argocd.argoproj.io/sync-options` annotation, preserving any existing options.
+     `Prune=false` prevents sync pruning; `Delete=false` also protects against
+     deleting the owning Argo CD Application. These refer to the GitOps
+     `argoproj.io` Application, not the retired `app.k8s.io` Application.
+     See [Argo CD sync options](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/).
+   - **Flux Kustomization:** set the CRD annotation
+     `kustomize.toolkit.fluxcd.io/prune: disabled`. See
+     [Flux resource pruning](https://fluxcd.io/flux/components/kustomize/kustomizations/#prune).
+   - **Other installers:** exclude this CRD from deletion/prune inventories using
+     that tool's supported mechanism. For plain kubectl, apply without `--prune`
+     and do not delete the old cluster-scoped manifest set.
+
+3. Review the planned sync/deletion set. The CRD must not be scheduled for
+   deletion. Complete the KFP Application orphaning procedure below before
+   allowing removal of that Application. If no KFP Application/controller exists,
+   skip that procedure but still protect the shared CRD.
+4. After the upgrade, verify the CRD still has the recorded UID and all unrelated
+   Applications retain their names and UIDs. Keep prune protection until the
+   platform owner has completed a verified management handoff. Do not clear it
+   merely to remove an out-of-sync indicator.
+
+These annotations are interpreted by their respective GitOps controllers; they
+do not prevent direct Kubernetes deletion. Removal of an unused shared CRD is a
+separate cluster-administrator decision, after checking every namespace and all
+consumers. It is not part of the KFP upgrade.
+
+### Retire the KFP Application and controller
 
 The old Application uses `addOwnerRef: true`. Deleting it with normal cascading
 deletion can delete KFP Deployments, Services, Secrets, ConfigMaps, ServiceAccounts,

@@ -58,13 +58,14 @@ gsutil mb -p myProjectId gs://myBucketName/
 ```
 kustomize build sample/cluster-scoped-resources/ | kubectl apply -f -
 
-kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s
+kubectl wait crd/workflows.argoproj.io --for condition=established --timeout=60s
 
 kustomize build sample/ | kubectl apply -f -
-# If upper one action got failed, e.x. you used wrong value, try delete, fix and apply again
-# kubectl delete -k sample/
+# If applying fails, inspect the error, correct the configuration, and apply again.
 
-kubectl wait applications/mypipeline -n kubeflow --for condition=Ready --timeout=1800s
+kubectl rollout status deployment/ml-pipeline -n kubeflow --timeout=1800s
+kubectl rollout status deployment/ml-pipeline-ui -n kubeflow --timeout=1800s
 ```
 
-Now you can find the installation in [Console](http://console.cloud.google.com/ai-platform/pipelines)
+Access the KFP UI using the [installation guide](../../../docs/operator-guides/installation.md).
+For existing installations, follow the [Application controller retirement guide](../../../docs/operator-guides/application-controller-retirement.md) before upgrading or pruning resources.
