@@ -9,7 +9,8 @@ exports[`Router > initial render 1`] = `
       class="flexGrow_fr87ocy"
       style="min-height: 0px;"
     >
-      <div
+      <nav
+        aria-label="Main"
         class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
         data-testid="sideNav"
         id="sideNav"
@@ -469,7 +470,7 @@ exports[`Router > initial render 1`] = `
             </a>
           </div>
         </div>
-      </div>
+      </nav>
       <div
         class="page_f1flacxk"
       >

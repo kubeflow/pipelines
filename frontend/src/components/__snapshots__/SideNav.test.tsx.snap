@@ -2,7 +2,8 @@
 
 exports[`SideNav > display the correct GKE metadata 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -14,6 +15,7 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -479,13 +481,14 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > populates the display build information using the default props 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -497,6 +500,7 @@ exports[`SideNav > populates the display build information using the default pro
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -945,13 +949,14 @@ exports[`SideNav > populates the display build information using the default pro
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders Pipelines as active page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -963,6 +968,7 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -1411,13 +1417,14 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -1429,6 +1436,7 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -1877,13 +1885,14 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders collapsed state 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c collapsedRoot_fq9pe1f"
     data-testid="sideNav"
     id="sideNav"
@@ -1895,6 +1904,7 @@ exports[`SideNav > renders collapsed state 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -2343,13 +2353,14 @@ exports[`SideNav > renders collapsed state 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders expanded state 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -2361,6 +2372,7 @@ exports[`SideNav > renders expanded state 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Pipeline List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -2809,13 +2821,14 @@ exports[`SideNav > renders expanded state 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -2909,6 +2922,7 @@ exports[`SideNav > renders experiments as active page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -3275,13 +3289,14 @@ exports[`SideNav > renders experiments as active page 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page when on AllRuns page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -3454,6 +3469,7 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -3741,13 +3757,14 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page when on Compare page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -3920,6 +3937,7 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -4207,13 +4225,14 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page when on NewExperiment page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -4307,6 +4326,7 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -4673,13 +4693,14 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page when on NewRun page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -4852,6 +4873,7 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -5139,13 +5161,14 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page when on RecurringRunDetails page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -5359,6 +5382,7 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -5605,13 +5629,14 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active page when on RunDetails page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -5784,6 +5809,7 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -6071,13 +6097,14 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders experiments as active when on ExperimentDetails page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -6171,6 +6198,7 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Experiment List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -6537,13 +6565,14 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -6757,6 +6786,7 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -7003,13 +7033,14 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > renders recurring runs as active page 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -7223,6 +7254,7 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Recurring Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -7469,13 +7501,14 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
 
 exports[`SideNav > show jupyterhub link if accessible 1`] = `
 <DocumentFragment>
-  <div
+  <nav
+    aria-label="Main"
     class="root_f1a1w2f7 flexColumn_fr3ikkd noShrink_f16j9z5c"
     data-testid="sideNav"
     id="sideNav"
@@ -7648,6 +7681,7 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
         class="indicator_f1itm870"
       />
       <a
+        aria-current="page"
         aria-label="Runs List"
         class="unstyled_f1ikaigl"
         data-discover="true"
@@ -7986,6 +8020,6 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
         </a>
       </div>
     </div>
-  </div>
+  </nav>
 </DocumentFragment>
 `;
