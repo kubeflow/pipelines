@@ -41,6 +41,9 @@ jobs:
       - name: Reconcile admission, candidate dispatch, and verified results
         if: steps.policy.outputs.enabled == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: queue_admission
         with:
           script: |
             const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');

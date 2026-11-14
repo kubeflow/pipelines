@@ -84,6 +84,9 @@ jobs:
         run: python -m pip install -r .github/scripts/requirements.txt
       - id: list
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: recovery
         with:
           script: |
             const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
@@ -151,6 +154,8 @@ jobs:
         # still requires successful prerequisite steps before it can run.
         if: always() && !cancelled()
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: prepare
           CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}
           CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}
         id: prepare
@@ -169,6 +174,9 @@ jobs:
         if: steps.prepare.outputs.ready == 'true'
         continue-on-error: true
         uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: all_checks
         with:
           commit_sha: ${{ steps.prepare.outputs.head_sha }}
           # Completion events and scheduled sweeps drive recovery. Never hold
@@ -187,6 +195,8 @@ jobs:
         if: always() && steps.prepare.outputs.pr_number != ''
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: finalize
           CI_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
           CI_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
           CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
@@ -231,6 +241,8 @@ jobs:
       - id: prepare
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merged_prepare
           RECOVERY_PR: ${{ inputs.merged_pr }}
           RECOVERY_HEAD: ${{ inputs.head_sha }}
         with:
@@ -243,6 +255,9 @@ jobs:
       - id: poll
         if: steps.prepare.outputs.ready == 'true'
         uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merged_all_checks
         with:
           commit_sha: ${{ steps.prepare.outputs.head_sha }}
           poll: 'false'
@@ -253,6 +268,8 @@ jobs:
       - if: steps.prepare.outputs.ready == 'true' && steps.poll.outcome == 'success'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merged_finalize
           RECOVERY_PR: ${{ steps.prepare.outputs.pr_number }}
           RECOVERY_HEAD: ${{ steps.prepare.outputs.head_sha }}
           RECOVERY_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
@@ -297,6 +314,9 @@ jobs:
       - name: Reconcile exact merge-group status
         if: always() && !cancelled()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merge_group
         with:
           script: |
             const {reconcile} = require('./.github/resources/scripts/ci_merge_group.js');
@@ -347,6 +367,9 @@ jobs:
       - name: Reconcile admission, candidate dispatch, and verified results
         if: steps.policy.outputs.enabled == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: queue_admission
         with:
           script: |
             const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');

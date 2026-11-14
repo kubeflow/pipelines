@@ -38,6 +38,8 @@ jobs:
       - name: Revoke stale ci-passed statuses
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: revoke
           PUSH_TIP: ${{ github.event.after || github.sha }}
         with:
           script: |

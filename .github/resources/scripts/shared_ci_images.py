@@ -855,7 +855,10 @@ def import_ready_state(value, consumer, architecture, kind):
         and previous['run_attempt'] <= consumer['run_attempt'],
         'Readiness consumer run/source mismatch',
     )
-    require(kind in state['sets'], 'Readiness is missing the selected set')
+    require(
+        all(selected in state['sets'] for selected in selected_kinds(kind)),
+        'Readiness is missing the selected set',
+    )
     require(
         set(state['sets']) <= {'runtime', 'images'}, 'Unknown readiness set'
     )
@@ -1059,8 +1062,17 @@ def resolve(
             api.run_cache.clear()
 
 
+def selected_kinds(kind):
+    require(kind in ('runtime', 'images', 'all'), 'Unknown image selection')
+    return ('runtime', 'images') if kind == 'all' else (kind,)
+
+
 def emit_outputs(path, state, kind):
-    records = state['sets'][kind]
+    records = [
+        record
+        for selected in selected_kinds(kind)
+        for record in state['sets'][selected]
+    ]
     names = [
         name
         for record in records
@@ -1087,20 +1099,29 @@ def verify(api, state, consumer, directory, layout, kind=None):
     identity, architecture = state['identity'], state['architecture']
     require(state['consumer'] == consumer, 'State consumer changed')
     same_source(identity, consumer)
-    require(
-        kind in ('runtime', 'images') and kind in state['sets'],
-        'Missing selected set',
-    )
-    records = state['sets'][kind]
-    require(isinstance(records, list), 'Malformed selected records')
-    for record in records:
-        require(isinstance(record, dict), 'Malformed selected record')
-        image = record.get('image')
+    records = []
+    kinds = selected_kinds(kind)
+    for selected in kinds:
+        require(selected in state['sets'], 'Missing selected set')
+        selected_records = state['sets'][selected]
         require(
-            image in (IMAGES if kind == 'images' else ('runtime-base-images',)),
-            'Unexpected selected image',
+            isinstance(selected_records, list), 'Malformed selected records'
         )
-        validate_record(record, identity, architecture, image)
+        expected = IMAGES if selected == 'images' else ('runtime-base-images',)
+        require(
+            len(selected_records) == len(expected)
+            and all(isinstance(record, dict) for record in selected_records)
+            and {record.get('image') for record in selected_records}
+            == set(expected),
+            'Incomplete selected image set',
+        )
+        for record in selected_records:
+            validate_record(record, identity, architecture, record['image'])
+        records.extend(selected_records)
+    require(
+        len({record['artifact_id'] for record in records}) == len(records),
+        'Repeated selected artifact ID',
+    )
     require(
         directory.is_dir() and not directory.is_symlink(),
         'Unsafe download directory',
@@ -1139,15 +1160,25 @@ def verify(api, state, consumer, directory, layout, kind=None):
     # The resolver already bound immutable IDs. Check remote availability once,
     # after hashing, then recheck the attempt immediately before accepting files.
     indexed = artifact_index(api.artifacts(identity['run_id']))
-    if kind == 'images':
-        make_manifest(identity, architecture, records, api, artifacts=indexed)
-    else:
-        require(len(records) == 1, 'Invalid runtime set')
+    if 'images' in kinds:
+        make_manifest(
+            identity,
+            architecture,
+            [record for record in records if record['image'] in IMAGES],
+            api,
+            artifacts=indexed,
+        )
+    if 'runtime' in kinds:
+        runtime = next(
+            record
+            for record in records
+            if record['image'] == 'runtime-base-images'
+        )
         validate_record(
-            records[0], identity, architecture, 'runtime-base-images', indexed
+            runtime, identity, architecture, 'runtime-base-images', indexed
         )
     validate_run(api.run(identity['run_id']), identity)
-    if layout == 'nested' and kind == 'images':
+    if layout == 'nested' and kind in ('images', 'all'):
         for record in records:
             require(
                 not (directory / record['image']).exists(),
@@ -1159,7 +1190,13 @@ def verify(api, state, consumer, directory, layout, kind=None):
             for name in record['files']:
                 (directory / name).replace(target / name)
 
-    state['sets'][kind] = records
+    for selected in kinds:
+        state['sets'][selected] = [
+            record
+            for record in records
+            if (record['image'] == 'runtime-base-images')
+            == (selected == 'runtime')
+        ]
 
 
 def main():
@@ -1179,7 +1216,7 @@ def main():
         '--architecture', required=True, choices=ARCHITECTURES
     )
     resolver.add_argument(
-        '--kind', required=True, choices=('runtime', 'images')
+        '--kind', required=True, choices=('runtime', 'images', 'all')
     )
     resolver.add_argument('--state', required=True, type=Path)
     resolver.add_argument('--output', required=True, type=Path)
@@ -1196,7 +1233,7 @@ def main():
         '--architecture', required=True, choices=ARCHITECTURES
     )
     imported.add_argument(
-        '--kind', required=True, choices=('runtime', 'images')
+        '--kind', required=True, choices=('runtime', 'images', 'all')
     )
     imported.add_argument('--state', required=True, type=Path)
     imported.add_argument('--output', required=True, type=Path)
@@ -1204,7 +1241,7 @@ def main():
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
-    verifier.add_argument('--kind', choices=('runtime', 'images'))
+    verifier.add_argument('--kind', choices=('runtime', 'images', 'all'))
     args = parser.parse_args()
     accounting = RequestAccounting()
     try:

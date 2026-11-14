@@ -37,7 +37,29 @@ credentials, repository name, or arbitrary header value is recorded. Accounting
 adds no API calls and preserves results and exceptions. These records support
 bounded comparisons; they are not a complete installation request ledger.
 
-Run `github_request_accounting_test.py` and
+The artifact-download retry wrapper and centralized gate clients also preload
+`node_http_accounting.cjs` in their individual Node action steps. Its
+`measurement: node_http_attempts` passively observes Undici and native HTTP
+transport diagnostics, including pagination, redirects, retry attempts and
+transport failures. This covers the downloader and `allcheckspassed` clients
+that the Octokit hook cannot observe, plus retries below the gate's Octokit
+hooks. The summary is emitted synchronously on normal process exit, including
+nonzero exits. A hard kill, non-Node subprocess, or uninstrumented action remains
+outside this boundary. `transport_supported` is false on runtimes older than
+Node 24; zero requests on an unsupported runtime is not measured zero traffic.
+Only API-origin responses contribute numeric rate-limit observations; artifact
+service and other HTTP traffic are separate bounded endpoint categories, with
+no URLs, signed query strings, credentials or bodies recorded.
+
+Compare `node_http_attempts` records across the scoped action steps. Do not add
+the overlapping `octokit_request_hook` records to those totals: the latter
+measure logical client requests. Shared-image `gh_api_invocations` are a separate
+process boundary and retain their explicit opaque-transport limitation. Quota
+header deltas reflect the shared installation pool, not usage attributable to
+one step. These summaries add no API calls and do not change polling, retries,
+Dependabot scheduling, or rebase policy.
+
+Run `github_request_accounting_test.py`, `node_http_accounting_test.py`, and
 `shared_ci_request_accounting_test.py` with the CI script tests.
 
 ## Shared CI image builds
@@ -81,8 +103,16 @@ with producer status checked at most thirty seconds apart and again at readiness
 Dependent lanes validate the supplied source/run identity and skip discovery and
 readiness polling. A failed-job-only consumer retry may reuse a successful
 readiness result from an earlier attempt of that same workflow run/source;
-the producer attempt is never rewritten. Per-download validation still rejects
-a changed producer attempt, failed producer or deleted artifact. Authenticated conditional
+the producer attempt is never rewritten. Per-consumer validation still rejects
+a changed producer attempt, failed producer or deleted artifact. On an AMD64
+runtime-cache miss, deployment downloads runtime and application artifacts in
+one selection, hashes every archive, and validates all records with one fresh
+artifact inventory and one live producer-run read before loading either set.
+This reduces verification metadata reads from four to two per deployment job
+for a single-page inventory (and removes a duplicate downloader invocation).
+Cache hits select only application images; ARM keeps its application-only path.
+Direct callers may still select an individual set. No metadata snapshot is
+cached across consumer jobs or reused after hashing. Authenticated conditional
 requests reuse unchanged metadata pages without charging GitHub's primary API
 quota; pagination and rate-limit retry headers are preserved. Archive verification
 uses fresh unconditional metadata after hashing. These controls keep the handoff
@@ -93,7 +123,8 @@ shared scenarios separately so they do not compete for the same runner slots.
 When adding consumers or changing paths, update the producer trigger union and
 architecture planner, regenerate `ci-workflow-inventory.json`, and retain the
 `Shared CI Images` completion subscription in `ci-checks.yml`. Run the
-`shared_ci_images_test.py`, `shared_ci_image_producer_test.py`, artifact caller,
+`shared_ci_images_test.py`, `shared_ci_combined_verification_test.py`,
+`shared_ci_image_producer_test.py`, artifact caller,
 and workflow overlap contracts with the rest of CI Scripts Tests.
 
 - Frontend Node consumers read `frontend/.nvmrc`; update its exact version together with the frontend manifest and lockfile engine. The dependency configuration tests guard these pins, shared CI/image consumers, and npm's strict engine enforcement. jsdom 30's CSS dependency tree requires at least Node 24.15.0 on the Node 24 line.
