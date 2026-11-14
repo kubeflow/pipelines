@@ -98,6 +98,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - name: Set up Node for HTTP accounting regressions
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: frontend/.nvmrc
       - uses: ./.github/actions/setup-go
       - uses: actions/setup-python@v7
         with:

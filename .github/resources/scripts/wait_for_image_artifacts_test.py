@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -58,6 +59,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         failure_status: int = 429,
         failure_headers: tuple[str, ...] = (),
         artifact_api_timeout: int = 1200,
+        accounting_fails: bool = False,
     ) -> tuple[subprocess.CompletedProcess[str], int]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -79,6 +81,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 command.write_text(
                     '#!/usr/bin/env bash\n' + body + '\n', encoding='utf-8')
                 command.chmod(0o755)
+            if accounting_fails:
+                fake_python = fake_bin / 'python3'
+                fake_python.write_text('#!/usr/bin/env bash\nexit 17\n')
+                fake_python.chmod(0o755)
             fake_gh = fake_bin / 'gh'
             fake_gh.write_text(
                 textwrap.dedent('''\
@@ -87,6 +93,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                       if [[ "$JOBS_API_FAILS" == "true" ]]; then
                         exit 1
                       fi
+                      printf 'HTTP/2.0 200\\n\\n'
                       printf '%s\n' "$PRODUCER_JOBS"
                       exit 0
                     fi
@@ -188,6 +195,53 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertIn('All 13 branch image artifacts are available',
                       result.stdout)
         self.assertEqual(attempts, 1)
+
+    def test_accounting_failure_preserves_wait_result(self):
+        ready, _ = self._run(ready_after=1, accounting_fails=True)
+        self.assertEqual(ready.returncode, 0, ready.stderr)
+        failed, _ = self._run(
+            ready_after=100,
+            accounting_fails=True,
+            producer_jobs=(
+                (
+                    "build / image-build (metadata-envoy, Dockerfile, .)",
+                    "completed",
+                    "failure",
+                ),
+            ),
+        )
+        self.assertEqual(failed.returncode, 1, failed.stderr)
+        self.assertIn("completed without publishing", failed.stderr)
+
+    def test_accounts_subshell_artifact_polls_and_producer_pages(self):
+        result, attempts = self._run(
+            ready_after=3,
+            producer_jobs=(
+                (
+                    "build / image-build (metadata-envoy, Dockerfile, .)",
+                    "in_progress",
+                    "",
+                ),
+            ),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        events = [
+            json.loads(line)
+            for line in result.stderr.splitlines()
+            if line.startswith("{")
+        ]
+        summary = events[-1]
+        self.assertEqual(summary["event"], "github_request_accounting")
+        self.assertEqual(summary["invocations"], 4)
+        self.assertEqual(summary["responses"], 4)
+        self.assertEqual(
+            summary["counts"],
+            [
+                {"category": "artifacts", "status": 200, "count": 3},
+                {"category": "jobs", "status": 200, "count": 1},
+            ],
+        )
+        self.assertEqual(attempts, 3)
 
     def test_non_viewer_lane_does_not_wait_for_tensorboard(self):
         result, attempts = self._run(

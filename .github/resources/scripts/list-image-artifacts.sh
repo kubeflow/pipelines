@@ -10,13 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+source "${BASH_SOURCE%/*}/gh-response-accounting.sh"
+
 # Revalidate every page without starting a separate JSON parser. gh returns
 # nonzero for HTTP 304; accept that only for an exact-URL cached response.
 # The caller owns cache_dir for this wait invocation. Print no partial inventory.
 list_image_artifacts() {
   local cache_dir=$1 page=1 url response line status etag next body
   local cached_url cached_etag in_headers request_ok inventory=""
-  local retry_after remaining reset now delay
+  local retry_after remaining reset now delay request_exit
   rm -f "$cache_dir/retry-after" || return 1
   local -a command
   while true; do
@@ -33,9 +35,11 @@ list_image_artifacts() {
       command+=(-H "If-None-Match: $cached_etag")
     fi
     request_ok=true
+    request_exit=0
     # Preserve the header/body separator even for an empty LF-only 200 body.
-    response=$("${command[@]}" 2> "$cache_dir/request-error" && printf '.') || request_ok=false
+    response=$("${command[@]}" 2> "$cache_dir/request-error" && printf '.') || { request_exit=$?; request_ok=false; }
     [[ "$request_ok" != true ]] || response=${response%.}
+    record_gh_response "$cache_dir/accounting" artifacts "$request_exit" "$response"
     response=${response//$'\r'/}
     status="" etag="" next=false body="" in_headers=true
     retry_after="" remaining="" reset=""
