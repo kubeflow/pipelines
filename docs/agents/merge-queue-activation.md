@@ -1,11 +1,13 @@
 # Merge queue admission and Prow cutover
 
-The activation policy selects only `master`. **Do not merge this activation
-change until the coordinated cutover below.** An unmerged PR does not activate
-admission. The trusted default-branch controller requires both the enabled policy
+The activation policy selects `~DEFAULT_BRANCH`, resolved from live repository
+metadata to either `master` or `main`. It never enables both names at once.
+**Do not merge this activation change until the coordinated cutover below.**
+An unmerged PR does not activate admission. The trusted default-branch controller requires both the enabled policy
 and an active queue rule; enabling policy without that rule fails closed.
-`main` and release branches retain existing behavior. Supporting both development
-branch names does not automatically migrate configuration during a rename.
+The nondefault name and release branches retain existing behavior. Unexpected
+default branch names, unreadable metadata, or mismatched repository identity fail
+closed. The selector is resolved afresh at enforcement boundaries.
 
 The JSON files linked below are review artifacts, not automatically applied
 settings. No workflow applies them or changes live Tide.
@@ -155,24 +157,26 @@ observe default-branch CI and scheduled recovery, and obtain passing strict Prow
 configuration validation and review on
 [oss-test-infra #2792](https://github.com/GoogleCloudPlatform/oss-test-infra/pull/2792).
 Keep both PRs that change merging responsibility held until a staffed cutover.
-Before cutover, re-read the default branch, all effective rules, required-check App
-bindings and bypass actors. If they differ from this proposal, stop and update the
+Before cutover, read the live default branch via `GET /repos/kubeflow/pipelines`
+and require it to be `master` or `main`. Use that exact returned name for all
+branch-specific API paths below, never an assumed name. Re-read all effective
+rules, required-check App bindings and bypass actors. If they differ from this proposal, stop and update the
 reviewed artifacts. Do not blindly replay a saved protection snapshot.
 
 - [merge-queue-ruleset.json](merge-queue-ruleset.json) is a proposed repository
-  ruleset scoped to `refs/heads/master`, with no bypass actors. It requires
+  ruleset scoped to `~DEFAULT_BRANCH`, with no bypass actors. It requires
   squash/ALLGREEN queue merging, at most two building and two merging entries,
   a 120-minute check timeout, and `ci-passed` (Actions App 15368) plus DCO (1861).
 - [merge-queue-required-checks.json](merge-queue-required-checks.json) is a narrow
-  PATCH payload for master's classic `required_status_checks` endpoint. It changes
-  strict freshness to false while preserving both existing check/App bindings.
+  PATCH payload for the current default branch’s classic `required_status_checks`
+  endpoint. It changes strict freshness to false while preserving both existing check/App bindings.
   It must not replace the full branch-protection object. Preserve linear history,
   conversation resolution, push restrictions, deletion/force-push restrictions,
   organization rules, and all other settings.
 
 Execution order (not authorized by preparing these artifacts):
 
-1. Freeze development-branch merges and retain a hold on this activation PR until
+1. Freeze merges into the current default branch and retain a hold on this activation PR until
    its one controlled merge. Resolve who will perform that merge using existing
    repository permissions. If no permitted path exists, stop and obtain explicit
    authorization for a reviewed bootstrap path; do not silently add a bypass.
@@ -186,11 +190,11 @@ Execution order (not authorized by preparing these artifacts):
    do not reopen normal merging. This avoids requiring the queue before its
    admission controller is enabled. Reverify the live policy and controller SHA.
 4. Create the ruleset from `merge-queue-ruleset.json` using
-   `POST /repos/kubeflow/pipelines/rulesets`. Verify the effective rules for master
-   contain the enforced queue and the expected App-bound checks, with no queue
+   `POST /repos/kubeflow/pipelines/rulesets`. Resolve the current default branch
+   again and verify its effective rules contain the enforced queue and the expected App-bound checks, with no queue
    bypass for Prow or any other actor. Record its returned ruleset ID for rollback.
    Then PATCH only
-   `/repos/kubeflow/pipelines/branches/master/protection/required_status_checks`
+   `/repos/kubeflow/pipelines/branches/{default_branch}/protection/required_status_checks`
    with `merge-queue-required-checks.json`. Verify `strict: false`, both App
    bindings, and preservation of all unrelated protection settings.
 5. Verify production events and scheduled recovery publish fresh queue-admission
@@ -201,8 +205,11 @@ Execution order (not authorized by preparing these artifacts):
    and the Dependabot exception. Confirm dispatch-registration grace/retry bounds
    and that rejected admission never falls back to direct merge. The live Prow
    installation must remove `lgtm` on head changes as intended.
-6. Reopen normal merging only after the smoke test passes. `main` is intentionally
-   disabled; a later rename needs separately reviewed rules and policy migration.
+6. Reopen normal merging only after the smoke test passes. A later rename between
+   `master` and `main` needs no policy or ruleset edit: both follow the repository
+   default. Drain the queue before renaming, then recheck effective protections,
+   App bindings, event routing and a smoke merge. The selector does not perform
+   the rename or migrate unrelated classic branch protection settings.
 
 For rollback, freeze and drain/remove queued candidates first. Restore disabled
 admission policy and strict PR base-freshness enforcement, verify fresh required

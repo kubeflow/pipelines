@@ -48,13 +48,18 @@ class MergeQueuePolicyTest(unittest.TestCase):
 
     def node(self, operation, **options):
         script = """
-const {queueEnabled, loadPolicy} = require(process.argv[1]);
+const {queueEnabled, loadPolicy, enabledBranches} = require(process.argv[1]);
 const gate = require(process.argv[2]);
 const root = process.argv[3], options = JSON.parse(process.argv[4]);
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, eventName: 'push',
   ref: `refs/heads/${options.branch || 'master'}`};
 const reads = [];
-const github = {paginate: async (route, parameters) => {
+const github = {rest: {repos: {get: async parameters => {
+  reads.push({route: 'repository', parameters});
+  if (options.repoError) throw new Error('Repository unavailable');
+  return {data: {full_name: options.repository || 'kubeflow/pipelines',
+    default_branch: options.defaultBranches?.shift() || options.defaultBranch || 'master'}};
+}}}, paginate: async (route, parameters) => {
   reads.push({route, parameters});
   if (options.apiError) throw new Error('API unavailable');
   return options.rules || [];
@@ -62,7 +67,14 @@ const github = {paginate: async (route, parameters) => {
 (async () => {
   let result, error;
   try {
+    if (options.operation === 'rename') {
+      result = [];
+      for (const branch of ['master', 'main', 'master']) {
+        result.push(await queueEnabled({github, context, root, branch}));
+      }
+    }
     if (options.operation === 'load') result = loadPolicy(root);
+    if (options.operation === 'branches') result = await enabledBranches({github, context, root});
     if (options.operation === 'enabled') result = await queueEnabled({github, context,
       branch: options.branch || 'master', root});
     if (options.operation === 'revoke') result = await gate.revokeStaleGreens({github, context,
@@ -87,11 +99,13 @@ const github = {paginate: async (route, parameters) => {
         )
         return json.loads(result.stdout)
 
-    def test_checked_in_policy_enables_only_master(self):
+    def test_checked_in_policy_follows_default_branch(self):
         policy = json.loads(
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
-        self.assertEqual(policy, {'version': 1, 'enabled_branches': ['master']})
+        self.assertEqual(
+            policy, {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+        )
 
     def test_activation_payload_preserves_required_checks_and_queue_scope(self):
         ruleset = json.loads(
@@ -101,7 +115,7 @@ const github = {paginate: async (route, parameters) => {
         self.assertEqual(ruleset['bypass_actors'], [])
         self.assertEqual(
             ruleset['conditions']['ref_name'],
-            {'include': ['refs/heads/master'], 'exclude': []},
+            {'include': ['~DEFAULT_BRANCH'], 'exclude': []},
         )
         rules = {rule['type']: rule['parameters'] for rule in ruleset['rules']}
         queue = rules['merge_queue']
@@ -132,6 +146,112 @@ const github = {paginate: async (route, parameters) => {
                 ],
             },
         )
+
+    def test_default_selector_resolves_both_names_and_requires_enforcement(
+        self,
+    ):
+        self.policy(['~DEFAULT_BRANCH'])
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                options = {'branch': branch, 'defaultBranch': branch}
+                result = self.node('branches', **options)
+                self.assertEqual(result['result'], [branch])
+                self.assertEqual(
+                    result['reads'][0]['parameters'],
+                    {'owner': 'kubeflow', 'repo': 'pipelines'},
+                )
+                self.assertIn(
+                    'enforced merge_queue',
+                    self.node('enabled', **options)['error'],
+                )
+                result = self.node(
+                    'enabled', rules=[{'type': 'merge_queue'}], **options
+                )
+                self.assertTrue(result['result'])
+                self.assertEqual(
+                    result['reads'][-1]['parameters']['branch'], branch
+                )
+                other = 'main' if branch == 'master' else 'master'
+                result = self.node(
+                    'enabled', branch=other, defaultBranch=branch
+                )
+                self.assertFalse(result['result'])
+                self.assertEqual(
+                    [read['route'] for read in result['reads']], ['repository']
+                )
+
+    def test_default_selector_rereads_metadata_after_rename(self):
+        self.policy(['~DEFAULT_BRANCH'])
+        result = self.node(
+            'rename',
+            defaultBranches=['master', 'main', 'main'],
+            rules=[{'type': 'merge_queue'}],
+        )
+        self.assertEqual(result['result'], [True, True, False])
+        self.assertEqual(
+            sum(read['route'] == 'repository' for read in result['reads']), 3
+        )
+
+    def test_default_selector_metadata_error_cannot_publish_success(self):
+        self.policy(['~DEFAULT_BRANCH'])
+        result = self.exercise(repositoryFailure=True)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertIn('Repository unavailable', result['error'])
+        self.assertFalse(
+            any(call[:2] == ['status', 'success'] for call in result['calls'])
+        )
+
+    def test_default_selector_publisher_uses_queue_mode_for_current_name(self):
+        self.policy(['~DEFAULT_BRANCH'])
+        for branch in ['master', 'main']:
+            result = self.exercise(
+                defaultBranch=branch,
+                baseArrivedAt='2026-09-07T12:00:00Z',
+                pr={
+                    'base': {
+                        'ref': branch,
+                        'sha': 'b' * 40,
+                        'repo': {'full_name': 'kubeflow/pipelines'},
+                    }
+                },
+            )
+            self.assertEqual(result['status'], 'success', result)
+            self.assertTrue(
+                result['descriptions'][-1].startswith(
+                    f'Queue admission {branch} CI passed;'
+                )
+            )
+            self.assertGreaterEqual(result['calls'].count(['repository']), 3)
+
+    def test_default_selector_fails_closed_on_untrusted_repository_evidence(
+        self,
+    ):
+        self.policy(['~DEFAULT_BRANCH'])
+        for options in [
+            {'repoError': True},
+            {'repository': 'fork/pipelines'},
+            {'defaultBranch': 'release-2.18'},
+            {'defaultBranch': 'develop'},
+        ]:
+            with self.subTest(options=options):
+                result = self.node('enabled', **options)
+                self.assertIn('error', result)
+                self.assertNotIn('result', result)
+                self.assertEqual(len(result['reads']), 1)
+
+    def test_default_selector_leaves_release_branches_without_api_reads(self):
+        self.policy(['~DEFAULT_BRANCH'])
+        result = self.node('enabled', branch='release-2.18', repoError=True)
+        self.assertFalse(result['result'])
+        self.assertEqual(result['reads'], [])
+
+    def test_default_selector_cannot_mix_with_literal_branches(self):
+        for branches in [
+            ['~DEFAULT_BRANCH', 'master'],
+            ['main', '~DEFAULT_BRANCH'],
+        ]:
+            self.policy(branches)
+            self.assertIn('error', self.node('load'))
 
     def test_master_only_policy_requires_enforcement_and_leaves_main_disabled(
         self,

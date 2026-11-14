@@ -13,7 +13,7 @@
 
 const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
-const {loadPolicy, queueEnabled} = require('./merge_queue_policy');
+const {enabledBranches, queueEnabled} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
   repository(owner:$owner, name:$repo) { nameWithOwner mergeQueue(branch:$branch) {
@@ -284,7 +284,7 @@ async function eventTargets(github, context) {
 }
 
 async function sweep({github, context, root, core, queueOnly = false}) {
-  const branches = loadPolicy(root).enabled_branches;
+  const branches = await enabledBranches({github, context, root});
   if (!branches.length) return;
   const targets = queueOnly ? [] : await eventTargets(github, context);
   const failures = [];

@@ -29,11 +29,13 @@ class AdmissionWorkflowTest(unittest.TestCase):
         )
         cls.job = cls.workflow['jobs']['queue_admission']
 
-    def test_master_activation_retains_trusted_policy_guard(self):
+    def test_default_branch_activation_retains_trusted_policy_guard(self):
         policy = json.loads(
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
-        self.assertEqual(policy, {'version': 1, 'enabled_branches': ['master']})
+        self.assertEqual(
+            policy, {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+        )
         steps = self.job['steps']
         self.assertEqual(steps[0]['with']['ref'], '${{ github.workflow_sha }}')
         self.assertEqual(steps[0]['with']['persist-credentials'], 'false')

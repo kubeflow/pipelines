@@ -193,7 +193,11 @@ jobs:
       pr.labels = pr.labels.filter(label => label.name !== request.name);
       if (options.removeLabelNotFound) throw Object.assign(Error('Label absent'), {status: 404});
     }},
-  repos: {getCommit: async request => {
+  repos: {get: async () => {
+    calls.push(['repository']);
+    if (options.repositoryFailure) throw Error('Repository unavailable');
+    return {data: {full_name: 'kubeflow/pipelines', default_branch: options.defaultBranch || 'master'}};
+  }, getCommit: async request => {
     commitReads += 1;
     if (options.commitFailure) throw Error('Commit unavailable');
     return {data: {sha: request.ref,
