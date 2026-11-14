@@ -161,6 +161,7 @@ updates:
       - "/components/google-cloud"
       - "/docs"
       - "/release"
+      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
       - "/samples/core/artifact_previews"
     schedule:
       interval: weekly

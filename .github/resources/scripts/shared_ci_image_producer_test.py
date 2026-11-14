@@ -27,6 +27,7 @@ IMAGES = {
     'driver',
     'frontend',
     'viewer-crd-controller',
+    'profile-controller',
 }
 
 
@@ -35,6 +36,47 @@ def workflow(name):
 
 
 class SharedImageProducerTest(unittest.TestCase):
+    def test_profile_runtime_is_built_and_published_on_both_architectures(self):
+        from arm64_smoke import CI_IMAGES, CONTROL_IMAGES
+        from osv_manifest_images import is_first_party
+        from shared_ci_images import IMAGES as shared_images
+
+        context = 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller'
+        for line in ('master', 'release'):
+            jobs = workflow(f'image-builds-{line}.yml')['jobs']
+            matrix = jobs[f'build-images-for-{line}']['strategy']['matrix']
+            profile = [
+                item
+                for item in matrix['image']
+                if item['name'] == 'kfp-profile-controller'
+            ]
+            self.assertEqual(
+                profile,
+                [
+                    {
+                        'name': 'kfp-profile-controller',
+                        'dockerfile': context + '/Dockerfile',
+                        'context': context,
+                    }
+                ],
+            )
+            self.assertEqual(
+                {item['platform'] for item in matrix['arch']},
+                {'linux/amd64', 'linux/arm64'},
+            )
+            self.assertIn(
+                {'image': 'kfp-profile-controller'},
+                jobs['create-manifests']['strategy']['matrix']['component'],
+            )
+        self.assertIn('profile-controller', shared_images)
+        self.assertEqual(
+            CI_IMAGES['kfp-profile-controller'], 'profile-controller'
+        )
+        self.assertNotIn('kfp-profile-controller', CONTROL_IMAGES)
+        self.assertTrue(
+            is_first_party('ghcr.io/kubeflow/kfp-profile-controller:2.18.1')
+        )
+
     def test_only_shared_producer_calls_image_builder(self):
         callers = []
         for path in WORKFLOWS.glob('*.y*ml'):

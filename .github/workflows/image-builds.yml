@@ -193,6 +193,9 @@ jobs:
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
+          - image: profile-controller
+            dockerfile: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/Dockerfile
+            context: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller
           - image: viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .

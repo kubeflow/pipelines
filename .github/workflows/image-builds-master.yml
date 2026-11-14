@@ -37,6 +37,9 @@ jobs:
           - name: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
+          - name: kfp-profile-controller
+            dockerfile: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/Dockerfile
+            context: manifests/kustomize/base/installs/multi-user/pipelines-profile-controller
           - name: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
@@ -79,6 +82,7 @@ jobs:
           - image: kfp-scheduled-workflow-controller
           - image: kfp-viewer-crd-controller
           - image: kfp-launcher
+          - image: kfp-profile-controller
           - image: kfp-driver
     uses: ./.github/workflows/create-manifest.yml
     with:

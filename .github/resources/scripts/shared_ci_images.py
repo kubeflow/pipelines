@@ -22,6 +22,7 @@ IMAGES = (
     'persistenceagent',
     'frontend',
     'viewer-crd-controller',
+    'profile-controller',
     'driver',
     'launcher',
 )

@@ -173,8 +173,8 @@ class SharedImageTests(unittest.TestCase):
             sleep=sleep,
         )
         self.assertEqual(now[0], 20)
-        self.assertEqual(len(self.api.items), 8)
-        self.assertEqual(len(state['sets']['images']), 7)
+        self.assertEqual(len(self.api.items), len(shared.IMAGES) + 1)
+        self.assertEqual(len(state['sets']['images']), len(shared.IMAGES))
         self.assertIsNone(state['sets']['images'][0]['files']['apiserver.tar'])
         shared.verify(self.api, state, self.consumer, self.directory, 'flat')
         self.assertEqual(
@@ -567,7 +567,7 @@ class SharedImageTests(unittest.TestCase):
         with self.assertRaisesRegex(shared.InvalidEvidence, 'Mixed source'):
             shared.make_manifest(self.producer, 'amd64', records, self.api)
 
-    def test_seven_distinct_images_are_required(self):
+    def test_all_distinct_images_are_required(self):
         records = self.api.images('amd64', self.directory)
         for invalid in (records[:-1], records[:-1] + [records[0]]):
             with self.assertRaises(shared.InvalidEvidence):

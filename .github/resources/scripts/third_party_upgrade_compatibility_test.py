@@ -187,6 +187,89 @@ class CompatibilityTest(unittest.TestCase):
             Path('evidence'), 'baseline:4.49', 'candidate:4.50', 'pvc'
         )
 
+    def test_profile_uses_candidate_build_and_preserves_credentials_after_restart(
+        self,
+    ):
+        profile = [
+            {
+                'kind': 'Deployment',
+                'metadata': {'name': 'kubeflow-pipelines-profile-controller'},
+                'spec': {
+                    'template': {
+                        'spec': {
+                            'containers': [
+                                {
+                                    'name': 'profile-controller',
+                                    'image': 'unpublished:tag',
+                                }
+                            ]
+                        }
+                    }
+                },
+            }
+        ]
+        secret = {'data': {'accesskey': 'dXNlcg==', 'secretkey': 'a2V5'}}
+        receipt = {'image': 'kfp-profile-controller:compat-source'}
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(compatibility, 'rendered', return_value=profile),
+            patch.object(
+                compatibility,
+                'image_reference',
+                return_value='ghcr.io/kubeflow/kfp-profile-controller:master',
+            ),
+            patch.object(
+                compatibility, 'build_profile_image', return_value=receipt
+            ),
+            patch.object(
+                compatibility,
+                'run',
+                side_effect=['a' * 40, '', '[{"Id":"sha256:built"}]'],
+            ) as run,
+            patch.object(compatibility, 'apply'),
+            patch.object(compatibility, 'wait_ready'),
+            patch.object(compatibility, 'kubectl') as kubectl,
+            patch.object(
+                compatibility,
+                'forward',
+                side_effect=lambda *args: nullcontext('http://localhost'),
+            ),
+            patch.object(
+                compatibility, 'sync_profile', return_value=secret
+            ) as sync,
+            patch.object(compatibility, 'client'),
+            patch.object(compatibility, 'verify_payload'),
+            patch.object(compatibility, 'verify_state'),
+        ):
+            self.assertEqual(
+                compatibility.exercise_profile(
+                    ('admin', 'key'), Path(directory)
+                ),
+                secret,
+            )
+            self.assertTrue((Path(directory) / 'profile-runtime.json').exists())
+        container = profile[0]['spec']['template']['spec']['containers'][0]
+        self.assertEqual(container['image'], receipt['image'])
+        self.assertEqual(container['imagePullPolicy'], 'Never')
+        self.assertIn(
+            (
+                'kind',
+                'load',
+                'docker-image',
+                '--name',
+                compatibility.CLUSTER,
+                receipt['image'],
+            ),
+            [call.args for call in run.call_args_list],
+        )
+        kubectl.assert_called_once_with(
+            'rollout',
+            'restart',
+            'deployment/kubeflow-pipelines-profile-controller',
+        )
+        self.assertEqual(sync.call_count, 3)
+        self.assertEqual(sync.call_args.args[-1], secret)
+
     def test_ambiguous_baseline_image_fails(self):
         with self.assertRaisesRegex(ValueError, 'Expected one'):
             compatibility.storage_image([])
