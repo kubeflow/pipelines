@@ -29,6 +29,7 @@
     },
     "@puppeteer/browsers": "$@puppeteer/browsers",
     "glob@>=9 <14.0.2": "14.0.6",
-    "minimatch@>=9 <11.0.1": "11.0.8"
+    "minimatch@>=9 <11.0.1": "11.0.8",
+    "fast-xml-parser": "5.12.0"
   }
 }

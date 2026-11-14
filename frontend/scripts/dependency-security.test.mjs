@@ -31,6 +31,7 @@ const scopes = {
     qs: '>=6.16.1 <7',
   },
   '../../test/frontend-integration-test/package-lock.json': {
+    'fast-xml-parser': '>=5.12.0 <6',
     undici: '>=6.29.1 <7 || >=7.30.1 <8',
     'serialize-javascript': '>=7.1.3 <8',
     glob: '<9 || >=14.0.2 <15',
