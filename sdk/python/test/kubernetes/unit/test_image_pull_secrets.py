@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from google.protobuf import json_format
 from kfp import dsl, kubernetes
 
@@ -351,6 +352,24 @@ class TestImagePullSecret:
                 }
             }
         }
+
+    @pytest.mark.parametrize('bad', ['my-secret', ''])
+    def test_plain_string_secret_names_raises(self, bad):
+        with pytest.raises(TypeError, match='must be a list'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.set_image_pull_secrets(comp(), secret_names=bad)
+
+    def test_list_of_pipeline_parameters_still_works(self):
+        @dsl.pipeline
+        def my_pipeline(secret: str = 'my-secret'):
+            kubernetes.set_image_pull_secrets(comp(), secret_names=[secret])
+
+        executor = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp']
+        assert len(executor['imagePullSecret']) == 1
 
 
 @dsl.component
