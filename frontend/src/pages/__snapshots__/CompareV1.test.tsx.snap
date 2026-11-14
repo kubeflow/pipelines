@@ -2038,6 +2038,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   <title />
                   <desc />
                   <g
+                    class="recharts-zIndex-layer_-100"
                     tabindex="-1"
                   >
                     <g
@@ -2102,6 +2103,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </g>
                   </g>
                   <g
+                    class="recharts-zIndex-layer_-50"
                     tabindex="-1"
                   />
                   <defs>
@@ -2117,18 +2119,23 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </clippath>
                   </defs>
                   <g
+                    class="recharts-zIndex-layer_100"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_200"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_300"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_400"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_500"
                     tabindex="-1"
                   >
                     <g
@@ -2177,18 +2184,23 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </g>
                   </g>
                   <g
+                    class="recharts-zIndex-layer_600"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1000"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1100"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1200"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_2000"
                     tabindex="-1"
                   >
                     <text
@@ -2325,6 +2337,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   <title />
                   <desc />
                   <g
+                    class="recharts-zIndex-layer_-100"
                     tabindex="-1"
                   >
                     <g
@@ -2389,6 +2402,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </g>
                   </g>
                   <g
+                    class="recharts-zIndex-layer_-50"
                     tabindex="-1"
                   />
                   <defs>
@@ -2404,18 +2418,23 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </clippath>
                   </defs>
                   <g
+                    class="recharts-zIndex-layer_100"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_200"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_300"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_400"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_500"
                     tabindex="-1"
                   >
                     <g
@@ -2464,18 +2483,23 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </g>
                   </g>
                   <g
+                    class="recharts-zIndex-layer_600"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1000"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1100"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1200"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_2000"
                     tabindex="-1"
                   >
                     <text
@@ -2581,6 +2605,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                   <title />
                   <desc />
                   <g
+                    class="recharts-zIndex-layer_-100"
                     tabindex="-1"
                   >
                     <g
@@ -2645,6 +2670,7 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </g>
                   </g>
                   <g
+                    class="recharts-zIndex-layer_-50"
                     tabindex="-1"
                   />
                   <defs>
@@ -2660,18 +2686,23 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </clippath>
                   </defs>
                   <g
+                    class="recharts-zIndex-layer_100"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_200"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_300"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_400"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_500"
                     tabindex="-1"
                   >
                     <g
@@ -2720,18 +2751,23 @@ exports[`CompareV1 > creates an extra aggregation plot for compatible viewers 1`
                     </g>
                   </g>
                   <g
+                    class="recharts-zIndex-layer_600"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1000"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1100"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_1200"
                     tabindex="-1"
                   />
                   <g
+                    class="recharts-zIndex-layer_2000"
                     tabindex="-1"
                   >
                     <text

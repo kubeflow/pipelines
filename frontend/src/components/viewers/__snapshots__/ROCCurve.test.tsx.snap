@@ -27,6 +27,7 @@ exports[`ROCCurve > does not break on empty data 1`] = `
         <title />
         <desc />
         <g
+          class="recharts-zIndex-layer_-100"
           tabindex="-1"
         >
           <g
@@ -91,6 +92,7 @@ exports[`ROCCurve > does not break on empty data 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_-50"
           tabindex="-1"
         />
         <defs>
@@ -106,18 +108,23 @@ exports[`ROCCurve > does not break on empty data 1`] = `
           </clippath>
         </defs>
         <g
+          class="recharts-zIndex-layer_100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_300"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_400"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_500"
           tabindex="-1"
         >
           <g
@@ -166,18 +173,23 @@ exports[`ROCCurve > does not break on empty data 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_600"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1000"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_2000"
           tabindex="-1"
         >
           <text
@@ -252,6 +264,7 @@ exports[`ROCCurve > does not break on no config 1`] = `
         <title />
         <desc />
         <g
+          class="recharts-zIndex-layer_-100"
           tabindex="-1"
         >
           <g
@@ -316,6 +329,7 @@ exports[`ROCCurve > does not break on no config 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_-50"
           tabindex="-1"
         />
         <defs>
@@ -331,18 +345,23 @@ exports[`ROCCurve > does not break on no config 1`] = `
           </clippath>
         </defs>
         <g
+          class="recharts-zIndex-layer_100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_300"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_400"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_500"
           tabindex="-1"
         >
           <g
@@ -391,18 +410,23 @@ exports[`ROCCurve > does not break on no config 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_600"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1000"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_2000"
           tabindex="-1"
         >
           <text
@@ -477,6 +501,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
         <title />
         <desc />
         <g
+          class="recharts-zIndex-layer_-100"
           tabindex="-1"
         >
           <g
@@ -877,6 +902,7 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_-50"
           tabindex="-1"
         />
         <defs>
@@ -892,15 +918,19 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           </clippath>
         </defs>
         <g
+          class="recharts-zIndex-layer_100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_300"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_400"
           tabindex="-1"
         >
           <g
@@ -922,20 +952,25 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           <g
             class="recharts-layer recharts-line"
           >
-            <path
-              class="recharts-curve recharts-line-curve"
-              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
-              fill="none"
-              height="465"
-              id="recharts-id-1"
-              stroke="#4285f4"
-              stroke-dasharray="0px 0px"
-              stroke-width="2"
-              width="703"
-            />
+            <g
+              class="recharts-layer recharts-shape"
+            >
+              <path
+                class="recharts-curve recharts-line-curve"
+                d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
+                fill="none"
+                height="465"
+                id="recharts-id-1"
+                stroke="#4285f4"
+                stroke-dasharray="0px 0px"
+                stroke-width="2"
+                width="703"
+              />
+            </g>
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_500"
           tabindex="-1"
         >
           <g
@@ -1564,18 +1599,23 @@ exports[`ROCCurve > renders a simple ROC curve given one config 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_600"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1000"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_2000"
           tabindex="-1"
         >
           <g
@@ -2378,6 +2418,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
         <title />
         <desc />
         <g
+          class="recharts-zIndex-layer_-100"
           tabindex="-1"
         >
           <g
@@ -2778,6 +2819,7 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_-50"
           tabindex="-1"
         />
         <defs>
@@ -2793,15 +2835,19 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           </clippath>
         </defs>
         <g
+          class="recharts-zIndex-layer_100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_300"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_400"
           tabindex="-1"
         >
           <g
@@ -2823,50 +2869,63 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           <g
             class="recharts-layer recharts-line"
           >
-            <path
-              class="recharts-curve recharts-line-curve"
-              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
-              fill="none"
-              height="465"
-              id="recharts-id-1"
-              stroke="#4285f4"
-              stroke-dasharray="0px 0px"
-              stroke-width="2"
-              width="703"
-            />
+            <g
+              class="recharts-layer recharts-shape"
+            >
+              <path
+                class="recharts-curve recharts-line-curve"
+                d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
+                fill="none"
+                height="465"
+                id="recharts-id-1"
+                stroke="#4285f4"
+                stroke-dasharray="0px 0px"
+                stroke-width="2"
+                width="703"
+              />
+            </g>
           </g>
           <g
             class="recharts-layer recharts-line"
           >
-            <path
-              class="recharts-curve recharts-line-curve"
-              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
-              fill="none"
-              height="465"
-              id="recharts-id-2"
-              stroke="#2b9c1e"
-              stroke-dasharray="0px 0px"
-              stroke-width="2"
-              width="703"
-            />
+            <g
+              class="recharts-layer recharts-shape"
+            >
+              <path
+                class="recharts-curve recharts-line-curve"
+                d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
+                fill="none"
+                height="465"
+                id="recharts-id-2"
+                stroke="#2b9c1e"
+                stroke-dasharray="0px 0px"
+                stroke-width="2"
+                width="703"
+              />
+            </g>
           </g>
           <g
             class="recharts-layer recharts-line"
           >
-            <path
-              class="recharts-curve recharts-line-curve"
-              d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
-              fill="none"
-              height="465"
-              id="recharts-id-3"
-              stroke="#e00000"
-              stroke-dasharray="0px 0px"
-              stroke-width="2"
-              width="703"
-            />
+            <g
+              class="recharts-layer recharts-shape"
+            >
+              <path
+                class="recharts-curve recharts-line-curve"
+                d="M92,470L115.43333333333334,446.75C138.86666666666667,423.5,185.73333333333335,377,244.3166666666667,322.75C302.90000000000003,268.5,373.2,206.5,455.2166666666667,160.00000000000003C537.2333333333333,113.50000000000001,630.9666666666667,82.5,689.5500000000001,59.25C748.1333333333333,35.99999999999999,771.5666666666666,20.499999999999996,783.2833333333333,12.75L795,5"
+                fill="none"
+                height="465"
+                id="recharts-id-3"
+                stroke="#e00000"
+                stroke-dasharray="0px 0px"
+                stroke-width="2"
+                width="703"
+              />
+            </g>
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_500"
           tabindex="-1"
         >
           <g
@@ -3495,18 +3554,23 @@ exports[`ROCCurve > renders an ROC curve using three configs 1`] = `
           </g>
         </g>
         <g
+          class="recharts-zIndex-layer_600"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1000"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1100"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_1200"
           tabindex="-1"
         />
         <g
+          class="recharts-zIndex-layer_2000"
           tabindex="-1"
         >
           <g
