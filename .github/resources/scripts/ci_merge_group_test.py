@@ -79,7 +79,7 @@ const fixture = {json.dumps(fixture)};
 const writes = [], requests = [], inventoryRequests = [], infos = [];
 const refCounts = new Map();
 let runCount = 0, triggerCount = 0;
-let queueCount = 0, prCount = 0;
+let queueCount = 0, prCount = 0, defaultBranchCount = 0;
 const github = {{
   rest: {{
     pulls: {{get: async () => ({{data: fixture.queuePRs[Math.min(prCount++, fixture.queuePRs.length - 1)]}})}},
@@ -99,7 +99,12 @@ const github = {{
       const snapshots = fixture.triggerSnapshots || [fixture.context.payload.workflow_run];
       return {{data: snapshots[Math.min(triggerCount++, snapshots.length - 1)]}};
     }}}},
-    repos: {{createCommitStatus: async options => {{
+    repos: {{get: async options => {{
+      requests.push({{route: 'repository', options}});
+      const defaults = fixture.defaultBranches || ['master'];
+      return {{data: {{full_name: 'owner/repo',
+        default_branch: defaults[Math.min(defaultBranchCount++, defaults.length - 1)]}}}};
+    }}, createCommitStatus: async options => {{
       writes.push(options);
       return {{data: options}};
     }}}},
@@ -193,6 +198,47 @@ class MergeGroupTest(unittest.TestCase):
                     ['merge_group', 'workflow_dispatch'],
                 )
                 self.assertEqual(request['options']['head_sha'], HEAD)
+
+    def test_default_branch_change_before_initial_snapshot_never_publishes_success(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as directory:
+            policy = Path(directory) / '.github/merge-queue-policy.json'
+            policy.parent.mkdir()
+            policy.write_text(
+                json.dumps(
+                    {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+                )
+            )
+            for branch in ['master', 'main']:
+                for event in ['merge_group', 'workflow_dispatch']:
+                    with self.subTest(branch=branch, event=event):
+                        other = 'main' if branch == 'master' else 'master'
+                        run = good_run(
+                            event=event,
+                            head_branch=f'gh-readonly-queue/{branch}/pr-7-abcdef',
+                        )
+                        result = reconcile(
+                            runs=[run],
+                            event=run,
+                            policyRoot=directory,
+                            defaultBranches=[branch, other],
+                            lanes=[
+                                lane(
+                                    pull_request={'branches': [branch]},
+                                    merge_group={
+                                        'types': ['checks_requested'],
+                                        'branches': [branch],
+                                    },
+                                )
+                            ],
+                        )
+                        self.assert_not_successful(result)
+                        self.assertNotIn(
+                            'success',
+                            [write['state'] for write in result['writes']],
+                            result,
+                        )
 
     def test_dispatch_evidence_requires_enabled_queue_and_latest_attempt(self):
         from merge_queue_admission_test import entry, pr, queue

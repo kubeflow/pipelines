@@ -130,7 +130,7 @@ const github = {{rest: {{
   repos: {{get: async options => {{
     requests.push({{route:'repository',options}});
     if (f.repositoryError) throw new Error('Repository unavailable');
-    return {{data:{{full_name:'owner/repo',default_branch:f.defaultBranch || f.branch}}}};
+    return {{data:{{full_name:'owner/repo',default_branch:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}}}};
   }}, listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
     writes.push(options); operations.push({{route:'status',options}});
     if (f.statusWriteError) throw new Error('Status write failed');
@@ -206,6 +206,20 @@ class QueueRecoveryTest(unittest.TestCase):
                         call['ref'].startswith(f'gh-readonly-queue/{branch}/')
                     )
                     self.assertEqual(call['inputs']['queue_base_ref'], branch)
+
+    def test_default_branch_change_before_initial_snapshot_never_dispatches(
+        self,
+    ):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                other = 'main' if branch == 'master' else 'master'
+                result = dispatch(
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                    defaultBranches=[branch, other],
+                )
+                self.assertEqual(result['dispatches'], [], result)
+                self.assertEqual(result['writes'], [], result)
 
     def test_default_selector_metadata_failure_never_dispatches(self):
         result = dispatch(
