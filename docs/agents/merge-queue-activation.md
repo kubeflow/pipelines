@@ -1,10 +1,16 @@
 # Merge queue admission and Prow cutover
 
-The queue preparation is inactive by default. `.github/merge-queue-policy.json`
-ships with `enabled_branches: []`. CI retains its existing live-base freshness
-requirement, push-triggered stale revocation, and Tide merge behavior. The
-admission job reads this trusted policy before calling queue APIs. Nothing in
-this repository changes live protection or Tide settings.
+The activation policy selects `~DEFAULT_BRANCH`, resolved from live repository
+metadata to either `master` or `main`. It never enables both names at once.
+**Do not merge this activation change until the coordinated cutover below.**
+An unmerged PR does not activate admission. The trusted default-branch controller requires both the enabled policy
+and an active queue rule; enabling policy without that rule fails closed.
+The nondefault name and release branches retain existing behavior. Unexpected
+default branch names, unreadable metadata, or mismatched repository identity fail
+closed. The selector is resolved afresh at enforcement boundaries.
+
+The JSON files linked below are review artifacts, not automatically applied
+settings. No workflow applies them or changes live Tide.
 
 ## Admission and candidate validation
 
@@ -106,11 +112,16 @@ candidate. After investigating, deliberately rerun PR CI to obtain a fresh
 successful admission status before retrying admission. This is separate from
 rerunning a failed candidate workflow while its queue entry still exists.
 
-[Experiment PR #15565](https://github.com/kubeflow/pipelines/pull/15565) proved the
-mechanism: builtin-token enqueue, explicit candidate workflow dispatch, verified
-status publication, native queue merge, and a post-merge push run. It did not
-validate the complete production CI inventory, multi-PR queue behavior, or hold
-and rebuild handling. Those remain preactivation requirements below.
+The isolated full-CI test merged [PR #15620](https://github.com/kubeflow/pipelines/pull/15620)
+and [PR #15621](https://github.com/kubeflow/pipelines/pull/15621) through the native
+queue without changing either PR head. Both candidates passed all 32 workflows
+and real DCO; merge SHAs matched tested candidate SHAs. The earlier isolated test
+also exercised revoked approval, hold, consumed-attempt rejection, and queue rebuild
+after candidate failure. Temporary rules and branches were removed. See
+[CI fixes #15619](https://github.com/kubeflow/pipelines/pull/15619) for retry evidence
+and quota/runtime measurements. Explicit controller wakeups and temporary branch
+aliases mean production event routing and scheduled recovery still need a cutover
+smoke test; isolated success does not establish every lifecycle case below.
 
 ## Prepared Tide change
 
@@ -139,38 +150,66 @@ configuration validation there. Its tests compare normal/bot, approval/hold,
 branch, and repository combinations and check that no development merge route
 survives. An infrastructure PR must not deploy ahead of the coordinated cutover.
 
-## Activation sequence
+## Activation artifacts and sequence
 
-1. Merge the preparation with `enabled_branches: []`. Verify existing PR CI and
-   merges continue normally. Finish the default-branch rename first if desired.
-2. Complete an isolated end-to-end smoke test with the full required CI
-   inventory, both image architectures, and runtime artifacts. Verify DCO reports
-   on synthetic queue SHAs and preserve existing required-check App bindings.
-   Test two approved PRs, queue rebuilds, a failing/cancelled lane, explicit
-   reruns, holds and revoked approval after admission, and missed-event recovery.
-   Confirm missing dispatch registration observes the receipt grace and retry
-   bound. The experiment above is not a substitute for these tests. Prepare an
-   active branch-specific ruleset requiring a merge queue, squash merging, and
-   low build concurrency; keep release branches on their existing policy.
-3. Freeze merges during cutover. Deploy and verify the reviewed external Tide
-   query exclusions, covering both names and every overlapping query. Keep Prow
-   approval/hold plugins running. No Tide instance should directly merge the
-   selected development branch after this step.
-4. Enable the queue ruleset on the actual development branch and replace the
-   strict up-to-date-branch requirement with queue enforcement. Keep `ci-passed`
-   and DCO required. Under the freeze, deploy the explicitly reviewed policy
-   change adding only the active branch to `enabled_branches`. The policy change
-   itself may need the maintainer's controlled cutover path because normal merges
-   are frozen; this preparation does not authorize a protection bypass.
-5. Verify fresh PR statuses show queue-admission mode. Queue two approved PRs,
-   verify entry API identities, both required queue-SHA statuses, and exact
-   candidate image sources. Confirm the second merges without an author rebase.
-   Test a failing lane, a rebuilt queue, revoked approval, a hold after admission,
-   an updated head, a draft/retarget, and the intended Dependabot exception.
-   Verify the bridge never falls back to direct merge when admission is rejected.
-6. Reopen normal merges only after those observations. Supporting both branch
-   names does not migrate protection, Tide configuration, or the enabled-branch
-   policy during a rename. Avoid simultaneously activating an unused branch.
+Prerequisites: merge [#15619](https://github.com/kubeflow/pipelines/pull/15619),
+observe default-branch CI and scheduled recovery, and obtain passing strict Prow
+configuration validation and review on
+[oss-test-infra #2792](https://github.com/GoogleCloudPlatform/oss-test-infra/pull/2792).
+Keep both PRs that change merging responsibility held until a staffed cutover.
+Before cutover, read the live default branch via `GET /repos/kubeflow/pipelines`
+and require it to be `master` or `main`. Use that exact returned name for all
+branch-specific API paths below, never an assumed name. Re-read all effective
+rules, required-check App bindings and bypass actors. If they differ from this proposal, stop and update the
+reviewed artifacts. Do not blindly replay a saved protection snapshot.
+
+- [merge-queue-ruleset.json](merge-queue-ruleset.json) is a proposed repository
+  ruleset scoped to `~DEFAULT_BRANCH`, with no bypass actors. It requires
+  squash/ALLGREEN queue merging, at most two building and two merging entries,
+  a 120-minute check timeout, and `ci-passed` (Actions App 15368) plus DCO (1861).
+- [merge-queue-required-checks.json](merge-queue-required-checks.json) is a narrow
+  PATCH payload for the current default branch’s classic `required_status_checks`
+  endpoint. It changes strict freshness to false while preserving both existing check/App bindings.
+  It must not replace the full branch-protection object. Preserve linear history,
+  conversation resolution, push restrictions, deletion/force-push restrictions,
+  organization rules, and all other settings.
+
+Execution order (not authorized by preparing these artifacts):
+
+1. Freeze merges into the current default branch and retain a hold on this activation PR until
+   its one controlled merge. Resolve who will perform that merge using existing
+   repository permissions. If no permitted path exists, stop and obtain explicit
+   authorization for a reviewed bootstrap path; do not silently add a bypass.
+2. Release the hold on #2792, merge it, and verify `config-updater` deployed the
+   exclusions. Check all Tide queries/instances exclude Pipelines `master` and
+   `main`, including bot and organization-wide queries. Prow label plugins and
+   release-branch merging remain enabled.
+3. Under the freeze, merge the reviewed activation PR using the agreed maintainer
+   path **before requiring the queue**. Existing strict checks still apply to that
+   merge. Policy without an active rule fails closed during this short interval;
+   do not reopen normal merging. This avoids requiring the queue before its
+   admission controller is enabled. Reverify the live policy and controller SHA.
+4. Create the ruleset from `merge-queue-ruleset.json` using
+   `POST /repos/kubeflow/pipelines/rulesets`. Resolve the current default branch
+   again and verify its effective rules contain the enforced queue and the expected App-bound checks, with no queue
+   bypass for Prow or any other actor. Record its returned ruleset ID for rollback.
+   Then PATCH only
+   `/repos/kubeflow/pipelines/branches/{default_branch}/protection/required_status_checks`
+   with `merge-queue-required-checks.json`. Verify `strict: false`, both App
+   bindings, and preservation of all unrelated protection settings.
+5. Verify production events and scheduled recovery publish fresh queue-admission
+   statuses and automatically enqueue two approved PRs. Check exact candidate
+   workflow/image identities, DCO and `ci-passed` on queue SHAs, and a second merge
+   without author rebasing. Test revoked approval/hold after admission, updated
+   head, draft/retarget, failed/cancelled lane, rebuilt candidate, intentional retry,
+   and the Dependabot exception. Confirm dispatch-registration grace/retry bounds
+   and that rejected admission never falls back to direct merge. The live Prow
+   installation must remove `lgtm` on head changes as intended.
+6. Reopen normal merging only after the smoke test passes. A later rename between
+   `master` and `main` needs no policy or ruleset edit: both follow the repository
+   default. Drain the queue before renaming, then recheck effective protections,
+   App bindings, event routing and a smoke merge. The selector does not perform
+   the rename or migrate unrelated classic branch protection settings.
 
 For rollback, freeze and drain/remove queued candidates first. Restore disabled
 admission policy and strict PR base-freshness enforcement, verify fresh required

@@ -19,6 +19,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
+from ci_pass_eligibility_test import run_with_disabled_policy
+
 MODULE = Path(__file__).with_name('ci_recovery_statuses.js')
 
 
@@ -99,15 +101,12 @@ github.paginate.iterator = async function* () {
   calls.rest++;
   yield {data: {statuses: [{context: 'ci-passed', state: 'failure', description: 'failed'}]}};
 };
-recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}})
+recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}, root: process.argv.at(-1)})
   .then(result => console.log(JSON.stringify({calls, count: result.length})))
   .catch(error => {console.error(error); process.exit(1);});
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE.with_name('ci_passed.js'))],
-            capture_output=True,
-            text=True,
-            check=True,
+        result = run_with_disabled_policy(
+            ['node', '-e', script, str(MODULE.with_name('ci_passed.js'))]
         )
         actual = json.loads(result.stdout)
         self.assertEqual(actual['count'], 101)

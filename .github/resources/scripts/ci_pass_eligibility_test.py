@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -28,7 +29,22 @@ ROOT = Path(__file__).resolve().parents[3]
 MODULE = ROOT / '.github/resources/scripts/ci_passed.js'
 
 
-def exercise(options=None):
+def run_with_disabled_policy(argv):
+    """Run a strict-freshness fixture independently of rollout
+    configuration."""
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / '.github').mkdir()
+        (root / '.github/resources').symlink_to(ROOT / '.github/resources')
+        (root / '.github/merge-queue-policy.json').write_text(
+            json.dumps({'version': 1, 'enabled_branches': []})
+        )
+        return subprocess.run(
+            [*argv, directory], check=True, capture_output=True, text=True
+        )
+
+
+def exercise(options=None, *, policy_root=None):
     script = r"""
 const gate = require(process.argv[1]);
 const options = JSON.parse(process.argv[2]);
@@ -177,7 +193,11 @@ jobs:
       pr.labels = pr.labels.filter(label => label.name !== request.name);
       if (options.removeLabelNotFound) throw Object.assign(Error('Label absent'), {status: 404});
     }},
-  repos: {getCommit: async request => {
+  repos: {get: async () => {
+    calls.push(['repository']);
+    if (options.repositoryFailure) throw Error('Repository unavailable');
+    return {data: {full_name: 'kubeflow/pipelines', default_branch: options.defaultBranch || 'master'}};
+  }, getCommit: async request => {
     commitReads += 1;
     if (options.commitFailure) throw Error('Commit unavailable');
     return {data: {sha: request.ref,
@@ -284,19 +304,29 @@ github.paginate.iterator = async function* () {
   console.log(JSON.stringify({calls, outputs, error, status, descriptions, targetUrls, recoveryBefore, recoveryAfter, labels: pr.labels, requestCounts}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
-    result = subprocess.run(
-        [
-            'node',
-            '-e',
-            script,
-            str(MODULE),
-            json.dumps(options or {}),
-            str(ROOT),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    # Publisher fixtures default to strict preactivation freshness. Queue-mode
+    # tests supply their own explicit policy root, independent of live rollout.
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / '.github').mkdir()
+        (root / '.github/resources').symlink_to(ROOT / '.github/resources')
+        (root / '.github/merge-queue-policy.json').write_text(
+            json.dumps({'version': 1, 'enabled_branches': []})
+        )
+        result = subprocess.run(
+            [
+                'node',
+                '-e',
+                script,
+                str(MODULE),
+                json.dumps(options or {}),
+                str(policy_root or root),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
     return json.loads(result.stdout)
 
 
@@ -789,17 +819,12 @@ github.paginate.iterator = async function* (method, params) {
   yield {data: {statuses: [{context: 'other', state: 'success'}]}};
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
-recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(result => {
+recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}, root: process.argv.at(-1)}).then(result => {
   console.log(JSON.stringify({result: result.map(pr => ({...pr,
     head: prs.find(item => item.number === pr.number).fixtureState})), requests}));
 }).catch(e => {console.error(e); process.exit(1);});
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        result = run_with_disabled_policy(['node', '-e', script, str(MODULE)])
         actual = json.loads(result.stdout)
         self.assertEqual(
             actual['result'],
@@ -854,7 +879,7 @@ async function run(liveTip) {
     yield {data: {statuses: [{context: 'other', state: 'success'}]}};
     yield await github.rest.repos.getCombinedStatusForRef(params);
   };
-  return recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}});
+  return recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}, root: process.argv.at(-1)});
 }
 (async () => {
   const advancedStamp = crypto.createHash('sha256')
@@ -864,12 +889,7 @@ async function run(liveTip) {
   console.log(JSON.stringify({noAdvance, advanced, publishedStamp, advancedStamp}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        result = run_with_disabled_policy(['node', '-e', script, str(MODULE)])
         actual = json.loads(result.stdout)
         self.assertNotEqual(actual['publishedStamp'], actual['advancedStamp'])
         self.assertEqual(actual['noAdvance'], [])
@@ -1594,7 +1614,7 @@ github.paginate.iterator = async function* (method, params) {
   yield await github.rest.repos.getCombinedStatusForRef(params);
 };
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 7, eventName: EVENT, ref: `refs/heads/${BRANCH}`};
-revokeStaleGreens({github, context, tip: TIP}).then(count => {
+revokeStaleGreens({github, context, tip: TIP, root: process.argv.at(-1)}).then(count => {
   console.log(JSON.stringify({count,
     writes: writes.map(write => ({...write, sha: names.get(write.sha)})),
     listCalls, refCalls, batchSizes, statusReads}));
@@ -1622,9 +1642,7 @@ revokeStaleGreens({github, context, tip: TIP}).then(count => {
             branch,
             event,
         ]
-        result = subprocess.run(
-            argv, check=True, capture_output=True, text=True
-        )
+        result = run_with_disabled_policy(argv)
         return json.loads(result.stdout)
 
     def test_push_revocation_revokes_only_stale_success(self):
@@ -1785,12 +1803,7 @@ revokeStaleGreens({github, context: {repo: {owner: 'o', repo: 'r'}}, tip: 'main'
   .then(() => console.log(JSON.stringify({error: null})))
   .catch(e => console.log(JSON.stringify({error: e.message})));
 """
-        result = subprocess.run(
-            ['node', '-e', script, str(MODULE)],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        result = run_with_disabled_policy(['node', '-e', script, str(MODULE)])
         actual = json.loads(result.stdout)
         self.assertEqual(
             actual['error'], 'Stale revocation requires a full base commit SHA'

@@ -162,6 +162,9 @@ async function reconcile({github, context, core, root = process.env.GITHUB_WORKS
         `${context.repo.owner}/${context.repo.repo}`}}}});
     const expected = expectedWorkflows(inventory.inventory, inventory.workflowFiles, group.baseRef);
     const policy = await inspectQueue({github, context, group, root});
+    if (allowDispatch && policy === null) {
+      throw new Error('Queue policy disabled before candidate validation.');
+    }
     const current = async () => (await readRef(github, context, group.branch)) === group.head &&
       (await readRef(github, context, group.baseRef)) === base &&
       (await inspectQueue({github, context, group, root})) === policy;

@@ -13,7 +13,7 @@
 'use strict';
 
 const path = require('node:path');
-const {loadPolicy, queueEnabled} = require('./merge_queue_policy');
+const {enabledBranches, queueEnabled} = require('./merge_queue_policy');
 const {readQueue, inspectQueue, sweep} = require('./merge_queue_admission');
 const {expectedWorkflows, readRef, queueRuns, matchingRuns, reconcile} = require('./ci_merge_group');
 const {loadBaseInventory} = require('./ci_expected_workflows');
@@ -32,6 +32,7 @@ async function dispatchGroup({github, context, group, core, root,
   if (await readRef(github, context, group.branch) !== group.head) return;
   const base = await readRef(github, context, group.baseRef);
   const policy = await inspectQueue({github, context, group, root});
+  if (policy === null) throw new Error('Queue policy disabled before dispatch validation.');
   const inventory = await loadInventory({github, ...context.repo, root,
     pullRequest: {base: {sha: base, ref: group.baseRef,
       repo: {full_name: `${context.repo.owner}/${context.repo.repo}`}}}});
@@ -91,7 +92,7 @@ async function dispatchGroup({github, context, group, core, root,
 async function dispatchCandidates({github, context, root, core,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const failures = [];
-  for (const baseRef of loadPolicy(root).enabled_branches) {
+  for (const baseRef of await enabledBranches({github, context, root})) {
     if (!await queueEnabled({github, context, branch: baseRef, root})) continue;
     const entries = await readQueue(github, context, baseRef);
     const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));
