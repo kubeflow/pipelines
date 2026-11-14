@@ -31,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -547,6 +548,9 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		root = specRuntimeConfig.GetGcsOutputDirectory()
 	default:
 		return nil, util.NewUnknownApiVersionError("RuntimeConfig", obj)
+	}
+	if err := objectstore.ValidatePipelineRoot(root); err != nil {
+		return nil, util.NewInvalidInputError("Invalid pipeline_root: %s", err.Error())
 	}
 	return &model.RuntimeConfig{
 		Parameters:   model.LargeText(params),
