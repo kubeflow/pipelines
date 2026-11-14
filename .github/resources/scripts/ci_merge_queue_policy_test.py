@@ -9,7 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Exercise the inactive queue policy and PR publisher enforcement boundary."""
+"""Exercise the queue activation policy and PR publisher enforcement
+boundary."""
 
 import json
 import subprocess
@@ -41,7 +42,8 @@ class MergeQueuePolicyTest(unittest.TestCase):
     def exercise(self, **options):
         with mock.patch.object(publisher, 'ROOT', self.root):
             return publisher.exercise(
-                {'queueRules': [{'type': 'merge_queue'}], **options}
+                {'queueRules': [{'type': 'merge_queue'}], **options},
+                policy_root=self.root,
             )
 
     def node(self, operation, **options):
@@ -85,11 +87,64 @@ const github = {paginate: async (route, parameters) => {
         )
         return json.loads(result.stdout)
 
-    def test_checked_in_policy_is_disabled(self):
+    def test_checked_in_policy_enables_only_master(self):
         policy = json.loads(
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
-        self.assertEqual(policy, {'version': 1, 'enabled_branches': []})
+        self.assertEqual(policy, {'version': 1, 'enabled_branches': ['master']})
+
+    def test_activation_payload_preserves_required_checks_and_queue_scope(self):
+        ruleset = json.loads(
+            (ROOT / 'docs/agents/merge-queue-ruleset.json').read_text()
+        )
+        self.assertEqual(ruleset['enforcement'], 'active')
+        self.assertEqual(ruleset['bypass_actors'], [])
+        self.assertEqual(
+            ruleset['conditions']['ref_name'],
+            {'include': ['refs/heads/master'], 'exclude': []},
+        )
+        rules = {rule['type']: rule['parameters'] for rule in ruleset['rules']}
+        queue = rules['merge_queue']
+        self.assertEqual(queue['merge_method'], 'SQUASH')
+        self.assertEqual(queue['grouping_strategy'], 'ALLGREEN')
+        self.assertEqual(queue['max_entries_to_build'], 2)
+        self.assertEqual(queue['max_entries_to_merge'], 2)
+        checks = rules['required_status_checks']
+        self.assertFalse(checks['strict_required_status_checks_policy'])
+        self.assertFalse(checks['do_not_enforce_on_create'])
+        self.assertEqual(
+            checks['required_status_checks'],
+            [
+                {'context': 'ci-passed', 'integration_id': 15368},
+                {'context': 'DCO', 'integration_id': 1861},
+            ],
+        )
+        classic = json.loads(
+            (ROOT / 'docs/agents/merge-queue-required-checks.json').read_text()
+        )
+        self.assertEqual(
+            classic,
+            {
+                'strict': False,
+                'checks': [
+                    {'context': 'DCO', 'app_id': 1861},
+                    {'context': 'ci-passed', 'app_id': 15368},
+                ],
+            },
+        )
+
+    def test_master_only_policy_requires_enforcement_and_leaves_main_disabled(
+        self,
+    ):
+        self.policy(['master'])
+        self.assertIn('enforced merge_queue', self.node('enabled')['error'])
+        self.assertTrue(
+            self.node('enabled', rules=[{'type': 'merge_queue'}])['result']
+        )
+        for branch in ['main', 'release-2.18']:
+            result = self.node('enabled', branch=branch)
+            self.assertFalse(result['result'])
+            self.assertEqual(result['reads'], [])
 
     def test_default_policy_preserves_old_base_freshness(self):
         self.policy([])

@@ -143,18 +143,25 @@ const loadInventory = async options => {{
 const core = {{info: value => infos.push(value), warning: value => infos.push(value),
   setOutput: () => {{}}, error: value => infos.push(value)}};
 gate.reconcile({{github, context: fixture.context, core, loadInventory,
-  root: fixture.policyRoot || {json.dumps(str(ROOT))}, group: fixture.group}})
+  root: fixture.policyRoot || process.argv[2], group: fixture.group}})
   .then(result => console.log(JSON.stringify({{result, writes, requests, inventoryRequests, infos}})))
   .catch(error => console.log(JSON.stringify({{error: error.message, writes, requests, inventoryRequests, infos}})));
 """
-    completed = subprocess.run(
-        ['node'],
-        input=script,
-        text=True,
-        capture_output=True,
-        check=True,
-        cwd=ROOT,
-    )
+    # Native merge-group fixtures model the preactivation publisher. Explicit
+    # policyRoot cases below exercise enabled admission and queue membership.
+    with tempfile.TemporaryDirectory() as directory:
+        policy = Path(directory) / '.github/merge-queue-policy.json'
+        policy.parent.mkdir()
+        policy.write_text(json.dumps({'version': 1, 'enabled_branches': []}))
+        completed = subprocess.run(
+            ['node', '-', directory],
+            input=script,
+            text=True,
+            capture_output=True,
+            check=True,
+            cwd=ROOT,
+        )
+
     return json.loads(completed.stdout)
 
 

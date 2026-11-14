@@ -235,9 +235,9 @@ const args = {{github, context:{{repo:{{owner:'owner',repo:'repo'}},eventName:f.
 
 
 class QueueAdmissionTest(unittest.TestCase):
-    def test_checked_in_disabled_policy_does_not_read_or_write_github(self):
+    def test_disabled_policy_does_not_read_or_write_github(self):
         for method in ['sweep', 'reconcilePR', 'inspectQueue']:
-            result = run_case(method, repository_policy=True)
+            result = run_case(method, enabled=[])
             self.assertEqual(result['writes'], [], result)
             self.assertEqual(result['calls'], [], result)
 
