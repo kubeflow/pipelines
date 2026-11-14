@@ -24,6 +24,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForPipelineListReady,
   waitForRunPageReady,
 } = require('./test-helpers');
 
@@ -209,9 +210,7 @@ async function deleteUploadedPipeline() {
   try {
     await $('#pipelinesBtn').waitForDisplayed({ timeout: uiTimeout });
     await $('#pipelinesBtn').click();
-    await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
-
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await waitForPipelineListReady({ timeout: uiTimeout });
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
