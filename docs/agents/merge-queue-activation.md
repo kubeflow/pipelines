@@ -74,7 +74,25 @@ status, and do not grant rule bypass. The trusted controller needs permission to
 mutate the queue, dispatch Actions workflows, and write commit statuses. Candidate
 code and downloaded PR artifacts never execute in this controller.
 
-Enqueueing with `GITHUB_TOKEN` does not reliably start `merge_group` Actions CI.
+GitHub's merge queue normally starts configured Actions CI through
+`merge_group: checks_requested`. Explicit dispatch is specific to our automatic
+admission path using `GITHUB_TOKEN`, not an inherent merge-queue requirement.
+GitHub suppresses most workflow triggers caused by this token to prevent recursive
+runs; `workflow_dispatch` and `repository_dispatch` are explicit exceptions
+([GitHub documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)).
+In the isolated native-admission probe ([#15562](https://github.com/kubeflow/pipelines/pull/15562)),
+token-based enqueue succeeded but candidate Actions CI was not observed; the
+human-token control started CI. The explicit-dispatch probe
+([#15565](https://github.com/kubeflow/pipelines/pull/15565)) successfully ran
+[candidate CI](https://github.com/kubeflow/pipelines/actions/runs/43376145061)
+and merged through the native queue after verified status publication.
+
+This preserves automatic admission without an additional App credential,
+long-lived PAT, or manual enqueue step. If admission later uses a separate App
+credential, verify native `merge_group` delivery end to end before retiring the
+dispatch workaround; candidate validation and required-check publication still
+need to be preserved.
+
 The controller therefore discovers the current native queue candidate and
 explicitly dispatches every missing required workflow on its exact queue ref.
 Native `merge_group` runs remain supported; a matching registered native or

@@ -23,6 +23,12 @@ const REGISTRATION_GRACE_MS = 120000;
 const MAX_DISPATCH_ATTEMPTS = 3;
 const DISPATCH_CONCURRENCY = 4;
 
+// GitHub normally starts queue CI through merge_group. In our integration probes,
+// admission using GITHUB_TOKEN created the candidate but did not start that CI.
+// workflow_dispatch is an explicit exception to GITHUB_TOKEN event suppression;
+// use it for missing candidate runs while retaining native-run deduplication.
+// This workaround is specific to builtin-token admission, not a queue requirement.
+// Evidence and removal considerations: docs/agents/merge-queue-activation.md.
 async function dispatchGroup({github, context, group, core, root,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const ref = QUEUE_REF.exec(group.branch || '');

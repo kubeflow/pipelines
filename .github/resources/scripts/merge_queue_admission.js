@@ -271,6 +271,8 @@ async function reconcilePR({github, context, number, branch, root}) {
     if (!await queueEnabled({github, context, branch, root})) return;
     // No direct-merge or auto-merge fallback. GitHub enforces its other required
     // checks, including DCO, and atomically rejects a changed PR head.
+    // GITHUB_TOKEN admission does not reliably trigger merge_group Actions runs;
+    // merge_queue_dispatch supplies missing CI via the workflow_dispatch exception.
     enqueueAttempted = true;
     await github.graphql(`mutation($id:ID!, $head:GitObjectID!) {
       enqueuePullRequest(input:{pullRequestId:$id,expectedHeadOid:$head,jump:false}) {
