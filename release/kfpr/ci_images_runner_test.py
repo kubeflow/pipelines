@@ -219,6 +219,36 @@ class CiImagesRunnerTest(unittest.TestCase):
                 scanner='osv-json',
             )
 
+    def test_aggregate_rejects_kfp_inventory_without_binary_proof(self):
+        for arch in ('amd64', 'arm64'):
+            directory = self.write_lane(arch)
+            raw = json_envelope(IMAGE_ID)
+            raw['report']['results'][0]['packages'][0]['package'] = {
+                'name': runner.go_build_provenance.MODULE,
+                'ecosystem': 'Go',
+                'version': '(devel)',
+            }
+            scan = directory / 'scan.json'
+            scan.write_text(json.dumps(raw))
+            path = directory / 'lane.json'
+            lane = json.loads(path.read_text())
+            lane.update(
+                scanner=runner.scanner_identity('osv-json'),
+                report_format='json',
+                scan_sha256=hashlib.sha256(scan.read_bytes()).hexdigest(),
+            )
+            path.write_text(json.dumps(lane))
+        with self.assertRaisesRegex(
+            ValueError, 'Missing KFP binary provenance'
+        ):
+            runner.aggregate(
+                self.source,
+                self.root / 'lanes',
+                self.root / 'final',
+                self.release,
+                scanner='osv-json',
+            )
+
     def test_unsupported_scanner_rejected_before_output_creation(self):
         with self.assertRaisesRegex(ValueError, 'scanner'):
             runner.aggregate(
@@ -465,6 +495,18 @@ else:
                     self.assertIn(
                         step['with']['arch'], ('${{ matrix.arch }}', 'amd64')
                     )
+                    continue
+                if step.get('uses') == './tooling/.github/actions/setup-go':
+                    action = yaml.safe_load(
+                        (
+                            path.parents[1] / 'actions/setup-go/action.yml'
+                        ).read_text()
+                    )
+                    setup = action['runs']['steps'][0]
+                    self.assertRegex(
+                        setup['uses'], r'^actions/setup-go@[0-9a-f]{40}$'
+                    )
+                    self.assertEqual(setup['with']['go-version-file'], 'go.mod')
                     continue
                 if 'uses' in step:
                     self.assertRegex(step['uses'], r'@[0-9a-f]{40}$')

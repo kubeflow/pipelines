@@ -3,10 +3,13 @@
 import hashlib
 import json
 import re
+import tempfile
 import uuid
 from pathlib import Path
 
+from . import go_build_provenance
 from .ci_images_client import REPO, WORKFLOW, _api, verify_run
+from .ci_images_runner import KFP_GO_IMAGES
 from .ci_security_runner import verify_security
 from .github_api import default_branch
 from .osv_image_scan import SCANNER, validate_report
@@ -14,10 +17,12 @@ from .osv_reports import findings
 from .security import evaluate_policy
 from .security_exceptions import exception_digest, load_exceptions
 from .third_party import verify as verify_third_party
-from .workflow_runs import dispatch_and_watch
+from .workflow_runs import dispatch_and_watch, validate_run
 
 
-def read_artifact(directory, expected_images, expected_minors, identity):
+def read_artifact(
+    directory, expected_images, expected_minors, identity, *, source_repo=None
+):
     directory = Path(directory)
     for path in directory.rglob('*'):
         if path.is_symlink() or not path.resolve().is_relative_to(
@@ -84,6 +89,35 @@ def read_artifact(directory, expected_images, expected_minors, identity):
             raise ValueError('Image qualification checksum mismatch')
         envelope = json.loads(payload)
         validate_report(envelope, image_id, report_format='json')
+        paths = go_build_provenance.scan_binaries(envelope['report'])
+        if name in KFP_GO_IMAGES and not paths:
+            raise ValueError('OSV omitted the expected KFP Go binary')
+        if paths:
+            if source_repo is None:
+                raise ValueError(
+                    'KFP binary provenance requires the source Git repository'
+                )
+            proof_name = f'provenance/{name}-{platform.split("/")[1]}.json'
+            if record.get('go_provenance_file') != proof_name:
+                raise ValueError('Missing KFP binary provenance')
+            proof_bytes = (directory / proof_name).read_bytes()
+            if hashlib.sha256(proof_bytes).hexdigest() != record.get(
+                'go_provenance_sha256'
+            ):
+                raise ValueError('KFP binary provenance checksum mismatch')
+            source_info = go_build_provenance.source_identity(
+                source_repo, identity['source_sha']
+            )
+            go_build_provenance.verify_scan(
+                json.loads(proof_bytes),
+                envelope['report'],
+                image_id,
+                platform,
+                identity['source_sha'],
+                source_info['source_time'],
+            )
+        elif any(key.startswith('go_provenance_') for key in record):
+            raise ValueError('Unexpected KFP binary provenance')
         image_scans.append(
             {
                 'name': f'image-{name}-{platform.split("/")[1]}',
@@ -157,84 +191,10 @@ def qualify_ci(context, expected_images, expected_minors, output_dir):
         policy=policy,
         exceptions=exceptions,
     )
-    workflow_ref = default_branch(lambda endpoint: _api(context, endpoint))
-    workflow_sha = _api(context, f'commits/{workflow_ref}')['sha']
-    if not re.fullmatch(r'[0-9a-f]{40}', workflow_sha):
-        raise ValueError('Invalid upstream workflow commit')
-    workflow = _api(context, f'contents/{WORKFLOW}?ref={workflow_sha}')
-    if workflow.get('type') != 'file' or workflow.get('path') != WORKFLOW:
-        raise ValueError('Merge the qualification workflow before dispatch')
-    request_id = uuid.uuid4().hex
-    identity = {
-        'repository': REPO,
-        'workflow': WORKFLOW,
-        'workflow_sha': workflow_sha,
-        'workflow_ref': workflow_ref,
-        'source_sha': source_sha,
-        'version': context.metadata.tag,
-        'request_id': request_id,
-        'title': f'KFP image qualification {context.metadata.tag} {source_sha} {request_id}',
-    }
-    inputs = {
-        key: identity[key] for key in ('source_sha', 'version', 'request_id')
-    }
-    inputs.update(
-        include_backend=str(context.include_backend).lower(),
-        include_sdk=str(context.include_sdk).lower(),
+    result = collect_ci(
+        context, source_sha, expected_images, expected_minors, output_dir
     )
-    final = dispatch_and_watch(
-        lambda endpoint: _api(context, endpoint),
-        lambda command, **kwargs: context.runner.run(
-            command, cwd=context.root, **kwargs
-        ),
-        identity,
-        inputs,
-    )
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if (
-        final.get('status') != 'completed'
-        or final.get('conclusion') != 'success'
-    ):
-        context.runner.run(
-            [
-                'gh',
-                'run',
-                'download',
-                identity['run_id'],
-                '--repo',
-                REPO,
-                '--dir',
-                str(output_dir / 'failed-run'),
-            ],
-            cwd=context.root,
-            check=False,
-        )
-        raise RuntimeError(
-            f'Qualification CI failed: https://github.com/{REPO}/actions/runs/{identity["run_id"]}'
-        )
-    artifact = f'kfpr-images-{request_id}-{identity["run_attempt"]}'
-    directory = output_dir / artifact
-    directory.mkdir()
-    context.runner.run(
-        [
-            'gh',
-            'run',
-            'download',
-            identity['run_id'],
-            '--repo',
-            REPO,
-            '--name',
-            artifact,
-            '--dir',
-            str(directory),
-        ],
-        cwd=context.root,
-    )
-    result = read_artifact(
-        directory, expected_images, expected_minors, identity
-    )
-    verify_run(context, identity)
+    verify_run(context, result['run'])
     security = {
         'policy': policy,
         'release_version': context.metadata.tag,
@@ -257,12 +217,184 @@ def qualify_ci(context, expected_images, expected_minors, output_dir):
         )
     )
     security['passed'] = security['blocking_count'] == 0
-    (output_dir / 'security.json').write_text(
+    (Path(output_dir) / 'security.json').write_text(
         json.dumps(security, indent=2) + '\n'
     )
     if not security['passed']:
         raise ValueError(
-            f'Security qualification failed: {security["blocking_count"]} fixable blocking findings; see {output_dir / "security.json"}'
+            f'Security qualification failed: {security["blocking_count"]} fixable blocking findings; see {Path(output_dir) / "security.json"}'
         )
     result['security'] = security
+    return result
+
+
+def collect_ci(
+    context,
+    source_sha,
+    expected_images,
+    expected_minors,
+    output_dir,
+    *,
+    resume=False,
+):
+    """Collect immutable source evidence without reading or writing release
+    state."""
+    if not re.fullmatch(r'[0-9a-f]{40}', source_sha):
+        raise ValueError('An exact source SHA is required for CI collection')
+    output_dir = Path(output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    identity_path = output_dir / 'request.json'
+    if resume:
+        identity = json.loads(identity_path.read_text())
+        expected = {
+            'repository': REPO,
+            'workflow': WORKFLOW,
+            'source_sha': source_sha,
+            'version': context.metadata.tag,
+            'include_backend': context.include_backend,
+            'include_sdk': context.include_sdk,
+        }
+        if not isinstance(identity, dict) or any(
+            identity.get(k) != v for k, v in expected.items()
+        ):
+            raise ValueError(
+                'Candidate request belongs to a different source or scope'
+            )
+        if (
+            not re.fullmatch(r'[0-9a-f]{40}', identity.get('workflow_sha', ''))
+            or not re.fullmatch(r'[0-9a-f]{32}', identity.get('request_id', ''))
+            or identity.get('workflow_ref') not in ('master', 'main')
+        ):
+            raise ValueError('Invalid candidate workflow identity')
+        expected_title = f'KFP image qualification {context.metadata.tag} {source_sha} {identity["request_id"]}'
+        if identity.get('title') != expected_title:
+            raise ValueError(
+                'Candidate workflow title does not match its source'
+            )
+    else:
+        if identity_path.exists():
+            raise ValueError(
+                'CI request already exists; resume it or choose a new output directory'
+            )
+        workflow_ref = default_branch(lambda endpoint: _api(context, endpoint))
+        workflow_sha = _api(context, f'commits/{workflow_ref}')['sha']
+        if not re.fullmatch(r'[0-9a-f]{40}', workflow_sha):
+            raise ValueError('Invalid upstream workflow commit')
+        workflow = _api(context, f'contents/{WORKFLOW}?ref={workflow_sha}')
+        if workflow.get('type') != 'file' or workflow.get('path') != WORKFLOW:
+            raise ValueError('Merge the qualification workflow before dispatch')
+        request_id = uuid.uuid4().hex
+        identity = {
+            'repository': REPO,
+            'workflow': WORKFLOW,
+            'workflow_sha': workflow_sha,
+            'workflow_ref': workflow_ref,
+            'source_sha': source_sha,
+            'version': context.metadata.tag,
+            'request_id': request_id,
+            'title': f'KFP image qualification {context.metadata.tag} {source_sha} {request_id}',
+        }
+        identity.update(
+            include_backend=context.include_backend,
+            include_sdk=context.include_sdk,
+        )
+        identity_path.write_text(json.dumps(identity, indent=2) + '\n')
+    request_id = identity['request_id']
+    inputs = {
+        key: identity[key] for key in ('source_sha', 'version', 'request_id')
+    }
+    inputs.update(
+        include_backend=str(context.include_backend).lower(),
+        include_sdk=str(context.include_sdk).lower(),
+    )
+    if resume:
+        if not re.fullmatch(r'[1-9][0-9]*', str(identity.get('run_id', ''))):
+            raise ValueError(
+                'Request has no recorded run; inspect upstream Actions before retrying'
+            )
+        if (
+            type(identity.get('run_attempt')) is not int
+            or identity['run_attempt'] < 1
+        ):
+            raise ValueError('Invalid candidate workflow attempt')
+        current = _api(context, f'actions/runs/{identity["run_id"]}')
+        validate_run(current, identity, completed=False)
+        if current.get('status') != 'completed':
+            context.runner.run(
+                [
+                    'gh',
+                    'run',
+                    'watch',
+                    identity['run_id'],
+                    '--repo',
+                    REPO,
+                    '--exit-status',
+                ],
+                cwd=context.root,
+                check=False,
+            )
+        final = _api(context, f'actions/runs/{identity["run_id"]}')
+        validate_run(final, identity, completed=False)
+    else:
+        try:
+            final = dispatch_and_watch(
+                lambda endpoint: _api(context, endpoint),
+                lambda command, **kwargs: context.runner.run(
+                    command, cwd=context.root, **kwargs
+                ),
+                identity,
+                inputs,
+                on_discovered=lambda discovered: identity_path.write_text(
+                    json.dumps(discovered, indent=2) + '\n'
+                ),
+            )
+        finally:
+            identity_path.write_text(json.dumps(identity, indent=2) + '\n')
+    if (
+        final.get('status') != 'completed'
+        or final.get('conclusion') != 'success'
+    ):
+        context.runner.run(
+            [
+                'gh',
+                'run',
+                'download',
+                identity['run_id'],
+                '--repo',
+                REPO,
+                '--dir',
+                str(output_dir / 'failed-run'),
+            ],
+            cwd=context.root,
+            check=False,
+        )
+        raise RuntimeError(
+            f'Qualification CI failed: https://github.com/{REPO}/actions/runs/{identity["run_id"]}'
+        )
+    artifact = f'kfpr-images-{request_id}-{identity["run_attempt"]}'
+    directory = Path(tempfile.mkdtemp(prefix=artifact + '-', dir=output_dir))
+    context.runner.run(
+        [
+            'gh',
+            'run',
+            'download',
+            identity['run_id'],
+            '--repo',
+            REPO,
+            '--name',
+            artifact,
+            '--dir',
+            str(directory),
+        ],
+        cwd=context.root,
+    )
+    result = read_artifact(
+        directory,
+        expected_images,
+        expected_minors,
+        identity,
+        source_repo=context.root,
+    )
+    validate_run(_api(context, f'actions/runs/{identity["run_id"]}'), identity)
+    result['run'] = identity
     return result
