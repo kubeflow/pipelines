@@ -44,11 +44,11 @@ type RunGarbageCollector struct {
 	clientset kubernetes.Interface
 	namespace string
 	nowFunc   func() int64
-	// indexReady reports whether idx_run_gc_lifecycle currently exists and is
-	// usable. It is re-evaluated on every collection tick so an operator can
-	// apply the index migration without restarting the API server. A nil
-	// checker means "always ready" (tests).
-	indexReady func() bool
+	// indexReady reports whether both retention indexes exist and are usable.
+	// It is re-evaluated on every collection pass, independently of background
+	// preparation. A nil checker means "always ready" (tests).
+	indexReady   func() bool
+	indexPrepare func(context.Context) (bool, error)
 }
 
 // leaderLifecycle keeps lease renewal active until a graceful shutdown has
@@ -181,13 +181,15 @@ func NewRunGarbageCollector(
 	clientset kubernetes.Interface,
 	namespace string,
 	indexReady func() bool,
+	indexPrepare func(context.Context) (bool, error),
 ) *RunGarbageCollector {
 	return &RunGarbageCollector{
-		runStore:   runStore,
-		clientset:  clientset,
-		namespace:  namespace,
-		nowFunc:    func() int64 { return time.Now().Unix() },
-		indexReady: indexReady,
+		runStore:     runStore,
+		clientset:    clientset,
+		namespace:    namespace,
+		nowFunc:      func() int64 { return time.Now().Unix() },
+		indexReady:   indexReady,
+		indexPrepare: indexPrepare,
 	}
 }
 
@@ -196,7 +198,12 @@ func NewRunGarbageCollector(
 func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	archiveRetention := common.GetRunsRetentionTime()
 	deleteRetention := common.GetArchivedRunsRetentionTime()
-	if archiveRetention == 0 && deleteRetention == 0 {
+	prepareOnly, err := common.GetRunsGCIndexPrepareOnly()
+	if err != nil {
+		glog.Errorf("Run GC disabled: %v", err)
+		return
+	}
+	if archiveRetention == 0 && deleteRetention == 0 && !prepareOnly {
 		glog.Info("Run GC disabled: both RUNS_RETENTION_TIME and ARCHIVED_RUNS_RETENTION_TIME are empty")
 		return
 	}
@@ -296,22 +303,60 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 }
 
 func (gc *RunGarbageCollector) runLoop(ctx context.Context) {
-	interval := common.GetRunsGCInterval()
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	// Run once immediately, then on each tick.
-	gc.collect(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			glog.Info("Run GC: context canceled, exiting collection loop")
+	state := indexPreparationState{}
+	for ctx.Err() == nil {
+		delay := gc.runCycle(ctx, &state)
+		if !sleepUnlessDone(ctx, delay) {
 			return
-		case <-ticker.C:
-			gc.collect(ctx)
 		}
 	}
+}
+
+type indexPreparationState struct {
+	failures int
+	prepared bool
+}
+
+// runCycle separates index preparation from retention catch-up. The interval
+// starts after a completed build, rather than a ticker firing immediately
+// because building took longer than the interval. Every new leader also waits
+// once, covering a previous leader that finished building just before losing
+// its lease.
+func (gc *RunGarbageCollector) runCycle(ctx context.Context, state *indexPreparationState) time.Duration {
+	interval := common.GetRunsGCInterval()
+	if ctx.Err() != nil {
+		return interval
+	}
+	if gc.indexPrepare != nil {
+		built, err := gc.indexPrepare(ctx)
+		if err != nil {
+			// An interrupted attempt may have completed one index; require a
+			// fresh separation interval after readiness is restored.
+			state.prepared = false
+			delay := indexRetryDelay(state.failures)
+			if state.failures < 4 {
+				state.failures++
+			}
+			if ctx.Err() == nil {
+				glog.Warningf("Run GC: index preparation failed; collection paused, retrying in %v: %v", delay, err)
+			}
+			return delay
+		}
+		state.failures = 0
+		if built || !state.prepared {
+			state.prepared = true
+			glog.Infof("Run GC: index preparation completed; waiting %v before any retention catch-up", interval)
+			return interval
+		}
+	}
+	gc.collect(ctx)
+	return interval
+}
+
+func indexRetryDelay(failures int) time.Duration {
+	// Positive jitter avoids synchronized retries, capped at fifteen minutes.
+	delay := min(time.Minute<<min(failures, 4), 12*time.Minute)
+	return wait.Jitter(delay, 0.25)
 }
 
 // sleepUnlessDone pauses between drain batches but returns false immediately
@@ -326,12 +371,20 @@ func sleepUnlessDone(ctx context.Context, d time.Duration) bool {
 }
 
 func (gc *RunGarbageCollector) collect(ctx context.Context) {
+	prepareOnly, err := common.GetRunsGCIndexPrepareOnly()
+	if err != nil {
+		glog.Errorf("Run GC: collection paused: %v", err)
+		return
+	}
+	if prepareOnly || ctx.Err() != nil {
+		return
+	}
 	// Re-check the index on every tick so applying the index migration takes
 	// effect without an API-server restart, and dropping the index stops the
 	// unindexed scans instead of silently continuing them.
 	if gc.indexReady != nil && !gc.indexReady() {
 		glog.Warning("Run GC: skipping collection pass, a required index (idx_run_gc_lifecycle, idx_run_gc_archived) is missing or not usable. " +
-			"Apply the online index migration in docs/agents/development.md.")
+			"Background preparation will retry; see docs/agents/development.md for diagnostics.")
 		return
 	}
 
