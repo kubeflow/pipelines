@@ -23,6 +23,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForPipelineListReady,
   waitForLogViewerText,
   waitForRunPageReady,
 } = require('./test-helpers');
@@ -341,9 +342,7 @@ describe('deploy helloworld sample run', () => {
 
   it('deletes the uploaded pipeline', async () => {
     await $('#pipelinesBtn').click();
-    await waitForHashPrefix('#/pipelines', { timeout: uiTimeout });
-
-    await $('#tableFilterBox').waitForDisplayed({ timeout: uiTimeout });
+    await waitForPipelineListReady({ timeout: uiTimeout });
     await $('#tableFilterBox').click();
     await clearDefaultInput();
     await browser.keys(pipelineName);
