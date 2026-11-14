@@ -202,13 +202,11 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         failed, _ = self._run(
             ready_after=100,
             accounting_fails=True,
-            producer_jobs=(
-                (
-                    "build / image-build (metadata-envoy, Dockerfile, .)",
-                    "completed",
-                    "failure",
-                ),
-            ),
+            producer_jobs=((
+                "build / image-build (metadata-envoy, Dockerfile, .)",
+                "completed",
+                "failure",
+            ),),
         )
         self.assertEqual(failed.returncode, 1, failed.stderr)
         self.assertIn("completed without publishing", failed.stderr)
@@ -216,13 +214,11 @@ class WaitForImageArtifactsTest(unittest.TestCase):
     def test_accounts_subshell_artifact_polls_and_producer_pages(self):
         result, attempts = self._run(
             ready_after=3,
-            producer_jobs=(
-                (
-                    "build / image-build (metadata-envoy, Dockerfile, .)",
-                    "in_progress",
-                    "",
-                ),
-            ),
+            producer_jobs=((
+                "build / image-build (metadata-envoy, Dockerfile, .)",
+                "in_progress",
+                "",
+            ),),
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         events = [
@@ -237,8 +233,16 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(
             summary["counts"],
             [
-                {"category": "artifacts", "status": 200, "count": 3},
-                {"category": "jobs", "status": 200, "count": 1},
+                {
+                    "category": "artifacts",
+                    "status": 200,
+                    "count": 3
+                },
+                {
+                    "category": "jobs",
+                    "status": 200,
+                    "count": 1
+                },
             ],
         )
         self.assertEqual(attempts, 3)

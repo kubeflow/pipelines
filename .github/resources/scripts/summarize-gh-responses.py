@@ -12,8 +12,8 @@
 
 import collections
 import json
-import sys
 from pathlib import Path
+import sys
 
 
 def summarize(path):
@@ -28,9 +28,8 @@ def summarize(path):
             responses[(fields[1], int(fields[2]))] += 1
             snapshot = {
                 key: int(value)
-                for key, value in zip(
-                    ("limit", "remaining", "used", "reset"), fields[3:7]
-                )
+                for key, value in zip(("limit", "remaining", "used",
+                                       "reset"), fields[3:7])
                 if value != "-"
             }
             if snapshot:
@@ -49,17 +48,19 @@ def summarize(path):
         "scope": "artifact_readiness",
         "measurement": "gh_response_headers",
         "coverage": "Observed gh API response headers including pagination; "
-        "opaque transport retries and redirects are excluded.",
+                    "opaque transport retries and redirects are excluded.",
         "invocations": sum(invocations.values()),
         "responses": sum(responses.values()),
-        "counts": [
-            {"category": category, "status": status, "count": count}
-            for (category, status), count in sorted(responses.items())
-        ],
-        "exits": [
-            {"category": category, "exit_code": code, "count": count}
-            for (category, code), count in sorted(invocations.items())
-        ],
+        "counts": [{
+            "category": category,
+            "status": status,
+            "count": count
+        } for (category, status), count in sorted(responses.items())],
+        "exits": [{
+            "category": category,
+            "exit_code": code,
+            "count": count
+        } for (category, code), count in sorted(invocations.items())],
         "rate_limits": quotas,
     }
 

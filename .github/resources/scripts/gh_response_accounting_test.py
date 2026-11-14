@@ -13,20 +13,20 @@
 import importlib.util
 import json
 import os
+from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from pathlib import Path
 
 ROOT = Path(__file__).parent
 spec = importlib.util.spec_from_file_location(
-    "summarize", ROOT / "summarize-gh-responses.py"
-)
+    "summarize", ROOT / "summarize-gh-responses.py")
 summary = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(summary)
 
 
 class GhResponseAccountingTest(unittest.TestCase):
+
     def test_paginated_headers_quota_and_body_are_separated(self):
         response = (
             "HTTP/2.0 200\r\nX-RateLimit-Limit: 15000\r\n"
@@ -34,8 +34,7 @@ class GhResponseAccountingTest(unittest.TestCase):
             "X-RateLimit-Reset: 1794680873\r\nX-RateLimit-Resource: core\r\n"
             "Authorization: SECRET\r\n\r\nfirst\tin_progress\t\n"
             "HTTP/2.0 200\r\nX-RateLimit-Remaining: 11\r\n"
-            "X-RateLimit-Resource: core\r\n\r\nsecond\tcompleted\tsuccess"
-        )
+            "X-RateLimit-Resource: core\r\n\r\nsecond\tcompleted\tsuccess")
         with tempfile.TemporaryDirectory() as directory:
             journal = Path(directory) / "accounting"
             result = subprocess.run(
@@ -53,14 +52,16 @@ class GhResponseAccountingTest(unittest.TestCase):
                 check=True,
             )
             self.assertEqual(
-                result.stdout, "first\tin_progress\t\nsecond\tcompleted\tsuccess"
-            )
+                result.stdout,
+                "first\tin_progress\t\nsecond\tcompleted\tsuccess")
             report = summary.summarize(journal)
             self.assertEqual(report["invocations"], 1)
             self.assertEqual(report["responses"], 2)
-            self.assertEqual(
-                report["counts"], [{"category": "jobs", "status": 200, "count": 2}]
-            )
+            self.assertEqual(report["counts"], [{
+                "category": "jobs",
+                "status": 200,
+                "count": 2
+            }])
             self.assertEqual(
                 report["rate_limits"]["core"],
                 {
@@ -71,7 +72,9 @@ class GhResponseAccountingTest(unittest.TestCase):
                         "used": 14988,
                         "reset": 1794680873,
                     },
-                    "last": {"remaining": 11},
+                    "last": {
+                        "remaining": 11
+                    },
                 },
             )
             self.assertNotIn("SECRET", journal.read_text())
@@ -84,11 +87,9 @@ class GhResponseAccountingTest(unittest.TestCase):
                 (1, "HTTP/2.0 304\n\n"),
                 (
                     1,
-                    (
-                        "HTTP/2.0 403\nX-RateLimit-Remaining: 0\n"
-                        "X-RateLimit-Reset: SECRET\n"
-                        "X-RateLimit-Resource: core\n\nSECRET"
-                    ),
+                    ("HTTP/2.0 403\nX-RateLimit-Remaining: 0\n"
+                     "X-RateLimit-Reset: SECRET\n"
+                     "X-RateLimit-Resource: core\n\nSECRET"),
                 ),
                 (7, ""),
             ]:
@@ -111,18 +112,35 @@ class GhResponseAccountingTest(unittest.TestCase):
             self.assertEqual(
                 report["counts"],
                 [
-                    {"category": "artifacts", "status": 304, "count": 1},
-                    {"category": "artifacts", "status": 403, "count": 1},
+                    {
+                        "category": "artifacts",
+                        "status": 304,
+                        "count": 1
+                    },
+                    {
+                        "category": "artifacts",
+                        "status": 403,
+                        "count": 1
+                    },
                 ],
             )
             self.assertEqual(
                 report["exits"],
                 [
-                    {"category": "artifacts", "exit_code": 1, "count": 2},
-                    {"category": "artifacts", "exit_code": 7, "count": 1},
+                    {
+                        "category": "artifacts",
+                        "exit_code": 1,
+                        "count": 2
+                    },
+                    {
+                        "category": "artifacts",
+                        "exit_code": 7,
+                        "count": 1
+                    },
                 ],
             )
-            self.assertEqual(report["rate_limits"]["core"]["last"], {"remaining": 0})
+            self.assertEqual(report["rate_limits"]["core"]["last"],
+                             {"remaining": 0})
             self.assertNotIn("SECRET", json.dumps(report))
 
 

@@ -16,10 +16,10 @@
 
 import json
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import unittest
-from pathlib import Path
 
 import yaml
 
@@ -28,6 +28,7 @@ HELPER = Path(__file__).with_name("node_http_accounting.cjs")
 
 @unittest.skipUnless(shutil.which("node"), "Node.js is required")
 class TransportAccountingTest(unittest.TestCase):
+
     def exercise(self, enabled=True):
         script = r"""
 const http = require('node:http');
@@ -100,7 +101,9 @@ for (const path of JSON.parse(process.argv[1])) {
                 script,
                 json.dumps(list(paths)),
             ],
-            env={**os.environ, "CI_HTTP_ACCOUNTING_SCOPE": "prepare"},
+            env={
+                **os.environ, "CI_HTTP_ACCOUNTING_SCOPE": "prepare"
+            },
             capture_output=True,
             text=True,
             check=True,
@@ -119,7 +122,9 @@ for (const path of JSON.parse(process.argv[1])) {
         script = "Object.defineProperty(process.versions, 'node', {value:'22.0.0'}); require(process.argv[1]);"
         result = subprocess.run(
             ["node", "-e", script, str(HELPER)],
-            env={**os.environ, "CI_HTTP_ACCOUNTING_SCOPE": "all_checks"},
+            env={
+                **os.environ, "CI_HTTP_ACCOUNTING_SCOPE": "all_checks"
+            },
             capture_output=True,
             text=True,
             check=True,
@@ -130,13 +135,10 @@ for (const path of JSON.parse(process.argv[1])) {
     def test_download_wrapper_wires_both_attempts(self):
         root = HELPER.parents[3]
         action = yaml.safe_load(
-            (
-                root / ".github/actions/download-artifact-with-retry/action.yml"
-            ).read_text()
-        )
+            (root / ".github/actions/download-artifact-with-retry/action.yml"
+            ).read_text())
         downloads = [
-            step
-            for step in action["runs"]["steps"]
+            step for step in action["runs"]["steps"]
             if step.get("uses", "").startswith("actions/download-artifact@")
         ]
         self.assertEqual(
@@ -144,7 +146,8 @@ for (const path of JSON.parse(process.argv[1])) {
             ["artifact_primary", "artifact_retry"],
         )
         for step in downloads:
-            self.assertIn("node_http_accounting.cjs", step["env"]["NODE_OPTIONS"])
+            self.assertIn("node_http_accounting.cjs",
+                          step["env"]["NODE_OPTIONS"])
 
     def test_redacted_categories_pending_attempts_and_original_errors(self):
         script = r"""
@@ -172,7 +175,8 @@ process.exit(7);
             "ACTIONS_RESULTS_URL": "https://results.example",
         }
         result = subprocess.run(
-            ["node", "--require", str(HELPER), "-e", script],
+            ["node", "--require",
+             str(HELPER), "-e", script],
             env=env,
             check=False,
             capture_output=True,
@@ -190,21 +194,29 @@ process.exit(7);
                 "other_http": "incomplete",
             },
         )
-        self.assertEqual(summary["rate_limits"]["other"]["first"]["limit"], 5000)
+        self.assertEqual(summary["rate_limits"]["other"]["first"]["limit"],
+                         5000)
         self.assertNotIn("secret", result.stdout)
         self.assertEqual(result.stderr, "")
 
     def test_real_transports_count_pages_redirects_retries_and_errors(self):
         output = self.exercise()
         records = [
-            json.loads(line) for line in output.splitlines() if line.startswith("{")
+            json.loads(line)
+            for line in output.splitlines()
+            if line.startswith("{")
         ]
         self.assertEqual(len(records), 1)
         result = records[0]
         self.assertEqual(result["measurement"], "node_http_attempts")
         self.assertEqual(result["requests"], 9)
         counts = {row["status"]: row["count"] for row in result["counts"]}
-        self.assertEqual(counts, {"200": 5, "302": 1, "503": 1, "transport_error": 2})
+        self.assertEqual(counts, {
+            "200": 5,
+            "302": 1,
+            "503": 1,
+            "transport_error": 2
+        })
         self.assertEqual(result["rate_limits"], {})
         self.assertNotIn("secret", output)
         self.assertNotIn("127.0.0.1", output)
