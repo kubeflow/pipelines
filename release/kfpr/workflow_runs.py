@@ -32,7 +32,14 @@ def validate_run(data, identity, completed=True):
 
 
 def dispatch_and_watch(
-    api, run_command, identity, inputs, *, attempts=24, interval=5
+    api,
+    run_command,
+    identity,
+    inputs,
+    *,
+    attempts=24,
+    interval=5,
+    on_discovered=None,
 ):
     """Find one request, watch it, and recheck provenance before artifacts."""
     if identity.get('workflow_ref') not in ('master', 'main'):
@@ -74,6 +81,8 @@ def dispatch_and_watch(
                 run_id=str(run['id']), run_attempt=run['run_attempt']
             )
             validate_run(run, identity, completed=False)
+            if on_discovered is not None:
+                on_discovered(identity)
             run_command(
                 [
                     'gh',
