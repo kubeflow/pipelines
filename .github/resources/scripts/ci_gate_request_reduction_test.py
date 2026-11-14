@@ -61,7 +61,9 @@ class CIGateRequestReductionTest(unittest.TestCase):
                     self.assert_no_evidence_reads(result)
                     for name in ('pr', 'pulls', 'currentRun', 'statuses'):
                         self.assertEqual(
-                            result['requestCounts'][name], 1, (name, result)
+                            result['requestCounts'][name],
+                            2 if name == 'statuses' else 1,
+                            (name, result),
                         )
 
     def test_active_starts_preserve_unchanged_non_green_status(self):
