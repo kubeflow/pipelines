@@ -984,10 +984,9 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
         if kind == 'all':
             state['sets']['images'] = records[:-1]
             state['sets']['runtime'] = records[-1:]
-            state['last_kind'] = 'images'
         else:
             state['sets'][kind] = records
-            state['last_kind'] = kind
+        state['last_kind'] = kind
         return state
     except NotReady as error:
         if run is not None and run.get('status') == 'completed':

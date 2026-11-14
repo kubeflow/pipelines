@@ -29,6 +29,27 @@ class CombinedVerificationTests(unittest.TestCase):
             self.api, self.state, self.consumer, self.directory, 'nested', 'all'
         )
 
+    def test_default_verify_rejects_corrupt_runtime_after_resolving_all(self):
+        path = self.directory / 'state.json'
+        shared.resolve(self.api, self.consumer, 'amd64', 'all', path)
+        state = shared.load_state(path, self.consumer, 'amd64')
+        (self.directory / 'runtime-base-images.tar').write_text('corrupt')
+        with self.assertRaisesRegex(
+            shared.InvalidEvidence, 'Checksum mismatch'
+        ):
+            shared.verify(
+                self.api, state, self.consumer, self.directory, 'nested'
+            )
+        self.assertFalse((self.directory / 'frontend').exists())
+
+    def test_default_verify_rearranges_both_resolved_sets(self):
+        shared.verify(
+            self.api, self.state, self.consumer, self.directory, 'nested'
+        )
+        for name in ('runtime-base-images', 'frontend'):
+            self.assertTrue((self.directory / name / f'{name}.tar').is_file())
+        self.assertEqual(self.state['last_kind'], 'all')
+
     def test_combined_verification_reads_one_fresh_snapshot_and_run(self):
         with mock.patch.object(
             self.api, 'artifacts', wraps=self.api.artifacts
