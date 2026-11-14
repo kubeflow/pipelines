@@ -300,7 +300,9 @@ jobs:
         with:
           script: |
             const {reconcile} = require('./.github/resources/scripts/ci_merge_group.js');
-            await reconcile({github, context, core});
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting');
+            return await withRequestAccounting({github, core, scope: 'merge_group'},
+              async () => await reconcile({github, context, core}));
 
   queue_admission:
     # Each survivor checks all queue members plus the affected PR. Scheduled
@@ -350,4 +352,6 @@ jobs:
         with:
           script: |
             const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
-            await reconcileQueue({github, context, core});
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting');
+            return await withRequestAccounting({github, core, scope: 'queue_admission'},
+              async () => await reconcileQueue({github, context, core}));

@@ -13,7 +13,7 @@
 
 const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
-const {enabledBranches, queueEnabled} = require('./merge_queue_policy');
+const {loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
   repository(owner:$owner, name:$repo) { nameWithOwner mergeQueue(branch:$branch) {
@@ -57,9 +57,13 @@ async function readPR(github, context, number) {
 
 async function readQueue(github, context, branch) {
   const response = await github.graphql(QUEUE, {...context.repo, branch});
+  return queueEntries(response, context, branch);
+}
+
+function queueEntries(response, context, branch) {
   const repo = response?.repository;
   const entries = repo?.mergeQueue?.entries;
-  if (repo?.nameWithOwner !== `${context.repo.owner}/${context.repo.repo}` ||
+  if (response?.errors !== undefined || repo?.nameWithOwner !== `${context.repo.owner}/${context.repo.repo}` ||
       !entries || !Array.isArray(entries.nodes) || !Number.isSafeInteger(entries.totalCount) ||
       entries.totalCount !== entries.nodes.length || entries.totalCount > 100 ||
       entries.pageInfo?.hasNextPage !== false) throw new Error('Incomplete merge queue membership');
@@ -98,28 +102,34 @@ async function readQueuePRs(github, context, entries) {
   if (response?.errors !== undefined || repo?.nameWithOwner !== `${context.repo.owner}/${context.repo.repo}`) {
     throw new Error('Incomplete queue policy snapshot');
   }
-  return entries.map(entry => {
-    const pr = repo[`pr${entry.pullRequest.number}`];
-    const labels = pr?.labels;
-    if (pr?.number !== entry.pullRequest.number ||
-        !labels || !Array.isArray(labels.nodes) || labels.nodes.length > 100 ||
-        labels.totalCount !== labels.nodes.length || labels.pageInfo?.hasNextPage !== false ||
-        !['OPEN', 'CLOSED', 'MERGED'].includes(pr.state)) {
-      throw new Error('Incomplete queue PR policy');
-    }
-    const type = pr.author?.__typename;
-    const login = type === 'Bot' && pr.author.login && !pr.author.login.endsWith('[bot]') ?
-      `${pr.author.login}[bot]` : pr.author?.login;
-    return {node_id: pr.id, number: pr.number, state: pr.state.toLowerCase(),
-      draft: pr.isDraft, merged: pr.merged, head: {sha: pr.headRefOid},
-      base: {ref: pr.baseRefName, repo: {full_name: pr.baseRepository?.nameWithOwner}},
-      user: {login, type}, labels: labels.nodes};
-  });
+  return entries.map(entry => queuePR(repo[`pr${entry.pullRequest.number}`], entry));
+}
+
+function queuePR(pr, entry) {
+  const labels = pr?.labels;
+  if (pr?.number !== entry.pullRequest.number ||
+      !labels || !Array.isArray(labels.nodes) || labels.nodes.length > 100 ||
+      labels.totalCount !== labels.nodes.length || labels.pageInfo?.hasNextPage !== false ||
+      !['OPEN', 'CLOSED', 'MERGED'].includes(pr.state)) {
+    throw new Error('Incomplete queue PR policy');
+  }
+  const type = pr.author?.__typename;
+  const login = type === 'Bot' && pr.author.login && !pr.author.login.endsWith('[bot]') ?
+    `${pr.author.login}[bot]` : pr.author?.login;
+  return {node_id: pr.id, number: pr.number, state: pr.state.toLowerCase(),
+    draft: pr.isDraft, merged: pr.merged, head: {sha: pr.headRefOid},
+    base: {ref: pr.baseRefName, repo: {full_name: pr.baseRepository?.nameWithOwner}},
+    user: {login, type}, labels: labels.nodes};
 }
 
 async function inspectQueue({github, context, group, root}) {
   if (!await queueEnabled({github, context, branch: group.baseRef, root})) return null;
   const entries = await readQueue(github, context, group.baseRef);
+  const policies = await readQueuePRs(github, context, entries);
+  return queueFingerprint(entries, policies, context, group);
+}
+
+function queueFingerprint(entries, policies, context, group) {
   const candidateIndex = entries.findIndex(entry => entry.headCommit?.oid === group.head);
   if (candidateIndex === -1) {
     throw new Error('Candidate is not in the current merge queue');
@@ -128,7 +138,6 @@ async function inspectQueue({github, context, group, root}) {
   // GitHub exposes entries, not an authoritative group-members connection.
   // Conservatively require every queued PR to remain eligible. A held later
   // entry may temporarily block an earlier candidate until it is dequeued.
-  const policies = await readQueuePRs(github, context, entries);
   for (const [index, entry] of entries.entries()) {
     const pr = policies[index];
     const reason = policyReason(pr, `${context.repo.owner}/${context.repo.repo}`, group.baseRef);
@@ -141,6 +150,59 @@ async function inspectQueue({github, context, group, root}) {
   // candidate. Fingerprint its queue prefix only, while checking every entry's
   // current approval/hold policy on each read above.
   return JSON.stringify([entries.slice(0, candidateIndex + 1), members.slice(0, candidateIndex + 1)]);
+}
+
+// Read all mutable dispatch identities together at each validation boundary.
+// No snapshot is reused between reservations or workflow dispatches.
+async function inspectDispatchSnapshot({github, context, group, root}) {
+  const configured = loadPolicy(root).enabled_branches;
+  if (!['master', 'main'].includes(group.baseRef) ||
+      (!configured.includes('~DEFAULT_BRANCH') && !configured.includes(group.baseRef))) return null;
+  const response = await github.graphql(`query DispatchSnapshot(
+    $owner:String!, $repo:String!, $branch:String!, $candidate:String!, $base:String!) {
+    repository(owner:$owner, name:$repo) {
+      nameWithOwner defaultBranchRef { name }
+      candidateRef: ref(qualifiedName:$candidate) { target { __typename ... on Commit { oid } } }
+      baseRef: ref(qualifiedName:$base) { target { __typename ... on Commit { oid } } }
+      mergeQueue(branch:$branch) { entries(first:100) {
+        totalCount pageInfo { hasNextPage } nodes {
+          id position headCommit { oid } baseCommit { oid }
+          pullRequest {
+            id number state isDraft merged headRefOid baseRefName
+            baseRepository { nameWithOwner } author { __typename login }
+            labels(first:100) { totalCount pageInfo { hasNextPage } nodes { name } }
+          }
+        }
+      } }
+    }
+  }`, {...context.repo, branch: group.baseRef,
+    candidate: `refs/heads/${group.branch}`, base: `refs/heads/${group.baseRef}`});
+  const repo = response?.repository;
+  if (response?.errors !== undefined || repo?.nameWithOwner !== `${context.repo.owner}/${context.repo.repo}`) {
+    throw new Error('Incomplete queue dispatch snapshot');
+  }
+  if (configured.includes('~DEFAULT_BRANCH')) {
+    if (!['master', 'main'].includes(repo.defaultBranchRef?.name)) {
+      throw new Error('Cannot resolve merge queue default branch to trusted master or main.');
+    }
+    if (repo.defaultBranchRef.name !== group.baseRef) return null;
+  }
+  await requireQueueRule({github, context, branch: group.baseRef});
+  for (const ref of [repo.candidateRef, repo.baseRef]) {
+    if (ref?.target?.__typename !== 'Commit' || !SHA.test(ref.target.oid || '')) {
+      throw new Error('Incomplete queue dispatch ref identity');
+    }
+  }
+  const rawEntries = queueEntries(response, context, group.baseRef);
+  const policies = rawEntries.map(entry => queuePR(entry.pullRequest, entry));
+  // Keep the fingerprint identical to inspectQueue: policy fields are validated
+  // but unrelated label edits and later eligible entries do not change it.
+  const entries = rawEntries.map(entry => ({id: entry.id, position: entry.position,
+    headCommit: entry.headCommit, baseCommit: entry.baseCommit,
+    pullRequest: {number: entry.pullRequest.number, headRefOid: entry.pullRequest.headRefOid,
+      baseRefName: entry.pullRequest.baseRefName}}));
+  return {head: repo.candidateRef.target.oid, base: repo.baseRef.target.oid,
+    policy: queueFingerprint(entries, policies, context, group)};
 }
 
 async function admissionPassed(github, context, pr) {
@@ -298,7 +360,20 @@ async function sweep({github, context, root, core, queueOnly = false}) {
     if (numbers.size > 256 || [...numbers].some(number => !Number.isSafeInteger(number) || number <= 0)) {
       throw new Error('Queue admission sweep exceeds bounds or has invalid PR identities');
     }
+    let policies;
+    try {
+      policies = await readQueuePRs(github, context, entries);
+    } catch (error) {
+      await invalidateQueue(github, context, entries);
+      throw error;
+    }
+    const healthy = new Set(entries.filter((entry, index) =>
+      !policyReason(policies[index], `${context.repo.owner}/${context.repo.repo}`, branch) &&
+      policies[index].head.sha === entry.pullRequest.headRefOid).map(entry => entry.pullRequest.number));
     for (const number of numbers) {
+      // Healthy queued members cannot be newly admitted. Invalid members retain
+      // the existing fresh read and fail-closed invalidation/dequeue path.
+      if (healthy.has(number)) continue;
       try {
         await reconcilePR({github, context, number, branch, root});
       } catch (error) {
@@ -310,4 +385,4 @@ async function sweep({github, context, root, core, queueOnly = false}) {
   core.info('Merge queue admission sweep complete.');
 }
 
-module.exports = {policyReason, snapshot, readQueue, inspectQueue, reconcilePR, sweep};
+module.exports = {policyReason, snapshot, readQueue, inspectQueue, inspectDispatchSnapshot, reconcilePR, sweep};

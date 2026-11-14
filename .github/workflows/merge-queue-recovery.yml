@@ -44,4 +44,6 @@ jobs:
         with:
           script: |
             const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');
-            await reconcileQueue({github, context, core, queueOnly: true});
+            const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting');
+            return await withRequestAccounting({github, core, scope: 'queue_recovery'},
+              async () => await reconcileQueue({github, context, core, queueOnly: true}));
