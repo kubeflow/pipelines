@@ -20,7 +20,7 @@ import shutil
 import sys
 import tempfile
 import unittest
-from typing import Callable, Dict, List, NamedTuple, Optional
+from typing import Callable, Dict, List, Literal, NamedTuple, Optional
 from unittest import mock
 
 from absl.testing import parameterized
@@ -2381,6 +2381,118 @@ class TestTaskConfigDeserialization(parameterized.TestCase):
         self.assertEqual(
             received['claims'][0]['resourceClaimTemplateName'], 'gpu-template'
         )
+
+
+class TestLiteralParameterExecutor(parameterized.TestCase):
+    """Regression tests for P1: Executor.is_parameter() recognizing Literal
+    annotations."""
+
+    @parameterized.parameters(
+        {'annotation': Literal['a', 'b', 'c']},
+        {'annotation': Literal[1, 2, 3]},
+        {'annotation': Literal[1.0, 2.0]},
+        {'annotation': Optional[Literal['x', 'y']]},
+    )
+    def test_is_parameter_recognizes_literal_annotations(self, annotation):
+        """Literal and Optional[Literal] annotations should be recognized as
+        parameters."""
+        self.assertTrue(executor.is_parameter(annotation))
+
+    def test_literal_parameter_execution_with_supplied_value(self):
+        """A Literal parameter should receive the supplied runtime value, not
+        its default."""
+
+        def comp_with_literal(choice: Literal['a', 'b'] = 'a') -> str:
+            return choice
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "choice": "b"
+            }
+          },
+          "outputs": {
+            "outputFile": "%%(test_dir)s/output"
+          }
+        }
+        """ % {'test_dir': tempfile.gettempdir()}
+
+        with tempfile.TemporaryDirectory() as test_dir:
+            executor_input_dict = json.loads(
+                executor_input % {'test_dir': test_dir}
+            )
+            result_path = executor.Executor(
+                executor_input=executor_input_dict,
+                function_to_execute=comp_with_literal,
+            ).execute()
+
+            with open(result_path) as f:
+                output = json.loads(f.read())
+
+            # Should receive 'b', not the default 'a'
+            self.assertEqual(output['parameterValues']['Output'], 'b')
+
+    def test_literal_parameter_execution_without_supplied_value_uses_default(
+        self,
+    ):
+        """A Literal parameter without a supplied value should use its Python
+        default."""
+
+        def comp_with_literal(choice: Literal['a', 'b'] = 'a') -> str:
+            return choice
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "outputFile": "%%(test_dir)s/output"
+          }
+        }
+        """ % {'test_dir': tempfile.gettempdir()}
+
+        with tempfile.TemporaryDirectory() as test_dir:
+            executor_input_dict = json.loads(
+                executor_input % {'test_dir': test_dir}
+            )
+            result_path = executor.Executor(
+                executor_input=executor_input_dict,
+                function_to_execute=comp_with_literal,
+            ).execute()
+
+            with open(result_path) as f:
+                output = json.loads(f.read())
+
+            # Should use the default 'a'
+            self.assertEqual(output['parameterValues']['Output'], 'a')
+
+    def test_required_literal_parameter_without_value_raises_error(self):
+        """A required Literal parameter missing from inputs should raise
+        TypeError."""
+
+        def comp_with_required_literal(choice: Literal['a', 'b']) -> str:
+            return choice
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "outputFile": "%%(test_dir)s/output"
+          }
+        }
+        """ % {'test_dir': tempfile.gettempdir()}
+
+        with tempfile.TemporaryDirectory() as test_dir:
+            executor_input_dict = json.loads(
+                executor_input % {'test_dir': test_dir}
+            )
+
+            # Should raise TypeError due to missing required parameter
+            with self.assertRaises(TypeError):
+                executor.Executor(
+                    executor_input=executor_input_dict,
+                    function_to_execute=comp_with_required_literal,
+                ).execute()
 
 
 if __name__ == '__main__':
