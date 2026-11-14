@@ -1,94 +1,34 @@
-name: KFP SDK Tests
-
+name: MQ cap fixture kfp-sdk-tests
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [codex-mq-cap-test-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main]
-  push:
-    branches: [master, main]
-  pull_request:
-    paths:
-      - '**/pyproject.toml'
-      - 'uv.lock'
-      - 'api/**'
-      - 'sdk/**'
-      - 'test_data/sdk_compiled_pipelines/**'
-      - 'test_data/component_migration_test.py'
-      - 'test/presubmit-tests-sdk.sh'
-      - '.github/workflows/kfp-sdk-tests.yml'
-      - '.github/actions/setup-python/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
+        required: true
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  sdk-tests:
+  fixture:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
-    strategy:
-      matrix:
-        python-version: ['3.11', '3.13']
-
+    timeout-minutes: 15
     steps:
-    - name: Checkout code
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      with:
-        persist-credentials: false
-
-    - name: Setup Python with uv
-      uses: ./.github/actions/setup-python
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install protobuf dependencies & generate proto files
-      id: install-protobuf-deps
-      uses: ./.github/actions/protobuf
-
-    - name: Run SDK Tests
-      env:
-        # We setup the env in the CI
-        SETUP_ENV: false
-        REPO_NAME: ${{ github.repository }}
-        PULL_NUMBER: ${{ github.event.pull_request.number }}
-        TEST_SOURCE_REF: ${{ github.event.merge_group.head_sha || (startsWith(github.ref, 'refs/heads/gh-readonly-queue/') && github.sha) || '' }}
-        PYTEST_PARALLEL_WORKERS: 2
-      run: |
-        ./test/presubmit-tests-sdk.sh
-
-    - name: Compile shared container fixtures without legacy YAML
-      run: |
-        # Source-tree Google Cloud components are outside this migration's scope.
-        python -m pytest -q test_data/component_migration_test.py
+      - name: Verify isolated queue identity
+        env:
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
+        run: |
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-test-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-test-20261114|refs/heads/codex-mq-cap-test-20261114) ;; *) exit 1;; esac
+          sleep 2

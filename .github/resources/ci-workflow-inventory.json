@@ -3,1295 +3,625 @@
   "workflows": [
     {
       "path": ".github/workflows/ai-analyzer.lock.yml",
-      "name": "AI issue quality analyzer",
-      "header_sha256": "cd334b92f4d6205ffbb468ace61b6ac39807d3f4a611c414d725b7fe7c2777f1",
+      "name": "MQ cap inert ai-analyzer.lock",
+      "header_sha256": "bf6341a2ab3c1f0278df355592db1fddc1958b5cbdd9e19af0881f6f42888c1b",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/api-server-tests.yml",
-      "name": "API Server Tests",
-      "header_sha256": "f3b05a714e41c4a1ab3f0b664a7ff06d44562a3b39e17cbc6a39f3bdae5650bd",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/api-server-tests.yml",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/actions/test-and-report/**",
-          ".github/actions/junit-summary/**",
-          ".github/resources/**",
-          "api/**",
-          "go.mod",
-          "go.sum",
-          "backend/**",
-          "backend/test/constants/**",
-          "test/**",
-          "manifests/kustomize/**",
-          "test_data/sdk_compiled_pipelines/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture api-server-tests",
+      "header_sha256": "72099c8f8c78b7ab24df8d5189a63b6255df0c6ca117a9d2276f9b1db977a314",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/arm64-presubmit.yml",
-      "name": "KFP ARM64 Presubmit",
-      "header_sha256": "647aafe010274f34dfe53753e9bd69389f51c8c074039a6da4754e6e7605b858",
-      "pull_request": {
-        "paths": [
-          ".github/workflows/arm64-presubmit.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/arm64-smoke/**",
-          ".github/actions/create-cluster/**",
-          ".github/actions/github-disk-cleanup/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/scripts/**",
-          ".github/resources/buildkitd.toml",
-          ".github/resources/curl-retry/**",
-          ".dockerignore",
-          "api/**",
-          "backend/**",
-          "frontend/**",
-          "go.mod",
-          "go.sum",
-          "kubernetes_platform/**",
-          "manifests/kustomize/**",
-          "pyproject.toml",
-          "samples/**",
-          "sdk/python/**",
-          "third_party/**",
-          "uv.lock",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture arm64-presubmit",
+      "header_sha256": "721ea91271f99bd9ddaf20769e9f2a923c4fdd409ddcf1b185531295b66ab7c7",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/build-and-push.yml",
-      "name": "Build and Push images",
-      "header_sha256": "69c2fd667ef7aed48863a2273eb0ff65c101642a38f734aace901bf79aea32fb",
+      "name": "MQ cap inert build-and-push",
+      "header_sha256": "c1e0ef284eaea891342daf025d10d4574b3128c74225ddf6f5acf089b449e88e",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/build-tools-images.yml",
-      "name": "Build tools images",
-      "header_sha256": "259550a7b717c2fa2a4e933a25e64db312562164cec31e499eb3b5a26ffe864b",
-      "pull_request": {
-        "branches": [
-          "master",
-          "main",
-          "release-*"
-        ]
-      },
+      "name": "MQ cap fixture build-tools-images",
+      "header_sha256": "816e7dd4c47be6060c4a6faabb0d938c9e8bb23bdf78810346c6b4ab95eb83a1",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/check-requirements-txt.yml",
-      "name": "Check Python dependency artifacts",
-      "header_sha256": "927535ae94cf98aad91425fa987800100601a2c9added8d0256b2df19ae1ccee",
-      "pull_request": {
-        "paths": [
-          "pyproject.toml",
-          "uv.lock",
-          "requirements.txt",
-          "**/pyproject.toml",
-          "sdk/python/**",
-          "**/requirements.txt",
-          ".github/workflows/check-requirements-txt.yml",
-          "release/kfpr/steps.py",
-          ".github/resources/scripts/export_python_requirements.sh"
-        ]
-      },
+      "name": "MQ cap fixture check-requirements-txt",
+      "header_sha256": "ba154bbb858ba1504253f963cf9bd041c920944ee56ef04045b88920aba48662",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/check-uv-lock.yml",
-      "name": "Check uv.lock sync",
-      "header_sha256": "da149e1487a925dceba02c1ff3521fca985bc3982d1539ac7bda7be3067010cd",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/check-uv-lock.yml"
-        ]
-      },
+      "name": "MQ cap fixture check-uv-lock",
+      "header_sha256": "c3a6a0381141e00b6404d97e3e98c59cd0f5871ab6b57592aee82efd47cfaaf9",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/ci-checks.yml",
-      "name": "CI Check",
-      "header_sha256": "8fb4f61d8dae2946b0707aee9cd556c783893eb420985cad29353f083b3437b5",
+      "name": "MQ cap inert ci-checks",
+      "header_sha256": "656ae7dc3256b13a096047667a74758ba7fc2e3b5d01c4657c90ab153406cee7",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/ci-health-report.yml",
-      "name": "CI Health Report",
-      "header_sha256": "c8e4449ebad6fbfb532f414c0d822cce0c6ea3548b8727fceef74003b5df3e3f",
+      "name": "MQ cap inert ci-health-report",
+      "header_sha256": "dc05bab921c8548d9c56af1a11a01891ec0360dc504cb8762bddc179ef2d153f",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/ci-images.yml",
-      "name": "Shared CI Images",
-      "header_sha256": "869682630efb89615ba08241400bbb0ddb97bfe814afd2e241495cd9b07302ee",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          ".dockerignore",
-          ".github/actions/arm64-smoke/**",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/actions/github-disk-cleanup/**",
-          ".github/actions/install-dra-driver/**",
-          ".github/actions/install-fgo-fake/**",
-          ".github/actions/junit-summary/**",
-          ".github/actions/protobuf/**",
-          ".github/actions/setup-python/**",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/test-and-report/**",
-          ".github/resources/**",
-          ".github/resources/buildkitd.toml",
-          ".github/resources/curl-retry/**",
-          ".github/resources/scripts/**",
-          ".github/workflows/api-server-tests.yml",
-          ".github/workflows/arm64-presubmit.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/workflows/e2e-test-frontend.yml",
-          ".github/workflows/e2e-test.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
-          ".github/workflows/kfp-sdk-client-tests.yml",
-          ".github/workflows/kfp-webhooks.yml",
-          ".github/workflows/legacy-v2-api-integration-tests.yml",
-          "api/**",
-          "api/v2alpha1/**",
-          "backend/**",
-          "backend/src/apiserver/**",
-          "backend/src/common/**",
-          "backend/test/constants/**",
-          "frontend/**",
-          "frontend/server/handlers/artifacts.ts",
-          "go.mod",
-          "go.sum",
-          "kubernetes_platform/**",
-          "manifests/kustomize/**",
-          "proxy/**",
-          "pyproject.toml",
-          "samples/**",
-          "sdk/**",
-          "sdk/python/**",
-          "test/**",
-          "test/artifact-proxy/**",
-          "test/frontend-integration-test/**",
-          "test/kfp-kubernetes-native-migration-tests/**",
-          "test/seaweedfs/**",
-          "test/server-integration-test/**",
-          "test_data/pipeline_files/valid/**",
-          "test_data/sdk_compiled_pipelines/**",
-          "third_party/**",
-          "tools/k8s-native/**",
-          "uv.lock",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture ci-images",
+      "header_sha256": "47a37b527e695343dcfc8edc365cf0729bce540b3cc77bedb3faf699370694b6",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/ci-passed-stale-revoke.yml",
-      "name": "Revoke Stale CI Passed",
-      "header_sha256": "617dc16494df6d1e90ef984f887f23620ab754d2f43542916bb48df6b30819bd",
+      "name": "MQ cap inert ci-passed-stale-revoke",
+      "header_sha256": "0d43abd88f991c7b16fbcef5de8466afa05213cf30a763c220fecf0874725963",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/ci-scripts-tests.yml",
-      "name": "CI Scripts Tests",
-      "header_sha256": "b4bad54152d7c7d99e9190dcefe3d25f5efe3de3b5f01f68be97ae739f53fd9b",
-      "pull_request": {
-        "paths": [
-          ".github/dependabot.yml",
-          ".github/merge-queue-policy.json",
-          "docs/agents/merge-queue-tide.patch",
-          "**/go.mod",
-          "backend/api/hack/uv.sh",
-          "**/package.json",
-          "**/requirements*.txt",
-          "**/setup.py",
-          "**/pyproject.toml",
-          "**/uv.lock",
-          "**/action.yml",
-          "**/action.yaml",
-          ".pre-commit-config.yaml",
-          ".github/actionlint.yaml",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/curl-retry/**",
-          ".github/resources/buildkitd.toml",
-          ".github/resources/runtime-base-images.txt",
-          ".github/resources/scripts/*.py",
-          ".github/resources/scripts/*.js",
-          ".github/resources/ci-workflow-inventory.json",
-          ".github/resources/legacy-v2-migration-specs.json",
-          ".github/resources/legacy-v2-service-account-specs.json",
-          "test/presubmit-backend-test.sh",
-          "hack/update-all-requirements.sh",
-          ".github/workflows/**",
-          ".github/scripts/*.py",
-          ".github/resources/scripts/*.sh",
-          ".github/resources/scripts/kfp-readiness/**",
-          ".github/actions/junit-summary/**",
-          ".github/workflows/ci-checks.yml",
-          ".github/workflows/create-manifest.yml",
-          ".github/actions/upload-artifact-with-retry/**",
-          ".github/actions/test-and-report/**",
-          ".github/workflows/api-server-tests.yml",
-          ".github/workflows/create-manifest.yml",
-          ".github/workflows/e2e-test.yml",
-          ".github/workflows/e2e-test-frontend.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/validate-generated-files.yml",
-          ".github/workflows/osv-scanner.yml",
-          ".github/workflows/build-tools-images.yml",
-          ".github/workflows/runtime-base-images.yml",
-          ".github/workflows/ci-scripts-tests.yml",
-          ".github/workflows/third-party-image-upgrades.yml",
-          ".github/workflows/check-requirements-txt.yml",
-          ".github/workflows/check-uv-lock.yml",
-          ".github/workflows/publish-packages.yml",
-          ".github/workflows/pre-commit.yml",
-          ".github/workflows/pr-gate.yml",
-          ".github/workflows/gh-workflow-approve.yml",
-          ".github/workflows/contributor-report.yml",
-          "manifests/kustomize/**",
-          ".github/resources/manifests/**",
-          "backend/api/v2/**",
-          "backend/api/v2beta1/**",
-          "backend/Dockerfile.visualization",
-          "backend/src/apiserver/visualization/**",
-          "frontend/src/apisv2/visualization/**",
-          "docs/_static/kfp_api_single_file.swagger.json",
-          "Makefile",
-          "api/Makefile",
-          "backend/src/v2/Makefile",
-          "release/kfpr/**",
-          "release/pyproject.toml",
-          ".github/workflows/release-branch-image-scanning.yml",
-          ".github/workflows/release-qualification.yml",
-          "test_data/sdk_compiled_pipelines/valid/**",
-          "backend/test/end2end/pipeline_e2e_test.go",
-          "backend/test/v2/resources/env-var.yaml",
-          "backend/test/v2/resources/hello-world-with-returning-component.yaml",
-          "test_data/sdk_uncompiled_pipelines/hello-world-with-returning-component.py",
-          "backend/Dockerfile",
-          "backend/api/build_kfp_server_api_python_package.sh",
-          "api/v2alpha1/python/generate_proto.py",
-          "kubernetes_platform/python/generate_proto.py",
-          "sdk/python/hatch_build.py",
-          "test/presubmit-tests-sdk.sh",
-          "hack/update-requirements.sh",
-          ".readthedocs.yml",
-          "kubernetes_platform/python/docs/.readthedocs.yml",
-          "sdk/python/kfp/version.py",
-          "sdk/python/kfp/kubernetes/__init__.py",
-          "kubernetes_platform/python/release.sh",
-          "backend/src/common/types.go",
-          "go.mod",
-          "go.sum",
-          "test/install-argo-cli.sh",
-          "test/presubmit-tests-sdk-unit.sh",
-          "test/kfp-kubernetes-native-migration-tests/**",
-          "third_party/argo/COMPATIBILITY_VERSION",
-          "third_party/argo/Makefile",
-          "third_party/argo/UPGRADE.md",
-          "third_party/argo/VERSION",
-          "test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile"
-        ]
-      },
+      "name": "MQ cap fixture ci-scripts-tests",
+      "header_sha256": "1e99b49f0ff41b5af3db5b6e742a328e0cf0c811abd2c5127d7639f7f50725e0",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/codeql.yml",
-      "name": "CodeQL",
-      "header_sha256": "41315d3dfd001f65cea8ee9ba6f42c94cd3dc1843f1cb263a44dc4bd9bab9181",
+      "name": "MQ cap inert codeql",
+      "header_sha256": "4e94c97372b3f495caf1e28eb2e3ba6545281cae2a315ae7e5dbec10a612c0aa",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/compiler-tests.yml",
-      "name": "Workflow Compiler Tests",
-      "header_sha256": "0ec04bcd728ff83d14f660b4ec820a2e3f06f25dd856491807d277895408797b",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/compiler-tests.yml",
-          ".github/actions/test-and-report/**",
-          ".github/resources/scripts/download-go-modules.sh",
-          ".github/resources/scripts/helper-functions.sh",
-          "backend/src/v2/compiler/**",
-          "test_data/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture compiler-tests",
+      "header_sha256": "0d1bde8fe687b9b81e879adbc8067926df2a7c0642ea2409534fc675477e3016",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/contributor-report.yml",
-      "name": "Contributor Report",
-      "header_sha256": "243a51f5c27753f09cf5e4d5ca9f35554496583c254a14f162cb15f2a9b09adb",
+      "name": "MQ cap inert contributor-report",
+      "header_sha256": "1b90754602c294fdfbbd83a6b97e8666fff4debc8a4c8dc95cba6a26d62120a2",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/create-manifest.yml",
-      "name": "Create Multi-Arch Manifest",
-      "header_sha256": "f1ddea9fd34af652d5e55e8df405c60c404ec261329c70c73e427d4bb9d2ac28",
+      "name": "MQ cap inert create-manifest",
+      "header_sha256": "e8b5a63244477b0ac3d763480f5b8cab22ed1746869cdafcc0870fd809daeb71",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/docs-freshness.yml",
-      "name": "KFP Docs Freshness",
-      "header_sha256": "964e3f94bf51c8c021d26e3491d877a68b4335994fdbe3a06a9c9986f1ec38e7",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/**",
-          "third_party/**",
-          "README.md"
-        ]
-      },
+      "name": "MQ cap fixture docs-freshness",
+      "header_sha256": "c484e3236f6aa6ad97c914e3c94f3b90c15a5ad032206daed981ff29e200e6d2",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/docs.yml",
-      "name": "Documentation",
-      "header_sha256": "d78f7ddcaf7cd55b54f458e944e696517896af950bd9fb1d377f7d81a3e88902",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/actions/setup-python/**",
-          "docs/**",
-          "sdk/python/kfp/**",
-          ".readthedocs.yml",
-          ".github/workflows/docs.yml"
-        ]
-      },
+      "name": "MQ cap fixture docs",
+      "header_sha256": "27555c6a442a20aaccf22c736341d827541b68934f2a0691cd242f6fb31dd635",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/e2e-test-frontend.yml",
-      "name": "KFP e2e frontend tests",
-      "header_sha256": "8b08cff488510b2a702524d0849e835e770a6b785b136b3d3c9d858224c2241a",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/e2e-test-frontend.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          "frontend/**",
-          "manifests/kustomize/**",
-          "test/server-integration-test/**",
-          "test/frontend-integration-test/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture e2e-test-frontend",
+      "header_sha256": "1b77080cfb200d2ecc819677074f0b6b837be696520c7bd16dce5c4df80bedfc",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/e2e-test.yml",
-      "name": "KFP E2E Pipeline tests",
-      "header_sha256": "ca8aea5ba40b4efe154585380ec956b0659ed01a4e7c52d0144f8b250fac7795",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/e2e-test.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/create-cluster/**",
-          ".github/actions/setup-python/**",
-          ".github/actions/protobuf/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/actions/install-fgo-fake/**",
-          ".github/actions/install-dra-driver/**",
-          ".github/actions/test-and-report/**",
-          ".github/resources/**",
-          "api/**",
-          "go.mod",
-          "go.sum",
-          "backend/**",
-          "frontend/server/handlers/artifacts.ts",
-          "test/seaweedfs/**",
-          "proxy/**",
-          "manifests/kustomize/**",
-          "test/artifact-proxy/**",
-          "test_data/sdk_compiled_pipelines/**",
-          "sdk/**",
-          "kubernetes_platform/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture e2e-test",
+      "header_sha256": "8565e0b13bf631b979f2dd1849c89e81f97bb985e04a041c79ee01bc061844b3",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/frontend.yml",
-      "name": "Frontend Tests",
-      "header_sha256": "b20b9b594c143f1b47d0f38fec62cc068cb815462705b31cd6df5afdb8f9d0e4",
-      "pull_request": {
-        "branches": [
-          "master",
-          "main"
-        ],
-        "paths": [
-          "frontend/**",
-          "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py",
-          "api/v2alpha1/*.proto",
-          "kubernetes_platform/proto/*.proto",
-          "backend/api/v2/swagger/**",
-          ".github/workflows/frontend.yml",
-          "!**/*.md",
-          "!**/OWNERS",
-          "backend/src/apiserver/config/sample_config.json"
-        ]
-      },
+      "name": "MQ cap fixture frontend",
+      "header_sha256": "b7cc794957fcfdbad9c8a38311734063f643636e9f515877971f9b2767814b10",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/gh-workflow-approve.yml",
-      "name": "Approve Workflow Runs",
-      "header_sha256": "a33f86d80ac847b03bcbd24568aa42b65103d5dd193d8c5660dc524240f7704e",
+      "name": "MQ cap inert gh-workflow-approve",
+      "header_sha256": "c3aab720b4992a433511674b6c4ecfcfb2dabf6472c52b59cbf46481f927fdb7",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/go-image-digests.yml",
-      "name": "Go Builder Image Digests",
-      "header_sha256": "256bb4b4fc61ac48eef5be4e171b456aa170b07d9e24439b2b0a96992a032c7e",
-      "pull_request": {
-        "paths": [
-          ".github/resources/scripts/update_go_version.py",
-          ".github/workflows/go-image-digests.yml",
-          "docs/agents/go-version-policy.md",
-          "**/Dockerfile*",
-          "**/Containerfile*"
-        ]
-      },
+      "name": "MQ cap fixture go-image-digests",
+      "header_sha256": "28d1843ae34e833c33c98f8820a5653f0c14cfab10afc07b967608a02951a36d",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/image-builds-master.yml",
-      "name": "Build and Push for master",
-      "header_sha256": "38f41194f287a7c07000256c43810b1be458e21f8b4622f93c5e87a2d8167bac",
+      "name": "MQ cap inert image-builds-master",
+      "header_sha256": "dc4fc6a44c6a2e735df76588276a9ce935a135438c1ec9fb45de01b27c6646d2",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/image-builds-release.yml",
-      "name": "Build and Push for Release",
-      "header_sha256": "f30533b8b5b7ba1f3bdbb0a86dd071384b1d7c84753fe71fba80d1dcd20253d7",
+      "name": "MQ cap inert image-builds-release",
+      "header_sha256": "ea0a1d927a75efce6537da079641bed37afa29ea37ef75bd0f79c05f5f971658",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/image-builds.yml",
-      "name": "Build Images",
-      "header_sha256": "0acdf137e36acd9bd047c7f5a41c574d07f365d5daa13d3993e9c09ce67ad0a8",
+      "name": "MQ cap inert image-builds",
+      "header_sha256": "053c6e90ae283264343bdd66b368adf04d3e32a131008de699d2dbe69324ec29",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/kfp-kubernetes-library-test.yml",
-      "name": "kfp-kubernetes library tests",
-      "header_sha256": "a821b8130213bf43fd0740cab0a3b7c03a7da7883e3072a35b6056ab4cfbef63",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/kfp-kubernetes-library-test.yml",
-          ".github/actions/setup-python/**",
-          ".github/actions/protobuf/**",
-          "sdk/python/**",
-          "api/v2alpha1/**",
-          "kubernetes_platform/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture kfp-kubernetes-library-test",
+      "header_sha256": "cc2041f521015f38d834417ed81555c3c069c3ab3e224b96302ce576a509833e",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
-      "name": "KFP Kubernetes Native Migration Tests",
-      "header_sha256": "9a17520bbd6d54836bc3c8a8afe55ae3eaff896d7b6ec59ba5703f87690b933f",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/kfp-kubernetes-native-migration-tests.yaml",
-          ".github/actions/setup-python/**",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          "tools/k8s-native/**",
-          "test/kfp-kubernetes-native-migration-tests/**",
-          "test_data/pipeline_files/valid/**",
-          "backend/src/apiserver/**",
-          "backend/src/common/**",
-          "manifests/kustomize/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture kfp-kubernetes-native-migration-tests",
+      "header_sha256": "91520d0dc547f93401e5e3181f1ef796f49989b6eb2055283ee4b92441fe2372",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/kfp-sdk-client-tests.yml",
-      "name": "KFP Python Client Tests",
-      "header_sha256": "e36ed2dff4dbd238beee28fb46e793045c7cad67720d6eb0ce8cc96445e508ce",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/kfp-sdk-client-tests.yml",
-          ".github/actions/setup-python/**",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          "sdk/python/**",
-          "api/v2alpha1/**",
-          "backend/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture kfp-sdk-client-tests",
+      "header_sha256": "771a481b86836b9afd5c8514d7101527c38f8d402818bbf8bf64bfab85c6a5cb",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/kfp-sdk-tests.yml",
-      "name": "KFP SDK Tests",
-      "header_sha256": "e3b6d2edc1ca61ea7a991e26ad6b4f9d1b9231737eb87ea3e45a73619e3c8ff4",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "api/**",
-          "sdk/**",
-          "test_data/sdk_compiled_pipelines/**",
-          "test_data/component_migration_test.py",
-          "test/presubmit-tests-sdk.sh",
-          ".github/workflows/kfp-sdk-tests.yml",
-          ".github/actions/setup-python/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture kfp-sdk-tests",
+      "header_sha256": "1e1f452900e15eac1da6120f079e10eefa3c863e74caf2ec70d2c2d683ed8c31",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/kfp-sdk-unit-tests.yml",
-      "name": "KFP SDK Unit Tests",
-      "header_sha256": "64af3c4dc23657d94b028b99e05ccdba149589b8702874c6bde2b5e71e799a01",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "api/**",
-          "sdk/**",
-          "kubernetes_platform/**",
-          "backend/api/**",
-          ".github/actions/protobuf/**",
-          ".github/resources/scripts/check_python_distribution.py",
-          "test/presubmit-tests-sdk-unit.sh",
-          ".github/workflows/kfp-sdk-unit-tests.yml",
-          ".github/actions/setup-python/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture kfp-sdk-unit-tests",
+      "header_sha256": "b6be3e09d579a7d67f7c2eed19b2aeb266a8826125eeb917ef0fb38812bb5684",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/kfp-webhooks.yml",
-      "name": "KFP Webhook Integration",
-      "header_sha256": "8de8491b2caa72577e7edbd058717568b13527187830b38e07def9d00e5c846a",
-      "pull_request": {
-        "paths": [
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/resources/**",
-          ".github/workflows/kfp-webhooks.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          "backend/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture kfp-webhooks",
+      "header_sha256": "9e099ad01d791d32880517c9e58b9af5be9315086ce6f7c8427f43ec909adbda",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/kubeflow-pipelines-manifests.yml",
-      "name": "KFP Manifests",
-      "header_sha256": "da91ba01346b8884b23ba3d7cb3bcb289c42a52b5adcd8bdee2d717e3a33c541",
-      "pull_request": {
-        "paths": [
-          ".github/workflows/kubeflow-pipelines-manifests.yml",
-          "manifests/kustomize/**",
-          ".github/resources/manifests/**",
-          ".github/resources/runtime-base-images.txt",
-          "backend/api/tools/**",
-          "go.mod",
-          ".github/actions/setup-go/**",
-          "!**/*.md",
-          "!**/OWNERS",
-          "docs/operator-guides/server-config.md"
-        ]
-      },
+      "name": "MQ cap fixture kubeflow-pipelines-manifests",
+      "header_sha256": "951a969e9f4978bff7729f4c29822c3475c89d76a0fe04a27000b6624f523988",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/merge-queue-recovery.yml",
-      "name": "Merge Queue Recovery",
-      "header_sha256": "5048decdf5c3a3864c3dfc09f8c5dd5ddead35c59f3bab9e653766020c8d1d25",
+      "name": "MQ cap inert merge-queue-recovery",
+      "header_sha256": "891185eb4b9048f3740314fb961bff5c16553163f7284df02269d014b21a45da",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/osv-scanner.yml",
-      "name": "OSV-Scanner Vulnerability Scan",
-      "header_sha256": "93918884dd870756eaddb7fb40807a892ecd58e28874425ea2ed06dc0579c262",
+      "name": "MQ cap inert osv-scanner",
+      "header_sha256": "523554a91c6fff4baad2479eff57f84964c2847bcd0b19ec6677acd9cf880d06",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/pr-gate.yml",
-      "name": "PR Gate",
-      "header_sha256": "0d392e071f5a72b0840838c4bed410902be8d91ae6211172246f9752eb660c8f",
+      "name": "MQ cap inert pr-gate",
+      "header_sha256": "4bb9fe9bcc7003e5da635ed13ef214b5c12295d9bb83cb21f5b9034228afe28d",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/pre-commit.yml",
-      "name": "pre-commit",
-      "header_sha256": "7b861248e2c5013565dc93546e8813b2e4516b655952634db2999d30ee9c29bd",
-      "pull_request": {
-        "branches": [
-          "master",
-          "main"
-        ]
-      },
+      "name": "MQ cap fixture pre-commit",
+      "header_sha256": "e786125fb72582fc9592af40773620f3bd287a52563771b57be5ac5e52afc9b4",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/presubmit-backend.yml",
-      "name": "KFP Backend Tests",
-      "header_sha256": "ace0580bf2da8416bad0c0ec0e6bc146da3e0228136934f7a2a9137624177bb1",
-      "pull_request": {
-        "paths": [
-          ".github/workflows/presubmit-backend.yml",
-          ".github/actions/setup-go/**",
-          ".github/resources/scripts/download-go-modules.sh",
-          ".github/resources/scripts/helper-functions.sh",
-          "go.mod",
-          "go.sum",
-          "backend/**",
-          "test/presubmit-backend-test.sh"
-        ]
-      },
+      "name": "MQ cap fixture presubmit-backend",
+      "header_sha256": "6f415755f1e2cb4ad876f096d06cfa7644c1017c409aa6e8c3819c87a8e8b944",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/publish-packages.yml",
-      "name": "Publish Python Packages",
-      "header_sha256": "5355713ae4439bbbedf068e2e248da978fcb388bf3ef4f9eec47d446bf69dfdb",
+      "name": "MQ cap inert publish-packages",
+      "header_sha256": "bc65aa7a4b4aaa8bfda47aa271b14ec9492bcdd1fed6fa3064f95b5f7dcb2758",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/python-syntax.yml",
-      "name": "Python Syntax",
-      "header_sha256": "184f9ec0539f24171ac67b336762bdc3f4041a4b4737b7ac64489a8b283c4c28",
-      "pull_request": {
-        "paths": [
-          "**/*.py",
-          ".github/workflows/python-syntax.yml"
-        ]
-      },
+      "name": "MQ cap fixture python-syntax",
+      "header_sha256": "c5313aff2eeb7ef7d2476593f2ed8bfcef7d520f1d9b543a50ab9378e2af7f85",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/queue-dispatch-guard.yml",
-      "name": "Validate queue dispatch",
-      "header_sha256": "aae53ea26269a663b16051e625bb39e5d47be52ae113cd00b5147fa7751b28e4",
+      "name": "MQ cap inert queue-dispatch-guard",
+      "header_sha256": "2b17f92023501d56ec098fbd72fc9bf949072a6a6a1970892d09fcee34a57c81",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/readthedocs-builds.yml",
-      "name": "KFP Readthedocs Release Readiness",
-      "header_sha256": "72135ef3910d1614fc0f71b458fefde93057034db04675e89758d7ca15c586dc",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "api/**",
-          "sdk/**",
-          "kubernetes_platform/**",
-          "release/**",
-          ".github/workflows/readthedocs-builds.yml",
-          ".github/actions/setup-python/**",
-          ".readthedocs.yml"
-        ]
-      },
+      "name": "MQ cap fixture readthedocs-builds",
+      "header_sha256": "fa75b3a53945844c7ef64ec7432999bdc2da3faff7f542b8cdff9e6f22c277da",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/ready-command.yml",
-      "name": "Ready Command",
-      "header_sha256": "e78b97894460946dfb3f90af4e6f0a1885f06671675dcdd7329a3e1b4633154e",
+      "name": "MQ cap inert ready-command",
+      "header_sha256": "4ba0c82f018cce5c4e22b25e4260ed12fba6e58701f9121728db5a6b56b3780d",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/release-branch-image-scanning.yml",
-      "name": "Release Branch Image Scanning",
-      "header_sha256": "5cdc42c545f1ed08927c1acb3d84a1fcd3aae02c8e6d8283b6e6ed79e6164c84",
+      "name": "MQ cap inert release-branch-image-scanning",
+      "header_sha256": "c15cfe9a70502b63033cbba73b92c856b16ebea372543865c90c423ce22287d1",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/release-promote-latest.yml",
-      "name": "Promote Published Release Images",
-      "header_sha256": "9959b76421cf287b008dde6705e571752c118477dd39115f8fc33f2719c93539",
+      "name": "MQ cap inert release-promote-latest",
+      "header_sha256": "e345e676d3725daa221b17934b1ff64fbd58d3fbf68c3e62a4dae4bd0329af50",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/release-qualification.yml",
-      "name": "Release Qualification",
-      "header_sha256": "ecf394b4eb4fee70bb811aeb30b78513ed1c6ec5cde0bedc3fbfac4c3eaf0298",
+      "name": "MQ cap inert release-qualification",
+      "header_sha256": "9860829f5bf88087f657557f14ad5ec8e764150dc9c5e1378cb3e7f80d557a8c",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/runtime-base-images.yml",
-      "name": "Runtime Base Images",
-      "header_sha256": "87377772a8651b9733480757e463778d026eac1947ed3fd5537c4715dbc9e070",
-      "pull_request": {
-        "paths": [
-          ".github/workflows/runtime-base-images.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/resources/runtime-base-images.txt",
-          ".github/resources/scripts/helper-functions.sh",
-          ".github/resources/scripts/build-runtime-base-images.sh",
-          ".github/resources/scripts/configure-docker-hub-mirror.sh",
-          ".github/resources/scripts/configure_docker_registry_mirror.py",
-          ".github/resources/scripts/prune_runtime_base_image_caches.py",
-          ".github/resources/scripts/runtime_base_image_artifacts.py",
-          "test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile"
-        ]
-      },
+      "name": "MQ cap fixture runtime-base-images",
+      "header_sha256": "82a35783ae5d9a97ac87d029bd35986318aa84d41c0d908d9103667ba204b07d",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/sdk-docformatter.yml",
-      "name": "KFP SDK Docformatter Test",
-      "header_sha256": "66fc4896bc6e60219a0194af34bcb661b317f904271c5853a65db5b0502794c6",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "sdk/python/**",
-          "test/presubmit-docformatter-sdk.sh",
-          ".github/workflows/sdk-docformatter.yml",
-          ".github/actions/setup-python/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture sdk-docformatter",
+      "header_sha256": "512ff2b1ef0681e48b110494bfdb6c43eccbd9b66709a24410d957fda1afd32f",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/sdk-isort.yml",
-      "name": "Python Ruff Lint",
-      "header_sha256": "04710dd7a86524986f5b5b0e34e04e73bc2421e6363f94ecb2f2c2d75f37d7f9",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "**/*.py",
-          "**/*.pyi",
-          ".gitignore",
-          ".pre-commit-config.yaml",
-          "test/presubmit-ruff.sh",
-          ".github/workflows/sdk-isort.yml",
-          ".github/actions/setup-python/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture sdk-isort",
+      "header_sha256": "a7c83eeb5d4b564d06065cea34d74d70e35711ed5411949f3e94cb47df2fcaed",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/sdk-upgrade.yml",
-      "name": "KFP SDK Upgrade Test",
-      "header_sha256": "bd1939d529d9a5c49cf21d19f071a6b8f164f3e99b92cc1f938d70af58cae1b6",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "sdk/python/**",
-          "test/presubmit-test-sdk-upgrade.sh",
-          ".github/workflows/sdk-upgrade.yml",
-          ".github/actions/setup-python/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture sdk-upgrade",
+      "header_sha256": "9455da2f7ce08ab75689785feeec2746f5c266ab4b5626b630f89dea8c608574",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/sdk-yapf.yml",
-      "name": "Python Ruff Format",
-      "header_sha256": "345fc7569616c60623d80d3d415039b1405b03c0e499ea4a61250478b6027d20",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          "**/*.py",
-          "**/*.pyi",
-          ".gitignore",
-          ".pre-commit-config.yaml",
-          "test/presubmit-ruff.sh",
-          ".github/workflows/sdk-yapf.yml",
-          ".github/actions/setup-python/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
+      "name": "MQ cap fixture sdk-yapf",
+      "header_sha256": "a40bdeab4837156cbe686caad9579fc42c1931d751e6a9bc0da670d13d69e871",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/shared-ci-images-ready.yml",
-      "name": "Shared CI image readiness",
-      "header_sha256": "24d497b8469dc78bdaf6dbccbd6a8794a9947de97a64001f7908a20a7a27fc65",
+      "name": "MQ cap inert shared-ci-images-ready",
+      "header_sha256": "9963eed579c2e6dfcd13d23367c1fc646a138e3cb7bb9f9aaa9182d689851dd4",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/stale.yml",
-      "name": "Mark stale issues and pull requests",
-      "header_sha256": "8ed5e6b29dad78ca14bebe3f08006c01c1732ce9554497332229d6a33b4b1a5f",
+      "name": "MQ cap inert stale",
+      "header_sha256": "5cfb64c348ae0288222e38a8af7631e769cb753afe0183737a4cbb35ebcaccc2",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/third-party-image-scanning.yml",
-      "name": "Third-party Image Security",
-      "header_sha256": "9162eb1ecd0c71c55eae7338c45999a6905ed50e1a9a41ff71b884173bda77c1",
+      "name": "MQ cap inert third-party-image-scanning",
+      "header_sha256": "c307758354c94fa3711525333069f4b9fc847a1f54600957c347a1ab9109a66d",
       "pull_request": null,
       "merge_group": null
     },
     {
       "path": ".github/workflows/third-party-image-upgrades.yml",
-      "name": "Third-party Image Upgrade Checks",
-      "header_sha256": "a04c703f86f487bf8cf6bd6784ad225c170335ba64e9d7b980bdbb9ad05ca815",
-      "pull_request": {
-        "paths": [
-          "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
-          "manifests/kustomize/third-party/seaweedfs/**",
-          "manifests/kustomize/third-party/argo/**",
-          ".github/resources/scripts/third_party_upgrade_*.py",
-          ".github/workflows/third-party-image-upgrades.yml"
-        ]
-      },
+      "name": "MQ cap fixture third-party-image-upgrades",
+      "header_sha256": "ad0a2c3ded40f6a1284a116af0d5652733e5fc9fb23e7c0c20d7c5d2978abec1",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     },
     {
       "path": ".github/workflows/upgrade-test.yml",
-      "name": "KFP upgrade tests",
-      "header_sha256": "9af03d3e2ce1209c25a68110c2da45c2888a429f8b418015126f002053279dd7",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/upgrade-test.yml",
-          ".github/workflows/image-builds.yml",
-          ".github/workflows/ci-images.yml",
-          ".github/workflows/shared-ci-images-ready.yml",
-          ".github/actions/shared-ci-images/**",
-          ".github/actions/create-cluster/**",
-          ".github/actions/deploy/**",
-          ".github/actions/download-artifact-with-retry/**",
-          ".github/actions/test-and-report/**",
-          ".github/resources/**",
-          "backend/api/v2/**",
-          "backend/api/v2beta1/**",
-          "backend/src/**",
-          "backend/test/v2/api/**",
-          "manifests/kustomize/**",
-          "test_data/sdk_compiled_pipelines/**",
-          "!**/*.md",
-          "!**/OWNERS"
-        ]
-      },
-      "merge_group": {
-        "types": [
-          "checks_requested"
-        ],
-        "branches": [
-          "master",
-          "main"
-        ]
-      },
+      "name": "MQ cap inert upgrade-test",
+      "header_sha256": "6315113b310f286579dc08068504f094a943ea0eb61f988869a2ef02b1fff514",
+      "pull_request": null,
+      "merge_group": null,
       "disabled_for_migration": true
     },
     {
       "path": ".github/workflows/validate-generated-files.yml",
-      "name": "Validate Generated Files",
-      "header_sha256": "0b67c63d96deea70f43c32739e9627e0c27aa747194bc72c6c5ae6a741e8d064",
-      "pull_request": {
-        "paths": [
-          "**/pyproject.toml",
-          "uv.lock",
-          ".github/workflows/validate-generated-files.yml",
-          ".github/resources/scripts/generated_files_dependency_change.py",
-          ".github/resources/scripts/check_generated_diff.py",
-          ".github/actions/setup-python/**",
-          "go.mod",
-          "go.sum",
-          "backend/api/Dockerfile",
-          "backend/api/Makefile",
-          "backend/api/hack/**",
-          "backend/api/build_kfp_server_api_python_package.sh",
-          "backend/api/tools/go.mod",
-          "backend/api/tools/go.sum",
-          "backend/api/**/*.proto",
-          "backend/api/**/go_http_client/**",
-          "backend/api/**/go_client/**",
-          "backend/api/**/python_http_client/**",
-          "backend/api/**/swagger/**",
-          "api/Makefile",
-          "api/**/*.proto",
-          "api/**/*.go",
-          "api/v2alpha1/python/generate_proto.py",
-          "kubernetes_platform/Makefile",
-          "kubernetes_platform/**/*.proto",
-          "kubernetes_platform/**/*.go",
-          "kubernetes_platform/python/generate_proto.py",
-          ".github/actions/protobuf/**",
-          ".github/actions/kfp-k8s/**",
-          "backend/api/**/python_http_client_template/**",
-          "sdk/Makefile",
-          "backend/src/crd/kubernetes/**/*.go",
-          "manifests/kustomize/base/crds/*.yaml",
-          "sdk/**/*.py",
-          "!**/*.md",
-          "!**/OWNERS",
-          "VERSION"
-        ]
-      },
+      "name": "MQ cap fixture validate-generated-files",
+      "header_sha256": "ccd644734ab5acbc7fd4b739de13b517d535700ad37c267dc2a160ffb71f84c3",
+      "pull_request": null,
       "merge_group": {
         "types": [
           "checks_requested"
         ],
         "branches": [
-          "master",
-          "main"
+          "codex-mq-cap-test-20261114"
         ]
       }
     }

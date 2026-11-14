@@ -1,96 +1,10 @@
-name: Create Multi-Arch Manifest
+name: MQ cap inert create-manifest
 on:
-  workflow_call:
-    inputs:
-      target_tag:
-        type: string
-        description: 'Target Image Tag'
-        required: true
-      app_to_build:
-        type: string
-        description: 'Provide the app name'
-        required: true
-      source_sha:
-        type: string
-        description: 'Immutable source commit shared by every platform build'
-        required: true
-      expected_platforms:
-        type: string
-        description: 'Exact comma-separated runnable platforms expected in the index'
-        required: true
-      set_latest:
-        type: string
-        default: 'true'
-        description: 'Set latest tag'
-        required: false
-
+  workflow_dispatch:
 permissions: {}
-
-env:
-  TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
-  IMAGE_REGISTRY: ghcr.io
-  IMAGE_ORG: ${{ github.repository_owner }}
-  APP_NAME: ${{ inputs.app_to_build }}
-  SET_LATEST: ${{ inputs.set_latest }}
-
 jobs:
-  create-manifest:
+  inert:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: List required platform digest records
-        id: digest-files
-        shell: bash
-        env:
-          EXPECTED_PLATFORMS: ${{ inputs.expected_platforms }}
-        run: bash .github/resources/scripts/ci-image-artifacts.sh --github-output platform-digest-files "$EXPECTED_PLATFORMS"
-
-      - name: Download digests
-        uses: ./.github/actions/download-artifact-with-retry
-        with:
-          path: /tmp/digests
-          pattern: digests-${{ env.APP_NAME }}-*-${{ github.run_attempt }}
-          merge-multiple: true
-          required-files: ${{ steps.digest-files.outputs.required-files }}
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
-        with:
-          registry: ${{ env.IMAGE_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-        with:
-          # imagetools only reads and writes registry manifests. Use the
-          # daemon-backed driver so this job does not pull a BuildKit image.
-          driver: docker
-
-      - name: Create, verify, and publish manifest
-        env:
-          SOURCE_SHA: ${{ inputs.source_sha }}
-          EXPECTED_PLATFORMS: ${{ inputs.expected_platforms }}
-          RUN_TAG: run-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          python3 .github/resources/scripts/publish_image_index.py \
-            --image "${IMAGE_REGISTRY}/${IMAGE_ORG}/${APP_NAME}" \
-            --source-sha "$SOURCE_SHA" --platforms "$EXPECTED_PLATFORMS" \
-            --digests /tmp/digests --run-tag "$RUN_TAG" \
-            --target-tag "$TARGET_IMAGE_TAG" --set-latest "$SET_LATEST" \
-            --output "/tmp/published-index/${APP_NAME}.json"
-
-      - name: Upload verified index reference
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: published-index-${{ inputs.app_to_build }}-${{ github.run_attempt }}
-          path: /tmp/published-index/${{ inputs.app_to_build }}.json
-          if-no-files-found: error
-          retention-days: 90
+      - run: 'true'

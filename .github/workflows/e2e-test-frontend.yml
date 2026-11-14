@@ -1,188 +1,34 @@
-name: KFP e2e frontend tests
-
+name: MQ cap fixture e2e-test-frontend
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [codex-mq-cap-test-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main]
-  push:
-    branches: [master, main]
-
-  pull_request:
-    paths:
-      - '**/pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/e2e-test-frontend.yml'
-      - '.github/workflows/image-builds.yml'
-      - '.github/workflows/ci-images.yml'
-      - '.github/workflows/shared-ci-images-ready.yml'
-      - '.github/actions/shared-ci-images/**'
-      - '.github/actions/deploy/**'
-      - '.github/actions/download-artifact-with-retry/**'
-      - '.github/resources/**'
-      - 'frontend/**'
-      - 'manifests/kustomize/**'
-      - 'test/server-integration-test/**'
-      - 'test/frontend-integration-test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
-
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
+        required: true
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  image-artifacts-ready:
-    permissions:
-      actions: read
-      contents: read
-    uses: ./.github/workflows/shared-ci-images-ready.yml
-
-  frontend-integration-dependency-checks:
+  fixture:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    name: Frontend Integration Dependency Checks
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: frontend/.nvmrc
-
-      - name: Install dependencies
-        working-directory: ./test/frontend-integration-test
-        run: npm ci
-
-      - name: Dependency compatibility checks
-        working-directory: ./test/frontend-integration-test
-        run: npm run test:dependencies
-
-  frontend-integration-test:
-    needs: image-artifacts-ready
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      actions: read
-      contents: read
-    strategy:
-      matrix:
-        k8s_version: [ "v1.33.12", "v1.36.1" ]
-        pod_to_pod_tls_enabled: [ "true", "false" ]
-    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
-        with:
-          python-version: 3.11
-
-
-      - name: Create KFP cluster
-        id: create-kfp-cluster
-        uses: ./.github/actions/create-cluster
-        with:
-          k8s_version: ${{ matrix.k8s_version }}
-        continue-on-error: true
-
-      - name: Deploy
-        id: deploy
-        uses: ./.github/actions/deploy
-        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        with:
-          image_ready_state: ${{ needs.image-artifacts-ready.outputs.state }}
-          image_path: images_${{ github.run_id }}
-          image_tag: latest
-          image_registry: kind-registry:5000
-          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-
-      - name: Forward Frontend port
-        id: forward-frontend-port
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
-        continue-on-error: true
-
-      - name: Server integration tests
-        id: server-tests
-        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
-        working-directory: ./test/server-integration-test
+      - name: Verify isolated queue identity
+        env:
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
         run: |
-          node server-test.js --url http://localhost:3000 --timeout 30000
-          node k8s-integration-test.js --url http://localhost:3000
-        continue-on-error: true
-
-      - name: Build frontend integration tests image
-        working-directory: ./test/frontend-integration-test
-        run: docker build --build-arg "NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc)" -t kfp-frontend-integration-test:local .
-
-      - name: Prepare frontend integration test artifacts
-        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
-        run: |
-          mkdir -p /tmp/frontend-integration-artifacts/screenshots
-          chmod -R 777 /tmp/frontend-integration-artifacts
-
-      - name: Frontend integration tests
-        id: tests
-        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
-        run: |
-          docker run \
-            --net=host \
-            -v /tmp/frontend-integration-artifacts:/tmp/frontend-integration-artifacts \
-            -e FRONTEND_INTEGRATION_ARTIFACT_DIR=/tmp/frontend-integration-artifacts \
-            kfp-frontend-integration-test:local
-        continue-on-error: true
-
-      - name: Collect failed logs
-        if: ${{ steps.deploy.outcome != 'success' || steps.forward-frontend-port.outcome != 'success' || steps.server-tests.outcome != 'success' || steps.tests.outcome != 'success' }}
-        run: |
-          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-          exit 1
-
-      - name: Collect test results
-        if: failure() || cancelled()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
-          if-no-files-found: warn
-          path: |
-            /tmp/tmp*/*
-            /tmp/frontend-integration-artifacts/**/*
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-test-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-test-20261114|refs/heads/codex-mq-cap-test-20261114) ;; *) exit 1;; esac
+          sleep 2

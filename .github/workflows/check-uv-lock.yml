@@ -1,60 +1,34 @@
-name: Check uv.lock sync
-
+name: MQ cap fixture check-uv-lock
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [codex-mq-cap-test-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main]
-  push:
-    branches: [master, main, 'release-*']
-  pull_request:
-    paths:
-      - '**/pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/check-uv-lock.yml'
-
+        required: true
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  check-lockfile:
+  fixture:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: "0.13.4"
-
-      - name: Check if uv.lock is in sync
-        run: uv lock --check
+      - name: Verify isolated queue identity
+        env:
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
+        run: |
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-test-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-test-20261114|refs/heads/codex-mq-cap-test-20261114) ;; *) exit 1;; esac
+          sleep 2

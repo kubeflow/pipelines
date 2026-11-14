@@ -1,104 +1,34 @@
-name: KFP Readthedocs Release Readiness
-
+name: MQ cap fixture readthedocs-builds
 on:
+  merge_group:
+    types: [checks_requested]
+    branches: [codex-mq-cap-test-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-  merge_group:
-    types: [checks_requested]
-    branches: [master, main]
-  push:
-    branches: [ master, main ]
-  pull_request:
-    paths:
-      - '**/pyproject.toml'
-      - 'uv.lock'
-      - api/**
-      - sdk/**
-      - kubernetes_platform/**
-      - release/**
-      - .github/workflows/readthedocs-builds.yml
-      - .github/actions/setup-python/**
-      - .readthedocs.yml
-
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
+        required: true
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  test-readthedocs-builds:
-    runs-on: ubuntu-24.04
-    env:
-      # Avoid the theme's default burst of 128 Google Fonts fetch workers.
-      SPHINX_IMMATERIAL_FONT_FETCH_MAX_WORKERS: "4"
+  fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Setup Python with uv
-        uses: ./.github/actions/setup-python
-        with:
-          python-version: "3.11"
-
-      - name: Install protobuf dependencies & generate proto files
-        uses: ./.github/actions/protobuf
-
-      - name: Install kfp & kfp-kubernetes from source
-        uses: ./.github/actions/kfp-k8s
-
-      - name: Test release automation
+      - name: Verify isolated queue identity
+        env:
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
         run: |
-          git config user.name "$(git log -1 --format=%an)"
-          git config user.email "$(git log -1 --format=%ae)"
-          uv run --with-editable ./release python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.state_test release.kfpr.metadata_test release.kfpr.runner_test release.kfpr.prompts_test release.kfpr.github_api_test release.kfpr.commands_test release.kfpr.validation_test release.kfpr.context_test release.kfpr.modules_test release.kfpr.dependency_pins_test release.kfpr.gates_test release.kfpr.notes_test release.kfpr.ranges_test release.kfpr.notes_integration_test release.kfpr.previews_test release.kfpr.editorial_test release.kfpr.inventory_test
-
-      - name: Build KFP SDK Docs
-        working-directory: docs/sdk
-        run: |
-          uv run sphinx-build -b html . _build/html
-
-      - name: Build KFP Kubernetes SDK Docs
-        working-directory: kubernetes_platform/python/docs
-        run: |
-          uv run sphinx-build -b html . _build/html
-
-      - name: Test unified SDK release step
-        run: |
-          KFP_VERSION="$(uv run python -c 'import kfp; print(kfp.__version__)')"
-          RELEASE_TYPE="patch"
-          case "$KFP_VERSION" in *.0) RELEASE_TYPE="minor" ;; esac
-          uv run --with-editable ./release kfpr run create-sdk-tag \
-            --release-type "$RELEASE_TYPE" \
-            --version "$KFP_VERSION" \
-            --fork-remote upstream \
-            --dry-run
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-test-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-test-20261114|refs/heads/codex-mq-cap-test-20261114) ;; *) exit 1;; esac
+          sleep 2

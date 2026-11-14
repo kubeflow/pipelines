@@ -1,111 +1,34 @@
-# This workflow runs tests to verify all the API Server REST Endpoints
-name: Workflow Compiler Tests
-env:
-  TESTS_DIR: "./backend/test/compiler"
-  TESTS_LABEL: "WorkflowCompiler"
-  PYTHON_VERSION: "3.11"
-
+name: MQ cap fixture compiler-tests
 on:
   merge_group:
     types: [checks_requested]
-    branches: [master, main]
-  push:
-    branches: [master, main]
-
+    branches: [codex-mq-cap-test-20261114]
   workflow_dispatch:
     inputs:
       queue_head_sha:
-        description: Exact queue candidate SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_ref:
-        description: Queue target branch, master or main (internal queue dispatch)
-        required: false
         type: string
-        default: ''
+        required: true
       queue_base_sha:
-        description: Current target branch SHA (internal queue dispatch)
-        required: false
         type: string
-        default: ''
-      test_label:
-        description: "Test label that you want to filter on and run"
-        default: 'ApiServerTests'
         required: true
-        type: string
-      number_of_parallel_tests:
-        description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
-        default: 10
-        required: true
-        type: number
-      namespace:
-        description: "Namespace where you want to create your pipelines in"
-        default: "kubeflow"
-        required: true
-        type: string
-
-  pull_request:
-    paths:
-      - '**/pyproject.toml'
-      - 'uv.lock'
-      - '.github/workflows/compiler-tests.yml'
-      - '.github/actions/test-and-report/**'
-      - '.github/resources/scripts/download-go-modules.sh'
-      - '.github/resources/scripts/helper-functions.sh'
-      - 'backend/src/v2/compiler/**'
-      - 'test_data/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
-
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
-
 jobs:
-  queue-dispatch-guard:
-    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
-    permissions:
-      contents: read
-    uses: ./.github/workflows/queue-dispatch-guard.yml
-    with:
-      queue_head_sha: ${{ inputs.queue_head_sha }}
-      queue_base_ref: ${{ inputs.queue_base_ref }}
-      queue_base_sha: ${{ inputs.queue_base_sha }}
-
-  compiler-tests:
+  fixture:
     runs-on: ubuntu-latest
-    name: Workflow Compiler Tests
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Configure Input Variables
-        shell: bash
-        id: configure
+      - name: Verify isolated queue identity
         env:
-          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
+          EXPECTED_HEAD: ${{ inputs.queue_head_sha || github.event.merge_group.head_sha }}
+          EXPECTED_BASE: ${{ inputs.queue_base_ref || github.event.merge_group.base_ref }}
+          ACTUAL_HEAD: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
         run: |
-          TEST_LABEL=${{ env.TESTS_LABEL }}
-          if [ "${{ (github.event_name == 'workflow_dispatch' && !startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) }}" == "true" ]; then
-            TEST_LABEL=$DISPATCH_TEST_LABEL
-          fi
-          echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"
-
-      - name: Run Tests
-        uses: ./.github/actions/test-and-report
-        id: test-run
-        if: ${{ steps.configure.outcome == 'success' }}
-        with:
-          test_directory: ${{ env.TESTS_DIR }}
-          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
-          python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "Workflow Compiler Tests"
-          skip_api_config: 'true'
+          test "$EXPECTED_HEAD" = "$ACTUAL_HEAD"
+          case "$ACTUAL_REF" in refs/heads/gh-readonly-queue/codex-mq-cap-test-20261114/*) ;; *) exit 1;; esac
+          case "$EXPECTED_BASE" in codex-mq-cap-test-20261114|refs/heads/codex-mq-cap-test-20261114) ;; *) exit 1;; esac
+          sleep 2
