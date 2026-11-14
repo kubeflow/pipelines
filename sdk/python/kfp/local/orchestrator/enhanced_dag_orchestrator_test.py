@@ -211,3 +211,53 @@ class ConditionEvaluatorTest(unittest.TestCase):
                         expression, self.store
                     )
                 )
+
+    def test_loop_item_from_task_output(self):
+        # dsl.ParallelFor(items=make_list().output): the iteration's loop item
+        # must win over the whole list stored as the make-list task output.
+        self.store.put_task_output('make-list', 'Output', [1, 2, 3])
+        self.store.put_parent_input(
+            'pipelinechannel--make-list-Output-loop-item', 2
+        )
+        ref = "inputs.parameter_values['pipelinechannel--make-list-Output-loop-item']"
+        self.assertTrue(
+            ConditionEvaluator.evaluate_condition(
+                f'int({ref}) == 2', self.store
+            )
+        )
+        self.assertFalse(
+            ConditionEvaluator.evaluate_condition(
+                f'int({ref}) == 3', self.store
+            )
+        )
+
+    def test_loop_item_dict_field(self):
+        # dsl.ParallelFor(items=[{'a': 1}, {'a': 2}]) with dsl.If(item.a == 2).
+        ref = "inputs.parameter_values['pipelinechannel--loop-item-param-1-subvar-a']"
+        for item in ({'a': 2}, '{"a": 2}'):
+            with self.subTest(item=item):
+                store = io.IOStore()
+                store.put_parent_input(
+                    'pipelinechannel--loop-item-param-1', item
+                )
+                self.assertTrue(
+                    ConditionEvaluator.evaluate_condition(
+                        f'int({ref}) == 2', store
+                    )
+                )
+                self.assertFalse(
+                    ConditionEvaluator.evaluate_condition(
+                        f'int({ref}) == 1', store
+                    )
+                )
+
+    def test_loop_item_missing_field_is_false(self):
+        self.store.put_parent_input(
+            'pipelinechannel--loop-item-param-1', {'b': 2}
+        )
+        self.assertFalse(
+            ConditionEvaluator.evaluate_condition(
+                "int(inputs.parameter_values['pipelinechannel--loop-item-param-1-subvar-a']) == 2",
+                self.store,
+            )
+        )

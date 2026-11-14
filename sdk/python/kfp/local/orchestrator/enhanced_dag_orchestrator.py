@@ -18,6 +18,7 @@ dsl.ParallelFor."""
 import ast
 import concurrent.futures
 import enum
+import json
 import logging
 import operator
 import re
@@ -141,6 +142,31 @@ class ConditionEvaluator:
         # Remove the pipelinechannel-- prefix
         actual_ref = channel_ref.replace('pipelinechannel--', '')
 
+        # A dsl.ParallelFor loop item is an input of the iteration, even when
+        # the loop runs over a task output (e.g. 'make-list-Output-loop-item'),
+        # so look it up before treating '-Output' as a task output reference.
+        # A field of a dict item ('item.a') is referenced as
+        # '<loop item>-subvar-<field>'.
+        if 'loop-item' in actual_ref:
+            item_ref, _, field = actual_ref.partition('-subvar-')
+            found, item = ConditionEvaluator._get_parent_input(
+                item_ref, io_store
+            )
+            if found:
+                if not field:
+                    return item
+                if isinstance(item, str):
+                    try:
+                        item = json.loads(item)
+                    except ValueError:
+                        pass
+                if isinstance(item, dict) and field in item:
+                    return item[field]
+                logging.warning(
+                    f'Could not resolve field {field!r} of loop item: {item!r}'
+                )
+                return None
+
         # Check if this is a task output reference
         if '-Output' in actual_ref or '--' in actual_ref:
             # Parse task output reference: task-name-Output or task-name--output-name
@@ -161,21 +187,30 @@ class ConditionEvaluator:
                 )
                 return None
         else:
-            # This is a parent input parameter
-            # Try both the stripped name and the full pipelinechannel name
-            # since IOStore keys may use either format depending on how
-            # the sub-DAG's inputs are defined
-            for key in [
-                actual_ref,
-                f'pipelinechannel--{actual_ref}',
-                channel_ref,
-            ]:
-                try:
-                    return io_store.get_parent_input(key)
-                except (ValueError, KeyError):
-                    continue
+            found, value = ConditionEvaluator._get_parent_input(
+                actual_ref, io_store
+            )
+            if found:
+                return value
             logging.warning(f'Could not resolve parent input: {actual_ref}')
             return None
+
+    @staticmethod
+    def _get_parent_input(ref: str, io_store: io.IOStore) -> Tuple[bool, Any]:
+        """Look up a parent input by its stripped or pipelinechannel name.
+
+        IOStore keys may use either format depending on how the sub-DAG's
+        inputs are defined.
+
+        Returns:
+            A (found, value) tuple.
+        """
+        for key in [ref, f'pipelinechannel--{ref}']:
+            try:
+                return True, io_store.get_parent_input(key)
+            except (ValueError, KeyError):
+                continue
+        return False, None
 
     @staticmethod
     def evaluate_condition(condition: str, io_store: io.IOStore) -> bool:
