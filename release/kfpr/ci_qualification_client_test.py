@@ -144,6 +144,87 @@ class ArtifactTest(unittest.TestCase):
         )
         self.assertIsNone(result['wheels'])
 
+    def test_kfp_binary_provenance_is_required_bound_and_revalidated(self):
+        from .go_build_provenance_test import TIME, build_info
+
+        manifest = self.artifact()
+        for record in manifest['images']:
+            arch = record['platform'].split('/')[1]
+            raw = json_envelope(IMAGE)
+            info = build_info()
+            info['ELFMachine'] = (
+                'EM_X86_64' if arch == 'amd64' else 'EM_AARCH64'
+            )
+            for item in info['Settings']:
+                if item['Key'] == 'GOARCH':
+                    item['Value'] = arch
+            raw['report']['results'][0]['source']['path'] = '/bin/kfp'
+            raw['report']['results'][0]['packages'][0]['package'] = {
+                'name': client.go_build_provenance.MODULE,
+                'ecosystem': 'Go',
+                'version': info['Main']['Version'],
+            }
+            record['scan_sha256'] = self.write(record['scan_file'], raw)
+            proof = {
+                'schema': 1,
+                'image_id': IMAGE,
+                'platform': record['platform'],
+                'source_sha': self.identity['source_sha'],
+                'source_time': TIME,
+                'binaries': [
+                    {
+                        'path': '/bin/kfp',
+                        'sha256': 'f' * 64,
+                        'build_info': info,
+                        'module': info['Main']['Path'],
+                        'version': info['Main']['Version'],
+                        'vcs': 'git',
+                        'revision': self.identity['source_sha'],
+                        'time': TIME,
+                        'modified': False,
+                    }
+                ],
+            }
+            filename = f'provenance/api-{arch}.json'
+            record['go_provenance_file'] = filename
+            record['go_provenance_sha256'] = self.write(filename, proof)
+        self.write('manifest.json', manifest)
+        with self.assertRaisesRegex(ValueError, 'source Git repository'):
+            client.read_artifact(self.root, IMAGES, [], self.identity)
+        with mock.patch.object(
+            client.go_build_provenance,
+            'source_identity',
+            return_value={'source_time': TIME},
+        ):
+            result = client.read_artifact(
+                self.root, IMAGES, [], self.identity, source_repo=self.root
+            )
+            self.assertEqual(result['images'], manifest['images'])
+            self.assertEqual(result['scans'][1]['findings'], [])
+            # A forged summary with a matching outer checksum still cannot
+            # change the actual standard Go build metadata.
+            record = manifest['images'][0]
+            proof = json.loads(
+                (self.root / record['go_provenance_file']).read_text()
+            )
+            proof['binaries'][0]['modified'] = True
+            record['go_provenance_sha256'] = self.write(
+                record['go_provenance_file'], proof
+            )
+            self.write('manifest.json', manifest)
+            with self.assertRaisesRegex(ValueError, 'summary'):
+                client.read_artifact(
+                    self.root, IMAGES, [], self.identity, source_repo=self.root
+                )
+            del record['go_provenance_file']
+            self.write('manifest.json', manifest)
+            with self.assertRaisesRegex(
+                ValueError, 'Missing KFP binary provenance'
+            ):
+                client.read_artifact(
+                    self.root, IMAGES, [], self.identity, source_repo=self.root
+                )
+
     def test_identity_and_scope_mutations_fail_before_acceptance(self):
         baseline = self.artifact()
         changes = [
@@ -290,7 +371,7 @@ class DispatchPolicyTest(unittest.TestCase):
         self.read = mock.patch.object(
             client,
             'read_artifact',
-            side_effect=lambda *args: copy.deepcopy(self.result),
+            side_effect=lambda *args, **kwargs: copy.deepcopy(self.result),
         ).start()
         self.verify = mock.patch.object(client, 'verify_run').start()
         self.addCleanup(mock.patch.stopall)

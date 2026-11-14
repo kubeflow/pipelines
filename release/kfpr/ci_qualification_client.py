@@ -7,7 +7,9 @@ import tempfile
 import uuid
 from pathlib import Path
 
+from . import go_build_provenance
 from .ci_images_client import REPO, WORKFLOW, _api, verify_run
+from .ci_images_runner import KFP_GO_IMAGES
 from .ci_security_runner import verify_security
 from .github_api import default_branch
 from .osv_image_scan import SCANNER, validate_report
@@ -18,7 +20,9 @@ from .third_party import verify as verify_third_party
 from .workflow_runs import dispatch_and_watch, validate_run
 
 
-def read_artifact(directory, expected_images, expected_minors, identity):
+def read_artifact(
+    directory, expected_images, expected_minors, identity, *, source_repo=None
+):
     directory = Path(directory)
     for path in directory.rglob('*'):
         if path.is_symlink() or not path.resolve().is_relative_to(
@@ -85,6 +89,35 @@ def read_artifact(directory, expected_images, expected_minors, identity):
             raise ValueError('Image qualification checksum mismatch')
         envelope = json.loads(payload)
         validate_report(envelope, image_id, report_format='json')
+        paths = go_build_provenance.scan_binaries(envelope['report'])
+        if name in KFP_GO_IMAGES and not paths:
+            raise ValueError('OSV omitted the expected KFP Go binary')
+        if paths:
+            if source_repo is None:
+                raise ValueError(
+                    'KFP binary provenance requires the source Git repository'
+                )
+            proof_name = f'provenance/{name}-{platform.split("/")[1]}.json'
+            if record.get('go_provenance_file') != proof_name:
+                raise ValueError('Missing KFP binary provenance')
+            proof_bytes = (directory / proof_name).read_bytes()
+            if hashlib.sha256(proof_bytes).hexdigest() != record.get(
+                'go_provenance_sha256'
+            ):
+                raise ValueError('KFP binary provenance checksum mismatch')
+            source_info = go_build_provenance.source_identity(
+                source_repo, identity['source_sha']
+            )
+            go_build_provenance.verify_scan(
+                json.loads(proof_bytes),
+                envelope['report'],
+                image_id,
+                platform,
+                identity['source_sha'],
+                source_info['source_time'],
+            )
+        elif any(key.startswith('go_provenance_') for key in record):
+            raise ValueError('Unexpected KFP binary provenance')
         image_scans.append(
             {
                 'name': f'image-{name}-{platform.split("/")[1]}',
@@ -356,7 +389,11 @@ def collect_ci(
         cwd=context.root,
     )
     result = read_artifact(
-        directory, expected_images, expected_minors, identity
+        directory,
+        expected_images,
+        expected_minors,
+        identity,
+        source_repo=context.root,
     )
     validate_run(_api(context, f'actions/runs/{identity["run_id"]}'), identity)
     result['run'] = identity
