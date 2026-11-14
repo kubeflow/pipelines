@@ -560,3 +560,15 @@ this evidence to the exact source, image, and raw scanner package inventory.
 Missing, dirty, mismatched, or inconsistent provenance fails collection. Raw
 OSV findings and security-policy semantics remain unchanged. The hosted
 `go_build_provenance_test` suite guards these boundaries.
+
+### Istio prerequisite patch coverage
+
+The release deployment script can select the local
+`manifests/kustomize/third-party/istio/install` overlay to apply compatible Istio
+1.31 image patches without upgrading the prerequisite manifest API surface. Its
+three runtime images, CNI version setting, and injected-sidecar version must
+match. The release inventory retains and hashes the overlay and injector values,
+renders the same local target, and rejects missing inputs or mismatched rendered
+images/injection settings. Existing candidates using the pinned remote base
+remain supported. See the overlay README for the injection-settings refresh
+procedure.
