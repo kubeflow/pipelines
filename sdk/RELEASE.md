@@ -92,6 +92,11 @@
   `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
   into an enclosing `dsl.ExitHandler`, which failed at runtime.
 
+* `kfp.kubernetes.add_toleration`, and `add_toleration_json` with a static dict or
+  list, now raise `ValueError` at compile time for an invalid `operator` or `effect`
+  instead of passing it through to Kubernetes. `Gt` and `Lt` are accepted as
+  operators, and `None` or an empty string still means the field is omitted.
+
 # 2.15.2
 
 ## Bug fixes and other changes
