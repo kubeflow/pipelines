@@ -92,6 +92,10 @@
   `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
   into an enclosing `dsl.ExitHandler`, which failed at runtime.
 
+* `kfp.kubernetes.set_image_pull_secrets`, `add_init_container` (`command` and `args`) and
+  `add_ephemeral_volume` (`access_modes`) now raise `TypeError` when given a plain string
+  instead of a list of strings, rather than splitting it into single characters.
+
 # 2.15.2
 
 ## Bug fixes and other changes
