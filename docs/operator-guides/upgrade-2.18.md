@@ -225,18 +225,35 @@ PostgreSQL deployments retain the
 [MLMD concurrency limitation](https://github.com/kubeflow/pipelines/issues/14353).
 Updated database images do not resolve it or establish production support.
 
-For existing PostgreSQL users, the supplied images move from 18.3 to 18.6 for the
-KFP database and from 14.7 to 14.24 for the legacy metadata database. Review the
+For existing PostgreSQL users, the supplied images move from 18.3 to 18.7 for the
+KFP database and from 14.7 to 14.25 for the legacy metadata database. Review the
 [cumulative PostgreSQL 14 migration notes](https://www.postgresql.org/docs/14/release.html)
 from your installed version. Conditional actions include index repairs described
 in [14.10](https://www.postgresql.org/docs/release/14.10/) and extension,
 logical-decoding, or encrypted-data follow-up in
 [14.24](https://www.postgresql.org/docs/release/14.24/).
 
+The [18.7](https://www.postgresql.org/docs/release/18.7/) and
+[14.25](https://www.postgresql.org/docs/release/14.25/) updates retain the existing
+major versions and do not require a dump/restore for same-major upgrades. Review
+their conditional `REINDEX` guidance; PostgreSQL 18 incremental-backup users
+should take a new full backup after updating. PostgreSQL 14.25 is expected to be
+the final release of the 14 series; this update does not change its support status.
+
 The legacy image also moves from Alpine 3.17 to 3.23. If you use ICU collations,
 check for version mismatches and rebuild affected objects before refreshing their
 recorded collation version. Refreshing the version alone does not repair indexes.
 See [PostgreSQL collation guidance](https://www.postgresql.org/docs/14/sql-altercollation.html#SQL-ALTERCOLLATION-NOTES).
+
+### MySQL image compatibility
+
+The main database image is pinned to MySQL 8.4.13 while retaining the existing
+`mysql_native_password` settings required by MLMD 1.14. The legacy metadata-only
+MySQL overlay still references 8.0.3, a pre-GA release. MySQL does not support an
+in-place upgrade from pre-GA releases to a GA release; do not substitute a current
+8.0 image against that existing data directory. Plan a separately tested logical
+export/import migration before updating that overlay. See the
+[MySQL upgrade paths](https://dev.mysql.com/doc/refman/8.0/en/upgrade-paths.html).
 
 ## SDK and custom-client migration
 

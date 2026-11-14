@@ -417,3 +417,15 @@ for every isolated project. Keep the hosted post-merge check separate from these
 local resolver checks.
 
 - Regenerate `ai-analyzer.lock.yml` with gh-aw v1.2.1 (`gh aw compile ai-analyzer`) and commit `.github/aw/actions-lock.json`. Setup action and compiler versions must match. Actionlint v1.7.12 lacks the generated `concurrency.queue`, `copilot-requests`, `job.workflow_ref`, and job `cache-mode` fields; `.github/actionlint.yaml` limits exact diagnostic exceptions to this generated workflow. The analyzer version, telemetry isolation, and actionlint compatibility tests guard these contracts.
+
+### Istio prerequisite patch coverage
+
+The release deployment script can select the local
+`manifests/kustomize/third-party/istio/install` overlay to apply compatible Istio
+1.31 image patches without upgrading the prerequisite manifest API surface. Its
+three runtime images, CNI version setting, and injected-sidecar version must
+match. The release inventory retains and hashes the overlay and injector values,
+renders the same local target, and rejects missing inputs or mismatched rendered
+images/injection settings. Existing candidates using the pinned remote base
+remain supported. See the overlay README for the injection-settings refresh
+procedure.

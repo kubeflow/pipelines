@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Keep the 1.31 manifest API/RBAC surface while taking the compatible image patch.
+resources:
+- https://github.com/kubeflow/community-distribution/common/istio/istio-install/base?ref=2b97be072f7d8889a2404c00fcaac2027bdac17c
+
+images:
+- name: docker.io/istio/install-cni
+  newTag: 1.31.4
+- name: docker.io/istio/pilot
+  newTag: 1.31.4
+- name: docker.io/istio/proxyv2
+  newTag: 1.31.4
+
+configMapGenerator:
+- name: istio-sidecar-injector
+  namespace: istio-system
+  behavior: merge
+  files:
+  - values=injector-values.json
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+patches:
+- target:
+    version: v1
+    kind: ConfigMap
+    name: istio-cni-config
+    namespace: kube-system
+  patch: |-
+    - op: replace
+      path: /data/CURRENT_AGENT_VERSION
+      value: 1.31.4

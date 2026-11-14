@@ -23,7 +23,7 @@ spec:
       # in sync across all wait-for-* containers in this repo.
       initContainers:
         - name: wait-for-database
-          image: docker.io/alpine:3.23
+          image: docker.io/alpine:3.23.8@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2
           securityContext:
             allowPrivilegeEscalation: false
             seccompProfile:
@@ -69,7 +69,7 @@ spec:
                 sleep 5
               done
         - name: wait-for-metadata-grpc
-          image: docker.io/alpine:3.23
+          image: docker.io/alpine:3.23.8@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2
           securityContext:
             allowPrivilegeEscalation: false
             seccompProfile:

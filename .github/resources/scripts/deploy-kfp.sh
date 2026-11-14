@@ -138,8 +138,9 @@ fi
 
 
 # Pin kubeflow/community-distribution to a specific commit for reproducibility.
-# To upgrade: verify all four paths below exist at the new SHA before updating.
-KUBEFLOW_MANIFESTS_SHA="f58ecb0686f9a53d26adeb49286ef31063dfae4b"
+# To upgrade: verify the prerequisite paths and update the local Istio base pin.
+# Dashboard 2.0.1 dependency fixes; the local Istio overlay retains 1.31 APIs.
+KUBEFLOW_MANIFESTS_SHA="2b97be072f7d8889a2404c00fcaac2027bdac17c"
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
 # wait_for_pods_ready waits for pods to reach condition=Ready and, on timeout,
@@ -189,7 +190,7 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
   kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-crds/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
   kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-namespace/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
-  kubectl apply -k "https://github.com/kubeflow/community-distribution/common/istio/istio-install/base?ref=${KUBEFLOW_MANIFESTS_SHA}"
+  kubectl apply -k "manifests/kustomize/third-party/istio/install"
   echo "Waiting for all Istio Pods to become ready..."
   wait_for_pods_ready istio-system "" 300s "Istio pods"
 
