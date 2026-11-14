@@ -121,7 +121,7 @@ const github = {rest: {repos: {get: async parameters => {
         queue = rules['merge_queue']
         self.assertEqual(queue['merge_method'], 'SQUASH')
         self.assertEqual(queue['grouping_strategy'], 'ALLGREEN')
-        self.assertEqual(queue['max_entries_to_build'], 2)
+        self.assertEqual(queue['max_entries_to_build'], 5)
         self.assertEqual(queue['max_entries_to_merge'], 2)
         checks = rules['required_status_checks']
         self.assertFalse(checks['strict_required_status_checks_policy'])
