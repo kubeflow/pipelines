@@ -145,7 +145,6 @@ for (const path of JSON.parse(process.argv[1])) {
                         'withRequestAccounting' in script
                         or 'ci_merge_group.js' in script
                         or 'merge_queue_dispatch' in script
-                        or 'wechuli/allcheckspassed@' in step.get('uses', '')
                     ):
                         self.assertIn(
                             'node_http_accounting.cjs',
@@ -161,8 +160,6 @@ for (const path of JSON.parse(process.argv[1])) {
                 'merged_prepare',
                 'merged_finalize',
                 'revoke',
-                'all_checks',
-                'merged_all_checks',
                 'merge_group',
                 'queue_admission',
             },

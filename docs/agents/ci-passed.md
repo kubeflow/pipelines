@@ -58,7 +58,7 @@ failed producer or another required check.
 | Expected workflow queued, running, or waiting | Pending; no success label | Trusted PR base workflow definitions and current Actions run state |
 | Expected workflow absent | Pending for 15 minutes from the first status on this SHA (or a later base retarget), then failure | Durable status history and PR timeline |
 | Expected workflow cancelled or unsuccessful | Failure, even while other work is pending | Current Actions run state |
-| Other discovered check pending or unsuccessful | Pending or failure respectively; known failures take precedence | Structured check-run assessment, pinned allcheckspassed action, and Tide contexts |
+| Other discovered check pending or unsuccessful | Pending or failure respectively; known failures take precedence | Structured check-run assessment and Tide contexts |
 | API or malformed evidence | Failure; no inferred success | Strict evidence validation |
 | Head changes | Old events cannot publish onto the new head | Event SHA binding and PR rereads |
 | Base retargets | Old workflow executions cannot authorize the new base | Durable PR timeline cutoff; original run creation must follow the retarget |
@@ -141,7 +141,7 @@ external results; a prepared failure already blocks success and skips that scan,
 but does not repeat the workflow assessment. If workflows recover between
 steps, the next completion event or recovery sweep can publish success. This
 may delay green; a prepared result can never authorize it. Successful decisions
-still require the independent checker and fresh workflow/check evidence before
+still require successful preparation and fresh workflow/check evidence before
 and after publication.
 
 ## Expected workflow inventory
@@ -245,9 +245,11 @@ name exclusions retain their prior behavior; expected workflows must still finis
 successfully. Empty, incomplete, unknown, or inconsistent evidence cannot be green.
 Commit statuses are excluded, avoiding a dependency on `ci-passed` or `tide` itself.
 
-The pinned checker remains an independent success requirement. If it was skipped
-before workflow evidence recovered, the result remains pending until another
-reconciliation validates all checks. Its failed outcome cannot authorize success.
+The finalizer owns the fresh check assessment; a separate third-party checker
+no longer repeats the same discovery. Successful preparation and an explicit
+ready result are prerequisites, not evidence that checks passed. If preparation
+was interrupted, no success is possible. A prepared non-success result remains
+non-success until a later reconciliation, even if workflows recover between steps.
 Both expected workflows and external check evidence are reread after publication
 to revoke a success that raced with a rerun. This adds API reads, including one
 paginated jobs lookup per relevant rerun attempt; it adds no waiting loop or runner
@@ -422,8 +424,8 @@ identical trees and identical sole parents. This proves the immutable pre-PR
 base without trusting a subsequently advancing PR base field. Multi-commit PRs,
 merge commits with multiple parents, and changed parents or trees fail closed;
 a first parent alone is not proof because a multi-commit rebase can put it inside
-the PR. The required workflow inventory comes from this verified parent. Other green or failed aggregate statuses are left untouched. The pinned independent checker,
-required-workflow validation and external-check reader must all pass. Identity
+the PR. The required workflow inventory comes from this verified parent. Other green or failed aggregate statuses are left untouched. Successful preparation,
+required-workflow validation and the fresh external-check reader are all required. Identity
 changes, unavailable evidence and pending or failed checks cannot authorize a
 success. Recovery does not change PR labels. No release tag or package is published by this workflow.
 
