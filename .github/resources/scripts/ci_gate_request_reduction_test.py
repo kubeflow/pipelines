@@ -448,6 +448,107 @@ class CIGateRequestReductionTest(unittest.TestCase):
             json.loads(result['outputs']['prepared_result'])['intermediate']
         )
 
+    def failed_completion(self, conclusion='failure', **overrides):
+        failed = {
+            'id': 43,
+            'workflow_id': 43,
+            'check_suite_id': 943,
+            'run_attempt': 1,
+            'path': '.github/workflows/backend.yml',
+            'event': 'pull_request',
+            'head_sha': 'head',
+            'status': 'completed',
+            'conclusion': conclusion,
+            'created_at': '2026-09-07T11:00:00Z',
+            'run_started_at': '2026-09-07T11:01:00Z',
+        }
+        return self.completion(
+            eventRun={'conclusion': conclusion},
+            **{'discoveredRuns': [failed], **overrides},
+        )
+
+    def test_failed_completions_skip_full_scans(self):
+        for conclusion in (
+            'failure',
+            'cancelled',
+            'timed_out',
+            'action_required',
+            'stale',
+            'startup_failure',
+        ):
+            with self.subTest(conclusion=conclusion):
+                result = self.failed_completion(conclusion)
+                self.assertNotIn('error', result)
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
+                self.assertEqual(
+                    sum(result['requestCounts'].values()), 6, result
+                )
+                for name in (
+                    'inventory',
+                    'timeline',
+                    'files',
+                    'base',
+                    'associated',
+                    'history',
+                    'checks',
+                ):
+                    self.assertEqual(result['requestCounts'][name], 0, result)
+
+    def test_failed_completion_interruption_preserves_failure(self):
+        result = self.failed_completion(
+            initialStatus='failure', statusReadFailureAt=1
+        )
+        self.assertIn('error', result)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assertNotIn(['status', 'pending', 'head'], result['calls'])
+
+    def test_failed_completion_recovery_cannot_publish_green(self):
+        result = self.failed_completion(finishActiveBeforeFinal=True)
+        self.assertEqual(result['status'], 'failure', result)
+        self.assert_never_green(result)
+        recovered = self.completion(discoveredRuns=[], initialStatus='failure')
+        self.assertEqual(recovered['status'], 'success', recovered)
+        self.assertGreater(recovered['requestCounts']['checks'], 0)
+
+    def test_failed_completion_rechecks_pr_identity(self):
+        for drift in ('head', 'base', 'base-sha', 'hold', 'closed'):
+            with self.subTest(drift=drift):
+                result = self.failed_completion(beforeFinalDrift=drift)
+                self.assertEqual(result['status'], 'failure', result)
+                self.assert_never_green(result)
+
+    def test_failed_event_superseded_by_newer_run_uses_full_checks(self):
+        old = {
+            'id': 43,
+            'workflow_id': 43,
+            'check_suite_id': 943,
+            'run_attempt': 1,
+            'path': '.github/workflows/backend.yml',
+            'event': 'pull_request',
+            'head_sha': 'head',
+            'status': 'completed',
+            'conclusion': 'failure',
+            'created_at': '2026-09-07T11:00:00Z',
+            'run_started_at': '2026-09-07T11:01:00Z',
+        }
+        newer = {
+            **old,
+            'id': 44,
+            'check_suite_id': 944,
+            'conclusion': 'success',
+            'run_started_at': '2026-09-07T12:01:00Z',
+        }
+        result = self.failed_completion(discoveredRuns=[old, newer])
+        self.assertEqual(result['status'], 'success', result)
+        self.assertGreater(result['requestCounts']['checks'], 0)
+        self.assertGreater(result['requestCounts']['files'], 0)
+
+    def test_failed_completion_bad_probe_falls_back(self):
+        result = self.failed_completion(discoveredRunsFailure=True)
+        self.assertGreater(result['requestCounts']['files'], 0, result)
+        self.assert_never_green(result)
+
     def test_successful_completion_coalesces_while_another_run_is_active(self):
         result = self.completion(initialStatus='success')
         self.assertEqual(result['status'], 'pending', result)

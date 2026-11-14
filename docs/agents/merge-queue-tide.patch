@@ -1,0 +1,35 @@
+--- a/prow/oss/config.yaml
++++ b/prow/oss/config.yaml
+@@ -102,22 +102,9 @@
+     - do-not-merge/invalid-owners-file
+     - do-not-merge/work-in-progress
+     - needs-rebase
+-  - repos:
+-    - kubeflow/pipelines
+-    author: "dependabot[bot]"
+-    includedBranches:
++    excludedBranches:
+     - master
+     - main
+-    # Merge is gated by the required 'ci-passed' commit status in
+-    # context_options below (branch-protection is inert here: no
+-    # branchprotector is deployed in oss-test-infra).
+-    missingLabels:
+-    - do-not-merge
+-    - do-not-merge/hold
+-    - do-not-merge/invalid-owners-file
+-    - do-not-merge/work-in-progress
+-    - needs-rebase
+-    - needs-ok-to-test
+   - orgs:
+     - kubeflow
+     labels:
+@@ -129,6 +116,8 @@
+     - do-not-merge/invalid-owners-file
+     - do-not-merge/work-in-progress
+     - needs-rebase
++    excludedRepos:
++    - kubeflow/pipelines
+   - author: google-oss-robot
+     labels: # google-oss-robot should only create autobump PR with this label
+     - skip-review

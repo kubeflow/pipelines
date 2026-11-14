@@ -234,7 +234,8 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
         # Read this workflow's two literal label branches, without implementing
         # a general GitHub Actions expression evaluator.
         branches = re.fullmatch(
-            r"\$\{\{ fromJSON\(github\.event_name == 'workflow_dispatch' && "
+            r"\$\{\{ fromJSON\(\(github\.event_name == 'workflow_dispatch' && "
+            r"!startsWith\(github\.ref, 'refs/heads/gh-readonly-queue/'\)\) && "
             r"'([^']+)' \|\| '([^']+)'\) \}\}",
             matrix['test_label'],
         )
