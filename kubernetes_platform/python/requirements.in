@@ -11,7 +11,7 @@ requests==2.32.5; python_version < "3.10"
 requests==2.33.0; python_version >= "3.10"
 urllib3==2.6.3; python_version < "3.10"
 urllib3==2.8.0; python_version >= "3.10"
-oauthlib>=4.0.0,<5
+oauthlib>=4.0.1,<5
 
 # Keep this transitive TLS dependency above the GHSA-6q48-6c7w-9gw2 security floor.
 # 2026.10.19 retains the compromised emSign root removal while restoring unaffected
@@ -21,3 +21,6 @@ certifi>=2026.10.19
 # Match the SDK compatibility split when resolving the published kfp package.
 google-api-core>=2.30.3,<3; python_version < "3.10"
 google-api-core>=2.44.0,<3; python_version >= "3.10"
+
+# Patched ASN.1 decoder used by authentication dependencies.
+pyasn1>=0.6.5

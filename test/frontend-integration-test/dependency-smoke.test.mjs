@@ -17,7 +17,7 @@
 // See README.md, "Dependency compatibility checks".
 
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -36,17 +36,25 @@ async function loadConfig() {
   return {
     options: parser.getConfig(),
     capabilities: parser.getCapabilities(),
+    specs: parser.getSpecs(),
   };
 }
 
 test("WebdriverIO loads and merges the integration configuration", async () => {
-  const { options, capabilities } = await loadConfig();
+  const { options, capabilities, specs } = await loadConfig();
   assert.equal(options.framework, expectedConfig.framework);
   assert.equal(options.hostname, expectedConfig.hostname);
   assert.equal(options.port, expectedConfig.port);
-  assert.deepEqual(options.mochaOpts, { ...expectedConfig.mochaOpts, retries: 1 });
-  assert.equal(capabilities[0].browserName, expectedConfig.capabilities[0].browserName);
+  assert.deepEqual(options.mochaOpts, {
+    ...expectedConfig.mochaOpts,
+    retries: 1,
+  });
+  assert.equal(
+    capabilities[0].browserName,
+    expectedConfig.capabilities[0].browserName,
+  );
   assert.ok(options.specs.length > 0);
+  assert.ok(specs.some((spec) => spec.endsWith("helloworld.spec.js")));
 });
 
 test("the pinned browser installer exposes the API WebdriverIO calls", () => {
@@ -79,5 +87,22 @@ test("explicit Selenium configuration skips automatic browser and driver provisi
     assert.deepEqual(await readdir(cacheDir), []);
   } finally {
     await rm(cacheDir, { recursive: true, force: true });
+  }
+});
+
+// archiver-utils and WebdriverIO use the modern glob API. Keep its behavior
+// covered while overriding vulnerable releases without changing Mocha's glob 8.
+test("archive file patterns preserve exclusions with the patched glob", async () => {
+  const require = createRequire(import.meta.url);
+  const { file } = require("archiver-utils");
+  const cwd = await mkdtemp(path.join(tmpdir(), "kfp-archive-glob-"));
+  try {
+    await writeFile(path.join(cwd, "include.txt"), "included");
+    await writeFile(path.join(cwd, "exclude.txt"), "excluded");
+    assert.deepEqual(file.expand({ cwd }, ["*.txt", "!exclude.txt"]), [
+      "include.txt",
+    ]);
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
   }
 });

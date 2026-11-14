@@ -16,13 +16,26 @@ RUN kubernetes_version="${KUBERNETES_VERSION#v}" \
     && kubernetes_minor="${kubernetes_version#*.}" \
     && kubernetes_minor="${kubernetes_minor%%.*}" \
     && go get golang.org/x/net@v0.62.0 golang.org/x/crypto@v0.59.0 golang.org/x/text@v0.44.0 \
+      go.opentelemetry.io/otel@v1.47.0 \
+      go.opentelemetry.io/otel/trace@v1.47.0 \
+      go.opentelemetry.io/otel/metric@v1.47.0 \
+      go.opentelemetry.io/otel/log@v1.47.0 \
+      go.opentelemetry.io/otel/sdk@v1.47.0 \
+      go.opentelemetry.io/otel/sdk/metric@v1.47.0 \
+      go.opentelemetry.io/otel/exporters/stdout/stdouttrace@v1.47.0 \
+      go.opentelemetry.io/otel/exporters/otlp/otlptrace@v1.47.0 \
+      go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc@v1.47.0 \
     && go build -trimpath -buildvcs=true -ldflags="-s -w -X k8s.io/component-base/version.gitVersion=${KUBERNETES_VERSION} -X k8s.io/component-base/version.gitMajor=${kubernetes_major} -X k8s.io/component-base/version.gitMinor=${kubernetes_minor} -X k8s.io/component-base/version.gitCommit=${KUBERNETES_COMMIT} -X k8s.io/component-base/version.gitTreeState=modified" -o /out/kubectl ./cmd/kubectl \
     && go version -m /out/kubectl > /out/kubectl.buildinfo \
     && cat /out/kubectl.buildinfo \
     && awk -v expected="${KUBERNETES_VERSION}+dirty" -v commit="${KUBERNETES_COMMIT}" \
       '$1 == "mod" && $2 == "k8s.io/kubernetes" { version = $3 } \
        $1 == "build" && $2 == "vcs.revision=" commit { revision = 1 } \
-       END { exit !(version == expected && revision) }' /out/kubectl.buildinfo
+       END { exit !(version == expected && revision) }' /out/kubectl.buildinfo \
+    && go list -m all > /out-modules.txt \
+    && awk '$1 == "go.opentelemetry.io/otel/metric/x" { experimental++; if ($2 != "v0.69.0") bad = 1; next } \
+      $1 ~ /^go.opentelemetry.io\/otel(\/|$)/ { stable++; if ($2 != "v1.47.0") bad = 1 } \
+      END { exit (bad || stable != 9 || experimental != 1) }' /out-modules.txt
 
 FROM alpine:3.21
 
