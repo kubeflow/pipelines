@@ -59,7 +59,14 @@ fi
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
 source "${BASH_SOURCE%/*}/list-image-artifacts.sh"
 artifact_cache_dir=$(mktemp -d)
-trap 'rm -rf "$artifact_cache_dir"' EXIT
+: > "$artifact_cache_dir/accounting" || true
+finish_artifact_wait() {
+  local result=$?
+  python3 "${BASH_SOURCE%/*}/summarize-gh-responses.py" "$artifact_cache_dir/accounting" >&2 || true
+  rm -rf "$artifact_cache_dir" || true
+  exit "$result"
+}
+trap finish_artifact_wait EXIT
 
 # Most deployments never start a viewer. Only viewer acceptance callers need
 # the optional runtime; do not delay every backend lane on its publication.
@@ -75,10 +82,12 @@ failed_missing_producers=()
 successful_missing_producers=()
 unknown_missing_producers=()
 classify_missing_producers() {
-  local producer_jobs=""
-  if ! producer_jobs=$(gh api --paginate \
+  local producer_jobs="" response="" request_exit=0
+  response=$(gh api --include --paginate \
       "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?filter=latest&per_page=100" \
-      --jq '.jobs[] | [.name, .status, (.conclusion // "")] | @tsv'); then
+      --jq '.jobs[] | [.name, .status, (.conclusion // "")] | @tsv') || request_exit=$?
+  producer_jobs=$(record_gh_response "$artifact_cache_dir/accounting" jobs "$request_exit" "$response" body)
+  if (( request_exit != 0 )); then
     echo "::warning::Could not list image producer jobs." >&2
     return 1
   fi

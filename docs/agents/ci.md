@@ -417,3 +417,25 @@ for every isolated project. Keep the hosted post-merge check separate from these
 local resolver checks.
 
 - Regenerate `ai-analyzer.lock.yml` with gh-aw v1.2.1 (`gh aw compile ai-analyzer`) and commit `.github/aw/actions-lock.json`. Setup action and compiler versions must match. Actionlint v1.7.12 lacks the generated `concurrency.queue`, `copilot-requests`, `job.workflow_ref`, and job `cache-mode` fields; `.github/actionlint.yaml` limits exact diagnostic exceptions to this generated workflow. The analyzer version, telemetry isolation, and actionlint compatibility tests guard these contracts.
+
+- Release image readiness emits one `github_request_accounting` summary on exit. It counts GitHub CLI invocations and observed artifact/producer response headers separately, including producer pagination, and reports status/exit counts plus numeric quota snapshots. Its temporary journal survives command substitutions; accounting errors do not change readiness success or failure. Bodies, URLs, ETags, tokens and arbitrary header values are excluded. Opaque CLI transport retries/redirects are outside this measurement. This instrumentation adds no API requests and preserves the combined same-workflow image download; release does not use master's cross-workflow shared image publisher.
+
+The artifact-download retry wrapper also preloads `node_http_accounting.cjs`
+for each Node action attempt. Its `node_http_attempts` summary observes Undici
+and native HTTP requests, including redirects, retries and transport failures,
+without changing transport behavior or issuing API calls. Endpoint categories
+are bounded; URLs, signed query strings, credentials and bodies are omitted.
+Only API-origin responses contribute numeric quota observations. `transport_supported`
+is false before Node 24. Normal and nonzero process exits emit summaries; hard
+kills and other processes are outside this measurement. Run
+`node_http_accounting_test.py` with Node 24 or newer.
+
+Release deployment already downloads its same-workflow image set in one action
+invocation; it does not use master's separate runtime/application verification
+path. Preserve that combined flow and the existing per-workflow readiness barrier.
+The centralized gate on master supplies gate-client transport accounting for
+release PRs too. Keep measurement types separate: Node HTTP attempts, observed
+gh response pages and gh invocation counts overlap within their own boundaries
+and must not be added indiscriminately. Quota header changes reflect the shared
+installation pool, not traffic attributable solely to a step. No Dependabot
+schedule or rebase strategy changes are needed for this instrumentation.

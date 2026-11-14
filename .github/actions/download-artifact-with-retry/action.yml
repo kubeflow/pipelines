@@ -48,6 +48,9 @@ runs:
     - name: Download artifact
       id: primary
       uses: actions/download-artifact@v8
+      env:
+        NODE_OPTIONS: --require "${{ github.action_path }}/../../resources/scripts/node_http_accounting.cjs"
+        CI_HTTP_ACCOUNTING_SCOPE: artifact_primary
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
@@ -71,6 +74,9 @@ runs:
       id: retry
       if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
       uses: actions/download-artifact@v8
+      env:
+        NODE_OPTIONS: --require "${{ github.action_path }}/../../resources/scripts/node_http_accounting.cjs"
+        CI_HTTP_ACCOUNTING_SCOPE: artifact_retry
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
