@@ -32,6 +32,15 @@ export interface V2RuntimeConfig {
    * @memberof V2RuntimeConfig
    */
   pipeline_root?: string;
+  /**
+   * Overrides caching for every task in the run, including tasks in nested
+   * DAGs. When unset, each task keeps the caching setting it was compiled
+   * with. When true, caching is still disabled if the deployment disables it.
+   * For recurring runs, the setting applies to every triggered run.
+   * @type {boolean}
+   * @memberof V2RuntimeConfig
+   */
+  enable_caching?: boolean | null;
 }
 
 /**
@@ -55,6 +64,7 @@ export function V2RuntimeConfigFromJSONTyped(
   return {
     parameters: json['parameters'] == null ? undefined : json['parameters'],
     pipeline_root: json['pipeline_root'] == null ? undefined : json['pipeline_root'],
+    enable_caching: json['enable_caching'] == null ? undefined : json['enable_caching'],
   };
 }
 
@@ -73,5 +83,6 @@ export function V2RuntimeConfigToJSONTyped(
   return {
     parameters: value['parameters'],
     pipeline_root: value['pipeline_root'],
+    enable_caching: value['enable_caching'],
   };
 }

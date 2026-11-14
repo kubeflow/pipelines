@@ -790,6 +790,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to retrieve recurring run")
 		}
+		if run.EnableCaching == nil {
+			// ScheduledWorkflows without a workflow resource do not carry the
+			// override, so take it from the stored recurring run.
+			run.EnableCaching = job.EnableCaching
+		}
 		ownerNamespace := job.Namespace
 		if common.IsMultiUserMode() && r.IsEmptyNamespace(ownerNamespace) {
 			ownerNamespace = run.Namespace
@@ -1961,8 +1966,9 @@ func (r *ResourceManager) prepareJobWorkflow(ctx context.Context, job *model.Job
 			return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 		}
 
+		// The controller sends these with every run it creates through the API.
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
-			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
+			Parameters: parameters, PipelineRoot: string(job.PipelineRoot), EnableCaching: job.EnableCaching,
 		}
 		scheduledWorkflow.Spec.ServiceAccount, err = scheduledServiceAccount(renderedScheduledWorkflow, job.ServiceAccount)
 		if err != nil {
@@ -3372,6 +3378,14 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
+	// Apply the run's enable_caching override after resolving the pipeline
+	// version. The rewritten manifest is stored with the run or recurring run
+	// and is what the driver reads; the pipeline version is not modified.
+	effectiveManifest, err := template.ApplyCachingOverride([]byte(manifest), pipelineSpec.EnableCaching)
+	if err != nil {
+		return nil, "", err
+	}
+	manifest = string(effectiveManifest)
 	templateOptions := template.TemplateOptions{
 		CacheDisabled:          r.options.CacheDisabled,
 		DefaultWorkspace:       r.options.DefaultWorkspace,

@@ -1539,8 +1539,47 @@ func TestParseRuntimeConfig(t *testing.T) {
 		Valid:  true,
 		String: "gs://my-bucket/path/to/root/run1",
 	}
-	actualRuntimeConfig := parseRuntimeConfig(parametersNullString, pipelineRootNullString)
+	actualRuntimeConfig := parseRuntimeConfig(parametersNullString, pipelineRootNullString, sql.NullBool{})
 	assert.Equal(t, expectedRuntimeConfig, actualRuntimeConfig)
+}
+
+// enable_caching is nullable: NULL (unset) must not be read back as false.
+func TestRunAndJobStoreEnableCaching(t *testing.T) {
+	for i, enableCaching := range []*bool{nil, util.BoolPointer(false), util.BoolPointer(true)} {
+		db, testDialect, runStore := initializeRunStore()
+		id := fmt.Sprintf("enable-caching-%d", i)
+		_, err := runStore.CreateRun(&model.Run{
+			UUID: id, ExperimentId: defaultFakeExpId, K8SName: id, DisplayName: id,
+			StorageState: model.StorageStateAvailable, Namespace: "n1",
+			RunDetails:   model.RunDetails{CreatedAtInSec: 1, ScheduledAtInSec: 1, State: model.RuntimeStatePending},
+			PipelineSpec: model.PipelineSpec{RuntimeConfig: model.RuntimeConfig{EnableCaching: enableCaching}},
+		})
+		require.NoError(t, err)
+		run, err := runStore.GetRun(id, false)
+		require.NoError(t, err)
+		assert.Equal(t, enableCaching, run.EnableCaching, "GetRun")
+		runs, _, _, err := runStore.ListRuns(&model.FilterContext{}, list.EmptyOptions(), false)
+		require.NoError(t, err)
+		found := false
+		for _, listed := range runs {
+			if listed.UUID == id {
+				found = true
+				assert.Equal(t, enableCaching, listed.EnableCaching, "ListRuns")
+			}
+		}
+		assert.True(t, found)
+
+		jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
+		_, err = jobStore.CreateJob(&model.Job{
+			UUID: id, DisplayName: id, K8SName: id, Namespace: "n1", Enabled: true, ExperimentId: defaultFakeExpId,
+			PipelineSpec: model.PipelineSpec{PipelineId: "p1", RuntimeConfig: model.RuntimeConfig{EnableCaching: enableCaching}},
+		})
+		require.NoError(t, err)
+		job, err := jobStore.GetJob(id)
+		require.NoError(t, err)
+		assert.Equal(t, enableCaching, job.EnableCaching, "GetJob")
+		db.Close()
+	}
 }
 
 func TestParseResourceReferences(t *testing.T) {
@@ -1625,7 +1664,7 @@ func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
 	// subquery (UUID + sort key, ORDER BY + LIMIT) is the innermost layer, and
 	// the refs/tasks/metrics aggregation runs only over the paged rows. The
 	// outer ORDER BY re-sorts the final result without LIMIT (already applied).
-	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "EnableCaching", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest", "refs" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."EnableCaching", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", rd."ImportedFrom", rd."ImportDigest", withrefs."refs" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "EnableCaching", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "ImportedFrom", "ImportDigest" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS withrefs JOIN "run_details" AS rd ON withrefs."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
 	assert.Equal(t, expectedSQL, sqlStr,
 		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
 

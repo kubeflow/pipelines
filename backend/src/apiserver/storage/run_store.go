@@ -50,6 +50,7 @@ var runColumns = []string{
 	"Parameters",
 	"RuntimeParameters",
 	"PipelineRoot",
+	"EnableCaching",
 	"PipelineRuntimeManifest",
 	"WorkflowRuntimeManifest",
 	"JobUUID",
@@ -91,6 +92,7 @@ var runListColumns = []string{
 	"Parameters",
 	"RuntimeParameters",
 	"PipelineRoot",
+	"EnableCaching",
 	"'' AS PipelineRuntimeManifest",
 	"'' AS WorkflowRuntimeManifest",
 	"JobUUID",
@@ -647,6 +649,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var resourceReferencesInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, importedFrom, importDigest sql.NullString
+		var enableCaching sql.NullBool
 
 		// Scan the run columns and historical reference aggregate.
 		scanDest := []interface{}{
@@ -670,6 +673,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&parameters,
 			&runtimeParameters,
 			&pipelineRoot,
+			&enableCaching,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
 			&jobID,
@@ -716,7 +720,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				jID = model.GetRefIdFromResourceReferences(resourceReferences, model.JobResourceType)
 			}
 		}
-		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot, enableCaching)
 		var stateHistoryNew []*model.RuntimeStatus
 		if stateHistory.Valid {
 			err := json.Unmarshal([]byte(stateHistory.String), &stateHistoryNew)
@@ -778,7 +782,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 	return runs, nil
 }
 
-func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
+func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString, enableCaching sql.NullBool) model.RuntimeConfig {
 	var runtimeParametersString, pipelineRootString string
 	if runtimeParameters.Valid {
 		runtimeParametersString = runtimeParameters.String
@@ -786,7 +790,11 @@ func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullS
 	if pipelineRoot.Valid {
 		pipelineRootString = pipelineRoot.String
 	}
-	return model.RuntimeConfig{Parameters: model.LargeText(runtimeParametersString), PipelineRoot: model.LargeText(pipelineRootString)}
+	config := model.RuntimeConfig{Parameters: model.LargeText(runtimeParametersString), PipelineRoot: model.LargeText(pipelineRootString)}
+	if enableCaching.Valid {
+		config.EnableCaching = &enableCaching.Bool
+	}
+	return config
 }
 
 func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
@@ -850,6 +858,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			q("Parameters"):              r.PipelineSpec.Parameters,
 			q("RuntimeParameters"):       r.PipelineSpec.RuntimeConfig.Parameters,
 			q("PipelineRoot"):            r.PipelineSpec.RuntimeConfig.PipelineRoot,
+			q("EnableCaching"):           r.PipelineSpec.RuntimeConfig.EnableCaching,
 			q("PipelineVersionId"):       r.PipelineSpec.PipelineVersionId,
 			q("JobUUID"):                 r.RecurringRunId,
 			q("ImportedFrom"):            r.ImportedFrom,

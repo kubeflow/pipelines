@@ -54,6 +54,7 @@ var jobColumns = []string{
 	"Conditions",
 	"RuntimeParameters",
 	"PipelineRoot",
+	"EnableCaching",
 	"ExperimentUUID",
 	"PipelineVersionId",
 	"PluginsInput",
@@ -260,6 +261,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond, updatedAtInSec sql.NullInt64
 		var cron, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
 		var experimentID, pipelineVersionID, pluginsInput sql.NullString
+		var enableCaching sql.NullBool
 		var enabled, noCatchup bool
 		var maxConcurrency int64
 		err := r.Scan(
@@ -268,7 +270,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
 			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&conditions, &runtimeParameters, &pipelineRoot, &experimentID,
+			&conditions, &runtimeParameters, &pipelineRoot, &enableCaching, &experimentID,
 			&pipelineVersionID, &pluginsInput, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
@@ -290,7 +292,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				pvID = model.GetRefIdFromResourceReferences(resourceReferences, model.PipelineVersionResourceType)
 			}
 		}
-		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot, enableCaching)
 		job := &model.Job{
 			UUID:           uuid,
 			DisplayName:    displayName,
@@ -417,6 +419,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			q("Parameters"):                     j.PipelineSpec.Parameters,
 			q("RuntimeParameters"):              j.PipelineSpec.RuntimeConfig.Parameters,
 			q("PipelineRoot"):                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
+			q("EnableCaching"):                  j.PipelineSpec.RuntimeConfig.EnableCaching,
 			q("ExperimentUUID"):                 j.ExperimentId,
 			q("PipelineVersionId"):              j.PipelineSpec.PipelineVersionId,
 			q("PluginsInput"):                   largeTextToNullableSQL(j.PluginsInputString),

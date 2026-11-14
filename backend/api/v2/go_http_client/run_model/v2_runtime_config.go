@@ -14,6 +14,12 @@ import (
 // swagger:model v2RuntimeConfig
 type V2RuntimeConfig struct {
 
+	// Overrides caching for every task in the run, including tasks in nested
+	// DAGs. When unset, each task keeps the caching setting it was compiled
+	// with. When true, caching is still disabled if the deployment disables it.
+	// For recurring runs, the setting applies to every triggered run.
+	EnableCaching *bool `json:"enable_caching,omitempty"`
+
 	// The runtime parameters of the Pipeline. The parameters will be
 	// used to replace the placeholders at runtime.
 	Parameters map[string]any `json:"parameters,omitempty"`

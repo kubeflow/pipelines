@@ -20,6 +20,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -67,9 +68,15 @@ func (r *ResourceManager) recurringRunReportPipelineSpec(job *model.Job, executi
 		return source, util.NewFailedPreconditionError(fmt.Errorf("selected pipeline manifest is missing"),
 			"Restore the manifest of pipeline version %s before recovering recurring run %s", version.UUID, runID)
 	}
+	// CreateRun stores the manifest with the recurring run's enable_caching
+	// override applied, so a recovered run must store the same manifest.
+	manifest, err := template.ApplyCachingOverride([]byte(version.PipelineSpec), source.EnableCaching)
+	if err != nil {
+		return source, util.Wrapf(err, "Failed to restore the selected pipeline source for recurring run %s", runID)
+	}
 	source.PipelineId = version.PipelineId
 	source.PipelineName = version.Name
-	source.PipelineSpecManifest = version.PipelineSpec
+	source.PipelineSpecManifest = model.LargeText(manifest)
 	source.WorkflowSpecManifest = ""
 	return source, nil
 }

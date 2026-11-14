@@ -34,15 +34,17 @@ class V2RuntimeConfig(object):
     """
     openapi_types = {
         'parameters': 'dict(str, object)',
-        'pipeline_root': 'str'
+        'pipeline_root': 'str',
+        'enable_caching': 'bool'
     }
 
     attribute_map = {
         'parameters': 'parameters',
-        'pipeline_root': 'pipeline_root'
+        'pipeline_root': 'pipeline_root',
+        'enable_caching': 'enable_caching'
     }
 
-    def __init__(self, parameters=None, pipeline_root=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, parameters=None, pipeline_root=None, enable_caching=None, local_vars_configuration=None):  # noqa: E501
         """V2RuntimeConfig - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -50,12 +52,14 @@ class V2RuntimeConfig(object):
 
         self._parameters = None
         self._pipeline_root = None
+        self._enable_caching = None
         self.discriminator = None
 
         if parameters is not None:
             self.parameters = parameters
         if pipeline_root is not None:
             self.pipeline_root = pipeline_root
+        self.enable_caching = enable_caching
 
     @property
     def parameters(self):
@@ -100,6 +104,29 @@ class V2RuntimeConfig(object):
         """
 
         self._pipeline_root = pipeline_root
+
+    @property
+    def enable_caching(self):
+        """Gets the enable_caching of this V2RuntimeConfig.  # noqa: E501
+
+        Overrides caching for every task in the run, including tasks in nested DAGs. When unset, each task keeps the caching setting it was compiled with. When true, caching is still disabled if the deployment disables it. For recurring runs, the setting applies to every triggered run.  # noqa: E501
+
+        :return: The enable_caching of this V2RuntimeConfig.  # noqa: E501
+        :rtype: bool
+        """
+        return self._enable_caching
+
+    @enable_caching.setter
+    def enable_caching(self, enable_caching):
+        """Sets the enable_caching of this V2RuntimeConfig.
+
+        Overrides caching for every task in the run, including tasks in nested DAGs. When unset, each task keeps the caching setting it was compiled with. When true, caching is still disabled if the deployment disables it. For recurring runs, the setting applies to every triggered run.  # noqa: E501
+
+        :param enable_caching: The enable_caching of this V2RuntimeConfig.  # noqa: E501
+        :type enable_caching: bool
+        """
+
+        self._enable_caching = enable_caching
 
     def to_dict(self):
         """Returns the model properties as a dict"""
