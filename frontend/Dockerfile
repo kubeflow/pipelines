@@ -40,6 +40,10 @@ RUN mkdir -p ./server/dist && \
 
 FROM node:${NODE_VERSION}-${BASE_IMAGE}
 
+RUN if command -v apk >/dev/null; then apk add --no-cache 'zlib>=1.4-r0'; \
+    else apt-get update && apt-get install -y --no-install-recommends zlib1g \
+        && rm -rf /var/lib/apt/lists/*; fi
+
 COPY --from=build ./src/frontend/package.json /tmp/frontend-package.json
 RUN npm install --global "$(node -p 'require("/tmp/frontend-package.json").packageManager')" && \
     rm /tmp/frontend-package.json

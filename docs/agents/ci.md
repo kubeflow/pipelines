@@ -623,3 +623,10 @@ The bounded Istio qualification overlay requires both injector selectors
 `global.variant`. Matching source and rendered injector values alone cannot
 establish coverage: the selected injected image must also match the static
 prerequisite image inventory. Other selectors fail qualification.
+
+The backend install target and Kubernetes-native migration workflow both use
+cert-manager v1.21.3, matching the qualified release-2.18 prerequisite. Runtime
+Dockerfiles refresh zlib independently of their base-image tag; Alpine builds
+require at least 1.4-r0 and the Debian 13 API-server build rejects packages older
+than 1:1.3.dfsg+really1.3.1-1+deb13u1. Candidate image scans and existing release
+security gates remain authoritative for the resulting image contents.
