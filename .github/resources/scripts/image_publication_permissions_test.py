@@ -68,6 +68,8 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
                 or step['name'] == 'Export digest'
             ):
                 with self.subTest(step=step['name']):
+                    if step['name'] == 'Retain binary provenance':
+                        continue
                     self.assertFalse(evaluate(step['if'], context))
 
     def test_publication_retains_digest_record_and_provenance(self):
@@ -137,6 +139,27 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
             },
         )
 
+    def test_verified_archive_precedes_digest_handoff(self):
+        steps = self.build_job(True)['steps']
+        names = [step['name'] for step in steps]
+        self.assertLess(
+            names.index('Prepare image source context'),
+            names.index('Build and push Image'),
+        )
+        self.assertLess(
+            names.index('Verify built binary provenance'),
+            names.index('Export digest'),
+        )
+        verify = steps[names.index('Verify built binary provenance')]
+        self.assertNotIn('continue-on-error', verify)
+        self.assertIn('image-build-provenance.py" verify', verify['run'])
+        self.assertIn('image="$IMAGE_NAME@$DIGEST"', verify['run'])
+        self.assertIn(
+            'docker pull --platform "$PLATFORM" "$image"', verify['run']
+        )
+        self.assertIn('--platform "$PLATFORM"', verify['run'])
+        self.assertIn('--sha "$SOURCE_SHA"', verify['run'])
+
     def run_build(self, push, digest):
         job = self.build_job(push)
         build = next(step for step in job['steps'] if step.get('id') == 'push')
@@ -151,6 +174,12 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
             },
             'env': {'IMAGE_REGISTRY': 'ghcr.io', 'IMAGE_ORG': 'kubeflow'},
             'steps': {
+                'source_context': {
+                    'outputs': {
+                        'dockerfile': 'docker files/Dockerfile',
+                        'context': 'build context',
+                    }
+                },
                 'meta': {'outputs': {'labels': 'example.name=literal value'}},
                 'frontend_node': {'outputs': {'version': '24.4.0'}},
                 'get_commit': {'outputs': {'sha': 'b' * 40}},
@@ -188,6 +217,7 @@ done
                     'BUILD_ARGUMENTS': str(arguments),
                     'BUILD_DIGEST': digest,
                     'GITHUB_OUTPUT': str(output),
+                    'RUNNER_TEMP': str(temporary),
                 }
             )
             result = subprocess.run(
@@ -211,11 +241,19 @@ done
                 result, arguments, output = self.run_build(push, DIGEST)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('--provenance=mode=min', arguments)
-                self.assertIn(
-                    'type=image,name=ghcr.io/kubeflow/kfp-api-server,'
-                    f'push-by-digest=true,name-canonical=true,push={str(push).lower()}',
-                    arguments,
-                )
+                if push:
+                    self.assertIn(
+                        'type=image,name=ghcr.io/kubeflow/kfp-api-server,'
+                        'push-by-digest=true,name-canonical=true,push=true',
+                        arguments,
+                    )
+                else:
+                    self.assertTrue(
+                        any(
+                            a.startswith('type=docker,dest=') for a in arguments
+                        )
+                    )
+                self.assertEqual(arguments.count('--output'), 1)
                 self.assertEqual(
                     arguments[arguments.index('--platform') + 1], 'linux/arm64'
                 )

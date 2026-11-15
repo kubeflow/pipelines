@@ -694,3 +694,19 @@ The bounded Istio qualification overlay requires both injector selectors
 `global.variant`. Matching source and rendered injector values alone cannot
 establish coverage: the selected injected image must also match the static
 prerequisite image inventory. Other selectors fail qualification.
+
+Ordinary image publication and shared CI native builds reuse the qualification
+sanitized Git context and binary reader through `image-build-provenance.py`.
+Known KFP Go runtime Dockerfiles build package paths with `-buildvcs=true
+-mod=readonly`; verification requires the exact clean source pseudo-version,
+commit/time and ELF/platform identity. Initial and fallback CI builds use the
+same context, and verification precedes reusable archive publication. Raw binary
+provenance accompanies the archives. Non-Go images retain their normal context
+and ignore rules. Publication uses tooling from the workflow revision, pulls
+the exact pushed registry digest, and verifies its binaries before
+exporting a digest to the manifest/tag publisher. A failed verification can leave
+an untagged registry digest, but cannot promote release/master tags. Older source
+revisions without package-path builds fail closed and require the source fix;
+no legacy metadata exception is added. Run `image_build_provenance_test.py`,
+`go_binary_provenance_test.py`, `image_publication_permissions_test.py`, and
+`shared_ci_image_producer_test.py` alongside qualification provenance tests.

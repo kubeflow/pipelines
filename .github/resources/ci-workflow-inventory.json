@@ -221,7 +221,7 @@
     {
       "path": ".github/workflows/ci-images.yml",
       "name": "Shared CI Images",
-      "header_sha256": "54536d179124d0b7ca9ca1fd79b2a5e96579608def378ddeae386a443196d5f5",
+      "header_sha256": "e62eda342a8dd7250b6bcbc16c94e751029772a42bc7c0281e73789e17d41e91",
       "pull_request": {
         "paths": [
           "**/pyproject.toml",
@@ -266,6 +266,8 @@
           "kubernetes_platform/**",
           "manifests/kustomize/**",
           "proxy/**",
+          "release/kfpr/go_build_provenance.py",
+          "release/kfpr/read_go_buildinfo.go",
           "pyproject.toml",
           "samples/**",
           "sdk/**",

@@ -203,6 +203,42 @@ assert.throws(() => architectures({}, 'merge_group',
             image_steps.index(arm_record), image_steps.index(record)
         )
 
+    def test_native_builds_and_retry_use_verified_git_context(self):
+        steps = workflow('image-builds.yml')['jobs']['image-build']['steps']
+        prepare = next(s for s in steps if s.get('id') == 'go-context')
+        self.assertIn('image-build-provenance.py prepare', prepare['run'])
+        self.assertIn('--sha "$GITHUB_SHA"', prepare['run'])
+        for name in ('save-image', 'rebuild'):
+            build = next(s for s in steps if s.get('id') == name)
+            self.assertEqual(
+                build['with']['context'],
+                '${{ steps.go-context.outputs.context }}',
+            )
+            self.assertEqual(
+                build['with']['file'],
+                '${{ steps.go-context.outputs.dockerfile }}',
+            )
+            self.assertLess(steps.index(prepare), steps.index(build))
+        verify = next(
+            s
+            for s in steps
+            if s.get('name') == 'Verify native Go image provenance'
+        )
+        self.assertIn('docker load --input', verify['run'])
+        self.assertIn('image-build-provenance.py verify', verify['run'])
+        self.assertIn('--platform "linux/$TARGET_ARCH"', verify['run'])
+        self.assertNotIn('continue-on-error', verify)
+        for name in (
+            'Record ARM image identity',
+            'Record shared image identity',
+            'Upload artifact',
+        ):
+            record = next(s for s in steps if s.get('name') == name)
+            self.assertLess(steps.index(verify), steps.index(record))
+            self.assertNotIn('always()', record['if'])
+        upload = next(s for s in steps if s.get('id') == 'upload-image')
+        self.assertIn('.go-provenance/', upload['with']['path'])
+
     def test_live_pr_revision_changes_cannot_skip_an_architecture(self):
         script = """
 const assert = require('node:assert/strict');
