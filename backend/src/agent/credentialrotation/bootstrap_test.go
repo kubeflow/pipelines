@@ -95,7 +95,7 @@ func TestBootstrapUsesAllocatedOpenShiftIdentity(t *testing.T) {
 }
 
 func TestBootstrapForegroundReplacementWaitsBeforeCreating(t *testing.T) {
-	for _, reason := range []string{"image", "failed", "incomplete-success"} {
+	for _, reason := range []string{"image", "pull-secrets", "failed", "incomplete-success"} {
 		t.Run(reason, func(t *testing.T) {
 			ctx := context.Background()
 			state := bootstrapState(DrainingPhase)
@@ -104,6 +104,8 @@ func TestBootstrapForegroundReplacementWaitsBeforeCreating(t *testing.T) {
 			switch reason {
 			case "image":
 				existing.Spec.Template.Spec.Containers[0].Image = "image:old"
+			case "pull-secrets":
+				existing.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "stale-registry"}}
 			case "failed":
 				existing.Status.Conditions = []batchv1.JobCondition{{Type: batchv1.JobFailed, Status: corev1.ConditionTrue}}
 			case "incomplete-success":
@@ -181,5 +183,21 @@ func TestBootstrapRejectsMissingIdentityAndRoot(t *testing.T) {
 		if len(client.Actions()) != 0 {
 			t.Fatal("invalid bootstrap called Kubernetes")
 		}
+	}
+}
+
+func TestBootstrapPreservesPrivateImagePullSecrets(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	state := bootstrapState(PreparedPhase)
+	pulls := []corev1.LocalObjectReference{{Name: "private-registry"}}
+	if err := EnsureMigrationJob(context.Background(), client, "kubeflow", "private/image:new", 1000, state, pulls...); err != nil {
+		t.Fatal(err)
+	}
+	job, err := client.BatchV1().Jobs("kubeflow").Get(context.Background(), MigrationJobName(state), metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(job.Spec.Template.Spec.ImagePullSecrets, pulls) {
+		t.Fatal("lost bootstrap image pull credentials")
 	}
 }

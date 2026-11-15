@@ -22,6 +22,7 @@ import (
 	"time"
 
 	rotation "github.com/kubeflow/pipelines/backend/src/agent/credentialrotation"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -51,7 +52,8 @@ func run() int {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
-	if *mode == "bootstrap" && *image == "" {
+	var pullSecrets []corev1.LocalObjectReference
+	if *mode == "bootstrap" {
 		podName := os.Getenv("POD_NAME")
 		if podName == "" {
 			log.Print("Bootstrap requires POD_NAME to resolve its image")
@@ -62,8 +64,9 @@ func run() int {
 			log.Printf("Cannot read bootstrap Pod (%T)", err)
 			return 1
 		}
+		pullSecrets = pod.Spec.ImagePullSecrets
 		for _, container := range pod.Spec.InitContainers {
-			if container.Name == "prepare-storage-credentials" {
+			if container.Name == "prepare-storage-credentials" && *image == "" {
 				*image = container.Image
 			}
 		}
@@ -94,7 +97,7 @@ func run() int {
 			state, prepareErr := migration.Prepare(ctx)
 			err = prepareErr
 			if err == nil {
-				err = rotation.EnsureMigrationJob(ctx, client, *namespace, *image, int64(os.Getuid()), state)
+				err = rotation.EnsureMigrationJob(ctx, client, *namespace, *image, int64(os.Getuid()), state, pullSecrets...)
 			}
 		} else {
 			err = migration.Reconcile(ctx)
@@ -108,7 +111,7 @@ func run() int {
 			log.Print(err)
 		} else {
 			// Never print API/SDK error bodies: they can contain credential data.
-			log.Printf("Credential %s failed during %s (%T); inspect configuration, RBAC and storage health; retrying", *mode, migration.Stage(), err)
+			log.Printf("Credential %s failed during %s: %s; retrying", *mode, migration.Stage(), err)
 		}
 		timer := time.NewTimer(10 * time.Second)
 		select {

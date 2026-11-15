@@ -16,6 +16,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +29,7 @@ import (
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -108,7 +110,7 @@ func NewRemoteStorage(pair Credentials, s3Endpoint, iamEndpoint string) (*Remote
 	for _, endpoint := range []string{s3Endpoint, iamEndpoint} {
 		u, err := url.Parse(endpoint)
 		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-			return nil, errors.New("invalid storage endpoint")
+			return nil, failure("invalid storage endpoint", nil)
 		}
 	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -121,7 +123,19 @@ func NewRemoteStorage(pair Credentials, s3Endpoint, iamEndpoint string) (*Remote
 	return &RemoteStorage{pair: pair, s3: newS3(pair), oldS3: newS3(Credentials{DefaultAccessKey, DefaultSecretKey}), http: h, signer: v4.NewSigner(), iamEndpoint: iamEndpoint}, nil
 }
 
-func (s *RemoteStorage) iam(ctx context.Context, pair Credentials, action string, fields url.Values) (int, error) {
+// iamResult deliberately decodes only non-secret fields needed for authentication
+// and bounded credential-owner discovery. Never log the raw IAM response.
+type iamResult struct {
+	Code           string   `xml:"Code"`
+	ErrorCode      string   `xml:"Error>Code"`
+	Users          []string `xml:"ListUsersResult>Users>member>UserName"`
+	UsersTruncated bool     `xml:"ListUsersResult>IsTruncated"`
+	Keys           []string `xml:"ListAccessKeysResult>AccessKeyMetadata>member>AccessKeyId"`
+	KeysTruncated  bool     `xml:"ListAccessKeysResult>IsTruncated"`
+}
+
+func (s *RemoteStorage) iam(ctx context.Context, pair Credentials, action string, fields url.Values) (int, iamResult, error) {
+	var result iamResult
 	if fields == nil {
 		fields = url.Values{}
 	}
@@ -130,21 +144,29 @@ func (s *RemoteStorage) iam(ctx context.Context, pair Credentials, action string
 	body := fields.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.iamEndpoint, strings.NewReader(body))
 	if err != nil {
-		return 0, err
+		return 0, result, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	hash := sha256.Sum256([]byte(body))
 	if err = s.signer.SignHTTP(ctx, aws.Credentials{AccessKeyID: pair.AccessKey, SecretAccessKey: pair.SecretKey}, req, hex.EncodeToString(hash[:]), "iam", "us-east-1", time.Now()); err != nil {
-		return 0, err
+		return 0, result, err
 	}
 	response, err := s.http.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, result, err
 	}
 	defer response.Body.Close()
-	// Do not retain or log IAM response bodies, which can contain credentials.
-	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 64*1024))
-	return response.StatusCode, nil
+	data, err := io.ReadAll(io.LimitReader(response.Body, 64*1024+1))
+	if err != nil {
+		return 0, result, failure("cannot read IAM response", nil)
+	}
+	if len(data) > 64*1024 {
+		return 0, result, failure("IAM inventory exceeds bounded response limit; inspect storage identities", nil)
+	}
+	if err := xml.Unmarshal(data, &result); err != nil {
+		return 0, result, failure("cannot decode IAM response", nil)
+	}
+	return response.StatusCode, result, nil
 }
 
 func (s *RemoteStorage) VerifyRegistration(ctx context.Context) error {
@@ -156,7 +178,7 @@ func (s *RemoteStorage) Verify(ctx context.Context) error {
 	if err := s.VerifyRegistration(ctx); err != nil {
 		return err
 	}
-	status, err := s.iam(ctx, s.pair, "GetUser", url.Values{"UserName": {"kubeflow-admin"}})
+	status, _, err := s.iam(ctx, s.pair, "GetUser", url.Values{"UserName": {"kubeflow-admin"}})
 	if err != nil {
 		return err
 	}
@@ -166,30 +188,70 @@ func (s *RemoteStorage) Verify(ctx context.Context) error {
 	return nil
 }
 
-func rejected(status int) bool {
-	return status == http.StatusUnauthorized || status == http.StatusForbidden
+func authenticationRejected(code string) bool {
+	return code == "InvalidAccessKeyId" || code == "InvalidAccessKeyID" || code == "SignatureDoesNotMatch" || code == "InvalidClientTokenId"
 }
 
 func (s *RemoteStorage) DefaultAccepted(ctx context.Context) (bool, error) {
-	_, err := s.oldS3.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String("mlpipeline")})
+	// HEAD discards the error body and cannot distinguish denied permissions from
+	// a rejected signature. This read returns the explicit S3 authentication code.
+	_, err := s.oldS3.GetBucketLocation(ctx, &s3.GetBucketLocationInput{Bucket: aws.String("mlpipeline")})
 	if err == nil {
 		return true, nil
 	}
-	var response interface{ HTTPStatusCode() int }
-	if !errors.As(err, &response) || !rejected(response.HTTPStatusCode()) {
-		return false, err
-	}
-	status, err := s.iam(ctx, Credentials{DefaultAccessKey, DefaultSecretKey}, "ListUsers", nil)
-	if err != nil {
-		return false, err
-	}
-	if rejected(status) {
-		return false, nil
+	var apiError smithy.APIError
+	s3Rejected := errors.As(err, &apiError) && authenticationRejected(apiError.ErrorCode())
+	status, result, iamErr := s.iam(ctx, Credentials{DefaultAccessKey, DefaultSecretKey}, "ListUsers", nil)
+	if iamErr != nil {
+		return false, iamErr
 	}
 	if status == http.StatusOK {
 		return true, nil
 	}
-	return false, fmt.Errorf("IAM negative probe returned HTTP %d", status)
+	if s3Rejected && (status == http.StatusUnauthorized || status == http.StatusForbidden) && (authenticationRejected(result.Code) || authenticationRejected(result.ErrorCode)) {
+		return false, nil
+	}
+	return false, failure("cannot prove default credential rejection; inspect ambiguous S3 or IAM authorization failure", nil)
+}
+
+func (s *RemoteStorage) defaultOwner(ctx context.Context) (string, error) {
+	status, result, err := s.iam(ctx, s.pair, "ListUsers", nil)
+	if err != nil {
+		return "", err
+	}
+	if status != http.StatusOK || result.UsersTruncated || len(result.Users) == 0 || len(result.Users) > 1000 {
+		return "", failure("cannot verify complete bounded IAM identity inventory", nil)
+	}
+	owner := ""
+	seen := map[string]bool{}
+	for _, user := range result.Users {
+		if user == "" || seen[user] {
+			return "", failure("invalid IAM identity inventory", nil)
+		}
+		seen[user] = true
+		status, keys, err := s.iam(ctx, s.pair, "ListAccessKeys", url.Values{"UserName": {user}})
+		if err != nil {
+			return "", err
+		}
+		if status != http.StatusOK || keys.KeysTruncated {
+			return "", failure("cannot verify complete IAM access-key inventory", nil)
+		}
+		for _, key := range keys.Keys {
+			if key != DefaultAccessKey {
+				continue
+			}
+			if owner != "" {
+				// IAM does not expose secrets. Duplicate IDs may include an
+				// operator-customized pair: never delete those by ID alone.
+				return "", failure("multiple identities own the shipped access-key ID; remove only the exact shipped pair using operator credential inventory, then retry", nil)
+			}
+			owner = user
+		}
+	}
+	if owner == "" {
+		return "", failure("accepted default credential has no unique IAM owner; inspect storage identity caches", nil)
+	}
+	return owner, nil
 }
 
 func (s *RemoteStorage) RevokeDefault(ctx context.Context) error {
@@ -198,9 +260,22 @@ func (s *RemoteStorage) RevokeDefault(ctx context.Context) error {
 		return err
 	}
 	if s.pair.AccessKey == DefaultAccessKey {
-		return errors.New("default remains accepted under an operator-owned access-key ID")
+		return failure("default remains accepted under an operator-owned access-key ID", nil)
 	}
-	status, err := s.iam(ctx, s.pair, "DeleteAccessKey", url.Values{"UserName": {"kubeflow-admin"}, "AccessKeyId": {DefaultAccessKey}})
+	// A stale S3 cache alone must not authorize deletion from IAM's newer
+	// inventory. Require the shipped pair to authenticate to IAM as well.
+	status, proof, err := s.iam(ctx, Credentials{DefaultAccessKey, DefaultSecretKey}, "ListUsers", nil)
+	if err != nil {
+		return err
+	}
+	if status != http.StatusOK || proof.Code != "" || proof.ErrorCode != "" {
+		return failure("S3 and IAM disagree about the shipped credential; reconcile storage identity caches before retrying", nil)
+	}
+	owner, err := s.defaultOwner(ctx)
+	if err != nil {
+		return err
+	}
+	status, _, err = s.iam(ctx, s.pair, "DeleteAccessKey", url.Values{"UserName": {owner}, "AccessKeyId": {DefaultAccessKey}})
 	if err != nil {
 		return err
 	}

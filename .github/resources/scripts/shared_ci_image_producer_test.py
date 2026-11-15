@@ -281,6 +281,11 @@ assert.deepEqual(calls, ['pulls/23', 'pulls/23/files?per_page=100', 'pulls/23'])
             ),
             (
                 'pull_request',
+                'manifests/kustomize/third-party/seaweedfs/UPGRADE.md',
+                {'amd64': False, 'arm64': False},
+            ),
+            (
+                'pull_request',
                 '.github/workflows/upgrade-test.yml',
                 {'amd64': False, 'arm64': False},
             ),

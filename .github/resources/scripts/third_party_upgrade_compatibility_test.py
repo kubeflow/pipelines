@@ -28,7 +28,94 @@ import third_party_upgrade_compatibility as compatibility
 
 
 class CompatibilityTest(unittest.TestCase):
+    def test_baseline_render_uses_loaded_migrator_without_replacing_storage(
+        self,
+    ):
+        deployment = {
+            'kind': 'Deployment',
+            'metadata': {'name': 'seaweedfs'},
+            'spec': {
+                'template': {
+                    'spec': {
+                        'containers': [
+                            {'name': 'seaweedfs', 'image': 'storage:baseline'}
+                        ],
+                        'initContainers': [
+                            {
+                                'name': 'prepare-storage-credentials',
+                                'image': 'apiserver:dummy',
+                            }
+                        ],
+                    }
+                }
+            },
+        }
+        with (
+            patch.object(
+                compatibility, 'run', return_value=json.dumps(deployment)
+            ),
+            patch.object(compatibility, 'CONTROLLER_IMAGE', 'candidate:loaded'),
+        ):
+            actual = compatibility.rendered(
+                Path('/baseline')
+                / compatibility.SEAWEED.relative_to(compatibility.ROOT)
+            )
+        spec = actual[0]['spec']['template']['spec']
+        self.assertEqual(spec['containers'][0]['image'], 'storage:baseline')
+        self.assertEqual(spec['initContainers'][0]['image'], 'candidate:loaded')
+        self.assertEqual(
+            spec['initContainers'][0]['imagePullPolicy'], 'IfNotPresent'
+        )
+
+    def test_current_and_legacy_baselines_are_both_exercised(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(compatibility, 'exercise') as exercise,
+            patch.object(compatibility, 'kubectl') as kubectl,
+        ):
+            evidence = Path(directory)
+            compatibility.exercise_baselines(
+                evidence, Path('current'), Path('legacy')
+            )
+            self.assertEqual(exercise.call_count, 2)
+            self.assertEqual(
+                exercise.call_args_list[0].args, (evidence, Path('current'))
+            )
+            self.assertEqual(
+                exercise.call_args_list[1].args,
+                (evidence / 'legacy-credential-migration', Path('legacy')),
+            )
+            self.assertEqual(
+                exercise.call_args_list[1].kwargs, {'require_legacy': True}
+            )
+            self.assertTrue((evidence / 'legacy-credential-migration').is_dir())
+            kubectl.assert_called_once_with(
+                'delete',
+                'namespace',
+                'kubeflow',
+                '--wait=true',
+                '--timeout=180s',
+            )
+
+    def test_legacy_baseline_rejects_already_rotated_credentials(self):
+        with (
+            patch.object(compatibility, 'rendered', return_value=[]),
+            patch.object(compatibility, 'storage_image', return_value='image'),
+            patch.object(
+                compatibility,
+                'seed_old_store',
+                return_value=(('generated', 'generated-secret'), 'pvc'),
+            ),
+            patch.object(compatibility, 'verify_workload_drain') as drain,
+        ):
+            with self.assertRaisesRegex(AssertionError, 'Legacy baseline'):
+                compatibility.exercise(
+                    Path('evidence'), Path('baseline'), require_legacy=True
+                )
+            drain.assert_not_called()
+
     def test_fresh_bootstrap_closes_plain_sdk_clients(self):
+
         class ClientError(Exception):
             def __init__(self, response, operation):
                 self.response = response
@@ -128,18 +215,24 @@ class CompatibilityTest(unittest.TestCase):
         iam.close.assert_called_once_with()
 
     def test_old_credentials_probes_close_plain_sdk_clients(self):
+
         class ClientError(Exception):
-            def __init__(self, status):
-                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+            def __init__(self, status, code='InvalidAccessKeyId'):
+                self.response = {
+                    'ResponseMetadata': {'HTTPStatusCode': status},
+                    'Error': {'Code': code},
+                }
 
         for accepted in (None, 's3', 'iam'):
             with self.subTest(accepted=accepted):
-                s3 = Mock(spec=['head_bucket', 'close'])
+                s3 = Mock(spec=['get_bucket_location', 'close'])
                 iam = Mock(spec=['list_users', 'close'])
                 if accepted != 's3':
-                    s3.head_bucket.side_effect = ClientError(403)
+                    s3.get_bucket_location.side_effect = ClientError(403)
                 if accepted != 'iam':
-                    iam.list_users.side_effect = ClientError(401)
+                    iam.list_users.side_effect = ClientError(
+                        403, 'InvalidClientTokenId'
+                    )
                 with (
                     patch.dict(
                         sys.modules,
@@ -179,6 +272,52 @@ class CompatibilityTest(unittest.TestCase):
                     iam.close.assert_called_once_with()
                 else:
                     iam.close.assert_not_called()
+
+    def test_authorization_denial_is_not_credential_revocation(self):
+
+        class ClientError(Exception):
+            def __init__(self, code):
+                self.response = {
+                    'ResponseMetadata': {'HTTPStatusCode': 403},
+                    'Error': {'Code': code},
+                }
+
+        for listener in ('s3', 'iam'):
+            for code in ('AccessDenied', '403', ''):
+                with self.subTest(listener=listener, code=code):
+                    s3 = Mock(spec=['get_bucket_location', 'close'])
+                    iam = Mock(spec=['list_users', 'close'])
+                    s3.get_bucket_location.side_effect = ClientError(
+                        code if listener == 's3' else 'InvalidAccessKeyId'
+                    )
+                    iam.list_users.side_effect = ClientError(code)
+                    with (
+                        patch.dict(
+                            sys.modules,
+                            {
+                                'botocore.exceptions': SimpleNamespace(
+                                    ClientError=ClientError
+                                )
+                            },
+                        ),
+                        patch.object(
+                            compatibility,
+                            'forward',
+                            side_effect=lambda *args: nullcontext(
+                                'http://localhost'
+                            ),
+                        ),
+                        patch.object(compatibility, 'client', return_value=s3),
+                        patch.object(
+                            compatibility, 'iam_client', return_value=iam
+                        ),
+                    ):
+                        with self.assertRaises(ClientError):
+                            compatibility.verify_old_credentials_rejected(
+                                ('old', 'old-secret'),
+                                ('new', 'new-secret'),
+                                Path('.'),
+                            )
 
     def test_secret_credentials_string_and_encoded_data(self):
         self.assertEqual(
@@ -298,6 +437,7 @@ class CompatibilityTest(unittest.TestCase):
         self.assertIn('Cluster cleanup failed', errors.getvalue())
 
     def test_baseline_image_is_read_from_rendered_base_ref(self):
+
         def store(image):
             return [
                 {
@@ -357,6 +497,7 @@ class CompatibilityTest(unittest.TestCase):
         )
 
     def test_migration_wait_does_not_treat_draining_as_completion(self):
+
         def state(phase):
             return json.dumps(
                 {
@@ -498,9 +639,66 @@ class CompatibilityTest(unittest.TestCase):
         s3 = Mock()
         s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
         s3.get_bucket_lifecycle_configuration.return_value = {
-            'Rules': [{'Status': 'Enabled', 'Expiration': {'Days': 30}}]
+            'Rules': [
+                {
+                    'ID': 'private-artifacts',
+                    'Status': 'Enabled',
+                    'Filter': {'Prefix': 'private-artifacts'},
+                    'Expiration': {'Days': 30},
+                }
+            ]
         }
         compatibility.verify_state(s3)
+
+    def test_lifecycle_scope_changes_fail(self):
+        expected = {
+            'ID': 'private-artifacts',
+            'Status': 'Enabled',
+            'Filter': {'Prefix': 'private-artifacts'},
+            'Expiration': {'Days': 30},
+        }
+        for change in (
+            {'Filter': {}},
+            {'Filter': {'Prefix': ''}},
+            {'Filter': {'Prefix': 'shared/'}},
+            {'ID': 'other-rule'},
+            {'Status': 'Disabled'},
+            {'Expiration': {'Days': 31}},
+        ):
+            with self.subTest(change=change):
+                s3 = Mock()
+                s3.get_object.return_value = {
+                    'Body': io.BytesIO(compatibility.PAYLOAD)
+                }
+                s3.get_bucket_lifecycle_configuration.return_value = {
+                    'Rules': [{**expected, **change}]
+                }
+                with self.assertRaisesRegex(
+                    AssertionError, 'Lifecycle configuration'
+                ):
+                    compatibility.verify_state(s3)
+
+    def test_additional_lifecycle_rule_fails(self):
+        s3 = Mock()
+        s3.get_object.return_value = {'Body': io.BytesIO(compatibility.PAYLOAD)}
+        s3.get_bucket_lifecycle_configuration.return_value = {
+            'Rules': [
+                {
+                    'ID': 'private-artifacts',
+                    'Status': 'Enabled',
+                    'Filter': {'Prefix': 'private-artifacts'},
+                    'Expiration': {'Days': 30},
+                },
+                {
+                    'ID': 'shared',
+                    'Status': 'Enabled',
+                    'Filter': {'Prefix': 'shared/'},
+                    'Expiration': {'Days': 30},
+                },
+            ]
+        }
+        with self.assertRaisesRegex(AssertionError, 'Lifecycle configuration'):
+            compatibility.verify_state(s3)
 
     def test_reconciliation_sends_existing_credentials(self):
         secret = {

@@ -1283,7 +1283,7 @@
     {
       "path": ".github/workflows/third-party-image-upgrades.yml",
       "name": "Third-party Image Upgrade Checks",
-      "header_sha256": "d0ba9d90f30bed24c4bd424ae28ff2b61ba6959aa972f2651b62d232d9e3f615",
+      "header_sha256": "f24a4146dbfeb24e9e57979b8cb0890ec8c213b8700314bfce658464e44dc045",
       "pull_request": {
         "paths": [
           "manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/**",
@@ -1299,7 +1299,9 @@
           "backend/src/agent/credentialrotation/**",
           "backend/Dockerfile",
           "go.mod",
-          "go.sum"
+          "go.sum",
+          "!**/*.md",
+          "!**/OWNERS"
         ]
       },
       "merge_group": {

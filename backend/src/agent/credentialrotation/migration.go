@@ -27,6 +27,8 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -35,15 +37,16 @@ import (
 )
 
 const (
-	AdminSecret           = "seaweedfs-admin-credentials"
-	LegacySecret          = "mlpipeline-minio-artifact"
-	RevisionAnnotation    = "pipelines.kubeflow.org/storage-credential-revision"
-	PhaseAnnotation       = "pipelines.kubeflow.org/storage-credential-phase"
-	DrainCountAnnotation  = "pipelines.kubeflow.org/storage-credential-drain-count"
-	DrainSampleAnnotation = "pipelines.kubeflow.org/storage-credential-drain-sample"
-	PreparedPhase         = "ReplacementPrepared"
-	DrainingPhase         = "DrainingWorkloads"
-	CompletePhase         = "DefaultRevoked"
+	AdminSecret              = "seaweedfs-admin-credentials"
+	LegacySecret             = "mlpipeline-minio-artifact"
+	RevisionAnnotation       = "pipelines.kubeflow.org/storage-credential-revision"
+	PhaseAnnotation          = "pipelines.kubeflow.org/storage-credential-phase"
+	DrainCountAnnotation     = "pipelines.kubeflow.org/storage-credential-drain-count"
+	DrainSampleAnnotation    = "pipelines.kubeflow.org/storage-credential-drain-sample"
+	PreparedPhase            = "ReplacementPrepared"
+	DrainingPhase            = "DrainingWorkloads"
+	CompletePhase            = "DefaultRevoked"
+	SameIDAdoptionAnnotation = "pipelines.kubeflow.org/storage-same-id-adoption"
 	// These publicly shipped values are used only for negative probes, never provisioning.
 	DefaultAccessKey   = "minio"
 	DefaultSecretKey   = "minio123"
@@ -135,9 +138,13 @@ func CredentialsFromSecret(secret *corev1.Secret) (Credentials, bool, error) {
 		if len(value) == 0 {
 			return Credentials{}, false, failure("Credential Secret is incomplete; preserve and repair it", nil)
 		}
-		for _, c := range value {
-			if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && !strings.ContainsRune("/+=_.-", rune(c)) {
-				return Credentials{}, false, failure("Credential Secret contains unsupported characters; preserve and repair it", nil)
+		// weed shell splits commands on semicolons before parsing quoted arguments.
+		if !utf8.Valid(value) || strings.ContainsRune(string(value), ';') {
+			return Credentials{}, false, failure("Credential Secret cannot be encoded for storage registration; preserve and repair it", nil)
+		}
+		for _, c := range string(value) {
+			if unicode.IsControl(c) {
+				return Credentials{}, false, failure("Credential Secret contains control characters; preserve and repair it", nil)
 			}
 		}
 	}
@@ -189,6 +196,9 @@ func (m *Migration) Prepare(ctx context.Context) (*corev1.Secret, error) {
 	if err != nil {
 		return nil, err
 	}
+	if present && current.AccessKey == DefaultAccessKey && state.Annotations[SameIDAdoptionAnnotation] != "confirmed" {
+		return nil, failure("Custom credential reuses the shipped access-key ID; pause and drain old consumers, then confirm storage-same-id-adoption on the administrator Secret", nil)
+	}
 	if present && state.Annotations[RevisionAnnotation] != "" {
 		if state.Annotations[PhaseAnnotation] == CompletePhase && oldPresent && !IsDefault(old) && old != current {
 			return nil, failure("Legacy Secret changed to custom credentials; reconcile the two Secrets rather than skip migration", nil)
@@ -220,6 +230,9 @@ func (m *Migration) Prepare(ctx context.Context) (*corev1.Secret, error) {
 			}
 			current = Credentials{"kfp-" + access, key}
 		}
+	}
+	if current.AccessKey == DefaultAccessKey && state.Annotations[SameIDAdoptionAnnotation] != "confirmed" {
+		return nil, failure("Custom credential reuses the shipped access-key ID; pause and drain old consumers, then confirm storage-same-id-adoption on the administrator Secret", nil)
 	}
 	revision, err := m.token(16)
 	if err != nil {
@@ -324,6 +337,9 @@ func (m *Migration) storageReady(ctx context.Context) error {
 		return wait("Waiting for the storage Pod")
 	}
 	for _, pod := range pods.Items {
+		if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
+			continue
+		}
 		if !UsesSecret(pod.Spec, AdminSecret) {
 			return wait("Waiting for all old storage pods to terminate before revocation")
 		}
@@ -542,6 +558,10 @@ func (m *Migration) Reconcile(ctx context.Context) error {
 	m.stage = "active workload drain"
 	accepted, err := m.storage.DefaultAccepted(ctx)
 	if err != nil {
+		var safe *Failure
+		if errors.As(err, &safe) {
+			return safe
+		}
 		return failure("Cannot verify old credential acceptance", err)
 	}
 	if accepted {
@@ -562,6 +582,10 @@ func (m *Migration) Reconcile(ctx context.Context) error {
 	if err := m.storage.RevokeDefault(ctx); err != nil {
 		if IsWaiting(err) {
 			return err
+		}
+		var safe *Failure
+		if errors.As(err, &safe) {
+			return safe
 		}
 		return failure("Cannot revoke the old storage credential", err)
 	}

@@ -19,6 +19,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"slices"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +45,7 @@ func MigrationJobName(state *corev1.Secret) string {
 // EnsureMigrationJob starts an incomplete migration and leaves completed state
 // alone. Foreground replacement handles immutable Job image upgrades without
 // overlapping the previous migration pod. The caller retries Waiting results.
-func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namespace, image string, uid int64, state *corev1.Secret) error {
+func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namespace, image string, uid int64, state *corev1.Secret, pullSecrets ...corev1.LocalObjectReference) error {
 	if state == nil || state.Name != AdminSecret || state.UID == "" || state.Annotations[RevisionAnnotation] == "" {
 		return errors.New("prepare the persistent credential Secret before starting migration")
 	}
@@ -58,7 +59,7 @@ func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namesp
 	name := MigrationJobName(state)
 	existing, err := jobs.Get(ctx, name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		_, err = jobs.Create(ctx, migrationJob(namespace, image, uid, state), metav1.CreateOptions{})
+		_, err = jobs.Create(ctx, migrationJob(namespace, image, uid, state, pullSecrets...), metav1.CreateOptions{})
 		if apierrors.IsAlreadyExists(err) {
 			return wait("Migration Job was created concurrently; verifying its identity")
 		}
@@ -76,7 +77,7 @@ func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namesp
 	if existing.DeletionTimestamp != nil {
 		return wait("Waiting for the previous migration Job and its pods to terminate")
 	}
-	replace := len(existing.Spec.Template.Spec.Containers) != 1 || existing.Spec.Template.Spec.Containers[0].Image != image
+	replace := len(existing.Spec.Template.Spec.Containers) != 1 || existing.Spec.Template.Spec.Containers[0].Image != image || !slices.Equal(existing.Spec.Template.Spec.ImagePullSecrets, pullSecrets)
 	for _, condition := range existing.Status.Conditions {
 		if condition.Status == corev1.ConditionTrue && (condition.Type == batchv1.JobFailed || condition.Type == batchv1.JobComplete) {
 			// A completed Job with incomplete durable state cannot make progress.
@@ -98,7 +99,7 @@ func EnsureMigrationJob(ctx context.Context, client kubernetes.Interface, namesp
 	return wait("Replacing the previous migration Job; waiting for its pods to terminate")
 }
 
-func migrationJob(namespace, image string, uid int64, state *corev1.Secret) *batchv1.Job {
+func migrationJob(namespace, image string, uid int64, state *corev1.Secret, pullSecrets ...corev1.LocalObjectReference) *batchv1.Job {
 	backoff := int32(6)
 	trueValue, falseValue := true, false
 	return &batchv1.Job{
@@ -113,6 +114,7 @@ func migrationJob(namespace, image string, uid int64, state *corev1.Secret) *bat
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": MigrationJobLabel}, Annotations: map[string]string{"sidecar.istio.io/inject": "false"}},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: MigrationJobLabel,
+					ImagePullSecrets:   append([]corev1.LocalObjectReference(nil), pullSecrets...),
 					RestartPolicy:      corev1.RestartPolicyOnFailure,
 					SecurityContext:    &corev1.PodSecurityContext{RunAsNonRoot: &trueValue, RunAsUser: &uid, SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}},
 					Containers: []corev1.Container{{

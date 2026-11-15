@@ -122,8 +122,11 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             '        matchLabels:\n'
             '          app: kubeflow-pipelines-profile-controller\n'
             '    - podSelector:\n'
-            '        matchLabels:\n'
-            '          app: seaweedfs-credential-rotation\n'
+            '        matchExpressions:\n'
+            '        - key: app\n'
+            '          operator: In\n'
+            '          values:\n'
+            '          - seaweedfs-credential-rotation\n'
             '    ports:\n'
             '    - port: 8111\n',
             policy,
