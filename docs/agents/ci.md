@@ -473,3 +473,5 @@ renders the same local target, and rejects missing inputs or mismatched rendered
 images/injection settings. Existing candidates using the pinned remote base
 remain supported. See the overlay README for the injection-settings refresh
 procedure.
+
+- CI imports the profile-controller runtime through `RUNTIME_IMAGE_ARTIFACTS`, retagging the built image to `:ci` before loading Kind, matching all multi-user overlay references. Keep this loader/manifest contract covered by `ci_image_artifacts_test.py`.

@@ -21,13 +21,12 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "frontend"
   "metadata-writer"
   "viewer-crd-controller"
-  "profile-controller"
   "visualization-server"
   "cache-deployer"
   "cache-server"
   "metadata-envoy"
 )
-RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
+RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher" "profile-controller")
 ALL_CI_IMAGE_ARTIFACTS=(
   "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"
   "${RUNTIME_IMAGE_ARTIFACTS[@]}"

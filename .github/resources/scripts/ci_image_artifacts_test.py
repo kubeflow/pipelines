@@ -57,6 +57,47 @@ class CiImageArtifactsTest(unittest.TestCase):
                 {'image': 'kfp-profile-controller'},
                 jobs['create-manifests']['strategy']['matrix']['component'])
 
+    def test_multiuser_profile_image_is_loaded_with_manifest_tag(self):
+        action = yaml.safe_load(
+            (ROOT / '.github/actions/deploy/action.yml').read_text())
+        step = next(step for step in action['runs']['steps']
+                    if step['name'] == 'Load Runtime Images Into Kind')
+        script = step['run']
+        for name, value in {
+                'image_path':
+                    '/tmp/images',
+                'image_registry':
+                    'kind-registry:5000',
+                'image_tag':
+                    yaml.safe_load(IMAGE_BUILDS_WORKFLOW.read_text())['env']
+                    ['IMAGE_TAG'],
+                'cluster_name':
+                    'kfp',
+        }.items():
+            script = script.replace('${{ inputs.' + name + ' }}', value)
+        stubs = """docker() { :; }
+kind() { printf '%s\\n' "$*"; }
+rm() { :; }
+"""
+        result = subprocess.run(['bash', '-eu', '-c', stubs + script],
+                                cwd=ROOT,
+                                capture_output=True,
+                                text=True,
+                                check=True)
+        loaded = set(result.stdout.splitlines())
+        for overlay in ('default', 'cache-disabled', 'artifact-proxy',
+                        'postgresql'):
+            with self.subTest(overlay=overlay):
+                manifest = yaml.safe_load(
+                    (ROOT / '.github/resources/manifests/multiuser' / overlay /
+                     'kustomization.yaml').read_text())
+                profile = next(image for image in manifest['images']
+                               if image['name'] ==
+                               'ghcr.io/kubeflow/kfp-profile-controller')
+                reference = profile['newName'] + ':' + str(profile['newTag'])
+                self.assertIn('--name kfp load docker-image ' + reference,
+                              loaded)
+
     def test_artifact_list_matches_image_build_matrix(self):
         result = subprocess.run(
             [
