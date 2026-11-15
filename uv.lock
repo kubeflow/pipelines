@@ -1299,7 +1299,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-pipeline-components"
-version = "2.22.0"
+version = "2.23.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core" },
@@ -1308,7 +1308,7 @@ dependencies = [
     { name = "kfp" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/ab/72e202d05f4bf0c286dbda91be67689417b90c4d45431fdae58772da4956/google_cloud_pipeline_components-2.22.0-py3-none-any.whl", hash = "sha256:aea2d526b3d562246beb7a4ca983e48983448c7b8b04a4f7053374f08a927104", size = 1386885, upload-time = "2025-11-10T23:26:13.739Z" },
+    { url = "https://files.pythonhosted.org/packages/26/4e/0e350c73718ee4880acacc4851f6ad3bb6d4bfe3b23ba4ad7d1ec3022026/google_cloud_pipeline_components-2.23.0-py3-none-any.whl", hash = "sha256:c6773f009cf58ab0ac4c26fab61e3d8afdba04039b0d24d01ab049d10f01b994", size = 1159820, upload-time = "2026-11-11T01:36:59.495Z" },
 ]
 
 [[package]]
@@ -2036,7 +2036,7 @@ requires-dist = [
     { name = "docker", marker = "extra == 'test'" },
     { name = "fire", marker = "extra == 'backend-v2-test'" },
     { name = "furo", marker = "extra == 'docs'", specifier = ">=2024.8.6" },
-    { name = "google-cloud-pipeline-components", marker = "extra == 'test'", specifier = ">=2.22.0" },
+    { name = "google-cloud-pipeline-components", marker = "extra == 'test'", specifier = ">=2.23.0" },
     { name = "junit2html", marker = "extra == 'ci'" },
     { name = "kfp", editable = "sdk/python" },
     { name = "kfp", extras = ["notebooks"], marker = "extra == 'test'", editable = "sdk/python" },

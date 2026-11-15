@@ -64,7 +64,7 @@ test = [
   "docker",
   # Older 1.x releases import removed kfp.dsl internals. Do not let dependency
   # resolution backtrack to them when a newer protobuf is incompatible.
-  "google-cloud-pipeline-components>=2.22.0",
+  "google-cloud-pipeline-components>=2.23.0",
   "kfp[notebooks]",
   "kubernetes",
   "nbformat",
