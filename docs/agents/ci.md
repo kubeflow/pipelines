@@ -522,3 +522,16 @@ previously shipped image when advancing the candidate. Master does not restore
 the removed MLMD/PostgreSQL 14 lane. This component check complements the normal
 PostgreSQL integration matrix; it does not establish production-storage or
 high-availability qualification.
+
+
+## Native Go image source identity
+
+First-party Go Dockerfiles build package paths with `-buildvcs=true` and
+`-mod=readonly`, preserving native module and VCS identity instead of the
+`command-line-arguments` identity produced by file-list builds. Master includes
+the API server, driver, launcher, persistence agent, scheduled-workflow controller
+and viewer controller; legacy cache components remain release-only.
+Qualification supplies a sanitized clean Git build context and verifies the
+binary's actual source pseudo-version. The Dockerfile flags do not fabricate a
+release version or waive source-provenance checks. Ordinary build contexts that
+exclude Git metadata do not provide the same qualification guarantee.

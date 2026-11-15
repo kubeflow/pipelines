@@ -33,7 +33,7 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
+RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/persistence_agent ./backend/src/agent/persistence
 
 FROM alpine:3.21
 
