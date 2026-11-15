@@ -35,6 +35,10 @@ COPY . .
 
 RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/persistence_agent ./backend/src/agent/persistence
 
+# Publication requires actual binary VCS metadata before image export.
+ARG KFP_SOURCE_SHA=""
+RUN if [ -n "$KFP_SOURCE_SHA" ]; then sh .github/resources/scripts/verify-published-go-binary.sh /bin/persistence_agent "$KFP_SOURCE_SHA"; fi
+
 FROM alpine:3.21
 
 RUN adduser -S appuser

@@ -694,3 +694,26 @@ The bounded Istio qualification overlay requires both injector selectors
 `global.variant`. Matching source and rendered injector values alone cannot
 establish coverage: the selected injected image must also match the static
 prerequisite image inventory. Other selectors fail qualification.
+
+### Go image publication provenance
+
+The shared `build-and-push.yml` workflow prepares the six KFP Go image contexts
+with `kfpr.go_build_provenance.prepare_context`, also used by candidate scans.
+It fetches the exact checked-out commit into a fresh repository and uses an
+external Dockerfile-specific ignore file to retain its sanitized Git metadata.
+The caller's Git configuration, credentials, hooks and untracked files are not
+copied. Normal root `.dockerignore` exclusions remain in place for other builds.
+
+Publication passes `KFP_SOURCE_SHA` to the Go builder. Before BuildKit exports
+an image, the builder checks the actual executable with `go version -m` and
+requires the expected Git revision, commit timestamp and `vcs.modified=false`.
+Missing or mismatched metadata fails the build before a registry push. Ordinary
+local and shared-test builds without this argument retain their existing context
+behavior; qualification scans independently verify extracted candidate binaries.
+
+This workflow and the selected source must both include publication provenance
+support. For older release sources, dispatch the workflow from that release
+branch; do not mix the new master workflow with an older source tree. The shared
+workflow rejects that unsupported combination before building rather than
+silently dropping verification. Backport the complete publication support before
+using the newer workflow for those sources.

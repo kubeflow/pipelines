@@ -154,6 +154,13 @@ class ImagePublicationPermissionsTest(unittest.TestCase):
                 'meta': {'outputs': {'labels': 'example.name=literal value'}},
                 'frontend_node': {'outputs': {'version': '24.4.0'}},
                 'get_commit': {'outputs': {'sha': 'b' * 40}},
+                'source_context': {
+                    'outputs': {
+                        'dockerfile': 'docker files/Dockerfile',
+                        'context': 'build context',
+                        'source_sha': 'b' * 40,
+                    }
+                },
             },
         }
         with tempfile.TemporaryDirectory() as directory:
@@ -225,6 +232,7 @@ done
                 )
                 self.assertEqual(arguments[-1], 'build context')
                 self.assertIn('COMMIT_SHA=' + 'b' * 40, arguments)
+                self.assertIn('KFP_SOURCE_SHA=' + 'b' * 40, arguments)
                 self.assertIn('NODE_VERSION=24.4.0', arguments)
                 self.assertEqual(output, f'digest={DIGEST}\n')
 

@@ -200,6 +200,27 @@ jobs:
         with:
           images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
 
+      - name: Prepare publication source context
+        id: source_context
+        if: steps.check_tag.outcome == 'success'
+        shell: bash
+        env:
+          PYTHONPATH: release
+          IMAGE: ${{ inputs.app_to_build }}
+          CONTEXT: ${{ inputs.image_context }}
+          DOCKERFILE: ${{ inputs.docker_file }}
+          SOURCE_SHA: ${{ steps.get_commit.outputs.sha }}
+        run: |
+          if [ ! -f .github/resources/scripts/prepare_publication_context.py ] || \
+             [ ! -f release/kfpr/go_build_provenance.py ]; then
+            echo "::error::Source predates verified publication. Use its release-branch workflow, or backport the publication provenance support before using this workflow."
+            exit 1
+          fi
+          python3 .github/resources/scripts/prepare_publication_context.py \
+            --image "$IMAGE" --context "$CONTEXT" --dockerfile "$DOCKERFILE" \
+            --sha "$SOURCE_SHA" --destination "$RUNNER_TEMP/publication-source" \
+            --output "$GITHUB_OUTPUT"
+
       # Build the image. If the build succeeds, it pushes the image to GitHub
       # Packages. It uses the context parameter to define the build's context
       # as the set of files located in the specified path.
@@ -210,13 +231,14 @@ jobs:
         env:
           BUILD_LABELS: ${{ steps.meta.outputs.labels }}
           IMAGE_NAME: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
-          INPUT_DOCKER_FILE: ${{ inputs.docker_file }}
-          INPUT_IMAGE_CONTEXT: ${{ inputs.image_context }}
+          INPUT_DOCKER_FILE: ${{ steps.source_context.outputs.dockerfile }}
+          INPUT_IMAGE_CONTEXT: ${{ steps.source_context.outputs.context }}
           INPUT_PLATFORMS: ${{ inputs.platforms }}
           INPUT_PUSH: ${{ inputs.push }}
           INPUT_TARGET_TAG: ${{ inputs.target_tag }}
           NODE_VERSION: ${{ steps.frontend_node.outputs.version }}
           COMMIT_SHA: ${{ steps.get_commit.outputs.sha }}
+          KFP_SOURCE_SHA: ${{ steps.source_context.outputs.source_sha }}
         run: |
           METADATA_FILE="$(mktemp)"
           rm -f "${METADATA_FILE}"
@@ -229,6 +251,7 @@ jobs:
             --metadata-file "${METADATA_FILE}"
             --build-arg "NODE_VERSION=${NODE_VERSION}"
             --build-arg "COMMIT_SHA=${COMMIT_SHA}"
+            --build-arg "KFP_SOURCE_SHA=${KFP_SOURCE_SHA}"
             --build-arg "COMMIT_HASH=${COMMIT_SHA}"
             --build-arg "TAG_NAME=${INPUT_TARGET_TAG}"
           )

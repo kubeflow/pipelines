@@ -31,6 +31,10 @@ RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflow
 COPY . .
 RUN GO111MODULE=on go build -buildvcs=true -mod=readonly -o /bin/apiserver ./backend/src/apiserver
 
+# Publication requires actual binary VCS metadata before image export.
+ARG KFP_SOURCE_SHA=""
+RUN if [ -n "$KFP_SOURCE_SHA" ]; then sh .github/resources/scripts/verify-published-go-binary.sh /bin/apiserver "$KFP_SOURCE_SHA"; fi
+
 # 2. Compile preloaded pipeline samples
 FROM python:3.14-slim AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq wget curl protobuf-compiler make git
