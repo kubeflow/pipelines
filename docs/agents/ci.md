@@ -616,3 +616,9 @@ renders the same local target, and rejects missing inputs or mismatched rendered
 images/injection settings. Existing candidates using the pinned remote base
 remain supported. See the overlay README for the injection-settings refresh
 procedure.
+
+The bounded Istio qualification overlay requires both injector selectors
+(`global.proxy.image` and `global.proxy_init.image`) to be `proxyv2`, with no
+`global.variant`. Matching source and rendered injector values alone cannot
+establish coverage: the selected injected image must also match the static
+prerequisite image inventory. Other selectors fail qualification.

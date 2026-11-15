@@ -422,7 +422,15 @@ class IstioPatchInventoryTest(unittest.TestCase):
             inventory.SOURCE_PATHS[1]
         ].replace(original, inventory.ISTIO_OVERLAY)
         version = '1.31.4'
-        values = {'global': {'tag': version, 'hub': 'docker.io/istio'}}
+        values = {
+            'global': {
+                'tag': version,
+                'hub': 'docker.io/istio',
+                'proxy': {'image': 'proxyv2'},
+                'proxy_init': {'image': 'proxyv2'},
+                'variant': '',
+            }
+        }
         self.overlay = {
             'resources': [
                 original.replace('${KUBEFLOW_MANIFESTS_SHA}', 'a' * 40)
@@ -499,6 +507,27 @@ class IstioPatchInventoryTest(unittest.TestCase):
             result['profiles']['prerequisite/istio'],
             sorted(name + ':1.31.4' for name in inventory.ISTIO_REPOSITORIES),
         )
+
+    def test_changed_injector_image_selectors_fail_closed(self):
+        original = self.inputs['sources'][inventory.ISTIO_INPUTS[1]]
+        for selector, value in (
+            ('proxy', {'image': 'different-proxy'}),
+            ('proxy_init', {'image': 'different-init'}),
+            ('variant', 'distroless'),
+            ('proxy', {}),
+        ):
+            with self.subTest(selector=selector, value=value):
+                values = json.loads(original)
+                values['global'][selector] = value
+                encoded = json.dumps(values)
+                self.inputs['sources'][inventory.ISTIO_INPUTS[1]] = encoded
+                # Matching source and rendered values must not hide an image
+                # absent from the static prerequisite scan inventory.
+                self.documents[1]['data']['values'] = encoded
+                with self.assertRaisesRegex(ValueError, 'injected image'):
+                    inventory._pins(self.inputs['sources'])
+                with self.assertRaisesRegex(ValueError, 'injected image'):
+                    self.discover()
 
     def test_missing_overlay_input_fails_closed(self):
         del self.inputs['sources'][inventory.ISTIO_INPUTS[1]]
