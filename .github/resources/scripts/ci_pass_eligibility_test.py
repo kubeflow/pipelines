@@ -160,7 +160,7 @@ jobs:
       options.checkStatus || 'completed';
     const conclusion = status !== 'completed' ? null :
       published && options.drift === 'external-failure' ? 'failure' :
-      options.checkConclusion || (options.pollPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success');
+      options.checkConclusion || (options.checksPassed === false && !(options.recoverLast && cycle === options.cycles - 1) ? 'failure' : 'success');
     return {data: {total_count: 1, check_runs: [{id: 700, name: 'DCO',
       head_sha: HEAD, app: {id: 1861, slug: 'dco'}, status, conclusion,
       started_at: '2026-09-07T11:00:00Z', completed_at: status === 'completed' ? '2026-09-07T12:00:00Z' : null,
@@ -284,8 +284,9 @@ github.paginate.iterator = async function* () {
     await (options.mergedRecovery ? (gate.finalizeMergedRecovery || gate.finalize) : gate.finalize)({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
       preparedResult: options.preparedResultOverride ?? (!error ? outputs.prepared_result : ''),
-      pollSkipped: outputs.ready === 'false' && !error,
-      pollPassed: outputs.ready === 'true' && !options.checkerFailure && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
+      preparationSucceeded: !error && !options.preparationInterrupted,
+      validationReady: outputs.ready === 'true' && !error && !options.preparationInterrupted,
+      });
   } catch (e) {error = e.message;}
   }
   const recoveryAfter = options.verifyRecovery ? await gate.recoveryCandidates({github, context, root}) : null;
@@ -348,8 +349,8 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
             dict(runStatus='in_progress'),
             dict(missing=True),
             dict(checkStatus='in_progress'),
-            dict(pollPassed=False),
-            dict(checkerFailure=True),
+            dict(checksPassed=False),
+            dict(preparationInterrupted=True),
             dict(inventoryFailure=True),
             dict(checkApiFailure=True),
             dict(statusReadFailure=True),
@@ -529,10 +530,14 @@ class MergedReleaseRecoveryTest(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch'", job['if'])
         self.assertIn('github.event.repository.default_branch', job['if'])
         uses = [step.get('uses', '') for step in job['steps']]
-        self.assertIn(
-            'wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0',
-            uses,
+        self.assertFalse(
+            any('wechuli/allcheckspassed@' in value for value in uses)
         )
+        finalizer = job['steps'][-1]
+        self.assertIn(
+            "success() && steps.prepare.outcome == 'success'", finalizer['if']
+        )
+        self.assertIn('finalizeMergedRecovery', finalizer['with']['script'])
         self.assertEqual(job['permissions']['statuses'], 'write')
         self.assertNotIn('contents: write', str(job))
         self.assertEqual(job['steps'][0]['with']['ref'], '${{ github.sha }}')
@@ -750,14 +755,14 @@ class CIPassedTest(unittest.TestCase):
                     self.assert_last_status(result, 'failure')
                     self.assertNotIn('ready', result['outputs'])
 
-    def test_failed_poll_blocks_otherwise_complete_workflows(self):
-        result = exercise({'pollPassed': False})
+    def test_failed_external_check_blocks_otherwise_complete_workflows(self):
+        result = exercise({'checksPassed': False})
         self.assert_last_status(result, 'failure')
         self.assertEqual(
             result['descriptions'][-1], 'Check DCO (app 1861): failure'
         )
 
-    def test_missing_workflows_never_reach_poller(self):
+    def test_missing_workflows_never_authorize_check_validation(self):
         result = exercise({'missing': True})
         self.assertEqual(result['outputs']['ready'], 'false')
         self.assert_last_status(result, 'pending')
@@ -996,13 +1001,13 @@ async function run(liveTip) {
 
     def test_external_check_finishing_after_final_workflow_recovers(self):
         self.assert_last_status(
-            exercise({'workflowRun': True, 'pollPassed': False}), 'failure'
+            exercise({'workflowRun': True, 'checksPassed': False}), 'failure'
         )
         self.assert_last_status(exercise({'schedule': True}), 'success')
 
     def test_scheduled_recovery_preserves_safety_checks(self):
         for options in [
-            {'pollPassed': False},
+            {'checksPassed': False},
             {'retarget': True},
             {'missing': True, 'registrationStartedAt': '2026-09-07T11:00:00Z'},
             {'pr': {'labels': [{'name': 'needs-ok-to-test'}]}},
@@ -1037,7 +1042,7 @@ async function run(liveTip) {
         result = exercise(
             {
                 'schedule': True,
-                'pollPassed': False,
+                'checksPassed': False,
                 'initialStatus': 'failure',
                 'initialDescription': description,
                 'cycles': 6,
@@ -1048,7 +1053,7 @@ async function run(liveTip) {
         result = exercise(
             {
                 'schedule': True,
-                'pollPassed': False,
+                'checksPassed': False,
                 'initialStatus': 'failure',
                 'initialDescription': description,
                 'cycles': 6,
@@ -1178,7 +1183,11 @@ async function run(liveTip) {
 
     def test_queued_recovery_invalidates_success_when_checks_change(self):
         result = exercise(
-            {'schedule': True, 'pollPassed': False, 'initialStatus': 'success'}
+            {
+                'schedule': True,
+                'checksPassed': False,
+                'initialStatus': 'success',
+            }
         )
         self.assertEqual(
             [c for c in result['calls'] if c[0] == 'status'],
@@ -1192,7 +1201,7 @@ async function run(liveTip) {
                     result = exercise(
                         {
                             'schedule': True,
-                            'pollPassed': passed,
+                            'checksPassed': passed,
                             'pr': {
                                 'labels': [
                                     {'name': hold},
@@ -1268,7 +1277,7 @@ async function run(liveTip) {
 
     def test_actual_failure_wins_over_other_pending_evidence(self):
         self.assert_last_status(
-            exercise({'runStatus': 'in_progress', 'pollPassed': False}),
+            exercise({'runStatus': 'in_progress', 'checksPassed': False}),
             'failure',
         )
         self.assert_last_status(
@@ -1276,11 +1285,11 @@ async function run(liveTip) {
             'failure',
         )
 
-    def test_pinned_checker_failure_still_prevents_success(self):
-        result = exercise({'checkerFailure': True})
+    def test_interrupted_preparation_still_prevents_success(self):
+        result = exercise({'preparationInterrupted': True})
         self.assert_last_status(result, 'failure')
         self.assertIn(
-            'Cannot verify all checks passed', result['descriptions'][-1]
+            'CI preparation did not finish', result['descriptions'][-1]
         )
 
     def test_external_rerun_during_publication_revokes_success_to_pending(self):

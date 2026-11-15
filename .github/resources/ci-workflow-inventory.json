@@ -422,7 +422,7 @@
     {
       "path": ".github/workflows/contributor-report.yml",
       "name": "Contributor Report",
-      "header_sha256": "243a51f5c27753f09cf5e4d5ca9f35554496583c254a14f162cb15f2a9b09adb",
+      "header_sha256": "27264f76366bfc797dee0005ae7e6c594d49b01a1080811de6d885d943774cb5",
       "pull_request": null,
       "merge_group": null
     },

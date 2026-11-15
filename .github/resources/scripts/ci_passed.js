@@ -477,7 +477,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   }
 }
 
-async function finalize({github, context, core, number, head, before, pollPassed, pollSkipped = false,
+async function finalize({github, context, core, number, head, before, preparationSucceeded = false, validationReady = false,
   preparedResult = '',
   root = process.env.GITHUB_WORKSPACE}) {
   if (!number || !head) return;
@@ -488,11 +488,6 @@ async function finalize({github, context, core, number, head, before, pollPassed
     original = {...pr, head: {...pr.head, sha: head}};
     // Preserve the status on merge; closure without merge still invalidates below.
     if (pr.merged) return;
-    // The always-run finalizer must not turn an interrupted preparation or
-    // failed checker into pending and overwrite an already published failure.
-    if ((successfulCompletion(context) || failedCompletion(context)) && !pollPassed && !pollSkipped) {
-      throw new Error('Completion CI validation did not finish; inspect CI Check and retry.');
-    }
     let state = 'failure';
     let validatedBaseSha;
     let validatedQueueAdmission = false;
@@ -503,7 +498,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
       let prepared;
       if (preparedResult !== '') {
         prepared = JSON.parse(preparedResult);
-        if (!pollSkipped || pollPassed || !prepared ||
+        if (validationReady || !prepared ||
             !['pending', 'failure'].includes(prepared.state) ||
             !Array.isArray(prepared.reasons) || prepared.reasons.length === 0 ||
             prepared.reasons.some(reason => typeof reason !== 'string' || !reason)) {
@@ -538,13 +533,18 @@ async function finalize({github, context, core, number, head, before, pollPassed
         results.some(result => result.state === 'pending') ? 'pending' : 'success';
       reason = results.filter(result => result.state === state)
         .flatMap(result => result.reasons).join('; ');
-      // Retain the pinned checker's independent success requirement. If it
-      // was skipped before workflow evidence recovered, wait for the next
-      // reconciliation instead of authorizing an unchecked success.
-      if (state === 'success' && !pollPassed) {
-        state = pollSkipped ? 'pending' : 'failure';
-        reason = pollSkipped ? 'CI changed since initial assessment; awaiting check validation.' :
-          'Cannot verify all checks passed; inspect CI Check and retry.';
+      // Preserve fresh failure reasons, but never turn an interrupted
+      // prerequisite into pending or green if its evidence recovered meanwhile.
+      if (preparationSucceeded !== true && state !== 'failure') {
+        state = 'failure';
+        reason = 'CI preparation did not finish; inspect CI Check and retry.';
+      }
+      // Preparation may establish only a negative result. If evidence became
+      // green after preparation declined validation, wait for a fresh complete
+      // reconciliation instead of promoting that negative snapshot.
+      if (state === 'success' && validationReady !== true) {
+        state = 'pending';
+        reason = 'CI changed since initial assessment; awaiting check validation.';
       }
     }
     if (state === 'failure') errorReason = reason;
@@ -684,8 +684,8 @@ async function prepareMergedRecovery({github, context, core, number, head,
 }
 
 async function finalizeMergedRecovery({github, context, core, number, head, before,
-  pollPassed, root = process.env.GITHUB_WORKSPACE}) {
-  if (!number || !head || !pollPassed) return;
+  preparationSucceeded = false, validationReady = false, root = process.env.GITHUB_WORKSPACE}) {
+  if (!number || !head || preparationSucceeded !== true || validationReady !== true) return;
   const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
   if (identity !== before) throw new Error('Merged recovery identity changed.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;
