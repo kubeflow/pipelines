@@ -234,7 +234,7 @@ func TestPrepareGeneratesDurableCredentialsOnce(t *testing.T) {
 	}
 }
 func TestPreparePreservesCustomCredentials(t *testing.T) {
-	for _, pair := range []Credentials{testPair, {DefaultAccessKey, "operator-secret"}} {
+	for _, pair := range []Credentials{testPair, {"custom@operator", "valid@operator:2026!"}, {"custom", "space \" \\ $`()"}} {
 		t.Run(pair.AccessKey, func(t *testing.T) {
 			m, a, _ := fixture()
 			a.secrets[LegacySecret] = secretFixture(LegacySecret, &pair)
@@ -585,5 +585,41 @@ func TestCompletedPrepareIsReadOnly(t *testing.T) {
 	requireSuccess(t, err)
 	if api.patches != patches || state.Annotations[PhaseAnnotation] != CompletePhase {
 		t.Fatal("completed bootstrap changed durable state")
+	}
+}
+
+func TestSameIDAdoptionRequiresExplicitDrainAcknowledgement(t *testing.T) {
+	m, a, _ := fixture()
+	pair := Credentials{DefaultAccessKey, "operator-custom"}
+	a.secrets[LegacySecret] = secretFixture(LegacySecret, &pair)
+	_, err := m.Prepare(testContext)
+	requireFailure(t, err)
+	if a.patches != 0 {
+		t.Fatal("changed credentials before operator coordination")
+	}
+	a.secrets[AdminSecret].Annotations = map[string]string{SameIDAdoptionAnnotation: "confirmed"}
+	state, err := m.Prepare(testContext)
+	requireSuccess(t, err)
+	got, _, _ := CredentialsFromSecret(state)
+	if got != pair {
+		t.Fatal("custom pair changed")
+	}
+}
+func TestStorageReadyIgnoresTerminalOldPods(t *testing.T) {
+	for _, phase := range []corev1.PodPhase{corev1.PodFailed, corev1.PodSucceeded, corev1.PodRunning} {
+		m, a, _ := fixture()
+		a.pods = []corev1.Pod{{ObjectMeta: metav1.ObjectMeta{Name: "old-storage", Labels: map[string]string{"app": "seaweedfs"}}, Spec: podSpec(LegacySecret), Status: corev1.PodStatus{Phase: phase}}}
+		err := m.storageReady(testContext)
+		if phase == corev1.PodRunning {
+			requireWaiting(t, err)
+		} else {
+			requireSuccess(t, err)
+		}
+	}
+}
+func TestCredentialsRejectCommandSeparators(t *testing.T) {
+	for _, value := range []string{"bad;command", "bad\nline", "bad\rline", "bad\x00value"} {
+		_, _, err := CredentialsFromSecret(secretFixture(AdminSecret, &Credentials{"custom", value}))
+		requireFailure(t, err)
 	}
 }

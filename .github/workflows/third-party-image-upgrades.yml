@@ -61,7 +61,7 @@ jobs:
   compatibility:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -70,6 +70,12 @@ jobs:
         with:
           ref: ${{ github.event.merge_group.base_sha || inputs.queue_base_sha || github.event.pull_request.base.sha || inputs.baseline_ref }}
           path: baseline
+          persist-credentials: false
+      # Keep default-credential migration coverage after the base branch migrates.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: 86430f1554921cad54ee203bd618bc4ec8b67695
+          path: legacy-baseline
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
@@ -105,6 +111,10 @@ jobs:
           SEAWEEDFS_RENDERED="$RUNNER_TEMP/seaweedfs.yaml" python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
           kustomize build manifests/kustomize/env/openshift/base > "$RUNNER_TEMP/seaweedfs-openshift.yaml"
           SEAWEEDFS_RENDERED="$RUNNER_TEMP/seaweedfs-openshift.yaml" OPENSHIFT_RENDERED=true python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
+          for overlay in platform-agnostic dev-kind/base dev-kind/postgres; do
+            kustomize build "manifests/kustomize/env/$overlay" > "$RUNNER_TEMP/storage-overlay.yaml"
+            SEAWEEDFS_RENDERED="$RUNNER_TEMP/storage-overlay.yaml" python -m unittest discover -s manifests/kustomize/third-party/seaweedfs/base/seaweedfs -p 'admin_credentials_manifest_test.py'
+          done
       - name: Download the branch image containing the Go migrator
         uses: ./.github/actions/download-artifact-with-retry
         with:
@@ -113,7 +123,7 @@ jobs:
       - name: Upgrade the persistent store and exercise the actual profile image
         run: |
           python .github/resources/scripts/third_party_upgrade_compatibility.py \
-            --baseline baseline --evidence compatibility-evidence \
+            --baseline baseline --legacy-baseline legacy-baseline --evidence compatibility-evidence \
             --controller-image-archive "$RUNNER_TEMP/credential-images/apiserver/apiserver.tar" \
             --controller-image kind-registry:5000/apiserver:latest
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

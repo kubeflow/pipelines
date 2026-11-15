@@ -72,7 +72,9 @@ def kubectl(*args, data=None):
 
 def rendered(path):
     objects = list(yaml.safe_load_all(run('kustomize', 'build', str(path))))
-    if path == SEAWEED and CONTROLLER_IMAGE:
+    # Base manifests also contain the unpublished migrator placeholder after
+    # migration lands. Keep their storage image, but use the built test helper.
+    if CONTROLLER_IMAGE:
         for obj in objects:
             if (obj.get('kind') != 'Deployment' or
                     obj['metadata']['name'] != 'seaweedfs'):
@@ -592,7 +594,7 @@ def verify_old_credentials_rejected(old, current, evidence):
     if old == current:
         return  # Operator-provided credentials are preserved.
     for local, port, factory, method, arguments in (
-        (S3_LOCAL_PORT, S3_PORT, client, 'head_bucket', {
+        (S3_LOCAL_PORT, S3_PORT, client, 'get_bucket_location', {
             'Bucket': BUCKET
         }),
         (IAM_LOCAL_PORT, IAM_PORT, iam_client, 'list_users', {}),
@@ -602,9 +604,11 @@ def verify_old_credentials_rejected(old, current, evidence):
                 try:
                     getattr(probe, method)(**arguments)
                 except ClientError as error:
-                    if error.response.get('ResponseMetadata',
-                                          {}).get('HTTPStatusCode') in (401,
-                                                                        403):
+                    if error.response.get(
+                            'Error',
+                        {}).get('Code') in ('InvalidAccessKeyId',
+                                            'InvalidClientTokenId',
+                                            'SignatureDoesNotMatch'):
                         continue
                     raise
         raise AssertionError(
@@ -742,7 +746,7 @@ def storage_image(storage):
     return images[0]
 
 
-def exercise(evidence, baseline):
+def exercise(evidence, baseline, *, require_legacy=False):
     """Validate a base-ref to candidate store upgrade and profile contract."""
     storage = rendered(SEAWEED)
     target = storage_image(storage)
@@ -750,6 +754,11 @@ def exercise(evidence, baseline):
     baseline_image = storage_image(baseline_storage)
     old_credentials, pvc_uid = seed_old_store(baseline_storage, baseline_image,
                                               evidence)
+    if require_legacy and hashlib.sha256(
+        ('\0'.join(old_credentials)).encode()).hexdigest() != (
+            '0c9d72cb381b9afa7023c36f330317ee8783fc8becf72e2c0610688e9afb544d'):
+        raise AssertionError(
+            'Legacy baseline no longer supplies the shipped credential')
     # Establish a tenant key and objects BEFORE rotation to prove preservation.
     secret = exercise_profile(old_credentials, evidence)
     verify_workload_drain(storage, old_credentials, evidence)
@@ -760,6 +769,16 @@ def exercise(evidence, baseline):
     verify_after_restart(credentials, secret, pvc_uid, evidence)
     verify_old_credentials_rejected(old_credentials, credentials, evidence)
     write_result(evidence, baseline_image, target, pvc_uid)
+
+
+def exercise_baselines(evidence, baseline, legacy_baseline):
+    """Keep current-base compatibility and historical revocation coverage
+    separate."""
+    exercise(evidence, baseline)
+    kubectl('delete', 'namespace', 'kubeflow', '--wait=true', '--timeout=180s')
+    legacy_evidence = evidence / 'legacy-credential-migration'
+    legacy_evidence.mkdir()
+    exercise(legacy_evidence, legacy_baseline, require_legacy=True)
 
 
 def delete_cluster():
@@ -778,6 +797,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--baseline', type=Path, required=True)
+    parser.add_argument('--legacy-baseline', type=Path, required=True)
     parser.add_argument('--controller-image-archive', type=Path, required=True)
     parser.add_argument('--controller-image', required=True)
     args = parser.parse_args()
@@ -804,7 +824,7 @@ def main():
             str(args.controller_image_archive),
         )
         verify_fresh_bootstrap(args.evidence)
-        exercise(args.evidence, args.baseline)
+        exercise_baselines(args.evidence, args.baseline, args.legacy_baseline)
     finally:
         for name, command in {
                 'pods.json': ('get', 'pods', '-o', 'json'),

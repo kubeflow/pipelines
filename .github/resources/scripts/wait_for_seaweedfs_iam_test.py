@@ -14,11 +14,11 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import time
 import unittest
+from pathlib import Path
 
 SCRIPT = Path(__file__).with_name('wait-for-seaweedfs-iam.sh')
 DEPLOY_SCRIPT = Path(__file__).with_name('deploy-kfp.sh')
@@ -122,8 +122,11 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             '        matchLabels:\n'
             '          app: kubeflow-pipelines-profile-controller\n'
             '    - podSelector:\n'
-            '        matchLabels:\n'
-            '          app: seaweedfs-credential-rotation\n'
+            '        matchExpressions:\n'
+            '        - key: app\n'
+            '          operator: In\n'
+            '          values:\n'
+            '          - seaweedfs-credential-rotation\n'
             '    ports:\n'
             '    - port: 8111\n',
             policy,
@@ -167,7 +170,7 @@ class WaitForSeaweedfsIamTest(unittest.TestCase):
             return result
 
 
-_FAKE_KUBECTL = r'''#!/usr/bin/env bash
+_FAKE_KUBECTL = r"""#!/usr/bin/env bash
 args="$*"
 
 if [[ "$args" == *"get service seaweedfs -o json"* ]]; then
@@ -218,7 +221,7 @@ case "$args" in
   *"logs statefulset/metacontroller"*) echo "metacontroller-log-state" ;;
   *"get events"*) echo "kubeflow-event-state" ;;
 esac
-'''
+"""
 
 if __name__ == '__main__':
     unittest.main()

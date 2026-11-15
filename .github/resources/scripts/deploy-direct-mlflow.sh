@@ -43,6 +43,7 @@ if [ "$ARTIFACT_STORAGE" = "s3" ]; then
   # CI supplies the runtime-generated credential. Direct invocations read the
   # same Secret instead of silently falling back to published defaults.
   if [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    kubectl -n kubeflow wait --for='jsonpath={.metadata.annotations.pipelines\.kubeflow\.org/storage-credential-phase}=DefaultRevoked' secret/seaweedfs-admin-credentials --timeout=600s
     AWS_ACCESS_KEY_ID=$(kubectl -n kubeflow get secret mlpipeline-minio-artifact -o jsonpath='{.data.accesskey}' | base64 -d)
     AWS_SECRET_ACCESS_KEY=$(kubectl -n kubeflow get secret mlpipeline-minio-artifact -o jsonpath='{.data.secretkey}' | base64 -d)
   fi

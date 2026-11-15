@@ -11,8 +11,10 @@
 """Verify rendered manifests: set SEAWEEDFS_RENDERED to kubectl kustomize output."""
 
 import os
-from pathlib import Path
+import shlex
+import subprocess
 import unittest
+from pathlib import Path
 
 import yaml
 
@@ -129,6 +131,64 @@ class ManifestTest(unittest.TestCase):
             self.assertNotIn('*', rule['verbs'])
         binding = self.resource('RoleBinding', 'seaweedfs-credential-rotation')
         self.assertEqual('Role', binding['roleRef']['kind'])
+
+    def test_registration_quotes_custom_credentials(self):
+        container = self.resource(
+            'Deployment',
+            'seaweedfs')['spec']['template']['spec']['containers'][0]
+        lines = container['lifecycle']['postStart']['exec']['command'][
+            -1].splitlines()
+        assignments = [
+            line.strip()
+            for line in lines
+            if line.strip().startswith(('quoted_access=', 'quoted_secret='))
+        ]
+        command = next(line.strip()
+                       for line in lines
+                       if line.strip().startswith("if printf 's3.configure"))
+        command = command.removeprefix('if ').split(' | /usr/bin/weed shell',
+                                                    1)[0]
+        for value in [
+                'valid@operator:2026!', 'space " quote \\ slash',
+                "literal$(value)`data`'apostrophe"
+        ]:
+            result = subprocess.run(
+                ['/bin/sh', '-c', '\n'.join(assignments + [command])],
+                env={
+                    'PATH': '/usr/bin:/bin',
+                    'accesskey': 'custom@id',
+                    'secretkey': value
+                },
+                text=True,
+                capture_output=True,
+                check=True)
+            args = shlex.split(result.stdout)
+            self.assertEqual(args[args.index('-access_key') + 1], 'custom@id')
+            self.assertEqual(args[args.index('-secret_key') + 1], value)
+
+    def test_migration_peer_matches_runtime_job_labels(self):
+        policy = self.resource('NetworkPolicy', 'seaweedfs')
+        iam = next(rule for rule in policy['spec']['ingress'] if any(
+            port['port'] == 8111 for port in rule.get('ports', [])))
+        peers = [
+            item['podSelector'] for item in iam['from'] if 'podSelector' in item
+        ]
+        migration = next(
+            peer for peer in peers if any(
+                term.get('key') == 'app' and
+                'seaweedfs-credential-rotation' in term.get('values', [])
+                for term in peer.get('matchExpressions', [])))
+        self.assertFalse(migration.get('matchLabels'))
+        self.assertEqual(len(migration['matchExpressions']), 1)
+        self.assertEqual(migration['matchExpressions'][0]['operator'], 'In')
+
+    def test_storage_service_keeps_internal_endpoints(self):
+        service = self.resource('Service', 'seaweedfs')
+        ports = {
+            item['port']: item['targetPort'] for item in service['spec']['ports']
+        }
+        self.assertEqual(ports[8333], 8333)
+        self.assertEqual(ports[8111], 8111)
 
     def test_openshift_uses_assigned_identity(self):
         if os.environ.get('OPENSHIFT_RENDERED') != 'true':

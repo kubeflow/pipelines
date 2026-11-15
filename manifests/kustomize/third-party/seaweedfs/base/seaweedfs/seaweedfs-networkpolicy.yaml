@@ -33,8 +33,11 @@ spec:
         matchLabels:
           app: kubeflow-pipelines-profile-controller
     - podSelector:
-        matchLabels:
-          app: seaweedfs-credential-rotation
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - seaweedfs-credential-rotation
     ports:
     - port: 8111
       protocol: TCP

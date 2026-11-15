@@ -30,6 +30,80 @@ import third_party_upgrade_compatibility as compatibility
 
 class CompatibilityTest(unittest.TestCase):
 
+    def test_baseline_render_uses_loaded_migrator_without_replacing_storage(
+            self):
+        deployment = {
+            'kind': 'Deployment',
+            'metadata': {
+                'name': 'seaweedfs'
+            },
+            'spec': {
+                'template': {
+                    'spec': {
+                        'containers': [{
+                            'name': 'seaweedfs',
+                            'image': 'storage:baseline'
+                        }],
+                        'initContainers': [{
+                            'name': 'prepare-storage-credentials',
+                            'image': 'apiserver:dummy'
+                        }],
+                    }
+                }
+            },
+        }
+        with (
+                patch.object(
+                    compatibility, 'run', return_value=json.dumps(deployment)),
+                patch.object(compatibility, 'CONTROLLER_IMAGE',
+                             'candidate:loaded'),
+        ):
+            actual = compatibility.rendered(
+                Path('/baseline') /
+                compatibility.SEAWEED.relative_to(compatibility.ROOT))
+        spec = actual[0]['spec']['template']['spec']
+        self.assertEqual(spec['containers'][0]['image'], 'storage:baseline')
+        self.assertEqual(spec['initContainers'][0]['image'], 'candidate:loaded')
+        self.assertEqual(spec['initContainers'][0]['imagePullPolicy'],
+                         'IfNotPresent')
+
+    def test_current_and_legacy_baselines_are_both_exercised(self):
+        with (
+                tempfile.TemporaryDirectory() as directory,
+                patch.object(compatibility, 'exercise') as exercise,
+                patch.object(compatibility, 'kubectl') as kubectl,
+        ):
+            evidence = Path(directory)
+            compatibility.exercise_baselines(evidence, Path('current'),
+                                             Path('legacy'))
+            self.assertEqual(exercise.call_count, 2)
+            self.assertEqual(exercise.call_args_list[0].args,
+                             (evidence, Path('current')))
+            self.assertEqual(
+                exercise.call_args_list[1].args,
+                (evidence / 'legacy-credential-migration', Path('legacy')))
+            self.assertEqual(exercise.call_args_list[1].kwargs,
+                             {'require_legacy': True})
+            self.assertTrue((evidence / 'legacy-credential-migration').is_dir())
+            kubectl.assert_called_once_with('delete', 'namespace', 'kubeflow',
+                                            '--wait=true', '--timeout=180s')
+
+    def test_legacy_baseline_rejects_already_rotated_credentials(self):
+        with (
+                patch.object(compatibility, 'rendered', return_value=[]),
+                patch.object(
+                    compatibility, 'storage_image', return_value='image'),
+                patch.object(
+                    compatibility,
+                    'seed_old_store',
+                    return_value=(('generated', 'generated-secret'), 'pvc')),
+                patch.object(compatibility, 'verify_workload_drain') as drain,
+        ):
+            with self.assertRaisesRegex(AssertionError, 'Legacy baseline'):
+                compatibility.exercise(
+                    Path('evidence'), Path('baseline'), require_legacy=True)
+            drain.assert_not_called()
+
     def test_fresh_bootstrap_closes_plain_sdk_clients(self):
 
         class ClientError(Exception):
@@ -131,17 +205,25 @@ class CompatibilityTest(unittest.TestCase):
 
         class ClientError(Exception):
 
-            def __init__(self, status):
-                self.response = {'ResponseMetadata': {'HTTPStatusCode': status}}
+            def __init__(self, status, code='InvalidAccessKeyId'):
+                self.response = {
+                    'ResponseMetadata': {
+                        'HTTPStatusCode': status
+                    },
+                    'Error': {
+                        'Code': code
+                    }
+                }
 
         for accepted in (None, 's3', 'iam'):
             with self.subTest(accepted=accepted):
-                s3 = Mock(spec=['head_bucket', 'close'])
+                s3 = Mock(spec=['get_bucket_location', 'close'])
                 iam = Mock(spec=['list_users', 'close'])
                 if accepted != 's3':
-                    s3.head_bucket.side_effect = ClientError(403)
+                    s3.get_bucket_location.side_effect = ClientError(403)
                 if accepted != 'iam':
-                    iam.list_users.side_effect = ClientError(401)
+                    iam.list_users.side_effect = ClientError(
+                        403, 'InvalidClientTokenId')
                 with (
                         patch.dict(
                             sys.modules, {
@@ -172,6 +254,49 @@ class CompatibilityTest(unittest.TestCase):
                     iam.close.assert_called_once_with()
                 else:
                     iam.close.assert_not_called()
+
+    def test_authorization_denial_is_not_credential_revocation(self):
+
+        class ClientError(Exception):
+
+            def __init__(self, code):
+                self.response = {
+                    'ResponseMetadata': {
+                        'HTTPStatusCode': 403
+                    },
+                    'Error': {
+                        'Code': code
+                    }
+                }
+
+        for listener in ('s3', 'iam'):
+            for code in ('AccessDenied', '403', ''):
+                with self.subTest(listener=listener, code=code):
+                    s3 = Mock(spec=['get_bucket_location', 'close'])
+                    iam = Mock(spec=['list_users', 'close'])
+                    s3.get_bucket_location.side_effect = ClientError(
+                        code if listener == 's3' else 'InvalidAccessKeyId')
+                    iam.list_users.side_effect = ClientError(code)
+                    with (
+                            patch.dict(
+                                sys.modules, {
+                                    'botocore.exceptions':
+                                        SimpleNamespace(ClientError=ClientError)
+                                }),
+                            patch.object(
+                                compatibility,
+                                'forward',
+                                side_effect=lambda *args: nullcontext(
+                                    'http://localhost')),
+                            patch.object(
+                                compatibility, 'client', return_value=s3),
+                            patch.object(
+                                compatibility, 'iam_client', return_value=iam),
+                    ):
+                        with self.assertRaises(ClientError):
+                            compatibility.verify_old_credentials_rejected(
+                                ('old', 'old-secret'), ('new', 'new-secret'),
+                                Path('.'))
 
     def test_secret_credentials_string_and_encoded_data(self):
         self.assertEqual(

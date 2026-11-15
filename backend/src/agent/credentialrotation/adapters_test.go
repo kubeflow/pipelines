@@ -15,6 +15,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -50,76 +51,106 @@ func TestSecretPatchPreservesUnrelatedMetadata(t *testing.T) {
 	}
 }
 
-func TestRemoteStorageRetriesStaleIAMRevocation(t *testing.T) {
-	iamAccepted := true
-	deletes := 0
-	iamStatus := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		old := strings.Contains(r.Header.Get("Authorization"), "Credential="+DefaultAccessKey+"/")
-		if r.Method == http.MethodHead {
-			if old {
+func TestRemoteStorageRevocationRequiresAuthenticationEvidence(t *testing.T) {
+	for _, tc := range []struct {
+		name, s3Code, iamCode string
+		wantError, accepted   bool
+	}{
+		{"removed", "InvalidAccessKeyId", "InvalidAccessKeyId", false, false},
+		{"changed-secret", "SignatureDoesNotMatch", "SignatureDoesNotMatch", false, false},
+		{"permission-denied", "AccessDenied", "AccessDenied", true, false},
+		{"s3-ambiguous", "AccessDenied", "InvalidAccessKeyId", true, false},
+		{"iam-ambiguous", "InvalidAccessKeyId", "AccessDenied", true, false},
+		{"iam-still-accepts", "InvalidAccessKeyId", "", false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodGet {
+					w.WriteHeader(http.StatusForbidden)
+					fmt.Fprintf(w, "<Error><Code>%s</Code></Error>", tc.s3Code)
+					return
+				}
+				if tc.iamCode == "" {
+					fmt.Fprint(w, "<ListUsersResponse/>")
+					return
+				}
 				w.WriteHeader(http.StatusForbidden)
-			} else {
-				w.WriteHeader(http.StatusOK)
+				fmt.Fprintf(w, "<ErrorResponse><Error><Code>%s</Code></Error></ErrorResponse>", tc.iamCode)
+			}))
+			defer server.Close()
+			storage, err := NewRemoteStorage(testPair, server.URL, server.URL)
+			if err != nil {
+				t.Fatal(err)
 			}
-			return
-		}
-		if !strings.Contains(r.Header.Get("Authorization"), "/iam/aws4_request") {
-			t.Error("IAM request not signed for IAM")
-		}
-		if err := r.ParseForm(); err != nil {
-			t.Error(err)
-			w.WriteHeader(400)
-			return
-		}
-		switch r.Form.Get("Action") {
-		case "GetUser":
-			w.WriteHeader(http.StatusOK)
-		case "ListUsers":
-			switch {
-			case iamStatus != 0:
-				w.WriteHeader(iamStatus)
-			case old && iamAccepted:
-				w.WriteHeader(http.StatusOK)
-			default:
-				w.WriteHeader(http.StatusForbidden)
+			defer storage.Close()
+			accepted, err := storage.DefaultAccepted(context.Background())
+			if (err != nil) != tc.wantError || accepted != tc.accepted {
+				t.Fatalf("accepted=%v err=%v", accepted, err)
 			}
-		case "DeleteAccessKey":
-			if r.Form.Get("AccessKeyId") != DefaultAccessKey || old {
-				t.Error("wrong deletion principal or key")
+		})
+	}
+}
+
+func TestRemoteStorageDiscoversOwnerAndRefusesAmbiguousDeletion(t *testing.T) {
+	for _, owners := range [][]string{{"minio"}, {"legacy-fixture"}, {"kubeflow-admin", "operator-custom"}} {
+		t.Run(strings.Join(owners, "-"), func(t *testing.T) {
+			removed := false
+			var deleted []string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				old := strings.Contains(r.Header.Get("Authorization"), "Credential="+DefaultAccessKey+"/")
+				if r.Method == http.MethodGet {
+					if !removed {
+						fmt.Fprint(w, "<LocationConstraint/>")
+						return
+					}
+					w.WriteHeader(http.StatusForbidden)
+					fmt.Fprint(w, "<Error><Code>InvalidAccessKeyId</Code></Error>")
+					return
+				}
+				if err := r.ParseForm(); err != nil {
+					t.Error(err)
+					return
+				}
+				if old && removed {
+					w.WriteHeader(http.StatusForbidden)
+					fmt.Fprint(w, "<Error><Code>InvalidAccessKeyId</Code></Error>")
+					return
+				}
+				switch r.Form.Get("Action") {
+				case "ListUsers":
+					fmt.Fprint(w, "<ListUsersResponse><ListUsersResult><Users>")
+					for _, owner := range owners {
+						fmt.Fprintf(w, "<member><UserName>%s</UserName></member>", owner)
+					}
+					fmt.Fprint(w, "</Users><IsTruncated>false</IsTruncated></ListUsersResult></ListUsersResponse>")
+				case "ListAccessKeys":
+					fmt.Fprintf(w, "<ListAccessKeysResponse><ListAccessKeysResult><AccessKeyMetadata><member><AccessKeyId>%s</AccessKeyId></member></AccessKeyMetadata></ListAccessKeysResult></ListAccessKeysResponse>", DefaultAccessKey)
+				case "DeleteAccessKey":
+					if old || r.Form.Get("AccessKeyId") != DefaultAccessKey {
+						t.Error("wrong deletion identity")
+					}
+					deleted = append(deleted, r.Form.Get("UserName"))
+					removed = true
+					fmt.Fprint(w, "<DeleteAccessKeyResponse/>")
+				default:
+					t.Error("unexpected IAM operation")
+				}
+			}))
+			defer server.Close()
+			storage, err := NewRemoteStorage(testPair, server.URL, server.URL)
+			if err != nil {
+				t.Fatal(err)
 			}
-			deletes++
-			if deletes > 1 {
-				iamAccepted = false
+			defer storage.Close()
+			err = storage.RevokeDefault(context.Background())
+			if len(owners) == 1 {
+				if err != nil || len(deleted) != 1 || deleted[0] != owners[0] {
+					t.Fatalf("deletion=%v err=%v", deleted, err)
+				}
+			} else if err == nil || len(deleted) != 0 {
+				t.Fatalf("ambiguous deletion=%v err=%v", deleted, err)
 			}
-			w.WriteHeader(http.StatusOK)
-		default:
-			t.Error("unexpected IAM operation")
-			w.WriteHeader(400)
-		}
-	}))
-	defer server.Close()
-	storage, err := NewRemoteStorage(Credentials{"synthetic-replacement", "synthetic-secret"}, server.URL, server.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer storage.Close()
-	ctx := context.Background()
-	if err := storage.Verify(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err := storage.RevokeDefault(ctx); !IsWaiting(err) {
-		t.Fatalf("stale IAM should wait, got %T", err)
-	}
-	if err := storage.RevokeDefault(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if deletes != 2 {
-		t.Fatalf("got %d deletions", deletes)
-	}
-	iamStatus = 503
-	if _, err := storage.DefaultAccepted(ctx); err == nil {
-		t.Fatal("IAM failure counted as revocation")
+		})
 	}
 }
 
@@ -142,4 +173,31 @@ func TestHealthIsIndependentOfCompletion(t *testing.T) {
 	check(200)
 	health.lastSuccess.Store(time.Now().Add(-3 * time.Minute).UnixNano())
 	check(503)
+}
+
+func TestRevocationDoesNotDeleteFromStaleS3Acceptance(t *testing.T) {
+	deleted := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			fmt.Fprint(w, "<LocationConstraint/>")
+			return
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		if r.Form.Get("Action") == "DeleteAccessKey" {
+			deleted = true
+		}
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "<Error><Code>SignatureDoesNotMatch</Code></Error>")
+	}))
+	defer server.Close()
+	storage, err := NewRemoteStorage(testPair, server.URL, server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer storage.Close()
+	if err := storage.RevokeDefault(context.Background()); err == nil || deleted {
+		t.Fatalf("deleted=%v err=%v", deleted, err)
+	}
 }

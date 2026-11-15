@@ -62,10 +62,17 @@ patches:
       spec:
         ports:
           - $patch: replace
-          - port: 9000
+          - name: s3-compat
+            port: 9000
             protocol: TCP
             targetPort: 8333
             nodePort: 30900
+          - name: s3
+            port: 8333
+            targetPort: 8333
+          - name: iam
+            port: 8111
+            targetPort: 8111
         type: NodePort
   # Visualization Server NodePort
   - patch: |-
@@ -153,6 +160,7 @@ patches:
                 - kubeflow-profile
           ports:
           - port: 8333
+            protocol: TCP
         - from:
           - namespaceSelector:
               matchExpressions:
@@ -165,6 +173,18 @@ patches:
               cidr: 0.0.0.0/0
           ports:
           - port: 8333
+            protocol: TCP
+        - from:
+          - podSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - seaweedfs-credential-rotation
+                - kubeflow-pipelines-profile-controller
+          ports:
+          - port: 8111
+            protocol: TCP
         podSelector:
           matchExpressions:
           - key: app

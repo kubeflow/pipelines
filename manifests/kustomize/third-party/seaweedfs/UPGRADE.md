@@ -35,6 +35,36 @@ namespace is reconciled; external storage and profile namespace Secrets are not
 changed. A replacement API image must contain `/bin/credential-rotation`; do not
 pin this component to an older release image lacking that binary.
 
+## Before upgrading: copied credentials and profile Secrets
+
+The migration cannot drain or rewrite clients outside the installation namespace.
+Inventory copied credentials before applying the new manifests. With authorized
+cluster-wide Secret access, this prints only names of Secrets containing the
+exact shipped pair; it does not print credential data:
+
+```sh
+kubectl get secrets --all-namespaces -o json | jq -r '
+  .items[] |
+  select(.data.accesskey == "bWluaW8=" and .data.secretkey == "bWluaW8xMjM=") |
+  [.metadata.namespace, .metadata.name] | @tsv'
+```
+
+For every matching profile namespace, pause new submissions and schedules and
+let active runs and artifact transfers finish. Remove its default-valued
+`mlpipeline-minio-artifact` Secret, then let the profile controller reconcile the
+profile. It creates a tenant-scoped credential when that Secret is absent; it
+preserves an existing Secret, so a controller restart alone does not rekey it.
+Verify reconciliation creates the Secret, restart clients that cached the old
+credential, and verify an authorized artifact upload and read in that profile.
+Repeat the inventory to confirm the profile no longer contains the shipped pair.
+Do not delete customized Secrets or the installation namespace's legacy Secret.
+
+Coordinate equivalent rekeying for external copies (including MLflow), and
+retain the inventory until their consumers have switched. Only then apply the
+storage migration. The automatic drain covers installation-namespace workloads,
+not these external consumers. Restrict storage access while the public key is
+still valid.
+
 ## Status and controller health
 
 Inspect migration state without displaying credential data:
@@ -74,11 +104,16 @@ storage bootstrap. No TTL repeatedly deletes and recreates completed Jobs.
 
 Completion describes the verified storage state at that time. Restoring an old
 PVC snapshot can restore old identities without changing the Kubernetes Secret.
-After such a restore, explicitly request migration again before reopening access:
+After such a restore, pause workloads and restrict storage access. Explicitly
+request migration again before reopening access. Clear the Pod-template revision
+marker as well: the Secret UID is unchanged, and retaining that marker would skip
+the IAM-cache reload required after replacement identity registration:
 
 ```sh
 kubectl -n kubeflow annotate secret seaweedfs-admin-credentials \
   pipelines.kubeflow.org/storage-credential-phase=ReplacementPrepared --overwrite
+kubectl -n kubeflow patch deployment seaweedfs --type=merge -p \
+  '{"spec":{"template":{"metadata":{"annotations":{"pipelines.kubeflow.org/storage-credential-revision":null}}}}}'
 kubectl -n kubeflow rollout restart deployment/seaweedfs
 ```
 
@@ -105,9 +140,39 @@ three named consumer Deployments. Neither has cluster-wide access or pod-exec.
 The existing NetworkPolicy permits IAM access only to the profile controller
 and migration Job. NetworkPolicy enforcement remains required.
 
+Pause concurrent administrator credential changes while migration is active.
+The IAM API has no conditional secret-based delete; changing stored credentials
+during its verification and deletion window is not supported.
+
 Custom deployment names and clients outside the inventory require explicit
 coordination. Malformed, immutable or conflicting credential Secrets stop the
 migration rather than silently overwriting operator configuration.
+
+### Customized credentials sharing the legacy access-key ID
+
+If the legacy access-key ID is still `minio` but its secret was customized,
+registration could replace a persisted old key before the automatic drain.
+Migration therefore stops until an operator coordinates that transition. Pause
+new submissions and schedules, drain all consumers of either version of that
+key (including copied credentials outside the installation namespace), and
+verify that none still needs the old key. Then acknowledge the coordinated
+transition and restart storage:
+
+```sh
+kubectl -n kubeflow annotate secret seaweedfs-admin-credentials \
+  pipelines.kubeflow.org/storage-same-id-adoption=confirmed --overwrite
+kubectl -n kubeflow rollout restart deployment/seaweedfs
+```
+
+This acknowledgement does not drain workloads or prove that draining happened.
+Do not set it while any affected client remains active.
+
+If multiple persisted identities own the legacy access-key ID, migration also
+stops. IAM's key inventory does not reveal each secret, so deleting every ID
+match could remove a customized credential. Inspect the identities through an
+authorized storage-administration path, remove only exact shipped-pair matches,
+and preserve custom keys. Restart migration after resolving the ambiguity;
+do not mark it complete manually.
 
 ## Compatibility and release validation
 
@@ -118,6 +183,14 @@ keys remain unchanged. The 2.18 launcher retries an output upload once with a
 fresh Secret, whereas master's launcher does not refresh on authentication
 failure. Argo upload retries can retain a captured credential. A newer binary
 cannot change clients already running during upgrade.
+
+The compatibility workflow tests both the current base's manifests and a pinned
+pre-migration baseline. The latter must contain the shipped credential; the test
+fails if it has already migrated, so held-pod drain and old-key rejection cannot
+silently disappear after this change merges. Each scenario has separate evidence. Baseline storage retains its original image;
+if its manifests already require the migration helper, the harness uses the built
+candidate helper rather than an unpublished API-image placeholder. This is storage
+compatibility coverage, not a comparison of old and new migration binaries.
 
 The compatibility workflow exercises actual pinned images, fresh authentication
 before registration, client/server-side manifest reapply, preserved and newly
