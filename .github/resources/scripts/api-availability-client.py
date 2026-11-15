@@ -207,7 +207,9 @@ def run_attack(case):
             else b'Failed to read a pipeline spec file'
         )
         if status >= 400 and handler_marker in body_prefix:
-            outcome = 'handler_rejected'
+            outcome = (
+                'handler_candidate' if case == 'zip' else 'handler_rejected'
+            )
         elif status in (401, 403, 413):
             outcome = 'upstream_boundary'
         else:
@@ -228,12 +230,36 @@ def run_attack(case):
         return 1
 
 
+def verify_zip_evidence(api_log):
+    # The public upload error deliberately hides the underlying parser error.
+    # Only the isolated case's server logs can establish directory-scan coverage.
+    marker = 'Expecting a pipeline.yaml file inside the zip'
+    if any(
+        'Failed to read a pipeline spec file:' in line and marker in line
+        for line in api_log.splitlines()
+    ):
+        print('ZIP_EVIDENCE outcome=handler_rejected directory_scan=confirmed')
+        return 0
+    print('ZIP_EVIDENCE outcome=inconclusive directory_scan=unconfirmed')
+    return 1
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        'mode', choices=('benign', 'report', 'multipart', 'zip', 'prepare-zip')
+        'mode',
+        choices=(
+            'benign',
+            'report',
+            'multipart',
+            'zip',
+            'prepare-zip',
+            'verify-zip',
+        ),
     )
     args = parser.parse_args()
+    if args.mode == 'verify-zip':
+        return verify_zip_evidence(sys.stdin.read(65536))
     if args.mode == 'benign':
         return run_benign()
     if args.mode == 'prepare-zip':

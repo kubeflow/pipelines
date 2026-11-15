@@ -4,6 +4,8 @@ import importlib.util
 import io
 import json
 import struct
+import subprocess
+import sys
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -85,6 +87,55 @@ class AvailabilityClientTest(unittest.TestCase):
             '"metadata": {"namespace": "kfp-audit-attacker"', workflow
         )
         self.assertEqual(body.count(b'x'), 16 << 20)
+
+    def test_zip_rejection_requires_directory_scan_evidence(self):
+        for log in (
+            '',
+            'Failed to read a pipeline spec file: zip: not a valid zip file',
+            'Failed to read a pipeline spec file: read: input/output error',
+        ):
+            with self.subTest(log=log), redirect_stdout(io.StringIO()):
+                self.assertEqual(CLIENT.verify_zip_evidence(log), 1)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(
+                CLIENT.verify_zip_evidence(
+                    'Failed to read a pipeline spec file: Error extracting pipeline '
+                    'from the zip file. Expecting a pipeline.yaml file inside the zip. Got: '
+                ),
+                0,
+            )
+
+    def test_zip_evidence_cli_bounds_logs_and_does_not_print_them(self):
+        marker = (
+            'Failed to read a pipeline spec file: '
+            'Expecting a pipeline.yaml file inside the zip'
+        )
+        for log, code in [(marker, 0), ('x' * 65536 + marker, 1)]:
+            with self.subTest(code=code):
+                result = subprocess.run(
+                    [sys.executable, str(CLIENT_PATH), 'verify-zip'],
+                    input=log,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, code, result.stderr)
+                self.assertNotIn(marker, result.stdout)
+                self.assertIn('ZIP_EVIDENCE', result.stdout)
+
+    def test_zip_public_error_is_only_a_handler_candidate(self):
+        output = io.StringIO()
+        with (
+            redirect_stdout(output),
+            mock.patch.object(
+                CLIENT,
+                'zip_request',
+                return_value=(400, b'Failed to read a pipeline spec file'),
+            ),
+        ):
+            self.assertEqual(CLIENT.run_attack('zip'), 0)
+        self.assertIn('outcome=handler_candidate', output.getvalue())
+        self.assertNotIn('outcome=handler_rejected', output.getvalue())
 
     def test_attack_needs_handler_marker_or_explicit_boundary(self):
         with redirect_stdout(io.StringIO()):

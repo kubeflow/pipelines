@@ -193,11 +193,24 @@ for case in report multipart zip; do
     echo "Benign client finished before the $case request began" >&2
     exit 1
   fi
+  # Only the ZIP request runs during this window; earlier API suite/Report
+  # errors must not establish coverage for this case.
+  case_started="$(python3 -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))')"
   attack_ok=true
   if ! attack_result="$(kubectl exec -n "$ATTACK_NAMESPACE" "$attack_pod" -c client -- \
     python3 /client/api-availability-client.py "$case")"; then
     echo "Attack request failed or did not reach a valid HTTP boundary: $attack_result" >&2
     attack_ok=false
+  fi
+  if [[ "$case" == zip && "$attack_result" == *"outcome=handler_candidate"* ]]; then
+    if zip_evidence="$(kubectl logs -n kubeflow -l app=ml-pipeline \
+      -c ml-pipeline-api-server --since-time="$case_started" --limit-bytes=65536 \
+      --tail=-1 | python3 "$CLIENT_SOURCE" verify-zip)"; then
+      attack_result="${attack_result//$'outcome=handler_candidate'/$'outcome=handler_rejected'}"
+    else
+      attack_ok=false
+    fi
+    attack_result+=$'\n'"$zip_evidence"
   fi
   if [[ "$(kubectl get pod -n "$BENIGN_NAMESPACE" "$benign_pod" -o jsonpath='{.status.phase}')" != Running ]]; then
     echo "Benign client ended before the $case request finished; overlap is inconclusive" >&2
