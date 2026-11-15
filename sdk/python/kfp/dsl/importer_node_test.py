@@ -11,13 +11,118 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+import tempfile
 import unittest
+from collections import UserDict
 
-from kfp import dsl
+import yaml
+
+from kfp import compiler, dsl
 from kfp.dsl import Dataset, importer_node
 
 
 class TestImporterSupportsDynamicMetadata(unittest.TestCase):
+    def test_user_dict_metadata(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            dsl.importer(
+                artifact_uri='gs://example/data',
+                artifact_class=Dataset,
+                metadata=UserDict({'source': 'hello'}),
+            )
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = os.path.join(temp_dir, 'pipeline.yaml')
+            compiler.Compiler().compile(my_pipeline, output_path)
+            with open(output_path) as output_file:
+                pipeline_spec = yaml.safe_load(output_file)
+
+        self.assertEqual(
+            pipeline_spec['deploymentSpec']['executors']['exec-importer'][
+                'importer'
+            ]['metadata'],
+            {'source': 'hello'},
+        )
+
+    def test_mapping_metadata_from_task_output(self):
+
+        @dsl.component
+        def produce() -> str:
+            return 'hello'
+
+        placeholder = "{{$.inputs.parameters['metadata']}}"
+        for mapping_type in (dict, UserDict):
+            for nested in (False, True):
+                with self.subTest(mapping_type=mapping_type, nested=nested):
+
+                    @dsl.pipeline()
+                    def my_pipeline():
+                        task = produce()
+                        metadata = mapping_type({'source': task.output})
+                        if nested:
+                            metadata = mapping_type(
+                                {
+                                    'nested': mapping_type(
+                                        {
+                                            'items': [
+                                                metadata,
+                                                {'source': task.output},
+                                            ]
+                                        }
+                                    )
+                                }
+                            )
+                        dsl.importer(
+                            artifact_uri='gs://example/data',
+                            artifact_class=Dataset,
+                            metadata=metadata,
+                        )
+
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        output_path = os.path.join(temp_dir, 'pipeline.yaml')
+                        compiler.Compiler().compile(my_pipeline, output_path)
+                        with open(output_path) as output_file:
+                            pipeline_spec = yaml.safe_load(output_file)
+
+                    expected_metadata = {'source': placeholder}
+                    if nested:
+                        expected_metadata = {
+                            'nested': {
+                                'items': [
+                                    expected_metadata,
+                                    {'source': placeholder},
+                                ]
+                            }
+                        }
+                    self.assertEqual(
+                        pipeline_spec['deploymentSpec']['executors'][
+                            'exec-importer'
+                        ]['importer']['metadata'],
+                        expected_metadata,
+                    )
+                    self.assertEqual(
+                        pipeline_spec['root']['dag']['tasks']['importer'][
+                            'inputs'
+                        ]['parameters']['metadata'],
+                        {
+                            'taskOutputParameter': {
+                                'producerTask': 'produce',
+                                'outputParameterKey': 'Output',
+                            }
+                        },
+                    )
+                    self.assertEqual(
+                        pipeline_spec['components']['comp-importer'][
+                            'inputDefinitions'
+                        ]['parameters'],
+                        {
+                            'uri': {'parameterType': 'STRING'},
+                            'metadata': {'parameterType': 'STRING'},
+                        },
+                    )
+
     def test_dynamic_dict_element_from_pipeline_param(self):
 
         @dsl.pipeline()

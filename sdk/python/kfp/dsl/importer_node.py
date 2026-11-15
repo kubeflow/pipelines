@@ -13,7 +13,8 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Any, Dict, Mapping, Optional, Type, Union
+from collections.abc import Mapping
+from typing import Any, Dict, Optional, Type, Union
 
 from kfp.dsl import (
     importer_component,
@@ -92,7 +93,7 @@ def importer(
                 input_name=unique_name
             )._to_string()
 
-        elif isinstance(d, dict):
+        elif isinstance(d, Mapping):
             # use this instead of list comprehension to ensure compiles are identical across Python versions
             res = {}
             for k, v in d.items():
