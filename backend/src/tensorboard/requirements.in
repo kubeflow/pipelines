@@ -7,3 +7,6 @@ gcsfs==2026.10.1
 # Retain runtime dependencies in the hashed image lock across compiler upgrades.
 setuptools>=84.2.1
 oauthlib>=4.0.1,<5
+
+# Reject malformed ASN.1 input with the patched runtime decoder.
+pyasn1>=0.6.5,<0.7

@@ -43,7 +43,9 @@ const scopes = {
   '../server/package-lock.json': {
     ...tooling,
     'body-parser': '>=2.4.0 <3',
-    'follow-redirects': '>=1.16.1 <2',
+    'follow-redirects': '>=1.16.2 <2',
+    'fast-xml-parser': '>=5.12.0 <6',
+    'decode-uri-component': '>=0.5.1 <0.6',
     'stream-json': '>=3.7.0 <4',
   },
 };
