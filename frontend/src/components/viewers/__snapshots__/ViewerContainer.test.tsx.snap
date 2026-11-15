@@ -25,7 +25,7 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
           </td>
           <td
             class="cell_fkzbx8g"
-            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
+            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-size: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"

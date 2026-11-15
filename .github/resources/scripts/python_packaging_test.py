@@ -49,7 +49,7 @@ class PythonPackagingTest(unittest.TestCase):
         sdk = tomllib.loads((ROOT / 'sdk/python/pyproject.toml').read_text())
         lock = tomllib.loads((ROOT / 'uv.lock').read_text())
         self.assertIn(
-            'google-cloud-pipeline-components>=2.22.0',
+            'google-cloud-pipeline-components>=2.23.0',
             workspace['project']['optional-dependencies']['test'],
         )
         for requirements in (
@@ -69,7 +69,7 @@ class PythonPackagingTest(unittest.TestCase):
                     int, versions['google-cloud-pipeline-components'].split('.')
                 )
             ),
-            (2, 22, 0),
+            (2, 23, 0),
         )
         self.assertEqual(versions['protobuf'].split('.')[0], '6')
 
