@@ -408,7 +408,6 @@ describe('ConfidenceMetricsSection', () => {
   });
 });
 
-
 describe('ConfusionMatrixSection validation', () => {
   const validMatrix = {
     annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],

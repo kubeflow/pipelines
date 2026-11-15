@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# gcsfs is required for pandas GCS integration.
-import gcsfs
 from itables import init_notebook_mode
 from itables import show
 import itables.options as opts
