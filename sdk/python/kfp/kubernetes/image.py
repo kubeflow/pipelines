@@ -31,11 +31,18 @@ def set_image_pull_secrets(
 
     Args:
         task: Pipeline task.
-        secret_names: List of image pull secret names.
+        secret_names: List of image pull secret names. Must be a list, not a
+            plain string.
 
     Returns:
         Task object with updated image pull secret configuration.
     """
+
+    if isinstance(secret_names, str):
+        raise TypeError(
+            "'secret_names' must be a list of strings or pipeline "
+            f'parameters, got str: {secret_names!r}.'
+        )
 
     msg = common.get_existing_kubernetes_config_as_message(task)
 
