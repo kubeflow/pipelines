@@ -81,6 +81,12 @@
 
 ## Bug fixes and other changes
 
+* Components with `embedded_artifact_path`, and notebook components, now compile to the same
+  command when the embedded files are unchanged. The embedded archive no longer holds the
+  compile time or the mtime, owner and group of each file, so such a step can hit the cache
+  on a second submission. Extracted files now have the mtime 1980-02-01. The cache key of
+  these components changes once with this release.
+
 * Local execution passes whole numbers inside `List` and `Dict` parameters
   and outputs as ints, as the remote backend does, instead of floats.
 
