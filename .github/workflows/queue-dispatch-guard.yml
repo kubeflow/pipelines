@@ -1,3 +1,5 @@
+# Result acceptance guard: read-only test jobs may run in parallel, but a failed
+# guard makes the workflow fail and prevents the trusted ci-passed publication.
 name: Validate queue dispatch
 
 on:

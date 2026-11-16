@@ -447,7 +447,9 @@ The release-2.18 queue lanes accept explicit dispatch from the trusted default-
 branch controller using `queue_head_sha`, `queue_base_ref`, and `queue_base_sha`.
 The queue ref selects automatic coverage even for manually dispatchable API/E2E
 workflows. Every dispatched candidate includes the read-only reusable identity
-guard; its failure blocks the trusted aggregate. Preserve native merge-group and
+guard; its failure blocks the trusted aggregate. It validates acceptance of the
+result, not test execution scheduling: read-only test jobs may run in parallel
+with it, matching the default-branch controller design. Preserve native merge-group and
 ordinary manual behavior. SDK tests, pre-commit ranges, compatibility baselines,
 and runtime image artifacts must use the exact candidate/base identities.
 
