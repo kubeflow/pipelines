@@ -372,6 +372,20 @@ pending on main; a real main bootstrap record allows only strictly newer CI.
 GitHub documents [branch rename behavior](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-branches-in-your-repository/renaming-a-branch)
 and [pending-run replacement](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 
+### November 16, 2026 migration checkpoint
+
+The `master` to `main` rename preserved base commit
+`fb0ab08126ca305804e2b37b8cd1691b780099fb`. Its associated merged PR,
+[#15691](https://github.com/kubeflow/pipelines/pull/15691), records `master` as
+its base branch. That historical record does not establish arrival on `main`.
+
+The documentation-only PR adding this checkpoint is the bootstrap candidate
+for that base. Its creation does not authorize an exceptional merge or complete
+the cutover. Record the reviewed head, exact base, passing constituent checks,
+and maintainer authorization on the PR using the procedure above. After its
+merge, verify the new `main` merge record before updating other PRs and starting
+fresh CI against that new base.
+
 ## Validation and coordinated rollout
 
 Publisher code always executes from the trusted base revision. A PR changing the
