@@ -4394,7 +4394,9 @@ func nodeParents(nodes map[string]util.NodeStatus) map[string]string {
 }
 
 // nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
-// scope, nearest first. Any further ancestors, such as the root, are not compared.
+// scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
+// case), any further Retry ancestor before the root means the node is nested deeper than the task
+// actually is, so it is rejected rather than treated as a match.
 func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus, parents map[string]string) bool {
 	seen := map[string]bool{id: true}
 	current := id
@@ -4412,7 +4414,20 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus, pa
 			next++
 		}
 	}
-	return true
+	for {
+		parentID, ok := parents[current]
+		if !ok {
+			return true
+		}
+		if seen[parentID] {
+			return false
+		}
+		seen[parentID] = true
+		current = parentID
+		if nodes[parentID].Type == "Retry" {
+			return false
+		}
+	}
 }
 
 // persistTaskLifecycleMessages resolves pod lifecycle messages from the workflow and writes them

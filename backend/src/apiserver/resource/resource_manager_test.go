@@ -9085,6 +9085,21 @@ func TestLifecycleMessageForTask_TopLevelTaskMatchesWithRootInRun(t *testing.T) 
 	assert.Equal(t, imagePullMsg, msg)
 }
 
+func TestLifecycleMessageForTask_TopLevelSkippedTaskNotMatchedByNestedSameName(t *testing.T) {
+	// condition-1 at the top level was skipped and has no node of its own. group-b, nested inside
+	// branch-b, happens to share that display name. An empty scope must not make this an
+	// unconditional match: the skipped task's scope has nothing in common with group-b's real
+	// enclosing chain (branch-b), so it must stay unmatched.
+	nodes := twoSubDAGNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root":      {UUID: "root", Name: "root"},
+		"condition": scopedTask(t, "condition", "condition-1", "root"),
+	}
+	_, _, matched := lifecycleMessageForTask(tasks["condition"], nodes, resolved, tasks)
+	assert.False(t, matched)
+}
+
 func TestLifecycleMessageForTask_TaskNodeUnmatchedWhenParentChainBroken(t *testing.T) {
 	// A parent that is not among the run's tasks cannot be checked, so the node is not guessed.
 	nodes := twoSubDAGNodes()
