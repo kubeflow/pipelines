@@ -6,8 +6,8 @@ Support changes can merge with the current policy unchanged. Additional branch
 activation requires the coordinated sequence below. The trusted default-branch controller requires both the enabled policy
 and an active queue rule; enabling policy without that rule fails closed.
 The nondefault name and unconfigured release branches retain existing behavior.
-`release-2.18` can be explicitly enabled alongside the default selector after its
-workflow prerequisites land; see the release opt-in section below. Unexpected
+`release-2.18` is explicitly enabled alongside the default selector; its workflow
+prerequisites landed in #15702 and #15703. See the release activation section below. Unexpected
 default branch names, unreadable metadata, or mismatched repository identity fail
 closed. The selector is resolved afresh at enforcement boundaries.
 
@@ -263,8 +263,8 @@ not establish a live queue rollout or deployment of the external configuration.
 ## Release-2.18 opt-in
 
 Release support is explicitly scoped to `release-2.18`; other release branches
-retain their current behavior. The default-branch policy remains unchanged until
-release prerequisites land. The controller accepts an explicit release alongside
+retain their current behavior. The active policy includes the release after its
+prerequisites landed. The controller accepts an explicit release alongside
 `~DEFAULT_BRANCH`, preserves the live default selector across renames, and requires
 an active queue rule independently for each enabled branch. Verified Dependabot PRs use the same automatic admission exception as the
 default branch: passing CI is required, but `lgtm` and `approved` are not. Holds
@@ -291,7 +291,8 @@ Activation order (Tide configuration remains unchanged):
 4. Create [the release ruleset](merge-queue-release-2.18-ruleset.json), scoped to
    `refs/heads/release-2.18`, with five candidate builds, one-to-five merging PRs,
    ALLGREEN, squash and a 120-minute timeout. Verify effective enforcement and
-   empty bypass actors, including no Tide bypass, before relaxing freshness.
+   only the repository administrator role (ID 5) with `pull_request` bypass,
+   including no Tide App bypass, before relaxing freshness.
 5. Read the current release protection and reconcile any drift. Apply only
    [the required-checks patch](merge-queue-release-2.18-required-checks.json):
    preserve existing App-bound DCO and pre-commit checks, add App-bound ci-passed,
@@ -299,7 +300,9 @@ Activation order (Tide configuration remains unchanged):
 6. Observe a normally approved release PR automatically enter the queue, run all
    required exact-candidate lanes, publish DCO/pre-commit/ci-passed, and merge.
    Verify scheduled recovery and a hold/revoked approval blocks merging. Tide
-   can still attempt direct merges but the no-bypass queue rule rejects them.
+   can still attempt direct merges but has no App bypass in the queue rule.
+   Repository administrators can explicitly bypass through a PR; this does not
+   grant direct-push bypass. Other organization and branch protections still apply.
 
 Do not enable the release rule while its dispatch prerequisites are missing.
 For rollback, freeze and drain release candidates, remove the explicit release

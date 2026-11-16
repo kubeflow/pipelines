@@ -104,7 +104,11 @@ const github = {rest: {repos: {get: async parameters => {
             (ROOT / '.github/merge-queue-policy.json').read_text()
         )
         self.assertEqual(
-            policy, {'version': 1, 'enabled_branches': ['~DEFAULT_BRANCH']}
+            policy,
+            {
+                'version': 1,
+                'enabled_branches': ['~DEFAULT_BRANCH', 'release-2.18'],
+            },
         )
 
     def test_activation_payload_preserves_required_checks_and_queue_scope(self):
@@ -192,7 +196,16 @@ const github = {rest: {repos: {get: async parameters => {
             ruleset['conditions']['ref_name']['include'],
             ['refs/heads/release-2.18'],
         )
-        self.assertEqual(ruleset['bypass_actors'], [])
+        self.assertEqual(
+            ruleset['bypass_actors'],
+            [
+                {
+                    'actor_id': 5,
+                    'actor_type': 'RepositoryRole',
+                    'bypass_mode': 'pull_request',
+                }
+            ],
+        )
         rules = {rule['type']: rule['parameters'] for rule in ruleset['rules']}
         self.assertEqual(rules['merge_queue']['max_entries_to_build'], 5)
         self.assertEqual(rules['merge_queue']['max_entries_to_merge'], 5)
@@ -216,12 +229,12 @@ const github = {rest: {repos: {get: async parameters => {
         self.assertEqual(
             policy['enabled_branches'], ['~DEFAULT_BRANCH', 'release-2.18']
         )
-        # Shipping support alone must not activate a branch whose workflows are not ready.
+        # The active policy matches the reviewed release activation artifact.
         self.assertEqual(
             json.loads((ROOT / '.github/merge-queue-policy.json').read_text())[
                 'enabled_branches'
             ],
-            ['~DEFAULT_BRANCH'],
+            policy['enabled_branches'],
         )
 
     def test_release_requires_explicit_opt_in_and_enforcement(self):
