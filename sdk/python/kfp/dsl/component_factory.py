@@ -531,6 +531,26 @@ CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
 ]
 
 
+# 1980-02-01T00:00:00Z. Extracted files get this mtime, and ZIP cannot store a
+# timestamp before 1980 in any time zone.
+_EMBEDDED_ARCHIVE_MEMBER_MTIME = 318211200
+
+
+def _remove_host_metadata(tar_info: tarfile.TarInfo) -> tarfile.TarInfo:
+    """Remove the metadata that differs between hosts and checkouts.
+
+    The archive is part of the component command, which is part of the
+    cache key. The file mode stays, so that an executable stays
+    executable.
+    """
+    tar_info.mtime = _EMBEDDED_ARCHIVE_MEMBER_MTIME
+    tar_info.uid = 0
+    tar_info.gid = 0
+    tar_info.uname = ''
+    tar_info.gname = ''
+    return tar_info
+
+
 def _safe_add_to_tar(
     tar: tarfile.TarFile,
     root: pathlib.Path,
@@ -553,7 +573,9 @@ def _safe_add_to_tar(
     resolved_root = root.resolve()
 
     if resolved_root.is_file():
-        tar.add(str(resolved_root), arcname=arcname)
+        tar.add(
+            str(resolved_root), arcname=arcname, filter=_remove_host_metadata
+        )
         return
 
     if not resolved_root.is_dir():
@@ -583,7 +605,12 @@ def _safe_add_to_tar(
                     f'Directory symlinks are not supported: {current}'
                 )
 
-            tar.add(str(resolved), arcname=arc_prefix, recursive=False)
+            tar.add(
+                str(resolved),
+                arcname=arc_prefix,
+                recursive=False,
+                filter=_remove_host_metadata,
+            )
             for child in sorted(resolved.iterdir()):
                 child_arc = (
                     f'{arc_prefix}/{child.name}'
@@ -598,7 +625,9 @@ def _safe_add_to_tar(
                 raise ValueError(
                     f'Path escapes artifact tree: {current} -> {resolved}'
                 )
-            tar.add(str(resolved), arcname=arc_prefix)
+            tar.add(
+                str(resolved), arcname=arc_prefix, filter=_remove_host_metadata
+            )
         else:
             raise ValueError(f'Unsupported file type: {current}')
 
@@ -649,7 +678,16 @@ def _get_command_and_args_for_lightweight_component(
 
         archive_bytes = buf.getvalue()
 
-        compressed_bytes = gzip.compress(archive_bytes)
+        # The archive is part of the cache key, so the gzip header must not
+        # hold the compile time or the host OS. mtime=0 removes the compile
+        # time. gzip.GzipFile is used because gzip.compress(mtime=0) writes
+        # the host OS into the header on Python versions before 3.13.
+        compressed_buf = io.BytesIO()
+        with gzip.GzipFile(
+            fileobj=compressed_buf, mode='wb', mtime=0
+        ) as gzip_file:
+            gzip_file.write(archive_bytes)
+        compressed_bytes = compressed_buf.getvalue()
         compressed_size_mb = len(compressed_bytes) / (1024 * 1024)
         if compressed_size_mb > 1:
             warnings.warn(
