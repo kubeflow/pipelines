@@ -47,8 +47,8 @@ def producer_artifact(**overrides):
         'expired': False,
         'workflow_run': {
             'id': 10,
-            'head_sha': 'old-master-sha',
-            'head_branch': 'master',
+            'head_sha': 'old-main-sha',
+            'head_branch': 'main',
             'head_repository_id': 1,
             'repository_id': 1,
         },
@@ -132,6 +132,8 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
                     'kubeflow/pipelines',
                 'SOURCE_SHA':
                     SOURCE_SHA,
+                'DEFAULT_BRANCH':
+                    'main',
                 'REQUIRE_SOURCE_SHA':
                     str(queue_runs is not None).lower(),
                 'QUEUE_PAYLOAD':
@@ -160,7 +162,7 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
     def test_missing_generation_falls_back_after_bounded_wait(self):
         self.assert_bounded_miss([])
 
-    def test_expired_master_generation_falls_back(self):
+    def test_expired_main_generation_falls_back(self):
         self.assert_bounded_miss([producer_artifact(expired=True)])
 
     def test_unrelated_fork_cannot_supply_recovery_archive(self):
@@ -196,7 +198,7 @@ class ProducerLookupRecoveryTest(FakeCommandsTestCase):
         self.assertIn('event=merge_group', requests[1])
         self.assertEqual(self.sleeps(), [])
 
-    def test_queue_mismatch_rebuilds_instead_of_using_master(self):
+    def test_queue_mismatch_rebuilds_instead_of_using_main(self):
         result, output, requests = self.run_lookup([producer_artifact()],
                                                    queue_runs=[])
         self.assert_queue_fallback(result, output, requests)
