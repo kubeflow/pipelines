@@ -1,6 +1,23 @@
 name: KFP Backend Tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, release-2.18 (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
   merge_group:
     types: [checks_requested]
     branches: [release-2.18]
@@ -23,6 +40,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   backend-tests:
     runs-on: ubuntu-latest
     services:
@@ -87,7 +114,7 @@ jobs:
         KFP_TRANSFER_REQUIRE_INTEGRATION: '1'
         KFP_RECURRING_MYSQL_TEST_DSN: root:kfp_test@tcp(127.0.0.1:${{ job.services.mysql.ports['3306'] }})/?parseTime=true
         KFP_RECURRING_POSTGRES_TEST_DSN: postgres://kfp_test:kfp_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/kfp_native_test?sslmode=disable
-        GIT_BRANCH: ${{ github.event_name == 'merge_group' && github.sha || github.head_ref || github.ref_name }}
+        GIT_BRANCH: ${{ (github.event_name == 'merge_group' || startsWith(github.ref, 'refs/heads/gh-readonly-queue/')) && github.sha || github.head_ref || github.ref_name }}
         GIT_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
       run: |
         ./test/presubmit-backend-test.sh
