@@ -1,5 +1,7 @@
 # CI and Workflows
 
+The Go test action uses the repository default branch for nested SDK installs on ordinary runs; merge-queue runs retain their exact candidate SHA. The third-party OSV inventory job runs `setup-github-cli.sh` before branch discovery, so Linux runners without a preinstalled `gh` use the existing checksum-verified bootstrap. Local Go test invocations default to `main` and can override it with `-branchName`. Keep container `:master` tags unchanged: these are compatibility aliases, not Git branch references.
+
 Legacy v2 integration migration is tracked in #14950. The legacy v2 workflow is retired on master; the API workflow enforces its replacement coverage. Keep its completion-event subscription in `ci-checks.yml` while release branches still run it, so release reruns update `ci-passed`. Existing assertion parity and CI evidence are recorded in `backend/test/v2/api/legacy-migration.md`. The API workflow verifies the migration manifest against actual Ginkgo JSON reports in cache-enabled standalone and Kubernetes-native jobs; cache-disabled standalone jobs exclude cache-hit assertions. The retired API harness and its unused cleanup/diagnostic helpers are removed. The integration directory retains the standalone webhook tests and Makefile; database initialization remains in `backend/test/integration`.
 
 GitHub Actions workflows are in `.github/workflows/`; reusable composite actions are in `.github/actions/`.

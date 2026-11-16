@@ -167,10 +167,10 @@ html_theme_options = {
     'icon': {
         'repo': 'fontawesome/brands/github',
     },
-    'repo_url': 'https://github.com/kubeflow/pipelines/tree/master/components/google-cloud',
+    'repo_url': 'https://github.com/kubeflow/pipelines/tree/main/components/google-cloud',
     'repo_name': 'pipelines',
     'repo_type': 'github',
-    'edit_uri': 'https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/docs/source',
+    'edit_uri': 'https://github.com/kubeflow/pipelines/tree/main/components/google-cloud/docs/source',
     'globaltoc_collapse': True,
     'features': [
         'navigation.expand',
@@ -193,7 +193,7 @@ html_theme_options = {
     }],
     'font': {'text': 'Open Sans'},
     'version_dropdown': True,
-    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/google-cloud/docs/source/versions.json',
+    'version_json': 'https://raw.githubusercontent.com/kubeflow/pipelines/main/components/google-cloud/docs/source/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
