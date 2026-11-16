@@ -83,6 +83,15 @@ describe('UI smoke comparison checkouts', () => {
     expect(() => verifyCachedCheckout(repo, 'main')).toThrow('does not match main');
   });
 
+  it('accepts checkout roots through symlinks and detached worktrees', () => {
+    const alias = path.join(directory, 'alias');
+    fs.symlinkSync(repo, alias, 'dir');
+    expect(() => verifyCachedCheckout(alias, 'main')).not.toThrow();
+    const target = path.join(directory, 'base');
+    createBaseWorktree(repo, target, 'main');
+    expect(() => verifyCachedCheckout(target, 'main')).not.toThrow();
+  });
+
   it('accepts matching main and explicit tag or SHA refs', () => {
     git('tag', '2.18.0');
     for (const ref of ['main', '2.18.0', git('rev-parse', 'HEAD')]) {
@@ -124,6 +133,19 @@ function loadCheckoutAndBuild(skipBuild, commands) {
 }
 
 describe('UI smoke cached build reuse', () => {
+  it.each([false, true])(
+    'rejects a cache inheriting parent Git metadata (skipBuild=%s)',
+    async (skipBuild) => {
+      const target = path.join(repo, '.ui-smoke-test', 'main');
+      fs.mkdirSync(target, { recursive: true });
+      const commands = [];
+      await expect(
+        loadCheckoutAndBuild(skipBuild, commands)('main', target, 'main'),
+      ).rejects.toThrow('Move this cache directory aside and rerun');
+      expect(commands).toEqual([]);
+    },
+  );
+
   it('rejects the wrong cached branch even with --skip-build', async () => {
     git('branch', '-m', 'main', 'master');
     const commands = [];

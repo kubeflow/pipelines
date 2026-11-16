@@ -1,8 +1,13 @@
 const { execFileSync } = require('child_process');
+const { realpathSync } = require('fs');
 
 function verifyCachedCheckout(targetDir, branchRef) {
   const options = { cwd: targetDir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] };
   try {
+    const root = execFileSync('git', ['rev-parse', '--show-toplevel'], options).trim();
+    if (realpathSync(root) !== realpathSync(targetDir)) {
+      throw new Error('Cache directory is not a checkout root');
+    }
     const head = execFileSync('git', ['rev-parse', '--verify', 'HEAD'], options).trim();
     const expected = execFileSync(
       'git',
