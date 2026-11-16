@@ -13,8 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o pipefail
+
 source_root=$(pwd)
 SETUP_ENV="${SETUP_ENV:-true}"
+JUNIT_XML="${JUNIT_XML:-sdk-regression.xml}"
+PYTEST_LOG="${PYTEST_LOG:-sdk-regression.log}"
 PYTEST_PARALLEL_WORKERS="${PYTEST_PARALLEL_WORKERS:-2}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
@@ -54,7 +58,7 @@ else
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 fi
 
-python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}"
+python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}" --junitxml="${JUNIT_XML}" --durations=30 --durations-min=0.1 2>&1 | tee "${PYTEST_LOG}"
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Deactivate the virtual environment
