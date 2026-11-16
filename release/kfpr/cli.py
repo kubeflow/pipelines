@@ -55,6 +55,58 @@ run_app = typer.Typer(
 )
 
 
+@app.command('scan-candidate')
+def scan_candidate_command(
+    pr: int = typer.Option(
+        ..., min=1, help='Open kubeflow/pipelines PR number.'
+    ),
+    expected_head: str = typer.Option(
+        ..., help='Exact expected 40-character PR head SHA.'
+    ),
+    version: str = typer.Option(..., help='Candidate release version (X.Y.Z).'),
+    output_dir: Path = typer.Option(
+        ..., help='Separate candidate evidence directory; empty for a new scan.'
+    ),
+    include_backend: bool = typer.Option(
+        True, '--include-backend/--no-include-backend'
+    ),
+    include_sdk: bool = typer.Option(True, '--include-sdk/--no-include-sdk'),
+    resume: bool = typer.Option(
+        False,
+        help='Recollect the recorded request and attempt without redispatching.',
+    ),
+) -> None:
+    """Build and scan an open PR without publication or release approval."""
+    from .candidate import scan_candidate
+
+    try:
+        report = scan_candidate(
+            pr=pr,
+            expected_head=expected_head,
+            version=version,
+            output_dir=output_dir,
+            include_backend=include_backend,
+            include_sdk=include_sdk,
+            resume=resume,
+        )
+    except (
+        OSError,
+        ValueError,
+        RuntimeError,
+        subprocess.CalledProcessError,
+    ) as error:
+        typer.echo(
+            f'Candidate scan incomplete: {error}; evidence: {output_dir}'
+        )
+        raise typer.Exit(2) from error
+    typer.echo(f'Candidate evidence: {output_dir / "candidate.json"}')
+    typer.echo(
+        f'{report["blocking_count"]} fixable blocking findings; {report["residual_count"]} residual findings. Not release approval.'
+    )
+    if not report['passed']:
+        raise typer.Exit(1)
+
+
 def _load_state(path: Path) -> ReleaseState:
     return ReleaseState.load(path)
 

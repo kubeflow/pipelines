@@ -189,7 +189,7 @@ async function revokeStaleGreens({github, context, tip, root = process.env.GITHU
   return revoked;
 }
 
-async function resolve(github, context, recovery) {
+async function resolve(github, context, recovery, {allowListedWorkflowPR = false} = {}) {
   if (context.eventName === 'schedule') {
     if (!Number.isSafeInteger(recovery?.number) || recovery.number <= 0 || !recovery.head) {
       throw new Error('Scheduled recovery requires a PR number and head SHA');
@@ -215,6 +215,7 @@ async function resolve(github, context, recovery) {
     pr.head.repo?.full_name === run.head_repository.full_name);
   if (matches.length === 0) return null;
   if (matches.length !== 1) throw new Error('Workflow head must identify exactly one open PR');
+  if (allowListedWorkflowPR) return matches[0];
   const pr = await readPR(github, context, matches[0].number);
   return pr.head.sha === run.head_sha &&
     pr.head.repo?.full_name === run.head_repository.full_name ? pr : null;
@@ -329,7 +330,7 @@ async function evidence(github, context, pr, root) {
   return {...result, baseSha, queueAdmission: queuedAdmission};
 }
 
-async function invalidateActiveWorkflow({github, context, pr}) {
+async function readStartingWorkflow({github, context}) {
   const eventRun = context.payload.workflow_run;
   if (!Number.isSafeInteger(eventRun.id) || eventRun.id <= 0 ||
       !Number.isSafeInteger(eventRun.run_attempt) || eventRun.run_attempt <= 0) {
@@ -338,6 +339,11 @@ async function invalidateActiveWorkflow({github, context, pr}) {
   const {data: run} = await github.rest.actions.getWorkflowRun({
     ...context.repo, run_id: eventRun.id,
   });
+  return run;
+}
+
+function validateStartingWorkflow(run, context, pr) {
+  const eventRun = context.payload.workflow_run;
   if (run.id !== eventRun.id || run.event !== 'pull_request' ||
       run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
       run.head_sha !== pr.head.sha || run.head_branch !== pr.head.ref ||
@@ -352,7 +358,6 @@ async function invalidateActiveWorkflow({github, context, pr}) {
       run.conclusion != null) {
     throw new Error('Starting workflow has invalid state; inspect CI Check and retry.');
   }
-  await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
   return true;
 }
 
@@ -368,9 +373,11 @@ function failedCompletion(context) {
 }
 
 async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
+  const starting = context.eventName === 'workflow_run' &&
+    ['requested', 'in_progress'].includes(context.payload.action);
   let pr;
   try {
-    pr = await resolve(github, context, recovery);
+    pr = await resolve(github, context, recovery, {allowListedWorkflowPR: starting});
   } catch (error) {
     const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
     if (sha && context.payload.pull_request?.merged !== true) await github.rest.repos.createCommitStatus({
@@ -385,14 +392,36 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   // is skipped (it bails when number/head are unset) and cannot republish a
   // failure over the merged head.
   if (pr.merged) return;
-  if (context.eventName === 'workflow_run' &&
-      ['requested', 'in_progress'].includes(context.payload.action)) {
+  if (starting) {
+    const matchesEventHead = candidate =>
+      candidate.head.sha === context.payload.workflow_run.head_sha &&
+      candidate.head.repo?.full_name === context.payload.workflow_run.head_repository.full_name;
     try {
-      if (await invalidateActiveWorkflow({github, context, pr})) return;
+      const run = await readStartingWorkflow({github, context});
+      const active = validateStartingWorkflow(run, context, pr);
+      if (active && pr.state === 'open' && Array.isArray(pr.labels) &&
+          !pr.labels.some(label => label.name === 'ci-passed')) {
+        // The list snapshot can authorize only this read-only no-op. Keep the
+        // live run lookup: a delayed start may displace its completion event.
+        try {
+          if ((await currentStatus(github, context, pr.head.sha))?.state === 'pending') return;
+        } catch (_) { /* An optional probe failure falls back to normal publication. */ }
+      }
+      const fresh = await readPR(github, context, pr.number);
+      if (fresh.merged || !matchesEventHead(fresh)) return;
+      pr = fresh;
+      // Never let the list snapshot authorize a write or full validation.
+      // Rebind the same live run response to the authoritative PR snapshot.
+      if (validateStartingWorkflow(run, context, pr)) {
+        await publish(github, context, pr, 'pending', 'CI workflow is running; awaiting completion.', {provisional: true});
+        return;
+      }
     } catch (error) {
-      // Preserve a merge that completed while the run lookup was failing.
+      // Preserve a merge/head change that completed while the lookup failed.
       try {
-        if ((await readPR(github, context, pr.number)).merged) return;
+        const fresh = await readPR(github, context, pr.number);
+        if (fresh.merged || !matchesEventHead(fresh)) return;
+        pr = fresh;
       } catch (_) {
         // Unreadable evidence must still revoke any earlier success.
       }
@@ -448,7 +477,7 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
   }
 }
 
-async function finalize({github, context, core, number, head, before, pollPassed, pollSkipped = false,
+async function finalize({github, context, core, number, head, before, preparationSucceeded = false, validationReady = false,
   preparedResult = '',
   root = process.env.GITHUB_WORKSPACE}) {
   if (!number || !head) return;
@@ -459,11 +488,6 @@ async function finalize({github, context, core, number, head, before, pollPassed
     original = {...pr, head: {...pr.head, sha: head}};
     // Preserve the status on merge; closure without merge still invalidates below.
     if (pr.merged) return;
-    // The always-run finalizer must not turn an interrupted preparation or
-    // failed checker into pending and overwrite an already published failure.
-    if ((successfulCompletion(context) || failedCompletion(context)) && !pollPassed && !pollSkipped) {
-      throw new Error('Completion CI validation did not finish; inspect CI Check and retry.');
-    }
     let state = 'failure';
     let validatedBaseSha;
     let validatedQueueAdmission = false;
@@ -474,7 +498,7 @@ async function finalize({github, context, core, number, head, before, pollPassed
       let prepared;
       if (preparedResult !== '') {
         prepared = JSON.parse(preparedResult);
-        if (!pollSkipped || pollPassed || !prepared ||
+        if (validationReady || !prepared ||
             !['pending', 'failure'].includes(prepared.state) ||
             !Array.isArray(prepared.reasons) || prepared.reasons.length === 0 ||
             prepared.reasons.some(reason => typeof reason !== 'string' || !reason)) {
@@ -509,13 +533,18 @@ async function finalize({github, context, core, number, head, before, pollPassed
         results.some(result => result.state === 'pending') ? 'pending' : 'success';
       reason = results.filter(result => result.state === state)
         .flatMap(result => result.reasons).join('; ');
-      // Retain the pinned checker's independent success requirement. If it
-      // was skipped before workflow evidence recovered, wait for the next
-      // reconciliation instead of authorizing an unchecked success.
-      if (state === 'success' && !pollPassed) {
-        state = pollSkipped ? 'pending' : 'failure';
-        reason = pollSkipped ? 'CI changed since initial assessment; awaiting check validation.' :
-          'Cannot verify all checks passed; inspect CI Check and retry.';
+      // Preserve fresh failure reasons, but never turn an interrupted
+      // prerequisite into pending or green if its evidence recovered meanwhile.
+      if (preparationSucceeded !== true && state !== 'failure') {
+        state = 'failure';
+        reason = 'CI preparation did not finish; inspect CI Check and retry.';
+      }
+      // Preparation may establish only a negative result. If evidence became
+      // green after preparation declined validation, wait for a fresh complete
+      // reconciliation instead of promoting that negative snapshot.
+      if (state === 'success' && validationReady !== true) {
+        state = 'pending';
+        reason = 'CI changed since initial assessment; awaiting check validation.';
       }
     }
     if (state === 'failure') errorReason = reason;
@@ -655,8 +684,8 @@ async function prepareMergedRecovery({github, context, core, number, head,
 }
 
 async function finalizeMergedRecovery({github, context, core, number, head, before,
-  pollPassed, root = process.env.GITHUB_WORKSPACE}) {
-  if (!number || !head || !pollPassed) return;
+  preparationSucceeded = false, validationReady = false, root = process.env.GITHUB_WORKSPACE}) {
+  if (!number || !head || preparationSucceeded !== true || validationReady !== true) return;
   const {pr, identity} = await mergedRecoveryBinding(github, context, number, head);
   if (identity !== before) throw new Error('Merged recovery identity changed.');
   if ((await currentStatus(github, context, head))?.state !== 'pending') return;

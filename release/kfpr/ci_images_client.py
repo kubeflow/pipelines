@@ -17,10 +17,9 @@ WORKFLOW = '.github/workflows/release-qualification.yml'
 
 
 def _api(context, endpoint):
+    path = f'repos/{REPO}' + (f'/{endpoint}' if endpoint else '')
     return json.loads(
-        context.runner.capture(
-            ['gh', 'api', f'repos/{REPO}/{endpoint}'], cwd=context.root
-        )
+        context.runner.capture(['gh', 'api', path], cwd=context.root)
     )
 
 

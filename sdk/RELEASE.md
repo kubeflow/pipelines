@@ -96,6 +96,11 @@
   `add_ephemeral_volume` (`access_modes`) now raise `TypeError` when given a plain string
   instead of a list of strings, rather than splitting it into single characters.
 
+* `kfp.kubernetes.add_toleration`, and `add_toleration_json` with a static dict or
+  list, now raise `ValueError` at compile time for an invalid `operator` or `effect`
+  instead of passing it through to Kubernetes. `Gt` and `Lt` are accepted as
+  operators, and `None` or an empty string still means the field is omitted.
+
 # 2.15.2
 
 ## Bug fixes and other changes

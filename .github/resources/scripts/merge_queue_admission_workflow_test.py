@@ -12,6 +12,7 @@
 """Guard the trusted, disabled-by-default queue admission workflow boundary."""
 
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -98,13 +99,24 @@ class AdmissionWorkflowTest(unittest.TestCase):
         self.assertEqual(self.job['concurrency']['cancel-in-progress'], 'false')
         self.assertIn('always()', self.job['if'])
         self.assertIn("github.event.action == 'completed'", self.job['if'])
-        for job in ['check_ci_status', 'recover_merged_release']:
-            poll = next(
-                step
-                for step in self.workflow['jobs'][job]['steps']
-                if step.get('id') == 'poll'
+        checker = (
+            ROOT / '.github/resources/scripts/ci_check_runs.js'
+        ).read_text()
+        pattern = re.search(r'const EXCLUDED = /(.+)/;', checker).group(1)
+        self.assertIsNotNone(re.fullmatch(pattern, 'queue_admission'))
+        self.assertIsNone(re.fullmatch(pattern, 'queue_admission_unrelated'))
+        for job, function in [
+            ('check_ci_status', 'finalize'),
+            ('recover_merged_release', 'finalizeMergedRecovery'),
+        ]:
+            finalizer = self.workflow['jobs'][job]['steps'][-1]
+            self.assertIn(function + '({github', finalizer['with']['script'])
+            self.assertFalse(
+                any(
+                    step.get('id') == 'poll'
+                    for step in self.workflow['jobs'][job]['steps']
+                )
             )
-            self.assertIn('^queue_admission$', poll['with']['checks_exclude'])
 
 
 if __name__ == '__main__':

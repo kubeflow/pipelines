@@ -27,7 +27,7 @@
     "@types/tar": "^4.0.3",
     "@types/tar-stream": "^1.6.1",
     "@vitest/coverage-v8": "^5.1.0",
-    "prettier": "^3.9.10",
+    "prettier": "^3.10.1",
     "supertest": "^4.0.2",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0"

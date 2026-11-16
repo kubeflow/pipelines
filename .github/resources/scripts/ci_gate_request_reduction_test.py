@@ -61,7 +61,9 @@ class CIGateRequestReductionTest(unittest.TestCase):
                     self.assert_no_evidence_reads(result)
                     for name in ('pr', 'pulls', 'currentRun', 'statuses'):
                         self.assertEqual(
-                            result['requestCounts'][name], 1, (name, result)
+                            result['requestCounts'][name],
+                            2 if name == 'statuses' else 1,
+                            (name, result),
                         )
 
     def test_active_starts_preserve_unchanged_non_green_status(self):
@@ -267,7 +269,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertEqual(result['requestCounts']['checks'], 0)
 
     def test_external_failure_keeps_precedence_over_cached_pending_result(self):
-        result = exercise({'runStatus': 'in_progress', 'pollPassed': False})
+        result = exercise({'runStatus': 'in_progress', 'checksPassed': False})
         self.assertEqual(result['status'], 'failure', result)
         self.assertIn('DCO', result['descriptions'][-1])
         self.assertEqual(result['requestCounts']['files'], 1)
@@ -559,7 +561,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
     ):
         # Only the explicit intermediate result defers newly discovered failures;
         # ordinary prepared pending results still check failure precedence.
-        result = self.completion(pollPassed=False)
+        result = self.completion(checksPassed=False)
         self.assertEqual(result['status'], 'pending', result)
         self.assert_intermediate_cost(result)
         final = self.completion(discoveredRuns=[], checkConclusion='failure')
@@ -932,7 +934,7 @@ class CIGateRequestReductionTest(unittest.TestCase):
         self.assertIn('attempt 2', result['descriptions'][-1])
 
     def test_scheduled_external_failure_still_gets_full_assessment(self):
-        result = exercise({'schedule': True, 'pollPassed': False})
+        result = exercise({'schedule': True, 'checksPassed': False})
         self.assertEqual(result['status'], 'failure', result)
         self.assertGreater(result['requestCounts']['files'], 0)
         self.assertGreater(result['requestCounts']['checks'], 0)

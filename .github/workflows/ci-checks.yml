@@ -84,6 +84,9 @@ jobs:
         run: python -m pip install -r .github/scripts/requirements.txt
       - id: list
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: recovery
         with:
           script: |
             const {withRequestAccounting} = require('./.github/resources/scripts/github_request_accounting.js');
@@ -147,10 +150,12 @@ jobs:
         run: python -m pip install -r .github/scripts/requirements.txt
 
       - name: Resolve PR and verify expected CI workflows
-        # Invalidate earlier success even when parser setup failed. The poll
-        # still requires successful prerequisite steps before it can run.
+        # Invalidate earlier success even when parser setup failed. The finalizer
+        # requires successful prerequisites before it can publish green.
         if: always() && !cancelled()
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: prepare
           CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}
           CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}
         id: prepare
@@ -164,34 +169,17 @@ jobs:
                 number: Number(process.env.CI_RECOVERY_NUMBER),
                 head: process.env.CI_RECOVERY_HEAD}}));
 
-      - name: Check all current CI results
-        id: poll
-        if: steps.prepare.outputs.ready == 'true'
-        continue-on-error: true
-        uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
-        with:
-          commit_sha: ${{ steps.prepare.outputs.head_sha }}
-          # Completion events and scheduled sweeps drive recovery. Never hold
-          # the shared writer while waiting for external checks.
-          poll: 'false'
-          # The pinned action waits one minute before its first API call even
-          # with polling disabled, holding the shared writer lock (#14552 P3).
-          delay: '0'
-          ignore_superseded_runs: 'true'
-          # Expected workflow completion is verified independently; these
-          # exclusions cannot hide a failing constituent workflow.
-          checks_exclude: '^check_ci_status( \(.*\))?$,^queue_admission$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
-          token: ${{ github.token }}
-
       - name: Reconcile status and informational label
         if: always() && steps.prepare.outputs.pr_number != ''
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: finalize
           CI_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
           CI_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
           CI_PR_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
-          CI_POLL_PASSED: ${{ steps.poll.outcome == 'success' }}
-          CI_POLL_SKIPPED: ${{ steps.poll.outcome == 'skipped' && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'false' }}
+          CI_PREPARATION_SUCCEEDED: ${{ job.status == 'success' && steps.prepare.outcome == 'success' }}
+          CI_VALIDATION_READY: ${{ job.status == 'success' && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'true' }}
           CI_PREPARED_RESULT: ${{ steps.prepare.outcome == 'success' && steps.prepare.outputs.prepared_result || '' }}
         with:
           script: |
@@ -202,8 +190,8 @@ jobs:
                 number: process.env.CI_PR_NUMBER,
                 head: process.env.CI_HEAD_SHA,
                 before: process.env.CI_PR_SNAPSHOT,
-                pollPassed: process.env.CI_POLL_PASSED === 'true',
-                pollSkipped: process.env.CI_POLL_SKIPPED === 'true',
+                preparationSucceeded: process.env.CI_PREPARATION_SUCCEEDED === 'true',
+                validationReady: process.env.CI_VALIDATION_READY === 'true',
                 preparedResult: process.env.CI_PREPARED_RESULT}));
 
   recover_merged_release:
@@ -231,6 +219,8 @@ jobs:
       - id: prepare
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merged_prepare
           RECOVERY_PR: ${{ inputs.merged_pr }}
           RECOVERY_HEAD: ${{ inputs.head_sha }}
         with:
@@ -240,19 +230,11 @@ jobs:
             return await withRequestAccounting({github, core, scope: 'merged_prepare'},
               () => prepareMergedRecovery({github, context, core,
                 number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD}));
-      - id: poll
-        if: steps.prepare.outputs.ready == 'true'
-        uses: wechuli/allcheckspassed@1e77c91db5ec91faa94bf441f91b91327d269ab0
-        with:
-          commit_sha: ${{ steps.prepare.outputs.head_sha }}
-          poll: 'false'
-          delay: '0'
-          ignore_superseded_runs: 'true'
-          checks_exclude: '^check_ci_status( \(.*\))?$,^queue_admission$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
-          token: ${{ github.token }}
-      - if: steps.prepare.outputs.ready == 'true' && steps.poll.outcome == 'success'
+      - if: success() && steps.prepare.outcome == 'success' && steps.prepare.outputs.ready == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merged_finalize
           RECOVERY_PR: ${{ steps.prepare.outputs.pr_number }}
           RECOVERY_HEAD: ${{ steps.prepare.outputs.head_sha }}
           RECOVERY_SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
@@ -263,7 +245,7 @@ jobs:
             return await withRequestAccounting({github, core, scope: 'merged_finalize'},
               () => finalizeMergedRecovery({github, context, core,
                 number: process.env.RECOVERY_PR, head: process.env.RECOVERY_HEAD,
-                before: process.env.RECOVERY_SNAPSHOT, pollPassed: true}));
+                before: process.env.RECOVERY_SNAPSHOT, preparationSucceeded: true, validationReady: true}));
 
   check_merge_group_status:
     if: >-
@@ -297,6 +279,9 @@ jobs:
       - name: Reconcile exact merge-group status
         if: always() && !cancelled()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: merge_group
         with:
           script: |
             const {reconcile} = require('./.github/resources/scripts/ci_merge_group.js');
@@ -347,6 +332,9 @@ jobs:
       - name: Reconcile admission, candidate dispatch, and verified results
         if: steps.policy.outputs.enabled == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          NODE_OPTIONS: --require "${{ github.workspace }}/.github/resources/scripts/node_http_accounting.cjs"
+          CI_HTTP_ACCOUNTING_SCOPE: queue_admission
         with:
           script: |
             const {reconcileQueue} = require('./.github/resources/scripts/merge_queue_dispatch');

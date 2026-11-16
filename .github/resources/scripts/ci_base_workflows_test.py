@@ -429,8 +429,21 @@ class BaseWorkflowsTest(unittest.TestCase):
             )
         )
         self.assertEqual(steps[prepare_index]['if'], 'always() && !cancelled()')
-        poll = next(step for step in steps if step.get('id') == 'poll')
-        self.assertNotIn('always()', poll.get('if', ''))
+        finalizer = next(
+            step
+            for step in steps
+            if step.get('name') == 'Reconcile status and informational label'
+        )
+        self.assertIn('always()', finalizer['if'])
+        for key in ('CI_PREPARATION_SUCCEEDED', 'CI_VALIDATION_READY'):
+            self.assertIn("job.status == 'success'", finalizer['env'][key])
+            self.assertIn(
+                "steps.prepare.outcome == 'success'", finalizer['env'][key]
+            )
+        self.assertIn(
+            "steps.prepare.outputs.ready == 'true'",
+            finalizer['env']['CI_VALIDATION_READY'],
+        )
 
 
 if __name__ == '__main__':
