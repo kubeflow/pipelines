@@ -141,7 +141,7 @@ func getPackagePath(subdir string) string {
 	if pullNumber != "" {
 		return fmt.Sprintf("git+https://github.com/%s.git@refs/pull/%s/merge#subdirectory=%s", repoName, pullNumber, subdir)
 	}
-	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BRANCH_NAME, subdir)
+	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BranchName, subdir)
 }
 
 // isBinaryFile checks if the data is a binary file (zip or tar.gz) by inspecting magic bytes

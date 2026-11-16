@@ -167,10 +167,10 @@ html_theme_options = {
     'icon': {
         'repo': 'fontawesome/brands/github',
     },
-    'repo_url': 'https://github.com/kubeflow/pipelines/tree/master/components/google-cloud',
+    'repo_url': 'https://github.com/kubeflow/pipelines/tree/main/components/google-cloud',
     'repo_name': 'pipelines',
     'repo_type': 'github',
-    'edit_uri': 'https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/docs/source',
+    'edit_uri': 'https://github.com/kubeflow/pipelines/tree/main/components/google-cloud/docs/source',
     'globaltoc_collapse': True,
     'features': [
         'navigation.expand',

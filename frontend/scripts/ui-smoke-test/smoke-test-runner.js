@@ -39,6 +39,7 @@ const http = require('http');
 // Import helpers
 const clusterManager = require('./cluster-manager');
 const { detectChanges } = require('./detect-changes');
+const { verifyCachedCheckout, createBaseWorktree } = require('./checkout');
 const { seedData, checkHealth } = require('./seed-data');
 
 // Parse arguments
@@ -584,9 +585,10 @@ async function runComparison(baseRef, displayPrNumber = '') {
   // Step 9: Check out base ref via git worktree and build its frontend
   tracker.step(`Building base frontend (${changes.baseRef})...`);
 
-  const worktreeResult = run(`git worktree add "${WORKTREE_DIR}" ${changes.baseRef}`, { cwd: REPO_ROOT });
-  if (!worktreeResult.success) {
-    log(`Failed to create worktree: ${worktreeResult.error}`, 'error');
+  try {
+    createBaseWorktree(REPO_ROOT, WORKTREE_DIR, changes.baseRef);
+  } catch (error) {
+    log(`Failed to create worktree: ${error.message}`, 'error');
     return false;
   }
   // Register cleanup for base worktree (Issue 5)
@@ -805,10 +807,15 @@ async function checkoutAndBuild(branchRef, targetDir, label) {
     fs.mkdirSync(targetDir, { recursive: true });
 
     log(`Cloning ${branchRef} to ${targetDir}...`);
-    run(`git clone --depth 1 --branch ${branchRef} --single-branch https://github.com/${REPO}.git "${targetDir}"`, {
+    const cloneResult = run(`git clone --depth 1 --branch ${shellEscape(branchRef)} --single-branch https://github.com/${REPO}.git "${targetDir}"`, {
       cwd: WORK_DIR,
     });
+    if (!cloneResult.success) {
+      throw new Error(`Failed to clone ${branchRef}: ${cloneResult.error}`);
+    }
   }
+
+  verifyCachedCheckout(targetDir, branchRef);
 
   if (!SKIP_BUILD) {
     const frontendDir = path.join(targetDir, 'frontend');

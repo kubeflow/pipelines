@@ -26,12 +26,12 @@ type queueSourceTransport func(*http.Request) (*http.Response, error)
 func (f queueSourceTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 func TestQueueSDKSource(t *testing.T) {
-	repo, pull, branch := *config.REPO_NAME, *config.PULL_NUMBER, *config.BRANCH_NAME
-	t.Cleanup(func() { *config.REPO_NAME, *config.PULL_NUMBER, *config.BRANCH_NAME = repo, pull, branch })
+	repo, pull, branch := *config.REPO_NAME, *config.PULL_NUMBER, *config.BranchName
+	t.Cleanup(func() { *config.REPO_NAME, *config.PULL_NUMBER, *config.BranchName = repo, pull, branch })
 	*config.REPO_NAME = "kubeflow/pipelines"
 	*config.PULL_NUMBER = ""
-	*config.BRANCH_NAME = strings.Repeat("a", 40)
-	require.Equal(t, "git+https://github.com/kubeflow/pipelines.git@"+*config.BRANCH_NAME+"#subdirectory=sdk/python", getPackagePath("sdk/python"))
+	*config.BranchName = strings.Repeat("a", 40)
+	require.Equal(t, "git+https://github.com/kubeflow/pipelines.git@"+*config.BranchName+"#subdirectory=sdk/python", getPackagePath("sdk/python"))
 	*config.PULL_NUMBER = "7"
 	require.Equal(t, "git+https://github.com/kubeflow/pipelines.git@refs/pull/7/merge#subdirectory=sdk/python", getPackagePath("sdk/python"))
 }
