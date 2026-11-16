@@ -111,7 +111,7 @@ describe('/artifacts', () => {
           anonymous,
         });
 
-        await requests(app.app)
+        const response = await requests(app.app)
           .get('/artifacts/get')
           .query({
             source: 's3',
@@ -119,7 +119,12 @@ describe('/artifacts', () => {
             key: 'hello/world.txt',
             artifactUriQuery: query.toString(),
           })
-          .expect(400, /Artifact store endpoint is not allowed/);
+          .expect(400);
+
+        expect(response.text).toContain(
+          'Artifact store endpoint is not allowed: "https://untrusted.example". ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+        );
+        expect(response.text).not.toContain('untrusted.example/base');
 
         expect(getK8sSecret).not.toHaveBeenCalled();
         expect(fromNodeProviderChain).not.toHaveBeenCalled();
@@ -1358,16 +1363,16 @@ s3:
         Provider: 's3',
       };
 
-      await requests(app.app)
+      const response = await requests(app.app)
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
-        .expect(
-          400,
-          /Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS/,
-        );
+        .expect(400);
+      expect(response.text).toContain(
+        'Artifact store endpoint is not allowed: "https://s3.us-east-2.amazonaws.com". ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+      );
       expect(mockedS3Client).not.toBeCalled();
     });
 
@@ -1421,16 +1426,16 @@ s3:
         Provider: 's3',
       };
 
-      await requests(app.app)
+      const response = await requests(app.app)
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
-        .expect(
-          400,
-          /Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS/,
-        );
+        .expect(400);
+      expect(response.text).toContain(
+        'Artifact store endpoint is not allowed: "https://s3-attacker-123.us-east-1.elb.amazonaws.com". ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+      );
       expect(mockedS3Client).not.toBeCalled();
     });
 
@@ -1450,16 +1455,16 @@ s3:
         Provider: 's3',
       };
 
-      await requests(app.app)
+      const response = await requests(app.app)
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
-        .expect(
-          400,
-          /Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS/,
-        );
+        .expect(400);
+      expect(response.text).toContain(
+        'Artifact store endpoint is not allowed: "https://tenant-bucket.s3.us-east-1.amazonaws.com". ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+      );
       expect(mockedS3Client).not.toBeCalled();
     });
 
@@ -1546,17 +1551,95 @@ s3:
         Provider: 's3',
       };
 
-      await requests(app.app)
+      const response = await requests(app.app)
         .get(
           `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
-        .expect(
-          400,
-          /Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS/,
-        );
+        .expect(400);
+      expect(response.text).toContain(
+        'Artifact store endpoint is not allowed: "https://objects.example.com:9000". ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+      );
       expect(mockedS3Client).not.toBeCalled();
+    });
+
+    it('names only the origin of a rejected endpoint and directs the reader to their cluster operator', async () => {
+      const mockedS3Client: Mock = MockS3Client as any;
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'server-key',
+        AWS_SECRET_ACCESS_KEY: 'server-secret',
+      });
+      app = new UIServer(configs);
+      const providerInfo = {
+        Params: {
+          disableSSL: 'false',
+          endpoint: 'https://objects.example.com:9443/tenant-a/private-prefix',
+          fromEnv: 'true',
+        },
+        Provider: 's3',
+      };
+
+      const response = await requests(app.app)
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(400);
+
+      expect(response.text).toContain(
+        'Artifact store endpoint is not allowed: "https://objects.example.com:9443". ' +
+          'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+      );
+      expect(response.text).toContain('ask your cluster operator to allow it');
+      for (const pathSegment of ['tenant-a', 'private-prefix']) {
+        expect(response.text).not.toContain(pathSegment);
+      }
+      expect(mockedS3Client).not.toHaveBeenCalled();
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(getK8sSecret).not.toHaveBeenCalled();
+    });
+
+    it('names the requested origin, not the target of an operator endpoint rewrite', async () => {
+      vi.stubEnv(
+        'MINIO_ENDPOINT_REWRITE',
+        'objects.example.com:9443=http://store-internal.corp:8333',
+      );
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        app = new UIServer(loadConfigs(argv, {}));
+        const providerInfo = {
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'https://objects.example.com:9443',
+            fromEnv: 'true',
+          },
+          Provider: 's3',
+        };
+
+        const response = await requests(app.app)
+          .get(
+            `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${JSON.stringify(
+              providerInfo,
+            )}`,
+          )
+          .expect(400);
+
+        expect(response.text).toContain(
+          'Artifact store endpoint is not allowed: "https://objects.example.com:9443". ' +
+            'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting.',
+        );
+        expect(response.text).not.toContain('store-internal');
+        expect(warn).toHaveBeenCalledWith(
+          '[artifacts] rejected artifact store origin http://store-internal.corp:8333, rewritten from https://objects.example.com:9443',
+        );
+        expect(MockS3Client).not.toHaveBeenCalled();
+        expect(getK8sSecret).not.toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+        vi.unstubAllEnvs();
+      }
     });
 
     it('validates request TLS fields even when provider credentials come from env', async () => {

@@ -11,7 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js';
+import {
+  formatArtifactEndpointNotAllowedMessage,
+  isAllowedDomain,
+  isTrustedArtifactEndpoint,
+} from './domain-checker.js';
 
 describe('isAllowedDomain', () => {
   it('matches a host-only allowlist for a plain https URL', () => {
@@ -80,4 +84,35 @@ describe('isTrustedArtifactEndpoint', () => {
       ]),
     ).toBe(false);
   });
+});
+
+describe('formatArtifactEndpointNotAllowedMessage', () => {
+  it('names the rejected origin and directs the reader to their cluster operator', () => {
+    expect(formatArtifactEndpointNotAllowedMessage('https://objects.example.com:9443')).toBe(
+      'Artifact store endpoint is not allowed: "https://objects.example.com:9443". ' +
+        'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting. If the endpoint ' +
+        'scheme and port are correct and this artifact store should be trusted, ask your ' +
+        'cluster operator to allow it.',
+    );
+  });
+
+  it('shows only the origin of an endpoint with credentials, a path, or a query', () => {
+    expect(
+      formatArtifactEndpointNotAllowedMessage(
+        'https://access-key:secret-key@objects.example.com:9443/tenant/private?X-Amz-Signature=signed',
+      ),
+    ).toBe(formatArtifactEndpointNotAllowedMessage('https://objects.example.com:9443'));
+  });
+
+  it.each([undefined, 'not a url', 'file:///etc/passwd'])(
+    'gives the same guidance without an origin when there is no HTTP(S) origin (%s)',
+    (endpoint) => {
+      expect(formatArtifactEndpointNotAllowedMessage(endpoint)).toBe(
+        'Artifact store endpoint is not allowed. ' +
+          'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting. If the endpoint ' +
+          'scheme and port are correct and this artifact store should be trusted, ask your ' +
+          'cluster operator to allow it.',
+      );
+    },
+  );
 });

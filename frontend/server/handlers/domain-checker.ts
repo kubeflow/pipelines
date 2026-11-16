@@ -40,6 +40,31 @@ export function isTrustedArtifactEndpoint(
   );
 }
 
+/**
+ * Explains an artifact endpoint rejection to the pipeline user who sees it, who
+ * usually cannot edit ALLOWED_ARTIFACT_ENDPOINTS. Only the HTTP(S) origin of
+ * `endpoint` is shown, so credentials, paths, and query values never reach the
+ * message. The origin is quoted so that copying it does not pick up the period.
+ */
+export function formatArtifactEndpointNotAllowedMessage(endpoint?: string): string {
+  const origin = toHttpOrigin(endpoint);
+  return (
+    `Artifact store endpoint is not allowed${origin ? `: "${origin}"` : ''}. ` +
+    'ALLOWED_ARTIFACT_ENDPOINTS is an operator-managed cluster setting. If the endpoint scheme ' +
+    'and port are correct and this artifact store should be trusted, ask your cluster operator ' +
+    'to allow it.'
+  );
+}
+
+function toHttpOrigin(endpoint: string | undefined): string | undefined {
+  try {
+    const { protocol, origin } = new URL(endpoint ?? '');
+    return protocol === 'http:' || protocol === 'https:' ? origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeEndpoint(endpoint: string): string | undefined {
   try {
     const parsedUrl = new URL(endpoint.includes('://') ? endpoint : `https://${endpoint}`);
