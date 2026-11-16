@@ -169,6 +169,7 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
                     ('pull_request', 'refs/pull/123/merge', '123', ''),
                     ('push', 'release-2.18', '', ''),
                     ('workflow_dispatch', 'release-2.18', '', ''),
+                    ('workflow_dispatch', queued_sha, '', ''),
                     ('pull_request', queued_sha, '123', queued_sha),
                 ):
                     with self.subTest(script=script_name, event=event_name):
@@ -180,6 +181,11 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
                             'KFP_TEST_SOURCE_SHA': checkout_sha,
                             'GITHUB_EVENT_NAME': event_name,
                             'GITHUB_SHA': queued_sha,
+                            'GITHUB_REF': (
+                                'refs/heads/gh-readonly-queue/release-2.18/pr-123-candidate'
+                                if event_name == 'workflow_dispatch' and
+                                expected_ref == queued_sha else
+                                'refs/heads/release-2.18'),
                             'KFP_PACKAGE_CAPTURE': str(capture_path),
                             'PATH': f'{temp_dir}{os.pathsep}{env["PATH"]}',
                         })

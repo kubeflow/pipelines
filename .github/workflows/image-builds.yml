@@ -90,7 +90,7 @@ jobs:
           ARTIFACT_NAME: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          REQUIRE_SOURCE_SHA: ${{ github.event_name == 'merge_group' }}
+          REQUIRE_SOURCE_SHA: ${{ github.event_name == 'merge_group' || startsWith(github.ref, 'refs/heads/gh-readonly-queue/') }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
@@ -114,7 +114,6 @@ jobs:
                 if gh api --method GET \
                     "repos/${GITHUB_REPOSITORY}/actions/workflows/runtime-base-images-merge-group.yml/runs" \
                     -f head_sha="${SOURCE_SHA}" \
-                    -f event=merge_group \
                     -f per_page=100 > "${queue_runs_file}"; then
                   producer_args+=(--queue-runs-file "${queue_runs_file}")
                 else

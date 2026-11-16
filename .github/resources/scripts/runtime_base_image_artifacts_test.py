@@ -157,6 +157,36 @@ class ProducerSelectionTest(unittest.TestCase):
             10,
         )
 
+    def test_dispatch_selects_only_successful_exact_queue_producer(self):
+        payload = {
+            'artifacts': [
+                artifact(
+                    1,
+                    '2026-07-16T00:00:00Z',
+                    head_sha=SOURCE_SHA,
+                    head_branch=QUEUE_BRANCH)
+            ]
+        }
+        for changes, expected in [({}, 10), ({
+                'head_sha': 'other'
+        }, None), ({
+                'conclusion': 'failure'
+        }, None), ({
+                'path': '.github/workflows/other.yml'
+        }, None)]:
+            with self.subTest(changes=changes):
+                self.assertEqual(
+                    artifacts.select_producer_run_id(
+                        payload,
+                        SOURCE_SHA,
+                        require_source_sha=True,
+                        queue_runs={
+                            'workflow_runs': [
+                                queue_run(
+                                    1, event='workflow_dispatch', **changes)
+                            ]
+                        }), expected)
+
     def test_merge_group_waits_when_only_main_artifact_exists(self):
         payload = {
             'artifacts': [
