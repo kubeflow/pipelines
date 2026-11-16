@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -4341,14 +4342,13 @@ func lifecycleMessageForTaskNode(task *model.Task, nodes map[string]util.NodeSta
 	if !ok {
 		return "", "", false
 	}
-	parents := nodeParents(nodes)
 	var nodeID string
 	count := 0
 	for id, node := range nodes {
 		if node.Type != "Retry" || node.DisplayName != task.Name {
 			continue
 		}
-		if !nodeInScope(id, scope, nodes, parents) {
+		if !nodeInScope(id, scope, nodes) {
 			continue
 		}
 		nodeID = id
@@ -4382,26 +4382,49 @@ func parentTaskScope(task *model.Task, tasksByUUID map[string]*model.Task) (scop
 	return scope, true
 }
 
-// nodeParents maps every node to the node that lists it as a child.
-func nodeParents(nodes map[string]util.NodeStatus) map[string]string {
-	parents := make(map[string]string, len(nodes))
-	for id, node := range nodes {
-		for _, childID := range node.Children {
-			parents[childID] = id
+// retryAttemptDisplayName matches an Argo retry attempt's display name, e.g. "my-task(2)", and
+// captures the task name of the Retry node it belongs to.
+var retryAttemptDisplayName = regexp.MustCompile(`^(.+)\(\d+\)$`)
+
+// nodeParent returns the node that structurally contains id, using BoundaryID rather than
+// Children. Argo also uses Children to record dependency ordering between sibling tasks (a
+// predecessor's last attempt pointing at a dependent's Retry node), so a reversed Children map
+// can misread a plain dependency edge as containment. BoundaryID has no such ambiguity: the
+// execution engine sets it from the workflow's actual template nesting.
+//
+// A Retry node and its attempts (displayed as "name(0)", "name(1)", ...) share the same
+// BoundaryID, so an attempt's structural parent is its Retry node, found by matching that name
+// and boundary, not the boundary node itself. Anything else, including a Retry node, is directly
+// contained by its BoundaryID. A node with no BoundaryID has no enclosing node, which is the case
+// for a top-level task hanging off the workflow's own root.
+func nodeParent(id string, nodes map[string]util.NodeStatus) (string, bool) {
+	node, ok := nodes[id]
+	if !ok {
+		return "", false
+	}
+	if m := retryAttemptDisplayName.FindStringSubmatch(node.DisplayName); m != nil {
+		taskName := m[1]
+		for retryID, retryNode := range nodes {
+			if retryNode.Type == "Retry" && retryNode.DisplayName == taskName && retryNode.BoundaryID == node.BoundaryID {
+				return retryID, true
+			}
 		}
 	}
-	return parents
+	if node.BoundaryID == "" {
+		return "", false
+	}
+	return node.BoundaryID, true
 }
 
 // nodeInScope reports whether the nearest Retry ancestors of the node are the enclosing tasks in
 // scope, nearest first, and nothing more. Once scope is exhausted (including the empty, top-level
 // case), any further Retry ancestor before the root means the node is nested deeper than the task
 // actually is, so it is rejected rather than treated as a match.
-func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus, parents map[string]string) bool {
+func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus) bool {
 	seen := map[string]bool{id: true}
 	current := id
 	for next := 0; next < len(scope); {
-		parentID, ok := parents[current]
+		parentID, ok := nodeParent(current, nodes)
 		if !ok || seen[parentID] {
 			return false
 		}
@@ -4415,7 +4438,7 @@ func nodeInScope(id string, scope []string, nodes map[string]util.NodeStatus, pa
 		}
 	}
 	for {
-		parentID, ok := parents[current]
+		parentID, ok := nodeParent(current, nodes)
 		if !ok {
 			return true
 		}

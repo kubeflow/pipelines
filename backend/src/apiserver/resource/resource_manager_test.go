@@ -9034,14 +9034,29 @@ func scopedTask(t *testing.T, uuid, name, parentUUID string) *model.Task {
 
 // twoSubDAGNodes has the same group name in two sub-DAGs. Only the group in branch-b ran and got
 // stuck on an image pull. The copy in branch-a was skipped, so it has no node of its own.
+// BoundaryID mirrors how Argo actually nests these: branch-a and branch-b are top-level, so they
+// and their own attempts have no BoundaryID; group-b and its attempt sit inside branch-b's DAG
+// attempt, branch-b0, so that is their BoundaryID.
 func twoSubDAGNodes() map[string]util.NodeStatus {
 	return map[string]util.NodeStatus{
 		"branch-a":  {ID: "branch-a", DisplayName: "branch-a", Type: "Retry", State: "Succeeded", Children: []string{"branch-a0"}},
 		"branch-a0": {ID: "branch-a0", DisplayName: "branch-a(0)", Type: "DAG", State: "Succeeded"},
 		"branch-b":  {ID: "branch-b", DisplayName: "branch-b", Type: "Retry", State: "Running", Children: []string{"branch-b0"}},
 		"branch-b0": {ID: "branch-b0", DisplayName: "branch-b(0)", Type: "DAG", State: "Running", Children: []string{"group-b"}},
-		"group-b":   {ID: "group-b", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"pod-b"}},
-		"pod-b":     {ID: "wf-pod-b", DisplayName: "condition-1(0)", Type: "Pod", State: "Pending", Message: imagePullMsg},
+		"group-b":   {ID: "group-b", DisplayName: "condition-1", Type: "Retry", State: "Running", Children: []string{"pod-b"}, BoundaryID: "branch-b0"},
+		"pod-b":     {ID: "wf-pod-b", DisplayName: "condition-1(0)", Type: "Pod", State: "Pending", Message: imagePullMsg, BoundaryID: "branch-b0"},
+	}
+}
+
+// siblingDependencyNodes models the Children edge Argo adds for task dependencies: b depends on
+// a, so a's last attempt (a0) lists b's Retry node as a child, even though b is not nested under
+// a. Both a and b are top-level, so both have no BoundaryID.
+func siblingDependencyNodes() map[string]util.NodeStatus {
+	return map[string]util.NodeStatus{
+		"a":        {ID: "a", DisplayName: "a", Type: "Retry", State: "Succeeded", Children: []string{"a0"}},
+		"a0":       {ID: "a0", DisplayName: "a(0)", Type: "DAG", State: "Succeeded", Children: []string{"b"}},
+		"b":        {ID: "b", DisplayName: "b", Type: "Retry", State: "Pending", Children: []string{"wf-pod-b"}},
+		"wf-pod-b": {ID: "wf-pod-b", DisplayName: "b(0)", Type: "Pod", State: "Pending", Message: imagePullMsg},
 	}
 }
 
@@ -9098,6 +9113,23 @@ func TestLifecycleMessageForTask_TopLevelSkippedTaskNotMatchedByNestedSameName(t
 	}
 	_, _, matched := lifecycleMessageForTask(tasks["condition"], nodes, resolved, tasks)
 	assert.False(t, matched)
+}
+
+func TestLifecycleMessageForTask_TopLevelTaskNotMisplacedByDependencyEdge(t *testing.T) {
+	// Argo also stores dependency ordering as a Children edge, from a predecessor's last attempt
+	// to the dependent task's Retry node. That edge is not containment: b depends on a, but both
+	// are top-level, so b's own stuck pod must still resolve as top-level rather than as nested
+	// under a.
+	nodes := siblingDependencyNodes()
+	resolved := util.ResolveNodeLifecycleMessages(nodes)
+	tasks := map[string]*model.Task{
+		"root": {UUID: "root", Name: "root"},
+		"a":    scopedTask(t, "a", "a", "root"),
+		"b":    scopedTask(t, "b", "b", "root"),
+	}
+	msg, _, matched := lifecycleMessageForTask(tasks["b"], nodes, resolved, tasks)
+	assert.True(t, matched)
+	assert.Equal(t, imagePullMsg, msg)
 }
 
 func TestLifecycleMessageForTask_TaskNodeUnmatchedWhenParentChainBroken(t *testing.T) {
