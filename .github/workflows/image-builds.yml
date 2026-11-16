@@ -91,6 +91,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REQUIRE_SOURCE_SHA: ${{ github.event_name == 'merge_group' }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
 
@@ -106,7 +107,7 @@ jobs:
                 "repos/${GITHUB_REPOSITORY}/actions/artifacts" \
                 -f name="${ARTIFACT_NAME}" \
                 -f per_page=100); then
-              producer_args=(--source-sha "${SOURCE_SHA}")
+              producer_args=(--source-sha "${SOURCE_SHA}" --default-branch "${DEFAULT_BRANCH}")
               producer_runs_available=true
               if [[ "${REQUIRE_SOURCE_SHA}" == "true" ]]; then
                 producer_args+=(--require-source-sha)

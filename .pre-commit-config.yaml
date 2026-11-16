@@ -18,7 +18,7 @@ repos:
       - id: check-merge-conflict
       - id: name-tests-test
       - id: no-commit-to-branch
-        args: [--branch, master]
+        args: [--branch, master, --branch, main, --branch, release-2.18]
   - repo: https://github.com/PyCQA/flake8
     rev: 7.5.0
     hooks:

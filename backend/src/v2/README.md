@@ -84,7 +84,7 @@ it should have the following content:
   To use a compatible KFP SDK, define the following environment variable before running e2e test:
 
   ```
-  export KFP_PACKAGE_PATH="git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python"
+  export KFP_PACKAGE_PATH="git+https://github.com/kubeflow/pipelines.git@release-2.18#subdirectory=sdk/python"
   ```
 
 Instructions:

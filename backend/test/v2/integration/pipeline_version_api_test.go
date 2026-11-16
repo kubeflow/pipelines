@@ -71,7 +71,7 @@ func (s *PipelineVersionApiTest) SetupTest() {
 
 	s.namespace = *config.Namespace
 	s.repoName = *config.REPO_NAME
-	s.branchName = *config.BRANCH_NAME
+	s.branchName = *config.BranchName
 
 	var tlsCfg *tls.Config
 	var err error

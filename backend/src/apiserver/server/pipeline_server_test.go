@@ -76,7 +76,7 @@ func setupLargePipelineURL() string {
 		repo = "kubeflow/pipelines"
 	}
 	if branch == "" {
-		branch = "master"
+		branch = "release-2.18"
 	}
 	largePipelineURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/test_data/sdk_compiled_pipelines/valid/xgboost_sample_pipeline.yaml", repo, branch)
 	return largePipelineURL

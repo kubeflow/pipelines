@@ -28,9 +28,12 @@ def fingerprint_files(paths: Iterable[Path]) -> str:
 def select_producer_run_id(payload: Any,
                            source_sha: str,
                            require_source_sha: bool = False,
-                           queue_runs: Any = None) -> Optional[int]:
+                           queue_runs: Any = None,
+                           default_branch: str = 'main') -> Optional[int]:
     """Return a matching producer, requiring queue provenance for merge
     groups."""
+    if default_branch not in ('master', 'main'):
+        raise ValueError('Expected master or main as the default branch')
     if not isinstance(payload, dict):
         raise ValueError('Expected an artifact API response object')
     artifacts = payload.get('artifacts')
@@ -61,8 +64,9 @@ def select_producer_run_id(payload: Any,
         is_upstream_source = (
             isinstance(head_repository_id, int) and
             head_repository_id == workflow_run.get('repository_id'))
-        is_trusted_master = (
-            workflow_run.get('head_branch') == 'master' and is_upstream_source)
+        is_trusted_default_branch = (
+            workflow_run.get('head_branch') == default_branch and
+            is_upstream_source)
         head_branch = workflow_run.get('head_branch')
         is_trusted_queue = (
             is_current_source and is_upstream_source and
@@ -90,7 +94,7 @@ def select_producer_run_id(payload: Any,
                 repository['id'] == workflow_run.get('repository_id') and
                 head_repository.get('id') == repository['id'])
         if (is_trusted_queue if require_source_sha else
-            (is_current_source or is_trusted_master)):
+            (is_current_source or is_trusted_default_branch)):
             candidates.append(artifact)
 
     if not candidates:
@@ -114,6 +118,8 @@ def main() -> int:
 
     select_parser = subparsers.add_parser('select-producer')
     select_parser.add_argument('--source-sha', required=True)
+    select_parser.add_argument(
+        '--default-branch', required=True, choices=('master', 'main'))
     select_parser.add_argument('--require-source-sha', action='store_true')
     select_parser.add_argument('--queue-runs-file', type=Path)
 
@@ -126,8 +132,11 @@ def main() -> int:
                 json.loads(args.queue_runs_file.read_text())
                 if args.queue_runs_file else None)
             run_id = select_producer_run_id(
-                json.load(sys.stdin), args.source_sha, args.require_source_sha,
-                queue_runs)
+                json.load(sys.stdin),
+                args.source_sha,
+                args.require_source_sha,
+                queue_runs,
+                default_branch=args.default_branch)
             if run_id is not None:
                 print(run_id)
     except (KeyError, OSError, TypeError, ValueError,

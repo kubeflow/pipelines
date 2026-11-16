@@ -161,6 +161,42 @@ class CommandRunnerTest(unittest.TestCase):
         self.assertEqual(runner.commands, [['git', 'status']])
 
 
+class UpstreamDefaultBranchTest(unittest.TestCase):
+
+    def test_resolves_upstream_default_branch(self):
+        for branch in ('master', 'main'):
+            with self.subTest(branch=branch):
+                runner = mock.Mock(dry_run=False)
+                runner.capture.return_value = '{"default_branch": "' + branch + '"}'
+                self.assertEqual(
+                    core.upstream_default_branch(runner, Path('/repo')), branch)
+                runner.capture.assert_called_once_with(
+                    ['gh', 'api', 'repos/kubeflow/pipelines'],
+                    cwd=Path('/repo'))
+
+    def test_rejects_missing_or_unexpected_default_branch(self):
+        for metadata in ('{}', '{"default_branch": "release-2.18"}', ''):
+            with self.subTest(metadata=metadata):
+                runner = mock.Mock(dry_run=False)
+                runner.capture.return_value = metadata
+                with self.assertRaises(ValueError):
+                    core.upstream_default_branch(runner, Path('/repo'))
+
+    def test_lookup_failure_does_not_guess_a_branch(self):
+        runner = mock.Mock(dry_run=False)
+        runner.capture.side_effect = subprocess.CalledProcessError(1, 'gh')
+        with self.assertRaises(subprocess.CalledProcessError):
+            core.upstream_default_branch(runner, Path('/repo'))
+
+    def test_dry_run_does_not_read_api(self):
+        runner = core.CommandRunner(dry_run=True)
+        with mock.patch.object(core.subprocess, 'check_output') as capture:
+            self.assertEqual(
+                core.upstream_default_branch(runner, Path('/repo')),
+                '<repository-default>')
+        capture.assert_not_called()
+
+
 class GithubCommandTest(unittest.TestCase):
 
     def test_image_workflow_command(self):
@@ -824,7 +860,7 @@ class PromptValidationTest(unittest.TestCase):
             self.assertEqual(state.answers['release_source_branch'],
                              'release-candidate')
 
-    def test_collect_context_defaults_major_minor_source_branch_to_master(self):
+    def test_collect_context_leaves_default_source_branch_unset(self):
         with TemporaryDirectory() as tmpdir:
             state = ReleaseState(Path(tmpdir) / 'state.json')
             args = type('Args', (), {
@@ -838,7 +874,7 @@ class PromptValidationTest(unittest.TestCase):
             ):
                 core.collect_context(args, state)
 
-            self.assertEqual(state.answers['release_source_branch'], 'master')
+            self.assertNotIn('release_source_branch', state.answers)
 
 
 if __name__ == '__main__':

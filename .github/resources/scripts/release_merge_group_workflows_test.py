@@ -126,6 +126,31 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
             'SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
             image_builds_source)
 
+    def test_smoke_change_detection_defaults_to_release_branch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            capture = temporary / 'git-args'
+            fake_git = temporary / 'git'
+            fake_git.write_text(
+                '#!/bin/sh\nprintf "%s\\n" "$@" > "$GIT_ARGS_CAPTURE"\n')
+            fake_git.chmod(0o755)
+            env = os.environ.copy()
+            env['PATH'] = f'{directory}{os.pathsep}{env["PATH"]}'
+            env['GIT_ARGS_CAPTURE'] = str(capture)
+            script = REPOSITORY_ROOT / 'frontend/scripts/ui-smoke-test/detect-changes.js'
+            for args, expected_ref in [([], 'release-2.18'),
+                                       (['--base',
+                                         'origin/main'], 'origin/main')]:
+                with self.subTest(args=args):
+                    result = subprocess.run(['node', str(script), *args],
+                                            env=env,
+                                            text=True,
+                                            capture_output=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(
+                        capture.read_text().splitlines(),
+                        ['diff', '--name-only', f'{expected_ref}..HEAD'])
+
     def test_sdk_tests_install_from_the_queued_commit(self):
         queued_sha = '0123456789abcdef0123456789abcdef01234567'
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -139,16 +164,20 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
 
             for script_name in ('presubmit-tests-sdk.sh',
                                 'presubmit-tests-sdk-unit.sh'):
-                for event_name, expected_ref in (
-                    ('merge_group', queued_sha),
-                    ('pull_request', 'refs/pull/123/merge'),
+                for event_name, expected_ref, pull_number, checkout_sha in (
+                    ('merge_group', queued_sha, '123', ''),
+                    ('pull_request', 'refs/pull/123/merge', '123', ''),
+                    ('push', 'release-2.18', '', ''),
+                    ('workflow_dispatch', 'release-2.18', '', ''),
+                    ('pull_request', queued_sha, '123', queued_sha),
                 ):
                     with self.subTest(script=script_name, event=event_name):
                         env = os.environ.copy()
                         env.update({
                             'SETUP_ENV': 'false',
                             'REPO_NAME': 'kubeflow/pipelines',
-                            'PULL_NUMBER': '123',
+                            'PULL_NUMBER': pull_number,
+                            'KFP_TEST_SOURCE_SHA': checkout_sha,
                             'GITHUB_EVENT_NAME': event_name,
                             'GITHUB_SHA': queued_sha,
                             'KFP_PACKAGE_CAPTURE': str(capture_path),
