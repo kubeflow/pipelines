@@ -129,9 +129,12 @@ jq -e '.default_branch == "master"' "$KFP_EVIDENCE/repository-before.json"
 gh api --hostname github.com --method GET "repos/$KFP_REPO/git/ref/heads/master" > "$KFP_EVIDENCE/master-before.json"
 KFP_BASE_SHA="$(jq -er '.object.sha' "$KFP_EVIDENCE/master-before.json")"
 gh api --hostname github.com --method GET "repos/$KFP_REPO/branches/master/protection" > "$KFP_EVIDENCE/master-protection.json"
-for KFP_RULESET in 14287837 14287367 14287485; do
+gh api --hostname github.com --method GET --paginate --slurp \
+  "repos/$KFP_REPO/rulesets?includes_parents=true&per_page=100" > "$KFP_EVIDENCE/rulesets-before.json"
+jq -er '[.[][] | .id] | unique | .[]' "$KFP_EVIDENCE/rulesets-before.json" > "$KFP_EVIDENCE/ruleset-ids-before.txt"
+while read -r KFP_RULESET; do
   gh api --hostname github.com --method GET "repos/$KFP_REPO/rulesets/$KFP_RULESET" > "$KFP_EVIDENCE/ruleset-$KFP_RULESET-before.json"
-done
+done < "$KFP_EVIDENCE/ruleset-ids-before.txt"
 : "${KFP_BASE_PR:?Set the authoritative merged PR for the frozen master tip}"
 gh api --hostname github.com --method GET "repos/$KFP_REPO/pulls/$KFP_BASE_PR" > "$KFP_EVIDENCE/base-merged-before.json"
 jq -e --arg base "$KFP_BASE_SHA" \
@@ -151,7 +154,9 @@ jq -e '.automated_checks_passed == true and .decision == "OWNER_REVIEW_REQUIRED"
 
 **Expected:** default remains master and every automated check passes. Record the
 final `B = KFP_BASE_SHA`, its authoritative merged PR, the deployed Prow revision,
-and the protection baseline. **Stop:** exit 1, unknown evidence, unexpected exit
+and the protection baseline. Capture every repository and inherited ruleset,
+including every paginated result, so branch selectors and exclusions can be
+compared after the rename. **Stop:** exit 1, unknown evidence, unexpected exit
 code, any SHA drift, or an unconfirmed worksheet gate. Exit 2 means only that the
 operator may finish reviewing the owner gates. It is not rename authorization.
 
@@ -174,14 +179,17 @@ jq -e --arg base "$KFP_BASE_SHA" \
 gh api --hostname github.com --method GET "repos/$KFP_REPO/branches/main/protection" > "$KFP_EVIDENCE/main-protection.json"
 gh api --hostname github.com --method GET --paginate --slurp \
   "repos/$KFP_REPO/rulesets?includes_parents=true&per_page=100" > "$KFP_EVIDENCE/rulesets-after.json"
-for KFP_RULESET in 14287837 14287367 14287485; do
+while read -r KFP_RULESET; do
   gh api --hostname github.com --method GET "repos/$KFP_REPO/rulesets/$KFP_RULESET" > "$KFP_EVIDENCE/ruleset-$KFP_RULESET-after.json"
-done
+done < "$KFP_EVIDENCE/ruleset-ids-before.txt"
 ```
 
 **Expected:** main still equals B. Compare effective protection, required context
 app bindings, ruleset details and exclusions with the captured baseline; the
-ruleset list alone is not proof of enforcement. Verify deployed Tide policy and
+ruleset list alone is not proof of enforcement. Re-fetch the persisted pre-rename
+ID list even if an ID disappears from the post-rename listing, and compare both
+listings for additions or removals. This preserves evidence for a ruleset that
+stops applying after the rename. Verify deployed Tide policy and
 open PR retargeting. **Stop:** any mismatch, missing permission, ambiguous API
 response, or unexpected write. Keep the freeze in place. The pre-rename readiness
 checker intentionally fails after this point; do not modify it to make it pass.

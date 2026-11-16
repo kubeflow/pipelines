@@ -16,9 +16,13 @@
 import copy
 import io
 import json
+import os
+import re
 import subprocess
+import tempfile
 import unittest
 from http.client import BadStatusLine, HTTPResponse, IncompleteRead
+from pathlib import Path
 from unittest import mock
 
 import main_branch_readiness as readiness
@@ -753,6 +757,82 @@ class ReadOnlyTransportTest(unittest.TestCase):
         self.assertNotIn('prow_config_sha256', report['evidence'])
         self.assertNotIn('secret-token', json.dumps(report))
         self.assertNotIn('private-hook-url', json.dumps(report))
+
+
+class RunbookRulesetTest(unittest.TestCase):
+    def test_all_ruleset_pages_are_captured_and_original_ids_rechecked(self):
+        document = (
+            Path(__file__).resolve().parents[3]
+            / 'docs/contributing/main-branch-cutover.md'
+        ).read_text()
+        before, after = document.split('### 2. Verify the authorized rename', 1)
+
+        def snippet(section):
+            match = re.search(
+                r'gh api[^\n]*--paginate --slurp \\\n'
+                r'  "repos/\$KFP_REPO/rulesets\?[^\n]*\n.*?'
+                r'done < "\$KFP_EVIDENCE/ruleset-ids-before.txt"',
+                section,
+                re.S,
+            )
+            if match:
+                return match.group()
+            return re.search(
+                r'for KFP_RULESET .*?\ndone', section, re.S
+            ).group()
+
+        shell = r"""set -euo pipefail
+KFP_REPO=kubeflow/pipelines
+gh() {
+  case "$*" in
+    *'rulesets?'*)
+      [[ " $* " == *' --paginate '* ]]
+      [[ " $* " == *' --slurp '* ]]
+      [[ " $* " == *'includes_parents=true'* ]]
+      if [[ "$PHASE" == before ]]; then
+        printf '%s\n' '[[{"id":14287837},{"id":14287367},{"id":14287485}],[{"id":99999999}]]'
+      else
+        printf '%s\n' '[[{"id":14287837},{"id":14287367},{"id":14287485}]]'
+      fi
+      ;;
+    *)
+      printf '%s\n' "${@: -1}" >> "$KFP_EVIDENCE/requests-$PHASE.txt"
+      printf '{"id":%s}\n' "${@: -1}" | sed 's#repos/kubeflow/pipelines/rulesets/##'
+      ;;
+  esac
+}
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            for phase, section in [('before', before), ('after', after)]:
+                subprocess.run(
+                    ['bash', '-c', shell + snippet(section)],
+                    check=True,
+                    env={
+                        **os.environ,
+                        'PHASE': phase,
+                        'KFP_EVIDENCE': directory,
+                    },
+                )
+                requests = (
+                    (Path(directory) / f'requests-{phase}.txt')
+                    .read_text()
+                    .splitlines()
+                )
+                self.assertEqual(
+                    set(requests),
+                    {
+                        f'repos/kubeflow/pipelines/rulesets/{rule}'
+                        for rule in [14287837, 14287367, 14287485, 99999999]
+                    },
+                )
+                self.assertEqual(
+                    json.loads(
+                        (
+                            Path(directory) / f'ruleset-99999999-{phase}.json'
+                        ).read_text()
+                    ),
+                    {'id': 99999999},
+                )
 
 
 if __name__ == '__main__':
