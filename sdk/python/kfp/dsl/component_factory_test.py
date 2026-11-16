@@ -480,11 +480,9 @@ class TestPythonEOLWarning(unittest.TestCase):
                 pass
 
 
-def _get_archive(component_fn):
-    """Extract the raw tar bytes from a compiled component's embedded
-    archive."""
+def _get_compressed_archive(component_fn):
+    """Extract the gzip bytes of a compiled component's embedded archive."""
     import base64
-    import gzip
 
     source = component_fn.component_spec.implementation.container.command[-1]
     match = re.search(r"__KFP_EMBEDDED_ARCHIVE_B64\s*=\s*'([^']+)'", source)
@@ -495,8 +493,15 @@ def _get_archive(component_fn):
         )
     archive_b64 = match.group(1)
 
-    compressed = base64.b64decode(archive_b64.encode('ascii'))
-    return gzip.decompress(compressed)
+    return base64.b64decode(archive_b64.encode('ascii'))
+
+
+def _get_archive(component_fn):
+    """Extract the raw tar bytes from a compiled component's embedded
+    archive."""
+    import gzip
+
+    return gzip.decompress(_get_compressed_archive(component_fn))
 
 
 class TestEmbeddedArtifactSymlinkResolution(unittest.TestCase):
@@ -742,6 +747,197 @@ class TestEmbeddedArtifactSymlinkResolution(unittest.TestCase):
                 )
                 def my_comp(cfg: dsl.EmbeddedInput[dsl.Dataset]):
                     pass
+
+
+def _get_archive_members(component_fn):
+    """List the tar members of a compiled component's embedded archive."""
+    import io
+    import tarfile
+
+    with tarfile.open(
+        fileobj=io.BytesIO(_get_archive(component_fn)), mode='r'
+    ) as tar:
+        return tar.getmembers()
+
+
+def _compile_embedded_component(embedded_artifact_path):
+    @component(
+        base_image='python:3.11',
+        embedded_artifact_path=embedded_artifact_path,
+        install_kfp_package=False,
+    )
+    def my_comp(cfg: dsl.EmbeddedInput[dsl.Dataset]):
+        pass
+
+    return my_comp
+
+
+def _get_command(component_fn):
+    return component_fn.component_spec.implementation.container.command
+
+
+class TestEmbeddedArtifactDeterminism(unittest.TestCase):
+    """Tests for #14852: the same embedded files must give the same command.
+
+    The command is part of the cache key, so an archive that changes
+    between two compiles makes the step miss the cache.
+    """
+
+    # 1980-02-01T00:00:00Z. ZIP cannot store a timestamp before 1980.
+    EXPECTED_MEMBER_MTIME = 318211200
+
+    def setUp(self):
+        import os
+        import tempfile
+
+        temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        self.embed_dir = os.path.join(temporary_directory.name, 'pkg')
+        self.nested_dir = os.path.join(self.embed_dir, 'sub')
+        os.makedirs(self.nested_dir)
+        self.top_file = os.path.join(self.embed_dir, 'mod.py')
+        self.nested_file = os.path.join(self.nested_dir, 'nested.py')
+        for path in (self.top_file, self.nested_file):
+            with open(path, 'w') as f:
+                f.write('X = 1\n')
+
+    def _set_mtime_of_all_paths(self, mtime):
+        import os
+
+        for path in (
+            self.embed_dir,
+            self.nested_dir,
+            self.top_file,
+            self.nested_file,
+        ):
+            os.utime(path, (mtime, mtime))
+
+    def test_command_is_same_when_directory_mtimes_change(self):
+        # A fresh clone or a CI checkout gives new mtimes to unchanged files.
+        self._set_mtime_of_all_paths(1_600_000_000)
+        first_command = _get_command(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        self._set_mtime_of_all_paths(1_700_000_000)
+        second_command = _get_command(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        self.assertEqual(first_command, second_command)
+
+    def test_command_is_same_when_single_file_mtime_changes(self):
+        import os
+
+        os.utime(self.top_file, (1_600_000_000, 1_600_000_000))
+        first_command = _get_command(_compile_embedded_component(self.top_file))
+
+        os.utime(self.top_file, (1_700_000_000, 1_700_000_000))
+        second_command = _get_command(
+            _compile_embedded_component(self.top_file)
+        )
+
+        self.assertEqual(first_command, second_command)
+
+    def test_command_is_same_when_compile_time_changes(self):
+        # Two submissions of the same pipeline compile at different times.
+        from unittest import mock
+
+        with mock.patch('time.time', return_value=1_600_000_000):
+            first_command = _get_command(
+                _compile_embedded_component(self.embed_dir)
+            )
+        with mock.patch('time.time', return_value=1_700_000_000):
+            second_command = _get_command(
+                _compile_embedded_component(self.embed_dir)
+            )
+
+        self.assertEqual(first_command, second_command)
+
+    def test_command_changes_when_file_content_changes(self):
+        first_command = _get_command(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        with open(self.top_file, 'w') as f:
+            f.write('X = 2\n')
+        second_command = _get_command(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        self.assertNotEqual(first_command, second_command)
+
+    def test_gzip_header_has_no_timestamp_and_no_host_os(self):
+        # A laptop compile and a CI compile must give the same header.
+        compressed = _get_compressed_archive(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        # RFC 1952: magic, deflate, no flags, MTIME 0, XFL 2, OS 255 (unknown).
+        self.assertEqual(
+            compressed[:10].hex(), '1f8b0800' + '00000000' + '02' + 'ff'
+        )
+
+    def test_directory_members_have_fixed_mtime_and_no_owner(self):
+        members = _get_archive_members(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        self.assertEqual(
+            [member.name for member in members],
+            ['.', 'mod.py', 'sub', 'sub/nested.py'],
+        )
+        for member in members:
+            with self.subTest(member=member.name):
+                self.assertEqual(member.mtime, self.EXPECTED_MEMBER_MTIME)
+                self.assertEqual(member.uid, 0)
+                self.assertEqual(member.gid, 0)
+                self.assertEqual(member.uname, '')
+                self.assertEqual(member.gname, '')
+
+    def test_single_file_member_has_fixed_mtime_and_no_owner(self):
+        members = _get_archive_members(
+            _compile_embedded_component(self.top_file)
+        )
+
+        self.assertEqual([member.name for member in members], ['mod.py'])
+        member = members[0]
+        self.assertEqual(member.mtime, self.EXPECTED_MEMBER_MTIME)
+        self.assertEqual(member.uid, 0)
+        self.assertEqual(member.gid, 0)
+        self.assertEqual(member.uname, '')
+        self.assertEqual(member.gname, '')
+
+    def test_file_mode_is_preserved(self):
+        # An embedded script must stay executable in the container.
+        import os
+
+        os.chmod(self.top_file, 0o755)
+        os.chmod(self.nested_file, 0o640)
+
+        members = _get_archive_members(
+            _compile_embedded_component(self.embed_dir)
+        )
+
+        name_to_mode = {member.name: member.mode for member in members}
+        self.assertEqual(name_to_mode['mod.py'], 0o755)
+        self.assertEqual(name_to_mode['sub/nested.py'], 0o640)
+
+    def test_extracted_file_can_be_added_to_zip(self):
+        # A component that zips its embedded files: ZIP rejects a 1970 mtime.
+        import io
+        import os
+        import tarfile
+        import tempfile
+        import zipfile
+
+        raw = _get_archive(_compile_embedded_component(self.embed_dir))
+
+        with tempfile.TemporaryDirectory() as extract_dir:
+            with tarfile.open(fileobj=io.BytesIO(raw), mode='r') as tar:
+                tar.extractall(path=extract_dir)
+            with zipfile.ZipFile(io.BytesIO(), mode='w') as zip_file:
+                zip_file.write(os.path.join(extract_dir, 'mod.py'))
 
 
 if __name__ == '__main__':

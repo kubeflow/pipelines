@@ -66,6 +66,27 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         self.assertIn('jupyter_client>=7,<9', command)
         self.assertNotIn('fastjsonschema<2.22', command)
 
+    def test_notebook_component_command_is_same_when_notebook_mtime_changes(
+        self,
+    ):
+        # Regression for #14852: a fresh clone gives a new mtime to an
+        # unchanged notebook, and the command is part of the cache key.
+        nb_path = self._make_temp_notebook('pass\n')
+
+        def compile_notebook_component():
+            @dsl.notebook_component(notebook_path=nb_path)
+            def my_nb():
+                dsl.run_notebook()
+
+            return my_nb.component_spec.implementation.container.command
+
+        os.utime(nb_path, (1_600_000_000, 1_600_000_000))
+        first_command = compile_notebook_component()
+        os.utime(nb_path, (1_700_000_000, 1_700_000_000))
+        second_command = compile_notebook_component()
+
+        self.assertEqual(first_command, second_command)
+
     def test_notebook_component_no_extra_packages_when_empty_list(self):
         nb_path = self._make_temp_notebook('pass\n')
 
