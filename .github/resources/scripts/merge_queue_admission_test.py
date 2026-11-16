@@ -1229,6 +1229,31 @@ class QueueAdmissionTest(unittest.TestCase):
             self.assertEqual(unsupported['calls'], [])
             self.assertEqual(unsupported['writes'], [])
 
+    def test_sweep_isolates_default_rule_failure_from_release_admission(self):
+        for rules in [[], None]:
+            with self.subTest(rules=rules):
+                result = run_case(
+                    'sweep',
+                    branch='release-2.18',
+                    defaultBranch='main',
+                    enabled=['~DEFAULT_BRANCH', 'release-2.18'],
+                    rules=[rules, [{'type': 'merge_queue'}]],
+                )
+                self.assertTrue(result['error'].startswith('main: '), result)
+                self.assertNotIn('release-2.18:', result['error'])
+                self.assertEqual(
+                    [w['route'] for w in result['writes']],
+                    ['enqueue', 'status'],
+                )
+                self.assertEqual(
+                    [
+                        c['options']['base']
+                        for c in result['calls']
+                        if c['route'] == 'pulls'
+                    ],
+                    ['release-2.18'],
+                )
+
     def test_sweep_includes_closed_queued_prs_and_continues_after_one_failure(
         self,
     ):

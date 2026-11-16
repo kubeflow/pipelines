@@ -356,34 +356,39 @@ async function sweep({github, context, root, core, queueOnly = false}) {
   const targets = queueOnly ? [] : await eventTargets(github, context);
   const failures = [];
   for (const branch of branches) {
-    if (!await queueEnabled({github, context, branch, root})) continue;
-    const entries = await readQueue(github, context, branch);
-    const affected = targets ?? (await github.paginate(github.rest.pulls.list, {
-      ...context.repo, base: branch, state: 'open', per_page: 100,
-    })).map(pr => pr.number);
-    const numbers = new Set([...affected, ...entries.map(entry => entry.pullRequest.number)]);
-    if (numbers.size > 256 || [...numbers].some(number => !Number.isSafeInteger(number) || number <= 0)) {
-      throw new Error('Queue admission sweep exceeds bounds or has invalid PR identities');
-    }
-    let policies;
+    // A broken queue must not prevent other enabled branches from progressing.
     try {
-      policies = await readQueuePRs(github, context, entries);
-    } catch (error) {
-      await invalidateQueue(github, context, entries);
-      throw error;
-    }
-    const healthy = new Set(entries.filter((entry, index) =>
-      !policyReason(policies[index], `${context.repo.owner}/${context.repo.repo}`, branch) &&
-      policies[index].head.sha === entry.pullRequest.headRefOid).map(entry => entry.pullRequest.number));
-    for (const number of numbers) {
-      // Healthy queued members cannot be newly admitted. Invalid members retain
-      // the existing fresh read and fail-closed invalidation/dequeue path.
-      if (healthy.has(number)) continue;
-      try {
-        await reconcilePR({github, context, number, branch, root});
-      } catch (error) {
-        failures.push(`#${number}: ${error.message}`);
+      if (!await queueEnabled({github, context, branch, root})) continue;
+      const entries = await readQueue(github, context, branch);
+      const affected = targets ?? (await github.paginate(github.rest.pulls.list, {
+        ...context.repo, base: branch, state: 'open', per_page: 100,
+      })).map(pr => pr.number);
+      const numbers = new Set([...affected, ...entries.map(entry => entry.pullRequest.number)]);
+      if (numbers.size > 256 || [...numbers].some(number => !Number.isSafeInteger(number) || number <= 0)) {
+        throw new Error('Queue admission sweep exceeds bounds or has invalid PR identities');
       }
+      let policies;
+      try {
+        policies = await readQueuePRs(github, context, entries);
+      } catch (error) {
+        await invalidateQueue(github, context, entries);
+        throw error;
+      }
+      const healthy = new Set(entries.filter((entry, index) =>
+        !policyReason(policies[index], `${context.repo.owner}/${context.repo.repo}`, branch) &&
+        policies[index].head.sha === entry.pullRequest.headRefOid).map(entry => entry.pullRequest.number));
+      for (const number of numbers) {
+        // Healthy queued members cannot be newly admitted. Invalid members retain
+        // the existing fresh read and fail-closed invalidation/dequeue path.
+        if (healthy.has(number)) continue;
+        try {
+          await reconcilePR({github, context, number, branch, root});
+        } catch (error) {
+          failures.push(`#${number}: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      failures.push(`${branch}: ${error.message}`);
     }
   }
   if (failures.length) throw new Error(failures.join('; '));

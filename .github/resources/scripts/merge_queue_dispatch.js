@@ -110,29 +110,34 @@ async function dispatchCandidates({github, context, root, core,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const failures = [];
   for (const baseRef of await enabledBranches({github, context, root})) {
-    if (!await queueEnabled({github, context, branch: baseRef, root})) continue;
-    const entries = await readQueue(github, context, baseRef);
-    const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));
-    if (!heads.size) continue; // GitHub may not have built an enqueued entry yet.
-    const refs = await github.paginate(github.rest.git.listMatchingRefs, {
-      ...context.repo, ref: `heads/gh-readonly-queue/${baseRef}/`, per_page: 100,
-    });
-    if (!Array.isArray(refs) || refs.length >= 1000) throw new Error('Incomplete queue ref discovery');
-    for (const head of heads) {
-      const candidates = refs.filter(ref => ref.object?.type === 'commit' &&
-        ref.object.sha === head && ref.ref?.startsWith('refs/heads/') &&
-        QUEUE_REF.exec(ref.ref.slice(11))?.[1] === baseRef);
-      if (!candidates.length) continue; // Ref creation/deletion can race discovery.
-      if (candidates.length !== 1) throw new Error('Ambiguous queue candidate ref');
-      const group = {head, branch: candidates[0].ref.slice(11), baseRef};
-      try {
-        await dispatchGroup({github, context, group, root, core, loadInventory, now});
-        // Recovery does not depend on workflow_run delivery. This trusted
-        // scheduled/event-driven controller can independently publish evidence.
-        await reconcile({github, context, group, root, core, loadInventory});
-      } catch (error) {
-        failures.push(`${head}: ${error.message}`);
+    // A broken queue must not prevent other enabled branches from progressing.
+    try {
+      if (!await queueEnabled({github, context, branch: baseRef, root})) continue;
+      const entries = await readQueue(github, context, baseRef);
+      const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));
+      if (!heads.size) continue; // GitHub may not have built an enqueued entry yet.
+      const refs = await github.paginate(github.rest.git.listMatchingRefs, {
+        ...context.repo, ref: `heads/gh-readonly-queue/${baseRef}/`, per_page: 100,
+      });
+      if (!Array.isArray(refs) || refs.length >= 1000) throw new Error('Incomplete queue ref discovery');
+      for (const head of heads) {
+        const candidates = refs.filter(ref => ref.object?.type === 'commit' &&
+          ref.object.sha === head && ref.ref?.startsWith('refs/heads/') &&
+          QUEUE_REF.exec(ref.ref.slice(11))?.[1] === baseRef);
+        if (!candidates.length) continue; // Ref creation/deletion can race discovery.
+        if (candidates.length !== 1) throw new Error('Ambiguous queue candidate ref');
+        const group = {head, branch: candidates[0].ref.slice(11), baseRef};
+        try {
+          await dispatchGroup({github, context, group, root, core, loadInventory, now});
+          // Recovery does not depend on workflow_run delivery. This trusted
+          // scheduled/event-driven controller can independently publish evidence.
+          await reconcile({github, context, group, root, core, loadInventory});
+        } catch (error) {
+          failures.push(`${head}: ${error.message}`);
+        }
       }
+    } catch (error) {
+      failures.push(`${baseRef}: ${error.message}`);
     }
   }
   if (failures.length) throw new Error(failures.join('; '));
