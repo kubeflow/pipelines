@@ -430,11 +430,33 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
       throw error;
     }
   }
-  // Set the identity before any further API operation so the always() step
+  let activeCompletion = false;
+  let statusProbeError;
+  if (successfulCompletion(context) && pr.state === 'open' && !blocked(pr)) {
+    try {
+      activeCompletion = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
+    } catch (error) {
+      // A failed probe must fall through to full validation, never another shortcut.
+      core.info(`Cannot coalesce CI completion: ${error.message}`);
+    }
+    if (activeCompletion && Array.isArray(pr.labels) &&
+        !pr.labels.some(label => label.name === 'ci-passed')) {
+      try {
+        // Read after the live run scan. This no-write path preserves concurrent
+        // failures and cannot publish green. Omit identity outputs so always()
+        // finalization also does nothing. A delayed final event still scans runs.
+        if ((await currentStatus(github, context, pr.head.sha))?.state === 'pending') return;
+      } catch (error) {
+        statusProbeError = error;
+      }
+    }
+  }
+  // Set the identity before publication or further evidence retrieval so the always() step
   // can fail closed if inventory loading or evidence retrieval fails.
   core.setOutput('pr_number', String(pr.number));
   core.setOutput('head_sha', pr.head.sha);
   core.setOutput('snapshot', snapshot(pr));
+  if (statusProbeError) throw statusProbeError;
   await publish(github, context, pr, 'pending', 'CI evidence is being revalidated.',
     {provisional: true, requireStatus: successfulCompletion(context) || failedCompletion(context)});
   if (pr.state !== 'open' || blocked(pr)) return;
@@ -453,21 +475,11 @@ async function prepare({github, context, core, recovery, root = process.env.GITH
       return;
     }
   }
-  if (successfulCompletion(context)) {
-    let active = false;
-    try {
-      active = await hasActiveWorkflowRuns({github, ...context.repo, sha: pr.head.sha});
-    } catch (error) {
-      // An optimization failure must not bypass the normal fail-closed checks.
-      active = false;
-      core.info(`Cannot coalesce CI completion: ${error.message}`);
-    }
-    if (active) {
-      core.setOutput('ready', 'false');
-      core.setOutput('prepared_result', JSON.stringify({state: 'pending', intermediate: true,
-        reasons: ['CI workflows are still running; awaiting final completion.']}));
-      return;
-    }
+  if (activeCompletion) {
+    core.setOutput('ready', 'false');
+    core.setOutput('prepared_result', JSON.stringify({state: 'pending', intermediate: true,
+      reasons: ['CI workflows are still running; awaiting final completion.']}));
+    return;
   }
   const result = await evidence(github, context, pr, root);
   core.info(JSON.stringify(result));

@@ -77,8 +77,10 @@ const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}
 const methods = {files: {}, timeline: {}, pulls: {}, statuses: {}};
 methods.runs = async () => {
   requestCounts.runs++;
+  if (requestCounts.runs === 1 && options.statusDuringRuns) status = options.statusDuringRuns;
+  if (requestCounts.runs === 1 && options.headDuringRuns) pr.head.sha = options.headDuringRuns;
   const records = options.discoveredRunsByCycle?.[cycle] || options.discoveredRuns || [];
-  if (options.discoveredRunsFailure) throw Error('Workflow runs unavailable');
+  if (options.discoveredRunsFailure || requestCounts.runs === options.discoveredRunsFailureAt) throw Error('Workflow runs unavailable');
   return {data: {total_count: options.discoveredTotal ?? records.length, workflow_runs: records}};
 };
 methods.associated = {};
