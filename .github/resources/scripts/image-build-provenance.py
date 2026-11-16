@@ -20,10 +20,19 @@ BINARIES = {
 }
 
 
+def recipe_path(value):
+    """Validate recipe spelling before deciding whether verification
+    applies."""
+    path = Path(value)
+    if path.is_absolute() or '..' in path.parts:
+        raise ValueError('Dockerfile must be relative without parent traversal')
+    return path.as_posix()
+
+
 def prepare(source, sha, dockerfile, destination, context='.'):
     """Give Go builds a pristine Git context; retain other build ignores."""
     source = Path(source).resolve()
-    dockerfile = Path(dockerfile).as_posix()
+    dockerfile = recipe_path(dockerfile)
     if dockerfile in BINARIES:
         if Path(context) != Path('.'):
             raise ValueError(
@@ -40,7 +49,7 @@ def prepare(source, sha, dockerfile, destination, context='.'):
 def verify(source, sha, dockerfile, image, platform, output):
     """Validate immutable Go binaries without executing candidate code."""
     output = Path(output)
-    dockerfile = Path(dockerfile).as_posix()
+    dockerfile = recipe_path(dockerfile)
     if dockerfile not in BINARIES:
         output.mkdir(parents=True, exist_ok=True)
         evidence = {

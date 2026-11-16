@@ -95,6 +95,33 @@ class ImageBuildProvenanceTest(unittest.TestCase):
             )
         prepare.assert_called_once()
 
+    def test_recipe_paths_rejected_before_classification(self):
+        for recipe in (
+            'backend/../backend/Dockerfile',
+            str(self.source / 'backend/Dockerfile'),
+        ):
+            for operation in ('prepare', 'verify'):
+                with self.subTest(recipe=recipe, operation=operation):
+                    with self.assertRaisesRegex(
+                        ValueError, 'relative.*traversal'
+                    ):
+                        if operation == 'prepare':
+                            MODULE.prepare(
+                                self.source,
+                                self.sha,
+                                recipe,
+                                self.root / 'prepared',
+                            )
+                        else:
+                            MODULE.verify(
+                                self.source,
+                                self.sha,
+                                recipe,
+                                'local:image',
+                                'linux/amd64',
+                                self.root / 'evidence',
+                            )
+
     def test_go_context_rejects_subdirectory(self):
         with self.assertRaises(ValueError):
             MODULE.prepare(

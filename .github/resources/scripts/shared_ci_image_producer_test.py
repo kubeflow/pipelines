@@ -317,6 +317,14 @@ assert.deepEqual(calls, ['pulls/23', 'pulls/23/files?per_page=100', 'pulls/23'])
             ('push', 'docs/example.md', {'amd64': True, 'arm64': False}),
             ('workflow_dispatch', '', {'amd64': True, 'arm64': True}),
         ]
+        fixtures.extend(
+            ('pull_request', path, {'amd64': True, 'arm64': True})
+            for path in (
+                'release/kfpr/go_build_provenance.py',
+                'release/kfpr/read_go_buildinfo.go',
+                '.github/resources/scripts/image-build-provenance.py',
+            )
+        )
         script = """
 const {architectures} = require('./.github/resources/scripts/shared_ci_image_plan');
 const data = JSON.parse(process.argv[1]);

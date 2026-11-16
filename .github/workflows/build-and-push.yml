@@ -163,14 +163,11 @@ jobs:
           path: .publication-tooling
           persist-credentials: false
 
+      - name: Set up provenance reader
+        uses: ./.publication-tooling/.github/actions/setup-go
+
       - name: Isolate publication tooling from image context
         run: mv .publication-tooling "$RUNNER_TEMP/publication-tooling"
-
-      - name: Set up provenance reader
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version-file: ${{ runner.temp }}/publication-tooling/go.mod
-          cache: false
 
       - name: Prepare image source context
         id: source_context

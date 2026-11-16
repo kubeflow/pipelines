@@ -710,3 +710,12 @@ revisions without package-path builds fail closed and require the source fix;
 no legacy metadata exception is added. Run `image_build_provenance_test.py`,
 `go_binary_provenance_test.py`, `image_publication_permissions_test.py`, and
 `shared_ci_image_producer_test.py` alongside qualification provenance tests.
+
+The publication binary reader uses the managed Go setup composite from the
+workflow tooling checkout, selecting the source checkout’s `go.mod` compiler.
+ARM smoke inventory loading distinguishes the retained binary-provenance reports
+from image identity records; reports never substitute for missing image records.
+Recipe paths are validated before image classification: absolute paths and parent
+traversal are rejected. Changes to the provenance wrapper, Git-context helper,
+or Go build-info reader explicitly select both shared-image architectures even
+when no consumer workflow's path filter matches.
