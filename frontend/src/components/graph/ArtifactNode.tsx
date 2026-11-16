@@ -41,7 +41,7 @@ function ArtifactNode({ id, data, selected }: ArtifactNodeProps) {
       >
         <div className='flex items-center justify-between w-60 rounded-lg shadow-lg bg-white'>
           {icon}
-          <div className='flex flex-grow justify-center items-center rounded-r-lg overflow-hidden'>
+          <div className='flex grow justify-center items-center rounded-r-lg overflow-hidden'>
             <span className='text-sm truncate' id={id} data-testid={id}>
               {data.label}
             </span>

@@ -375,6 +375,9 @@ func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.Artifact
 	defer rows.Close()
 
 	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to iterate artifact-task by unique link: %v", err.Error())
+		}
 		return nil, nil
 	}
 	var (
@@ -573,6 +576,9 @@ func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 			artifact.URI = &uri.String
 		}
 		artifacts = append(artifacts, artifact)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return artifacts, nil
 }

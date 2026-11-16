@@ -145,7 +145,7 @@ class SetupGitHubCliTest(unittest.TestCase):
         self.assertIn('setup-github-cli.sh', result.stderr)
         self.assertFalse((self.root / 'calls').exists())
 
-    def test_shared_download_provisions_cli_before_resolving(self):
+    def test_shared_download_provisions_cli_before_image_operations(self):
         action = yaml.safe_load(
             (
                 SCRIPTS.parents[1]
@@ -160,12 +160,14 @@ class SetupGitHubCliTest(unittest.TestCase):
             for i, command in enumerate(commands)
             if 'setup-github-cli.sh' in command
         )
-        polling = next(
+        image_operations = [
             i
             for i, command in enumerate(commands)
-            if 'shared_ci_images.py resolve' in command
-        )
-        self.assertLess(setup, polling)
+            if 'shared_ci_images.py' in command
+        ]
+        self.assertTrue(image_operations)
+        for operation in image_operations:
+            self.assertLess(setup, operation)
 
 
 if __name__ == '__main__':

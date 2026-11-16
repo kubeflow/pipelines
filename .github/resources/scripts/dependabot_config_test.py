@@ -66,6 +66,19 @@ class DependabotConfigTest(unittest.TestCase):
                 {'dependency-name': 'ml-metadata'}, pip.get('ignore', [])
             )
 
+    def test_release_ml_metadata_image_updates_are_disabled(self):
+        docker = self.release_update('docker')
+        image = 'tfx-oss-public/ml_metadata_store_server'
+        rules = docker.get('ignore', [])
+        self.assertIn({'dependency-name': image}, rules)
+        for other_image in ('mysql', 'postgres', 'argoproj/argoexec'):
+            self.assertFalse(
+                any(
+                    fnmatchcase(other_image, rule['dependency-name'])
+                    for rule in rules
+                )
+            )
+
     def test_mysql_updates_stay_on_lts_without_blocking_patches(self):
         docker = next(
             update
@@ -684,6 +697,19 @@ class DependabotConfigTest(unittest.TestCase):
                         None,
                     )
                     self.assertEqual(matching_group, expected_group)
+
+    def test_typescript_updates_stay_within_parser_support(self):
+        updates = yaml.safe_load(self.config)['updates']
+        npm_updates = [
+            update for update in updates if update['package-ecosystem'] == 'npm'
+        ]
+        self.assertEqual(len(npm_updates), 2)
+        for update in npm_updates:
+            with self.subTest(branch=update.get('target-branch', 'master')):
+                self.assertIn(
+                    {'dependency-name': 'typescript', 'versions': ['>=6.1']},
+                    update.get('ignore', []),
+                )
 
     def test_frontend_typescript_eslint_versions_match(self):
         frontend = REPOSITORY_ROOT / 'frontend'

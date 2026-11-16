@@ -205,6 +205,142 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                     'OVERRIDE_KEY',
                 )
 
+    @parameterized.parameters(True, False, None)
+    def test_submitted_spec_overrides_tasks_in_nested_dags(
+        self, enable_caching
+    ):
+        from kfp import dsl
+
+        # Compile every task with the opposite of the override, so a task the
+        # override misses keeps a detectably wrong value.
+        compiled = not enable_caching if enable_caching is not None else False
+
+        @component
+        def echo(msg: str) -> str:
+            return msg
+
+        @pipeline
+        def inner():
+            echo(msg='inner').set_caching_options(compiled)
+
+        @pipeline
+        def middle():
+            echo(msg='middle').set_caching_options(compiled)
+            inner()
+
+        @pipeline
+        def nested(flag: str = 'yes'):
+            exit_task = echo(msg='exit').set_caching_options(compiled)
+            with dsl.ExitHandler(exit_task):
+                echo(msg='root').set_caching_options(compiled)
+                with dsl.If(flag == 'yes'):
+                    echo(msg='if').set_caching_options(compiled)
+                    with dsl.ParallelFor(['a', 'b']) as item:
+                        echo(msg=item).set_caching_options(compiled)
+                    inner()
+                middle()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            Compiler().compile(pipeline_func=nested, package_path=package_path)
+            compiled_spec = client._extract_pipeline_yaml(
+                package_path
+            ).to_dict()
+            job_config = client.Client.__new__(
+                client.Client
+            )._create_job_config(
+                params={},
+                pipeline_package_path=package_path,
+                pipeline_id=None,
+                version_id=None,
+                enable_caching=enable_caching,
+                cache_key=None,
+                pipeline_root=None,
+            )
+
+        if enable_caching is None:
+            self.assertEqual(job_config.pipeline_spec, compiled_spec)
+            return
+
+        spec = json_format.ParseDict(
+            job_config.pipeline_spec, pipeline_spec_pb2.PipelineSpec()
+        )
+        dags = {'root': spec.root.dag}
+        dags.update(
+            (name, comp.dag)
+            for name, comp in spec.components.items()
+            if comp.HasField('dag')
+        )
+        executor_tasks = []
+        for dag_name, dag in dags.items():
+            for task_name, task in dag.tasks.items():
+                self.assertTrue(
+                    task.HasField('caching_options'), f'{dag_name}/{task_name}'
+                )
+                self.assertEqual(
+                    task.caching_options.enable_cache,
+                    enable_caching,
+                    f'{dag_name}/{task_name}',
+                )
+                if not spec.components[task.component_ref.name].HasField('dag'):
+                    executor_tasks.append(f'{dag_name}/{task_name}')
+        # Exit task, guarded root task, If, ParallelFor body, middle, and
+        # inner twice (from If and from middle).
+        self.assertLen(executor_tasks, 7)
+
+    def test_override_visits_shared_dag_once_and_ignores_unreachable(self):
+        spec = json_format.ParseDict(
+            {
+                'root': {
+                    'dag': {
+                        'tasks': {
+                            'a': {'componentRef': {'name': 'comp-shared'}},
+                            'b': {'componentRef': {'name': 'comp-shared'}},
+                            'c': {'componentRef': {'name': 'comp-missing'}},
+                        }
+                    }
+                },
+                'components': {
+                    'comp-shared': {
+                        'dag': {
+                            'tasks': {
+                                'leaf': {
+                                    'componentRef': {'name': 'comp-leaf'},
+                                    'cachingOptions': {'enableCache': True},
+                                }
+                            }
+                        }
+                    },
+                    'comp-leaf': {'executorLabel': 'exec-leaf'},
+                    'comp-unused': {
+                        'dag': {
+                            'tasks': {
+                                't': {
+                                    'componentRef': {'name': 'comp-leaf'},
+                                    'cachingOptions': {'enableCache': True},
+                                }
+                            }
+                        }
+                    },
+                },
+            },
+            pipeline_spec_pb2.PipelineSpec(),
+        )
+
+        client._override_caching_options(spec, False)
+
+        self.assertFalse(
+            spec.components['comp-shared']
+            .dag.tasks['leaf']
+            .caching_options.enable_cache
+        )
+        self.assertTrue(
+            spec.components['comp-unused']
+            .dag.tasks['t']
+            .caching_options.enable_cache
+        )
+        self.assertNotIn('comp-missing', spec.components)
+
 
 class TestExtractPipelineYAML(parameterized.TestCase):
     def test_extract_pipeline_yaml_single_doc(self):

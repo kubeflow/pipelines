@@ -25,6 +25,7 @@ const {
   waitForCondition,
   waitForGraphNodeCount,
   waitForHashPrefix,
+  waitForPipelineListReady,
   waitForLogViewerText,
   waitForRunPageReady,
   waitForSelectorDisplayed,
@@ -344,20 +345,7 @@ describe('deploy helloworld sample run', () => {
   it('deletes the uploaded pipeline', async () => {
     await runPhase('open pipelines list for cleanup', async () => {
       await $('#pipelinesBtn').click();
-      await waitForHashPrefix('#/pipelines', { timeout: pageReadyTimeout });
-      await waitForCondition(
-        async () =>
-          browser.execute(
-            () =>
-              document.querySelector('label[for="tableFilterBox"]')?.textContent?.trim() ===
-              'Filter pipelines',
-          ),
-        {
-          timeout: pageReadyTimeout,
-          timeoutMsg: 'expected the Pipelines list filter to load after navigation',
-        },
-      );
-      await waitForSelectorDisplayed('#tableFilterBox', { timeout: pageReadyTimeout });
+      await waitForPipelineListReady({ timeout: pageReadyTimeout });
     });
 
     await $('#tableFilterBox').click();

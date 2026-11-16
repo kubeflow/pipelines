@@ -11,7 +11,8 @@ from pathlib import Path
 
 import yaml
 
-from .core import REPO, ReleaseContext
+from .context import ReleaseContext
+from .github_api import REPO
 from .osv_image_scan import SCANNER
 from .packages import clean_legacy_distributions, validate_legacy_wheels
 from .security import evaluate_policy

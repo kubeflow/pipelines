@@ -14,36 +14,40 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from . import qualification, rtd
-from .core import (
-    REPO,
-    ReleaseContext,
-    ReleaseMetadata,
-    confirm,
-    emphasize_prompt,
+from .commands import (
     image_workflow_command,
-    is_pending_merge_queue_check,
     kfp_kubernetes_docs_build_command,
     kfp_requirements_command,
     kubernetes_requirements_command,
-    parse_github_owner,
-    prompt_choice,
-    prompt_required,
     release_version_bump_command,
     sdk_workflow_command,
-    underline_links,
+)
+from .context import ReleaseContext
+from .dependency_pins import preserve_dependency_pins
+from .editorial import editorial_scaffold, validate_notes
+from .generated import restore_generated_sections
+from .github_api import (
+    REPO,
+    is_pending_merge_queue_check,
     upstream_default_branch,
     wait_for_pr_merge,
     watch_latest_workflow_run,
     watch_pr_ci,
 )
-from .dependency_pins import preserve_dependency_pins
-from .editorial import editorial_scaffold, validate_notes
-from .generated import restore_generated_sections
 from .inventory import build_inventory, release_scaffolding
+from .metadata import ReleaseMetadata
 from .notes import render_notes
 from .packages import clean_legacy_distributions, validate_legacy_wheels
 from .previews import _write_atomic, has_conflicts, regenerate_preview
+from .prompts import (
+    confirm,
+    emphasize_prompt,
+    prompt_choice,
+    prompt_required,
+    underline_links,
+)
 from .ranges import ReleaseRange, commit_date, read_commits, resolve_range
+from .validation import parse_github_owner
 
 
 @dataclass(frozen=True)

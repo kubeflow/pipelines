@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	gc "github.com/kubeflow/pipelines/backend/api/v2/go_client"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"

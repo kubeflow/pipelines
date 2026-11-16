@@ -86,6 +86,7 @@ type LauncherV2 struct {
 	openedBucketCache map[string]*blob.Bucket
 	launcherConfig    *config.Config
 	pipelineSpec      *structpb.Struct
+	debugPauseCfg     DebugPauseConfig
 
 	// BatchUpdater collects API updates and flushes them in batches
 	// to reduce database round-trips
@@ -246,7 +247,15 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	}()
 
 	defer func() {
-		executionErr = l.finalizeExecution(ctx, executionErr)
+		finalizeCtx := ctx
+		if ctx.Err() != nil {
+			// The launcher ctx is already canceled (e.g. SIGTERM): finalize
+			// on a detached, bounded context so terminal state still persists.
+			var cancel context.CancelFunc
+			finalizeCtx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+			defer cancel()
+		}
+		executionErr = l.finalizeExecution(finalizeCtx, executionErr)
 	}()
 
 	defer stopWaitingArtifacts(l.executorInput.GetInputs().GetArtifacts())
@@ -299,6 +308,14 @@ func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) 
 		l.options.Task.StatusMetadata.Message = executionErr.Error()
 	}
 	l.options.Task.EndTime = timestamppb.New(time.Now())
+	// The final write replaces StatusMetadata wholesale, and a nil metadata
+	// means "leave unchanged" to the task store - so pause keys must be
+	// written in their cleared state on the in-memory copy, not merely
+	// deleted, or a stale barrier published before a lost best-effort
+	// ClearBarrier would outlive the task.
+	if l.debugPauseCfg.Enabled() {
+		l.options.Task.StatusMetadata = clearDebugPauseProperties(l.options.Task.StatusMetadata)
+	}
 	l.batchUpdater.QueueTaskUpdate(l.options.Task)
 
 	if flushErr := l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); flushErr != nil {
@@ -404,6 +421,9 @@ func (o *LauncherV2Options) validate() error {
 // artifacts to object storage, updates the task's recorded outputs, flushes the
 // queued API mutations, and finally propagates the resulting outputs up the DAG.
 func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutput, error) {
+	// Parsed once so every pause path - barriers below and finalization -
+	// shares one config; env values cannot change mid-execution anyway.
+	l.debugPauseCfg = NewDebugPauseConfigFromEnv()
 	qualifyExecutorLogsForRetry(ctx, l.executorInput, l.options.PublishLogs, l.options.Namespace, l.clientManager.K8sClient(), l.options.PodName)
 
 	// Populate component defaults for placeholders without mutating the original
@@ -419,12 +439,39 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 		return nil, err
 	}
 
-	executorOutput, err := l.execute(ctx, compiledCmd, compiledArgs)
-	if err != nil {
-		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
-			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", err, uploadErr)
+	if l.debugPauseCfg.Enabled() {
+		signaler := NewKFPAPIPauseSignaler(l.clientManager.KFPAPIClient(), l.options.Run.GetRunId(), l.options.Task.GetTaskId())
+		if l.debugPauseCfg.Before {
+			if err := Pause(ctx, signaler, DebugPauseBarrierBefore, l.debugPauseCfg); err != nil {
+				return nil, fmt.Errorf("debug pause before execution: %w", err)
+			}
 		}
-		return nil, err
+	}
+
+	executorOutput, execErr := l.execute(ctx, compiledCmd, compiledArgs)
+
+	if l.debugPauseCfg.Enabled() {
+		signaler := NewKFPAPIPauseSignaler(l.clientManager.KFPAPIClient(), l.options.Run.GetRunId(), l.options.Task.GetTaskId())
+		if barrier := BarrierForError(l.debugPauseCfg, execErr != nil); barrier != debugPauseBarrierNone {
+			if pauseErr := Pause(ctx, signaler, barrier, l.debugPauseCfg); pauseErr != nil {
+				// A pause-after/on_error timeout or cancellation is reported
+				// as the task's failure reason, but must never mask a real
+				// execution error that already happened - execErr, if any,
+				// takes precedence.
+				if execErr == nil {
+					execErr = fmt.Errorf("debug pause after execution: %w", pauseErr)
+				} else {
+					glog.Warningf("debug pause after execution also failed, but preserving original execution error: %v", pauseErr)
+				}
+			}
+		}
+	}
+
+	if execErr != nil {
+		if uploadErr := l.uploadExecutorLogsArtifact(ctx); uploadErr != nil {
+			return nil, fmt.Errorf("failed to execute component: %w (executor log upload failed: %v)", execErr, uploadErr)
+		}
+		return nil, execErr
 	}
 
 	// collectOutputParameters() stays at the executeV2() layer because it is part

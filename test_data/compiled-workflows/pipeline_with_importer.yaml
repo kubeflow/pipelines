@@ -196,6 +196,8 @@ spec:
     metadata: {}
     name: system-container-executor
     outputs: {}
+    retryStrategy:
+      limit: 0
   - container:
       command:
       - should-be-overridden-during-runtime
@@ -348,6 +350,8 @@ spec:
     metadata: {}
     name: comp-condition-1
     outputs: {}
+    retryStrategy:
+      limit: 0
   - inputs:
       parameters:
       - default: ""
@@ -454,6 +458,8 @@ spec:
     metadata: {}
     name: root
     outputs: {}
+    retryStrategy:
+      limit: 0
   - dag:
       tasks:
       - arguments:
@@ -477,6 +483,8 @@ spec:
     metadata: {}
     name: entrypoint
     outputs: {}
+    retryStrategy:
+      limit: 0
 status:
   finishedAt: null
   startedAt: null
