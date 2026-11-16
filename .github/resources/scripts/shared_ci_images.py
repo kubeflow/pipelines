@@ -223,7 +223,7 @@ def validate_identity(value):
         base_branch = group['base_ref'].removeprefix('refs/heads/')
         require(
             matches(
-                rf'refs/heads/gh-readonly-queue/{base_branch}/pr-[0-9]+-[^/]+',
+                rf'refs/heads/gh-readonly-queue/{re.escape(base_branch)}/pr-[0-9]+-[^/]+',
                 group['head_ref'],
             )
             and group['head_ref'] == value['ref'],
