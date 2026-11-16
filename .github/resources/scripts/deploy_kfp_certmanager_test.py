@@ -34,12 +34,14 @@ class InstallCertManagerWaitsTest(unittest.TestCase):
         makefile = MAKEFILE.read_text(encoding='utf-8')
         start = makefile.index('install-cert-manager:')
         end = makefile.index('\n.PHONY', start)
-        self.target = makefile[start:end]
+        # Exact-line entries: substring matches would let a `|| true` suffix
+        # (the codebase's usual flaky-lane silencer) quietly turn the waits
+        # into best-effort and reintroduce this race.
+        self.target = [
+            line.strip() for line in makefile[start:end].splitlines()
+        ]
 
     def test_waits_for_webhook_and_cainjector_deployments(self):
-        # Pin the full line: a bare substring assert would let a future
-        # `|| true` (the codebase's usual flaky-lane silencer) quietly turn
-        # the wait into best-effort and reintroduce this race.
         self.assertIn(
             'kubectl wait --for=condition=Available deployment -n cert-manager '
             'cert-manager-webhook cert-manager-cainjector '
