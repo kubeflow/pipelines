@@ -2586,3 +2586,39 @@ func TestLauncherV2_Execute_RecordsExecutorPodBeforeRunningUserCode(t *testing.T
 	assert.Equal(t, "plugin-pod-uid", podsWhenUserCodeRan[0].GetUid())
 	assert.Equal(t, apiv2.PipelineTask_EXECUTOR, podsWhenUserCodeRan[0].GetType())
 }
+
+// If the write that records the executor pod identity fails, the attempt must fail outright
+// instead of continuing: a best-effort write here would let the one gap this PR exists to close
+// reopen silently, just with a different trigger (a failed write instead of a killed launcher).
+func TestLauncherV2_Execute_FailsAttemptWhenExecutorPodWriteFails(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, nil)
+
+	failingAPI := &finalizationFailureAPI{
+		API:           launcher.clientManager.KFPAPIClient(),
+		updateTaskErr: errors.New("apiserver unavailable"),
+	}
+	launcher.clientManager = client_manager.NewFakeClientManager(
+		launcher.clientManager.K8sClient(),
+		failingAPI,
+	)
+
+	var userCodeRan bool
+	mockCmd, ok := launcher.cmdExecutor.(*MockCommandExecutor)
+	require.True(t, ok)
+	mockCmd.RunFunc = func(ctx context.Context, _ string, _ []string, _ io.Reader, _, _ io.Writer) error {
+		userCodeRan = true
+		return nil
+	}
+
+	err := launcher.Execute(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "record executor pod")
+	assert.False(t, userCodeRan, "user code must not run once the executor pod write has failed")
+
+	assert.Equal(t, apiv2.PipelineTask_FAILED, launcher.options.Task.GetState())
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2.PipelineTask_FAILED, recorder.endStates[0],
+		"OnTaskEnd must observe FAILED even though finalization itself succeeded")
+}

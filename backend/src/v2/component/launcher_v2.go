@@ -222,7 +222,6 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		Uid:  l.options.PodUID,
 		Type: apiV2.PipelineTask_EXECUTOR,
 	})
-	l.persistExecutorPod(ctx)
 
 	dispatcher := plugins.TaskPluginDispatcher(plugins.NoOpDispatcher{})
 	var executorOutput *pipelinespec.ExecutorOutput
@@ -267,6 +266,13 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		}
 	}()
 
+	// Required, not best effort: the defers above must already be registered so a
+	// write failure here still finalizes the task as FAILED instead of leaving it
+	// stuck, and still fails before any user code below has a chance to run.
+	if err := l.persistExecutorPod(ctx); err != nil {
+		return fmt.Errorf("failed to record executor pod before execution: %w", err)
+	}
+
 	if l.options.PluginDispatcher != nil {
 		dispatcher = l.options.PluginDispatcher
 	} else {
@@ -303,19 +309,21 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 // persistExecutorPod saves the pods recorded on the task, now including this executor pod, before
 // any user code runs. The task update at the end of Execute carries the same pods, but a launcher
 // that is killed first (OOMKilled, evicted) never gets there, and the API server would then know
-// only the driver pod and could not tie the dead executor pod to this task. The write is best
-// effort: failing the attempt over it would turn a diagnostics gap into a failed task.
-func (l *LauncherV2) persistExecutorPod(ctx context.Context) {
+// only the driver pod and could not tie the dead executor pod to this task. Required, not best
+// effort: a write that silently doesn't happen here reopens exactly the gap this exists to close,
+// just with a different trigger (a dead write instead of a dead launcher), so a failure here fails
+// the attempt instead of continuing into user code.
+func (l *LauncherV2) persistExecutorPod(ctx context.Context) error {
 	task := l.options.Task
 	if l.clientManager == nil || task.GetTaskId() == "" {
-		return
+		return nil
 	}
 	apiClient := l.clientManager.KFPAPIClient()
 	if apiClient == nil {
-		return
+		return nil
 	}
-	// Bounded on its own timeout: this write is best effort, so an unresponsive
-	// API server must not hold up user code from starting.
+	// Bounded on its own timeout: required or not, this write must not hang
+	// forever if the API server is unresponsive.
 	persistCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	_, err := apiClient.UpdateTask(persistCtx, &apiV2.UpdateTaskRequest{
@@ -328,8 +336,9 @@ func (l *LauncherV2) persistExecutorPod(ctx context.Context) {
 		},
 	})
 	if err != nil {
-		glog.Warningf("Failed to record executor pod %q on task %s before execution: %v", l.options.PodName, task.GetTaskId(), err)
+		return fmt.Errorf("record executor pod %q on task %s: %w", l.options.PodName, task.GetTaskId(), err)
 	}
+	return nil
 }
 
 func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) error {
