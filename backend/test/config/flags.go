@@ -41,7 +41,7 @@ var (
 var (
 	REPO_NAME   = flag.String("repoName", "kubeflow/pipelines", "The name of the repository")
 	PULL_NUMBER = flag.String("pullNumber", "", "The pull number")
-	BRANCH_NAME = flag.String("branchName", "master", "The branch name")
+	BRANCH_NAME = flag.String("branchName", "main", "The branch name")
 	BaseImage   = flag.String("baseImage", "", "The base image for components to override with")
 )
 
