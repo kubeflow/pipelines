@@ -71,3 +71,14 @@ jobs:
         PYTEST_PARALLEL_WORKERS: 2
       run: |
         ./test/presubmit-tests-sdk.sh
+
+    - name: Upload SDK timing reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: sdk-regression-timings-python-${{ matrix.python-version }}
+        path: |
+          sdk-regression*.xml
+          sdk-regression*.log
+        retention-days: 14
+        if-no-files-found: ignore

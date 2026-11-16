@@ -78,3 +78,14 @@ jobs:
       with:
         xml_files: ${{ steps.run-tests.outputs.JUNIT_XML }}
       continue-on-error: true
+
+    - name: Upload SDK timing reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: sdk-unit-timings-python-${{ matrix.python-version }}
+        path: |
+          sdk-unit*.xml
+          sdk-unit*.log
+        retention-days: 14
+        if-no-files-found: ignore
