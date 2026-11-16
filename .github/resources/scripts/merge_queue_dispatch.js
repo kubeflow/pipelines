@@ -13,25 +13,31 @@
 'use strict';
 
 const path = require('node:path');
-const {loadPolicy, queueEnabled} = require('./merge_queue_policy');
-const {readQueue, inspectQueue, sweep} = require('./merge_queue_admission');
-const {expectedWorkflows, readRef, queueRuns, matchingRuns, reconcile} = require('./ci_merge_group');
+const {enabledBranches, queueEnabled} = require('./merge_queue_policy');
+const {readQueue, inspectDispatchSnapshot, sweep} = require('./merge_queue_admission');
+const {expectedWorkflows, queueRuns, matchingRuns, reconcile} = require('./ci_merge_group');
 const {loadBaseInventory} = require('./ci_expected_workflows');
 const QUEUE_REF = /^gh-readonly-queue\/(master|main)\/pr-[1-9][0-9]*-[A-Za-z0-9-]+$/;
 const SHA = /^[0-9a-f]{40}$/;
 const REGISTRATION_GRACE_MS = 120000;
 const MAX_DISPATCH_ATTEMPTS = 3;
+const DISPATCH_CONCURRENCY = 4;
 
+// GitHub normally starts queue CI through merge_group. In our integration probes,
+// admission using GITHUB_TOKEN created the candidate but did not start that CI.
+// workflow_dispatch is an explicit exception to GITHUB_TOKEN event suppression;
+// use it for missing candidate runs while retaining native-run deduplication.
+// This workaround is specific to builtin-token admission, not a queue requirement.
+// Evidence and removal considerations: docs/agents/merge-queue-activation.md.
 async function dispatchGroup({github, context, group, core, root,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const ref = QUEUE_REF.exec(group.branch || '');
   if (!ref || ref[1] !== group.baseRef || !SHA.test(group.head || '')) {
     throw new Error('Invalid queue dispatch candidate');
   }
-  if (!await queueEnabled({github, context, branch: group.baseRef, root})) return;
-  if (await readRef(github, context, group.branch) !== group.head) return;
-  const base = await readRef(github, context, group.baseRef);
-  const policy = await inspectQueue({github, context, group, root});
+  const initial = await inspectDispatchSnapshot({github, context, group, root});
+  if (initial === null || initial.head !== group.head) return;
+  const {base, policy} = initial;
   const inventory = await loadInventory({github, ...context.repo, root,
     pullRequest: {base: {sha: base, ref: group.baseRef,
       repo: {full_name: `${context.repo.owner}/${context.repo.repo}`}}}});
@@ -43,15 +49,17 @@ async function dispatchGroup({github, context, group, core, root,
   if (!Array.isArray(statuses) || statuses.length >= 1000) {
     throw new Error('Incomplete queue dispatch reservations');
   }
-  const current = async () => await readRef(github, context, group.branch) === group.head &&
-    await readRef(github, context, group.baseRef) === base &&
-    await inspectQueue({github, context, group, root}) === policy;
+  const current = async () => {
+    const snapshot = await inspectDispatchSnapshot({github, context, group, root});
+    return snapshot !== null && snapshot.head === group.head && snapshot.base === base &&
+      snapshot.policy === policy;
+  };
   const failures = [];
-  for (const workflow of expected) {
+  const dispatchWorkflow = async workflow => {
     // Registered attempts, including failures/cancellations, are never silently
     // rerun. Latest evidence is handled by the publisher; deliberate retries use
     // Actions' rerun UI. The reservation handles only missing dispatch responses.
-    if (matchingRuns(runs, context, group, workflow).length) continue;
+    if (matchingRuns(runs, context, group, workflow).length) return true;
     const statusContext = `ci-queue-dispatch/${path.basename(workflow)}`;
     const previous = statuses.find(status => status.context === statusContext);
     let attempt = 1;
@@ -61,20 +69,20 @@ async function dispatchGroup({github, context, group, core, root,
       if (!receipt || previous.state !== 'pending' || !Number.isFinite(created) || created > now()) {
         throw new Error('Invalid queue dispatch reservation');
       }
-      if (now() - created < REGISTRATION_GRACE_MS) continue;
+      if (now() - created < REGISTRATION_GRACE_MS) return true;
       attempt = Number(receipt[1]) + 1;
       if (attempt > MAX_DISPATCH_ATTEMPTS) {
         failures.push(`${workflow}: dispatch registration retries exhausted`);
-        continue;
+        return true;
       }
     }
-    if (!await current()) return;
-    // Serialize this writer in CI Check and scheduled recovery. Reserve before
+    if (!await current()) return false;
+    // CI Check and recovery serialize controller runs. Reserve this lane before
     // dispatch so response loss or slow run registration cannot cause a storm.
     await github.rest.repos.createCommitStatus({...context.repo, sha: group.head,
       context: statusContext, state: 'pending',
       description: `Queue dispatch attempt ${attempt}; base ${base}.`});
-    if (!await current()) return;
+    if (!await current()) return false;
     try {
       await github.rest.actions.createWorkflowDispatch({...context.repo,
         workflow_id: path.basename(workflow), ref: group.branch,
@@ -83,6 +91,16 @@ async function dispatchGroup({github, context, group, core, root,
     } catch (error) {
       failures.push(`${workflow}: ${error.message}`);
     }
+    return true;
+  };
+  for (let offset = 0; offset < expected.length; offset += DISPATCH_CONCURRENCY) {
+    // Each lane validates fresh policy around its own reservation. Bound the
+    // fanout and drain every active request before returning or reporting errors.
+    const results = await Promise.allSettled(
+      expected.slice(offset, offset + DISPATCH_CONCURRENCY).map(dispatchWorkflow));
+    const rejected = results.find(result => result.status === 'rejected');
+    if (rejected) throw rejected.reason;
+    if (results.some(result => result.value === false)) return;
   }
   if (failures.length) throw new Error(failures.join('; '));
   core.info(`Queue candidate ${group.head}: missing CI dispatch reconciled.`);
@@ -91,7 +109,7 @@ async function dispatchGroup({github, context, group, core, root,
 async function dispatchCandidates({github, context, root, core,
   loadInventory = loadBaseInventory, now = () => Date.now()}) {
   const failures = [];
-  for (const baseRef of loadPolicy(root).enabled_branches) {
+  for (const baseRef of await enabledBranches({github, context, root})) {
     if (!await queueEnabled({github, context, branch: baseRef, root})) continue;
     const entries = await readQueue(github, context, baseRef);
     const heads = new Set(entries.map(entry => entry.headCommit?.oid).filter(Boolean));

@@ -8,6 +8,7 @@
 
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -71,19 +72,28 @@ recoveryCandidates({github,context:{repo:{owner:'o',repo:'r'},runId:99},root:pro
  .then(candidates=>console.log(JSON.stringify({candidates,counts})))
  .catch(error=>console.log(JSON.stringify({error:error.message,counts})));
 """
-    result = subprocess.run(
-        [
-            'node',
-            '-e',
-            script,
-            str(MODULE),
-            json.dumps(options or {}),
-            str(ROOT),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    # Discovery fixtures exercise strict freshness independently of rollout.
+    # Explicit queueEnabled cases above still exercise the queue-mode bypass.
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / '.github').mkdir()
+        (root / '.github/resources').symlink_to(ROOT / '.github/resources')
+        (root / '.github/merge-queue-policy.json').write_text(
+            json.dumps({'version': 1, 'enabled_branches': []})
+        )
+        result = subprocess.run(
+            [
+                'node',
+                '-e',
+                script,
+                str(MODULE),
+                json.dumps(options or {}),
+                str(root),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
     return json.loads(result.stdout)
 
 

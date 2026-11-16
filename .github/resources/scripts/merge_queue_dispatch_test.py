@@ -101,6 +101,15 @@ const gate = require({json.dumps(str(MODULE))});
 const f = {json.dumps(fixture)};
 const writes = [], dispatches = [], requests = [], inventoryRequests = [], operations = [];
 const counts = new Map();
+let activeDispatches = 0, peakDispatches = 0, completedDispatches = 0;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+function graphqlPR(pr) {{
+  return {{id:pr.node_id, number:pr.number, state:pr.state.toUpperCase(),
+    isDraft:pr.draft, merged:pr.merged, headRefOid:pr.head.sha,
+    baseRefName:pr.base.ref, baseRepository:{{nameWithOwner:pr.base.repo.full_name}},
+    author:{{__typename:pr.user.type, login:pr.user.login}},
+    labels:{{nodes:pr.labels,totalCount:pr.labels.length,pageInfo:{{hasNextPage:false}}}}}};
+}}
 const reserved = () => writes.some(w => w.context.startsWith('ci-queue-dispatch/'));
 function next(key, values) {{
   const count = counts.get(key) || 0;
@@ -124,12 +133,21 @@ const github = {{rest: {{
   }}}},
   actions: {{listWorkflowRunsForRepo:'runs', createWorkflowDispatch:async options => {{
     dispatches.push(options); operations.push({{route:'dispatch',options}});
-    if (f.dispatchError) throw new Error('Dispatch response lost');
-    return {{status:204}};
+    activeDispatches++; peakDispatches = Math.max(peakDispatches, activeDispatches);
+    try {{
+      if (f.dispatchDelayMs) await delay(f.dispatchDelayMs);
+      if (f.dispatchError) throw new Error('Dispatch response lost');
+      return {{status:204}};
+    }} finally {{ activeDispatches--; completedDispatches++; }}
   }}}},
-  repos: {{listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
+  repos: {{get: async options => {{
+    requests.push({{route:'repository',options}});
+    if (f.repositoryError) throw new Error('Repository unavailable');
+    return {{data:{{full_name:'owner/repo',default_branch:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}}}};
+  }}, listCommitStatusesForRef:'statuses', createCommitStatus:async options => {{
     writes.push(options); operations.push({{route:'status',options}});
-    if (f.statusWriteError) throw new Error('Status write failed');
+    if (f.statusWriteError || options.context === f.statusWriteErrorContext) throw new Error('Status write failed');
+    if (f.statusWriteDelayMs) await delay(f.statusWriteDelayMs);
     return {{data:{{...options,created_at:{json.dumps(NOW)}}}}};
   }}}},
 }}, paginate:async (route,options) => {{
@@ -145,7 +163,30 @@ const github = {{rest: {{
     return f.statuses;
   }}
   throw new Error('Unexpected API route: ' + route);
-}}, graphql:async query => {{
+}}, graphql:async (query, variables) => {{
+  if (query.includes('query DispatchSnapshot')) {{
+    requests.push({{route:'dispatchSnapshot'}});
+    if (f.repositoryError) throw new Error('Repository unavailable');
+    if (f.queueError) throw new Error('Queue unavailable');
+    const value = structuredClone(next('queue', f.queues));
+    const repository = value.repository;
+    const refs = reserved() && f.refsAfterReservation || f.refs;
+    function refValue(ref) {{
+      const oid = next('ref-' + ref, refs[ref] ||
+        [['heads/master', 'heads/main'].includes(ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}]);
+      return oid === null ? null : {{target:{{__typename:'Commit',oid}}}};
+    }}
+    repository.defaultBranchRef = {{name:next('defaultBranch', f.defaultBranches || [f.defaultBranch || f.branch])}};
+    repository.candidateRef = refValue(variables.candidate.slice(5));
+    repository.baseRef = refValue(variables.base.slice(5));
+    for (const item of repository.mergeQueue.entries.nodes) {{
+      const number = item.pullRequest.number;
+      const pr = reserved() && f.prAfterReservation ? f.prAfterReservation :
+        (f.prs ? f.prs[number] : next('pr',f.queuePRs));
+      item.pullRequest = graphqlPR(pr);
+    }}
+    return value;
+  }}
   if (query.includes('query QueuePolicies')) {{
     requests.push({{route:'policies'}});
     const repository = {{nameWithOwner:'owner/repo'}};
@@ -175,8 +216,8 @@ const core = {{info:()=>{{}},warning:()=>{{}},error:()=>{{}}}};
 gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owner:'owner',repo:'repo'}},runId:123}},
   group:f.group, root:{json.dumps(str(root))}, core, loadInventory,
   now:()=>Date.parse({json.dumps(NOW)})}})
-.then(result=>console.log(JSON.stringify({{result,writes,dispatches,requests,inventoryRequests,operations}})))
-.catch(error=>console.log(JSON.stringify({{error:error.message,writes,dispatches,requests,inventoryRequests,operations}})));
+.then(result=>console.log(JSON.stringify({{result,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})))
+.catch(error=>console.log(JSON.stringify({{error:error.message,writes,dispatches,requests,inventoryRequests,operations,activeDispatches,peakDispatches,completedDispatches}})));
 """
         completed = subprocess.run(
             ['node'], input=script, text=True, capture_output=True, check=True
@@ -185,6 +226,48 @@ gate[f.method]({{github, context:{{eventName:'schedule',payload:{{}},repo:{{owne
 
 
 class QueueRecoveryTest(unittest.TestCase):
+    def test_default_selector_dispatches_resolved_candidate_for_either_name(
+        self,
+    ):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                result = dispatch(
+                    method='dispatchCandidates',
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                )
+                self.assertNotIn('error', result)
+                self.assertTrue(result['dispatches'])
+                for call in result['dispatches']:
+                    self.assertTrue(
+                        call['ref'].startswith(f'gh-readonly-queue/{branch}/')
+                    )
+                    self.assertEqual(call['inputs']['queue_base_ref'], branch)
+
+    def test_default_branch_change_before_initial_snapshot_never_dispatches(
+        self,
+    ):
+        for branch in ['master', 'main']:
+            with self.subTest(branch=branch):
+                other = 'main' if branch == 'master' else 'master'
+                result = dispatch(
+                    branch=branch,
+                    enabled=['~DEFAULT_BRANCH'],
+                    defaultBranches=[branch, other],
+                )
+                self.assertEqual(result['dispatches'], [], result)
+                self.assertEqual(result['writes'], [], result)
+
+    def test_default_selector_metadata_failure_never_dispatches(self):
+        result = dispatch(
+            method='dispatchCandidates',
+            enabled=['~DEFAULT_BRANCH'],
+            repositoryError=True,
+        )
+        self.assertIn('Repository unavailable', result['error'])
+        self.assertEqual(result['dispatches'], [])
+        self.assertEqual(result['writes'], [])
+
     def test_scheduled_recovery_publishes_completed_ci_without_workflow_run(
         self,
     ):
@@ -315,9 +398,57 @@ class QueueDispatchTest(unittest.TestCase):
         self.assertEqual(len(result['dispatches']), 32)
         routes = [request['route'] for request in result['requests']]
         # Initial validation plus both checks around each dispatch reservation.
-        self.assertEqual(routes.count('queue'), 65)
-        self.assertEqual(routes.count('policies'), 65)
+        # Each fresh boundary is one GraphQL snapshot plus active-rules REST;
+        # native/dispatched workflow and status discovery add three reads.
+        self.assertEqual(len(result['requests']), 133)
+        self.assertEqual(routes.count('dispatchSnapshot'), 65)
+        self.assertEqual(routes.count('queue'), 0)
+        self.assertEqual(routes.count('policies'), 0)
         self.assertEqual(routes.count('pr'), 0)
+
+    def test_missing_workflows_use_bounded_parallel_dispatch(self):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(9)
+            ],
+            dispatchDelayMs=10,
+        )
+        self.assertNotIn('error', result)
+        self.assertEqual(len(result['dispatches']), 9)
+        self.assertEqual(result['peakDispatches'], 4)
+        self.assertEqual(result['activeDispatches'], 0)
+        self.assertEqual(result['completedDispatches'], 9)
+
+    def test_failed_reservation_drains_siblings_before_reporting_error(self):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(9)
+            ],
+            statusWriteErrorContext='ci-queue-dispatch/lane-0.yml',
+            statusWriteDelayMs=20,
+            dispatchDelayMs=10,
+        )
+        self.assertIn('Status write failed', result['error'])
+        self.assertEqual(len(result['writes']), 4)
+        self.assertEqual(len(result['dispatches']), 3)
+        self.assertEqual(result['completedDispatches'], 3)
+        self.assertEqual(result['activeDispatches'], 0)
+        self.assertFalse(
+            any(
+                'lane-4' in call['workflow_id'] for call in result['dispatches']
+            )
+        )
+
+    def test_hold_after_parallel_reservations_stops_later_batches(self):
+        result = dispatch(
+            lanes=[
+                lane(path=f'.github/workflows/lane-{i}.yml') for i in range(9)
+            ],
+            prAfterReservation=pr(labels=[{'name': 'do-not-merge/hold'}]),
+        )
+        self.assertIn('error', result)
+        self.assertEqual(len(result['writes']), 4)
+        self.assertEqual(result['dispatches'], [])
 
     def assert_never_publishes_success(self, result):
         self.assertFalse(
