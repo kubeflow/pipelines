@@ -36,6 +36,10 @@ class SdkTimingReportsTest(unittest.TestCase):
                         executable.write_text(
                             '#!/usr/bin/env python3\n'
                             'import json, os, pathlib, sys\n'
+                            'if sys.argv[1:4] == ["-m", "pip", "wheel"]:\n'
+                            '    output = pathlib.Path(sys.argv[sys.argv.index("--wheel-dir") + 1])\n'
+                            '    (output / "kfp-test.whl").touch()\n'
+                            '    sys.exit(0)\n'
                             'pathlib.Path("args.json").write_text(json.dumps(sys.argv[1:]))\n'
                             'print("slowest durations: timing sentinel", flush=True)\n'
                             'print("stderr sentinel", file=sys.stderr, flush=True)\n'

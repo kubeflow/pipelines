@@ -151,7 +151,7 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
                         capture.read_text().splitlines(),
                         ['diff', '--name-only', f'{expected_ref}..HEAD'])
 
-    def test_sdk_tests_install_from_the_queued_commit(self):
+    def test_sdk_unit_tests_preserve_source_refs(self):
         queued_sha = '0123456789abcdef0123456789abcdef01234567'
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
@@ -162,8 +162,7 @@ class ReleaseMergeGroupWorkflowsTest(unittest.TestCase):
                 encoding='utf-8')
             fake_python.chmod(0o755)
 
-            for script_name in ('presubmit-tests-sdk.sh',
-                                'presubmit-tests-sdk-unit.sh'):
+            for script_name in ('presubmit-tests-sdk-unit.sh',):
                 for event_name, expected_ref, pull_number, checkout_sha in (
                     ('merge_group', queued_sha, '123', ''),
                     ('pull_request', 'refs/pull/123/merge', '123', ''),

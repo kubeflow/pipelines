@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o pipefail
+set -eo pipefail
 
 source_root=$(pwd)
 SETUP_ENV="${SETUP_ENV:-true}"
@@ -47,16 +47,17 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -I api/v2alpha1/python
 fi
 
-if [[ -n "${KFP_TEST_SOURCE_SHA:-}" ]]; then
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${KFP_TEST_SOURCE_SHA}#egg=kfp&subdirectory=sdk/python"
-elif [[ "${GITHUB_EVENT_NAME:-}" == "merge_group" ]]; then
-  : "${GITHUB_SHA:?merge_group requires the queued commit SHA}"
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${GITHUB_SHA}#egg=kfp&subdirectory=sdk/python"
-elif [[ -z "${PULL_NUMBER}" ]]; then
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@release-2.18#egg=kfp&subdirectory=sdk/python"
-else
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
+# Build the exact checkout once; every component still installs the wheel in
+# its own environment. Docker tests mount this file read-only.
+runtime_dist_dir=$(mktemp -d)
+trap 'rm -rf "$runtime_dist_dir"' EXIT
+python -m pip wheel --no-deps --wheel-dir "$runtime_dist_dir" ./sdk/python
+runtime_wheels=("$runtime_dist_dir"/kfp-*.whl)
+if [[ ${#runtime_wheels[@]} -ne 1 || ! -f "${runtime_wheels[0]}" ]]; then
+  echo "Expected exactly one freshly built kfp wheel in $runtime_dist_dir" >&2
+  exit 1
 fi
+export KFP_PACKAGE_PATH="${runtime_wheels[0]}"
 
 python -m pytest sdk/python/test -v -m regression --cov=kfp -n "${PYTEST_PARALLEL_WORKERS}" --junitxml="${JUNIT_XML}" --durations=30 --durations-min=0.1 2>&1 | tee "${PYTEST_LOG}"
 
