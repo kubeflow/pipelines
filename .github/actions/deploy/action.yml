@@ -2,6 +2,9 @@ name: "Set up KFP on KinD"
 description: "Step to start and configure KFP on Kind"
 
 inputs:
+  image_ready_state:
+    description: Validated state from this workflow's shared image readiness job
+    default: ''
   cluster_name:
     description: "Kind cluster name"
     default: 'kfp'
@@ -88,16 +91,15 @@ runs:
         IMAGE_DIRECTORY: ${{ inputs.image_path }}/runtime-base-images
       run: bash .github/resources/scripts/stage-runtime-image-cache.sh
 
-    # Start the largest transfer while the branch images are still building.
-    # Keep the same archive and Kind image verification as the combined path.
-    - name: Download shared runtime base images
-      if: steps.runtime-image-cache-files.outputs.ready != 'true'
+    # Validate both sets against one fresh producer snapshot before any image load.
+    - name: Download and verify shared images
       uses: ./.github/actions/shared-ci-images
       with:
-        kind: runtime
+        ready-state: ${{ inputs.image_ready_state }}
+        kind: ${{ steps.runtime-image-cache-files.outputs.ready == 'true' && 'images' || 'all' }}
         architecture: amd64
-        layout: flat
-        path: "${{ inputs.image_path }}/runtime-base-images"
+        layout: nested
+        path: "${{ inputs.image_path }}"
 
     - name: Load Runtime Base Images Into Kind
       shell: bash
@@ -130,13 +132,6 @@ runs:
         retry 3 10 kind --name "${{ inputs.cluster_name }}" \
           load image-archive "${MODELCAR_IMAGE_ARCHIVE}"
         rm "${MODELCAR_IMAGE_ARCHIVE}"
-
-    - name: Download shared branch images
-      uses: ./.github/actions/shared-ci-images
-      with:
-        architecture: amd64
-        layout: nested
-        path: "${{ inputs.image_path }}"
 
     - name: Load Control Plane Images Into Kind
       shell: bash

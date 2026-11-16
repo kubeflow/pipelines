@@ -365,6 +365,44 @@ class BaseWorkflowsTest(unittest.TestCase):
                 )
                 self.assertEqual(bool(result['disabled']), passed)
 
+    def test_scheduled_preflight_installs_parser_before_reading_workflows(self):
+        definition = yaml.safe_load(
+            (ROOT / '.github/workflows/ci-checks.yml').read_text()
+        )
+        job = definition['jobs']['recovery_candidates']
+        steps = job['steps']
+        checkout = next(
+            i
+            for i, step in enumerate(steps)
+            if step.get('uses', '').startswith('actions/checkout@')
+        )
+        setup = [
+            i
+            for i, step in enumerate(steps)
+            if step.get('uses', '').startswith('actions/setup-python@')
+        ]
+        install = [
+            i
+            for i, step in enumerate(steps)
+            if step.get('run')
+            == 'python -m pip install -r .github/scripts/requirements.txt'
+        ]
+        discovery = next(
+            i for i, step in enumerate(steps) if step.get('id') == 'list'
+        )
+        self.assertEqual(len(setup), 1, 'Recovery needs its own Python setup')
+        self.assertEqual(len(install), 1, 'Recovery needs pinned PyYAML')
+        self.assertLess(checkout, setup[0])
+        self.assertLess(setup[0], install[0])
+        self.assertLess(install[0], discovery)
+        self.assertEqual(steps[setup[0]]['with']['python-version'], '3.11')
+        self.assertEqual(steps[checkout]['with']['ref'], '${{ github.sha }}')
+        self.assertFalse(steps[checkout]['with']['persist-credentials'])
+        for index in (setup[0], install[0]):
+            self.assertNotIn('if', steps[index])
+            self.assertFalse(steps[index].get('continue-on-error', False))
+        self.assertEqual(job['permissions']['actions'], 'read')
+
     def test_workflow_installs_trusted_parser_and_invalidates_after_setup_failure(
         self,
     ):
@@ -391,8 +429,21 @@ class BaseWorkflowsTest(unittest.TestCase):
             )
         )
         self.assertEqual(steps[prepare_index]['if'], 'always() && !cancelled()')
-        poll = next(step for step in steps if step.get('id') == 'poll')
-        self.assertNotIn('always()', poll.get('if', ''))
+        finalizer = next(
+            step
+            for step in steps
+            if step.get('name') == 'Reconcile status and informational label'
+        )
+        self.assertIn('always()', finalizer['if'])
+        for key in ('CI_PREPARATION_SUCCEEDED', 'CI_VALIDATION_READY'):
+            self.assertIn("job.status == 'success'", finalizer['env'][key])
+            self.assertIn(
+                "steps.prepare.outcome == 'success'", finalizer['env'][key]
+            )
+        self.assertIn(
+            "steps.prepare.outputs.ready == 'true'",
+            finalizer['env']['CI_VALIDATION_READY'],
+        )
 
 
 if __name__ == '__main__':

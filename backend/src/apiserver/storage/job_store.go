@@ -335,6 +335,9 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 		job = job.ToV2()
 		jobs = append(jobs, job)
 	}
+	if err := r.Err(); err != nil {
+		return nil, err
+	}
 	return jobs, nil
 }
 

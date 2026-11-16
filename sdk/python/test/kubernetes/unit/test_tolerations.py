@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+
+import pytest
 from google.protobuf import json_format
 from kfp import dsl, kubernetes
 
@@ -339,6 +342,260 @@ class TestTolerationsJSON:
             }
         }
 
+    def test_static_dict_camel_case_toleration_seconds(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_toleration_json(
+                task,
+                toleration_json={
+                    'key': 'key1',
+                    'operator': 'Equal',
+                    'value': 'value1',
+                    'effect': 'NoExecute',
+                    'tolerationSeconds': 300,
+                },
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '300',
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_static_list_camel_case_toleration_seconds(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_toleration_json(
+                task,
+                toleration_json=[
+                    {
+                        'key': 'key1',
+                        'operator': 'Equal',
+                        'value': 'value1',
+                        'effect': 'NoExecute',
+                        'tolerationSeconds': 300,
+                    },
+                    {
+                        'key': 'key2',
+                        'operator': 'Equal',
+                        'value': 'value2',
+                        'effect': 'NoExecute',
+                        'tolerationSeconds': 60,
+                    },
+                ],
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '300',
+                                    },
+                                    {
+                                        'key': 'key2',
+                                        'operator': 'Equal',
+                                        'value': 'value2',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '60',
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_static_dict_camel_case_zero_toleration_seconds(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_toleration_json(
+                task,
+                toleration_json={
+                    'key': 'key1',
+                    'operator': 'Equal',
+                    'value': 'value1',
+                    'effect': 'NoExecute',
+                    'tolerationSeconds': 0,
+                },
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '0',
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_static_snake_case_toleration_seconds_still_supported(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_toleration_json(
+                task,
+                toleration_json={
+                    'key': 'key1',
+                    'operator': 'Equal',
+                    'value': 'value1',
+                    'effect': 'NoExecute',
+                    'toleration_seconds': 50,
+                },
+            )
+            kubernetes.add_toleration_json(
+                task,
+                toleration_json=[
+                    {
+                        'key': 'key2',
+                        'operator': 'Equal',
+                        'value': 'value2',
+                        'effect': 'NoExecute',
+                        'toleration_seconds': 0,
+                    }
+                ],
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '50',
+                                    },
+                                    {
+                                        'key': 'key2',
+                                        'operator': 'Equal',
+                                        'value': 'value2',
+                                        'effect': 'NoExecute',
+                                        'tolerationSeconds': '0',
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_static_omitted_toleration_seconds(self):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_toleration_json(
+                task,
+                toleration_json={
+                    'key': 'key1',
+                    'operator': 'Equal',
+                    'value': 'value1',
+                    'effect': 'NoSchedule',
+                },
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'tolerations': [
+                                    {
+                                        'key': 'key1',
+                                        'operator': 'Equal',
+                                        'value': 'value1',
+                                        'effect': 'NoSchedule',
+                                    },
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_static_camel_case_input_is_not_mutated(self):
+        input_dict = {
+            'key': 'key1',
+            'operator': 'Equal',
+            'value': 'value1',
+            'effect': 'NoExecute',
+            'tolerationSeconds': 300,
+        }
+        input_list = [
+            {
+                'key': 'key2',
+                'operator': 'Equal',
+                'value': 'value2',
+                'effect': 'NoExecute',
+                'tolerationSeconds': 60,
+            },
+            {
+                'key': 'key3',
+                'operator': 'Equal',
+                'value': 'value3',
+                'effect': 'NoExecute',
+                'tolerationSeconds': 0,
+            },
+        ]
+        expected_dict = copy.deepcopy(input_dict)
+        expected_list = copy.deepcopy(input_list)
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_toleration_json(task, toleration_json=input_dict)
+            kubernetes.add_toleration_json(task, toleration_json=input_list)
+
+        assert input_dict == expected_dict
+        assert input_list == expected_list
+
     def test_component_upstream_input_one(self):
         # checks that upstream task input parameters
         # are supported
@@ -440,6 +697,104 @@ class TestTolerationsJSON:
                 }
             }
         }
+
+    @pytest.mark.parametrize('operator', ['Equal', 'Exists', 'Gt', 'Lt'])
+    def test_valid_operators(self, operator):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration(comp(), key='k', operator=operator)
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations[0]['operator'] == operator
+
+    @pytest.mark.parametrize(
+        'effect', ['NoExecute', 'NoSchedule', 'PreferNoSchedule']
+    )
+    def test_valid_effects(self, effect):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration(comp(), key='k', effect=effect)
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations[0]['effect'] == effect
+
+    @pytest.mark.parametrize('operator,effect', [(None, None), ('', '')])
+    def test_omitted_or_empty_operator_and_effect(self, operator, effect):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration(
+                comp(), key='k', operator=operator, effect=effect
+            )
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations == [{'key': 'k'}]
+
+    def test_invalid_operator_raises(self):
+        with pytest.raises(
+            ValueError, match="Invalid toleration operator 'Bad'"
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_toleration(comp(), key='k', operator='Bad')
+
+    def test_invalid_effect_raises(self):
+        with pytest.raises(ValueError, match="Invalid toleration effect 'Bad'"):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_toleration(comp(), key='k', effect='Bad')
+
+    @pytest.mark.parametrize(
+        'toleration_json',
+        [
+            {'key': 'k', 'operator': 'Bad'},
+            {'key': 'k', 'effect': 'Bad'},
+            [{'key': 'k', 'operator': 'Equal'}, {'key': 'k', 'effect': 'Bad'}],
+        ],
+    )
+    def test_add_toleration_json_static_invalid_raises(self, toleration_json):
+        with pytest.raises(ValueError, match='Invalid toleration'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                kubernetes.add_toleration_json(comp(), toleration_json)
+
+    def test_add_toleration_json_static_valid_gt(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            kubernetes.add_toleration_json(
+                comp(),
+                {
+                    'key': 'k',
+                    'operator': 'Gt',
+                    'value': '5',
+                    'effect': 'NoSchedule',
+                },
+            )
+
+        tolerations = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp'][
+            'tolerations'
+        ]
+        assert tolerations[0]['operator'] == 'Gt'
 
 
 @dsl.component

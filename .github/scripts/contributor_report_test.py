@@ -5,6 +5,7 @@ import pathlib
 import sys
 import unittest
 from contextlib import ExitStack
+from datetime import datetime, timezone
 from unittest import mock
 
 MODULE_PATH = pathlib.Path(__file__).with_name('contributor-report.py')
@@ -55,6 +56,81 @@ def denied_comment_error():
 
 
 class ContributorReportTest(unittest.TestCase):
+    def test_pagination_queries_static_metrics_only_on_the_first_page(self):
+        second_page = stats_response([comment_node()])
+        del second_page['data']['issuesOpened']
+        del second_page['data']['mergedPrs']
+        del second_page['data']['user']['createdAt']
+        with mock.patch.object(
+            MODULE,
+            'github_request',
+            side_effect=[
+                stats_response([comment_node()], cursor='next'),
+                second_page,
+            ],
+        ) as request:
+            stats = MODULE.fetch_contributor_stats('alice')
+        self.assertEqual(stats.pr_comments, 2)
+        bodies = [call.kwargs['body'] for call in request.call_args_list]
+        self.assertEqual(len(bodies), 2)
+        self.assertEqual(sum('search(' in body['query'] for body in bodies), 1)
+        self.assertNotIn('createdAt', bodies[1]['query'])
+        self.assertEqual(
+            bodies[1]['variables'],
+            {'username': 'alice', 'issueCommentCursor': 'next'},
+        )
+
+    def test_identical_report_does_not_write_a_comment(self):
+        body = MODULE.REPORT_MARKER + '\nunchanged report'
+        existing = {'id': 12, 'body': body, 'user': {'type': 'Bot'}}
+        with (
+            mock.patch.object(
+                MODULE, 'list_issue_comments', return_value=[existing]
+            ),
+            mock.patch.object(MODULE, 'github_request') as request,
+        ):
+            result = MODULE.upsert_comment('kubeflow', 'pipelines', 123, body)
+        self.assertEqual(result, 'unchanged')
+        request.assert_not_called()
+
+    def test_changed_report_is_updated(self):
+        body = MODULE.REPORT_MARKER + '\nnew report'
+        existing = {
+            'id': 12,
+            'body': MODULE.REPORT_MARKER + '\nold report',
+            'user': {'type': 'Bot'},
+        }
+        with (
+            mock.patch.object(
+                MODULE, 'list_issue_comments', return_value=[existing]
+            ),
+            mock.patch.object(MODULE, 'github_request') as request,
+        ):
+            result = MODULE.upsert_comment('kubeflow', 'pipelines', 123, body)
+        self.assertEqual(result, 'updated')
+        request.assert_called_once_with(
+            '/repos/kubeflow/pipelines/issues/comments/12',
+            method='PATCH',
+            body={'body': body},
+        )
+
+    def test_report_identifies_a_dated_informational_snapshot(self):
+        with mock.patch.object(MODULE, 'datetime') as clock:
+            clock.now.return_value = datetime(
+                2026, 11, 14, 23, 59, tzinfo=timezone.utc
+            )
+            first = MODULE.build_comment('alice', [])
+            clock.now.return_value = datetime(
+                2026, 11, 14, 23, 59, 59, tzinfo=timezone.utc
+            )
+            same_day = MODULE.build_comment('alice', [])
+            clock.now.return_value = datetime(2026, 11, 15, tzinfo=timezone.utc)
+            next_day = MODULE.build_comment('alice', [])
+        self.assertIn('Snapshot as of 2026-11-14 (UTC)', first)
+        self.assertIn('not an authorization decision', first)
+        self.assertEqual(first, same_day)
+        self.assertIn('Snapshot as of 2026-11-15 (UTC)', next_day)
+
     def test_stats_paginate_and_count_only_target_repository_pr_comments(self):
         pages = [
             stats_response(

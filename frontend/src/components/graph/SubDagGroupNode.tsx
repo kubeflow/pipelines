@@ -56,15 +56,12 @@ export default function SubDagGroupNode({
           style={{ height: data.headerHeight ?? GROUP_HEADER_HEIGHT, pointerEvents: 'auto' }}
           title={data.expansionError}
         >
-          <div
-            data-testid='subdag-type'
-            className='w-8 pl-2 h-full flex items-center flex-shrink-0'
-          >
+          <div data-testid='subdag-type' className='w-8 pl-2 h-full flex items-center shrink-0'>
             <SubDagTypeIcon kind={data.groupKind} />
           </div>
           <button
             type='button'
-            className='focus:outline-none focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
+            className='focus:outline-hidden focus:ring-0 px-3 flex flex-1 min-w-0 items-center justify-center text-sm'
             title={data.label}
             aria-label={showWarning ? getLifecycleWarningLabel(data.label) : undefined}
             style={{ background: 'transparent', border: 0, fontWeight: 400 }}
@@ -76,7 +73,7 @@ export default function SubDagGroupNode({
           <button
             type='button'
             className={classes(
-              'nodrag focus:outline-none focus:ring-0 text-mui-grey-600 flex items-center justify-center flex-shrink-0',
+              'nodrag focus:outline-hidden focus:ring-0 text-mui-grey-600 flex items-center justify-center shrink-0',
               draggable && 'nopan',
             )}
             aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${data.label}`}

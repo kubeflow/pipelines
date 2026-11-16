@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
 from google.protobuf import json_format
 from kfp import dsl, kubernetes
 
@@ -390,6 +391,68 @@ class TestNodeAffinity:
                 assert 'weight must be between 1 and 100' in str(e)
             else:
                 assert False, 'Expected ValueError for weight > 100'
+
+    @pytest.mark.parametrize('field', ['match_expressions', 'match_fields'])
+    @pytest.mark.parametrize('bad_values', ['prod', ''])
+    def test_string_values_raises_type_error(self, field, bad_values):
+        """A plain string for values must be rejected, not split into
+        characters."""
+
+        with pytest.raises(TypeError, match='must be a list of strings'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = comp()
+                kubernetes.add_node_affinity(
+                    task,
+                    **{
+                        field: [
+                            {
+                                'key': 'env',
+                                'operator': 'In',
+                                'values': bad_values,
+                            }
+                        ]
+                    },
+                )
+
+    @pytest.mark.parametrize('field', ['match_expressions', 'match_fields'])
+    def test_list_values_still_work(self, field):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_node_affinity(
+                task,
+                **{
+                    field: [
+                        {'key': 'env', 'operator': 'In', 'values': ['prod']}
+                    ]
+                },
+            )
+
+        executor = json_format.MessageToDict(my_pipeline.platform_spec)[
+            'platforms'
+        ]['kubernetes']['deploymentSpec']['executors']['exec-comp']
+        key = (
+            'matchExpressions'
+            if field == 'match_expressions'
+            else 'matchFields'
+        )
+        assert executor['nodeAffinity'][0][key][0]['values'] == ['prod']
+
+    @pytest.mark.parametrize('field', ['match_expressions', 'match_fields'])
+    @pytest.mark.parametrize('operator', ['Exists', 'DoesNotExist'])
+    @pytest.mark.parametrize('extra', [{}, {'values': []}])
+    def test_omitted_or_empty_values_still_work(self, field, operator, extra):
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.add_node_affinity(
+                task,
+                **{field: [{'key': 'env', 'operator': operator, **extra}]},
+            )
+
+        assert my_pipeline.platform_spec is not None
 
 
 class TestNodeAffinityJSON:

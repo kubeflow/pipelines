@@ -2,6 +2,7 @@
 """Publish and resolve immutable CI image sets using read-only GitHub APIs."""
 
 import argparse
+import contextlib
 import hashlib
 import io
 import json
@@ -41,6 +42,103 @@ class APIError(Exception):
         self.retry_after = retry_after
 
 
+class RequestAccounting:
+    """Measure gh invocations, not opaque redirects/retries inside gh."""
+
+    def __init__(self):
+        self.counts = {}
+        self.rates = {}
+
+    @contextlib.contextmanager
+    def observe(self, suffix):
+        observation = {'status': 'transport_error', 'headers': {}}
+        try:
+            yield observation
+        finally:
+            # Accounting cannot alter the result or original exception.
+            try:
+                path = suffix.split('?')[0]
+                category = 'other'
+                if re.fullmatch(
+                    r'actions/(runs/[^/]+/artifacts|artifacts(?:/.*)?)', path
+                ):
+                    category = 'artifacts'
+                elif re.fullmatch(
+                    r'actions/(runs(?:/[^/]+)?|workflows/[^/]+/runs)', path
+                ):
+                    category = 'workflow_runs'
+                key = (category, str(observation['status']))
+                self.counts[key] = self.counts.get(key, 0) + 1
+                headers = observation['headers']
+                values = {}
+                for field in ('limit', 'remaining', 'used', 'reset'):
+                    value = headers.get('x-ratelimit-' + field, '')
+                    if re.fullmatch(r'[0-9]{1,15}', value):
+                        values[field] = int(value)
+                if values:
+                    resource = headers.get('x-ratelimit-resource')
+                    if resource not in (
+                        'core',
+                        'graphql',
+                        'search',
+                        'code_search',
+                        'integration_manifest',
+                        'scim',
+                        'actions_runner_registration',
+                        'source_import',
+                    ):
+                        resource = 'other'
+                    previous = self.rates.get(resource, {})
+                    self.rates[resource] = {
+                        'observations': previous.get('observations', 0) + 1,
+                        'first': previous.get('first', values),
+                        'last': values,
+                    }
+            except Exception:
+                pass
+
+    def emit(self, command):
+        try:
+            print(
+                json.dumps(
+                    {
+                        'event': 'github_request_accounting',
+                        'version': 1,
+                        'scope': command
+                        if command
+                        in (
+                            'source',
+                            'record',
+                            'prepare',
+                            'import-ready',
+                            'resolve',
+                            'verify',
+                        )
+                        else 'other',
+                        'measurement': 'gh_api_invocations',
+                        'coverage': 'Each gh api invocation once; opaque redirects/retries inside gh and other Actions clients are excluded.',
+                        'requests': sum(self.counts.values()),
+                        'counts': [
+                            {
+                                'method': 'GET',
+                                'category': category,
+                                'status': status,
+                                'count': count,
+                            }
+                            for (category, status), count in sorted(
+                                self.counts.items()
+                            )
+                        ],
+                        'rate_limits': self.rates,
+                    },
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+            )
+        except Exception:
+            pass
+
+
 def require(condition, message):
     if not condition:
         raise InvalidEvidence(message)
@@ -52,6 +150,21 @@ def positive(value):
 
 def matches(pattern, value):
     return isinstance(value, str) and re.fullmatch(pattern, value) is not None
+
+
+def queue_identity(value):
+    return isinstance(value, dict) and (
+        value.get('event') == 'merge_group'
+        or str(value.get('ref', '')).startswith('refs/heads/gh-readonly-queue/')
+    )
+
+
+def source_events(identity):
+    if queue_identity(identity):
+        return ('merge_group', 'workflow_dispatch')
+    if identity['event'] == 'workflow_dispatch':
+        return ('push', 'workflow_dispatch')
+    return (identity['event'],)
 
 
 def validate_identity(value):
@@ -66,6 +179,8 @@ def validate_identity(value):
         'run_attempt',
         'pr',
     }
+    if queue_identity(value):
+        fields.add('merge_group')
     require(
         isinstance(value, dict) and set(value) == fields, 'Malformed identity'
     )
@@ -79,11 +194,41 @@ def validate_identity(value):
         matches('[0-9a-f]{40}', value['source_sha']), 'Invalid checkout SHA'
     )
     require(
-        value['event'] in ('pull_request', 'push', 'workflow_dispatch'),
+        value['event']
+        in ('pull_request', 'push', 'workflow_dispatch', 'merge_group'),
         'Unsupported event',
     )
     require(matches('refs/.+', value['ref']), 'Invalid ref')
     pr = value['pr']
+    if queue_identity(value):
+        require(
+            value['event'] in ('merge_group', 'workflow_dispatch'),
+            'Unsupported queue event',
+        )
+        group = value['merge_group']
+        require(
+            isinstance(group, dict)
+            and set(group) == {'head_sha', 'head_ref', 'base_sha', 'base_ref'},
+            'Malformed merge group identity',
+        )
+        require(
+            group['base_ref'] in ('refs/heads/master', 'refs/heads/main'),
+            'Expected master or main queue',
+        )
+        base_branch = group['base_ref'].removeprefix('refs/heads/')
+        require(
+            matches(
+                rf'refs/heads/gh-readonly-queue/{base_branch}/pr-[0-9]+-[^/]+',
+                group['head_ref'],
+            )
+            and group['head_ref'] == value['ref'],
+            'Merge group ref mismatch',
+        )
+        require(
+            group['head_sha'] == value['source_sha']
+            and matches('[0-9a-f]{40}', group['base_sha']),
+            'Merge group SHA mismatch',
+        )
     if value['event'] != 'pull_request':
         require(pr is None, 'Unexpected PR identity')
         return value
@@ -141,6 +286,25 @@ def environment_identity(environ=None, checkout=True):
             value['pr'][side + '_repository_id'] = pr[side]['repo']['id']
             value['pr'][side + '_sha'] = pr[side]['sha']
         value['pr']['base_ref'] = pr['base']['ref']
+    if value['event'] == 'merge_group':
+        group = event['merge_group']
+        value['merge_group'] = {
+            key: group[key]
+            for key in ('head_sha', 'head_ref', 'base_sha', 'base_ref')
+        }
+    if value['event'] == 'workflow_dispatch':
+        inputs = event.get('inputs') or {}
+        require(isinstance(inputs, dict), 'Malformed dispatch inputs')
+        if queue_identity(value) or any(
+            inputs.get(key)
+            for key in ('queue_head_sha', 'queue_base_ref', 'queue_base_sha')
+        ):
+            value['merge_group'] = {
+                'head_sha': inputs.get('queue_head_sha'),
+                'head_ref': value['ref'],
+                'base_sha': inputs.get('queue_base_sha'),
+                'base_ref': f'refs/heads/{inputs.get("queue_base_ref", "")}',
+            }
     validate_identity(value)
     if checkout:
         actual = subprocess.check_output(
@@ -159,11 +323,11 @@ def same_source(producer, consumer):
         require(
             producer[field] == consumer[field], f'Producer {field} mismatch'
         )
-    events = (
-        ('push', 'workflow_dispatch')
-        if consumer['event'] == 'workflow_dispatch'
-        else (consumer['event'],)
+    require(
+        producer.get('merge_group') == consumer.get('merge_group'),
+        'Producer merge group mismatch',
     )
+    events = source_events(consumer)
     require(producer['event'] in events, 'Producer event mismatch')
 
 
@@ -199,6 +363,12 @@ def validate_run(run, identity, *, check_conclusion=True):
         == (pr['head_repository'] if pr else identity['repository']),
         'Producer head repository mismatch',
     )
+    if queue_identity(identity):
+        require(
+            run.get('head_branch')
+            == identity['ref'].removeprefix('refs/heads/'),
+            'Producer queue branch mismatch',
+        )
     # Real fork runs can have pull_requests: []; never require a populated array.
     require(
         run.get('status')
@@ -229,6 +399,7 @@ class GitHub:
         self.polling = False
         self.pages = {}
         self.run_cache = {}
+        self.accounting = RequestAccounting()
 
     def request(self, suffix, pages=False, binary=False):
         if binary:
@@ -256,49 +427,55 @@ class GitHub:
         )
         if remaining <= 0:
             raise APIError('GitHub API wait deadline reached')
-        try:
-            result = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=min(90, remaining),
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired) as error:
-            raise APIError('GitHub API unavailable') from error
-        header, separator, body = result.stdout.partition(b'\r\n\r\n')
-        if not separator:
-            header, separator, body = result.stdout.partition(b'\n\n')
-        lines = header.decode('utf-8', errors='replace').splitlines()
-        valid_status = lines and re.match(
-            r'HTTP/[^ ]+ [0-9]{3}(?: |$)', lines[0]
-        )
-        if result.returncode and not valid_status:
-            raise APIError('GitHub API transport unavailable')
-        require(valid_status, 'Malformed API HTTP response')
-        status = int(lines[0].split()[1])
-        headers = {}
-        for line in lines[1:]:
-            name, colon, value = line.partition(':')
-            require(bool(colon), 'Malformed API HTTP header')
-            headers[name.lower()] = value.strip()
-        if status in (403, 429):
-            delay = 60
+        with self.accounting.observe(suffix) as observation:
             try:
-                if 'retry-after' in headers:
-                    delay = float(headers['retry-after'])
-                elif headers.get('x-ratelimit-remaining') == '0':
-                    delay = float(headers['x-ratelimit-reset']) - time.time()
-            except (ValueError, KeyError):
-                pass
-            delay = max(1, delay) if math.isfinite(delay) else 60
-            raise APIError('GitHub API rate limited', retry_after=delay)
-        if status == 304:
+                result = subprocess.run(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=min(90, remaining),
+                    check=False,
+                )
+            except (OSError, subprocess.TimeoutExpired) as error:
+                raise APIError('GitHub API unavailable') from error
+            header, separator, body = result.stdout.partition(b'\r\n\r\n')
+            if not separator:
+                header, separator, body = result.stdout.partition(b'\n\n')
+            lines = header.decode('utf-8', errors='replace').splitlines()
+            valid_status = lines and re.match(
+                r'HTTP/[^ ]+ [0-9]{3}(?: |$)', lines[0]
+            )
+            if result.returncode and not valid_status:
+                raise APIError('GitHub API transport unavailable')
+            require(valid_status, 'Malformed API HTTP response')
+            status = int(lines[0].split()[1])
+            observation['status'] = status
+            headers = observation['headers']
+            for line in lines[1:]:
+                name, colon, value = line.partition(':')
+                require(bool(colon), 'Malformed API HTTP header')
+                headers[name.lower()] = value.strip()
+            if status in (403, 429):
+                delay = 60
+                try:
+                    if 'retry-after' in headers:
+                        delay = float(headers['retry-after'])
+                    elif headers.get('x-ratelimit-remaining') == '0':
+                        delay = (
+                            float(headers['x-ratelimit-reset']) - time.time()
+                        )
+                except (ValueError, KeyError):
+                    pass
+                delay = max(1, delay) if math.isfinite(delay) else 60
+                raise APIError('GitHub API rate limited', retry_after=delay)
+            if status == 304:
+                return status, headers, body
+            if result.returncode or status != 200:
+                raise APIError(
+                    f'GitHub API request failed: {suffix.split("?")[0]}'
+                )
+            require(bool(separator), 'Missing API response body')
             return status, headers, body
-        if result.returncode or status != 200:
-            raise APIError(f'GitHub API request failed: {suffix.split("?")[0]}')
-        require(bool(separator), 'Missing API response body')
-        return status, headers, body
 
     def conditional_page(self, suffix):
         return self.page(suffix, cache=True)
@@ -609,11 +786,7 @@ def write_json(path, value):
 def candidate_runs(runs, consumer):
     result = []
     pr = consumer['pr']
-    events = (
-        ('push', 'workflow_dispatch')
-        if consumer['event'] == 'workflow_dispatch'
-        else (consumer['event'],)
-    )
+    events = source_events(consumer)
     for run in runs:
         require(isinstance(run, dict), 'Malformed producer run')
         if run.get('event') not in events or run.get('head_sha') != (
@@ -633,6 +806,10 @@ def candidate_runs(runs, consumer):
             pr['head_repository_id'] if pr else consumer['repository_id']
         ):
             continue
+        if queue_identity(consumer) and run.get('head_branch') != consumer[
+            'ref'
+        ].removeprefix('refs/heads/'):
+            continue
         require(
             positive(run.get('id')) and positive(run.get('run_attempt')),
             'Malformed matching run ID/attempt',
@@ -642,11 +819,7 @@ def candidate_runs(runs, consumer):
     return sorted(result, key=lambda run: run['id'], reverse=True)
 
 
-def load_state(path, consumer, architecture):
-    if not path.exists():
-        return None
-    require(not path.is_symlink(), 'Unsafe state path')
-    state = json.loads(path.read_text())
+def validate_state(state, consumer, architecture):
     require(
         isinstance(state, dict)
         and set(state)
@@ -659,6 +832,59 @@ def load_state(path, consumer, architecture):
     )
     same_source(state['identity'], consumer)
     require(isinstance(state['sets'], dict), 'Malformed state sets')
+    return state
+
+
+def load_state(path, consumer, architecture):
+    if not path.exists():
+        return None
+    require(not path.is_symlink(), 'Unsafe state path')
+    return validate_state(json.loads(path.read_text()), consumer, architecture)
+
+
+def import_ready_state(value, consumer, architecture, kind):
+    """Reuse readiness outputs safely on failed-job-only workflow retries."""
+    state = json.loads(value)
+    require(isinstance(state, dict), 'Malformed readiness state')
+    previous = state.get('consumer')
+    validate_identity(previous)
+    validate_state(state, previous, architecture)
+    expected = dict(consumer, run_attempt=previous['run_attempt'])
+    require(
+        previous == expected
+        and previous['run_attempt'] <= consumer['run_attempt'],
+        'Readiness consumer run/source mismatch',
+    )
+    require(
+        all(selected in state['sets'] for selected in selected_kinds(kind)),
+        'Readiness is missing the selected set',
+    )
+    require(
+        set(state['sets']) <= {'runtime', 'images'}, 'Unknown readiness set'
+    )
+    for selected, records in state['sets'].items():
+        images = IMAGES if selected == 'images' else ('runtime-base-images',)
+        require(isinstance(records, list), 'Malformed readiness records')
+        require(
+            len(records) == len(images)
+            and {
+                record.get('image')
+                for record in records
+                if isinstance(record, dict)
+            }
+            == set(images),
+            'Incomplete readiness set',
+        )
+        for record in records:
+            validate_record(
+                record, state['identity'], architecture, record['image']
+            )
+        require(
+            len({record['artifact_id'] for record in records}) == len(images),
+            'Repeated readiness artifact ID',
+        )
+    state['consumer'] = consumer
+    state['last_kind'] = kind
     return state
 
 
@@ -724,7 +950,13 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
                 pin(state)
         if artifacts is None:
             artifacts = api.artifacts(identity['run_id'])
-        images = IMAGES if kind == 'images' else ('runtime-base-images',)
+        images = (
+            (*IMAGES, 'runtime-base-images')
+            if kind == 'all'
+            else IMAGES
+            if kind == 'images'
+            else ('runtime-base-images',)
+        )
         records = []
         for image in images:
             artifact = named_artifact(
@@ -749,7 +981,11 @@ def resolve_once(api, consumer, architecture, kind, state, pin=None):
             validate_run(api.run(identity['run_id']), identity)
         finally:
             api.polling = polling
-        state['sets'][kind] = records
+        if kind == 'all':
+            state['sets']['images'] = records[:-1]
+            state['sets']['runtime'] = records[-1:]
+        else:
+            state['sets'][kind] = records
         state['last_kind'] = kind
         return state
     except NotReady as error:
@@ -825,8 +1061,17 @@ def resolve(
             api.run_cache.clear()
 
 
+def selected_kinds(kind):
+    require(kind in ('runtime', 'images', 'all'), 'Unknown image selection')
+    return ('runtime', 'images') if kind == 'all' else (kind,)
+
+
 def emit_outputs(path, state, kind):
-    records = state['sets'][kind]
+    records = [
+        record
+        for selected in selected_kinds(kind)
+        for record in state['sets'][selected]
+    ]
     names = [
         name
         for record in records
@@ -853,20 +1098,29 @@ def verify(api, state, consumer, directory, layout, kind=None):
     identity, architecture = state['identity'], state['architecture']
     require(state['consumer'] == consumer, 'State consumer changed')
     same_source(identity, consumer)
-    require(
-        kind in ('runtime', 'images') and kind in state['sets'],
-        'Missing selected set',
-    )
-    records = state['sets'][kind]
-    require(isinstance(records, list), 'Malformed selected records')
-    for record in records:
-        require(isinstance(record, dict), 'Malformed selected record')
-        image = record.get('image')
+    records = []
+    kinds = selected_kinds(kind)
+    for selected in kinds:
+        require(selected in state['sets'], 'Missing selected set')
+        selected_records = state['sets'][selected]
         require(
-            image in (IMAGES if kind == 'images' else ('runtime-base-images',)),
-            'Unexpected selected image',
+            isinstance(selected_records, list), 'Malformed selected records'
         )
-        validate_record(record, identity, architecture, image)
+        expected = IMAGES if selected == 'images' else ('runtime-base-images',)
+        require(
+            len(selected_records) == len(expected)
+            and all(isinstance(record, dict) for record in selected_records)
+            and {record.get('image') for record in selected_records}
+            == set(expected),
+            'Incomplete selected image set',
+        )
+        for record in selected_records:
+            validate_record(record, identity, architecture, record['image'])
+        records.extend(selected_records)
+    require(
+        len({record['artifact_id'] for record in records}) == len(records),
+        'Repeated selected artifact ID',
+    )
     require(
         directory.is_dir() and not directory.is_symlink(),
         'Unsafe download directory',
@@ -905,15 +1159,25 @@ def verify(api, state, consumer, directory, layout, kind=None):
     # The resolver already bound immutable IDs. Check remote availability once,
     # after hashing, then recheck the attempt immediately before accepting files.
     indexed = artifact_index(api.artifacts(identity['run_id']))
-    if kind == 'images':
-        make_manifest(identity, architecture, records, api, artifacts=indexed)
-    else:
-        require(len(records) == 1, 'Invalid runtime set')
+    if 'images' in kinds:
+        make_manifest(
+            identity,
+            architecture,
+            [record for record in records if record['image'] in IMAGES],
+            api,
+            artifacts=indexed,
+        )
+    if 'runtime' in kinds:
+        runtime = next(
+            record
+            for record in records
+            if record['image'] == 'runtime-base-images'
+        )
         validate_record(
-            records[0], identity, architecture, 'runtime-base-images', indexed
+            runtime, identity, architecture, 'runtime-base-images', indexed
         )
     validate_run(api.run(identity['run_id']), identity)
-    if layout == 'nested' and kind == 'images':
+    if layout == 'nested' and kind in ('images', 'all'):
         for record in records:
             require(
                 not (directory / record['image']).exists(),
@@ -925,7 +1189,13 @@ def verify(api, state, consumer, directory, layout, kind=None):
             for name in record['files']:
                 (directory / name).replace(target / name)
 
-    state['sets'][kind] = records
+    for selected in kinds:
+        state['sets'][selected] = [
+            record
+            for record in records
+            if (record['image'] == 'runtime-base-images')
+            == (selected == 'runtime')
+        ]
 
 
 def main():
@@ -945,21 +1215,38 @@ def main():
         '--architecture', required=True, choices=ARCHITECTURES
     )
     resolver.add_argument(
-        '--kind', required=True, choices=('runtime', 'images')
+        '--kind', required=True, choices=('runtime', 'images', 'all')
     )
     resolver.add_argument('--state', required=True, type=Path)
     resolver.add_argument('--output', required=True, type=Path)
     resolver.add_argument('--timeout-seconds', type=int, default=2400)
     resolver.add_argument('--poll-seconds', type=int, default=10)
+    readiness = commands.add_parser('prepare')
+    readiness.add_argument(
+        '--architecture', required=True, choices=ARCHITECTURES
+    )
+    readiness.add_argument('--state', required=True, type=Path)
+    readiness.add_argument('--output', required=True, type=Path)
+    imported = commands.add_parser('import-ready')
+    imported.add_argument(
+        '--architecture', required=True, choices=ARCHITECTURES
+    )
+    imported.add_argument(
+        '--kind', required=True, choices=('runtime', 'images', 'all')
+    )
+    imported.add_argument('--state', required=True, type=Path)
+    imported.add_argument('--output', required=True, type=Path)
     verifier = commands.add_parser('verify')
     verifier.add_argument('--state', required=True, type=Path)
     verifier.add_argument('--directory', required=True, type=Path)
     verifier.add_argument('--layout', required=True, choices=('nested', 'flat'))
-    verifier.add_argument('--kind', choices=('runtime', 'images'))
+    verifier.add_argument('--kind', choices=('runtime', 'images', 'all'))
     args = parser.parse_args()
+    accounting = RequestAccounting()
     try:
         identity = environment_identity()
         api = GitHub(identity['repository'])
+        api.accounting = accounting
         if args.command == 'source':
             write_json(args.output, identity)
         elif args.command == 'record':
@@ -972,6 +1259,27 @@ def main():
                     args.directory,
                 ),
             )
+        elif args.command == 'prepare':
+            state = resolve(
+                api,
+                identity,
+                args.architecture,
+                'all' if args.architecture == 'amd64' else 'images',
+                args.state,
+            )
+            with args.output.open('a') as output:
+                output.write(
+                    'state=' + json.dumps(state, separators=(',', ':')) + '\n'
+                )
+        elif args.command == 'import-ready':
+            state = import_ready_state(
+                os.environ['SHARED_IMAGE_READY_STATE'],
+                identity,
+                args.architecture,
+                args.kind,
+            )
+            write_json(args.state, state)
+            emit_outputs(args.output, state, args.kind)
         elif args.command == 'resolve':
             state = resolve(
                 api,
@@ -999,6 +1307,8 @@ def main():
     ) as error:
         print(f'::error::{error}', file=sys.stderr)
         return 1
+    finally:
+        accounting.emit(args.command)
     return 0
 
 

@@ -87,7 +87,15 @@ class ScalePipelineTest(unittest.TestCase):
         self.assertEqual(test['num_parallel_nodes'], '1')
         self.assertEqual(test['cache_enabled'], 'false')
         self.assertNotIn('build', workflow['jobs'])
-        self.assertNotIn('needs', job)
+        self.assertEqual(job['needs'], 'image-artifacts-ready')
+        self.assertEqual(
+            workflow['jobs']['image-artifacts-ready']['uses'],
+            './.github/workflows/shared-ci-images-ready.yml',
+        )
+        self.assertEqual(
+            deploy['image_ready_state'],
+            '${{ needs.image-artifacts-ready.outputs.state }}',
+        )
         deployment = yaml.safe_load(
             (ROOT / '.github/actions/deploy/action.yml').read_text()
         )
