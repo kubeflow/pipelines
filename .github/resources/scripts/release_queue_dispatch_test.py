@@ -10,8 +10,10 @@
 # limitations under the License.
 
 import json
+import os
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 
 import yaml
@@ -108,6 +110,33 @@ catch (error) { console.log(error.message); } })();
         }]:
             with self.subTest(options=options):
                 self.assertNotEqual(self.guard(**options), 'ok')
+
+    def test_compiler_queue_dispatch_keeps_automatic_test_label(self):
+        data = definition(WORKFLOWS / 'compiler-tests.yml')
+        steps = data['jobs']['compiler-tests']['steps']
+        script = next(
+            step['run'] for step in steps if step.get('id') == 'configure')
+        script = script.replace('${{ env.TESTS_LABEL }}',
+                                data['env']['TESTS_LABEL'])
+        script = script.replace('${{ github.event_name }}', 'workflow_dispatch')
+        for ref, expected in [
+            ('refs/heads/release-2.18', 'ApiServerTests'),
+            ('refs/heads/gh-readonly-queue/release-2.18/pr-7-candidate',
+             'WorkflowCompiler')
+        ]:
+            with self.subTest(
+                    ref=ref), tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / 'output'
+                subprocess.run(
+                    ['bash', '-eu', '-c', script],
+                    check=True,
+                    env={
+                        **os.environ, 'GITHUB_REF': ref,
+                        'GITHUB_OUTPUT': str(output),
+                        'DISPATCH_TEST_LABEL': 'ApiServerTests'
+                    })
+                self.assertEqual(output.read_text().strip(),
+                                 f'TEST_LABEL={expected}')
 
     def test_dispatched_queue_uses_complete_lanes_and_exact_base(self):
         for name in ['api-server-tests.yml', 'e2e-test.yml']:

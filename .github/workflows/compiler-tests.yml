@@ -88,7 +88,7 @@ jobs:
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
         run: |
           TEST_LABEL=${{ env.TESTS_LABEL }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${GITHUB_REF:-}" != refs/heads/gh-readonly-queue/* ]]; then
             TEST_LABEL=$DISPATCH_TEST_LABEL
           fi
           echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"
