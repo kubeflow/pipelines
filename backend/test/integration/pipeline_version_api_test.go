@@ -87,7 +87,7 @@ func (s *PipelineVersionApiTest) SetupTest() {
 	}
 
 	s.repoName = *config.REPO_NAME
-	s.branchName = *config.BRANCH_NAME
+	s.branchName = *config.BranchName
 
 	var err error
 	s.pipelineUploadClient, err = newPipelineUploadClient()

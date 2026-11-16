@@ -22,15 +22,15 @@ PYTHONPATH=release python3 -m kfpr.cli --help
 
 ## Stabilizing 2.18 before publication
 
-`release-2.18` preserves the MLMD-based release line while `master` moves to the next
+`release-2.18` preserves the MLMD-based release line while `main` moves to the next
 architecture. Stabilize it with reviewed, targeted backports; do not merge post-MLMD
-`master` wholesale into this branch. Cutting the branch does not publish a product release.
+`main` wholesale into this branch. Cutting the branch does not publish a product release.
 
-Before merging the MLMD removal into `master`, verify the upstream release branch points
+Before merging the MLMD removal into `main`, verify the upstream release branch points
 to the agreed pre-removal commit, protect it, and confirm the branch's API-generator and
 release-tool image builds have succeeded. The release branch uses
 `kfp-api-generator:release-2.18` and `kfp-release:release-2.18`. Version preparation for 2.18 uses
-its prebuilt release branch tooling image, so later `master` changes cannot replace the
+its prebuilt release branch tooling image, so later `main` changes cannot replace the
 tooling used to prepare 2.18. Other new major and minor release lines retain the `master`
 image for bootstrapping before their release branch images exist; patch releases use
 their existing release branch images.
@@ -41,11 +41,25 @@ branch was created separately, initialize the release checkpoint and mark
 release flow just to cut a stabilization branch: later steps create tags, publish images
 and packages, and update documentation defaults.
 
-Review `sync-master` separately when `master` represents a newer release line. That step
-prepares and waits for a PR to write the released version back to `master`, using master's
-tooling for major and minor releases. Do not apply a 2.18 version reset to a newer development
-line. Decide which version or changelog updates belong on `master`, handle those explicitly,
+Review `sync-master` separately when the upstream default branch represents a newer
+release line. That step prepares and waits for a PR to write the released version
+back to that branch, using `:master` tooling for major and minor releases. Do not apply a 2.18 version reset to a newer development
+line. Decide which version or changelog updates belong on `main`, handle those explicitly,
 and mark `sync-master` complete only after that reconciliation is resolved.
+
+## Default branch selection
+
+New release branches use the upstream repository's current default branch, resolved
+through `gh api repos/kubeflow/pipelines`. An explicit source branch supplied by the
+operator or saved in release state remains unchanged. Accepting the source prompt's
+default leaves the choice unresolved until the step runs, so an old default is not
+persisted across a rename. Review saved explicit `master` source selections before
+resuming after the rename.
+
+The `sync-master` checkpoint retains its name for saved-state compatibility, but
+resolves the current default branch for its checkout and PR base. Offline dry runs
+show `<repository-default>` without making an API request. The rename does not change
+`:master` image tags or publication targets on `release-2.18`.
 
 ## Full release flow
 

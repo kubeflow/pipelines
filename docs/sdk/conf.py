@@ -86,7 +86,7 @@ html_theme_options = {
     'repo_type':
         'github',
     'edit_uri':
-        'blob/master/docs',
+        'blob/release-2.18/docs/sdk',
     'globaltoc_collapse':
         False,
     'features': [
@@ -131,7 +131,7 @@ html_theme_options = {
     'version_dropdown':
         True,
     'version_json':
-        'https://raw.githubusercontent.com/kubeflow/pipelines/master/docs/versions.json',
+        'https://raw.githubusercontent.com/kubeflow/pipelines/main/docs/sdk/versions.json',
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
@@ -237,7 +237,8 @@ epub_exclude_files = ['search.html']
 
 # # -- Extension configuration -------------------------------------------------
 readme_path = os.path.join(
-    os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'sdk',
+    os.path.abspath(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'sdk',
     'python', 'README.md')
 
 

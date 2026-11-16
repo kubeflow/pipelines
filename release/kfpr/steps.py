@@ -27,6 +27,7 @@ from .core import ReleaseContext
 from .core import REPO
 from .core import sdk_workflow_command
 from .core import underline_links
+from .core import upstream_default_branch
 from .core import wait_for_pr_merge
 from .core import watch_latest_workflow_run
 from .core import watch_pr_ci
@@ -120,8 +121,10 @@ def step_prepare_release_branch(context: ReleaseContext) -> None:
       context: Release context with runner and metadata.
     """
     branch = context.metadata.release_branch
-    source_branch = str(
-        context.state.answers.get('release_source_branch', 'master'))
+    if 'release_source_branch' in context.state.answers:
+        source_branch = str(context.state.answers['release_source_branch'])
+    else:
+        source_branch = upstream_default_branch(context.runner, context.root)
     context.runner.run(['git', 'checkout', source_branch], cwd=context.root)
     pull_if_upstream(context)
     context.runner.run(['git', 'checkout', '-b', branch], cwd=context.root)
@@ -950,16 +953,17 @@ def step_create_backend_release(context: ReleaseContext) -> None:
 
 
 def step_sync_master(context: ReleaseContext) -> None:
-    """Sync release version to master branch.
+    """Sync release version to the upstream default branch.
 
     Args:
       context: Release context with runner, metadata, and root path.
     """
     metadata = context.metadata
     root = context.root
-    branch = f'chore-release-{metadata.tag}-master'
+    development_branch = upstream_default_branch(context.runner, root)
+    branch = f'chore-release-{metadata.tag}-{development_branch}'
 
-    context.runner.run(['git', 'checkout', 'master'], cwd=root)
+    context.runner.run(['git', 'checkout', development_branch], cwd=root)
     context.runner.run(['git', 'pull', '--ff-only'], cwd=root)
     context.runner.run(['git', 'checkout', '-b', branch], cwd=root)
 
@@ -982,7 +986,7 @@ def step_sync_master(context: ReleaseContext) -> None:
     _run_reviewed_commit(
         context, [
             'git', 'commit', '-s', '-m',
-            f'chore(release): bump version to {metadata.tag} on master branch'
+            f'chore(release): bump version to {metadata.tag} on {development_branch} branch'
         ],
         cwd=root)
     context.runner.run(
@@ -996,15 +1000,15 @@ def step_sync_master(context: ReleaseContext) -> None:
         '--repo',
         REPO,
         '--base',
-        'master',
+        development_branch,
         '--head',
         f'{owner}:{branch}',
         '--title',
-        f'chore(release): sync {metadata.tag} to master',
+        f'chore(release): sync {metadata.tag} to {development_branch}',
         '--body',
-        f'Syncs KFP {metadata.tag} release version files back to master.',
+        f'Syncs KFP {metadata.tag} release version files back to {development_branch}.',
     ])
-    print(underline_links(f'Master sync PR: {pr_url}'))
+    print(underline_links(f'{development_branch} sync PR: {pr_url}'))
     watch_pr_ci(context.runner, pr_url)
     wait_for_pr_merge(context.runner, pr_url)
 
@@ -1053,7 +1057,8 @@ def build_steps(release_type: str, include_backend: bool,
         ])
     else:
         steps.append(
-            Step('prepare-release-branch', 'Create release branch from master',
+            Step('prepare-release-branch',
+                 'Create release branch from selected or default branch',
                  'step_prepare_release_branch'))
     steps.extend([
         Step('update-version-tags', 'Update repository version tags',
@@ -1082,7 +1087,8 @@ def build_steps(release_type: str, include_backend: bool,
         steps.extend([
             Step('create-backend-release', 'Create backend GitHub release',
                  'step_create_backend_release'),
-            Step('sync-master', 'Sync release version to master',
+            Step('sync-master',
+                 'Sync release version to upstream default branch',
                  'step_sync_master'),
             Step('confirm-website-and-slack',
                  'Confirm website PR and Slack announcement',

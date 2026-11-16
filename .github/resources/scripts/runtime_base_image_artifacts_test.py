@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
+import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -83,11 +86,46 @@ class FingerprintTest(unittest.TestCase):
 
 class ProducerSelectionTest(unittest.TestCase):
 
-    def test_selects_newest_current_source_or_upstream_master(self):
+    def test_cli_uses_supplied_default_branch(self):
+        payload = {
+            'artifacts': [
+                artifact(1, '2026-07-16T00:00:00Z', head_branch='master'),
+                artifact(2, '2026-07-16T01:00:00Z', head_branch='main'),
+            ]
+        }
+        for branch, expected in [('master', '10'), ('main', '20')]:
+            with self.subTest(branch=branch):
+                result = subprocess.run([
+                    sys.executable,
+                    str(Path(artifacts.__file__)),
+                    'select-producer',
+                    '--source-sha',
+                    SOURCE_SHA,
+                    '--default-branch',
+                    branch,
+                ],
+                                        input=json.dumps(payload),
+                                        text=True,
+                                        capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout.strip(), expected)
+
+    def test_explicit_default_branch_does_not_accept_stale_main(self):
+        payload = {
+            'artifacts': [
+                artifact(1, '2026-07-16T00:00:00Z', head_branch='master'),
+                artifact(2, '2026-07-16T01:00:00Z', head_branch='main'),
+            ]
+        }
+        self.assertEqual(
+            artifacts.select_producer_run_id(
+                payload, SOURCE_SHA, default_branch='master'), 10)
+
+    def test_selects_newest_current_source_or_upstream_main(self):
         payload = {
             'artifacts': [
                 artifact(1, '2026-07-16T00:00:00Z', head_sha=SOURCE_SHA),
-                artifact(2, '2026-07-16T01:00:00Z', head_branch='master'),
+                artifact(2, '2026-07-16T01:00:00Z', head_branch='main'),
                 artifact(3, '2026-07-16T02:00:00Z'),
             ]
         }
@@ -97,7 +135,7 @@ class ProducerSelectionTest(unittest.TestCase):
             20,
         )
 
-    def test_merge_group_selects_exact_source_before_newer_master(self):
+    def test_merge_group_selects_exact_source_before_newer_main(self):
         payload = {
             'artifacts': [
                 artifact(
@@ -106,7 +144,7 @@ class ProducerSelectionTest(unittest.TestCase):
                     head_sha=SOURCE_SHA,
                     head_branch=QUEUE_BRANCH,
                 ),
-                artifact(2, '2026-07-16T01:00:00Z', head_branch='master'),
+                artifact(2, '2026-07-16T01:00:00Z', head_branch='main'),
             ]
         }
 
@@ -119,10 +157,10 @@ class ProducerSelectionTest(unittest.TestCase):
             10,
         )
 
-    def test_merge_group_waits_when_only_master_artifact_exists(self):
+    def test_merge_group_waits_when_only_main_artifact_exists(self):
         payload = {
             'artifacts': [
-                artifact(1, '2026-07-16T00:00:00Z', head_branch='master'),
+                artifact(1, '2026-07-16T00:00:00Z', head_branch='main'),
             ]
         }
 
@@ -155,7 +193,7 @@ class ProducerSelectionTest(unittest.TestCase):
                     3,
                     '2026-07-16T02:00:00Z',
                     head_sha=SOURCE_SHA,
-                    head_branch='gh-readonly-queue/master/pr-123',
+                    head_branch='gh-readonly-queue/main/pr-123',
                 ),
             ]
         }
@@ -243,14 +281,14 @@ class ProducerSelectionTest(unittest.TestCase):
                             'workflow_runs': [queue_run(1, **overrides)]
                         }))
 
-    def test_rejects_newer_fork_branch_named_master(self):
+    def test_rejects_newer_fork_branch_named_main(self):
         payload = {
             'artifacts': [
-                artifact(1, '2026-07-16T00:00:00Z', head_branch='master'),
+                artifact(1, '2026-07-16T00:00:00Z', head_branch='main'),
                 artifact(
                     2,
                     '2026-07-16T01:00:00Z',
-                    head_branch='master',
+                    head_branch='main',
                     head_repository_id=2,
                     repository_id=1,
                 ),
@@ -280,8 +318,8 @@ class ProducerSelectionTest(unittest.TestCase):
             10,
         )
 
-    def test_rejects_master_without_repository_identity(self):
-        candidate = artifact(1, '2026-07-16T00:00:00Z', head_branch='master')
+    def test_rejects_main_without_repository_identity(self):
+        candidate = artifact(1, '2026-07-16T00:00:00Z', head_branch='main')
         workflow_run = candidate['workflow_run']
         self.assertIsInstance(workflow_run, dict)
         workflow_run['head_repository_id'] = None

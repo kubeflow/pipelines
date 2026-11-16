@@ -549,6 +549,39 @@ class PublishSdksStepTest(unittest.TestCase):
 
 class SyncMasterStepTest(unittest.TestCase):
 
+    def test_sync_target_changes_without_changing_patch_tooling(self):
+        for branch in ('master', 'main'):
+            with self.subTest(branch=branch), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                runner = core.CommandRunner(dry_run=True)
+                runner.capture = mock.Mock(side_effect=[
+                    '{"default_branch": "' + branch +
+                    '"}', 'https://github.com/kubeflow/pipelines/pull/123'
+                ])
+                context = core.ReleaseContext(
+                    root=root,
+                    state=core.ReleaseState(root / 'state.json'),
+                    runner=runner,
+                    metadata=core.ReleaseMetadata.from_version(
+                        'patch', '2.18.1'),
+                    fork_remote='git@github.com:testuser/pipelines.git',
+                    include_backend=True,
+                    include_sdk=True)
+                with mock.patch.object(steps, 'watch_pr_ci'), mock.patch.object(
+                        steps, 'wait_for_pr_merge'):
+                    steps.step_sync_master(context)
+                self.assertEqual(runner.commands[0],
+                                 ['git', 'checkout', branch])
+                pr_command = runner.capture.call_args_list[-1].args[0]
+                self.assertEqual(pr_command[pr_command.index('--base') + 1],
+                                 branch)
+                self.assertEqual(pr_command[pr_command.index('--head') + 1],
+                                 f'testuser:chore-release-2.18.1-{branch}')
+                docker_command = next(command for command in runner.commands
+                                      if command[0] == 'docker')
+                self.assertIn('ghcr.io/kubeflow/kfp-release:release-2.18',
+                              docker_command)
+
     def test_sync_master_opens_pr_and_waits_for_merge(self):
         with TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -557,6 +590,8 @@ class SyncMasterStepTest(unittest.TestCase):
 
                 def capture(self, command, cwd=None):
                     self.commands.append(command)
+                    if command == ['gh', 'api', 'repos/kubeflow/pipelines']:
+                        return '{"default_branch": "main"}'
                     if command[:3] == ['gh', 'pr', 'create']:
                         return 'https://github.com/kubeflow/pipelines/pull/123'
                     raise AssertionError(f'unexpected capture: {command}')
@@ -579,10 +614,14 @@ class SyncMasterStepTest(unittest.TestCase):
             self.assertIn([
                 'git', 'push', '--set-upstream',
                 'git@github.com:testuser/pipelines.git',
-                'chore-release-3.2.0-master'
+                'chore-release-3.2.0-main'
             ], context.runner.commands)
             self.assertIn(['git', 'checkout', '3.2.0', '--', 'CHANGELOG.md'],
                           context.runner.commands)
+            self.assertIn(['git', 'checkout', 'main'], context.runner.commands)
+            pr_command = next(command for command in context.runner.commands
+                              if command[:3] == ['gh', 'pr', 'create'])
+            self.assertEqual(pr_command[pr_command.index('--base') + 1], 'main')
             self.assertIn(['gh', 'pr', 'create'],
                           [command[:3] for command in context.runner.commands])
             watch_ci.assert_called_once_with(
@@ -604,6 +643,8 @@ class SyncMasterStepTest(unittest.TestCase):
 
                 def capture(self, command, cwd=None):
                     self.commands.append(command)
+                    if command == ['gh', 'api', 'repos/kubeflow/pipelines']:
+                        return '{"default_branch": "main"}'
                     if command[:3] == ['gh', 'pr', 'create']:
                         return 'https://github.com/kubeflow/pipelines/pull/123'
                     return ''
@@ -630,7 +671,7 @@ class SyncMasterStepTest(unittest.TestCase):
                 ['git', 'status', '--short'])
             commit_index = context.runner.commands.index([
                 'git', 'commit', '-s', '-m',
-                'chore(release): bump version to 3.2.0 on master branch'
+                'chore(release): bump version to 3.2.0 on main branch'
             ])
             self.assertLess(status_index, commit_index)
             input_mock.assert_called()
@@ -649,6 +690,8 @@ class SyncMasterStepTest(unittest.TestCase):
 
                 def capture(self, command, cwd=None):
                     self.commands.append(command)
+                    if command == ['gh', 'api', 'repos/kubeflow/pipelines']:
+                        return '{"default_branch": "main"}'
                     if command[:3] == ['gh', 'pr', 'create']:
                         return 'https://github.com/kubeflow/pipelines/pull/123'
                     return ''
@@ -675,6 +718,56 @@ class SyncMasterStepTest(unittest.TestCase):
 
 
 class PrepareReleaseBranchStepTest(unittest.TestCase):
+
+    def test_prepare_release_branch_resolves_default_at_execution(self):
+        for branch in ('master', 'main'):
+            with self.subTest(branch=branch), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                runner = core.CommandRunner(dry_run=True)
+                runner.capture = mock.Mock(
+                    return_value=('{"default_branch": "' + branch + '"}'))
+                state = core.ReleaseState(root / 'state.json')
+                context = core.ReleaseContext(
+                    root=root,
+                    state=state,
+                    runner=runner,
+                    metadata=core.ReleaseMetadata.from_version(
+                        'minor', '2.18.0'),
+                    fork_remote='origin',
+                    include_backend=True,
+                    include_sdk=True)
+                steps.step_prepare_release_branch(context)
+                runner.capture.assert_called_once_with(
+                    ['gh', 'api', 'repos/kubeflow/pipelines'], cwd=root)
+                self.assertEqual(runner.commands[0],
+                                 ['git', 'checkout', branch])
+                self.assertIn(['git', 'checkout', '-b', 'release-2.18'],
+                              runner.commands)
+                self.assertNotIn('release_source_branch', state.answers)
+
+    def test_explicit_source_refs_skip_default_branch_lookup(self):
+        for source in ('master', 'main', 'release-2.18', '2.18.0', 'a' * 40):
+            with self.subTest(source=source), TemporaryDirectory() as tmpdir:
+                root = Path(tmpdir)
+                runner = core.CommandRunner(dry_run=True)
+                runner.capture = mock.Mock(
+                    side_effect=AssertionError('unexpected API call'))
+                state = core.ReleaseState(root / 'state.json')
+                state.answers['release_source_branch'] = source
+                context = core.ReleaseContext(
+                    root=root,
+                    state=state,
+                    runner=runner,
+                    metadata=core.ReleaseMetadata.from_version(
+                        'minor', '2.18.0'),
+                    fork_remote='origin',
+                    include_backend=True,
+                    include_sdk=True)
+                steps.step_prepare_release_branch(context)
+                runner.capture.assert_not_called()
+                self.assertEqual(runner.commands[0],
+                                 ['git', 'checkout', source])
+                self.assertEqual(state.answers['release_source_branch'], source)
 
     def test_prepare_release_branch_uses_selected_source_branch(self):
         with TemporaryDirectory() as tmpdir:

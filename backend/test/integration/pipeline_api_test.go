@@ -67,7 +67,7 @@ func (s *PipelineApiTest) SetupTest() {
 	}
 	s.namespace = *config.Namespace
 	s.repoName = *config.REPO_NAME
-	s.branchName = *config.BRANCH_NAME
+	s.branchName = *config.BranchName
 
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
