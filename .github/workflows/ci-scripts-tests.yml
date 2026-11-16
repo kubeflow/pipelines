@@ -4,6 +4,26 @@
 name: CI Scripts Tests
 
 on:
+  workflow_dispatch:
+    inputs:
+      queue_head_sha:
+        description: Exact queue candidate SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_ref:
+        description: Queue target branch, master or main (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+      queue_base_sha:
+        description: Current target branch SHA (internal queue dispatch)
+        required: false
+        type: string
+        default: ''
+  merge_group:
+    types: [checks_requested]
+    branches: [master, main]
   push:
     branches:
       - master
@@ -12,6 +32,8 @@ on:
     paths:
       # The offline cache fixture image copies this SDK source tree.
       - '.github/dependabot.yml'
+      - '.github/merge-queue-policy.json'
+      - 'docs/agents/merge-queue-tide.patch'
       - '**/go.mod'
       - 'backend/api/hack/uv.sh'
       - '**/package.json'
@@ -103,6 +125,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'test/install-argo-cli.sh'
+      - 'test/presubmit-tests-sdk-unit.sh'
       - 'test/kfp-kubernetes-native-migration-tests/**'
       - 'third_party/argo/COMPATIBILITY_VERSION'
       - 'third_party/argo/Makefile'
@@ -114,6 +137,16 @@ permissions:
   contents: read
 
 jobs:
+  queue-dispatch-guard:
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/gh-readonly-queue/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/queue-dispatch-guard.yml
+    with:
+      queue_head_sha: ${{ inputs.queue_head_sha }}
+      queue_base_ref: ${{ inputs.queue_base_ref }}
+      queue_base_sha: ${{ inputs.queue_base_sha }}
+
   profile-controller-tests:
     name: Run profile-controller unit tests
     runs-on: ubuntu-latest
@@ -137,6 +170,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Set up Node for HTTP accounting regressions
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: frontend/.nvmrc
       - uses: ./.github/actions/setup-go
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -151,12 +188,21 @@ jobs:
         env:
           PYTHONPATH: release
         run: >-
-          python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test
+          python3 -m unittest kfpr.branch_scan_test kfpr.ci_images_runner_test kfpr.go_build_provenance_test
           kfpr.image_summary_test kfpr.osv_image_scan_test kfpr.osv_reports_test
           kfpr.ci_security_runner_test kfpr.ci_qualification_runner_test
-          kfpr.ci_qualification_client_test kfpr.qualification_test
+          kfpr.candidate_test kfpr.ci_qualification_client_test kfpr.qualification_test
           kfpr.qualification_exceptions_test kfpr.security_test
           kfpr.security_exceptions_test kfpr.third_party_test
+      - name: Run release automation tests
+        env:
+          PYTHONPATH: release
+        run: >-
+          python3 -m unittest kfpr.ci_images_client_test
+          kfpr.deployed_images_test kfpr.helper_checkout_test kfpr.latest_test
+          kfpr.local_images_test kfpr.packages_test
+          kfpr.patch_publication_test kfpr.promotion_dispatch_test
+          kfpr.promotion_test kfpr.sdk_publication_test kfpr.smoke_test
       - name: Run repo-local workflow script unit tests
         working-directory: .github/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

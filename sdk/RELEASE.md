@@ -34,6 +34,17 @@
 
 ## Breaking changes
 
+* `PipelineTask.set_debug_pause` is now implemented by the KFP v2 launcher
+  instead of the Argo executor. It emits `KFP_DEBUG_PAUSE_*` environment
+  variables (renamed from `ARGO_DEBUG_PAUSE_*`), all of `before`, `after`,
+  and `on_error` now default to `False` so a bare `set_debug_pause()` call
+  raises `ValueError` (previously `after=True` was the default), and
+  `on_error` no longer requires `after=True`. Resuming a paused task is
+  done through the KFP API/UI rather than `kubectl exec`; Argo 3.5+ and
+  pod-exec RBAC are no longer required. Pause duration is bounded by the
+  `KFP_DEBUG_PAUSE_MAX_DURATION` environment variable (Go duration string,
+  default `1h`); set it via `set_env_variable` for longer sessions.
+
 * Component loaders now accept only PipelineSpec IR YAML, optionally followed by
   a PlatformSpec document. Old `implementation: container:` component YAML is
   rejected, including when loaded by a v2 pipeline. Define components with the
@@ -80,6 +91,15 @@
 * Fields of `dsl.ParallelFor` dict items (for example `item.greeting`) can be used inside
   `dsl.If`/`dsl.Elif`/`dsl.Else` groups and nested loops within the loop, and no longer leak
   into an enclosing `dsl.ExitHandler`, which failed at runtime.
+
+* `kfp.kubernetes.set_image_pull_secrets`, `add_init_container` (`command` and `args`) and
+  `add_ephemeral_volume` (`access_modes`) now raise `TypeError` when given a plain string
+  instead of a list of strings, rather than splitting it into single characters.
+
+* `kfp.kubernetes.add_toleration`, and `add_toleration_json` with a static dict or
+  list, now raise `ValueError` at compile time for an invalid `operator` or `effect`
+  instead of passing it through to Kubernetes. `Gt` and `Lt` are accepted as
+  operators, and `None` or an empty string still means the field is omitted.
 
 # 2.15.2
 

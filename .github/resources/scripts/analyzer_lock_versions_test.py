@@ -49,6 +49,34 @@ class AnalyzerLockVersionsTest(unittest.TestCase):
             f'{sorted(setup_versions)} instead of {compiler_version}',
         )
 
+    def test_action_inventory_matches_executable_pins(self):
+        text = WORKFLOW.read_text()
+        prefix = '# gh-aw-manifest: '
+        manifest = json.loads(
+            next(
+                line[len(prefix) :]
+                for line in text.splitlines()
+                if line.startswith(prefix)
+            )
+        )
+        inventory = {
+            (action['repo'], action['sha'], action['version'])
+            for action in manifest['actions']
+        }
+        uses = set(
+            re.findall(
+                r'^\s+uses: ([\w./-]+)@([0-9a-f]{40}) # (v\S+)\s*$',
+                text,
+                re.MULTILINE,
+            )
+        )
+        self.assertTrue(uses, 'no pinned executable actions found')
+        self.assertEqual(
+            uses,
+            inventory,
+            'Regenerate the workflow instead of editing action pins alone',
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

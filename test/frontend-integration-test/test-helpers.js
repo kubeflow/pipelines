@@ -178,6 +178,26 @@ async function selectPipelineForRun(
   await $('#pipelineSelectorDialog').waitForDisplayed({ timeout, reverse: true });
 }
 
+// Check the route and its filter in one DOM snapshot. Hash navigation can finish
+// before React replaces the previous page, which uses the same filter ID.
+async function waitForPipelineListReady({ timeout = defaultTimeout } = {}) {
+  await waitForCondition(
+    () =>
+      browser.execute(() => {
+        if (location.hash.split('?')[0] !== '#/pipelines') return false;
+        const input = document.getElementById('tableFilterBox');
+        return (
+          !!input &&
+          Array.from(input.labels || []).some(
+            (label) => label.textContent.trim() === 'Filter pipelines',
+          ) &&
+          input.checkVisibility({ opacityProperty: true, visibilityProperty: true })
+        );
+      }),
+    { timeout, timeoutMsg: 'expected the Pipelines list filter to load after navigation' },
+  );
+}
+
 async function waitForSelectorDisplayed(selector, { timeout = defaultTimeout } = {}) {
   // Navigation can replace an element without changing its selector.
   await waitForCondition(() => isSelectorDisplayed(selector), {
@@ -336,5 +356,6 @@ module.exports = {
   waitForLogViewerText,
   waitForRunPageReady,
   waitForSelectorDisplayed,
+  waitForPipelineListReady,
   waitForTableRows,
 };

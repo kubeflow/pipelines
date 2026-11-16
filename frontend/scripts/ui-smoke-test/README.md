@@ -38,6 +38,28 @@ node smoke-test-runner.js --compare main
 
 The first `--compare` run takes 5-10 minutes because it creates a Kind cluster and deploys Kubeflow Pipelines. Subsequent runs reuse the existing cluster and are much faster.
 
+### Existing clones after the default branch rename
+
+The smoke tools default to `main`. GitHub's rename does not rename local branches.
+If your local default branch is still `master`, update it once from the repository root:
+
+```bash
+git fetch origin
+git branch -m master main
+git branch --set-upstream-to=origin/main main
+git remote set-head origin -a
+```
+
+If `main` already exists, skip the rename and update that branch normally. To keep
+local branch names unchanged, pass `--compare origin/main` (or `--base origin/main`
+to `detect-changes.js`) after fetching. Explicit tags, SHAs, and release refs still work.
+The comparison creates a detached base worktree, so `main` may remain checked out
+in your primary checkout.
+
+Legacy mode reuses `.ui-smoke-test/main`. If that cache still contains `master`, the
+runner stops before building or serving it. Move the cache directory aside and rerun
+to clone the requested branch; this also applies with `--skip-build`.
+
 ## Quick Reference
 
 ```bash

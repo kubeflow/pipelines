@@ -99,6 +99,10 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # typescript-eslint supports TypeScript <6.1; revisit with parser support.
+      - dependency-name: "typescript"
+        versions: [">=6.1"]
     groups:
       react-version:
         applies-to: version-updates
@@ -270,6 +274,9 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # MLMD stays frozen on 2.18; image upgrades require explicit review.
+      - dependency-name: "tfx-oss-public/ml_metadata_store_server"
     groups:
       # The controller injects argoexec into workflow pods, so update the two
       # runtime images together when Dependabot finds a new release.
@@ -293,6 +300,10 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # typescript-eslint supports TypeScript <6.1; revisit with parser support.
+      - dependency-name: "typescript"
+        versions: [">=6.1"]
     groups:
       # @mui/icons-material declares a peer dependency on the matching
       # @mui/material version, so bumping either one alone leaves the other

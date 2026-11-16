@@ -253,6 +253,10 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 	}
 
 	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
+	// Queue candidates use an immutable commit rather than a named branch.
+	if matched, _ := regexp.MatchString(`^[0-9a-f]{40}$`, branch); matched {
+		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", repoName, branch, path)
+	}
 
 	pullNumber := os.Getenv("PULL_NUMBER")
 	if pullNumber != "" {

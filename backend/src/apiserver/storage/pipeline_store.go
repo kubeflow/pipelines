@@ -73,6 +73,12 @@ type PipelineStoreInterface interface {
 	UpdatePipelineFields(pipelineID string, displayName string, tags map[string]string) error
 	DeletePipeline(pipelineId string) error
 
+	// DeletePipelineAndVersions deletes a pipeline and all its versions.
+	// The SQL store executes both DELETEs in a single transaction (atomic).
+	// The Kubernetes store deletes versions in a loop then the pipeline;
+	// it is not transactional but is idempotent and safe to retry.
+	DeletePipelineAndVersions(pipelineID string) error
+
 	// `pipeline_versions`
 	CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error)
 	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
@@ -322,6 +328,9 @@ func (s *PipelineStore) scanPipelinesRows(rows *sql.Rows) ([]*model.Pipeline, er
 			)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return pipelines, nil
 }
 
@@ -390,6 +399,51 @@ func (s *PipelineStore) DeletePipeline(id string) error {
 		return util.NewInternalServerError(err, "Failed to create query to delete a pipeline with id %v", id)
 	}
 	return s.ExecuteSQL(sql, args, "delete", "pipeline")
+}
+
+// DeletePipelineAndVersions atomically deletes a pipeline and all its versions.
+// Tags are cleaned up via ON DELETE CASCADE.
+func (s *PipelineStore) DeletePipelineAndVersions(pipelineID string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+
+	versionSQL, versionArgs, err := qb.
+		Delete(q("pipeline_versions")).
+		Where(sq.Eq{q("PipelineId"): pipelineID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete pipeline versions for pipeline %v", pipelineID)
+	}
+
+	pipelineSQL, pipelineArgs, err := qb.
+		Delete(q("pipelines")).
+		Where(sq.Eq{q("UUID"): pipelineID}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete pipeline %v", pipelineID)
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to start a transaction to delete pipeline %v and its versions", pipelineID)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(versionSQL, versionArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to delete pipeline versions for pipeline %v", pipelineID)
+	}
+
+	_, err = tx.Exec(pipelineSQL, pipelineArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to delete pipeline %v", pipelineID)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "Failed to commit transaction to delete pipeline %v and its versions", pipelineID)
+	}
+	glog.Infof("Successfully deleted pipeline %v and all its versions in a single transaction", pipelineID)
+	return nil
 }
 
 // Creates a pipeline and a pipeline version in a single transaction.
@@ -1012,6 +1066,9 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 			)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return pipelineVersions, nil
 }
 
@@ -1239,6 +1296,9 @@ func (s *PipelineStore) getTags(tableName, idColumn, entityID string) (map[strin
 		}
 		tags[key] = value
 	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate tag rows for %v %v", tableName, entityID)
+	}
 	return tags, nil
 }
 
@@ -1282,6 +1342,9 @@ func queryTagsForEntities(querier sqlQuerier, dbDialect dialect.DBDialect, table
 			result[entityID] = make(map[string]string)
 		}
 		result[entityID][key] = value
+	}
+	if err := rows.Err(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to iterate tag rows for %v", tableName)
 	}
 	return result, nil
 }

@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -264,7 +265,7 @@ class ReleaseGatesTest(unittest.TestCase):
         with (
             mock.patch.object(steps, 'wait_for_pr_merge'),
             mock.patch.object(
-                core.time,
+                time,
                 'sleep',
                 side_effect=AssertionError('Unexpected CI wait'),
             ),

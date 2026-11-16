@@ -14,17 +14,26 @@
 # limitations under the License.
 """Deployment and generation wiring for the supported KFP API."""
 
+import importlib
 import os
 import re
-import runpy
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def release_command_builder():
+    """Import the releaser's version-bump command from this checkout."""
+    with mock.patch.object(sys, 'path', [str(ROOT / 'release'), *sys.path]):
+        commands = importlib.import_module('kfpr.commands')
+    return commands.release_version_bump_command
 
 
 class V2DeploymentContractTest(unittest.TestCase):
@@ -53,9 +62,7 @@ class V2DeploymentContractTest(unittest.TestCase):
                 self.assertNotIn('v1beta1', text)
 
     def test_release_generates_legacy_api_only_when_protos_exist(self):
-        release_command = runpy.run_path(str(ROOT / 'release/kfpr/core.py'))[
-            'release_version_bump_command'
-        ]
+        release_command = release_command_builder()
         for legacy_protos in (False, True):
             with (
                 self.subTest(legacy_protos=legacy_protos),

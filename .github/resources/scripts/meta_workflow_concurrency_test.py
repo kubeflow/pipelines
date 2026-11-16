@@ -209,10 +209,11 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
             'CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}', writer
         )
         self.assertIn('CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}', writer)
-        self.assertIn("poll: 'false'", writer)
-        # poll: 'false' alone is not enough: the pinned action still waits a
-        # minute before its first API call, holding the shared writer lock.
-        self.assertIn("delay: '0'", writer)
+        # One event-driven reconciliation must not hold the writer lock
+        # in an external poller or pre-validation delay.
+        self.assertNotIn('wechuli/allcheckspassed@', writer)
+        self.assertNotIn('id: poll', writer)
+        self.assertIn('finalize({github', writer)
         self.assertNotIn('sleep', writer)
 
     def test_publisher_has_pr_label_write_permission(self):
@@ -299,9 +300,10 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
                     self.assertNotIn('allow-unsafe-pr-checkout', step)
 
     def test_publisher_exclusion_matches_hosted_matrix_job_name(self):
-        workflow = self._read_workflow('ci-checks.yml')
-        exclusions = re.search(r"checks_exclude: '([^']+)'", workflow).group(1)
-        pattern = exclusions.split(',')[0]
+        checker = (
+            ROOT / '.github/resources/scripts/ci_check_runs.js'
+        ).read_text()
+        pattern = re.search(r'const EXCLUDED = /(.+)/;', checker).group(1)
         for name in [
             'check_ci_status',
             'check_ci_status (0)',
@@ -769,8 +771,10 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn('persist-credentials: false', workflow)
         self.assertNotIn('ref: ${{ github.event.pull_request.head', workflow)
         self.assertNotIn('${{ github.event.label.name }}', workflow)
-        self.assertIn("poll: 'false'", workflow)
-        self.assertIn("delay: '0'", workflow)
+        self.assertNotIn('wechuli/allcheckspassed@', workflow)
+        self.assertNotIn('id: poll', workflow)
+        self.assertIn('finalize({github', workflow)
+        self.assertIn('finalizeMergedRecovery({github', workflow)
         self.assertIn('types: [requested, in_progress, completed]', workflow)
         self.assertIn('reopened, edited, labeled', workflow)
         selector = workflow.split('    workflows:', 1)[1].split(
