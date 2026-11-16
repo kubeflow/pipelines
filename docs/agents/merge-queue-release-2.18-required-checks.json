@@ -1,0 +1,17 @@
+{
+  "strict": false,
+  "checks": [
+    {
+      "context": "DCO",
+      "app_id": 1861
+    },
+    {
+      "context": "pre-commit",
+      "app_id": 15368
+    },
+    {
+      "context": "ci-passed",
+      "app_id": 15368
+    }
+  ]
+}

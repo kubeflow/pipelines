@@ -13,7 +13,7 @@
 
 const {workflowAttempts, publishedAttempts} = require('./ci_workflow_attempts');
 const {invalidRunMetadata} = require('./ci_expected_workflows');
-const {loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
+const {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule} = require('./merge_queue_policy');
 const SHA = /^[0-9a-f]{40}$/;
 const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
   repository(owner:$owner, name:$repo) { nameWithOwner mergeQueue(branch:$branch) {
@@ -26,7 +26,7 @@ const QUEUE = `query($owner:String!, $repo:String!, $branch:String!) {
 
 function policyReason(pr, repository, branch) {
   if (!pr || pr.base?.repo?.full_name !== repository || pr.base.ref !== branch ||
-      !['master', 'main'].includes(branch) || !SHA.test(pr.head?.sha || '') ||
+      !QUEUE_BRANCHES.includes(branch) || !SHA.test(pr.head?.sha || '') ||
       typeof pr.node_id !== 'string' || !pr.node_id || !Array.isArray(pr.labels) ||
       pr.labels.some(label => typeof label?.name !== 'string' || !label.name) ||
       typeof pr.draft !== 'boolean' || typeof pr.merged !== 'boolean' ||
@@ -37,7 +37,7 @@ function policyReason(pr, repository, branch) {
   const labels = new Set(pr.labels.map(label => label.name));
   if ([...labels].some(label => label === 'do-not-merge' || label.startsWith('do-not-merge/') ||
       ['needs-rebase', 'needs-ok-to-test'].includes(label))) return 'PR has a merge hold';
-  // Match the existing development-branch Dependabot exception, not arbitrary bots.
+  // Match the verified Dependabot identity on every explicitly enabled queue.
   if (pr.user?.login === 'dependabot[bot]' && pr.user.type === 'Bot') return null;
   if (!labels.has('lgtm') || !labels.has('approved')) return 'Prow lgtm and approved are required';
   return null;
@@ -156,8 +156,9 @@ function queueFingerprint(entries, policies, context, group) {
 // No snapshot is reused between reservations or workflow dispatches.
 async function inspectDispatchSnapshot({github, context, group, root}) {
   const configured = loadPolicy(root).enabled_branches;
-  if (!['master', 'main'].includes(group.baseRef) ||
-      (!configured.includes('~DEFAULT_BRANCH') && !configured.includes(group.baseRef))) return null;
+  if (!QUEUE_BRANCHES.includes(group.baseRef) ||
+      (!configured.includes(group.baseRef) &&
+       !(configured.includes('~DEFAULT_BRANCH') && ['master', 'main'].includes(group.baseRef)))) return null;
   const response = await github.graphql(`query DispatchSnapshot(
     $owner:String!, $repo:String!, $branch:String!, $candidate:String!, $base:String!) {
     repository(owner:$owner, name:$repo) {
@@ -185,7 +186,7 @@ async function inspectDispatchSnapshot({github, context, group, root}) {
     if (!['master', 'main'].includes(repo.defaultBranchRef?.name)) {
       throw new Error('Cannot resolve merge queue default branch to trusted master or main.');
     }
-    if (repo.defaultBranchRef.name !== group.baseRef) return null;
+    if (!configured.includes(group.baseRef) && repo.defaultBranchRef.name !== group.baseRef) return null;
   }
   await requireQueueRule({github, context, branch: group.baseRef});
   for (const ref of [repo.candidateRef, repo.baseRef]) {
@@ -210,8 +211,10 @@ async function admissionPassed(github, context, pr) {
     ...context.repo, ref: pr.head.sha, per_page: 100,
   });
   const status = statuses.find(status => status.context === 'ci-passed');
-  if (!(['master', 'main'].includes(pr.base.ref) && status?.state === 'success' &&
-    Number.isSafeInteger(status.id) && status.id > 0 && new RegExp(`^Queue admission ${pr.base.ref} CI passed; base policy [0-9a-f]{64}\\.$`).test(status.description || ''))) return null;
+  const prefix = `Queue admission ${pr.base.ref} CI passed; base policy `;
+  if (!(QUEUE_BRANCHES.includes(pr.base.ref) && status?.state === 'success' &&
+    Number.isSafeInteger(status.id) && status.id > 0 && (status.description || '').startsWith(prefix) &&
+    /^[0-9a-f]{64}\.$/.test((status.description || '').slice(prefix.length)))) return null;
   const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
     ...context.repo, event: 'pull_request', head_sha: pr.head.sha, per_page: 100,
   });

@@ -88,7 +88,7 @@ const github = {{
       const count = refCounts.get(options.ref) || 0;
       refCounts.set(options.ref, count + 1);
       const values = fixture.refs[options.ref] ||
-        [['heads/master', 'heads/main'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
+        [['heads/master', 'heads/main', 'heads/release-2.18'].includes(options.ref) ? {json.dumps(BASE)} : {json.dumps(HEAD)}];
       const sha = values[Math.min(count, values.length - 1)];
       if (sha === null) throw Object.assign(new Error('Ref not found'), {{status: 404}});
       return {{data: {{ref: 'refs/' + options.ref, object: {{type: 'commit', sha}}}}}};
@@ -177,6 +177,63 @@ class MergeGroupTest(unittest.TestCase):
             'success',
             result,
         )
+
+    def test_release_image_companions_require_exact_queue_coverage(self):
+        for producer in ['build-tools-images', 'runtime-base-images']:
+            with self.subTest(producer=producer):
+                path = f'.github/workflows/{producer}.yml'
+                companion = f'.github/workflows/{producer}-merge-group.yml'
+                run = good_run(
+                    path=companion,
+                    head_branch='gh-readonly-queue/release-2.18/pr-7-abcdef',
+                )
+                original = lane(
+                    path=path,
+                    pull_request={'branches': ['release-2.18']},
+                    merge_group=None,
+                )
+                queue_lane = lane(
+                    path=companion,
+                    pull_request=None,
+                    merge_group={'branches': ['release-2.18']},
+                )
+                result = reconcile(
+                    event=run, runs=[run], lanes=[original, queue_lane]
+                )
+                self.assertNotIn('error', result)
+                self.assertTrue(result['writes'], result)
+                self.assertEqual(
+                    result['writes'][-1]['state'], 'success', result
+                )
+                self.assert_not_successful(
+                    reconcile(event=run, runs=[run], lanes=[original])
+                )
+                self.assert_not_successful(
+                    reconcile(
+                        event=run,
+                        runs=[run],
+                        lanes=[
+                            original,
+                            {
+                                **queue_lane,
+                                'merge_group': {'branches': ['main']},
+                            },
+                        ],
+                    )
+                )
+                self.assert_not_successful(
+                    reconcile(
+                        event=run,
+                        runs=[run],
+                        lanes=[
+                            {
+                                **original,
+                                'path': '.github/workflows/unmapped.yml',
+                            },
+                            queue_lane,
+                        ],
+                    )
+                )
 
     def test_success_is_bound_to_queue_sha_and_trusted_master_policy(self):
         result = reconcile()
@@ -376,7 +433,7 @@ class MergeGroupTest(unittest.TestCase):
     def test_enabled_queue_policy_blocks_or_revokes_unapproved_candidates(self):
         from merge_queue_admission_test import entry, pr, queue
 
-        for branch in ['master', 'main']:
+        for branch in ['master', 'main', 'release-2.18']:
             with (
                 self.subTest(branch=branch),
                 tempfile.TemporaryDirectory() as directory,
@@ -486,7 +543,7 @@ class MergeGroupTest(unittest.TestCase):
     def test_non_queue_events_do_not_publish(self):
         for changes in [
             {'event': 'pull_request'},
-            {'head_branch': 'gh-readonly-queue/release-2.18/pr-7-abcdef'},
+            {'head_branch': 'gh-readonly-queue/release-2.19/pr-7-abcdef'},
             {'head_branch': 'feature'},
             {'head_repository': {'full_name': 'fork/repo'}},
             {'head_sha': 'not-a-sha'},

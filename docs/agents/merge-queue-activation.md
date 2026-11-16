@@ -2,10 +2,12 @@
 
 The activation policy selects `~DEFAULT_BRANCH`, resolved from live repository
 metadata to either `master` or `main`. It never enables both names at once.
-**Do not merge this activation change until the coordinated cutover below.**
-An unmerged PR does not activate admission. The trusted default-branch controller requires both the enabled policy
+Support changes can merge with the current policy unchanged. Additional branch
+activation requires the coordinated sequence below. The trusted default-branch controller requires both the enabled policy
 and an active queue rule; enabling policy without that rule fails closed.
-The nondefault name and release branches retain existing behavior. Unexpected
+The nondefault name and unconfigured release branches retain existing behavior.
+`release-2.18` can be explicitly enabled alongside the default selector after its
+workflow prerequisites land; see the release opt-in section below. Unexpected
 default branch names, unreadable metadata, or mismatched repository identity fail
 closed. The selector is resolved afresh at enforcement boundaries.
 
@@ -257,3 +259,49 @@ PYTHONPATH=.github/resources/scripts python3 -m unittest \
 These deterministic fixtures exercise disabled and enabled policy, API failures,
 queued policy revocation, branch/head identity, and external Tide scope. They do
 not establish a live queue rollout or deployment of the external configuration.
+
+## Release-2.18 opt-in
+
+Release support is explicitly scoped to `release-2.18`; other release branches
+retain their current behavior. The default-branch policy remains unchanged until
+release prerequisites land. The controller accepts an explicit release alongside
+`~DEFAULT_BRANCH`, preserves the live default selector across renames, and requires
+an active queue rule independently for each enabled branch. Verified Dependabot PRs use the same automatic admission exception as the
+default branch: passing CI is required, but `lgtm` and `approved` are not. Holds
+still block admission; human-authored PRs retain both review labels.
+
+The trusted controller and publisher run on the default branch, using the live
+release tip for workflow policy and the exact queue candidate for execution.
+Release image producers have explicit read-only queue companions; both the PR
+producer and matching queue companion must appear in trusted workflow inventory.
+Default-branch dispatch registrations for release-only workflow paths fail closed
+if run there; the actual implementations execute at the release queue ref.
+
+Activation order (Tide configuration remains unchanged):
+
+1. Merge default-branch controller/registration support, then the release workflow
+   PR. Verify every required release lane has exact-ref/SHA dispatch guards,
+   automatic test selection and no image publication from queue candidates.
+2. Resolve the registered release-only workflow IDs and verify dispatch uses the
+   implementation on the release candidate, not the default-branch registration.
+3. Apply the explicit release policy from
+   [merge-queue-release-2.18-policy.json](merge-queue-release-2.18-policy.json) in a
+   reviewed default-branch activation commit. Coordinate its merge with the rule
+   below; the controller fails closed while an enabled branch has no rule.
+4. Create [the release ruleset](merge-queue-release-2.18-ruleset.json), scoped to
+   `refs/heads/release-2.18`, with five candidate builds, one-to-five merging PRs,
+   ALLGREEN, squash and a 120-minute timeout. Verify effective enforcement and
+   empty bypass actors, including no Tide bypass, before relaxing freshness.
+5. Read the current release protection and reconcile any drift. Apply only
+   [the required-checks patch](merge-queue-release-2.18-required-checks.json):
+   preserve existing App-bound DCO and pre-commit checks, add App-bound ci-passed,
+   and set strict freshness false. Preserve every unrelated protection.
+6. Observe a normally approved release PR automatically enter the queue, run all
+   required exact-candidate lanes, publish DCO/pre-commit/ci-passed, and merge.
+   Verify scheduled recovery and a hold/revoked approval blocks merging. Tide
+   can still attempt direct merges but the no-bypass queue rule rejects them.
+
+Do not enable the release rule while its dispatch prerequisites are missing.
+For rollback, freeze and drain release candidates, remove the explicit release
+policy entry and restore strict release freshness before removing queue
+protection. Preserve main's policy and queue rule throughout.

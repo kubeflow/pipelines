@@ -68,15 +68,16 @@ async function currentStatus(github, context, head) {
   return null;
 }
 
-async function baseRevision(github, context, pr) {
+async function baseRevision(github, context, pr, queueAdmission = false) {
   // ONE validated base revision for policy loading, execution freshness,
   // publication, and the post-publication check. GitHub freezes pr.base.sha at
   // the PR's last sync, so any use of the frozen sha leaves a stale green
   // untouched as the base advances. Key every use off the LIVE base branch tip
   // instead, so an advance revokes the green and forces fresh CI against the
-  // new base. Release branches keep their frozen base.sha behavior.
+  // new base. Release branches keep their frozen base.sha behavior until queue admission
+  // is explicitly enabled; queued releases also load policy from the live tip.
   let sha = pr.base.sha;
-  if (isDevelopmentBranch(pr.base.ref)) {
+  if (isDevelopmentBranch(pr.base.ref) || queueAdmission) {
     const {data} = await github.rest.git.getRef({
       ...context.repo, ref: `heads/${pr.base.ref}`,
     });
@@ -124,7 +125,7 @@ async function recoveryCandidates({github, context, root = process.env.GITHUB_WO
       continue;
     }
     if (status?.state === 'success' &&
-        status.description === successDescription(pr, await baseRevision(github, context, pr), queueAdmission) &&
+        status.description === successDescription(pr, await baseRevision(github, context, pr, queueAdmission), queueAdmission) &&
         (!queueAdmission || publishedAttempts(status, `${context.repo.owner}/${context.repo.repo}`))) continue;
     if (await remainsBlocked(pr, status, queueAdmission)) continue;
     candidates.push({number: pr.number, head: pr.head.sha});
@@ -297,13 +298,12 @@ async function freshAfter(github, context, pr) {
 }
 
 async function evidence(github, context, pr, root) {
-  const baseSha = await baseRevision(github, context, pr);
-  // Development branch tips advance behind the publisher's back; release
-  // branches keep their frozen base.sha behavior (see baseRevision). The
-  // freshness check is scoped to the live base so release branches are
-  // unchanged. An enforced queue validates the combined candidate instead;
-  // admission still checks current-head CI, trusted policy, and retarget history.
   const queuedAdmission = await queueEnabled({github, context, branch: pr.base.ref, root});
+  const baseSha = await baseRevision(github, context, pr, queuedAdmission);
+  // Unqueued release branches retain their existing freshness behavior.
+  // Enabled queues load live branch policy but validate base freshness on
+  // the combined candidate instead;
+  // admission still checks current-head CI, trusted policy, and retarget history.
   const liveBase = isDevelopmentBranch(pr.base.ref) && !queuedAdmission;
   const [inventory, cutoff] = await settleAll([
     loadBaseInventory({github, ...context.repo, pullRequest: pr, baseSha, root, cacheRunId: context.runId}),

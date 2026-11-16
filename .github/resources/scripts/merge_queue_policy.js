@@ -13,6 +13,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const QUEUE_BRANCHES = ['master', 'main', 'release-2.18'];
 const DEFAULT_ROOT = path.resolve(__dirname, '../../..');
 
 function loadPolicy(root = DEFAULT_ROOT) {
@@ -21,10 +22,10 @@ function loadPolicy(root = DEFAULT_ROOT) {
   if (!policy || Array.isArray(policy) || policy.version !== 1 ||
       Object.keys(policy).some(key => !['version', 'enabled_branches'].includes(key)) ||
       !Array.isArray(policy.enabled_branches) ||
-      policy.enabled_branches.some(branch => !['master', 'main', '~DEFAULT_BRANCH'].includes(branch)) ||
+      policy.enabled_branches.some(branch => ![...QUEUE_BRANCHES, '~DEFAULT_BRANCH'].includes(branch)) ||
       new Set(policy.enabled_branches).size !== policy.enabled_branches.length ||
-      (policy.enabled_branches.includes('~DEFAULT_BRANCH') && policy.enabled_branches.length !== 1)) {
-    throw new Error('Invalid merge queue policy; use master/main or the exclusive ~DEFAULT_BRANCH selector with policy version 1.');
+      (policy.enabled_branches.includes('~DEFAULT_BRANCH') && policy.enabled_branches.some(branch => ['master', 'main'].includes(branch)))) {
+    throw new Error('Invalid merge queue policy; use master/main or ~DEFAULT_BRANCH, optionally with release-2.18, and policy version 1.');
   }
   return policy;
 }
@@ -39,11 +40,14 @@ async function enabledBranches({github, context, root}) {
       !['master', 'main'].includes(data?.default_branch)) {
     throw new Error('Cannot resolve merge queue default branch to trusted master or main.');
   }
-  return [data.default_branch];
+  return branches.map(branch => branch === '~DEFAULT_BRANCH' ? data.default_branch : branch);
 }
 
 async function queueEnabled({github, context, branch, root}) {
-  if (!['master', 'main'].includes(branch)) return false;
+  if (!QUEUE_BRANCHES.includes(branch)) return false;
+  const configured = loadPolicy(root).enabled_branches;
+  if (!configured.includes(branch) && !(configured.includes('~DEFAULT_BRANCH') &&
+      ['master', 'main'].includes(branch))) return false;
   if (!(await enabledBranches({github, context, root})).includes(branch)) return false;
   await requireQueueRule({github, context, branch});
   return true;
@@ -60,4 +64,4 @@ async function requireQueueRule({github, context, branch}) {
   }
 }
 
-module.exports = {loadPolicy, enabledBranches, queueEnabled, requireQueueRule};
+module.exports = {QUEUE_BRANCHES, loadPolicy, enabledBranches, queueEnabled, requireQueueRule};

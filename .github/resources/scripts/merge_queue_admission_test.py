@@ -282,6 +282,52 @@ def dispatch_snapshot(branch='master', entries=None, prs=None, **overrides):
 
 
 class QueueAdmissionTest(unittest.TestCase):
+    def test_release_admission_matches_dependabot_exception_and_respects_holds(
+        self,
+    ):
+        branch = 'release-2.18'
+        result = run_case(branch=branch)
+        self.assertNotIn('error', result)
+        self.assertTrue(
+            any(w['route'] == 'enqueue' for w in result['writes']), result
+        )
+        bot = pr(
+            branch=branch,
+            labels=[],
+            user={'login': 'dependabot[bot]', 'type': 'Bot'},
+        )
+        result = run_case(branch=branch, prs={'7': [bot]})
+        self.assertTrue(
+            any(w['route'] == 'enqueue' for w in result['writes']), result
+        )
+        for changes in [
+            {'labels': [{'name': 'do-not-merge/hold'}]},
+            {'user': {'login': 'another-bot', 'type': 'Bot'}},
+            {'user': {'login': 'dependabot[bot]', 'type': 'User'}},
+        ]:
+            result = run_case(branch=branch, prs={'7': [{**bot, **changes}]})
+            self.assertEqual(result['writes'], [], result)
+
+    def test_explicit_release_snapshot_survives_default_rename(self):
+        snapshot = dispatch_snapshot('release-2.18')
+        snapshot['repository']['defaultBranchRef'] = {'name': 'main'}
+        result = run_case(
+            'inspectDispatchSnapshot',
+            branch='release-2.18',
+            enabled=['~DEFAULT_BRANCH', 'release-2.18'],
+            dispatchSnapshots=[snapshot],
+        )
+        self.assertNotIn('error', result)
+        self.assertIsNotNone(result['result'])
+        result = run_case(
+            'inspectDispatchSnapshot',
+            branch='release-2.18',
+            enabled=['~DEFAULT_BRANCH'],
+            dispatchSnapshots=[snapshot],
+        )
+        self.assertIsNone(result['result'])
+        self.assertEqual(result['calls'], [])
+
     def test_healthy_queue_sweep_reads_members_once(self):
         for branch in ['master', 'main']:
             with self.subTest(branch=branch):
